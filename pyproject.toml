@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tiza"
+version = "0.10.0"
+license = "MIT"
+license-files = ["LICENSE"]
+description = "CLI y skill para publicar contenidos en tu aula virtual Moodle sin exponer datos del alumnado"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-moodle==1.0.1",
+    "requests>=2.31",  # se importa directamente (ya llegaba con python-moodle)
+    "markdown-it-py>=3.0",
+    "platformdirs>=4.0",
+    "beautifulsoup4>=4.12",
+    "html5lib>=1.1",  # el filtro valida el árbol que construye un navegador
+    "tinycss2>=1.3",  # análisis de los atributos style
+    "pyyaml>=6.0",
+    "tzdata>=2024.1",
+]
+
+[project.scripts]
+tiza = "tiza.cli:main"
+
+[project.gui-scripts]
+tiza-ventana = "tiza.ventana:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+ventana = ["pywebview>=6.2,<7"]  # ventana de sesión (tiza-ventana); en Windows usa WebView2
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tiza"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "B", "UP", "SIM", "I"]
+# E741: los tests usan «l» en comprensiones cortas.
+# SIM102/SIM105: preferencias de estilo que el código no sigue.
+ignore = ["E741", "SIM102", "SIM105"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tiza", "dobles"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["tiza"]

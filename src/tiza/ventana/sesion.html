@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- La directiva de evaluación la exige el puente de pywebview, que crea sus
+     funciones con el constructor Function (webview/js/api.js). No se permiten
+     scripts incrustados sin nonce: un HTML inyectado no ejecuta nada, y este
+     código nunca evalúa cadenas. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-__NONCE__' 'unsafe-eval'; style-src 'nonce-__NONCE__'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conexión con el aula</title>
+<style nonce="__NONCE__">
+:root { --fondo: #F6F3EE; --texto: #1F2328; --suave: #5B6169; --marca: #7A1F2B; --borde: #D9D3C7; --aviso: #8A5A00; --peligro: #A4161A; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.45 "Segoe UI", system-ui, sans-serif; background: var(--fondo); color: var(--texto); }
+header { background: var(--marca); color: #fff; padding: 14px 18px; }
+header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+header p { margin: 2px 0 0; font-size: 12px; opacity: .85; word-break: break-all; }
+main { padding: 18px; }
+.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+h2 { font-size: 16px; margin: 0 0 10px; }
+.suave { color: var(--suave); }
+.error { color: var(--peligro); }
+.aviso { color: var(--aviso); }
+label { display: block; font-weight: 600; margin: 10px 0 4px; }
+input { width: 100%; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; }
+.botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--borde); background: #fff; cursor: pointer; }
+button.principal { background: var(--marca); border-color: var(--marca); color: #fff; }
+button.peligro { background: var(--peligro); border-color: var(--peligro); color: #fff; }
+ul { margin: 6px 0; padding-left: 20px; }
+.documento { border-top: 1px solid var(--borde); padding-top: 10px; margin-top: 10px; }
+#registro { font-size: 13px; max-height: 220px; overflow: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Conexión con el aula</h1>
+  <p id="carpeta"></p>
+</header>
+<main>
+  <section id="pantalla" class="tarjeta" aria-live="polite"></section>
+  <section class="tarjeta">
+    <h2>Registro</h2>
+    <ul id="registro"></ul>
+  </section>
+</main>
+<script nonce="__NONCE__">
+"use strict";
+(function () {
+  var ultimo = null;
+  var anotadas = -1;
+
+  function api() {
+    return window.pywebview && window.pywebview.api;
+  }
+
+  function el(etiqueta, clase, texto) {
+    var nodo = document.createElement(etiqueta);
+    if (clase) { nodo.className = clase; }
+    if (texto !== undefined && texto !== null) { nodo.textContent = String(texto); }
+    return nodo;
+  }
+
+  function boton(texto, clase, accion) {
+    var nodo = el("button", clase, texto);
+    nodo.type = "button";
+    nodo.addEventListener("click", accion);
+    return nodo;
+  }
+
+  function botones() {
+    var caja = el("div", "botones");
+    for (var i = 0; i < arguments.length; i++) { caja.appendChild(arguments[i]); }
+    return caja;
+  }
+
+  function campo(etiqueta, tipo, id) {
+    var caja = el("div");
+    var nombre = el("label", null, etiqueta);
+    nombre.htmlFor = id;
+    var entrada = el("input");
+    entrada.type = tipo;
+    entrada.id = id;
+    entrada.autocomplete = "off";
+    entrada.spellcheck = false;
+    caja.appendChild(nombre);
+    caja.appendChild(entrada);
+    return { nodo: caja, entrada: entrada };
+  }
+
+  function lista(textos) {
+    var ul = el("ul");
+    textos.forEach(function (texto) { ul.appendChild(el("li", null, texto)); });
+    return ul;
+  }
+
+  function responder(numero, valor) {
+    var puente = api();
+    if (puente) { puente.responder(numero, valor); }
+  }
+
+  function siNo(p, si, no, claseSi) {
+    return botones(
+      boton(si, claseSi || "principal", function () { responder(p.numero, true); }),
+      boton(no, null, function () { responder(p.numero, false); }));
+  }
+
+  var pintores = {
+    cargando: function () {
+      return [el("p", "suave", "Preparando la conexión…")];
+    },
+    conectando: function () {
+      return [el("p", "suave", "Conectando con el aula virtual…")];
+    },
+    configurar: function (p) {
+      var url = campo("Dirección de tu aula virtual", "text", "url");
+      url.entrada.placeholder = "https://aula.ejemplo.org/tu-centro";
+      var usuario = campo("Usuario del aula", "text", "usuario");
+      var nodos = [
+        el("h2", null, "Primera vez: tu aula virtual"),
+        el("p", "suave", "Copia la dirección de tu aula virtual desde el navegador. Aquí no se guarda ninguna contraseña."),
+        url.nodo, usuario.nodo];
+      if (p.error) { nodos.push(el("p", "error", p.error)); }
+      nodos.push(botones(
+        boton("Guardar", "principal", function () {
+          responder(p.numero, { url: url.entrada.value, usuario: usuario.entrada.value });
+        }),
+        boton("Cancelar", null, function () { responder(p.numero, null); })));
+      return nodos;
+    },
+    password: function (p) {
+      var clave = campo("Contraseña del aula", "password", "clave");
+      function enviar() {
+        var valor = clave.entrada.value;
+        clave.entrada.value = "";
+        responder(p.numero, valor);
+      }
+      clave.entrada.addEventListener("keydown", function (evento) {
+        if (evento.key === "Enter") { enviar(); }
+      });
+      setTimeout(function () { clave.entrada.focus(); }, 0);
+      return [
+        el("h2", null, "Entrar en el aula virtual"),
+        el("p", null, "Vas a escribir la contraseña del aula de " + p.servidor + "."),
+        el("p", null, "Usuario: " + p.usuario),
+        el("p", "suave", "La contraseña solo se escribe en esta ventana. Nunca en el chat del asistente."),
+        clave.nodo,
+        botones(
+          boton("Entrar", "principal", enviar),
+          boton("Cancelar", null, function () { clave.entrada.value = ""; responder(p.numero, null); }))];
+    },
+    elegir_curso: function (p) {
+      var nodos = [el("h2", null, "¿Cuál es tu curso de " + p.entorno.toUpperCase() + "?"), el("p", "suave", p.para_que)];
+      p.opciones.forEach(function (nombre, indice) {
+        nodos.push(botones(boton(nombre, null, function () { responder(p.numero, { indice: indice }); })));
+      });
+      if (p.sin_pruebas) {
+        nodos.push(el("p", "aviso", "Sin curso de pruebas, en el curso real solo se podrá publicar oculto."));
+        nodos.push(botones(boton("No tengo curso de pruebas", null, function () {
+          responder(p.numero, { sin_curso: true });
+        })));
+      }
+      var id = campo("O escribe su id (está en la dirección del curso: course/view.php?id=1234)", "text", "id");
+      nodos.push(id.nodo);
+      nodos.push(botones(
+        boton("Usar este id", null, function () { responder(p.numero, { id: id.entrada.value }); }),
+        boton("Cancelar", null, function () { responder(p.numero, null); })));
+      return nodos;
+    },
+    cursos: function (p) {
+      var nodos = [el("h2", null, "Cursos de esta conexión")];
+      p.cursos.forEach(function (curso) {
+        nodos.push(el("p", null, curso.entorno + ": " + curso.curso));
+        if (curso.aviso) { nodos.push(el("p", "aviso", curso.aviso)); }
+      });
+      if (p.sin_pruebas) {
+        nodos.push(el("p", "error", "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."));
+      }
+      nodos.push(el("p", "suave", "Cada publicación en el curso real se confirmará en esta ventana."));
+      nodos.push(siNo(p, "Abrir la conexión", "No"));
+      return nodos;
+    },
+    autoprueba: function (p) {
+      return [
+        el("h2", null, "Autoprueba"),
+        el("p", null, "Conviene pasarla: crea y borra contenido temporal en el curso de pruebas para comprobar que todo funciona (1-2 minutos)."),
+        siNo(p, "Pasarla ahora", "Ahora no")];
+    },
+    sin_pruebas: function (p) {
+      return [
+        el("h2", null, "¿Abrir sin curso de pruebas?"),
+        el("p", "error", p.aviso),
+        siNo(p, "Sí, abrir sin pruebas", "No", "peligro")];
+    },
+    abierta: function (p) {
+      var nodos = [el("h2", null, "Conectado hasta las " + p.hasta)];
+      var cursos = p.cursos || [];
+      cursos.forEach(function (curso) {
+        nodos.push(el("p", null, curso.entorno + ": " + curso.curso));
+      });
+      var hay_pruebas = cursos.some(function (curso) { return curso.entorno === "pruebas"; });
+      nodos.push(el("p", null, hay_pruebas
+        ? "El asistente ya puede publicar en el curso de pruebas. Lo que vaya al curso real lo confirmarás aquí."
+        : "Sin curso de pruebas: lo que vaya al curso real se publicará solo oculto y lo confirmarás aquí."));
+      nodos.push(el("p", "suave", "Deja esta ventana abierta mientras trabajas: al cerrarla se corta la conexión."));
+      nodos.push(botones(boton("Cerrar la conexión", null, function () { api().cerrar_ventana(); })));
+      return nodos;
+    },
+    real: function (p) {
+      var nodos = [el("h2", null, "¿Publicar en el curso REAL?"), el("p", null, "Curso: " + p.curso)];
+      p.documentos.forEach(function (doc, indice) {
+        var caja = el("div", "documento");
+        caja.appendChild(el("p", null, doc.titulo));
+        caja.appendChild(el("p", "suave", "Fichero " + doc.fichero + ", verificado en pruebas"));
+        if (doc.enlaces.length) {
+          caja.appendChild(el("p", null, "Enlaces externos:"));
+          caja.appendChild(lista(doc.enlaces));
+        }
+        if (doc.incrustados.length) {
+          caja.appendChild(el("p", null, "Contenido incrustado de otras webs:"));
+          caja.appendChild(lista(doc.incrustados));
+        }
+        if (doc.recursos.length) {
+          caja.appendChild(el("p", null, "Ficheros que se suben:"));
+          caja.appendChild(lista(doc.recursos));
+        }
+        if (doc.vista) {
+          caja.appendChild(botones(boton("Ver vista previa", null, function () { api().vista_previa(p.numero, indice); })));
+        }
+        nodos.push(caja);
+      });
+      p.secciones.forEach(function (seccion) {
+        nodos.push(el("p", "aviso", "Se creará la sección «" + seccion + "» (oculta)."));
+      });
+      nodos.push(el("p", "aviso", p.visibilidad));
+      nodos.push(siNo(p, "Publicar en real", "No publicar", "peligro"));
+      return nodos;
+    },
+    real_sin_pruebas: function (p) {
+      var nodos = [
+        el("h2", null, "¿Publicar oculto en el curso REAL?"),
+        el("p", null, "Curso: " + p.curso),
+        el("p", "aviso", p.aviso)];
+      p.documentos.forEach(function (doc) {
+        nodos.push(el("p", null, doc.tipo + ": «" + doc.nombre + "» (fichero " + doc.fichero + ")"));
+        if (doc.existe === true) {
+          nodos.push(el("p", "aviso", "Ya existe en el aula: se ocultará si estaba visible."));
+        } else if (doc.existe === null || doc.existe === undefined) {
+          nodos.push(el("p", "aviso", "Puede que ya exista en el aula: se ocultará si estaba visible."));
+        }
+      });
+      p.secciones.forEach(function (seccion) {
+        nodos.push(el("p", "aviso", "Se creará la sección «" + seccion + "» (oculta)."));
+      });
+      nodos.push(el("p", "aviso", "Solo se publicará oculto; el alumnado no lo verá."));
+      nodos.push(siNo(p, "Publicar oculto", "No publicar", "peligro"));
+      return nodos;
+    },
+    ampliar: function (p) {
+      return [
+        el("h2", null, "Se ha acabado el tiempo"),
+        el("p", null, "¿Ampliar la conexión " + p.minutos + " minutos más?"),
+        siNo(p, "Ampliar", "Cerrar")];
+    },
+    cerrada: function (p) {
+      return [
+        el("h2", null, "Conexión cerrada"),
+        el("p", null, p.texto),
+        botones(
+          boton("Volver a conectar", "principal", function () { responder(p.numero, true); }),
+          boton("Cerrar la ventana", null, function () { api().cerrar_ventana(); }))];
+    }
+  };
+
+  function pintar(pantalla) {
+    var zona = document.getElementById("pantalla");
+    var pintor = pintores[pantalla.tipo] || pintores.cargando;
+    zona.replaceChildren.apply(zona, pintor(pantalla));
+  }
+
+  function pintarRegistro(estado) {
+    if (estado.anotadas === anotadas) { return; }
+    anotadas = estado.anotadas;
+    var ul = document.getElementById("registro");
+    ul.replaceChildren.apply(ul, estado.registro.map(function (texto) { return el("li", null, texto); }));
+    ul.scrollTop = ul.scrollHeight;
+  }
+
+  function refrescar() {
+    var puente = api();
+    if (!puente) { return; }
+    puente.estado().then(function (estado) {
+      document.getElementById("carpeta").textContent = estado.carpeta;
+      if (estado.pantalla.numero !== ultimo) {
+        ultimo = estado.pantalla.numero;
+        pintar(estado.pantalla);
+      }
+      pintarRegistro(estado);
+    });
+  }
+
+  window.addEventListener("pywebviewready", function () {
+    refrescar();
+    setInterval(refrescar, 300);
+  });
+})();
+</script>
+</body>
+</html>

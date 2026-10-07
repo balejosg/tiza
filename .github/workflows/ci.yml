@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Permisos mínimos del GITHUB_TOKEN: los trabajos solo leen el repositorio.
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    # Tests 100 % offline: nunca se contacta con un aula real.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+      - name: Instalar dependencias
+        run: uv sync --extra dev
+      - name: Ejecutar los tests
+        run: uv run pytest
+
+  instalador:
+    # Prueba los scripts de instalación; no contacta con ningún aula real.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      TIZA_REF: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Instalar (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: sh install.sh
+      - name: Instalar (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./install.ps1
+      - name: Comprobar tiza
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$USERPROFILE/.local/bin:$PATH"
+          tiza --help
+
+  calidad:
+    # Lint, tipos y cobertura mínima. Herramientas efímeras (uvx / --with): no son
+    # dependencias del paquete. Sin red hacia el aula.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+      - name: Instalar dependencias
+        run: uv sync --extra dev
+      - name: Lint
+        run: uvx ruff@0.16.10 check src tests
+      - name: Formato
+        run: uvx ruff@0.16.10 format --check src tests
+      - name: Tipos
+        run: uv run --with mypy==2.4.0 --with types-PyYAML --with types-requests mypy
+      - name: Tests con cobertura
+        run: uv run --with pytest-cov==7.1.0 pytest --cov --cov-report=term-missing --cov-fail-under=80

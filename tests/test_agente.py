@@ -1,0 +1,287 @@
+"""Tests de la API para agentes embebidos (tiza.agente)."""
+
+from __future__ import annotations
+
+import json
+import re
+import threading
+from datetime import UTC, datetime, timedelta
+
+from dobles import enlace_simbolico
+from tiza import agente, buzon, contenido, informe, publicar
+
+PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
+CUESTIONARIO = (
+    "---\ntipo: cuestionario\nnombre: Repaso\nseccion: 3\n"
+    "preguntas:\n"
+    "  - tipo: verdadero_falso\n"
+    "    enunciado: El agua hierve a 100 °C.\n"
+    "    respuesta: verdadero\n"
+    "---\n\nDescripción.\n"
+)
+ESTRUCTURA = {
+    "version": 1,
+    "generado": "2026-10-03T10:00:00+00:00",
+    "cursos": {
+        "pruebas": {"id": 1234, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}]},
+    },
+}
+
+
+def escribir(carpeta, nombre, texto):
+    (carpeta / nombre).write_text(texto, encoding="utf-8")
+
+
+class TestComprobar:
+    def test_pasa_sin_red_y_devuelve_la_vista_previa(self, tmp_path, capsys):
+        escribir(tmp_path, "p.md", PAGINA)
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        assert resultado.informe["resultado"] == "ok"
+        informe.validar(resultado.informe)
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert fichero.vista_previa is not None and fichero.vista_previa.is_file()
+        assert capsys.readouterr() == ("", "")
+
+    def test_explica_cada_fichero_sin_imprimir(self, tmp_path, capsys):
+        escribir(tmp_path, "roto.md", "---\ntipo: pagina\nnombre: P\n---\n\nx\n")
+        escribir(tmp_path, "id.md", PAGINA.replace("seccion: 3", "seccion: 30"))
+        escribir(tmp_path, "bien.md", PAGINA)
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(tmp_path, ["roto.md", "id.md", "bien.md"])
+        roto, por_id, bien = resultado.ficheros
+        assert (roto.fichero, roto.codigo) == ("roto.md", "CAMPO_FALTANTE")
+        assert "seccion" in roto.detalle
+        assert por_id.codigo == "SECCION_ES_ID"
+        assert "escribe «seccion: 3»" in por_id.detalle
+        assert bien.codigo is None
+        assert resultado.informe["errores"] == ["CAMPO_FALTANTE", "SECCION_ES_ID"]
+        assert capsys.readouterr() == ("", "")
+
+    def test_seccion_por_nombre_que_falta_se_creara(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", 'seccion: "Fracciones"'))
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        [fichero] = agente.comprobar(tmp_path, ["p.md"]).ficheros
+        assert fichero.codigo is None
+        assert fichero.seccion_nueva == "Fracciones"
+
+    def test_una_carpeta_preview_enlazada_da_codigo_y_no_escribe_fuera(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        fuera = tmp_path / "fuera"
+        fuera.mkdir()
+        enlace_simbolico(tmp_path / ".tiza" / "preview", fuera)
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        [fichero] = resultado.ficheros
+        assert fichero.codigo == "DIRECTORIO_NO_SEGURO"
+        assert resultado.informe["errores"] == ["DIRECTORIO_NO_SEGURO"]
+        assert list(fuera.iterdir()) == []
+
+    def test_un_recurso_oculto_o_de_fuera_se_rechaza_como_en_la_sesion(self, tmp_path):
+        carpeta = tmp_path / "asig"
+        (carpeta / ".git").mkdir(parents=True)
+        (carpeta / ".git" / "config").write_text("url = x", encoding="utf-8")
+        (tmp_path / "secreto.xlsx").write_bytes(b"x")
+        escribir(carpeta, "oculto.md", PAGINA + "\n[c](.git/config)\n")
+        escribir(carpeta, "fuera.md", PAGINA + "\n[s](../secreto.xlsx)\n")
+        publicar.escribir_estructura(carpeta / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(carpeta, ["oculto.md", "fuera.md"])
+        assert [fichero.codigo for fichero in resultado.ficheros] == [
+            "RECURSO_NO_PERMITIDO",
+            "RUTA_FUERA_DE_CARPETA",
+        ]
+
+    def test_comprobar_un_cuestionario_genera_su_vista_previa(self, tmp_path):
+        escribir(tmp_path, "q.md", CUESTIONARIO)
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(tmp_path, ["q.md"])
+        assert resultado.informe["resultado"] == "ok"
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None and fichero.vista_previa is not None
+        texto = fichero.vista_previa.read_text(encoding="utf-8")
+        assert "Preguntas del cuestionario" in texto
+        assert "Respuesta correcta: <strong>Verdadero</strong>" in texto
+
+    def test_seccion_ausente_lo_dice(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", "seccion: 7"))
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        [fichero] = agente.comprobar(tmp_path, ["p.md"]).ficheros
+        assert fichero.codigo == "SECCION_AUSENTE"
+        assert "no existe la sección 7" in fichero.detalle
+
+    def test_sin_curso_de_pruebas_no_asume_que_existe(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", 'seccion: "Fracciones"'))
+        publicar.escribir_estructura(
+            tmp_path / ".tiza",
+            {
+                "version": 1,
+                "generado": "2026-10-03T10:00:00+00:00",
+                "cursos": {
+                    "real": {
+                        "id": 5678,
+                        "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}],
+                    }
+                },
+            },
+        )
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        assert resultado.informe["resultado"] == "ok"
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert fichero.seccion_nueva == "Fracciones"
+
+    def test_sin_curso_de_pruebas_la_pista_de_id_mira_en_real(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", "seccion: 30"))
+        publicar.escribir_estructura(
+            tmp_path / ".tiza",
+            {
+                "version": 1,
+                "generado": "2026-10-03T10:00:00+00:00",
+                "cursos": {
+                    "real": {
+                        "id": 5678,
+                        "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}],
+                    }
+                },
+            },
+        )
+        [fichero] = agente.comprobar(tmp_path, ["p.md"]).ficheros
+        assert fichero.codigo == "SECCION_ES_ID"
+        assert "escribe «seccion: 3»" in fichero.detalle
+
+    def _solo_real(self, tmp_path, seccion):
+        escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", f"seccion: {seccion}"))
+        publicar.escribir_estructura(
+            tmp_path / ".tiza",
+            {
+                "version": 1,
+                "generado": "2026-10-03T10:00:00+00:00",
+                "cursos": {
+                    "real": {
+                        "id": 5678,
+                        "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}],
+                    }
+                },
+            },
+        )
+        return agente.comprobar(tmp_path, ["p.md"])
+
+    def test_sin_curso_de_pruebas_el_numero_se_comprueba_en_real(self, tmp_path):
+        resultado = self._solo_real(tmp_path, 3)
+        assert resultado.informe["resultado"] == "ok"
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert resultado.informe["ficheros"][0]["seccion"] == "Tema 3"
+
+    def test_sin_curso_de_pruebas_el_nombre_existente_en_real_no_es_nuevo(self, tmp_path):
+        resultado = self._solo_real(tmp_path, '"Tema 3"')
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert fichero.seccion_nueva is None
+
+    def test_sin_curso_de_pruebas_numero_inexistente_falla_nombrando_real(self, tmp_path):
+        [fichero] = self._solo_real(tmp_path, 9).ficheros
+        assert fichero.codigo == "SECCION_AUSENTE"
+        assert "curso de real" in fichero.detalle
+
+
+class TestBuzon:
+    def test_sin_sesion(self, tmp_path):
+        documento = agente.publicar(tmp_path, ["p.md"], "pruebas")
+        assert documento["errores"] == ["SIN_SESION"]
+        informe.validar(documento)
+
+    def test_sesion_incompatible(self, tmp_path):
+        dir_tiza = tmp_path / ".tiza"
+        ruta = buzon.crear_sesion(dir_tiza, datetime.now(UTC) + timedelta(minutes=5))
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        datos["version"] = buzon.VERSION_PROTOCOLO + 1
+        ruta.write_text(json.dumps(datos), encoding="utf-8")
+        assert agente.estructura(tmp_path)["errores"] == ["SESION_INCOMPATIBLE"]
+        assert agente.estado_sesion(tmp_path) == {
+            "activa": True,
+            "caduca": None,
+            "compatible": False,
+        }
+
+    def test_publicar_envia_la_peticion_y_devuelve_la_respuesta(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        enviadas: list = []
+
+        def enviar(dir_tiza, peticion, espera, **_opciones):
+            enviadas.append((dir_tiza, peticion, espera))
+            return informe.crear("publicar", "ok", [], [], [], "pruebas", 1234)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        documento = agente.publicar(tmp_path, ["p.md"], "pruebas", visible=True, espera=30)
+        assert documento["resultado"] == "ok"
+        [(dir_tiza, peticion, espera)] = enviadas
+        assert (dir_tiza, espera) == (tmp_path / ".tiza", 30)
+        buzon.validar_peticion(peticion)
+        assert (peticion["ficheros"], peticion["entorno"], peticion["visible"]) == (
+            ["p.md"],
+            "pruebas",
+            True,
+        )
+
+    def test_cancelar_retira_la_peticion(self, tmp_path):
+        dir_tiza = tmp_path / ".tiza"
+        buzon.crear_sesion(dir_tiza, datetime.now(UTC) + timedelta(minutes=5))
+        cancelar = threading.Event()
+        cancelar.set()
+        documento = agente.publicar(tmp_path, ["p.md"], "pruebas", cancelar=cancelar)
+        assert (documento["resultado"], documento["errores"]) == ("abortado", ["ABORTADO"])
+        assert not list(buzon.carpeta_buzon(dir_tiza).glob(f"*{buzon.SUFIJO_PETICION}"))
+
+    def test_estado_sin_y_con_sesion(self, tmp_path):
+        assert agente.estado_sesion(tmp_path) == {
+            "activa": False,
+            "caduca": None,
+            "compatible": True,
+        }
+        buzon.crear_sesion(tmp_path / ".tiza", datetime.now(UTC) + timedelta(minutes=5))
+        estado = agente.estado_sesion(tmp_path)
+        assert (estado["activa"], estado["compatible"]) == (True, True)
+        assert datetime.fromisoformat(estado["caduca"]) > datetime.now(UTC)
+
+    def test_las_peticiones_son_validas(self):
+        buzon.validar_peticion(agente.peticion_estructura())
+        buzon.validar_peticion(agente.peticion_publicar(["a.md"], "real", None))
+
+
+def test_formato_documento_sale_de_la_skill():
+    texto = agente.formato_documento()
+    for campo in ("tipo", "nombre", "seccion", "apertura", "entrega", "limite", "preguntas"):
+        assert f"{campo}:" in texto
+    assert "cuestionario" in texto
+    assert "formato:" not in texto
+    assert texto == texto.strip()
+    assert not texto.startswith(" ")
+
+
+def test_formato_documento_cubre_todos_los_tipos_y_campos():
+    # Si contenido.py gana un tipo o un campo, la skill debe enseñarlo al agente.
+    texto = agente.formato_documento()
+    for tipo in contenido.TTIPOS + contenido.TIPOS_PREGUNTA:
+        assert f"tipo: {tipo}" in texto, tipo
+    campos = set(contenido.CAMPOS_CUESTIONARIO) | set(contenido._CAMPOS_OPCION)
+    for campos_pregunta in contenido._CAMPOS_PREGUNTA.values():
+        campos |= campos_pregunta
+    for campo in sorted(campos):
+        assert f"{campo}:" in texto, campo
+
+
+def test_los_ejemplos_del_formato_son_validos(tmp_path):
+    texto = agente.formato_documento()
+    ejemplos = re.findall(r"```markdown\n(.*?)```", texto, re.DOTALL)
+    assert len(ejemplos) == 4
+    for ruta in ("apuntes.pdf", "img/foto.png", "img/figura1.png"):
+        (tmp_path / ruta).parent.mkdir(exist_ok=True)
+        (tmp_path / ruta).write_bytes(b"x")
+    tipos = []
+    for numero, ejemplo in enumerate(ejemplos):
+        ruta = tmp_path / f"ejemplo{numero}.md"
+        escribir(tmp_path, ruta.name, ejemplo)
+        tipos.append(contenido.cargar(ruta).tipo)
+    assert tipos == list(contenido.TTIPOS)

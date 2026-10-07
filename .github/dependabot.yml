@@ -1,0 +1,11 @@
+# Propone actualizaciones de las acciones del CI y de las dependencias (uv.lock) cada semana.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
