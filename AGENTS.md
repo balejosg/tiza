@@ -44,7 +44,7 @@ en español.
   (python-moodle). Reduce toda excepción a códigos propios y nunca deja pasar
   texto de Moodle. Al importar parchea APIs privadas de python-moodle (sin token
   móvil, sin `list_courses`, User-Agent): es intencionado, no lo quites sin
-  tests. `python-moodle` está fijado a `1.0.1`; subirlo obliga a revisar esos
+  tests. `python-moodle` está fijado a `1.0.2`; subirlo obliga a revisar esos
   parches.
 - `src/tiza/filtro.py`: **única fuente de la política de HTML** (etiquetas,
   atributos, CSS, clases y servidores de iframe) sobre el árbol de html5lib.
