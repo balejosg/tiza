@@ -618,7 +618,7 @@ wheels = [
 
 [[package]]
 name = "python-moodle"
-version = "1.0.1"
+version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -629,9 +629,9 @@ dependencies = [
     { name = "rich" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/66/92/df0b33dff394010a58cf235532df9d434cdbe02cda4797eba80c88c49a7b/python_moodle-1.0.1.tar.gz", hash = "sha256:8eacad8f5243b70bee6f82b34d9510c4b42e9f4999e6c9097888c915a61f5579", size = 112890, upload-time = "2026-08-22T21:40:56.804Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/41/c1cb33bd4a197c8de77aeb7331d9abc58e685b60c4de45291661773a457a/python_moodle-1.0.2.tar.gz", hash = "sha256:8e67269120e2c4089859a7ee3dd92b4884c41cc1b70dadd479133af75afbcbe8", size = 113174, upload-time = "2026-10-03T19:09:30.623Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/cf/d103d98f5cc9fe9c8c41435b3925e538eaf950738deb9af0b062abb79b1d/python_moodle-1.0.1-py3-none-any.whl", hash = "sha256:4cee1227a1d9bef085e23a2604c02dff052d5b54d13ab586ddf6cf83e6e32280", size = 114590, upload-time = "2026-08-22T21:40:55.234Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/09/de5216307bcebe705aea1e5a34c25b59ec13ae822d92156051749341b8e5/python_moodle-1.0.2-py3-none-any.whl", hash = "sha256:0e8c697ddff7770fab51074a32d023648872c72f9e44dba0a9dbf189e84f3f36", size = 114909, upload-time = "2026-10-03T19:09:28.931Z" },
 ]
 
 [[package]]
@@ -833,7 +833,7 @@ requires-dist = [
     { name = "markdown-it-py", specifier = ">=3.0" },
     { name = "platformdirs", specifier = ">=4.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "python-moodle", specifier = "==1.0.1" },
+    { name = "python-moodle", specifier = "==1.0.2" },
     { name = "pywebview", marker = "extra == 'ventana'", specifier = ">=6.2,<7" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "requests", specifier = ">=2.31" },

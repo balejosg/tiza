@@ -11,7 +11,7 @@ description = "CLI y skill para publicar contenidos en tu aula virtual Moodle si
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "python-moodle==1.0.1",
+    "python-moodle==1.0.2",
     "requests>=2.31",  # se importa directamente (ya llegaba con python-moodle)
     "markdown-it-py>=3.0",
     "platformdirs>=4.0",
