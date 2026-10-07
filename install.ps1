@@ -4,7 +4,7 @@
 # (por ejemplo "main" para la última versión).
 $ErrorActionPreference = "Stop"
 
-$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.10.0" }
+$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.10.1" }
 $repo = "git+https://github.com/balejosg/tiza@$ref"
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
