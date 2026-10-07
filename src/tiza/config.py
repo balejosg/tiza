@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import platformdirs
 import requests
@@ -195,13 +195,41 @@ def _error_redirige_fuera() -> ErrorConfig:
     )
 
 
+def _reconducir(actual: str, destino: str, servidor: tuple[str, str, int]) -> str:
+    """Destino de una redirección, reconducido a https si es del mismo servidor.
+
+    Un Apache detrás de un proxy añade la barra final redirigiendo por http o por su
+    puerto interno, y otros mandan a http la página de entrada; el navegador lo
+    sigue sin que se note. Aquí no se sigue: se pide lo mismo por https al servidor
+    del aula. Cualquier otro destino se devuelve tal cual (y se rechaza después).
+    """
+    try:
+        partes, de_ahora = urlsplit(destino), urlsplit(actual)
+        puerto = partes.port
+    except ValueError:
+        return destino
+    if (
+        partes.username is not None
+        or partes.password is not None
+        or (partes.hostname or "").lower() != servidor[1]
+    ):
+        return destino
+    netloc = servidor[1] if servidor[2] == 443 else f"{servidor[1]}:{servidor[2]}"
+    if partes.path == de_ahora.path + "/" and partes.query == de_ahora.query:
+        return urlunsplit(("https", netloc, partes.path, partes.query, ""))
+    if partes.scheme.lower() == "http" and puerto in (None, 80):
+        return urlunsplit(("https", netloc, partes.path, partes.query, ""))
+    return destino
+
+
 def preparar_url(entrada: str) -> str:
     """URL base del aula a partir de lo que escribe el docente.
 
     Convierte http en https y valida el servidor **antes** de conectar; después
     sigue las redirecciones a mano: cada salto tiene que quedarse en el mismo
     servidor y puerto (si no, ``URL_REDIRIGE_FUERA``) y al final se quita
-    ``/login/index.php``.
+    ``/login/index.php``. La barra final o el paso a http del propio servidor se
+    piden por https (``_reconducir``): nunca se conecta por http.
     """
     entrada = entrada.strip()
     if entrada.startswith("http://"):
@@ -227,7 +255,7 @@ def preparar_url(entrada: str) -> str:
         destino = cabeceras.get("Location")
         if respuesta.status_code not in _REDIRECCIONES or not destino:
             break
-        url = urljoin(url, destino)
+        url = _reconducir(url, urljoin(url, destino), servidor)
         try:
             validar_url(url)
         except ErrorConfig as exc:

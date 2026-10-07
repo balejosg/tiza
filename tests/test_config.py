@@ -505,7 +505,55 @@ def test_preparar_url_no_conecta_con_urls_invalidas(monkeypatch):
 
 @pytest.mark.parametrize(
     "destino",
-    ["https://evil.example/", "https://aula.ejemplo.org:8443/", "http://aula.ejemplo.org/"],
+    [
+        "http://aula.ejemplo.org/centro/",  # Apache detrás de un proxy: barra por http
+        "http://aula.ejemplo.org:8080/centro/",  # o por el puerto interno
+        "https://aula.ejemplo.org:8443/centro/",
+    ],
+)
+def test_preparar_url_admite_la_barra_final_aunque_redirija_por_http(monkeypatch, destino):
+    pedidas: list = []
+
+    def obtener(url, **opciones):
+        pedidas.append(url)
+        if url == "https://aula.ejemplo.org/centro":
+            return _Respuesta(url, 301, destino)
+        return _Respuesta(url)
+
+    monkeypatch.setattr(config.requests, "get", obtener)
+    assert config.preparar_url("https://aula.ejemplo.org/centro") == (
+        "https://aula.ejemplo.org/centro"
+    )
+    # Nunca se pide nada por http ni a otro puerto: la barra se pide por https.
+    assert pedidas == ["https://aula.ejemplo.org/centro", "https://aula.ejemplo.org/centro/"]
+
+
+def test_preparar_url_pasa_a_https_una_redireccion_http_del_mismo_servidor(monkeypatch):
+    pedidas: list = []
+
+    def obtener(url, **opciones):
+        pedidas.append(url)
+        if url == "https://aula.ejemplo.org/centro":
+            return _Respuesta(url, 303, "http://aula.ejemplo.org/centro/login/index.php")
+        return _Respuesta(url)
+
+    monkeypatch.setattr(config.requests, "get", obtener)
+    assert config.preparar_url("https://aula.ejemplo.org/centro") == (
+        "https://aula.ejemplo.org/centro"
+    )
+    assert pedidas[1] == "https://aula.ejemplo.org/centro/login/index.php"
+
+
+@pytest.mark.parametrize(
+    "destino",
+    [
+        "https://evil.example/",
+        "https://evil.example/centro/",
+        "http://evil.example/centro/",
+        "https://aula.ejemplo.org:8443/",
+        "http://aula.ejemplo.org:8080/otra",
+        "http://usuario@aula.ejemplo.org/centro/",
+    ],
 )
 def test_preparar_url_que_redirige_fuera_se_rechaza(monkeypatch, destino):
     monkeypatch.setattr(config.requests, "get", lambda url, **k: _Respuesta(url, 302, destino))
