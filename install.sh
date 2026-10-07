@@ -5,7 +5,7 @@
 # (por ejemplo TIZA_REF=main para la última versión).
 set -eu
 
-REPO="git+https://github.com/balejosg/tiza@${TIZA_REF:-v0.10.1}"
+REPO="git+https://github.com/balejosg/tiza@${TIZA_REF:-v0.11.0}"
 
 if ! command -v uv >/dev/null 2>&1; then
     echo "Instalando uv (gestor de Python)..."
