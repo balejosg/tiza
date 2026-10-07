@@ -973,6 +973,7 @@ class TestActualizar:
         monkeypatch.delenv("TIZA_REF", raising=False)
         monkeypatch.setattr(cli, "__version__", "0.5.1")
         monkeypatch.setattr(cli.shutil, "which", lambda nombre: f"/bin/{nombre}")
+        monkeypatch.setattr(cli, "_tiene_ventana", lambda: False)
         # «actualizar» es del docente: hace falta terminal y se confirma. No se sustituye
         # sys.stdout, para que capsys siga viendo la salida.
         monkeypatch.setattr(cli.terminal, "exigir_tty", lambda: None)
@@ -994,6 +995,17 @@ class TestActualizar:
             ["/bin/tiza", "instalar-skill"],
         ]
         assert ejecutadas[0][:2] == ["/bin/git", "ls-remote"]
+
+    def test_conserva_la_ventana_si_estaba_instalada(self, ejecutadas, monkeypatch):
+        monkeypatch.setattr(cli, "_tiene_ventana", lambda: True)
+        assert cli.main(["actualizar"]) == 0
+        assert ejecutadas[1] == [
+            "/bin/uv",
+            "tool",
+            "install",
+            "--force",
+            f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0",
+        ]
 
     def test_sin_terminal_no_hace_nada(self, monkeypatch, capsys):
         monkeypatch.delenv("TIZA_REF", raising=False)

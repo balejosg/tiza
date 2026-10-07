@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.resources
+import importlib.util
 import json
 import os
 import platform
@@ -375,7 +376,10 @@ def _actualizar() -> int:
     if not terminal.confirmar(f"Se va a instalar tiza «{ref}» desde {REPO_GIT}. ¿Continuar?"):
         print("No se ha cambiado nada.", file=sys.stderr)
         return 1
-    if subprocess.run([uv, "tool", "install", "--force", f"git+{REPO_GIT}@{ref}"]).returncode != 0:
+    origen = f"git+{REPO_GIT}@{ref}"
+    if _tiene_ventana():  # sin el extra, la actualización dejaría sin tiza-ventana
+        origen = f"tiza[ventana] @ {origen}"
+    if subprocess.run([uv, "tool", "install", "--force", origen]).returncode != 0:
         _imprimir_error("ACTUALIZACION_FALLIDA", "no se pudo actualizar tiza.")
         return 1
     # La skill se reinstala con la versión nueva (este proceso aún es la antigua).
@@ -385,6 +389,11 @@ def _actualizar() -> int:
         return 1
     print("Si tienes «tiza sesion» abierta, ciérrala (Ctrl+C) y vuelve a abrirla.")
     return 0
+
+
+def _tiene_ventana() -> bool:
+    """¿Está instalado el extra ``ventana`` (pywebview) junto a esta tiza?"""
+    return importlib.util.find_spec("webview") is not None
 
 
 def _ultima_etiqueta(git: str) -> str | None:
