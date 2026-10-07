@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tiza import config, rutas
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
     CAMPOS_FECHA_TAREA,
@@ -263,3 +264,17 @@ class PresenciaFalsa:
 
     def codigos(self) -> list[str]:
         return [aviso.codigo for aviso in self.avisos]
+
+
+def configurar_aula(carpeta: Path, cursos: dict | None) -> None:
+    """Configuración global (aula y usuario) y, si hay cursos, el tiza.toml de la carpeta."""
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
+    if cursos:
+        lineas = ["[cursos]"] + [
+            f"{clave} = {str(valor).lower() if isinstance(valor, bool) else valor}"
+            for clave, valor in cursos.items()
+        ]
+        Path(carpeta).mkdir(parents=True, exist_ok=True)
+        (Path(carpeta) / rutas.FICHERO_ASIGNATURA).write_text(
+            "\n".join(lineas) + "\n", encoding="utf-8"
+        )

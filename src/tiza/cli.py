@@ -295,35 +295,13 @@ def _preguntar_configuracion() -> int:
         _imprimir_error(exc.codigo, exc.detalle)
         return 1
     usuario = input("Usuario del aula: ").strip()
-    print(
-        "Los cursos puedes elegirlos por nombre al abrir la sesión («tiza empezar»); "
-        "el de pruebas es opcional: sin él, en real solo se publica oculto."
-    )
-    cursos = {}
-    for entorno, mensaje in (
-        ("pruebas", "Id del curso de pruebas (opcional; pulsa Enter si no tienes): "),
-        ("real", "Id del curso real: "),
-    ):
-        valor = _pedir_entero_opcional(mensaje)
-        if valor is not None:
-            cursos[entorno] = valor
-    ruta = config.guardar_global(base, usuario, cursos)
+    ruta = config.guardar_global(base, usuario)
     print(f"Configuración guardada en {ruta}. No se ha guardado ninguna contraseña.")
+    print(
+        "Los cursos son de cada asignatura: se eligen por nombre al abrir la sesión "
+        f"en su carpeta («tiza empezar») y se guardan en su {rutas.FICHERO_ASIGNATURA}."
+    )
     return 0
-
-
-def _pedir_entero_opcional(mensaje: str) -> int | None:
-    while True:
-        valor = input(mensaje).strip()
-        if not valor:
-            return None
-        try:
-            numero = int(valor)
-        except ValueError:  # incluye el límite de CPython con miles de dígitos
-            numero = None
-        if numero is not None and numero > 0:
-            return numero
-        print("Introduce un número de curso válido o pulsa Enter.")
 
 
 def _instalar_skill_cmd() -> int:

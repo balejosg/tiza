@@ -204,7 +204,7 @@ fichero que ya existía. La marca de confianza de Codex está en
 | Comando | Quién | Qué hace |
 |---|---|---|
 | `tiza empezar [--minutos 60]` | docente | Todo en uno: configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
-| `tiza configurar` | docente | Guarda la URL y el usuario; los cursos (opcionales) se eligen por nombre al abrir `tiza sesion` |
+| `tiza configurar` | docente | Guarda la URL y el usuario (nada más); los cursos se eligen por nombre al abrir la sesión en cada carpeta y se guardan en su `tiza.toml` |
 | `tiza instalar-skill` | docente | Instala la skill portable en los agentes |
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |
 | `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json` |
@@ -387,9 +387,10 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
 
 ### `tiza.toml` por asignatura
 
-Cada carpeta de contenido puede tener un `tiza.toml` con los ids de curso de
-esa asignatura, que sobreescriben la configuración global (lo crean `tiza
-empezar` o `tiza sesion` la primera vez; también puedes escribirlo a mano):
+Los cursos son de cada asignatura y solo se guardan en el `tiza.toml` de su
+carpeta; la configuración global (`tiza configurar`) guarda únicamente la URL
+del aula y tu usuario. Lo crean `tiza empezar` o `tiza sesion` la primera vez,
+al elegir los cursos por nombre; también puedes escribirlo a mano:
 
 ```toml
 [cursos]

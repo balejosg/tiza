@@ -273,11 +273,14 @@ def preparar_url(entrada: str) -> str:
     return base
 
 
-def guardar_global(url: str, usuario: str, cursos: dict[str, int]) -> Path:
-    """Guarda la configuración global."""
+def guardar_global(url: str, usuario: str) -> Path:
+    """Guarda la configuración global: el aula y el usuario, nada más.
+
+    Los cursos son de cada asignatura y viven en su ``tiza.toml``; un bloque
+    ``cursos`` de versiones anteriores se descarta al volver a guardar.
+    """
     validar_url(url)
-    _validar_curso(cursos)
-    datos: dict[str, Any] = {"version": 1, "url": url, "usuario": usuario, "cursos": cursos}
+    datos: dict[str, Any] = {"version": 1, "url": url, "usuario": usuario}
     return escribir_json(directorio_global() / "config.json", datos)
 
 
@@ -364,20 +367,16 @@ def resolver(carpeta: str | Path) -> Config:
     usuario = global_.get("usuario")
     if not isinstance(url, str) or not url or not isinstance(usuario, str) or not usuario:
         raise ErrorConfig("CONFIG_INCOMPLETA")
-    cursos: dict[str, int] = {}
-    sin_pruebas = False
-    for fuente in (global_.get("cursos", {}), datos_carpeta.get("cursos", {})):
-        if not isinstance(fuente, dict):
-            raise ErrorConfig("CURSO_INVALIDO")
-        _validar_curso(fuente)
-        if isinstance(fuente.get("sin_pruebas"), bool):
-            sin_pruebas = fuente["sin_pruebas"]
-        cursos.update({clave: valor for clave, valor in fuente.items() if clave != "sin_pruebas"})
-    # Un curso de pruebas explícito de la carpeta manda sobre la marca de «sin pruebas».
-    if isinstance(datos_carpeta.get("cursos"), dict) and "pruebas" in datos_carpeta["cursos"]:
-        sin_pruebas = False
-    if sin_pruebas:
-        cursos.pop("pruebas", None)
+    # Los cursos son solo de la carpeta: la configuración global no los tiene
+    # (los «cursos» que quedaran en ella de versiones anteriores se ignoran).
+    fuente = datos_carpeta.get("cursos", {})
+    if not isinstance(fuente, dict):
+        raise ErrorConfig("CURSO_INVALIDO")
+    _validar_curso(fuente)
+    sin_pruebas = fuente.get("sin_pruebas") is True and "pruebas" not in fuente
+    cursos: dict[str, int] = {
+        clave: valor for clave, valor in fuente.items() if clave != "sin_pruebas"
+    }
     validar_url(url)
     if "pruebas" in cursos and cursos.get("pruebas") == cursos.get("real"):
         raise ErrorConfig("CURSOS_IGUALES", "pruebas y real no pueden ser el mismo curso")

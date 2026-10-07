@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from dobles import MoodleFalso
+from dobles import MoodleFalso, configurar_aula
 from tiza import (
     aislamiento,
     buzon,
@@ -64,11 +64,7 @@ def responder(monkeypatch, respuestas: list[str]) -> None:
 
 def configurar(tmp_path, monkeypatch, cursos=None) -> None:
     monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
-    config.guardar_global(
-        "https://aula.ejemplo.org/centro",
-        "profe",
-        cursos or {"pruebas": 1234, "real": 5678},
-    )
+    configurar_aula(tmp_path, cursos or {"pruebas": 1234, "real": 5678})
 
 
 def escribir_pagina(tmp_path, texto: str = PAGINA) -> Path:
@@ -375,14 +371,12 @@ def test_enlace_codifica_espacios_y_acentos(tmp_path):
 
 
 class TestConfigurar:
-    def test_guarda_url_usuario_y_cursos_sin_password(self, tmp_path, monkeypatch):
+    def test_guarda_url_y_usuario_sin_password_ni_cursos(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
-        simular_terminal(monkeypatch)
-        responder(
-            monkeypatch,
-            ["https://aula.ejemplo.org", "profe", "1234", "5678", ""],
-        )
+        (tmp_path / "tiza.toml").write_text("[cursos]\nreal = 838\n", encoding="utf-8")
+        salida = simular_terminal(monkeypatch)
+        responder(monkeypatch, ["https://aula.ejemplo.org", "profe"])
 
         class RespuestaFalsa:
             url = "https://aula.ejemplo.org/centro/"
@@ -391,10 +385,10 @@ class TestConfigurar:
         monkeypatch.setattr(config.requests, "get", lambda *a, **k: RespuestaFalsa())
         assert cli.main(["configurar"]) == 0
         datos = json.loads((tmp_path / "prefs" / "config.json").read_text(encoding="utf-8"))
-        assert datos["url"] == "https://aula.ejemplo.org/centro"
-        assert datos["usuario"] == "profe"
-        assert datos["cursos"] == {"pruebas": 1234, "real": 5678}
-        assert "password" not in json.dumps(datos).lower()
+        assert datos == {"version": 1, "url": "https://aula.ejemplo.org/centro", "usuario": "profe"}
+        # Los cursos son de la carpeta: configurar no los pregunta ni toca su tiza.toml.
+        assert (tmp_path / "tiza.toml").read_text(encoding="utf-8") == "[cursos]\nreal = 838\n"
+        assert "tiza empezar" in salida.contenido()
 
     def test_url_inaccesible_explica_que_hacer(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)
@@ -410,39 +404,6 @@ class TestConfigurar:
         err = capsys.readouterr().err
         assert "ERROR [URL_INACCESIBLE]" in err
         assert "Qué hacer: " in err
-
-    def test_cursos_opcionales(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
-        simular_terminal(monkeypatch)
-        responder(monkeypatch, ["https://aula.ejemplo.org", "profe", "", "", ""])
-
-        class RespuestaFalsa:
-            url = "https://aula.ejemplo.org/centro/"
-            status_code = 200
-
-        monkeypatch.setattr(config.requests, "get", lambda *a, **k: RespuestaFalsa())
-        assert cli.main(["configurar"]) == 0
-        datos = json.loads((tmp_path / "prefs" / "config.json").read_text(encoding="utf-8"))
-        assert datos["cursos"] == {}
-
-    def test_entrada_larga_reintenta_y_acepta(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
-        simular_terminal(monkeypatch)
-        responder(
-            monkeypatch,
-            ["https://aula.ejemplo.org", "profe", "9" * 5000, "1234", "5678", ""],
-        )
-
-        class RespuestaFalsa:
-            url = "https://aula.ejemplo.org/centro/"
-            status_code = 200
-
-        monkeypatch.setattr(config.requests, "get", lambda *a, **k: RespuestaFalsa())
-        assert cli.main(["configurar"]) == 0
-        datos = json.loads((tmp_path / "prefs" / "config.json").read_text(encoding="utf-8"))
-        assert datos["cursos"] == {"pruebas": 1234, "real": 5678}
 
     def test_no_conecta_con_urls_invalidas(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)
@@ -1176,11 +1137,7 @@ def abrir_sesion_falsa(
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
     if configurado:
-        config.guardar_global(
-            "https://aula.ejemplo.org/centro",
-            "profe",
-            {"pruebas": 1234, "real": 5678} if cursos is None else cursos,
-        )
+        configurar_aula(tmp_path, {"pruebas": 1234, "real": 5678} if cursos is None else cursos)
     salida = simular_terminal(monkeypatch)
     responder(monkeypatch, respuestas)
     moodle = moodle or MoodleFalso()
@@ -1476,7 +1433,7 @@ class TestAislar:
 
     def test_aislar_anade_el_servidor_configurado(self, tmp_path, monkeypatch):
         home = self.preparar(tmp_path, monkeypatch)
-        config.guardar_global("https://aula.ejemplo.org/centro", "profe", {"real": 5678})
+        configurar_aula(tmp_path / "otra", {"real": 5678})
         simular_terminal(monkeypatch)
         responder(monkeypatch, ["s"])
         assert cli.main(["aislar", "--global"]) == 0
@@ -1728,8 +1685,6 @@ class TestEmpezar:
         respuestas = [
             "https://aula.ejemplo.org",
             "profe",
-            "",
-            "",  # cursos
             "2",
             "1",  # elegir pruebas y real
             "s",  # confirmar cursos
@@ -1750,7 +1705,7 @@ class TestEmpezar:
 
     def test_carpeta_que_no_parece_asignatura_pregunta(self, tmp_path, monkeypatch):
         codigo, salida, atendidas = abrir_sesion_falsa(
-            tmp_path, monkeypatch, ["n"], comando="empezar"
+            tmp_path, monkeypatch, ["n"], comando="empezar", cursos={}
         )
         assert codigo == 1 and atendidas == []
         assert "no parece la carpeta de una asignatura" in salida

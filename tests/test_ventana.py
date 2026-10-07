@@ -267,7 +267,7 @@ def test_con_directorio_privado_solo_se_abren_sus_vistas(tmp_path):
 
 def test_el_flujo_pasa_a_la_sesion_el_directorio_privado_de_vistas(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
-    config.guardar_global("https://aula.ejemplo.org/centro", "profe", {})
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     vistos: list = []
     monkeypatch.setattr(
         paquete_ventana.sesion, "abrir", lambda *a, **k: vistos.append(k["dir_vistas"]) or 0

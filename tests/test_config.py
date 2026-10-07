@@ -19,25 +19,35 @@ def usar_directorio(tmp_path, monkeypatch):
 
 def test_global_roundtrip(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global(
-        "https://aula.ejemplo.org/centro",
-        "profe",
-        {"pruebas": 1, "real": 2},
-    )
+    ruta = config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     resuelta = config.resolver(tmp_path / "contenido")
     assert resuelta.url == "https://aula.ejemplo.org/centro"
     assert resuelta.usuario == "profe"
-    assert resuelta.cursos == {"pruebas": 1, "real": 2}
+    assert resuelta.cursos == {}  # los cursos son de cada carpeta
+    assert "cursos" not in json.loads(ruta.read_text(encoding="utf-8"))
 
 
-def test_la_carpeta_sobreescribe_los_cursos(tmp_path, monkeypatch):
+def test_los_cursos_salen_solo_de_la_carpeta(tmp_path, monkeypatch):
+    """Unos «cursos» globales de versiones anteriores se ignoran y se descartan al guardar."""
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global("https://aula.ejemplo.org/centro", "profe", {"pruebas": 1, "real": 2})
+    prefs = tmp_path / "prefs"
+    prefs.mkdir()
+    antigua = {
+        "version": 1,
+        "url": "https://aula.ejemplo.org/centro",
+        "usuario": "profe",
+        "cursos": {"pruebas": 1, "real": 2, "sin_pruebas": True},
+    }
+    (prefs / "config.json").write_text(json.dumps(antigua), encoding="utf-8")
     carpeta = tmp_path / "asignatura"
     carpeta.mkdir()
     (carpeta / "tiza.toml").write_text("[cursos]\npruebas = 10\n", encoding="utf-8")
     resuelta = config.resolver(carpeta)
-    assert resuelta.cursos == {"pruebas": 10, "real": 2}
+    assert resuelta.cursos == {"pruebas": 10}
+    assert resuelta.sin_pruebas is False
+    assert config.resolver(tmp_path / "otra").cursos == {}
+    config.guardar_global(resuelta.url, resuelta.usuario)
+    assert "cursos" not in json.loads((prefs / "config.json").read_text(encoding="utf-8"))
 
 
 def test_sin_configurar_falla(tmp_path, monkeypatch):
@@ -49,7 +59,7 @@ def test_sin_configurar_falla(tmp_path, monkeypatch):
 
 def test_toml_invalido_falla(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global("https://aula.ejemplo.org/centro", "profe", {"pruebas": 1, "real": 2})
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     carpeta = tmp_path / "asignatura"
     carpeta.mkdir()
     (carpeta / "tiza.toml").write_text("esto no es toml = = =", encoding="utf-8")
@@ -61,7 +71,7 @@ def test_toml_invalido_falla(tmp_path, monkeypatch):
 def test_la_carpeta_no_puede_fijar_ni_cambiar_la_url(tmp_path, monkeypatch):
     """El fichero de la asignatura lo escribe el agente: la URL solo sale de la global."""
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global("https://aula.ejemplo.org/centro", "profe", {"real": 2})
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     carpeta = tmp_path / "asignatura"
     carpeta.mkdir()
     (carpeta / "tiza.toml").write_text(
@@ -83,19 +93,8 @@ def test_guardar_carpeta_no_puede_fijar_la_url(tmp_path):
 
 def test_curso_no_entero_falla(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    prefs = tmp_path / "prefs"
-    prefs.mkdir()
-    (prefs / "config.json").write_text(
-        json.dumps(
-            {
-                "version": 1,
-                "url": "https://aula.ejemplo.org/centro",
-                "usuario": "profe",
-                "cursos": {"pruebas": "uno", "real": 2},
-            }
-        ),
-        encoding="utf-8",
-    )
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
+    (tmp_path / "tiza.toml").write_text('[cursos]\npruebas = "uno"\nreal = 2\n', encoding="utf-8")
     with pytest.raises(ErrorConfig) as exc:
         config.resolver(tmp_path)
     assert exc.value.codigo == "CURSO_INVALIDO"
@@ -103,9 +102,7 @@ def test_curso_no_entero_falla(tmp_path, monkeypatch):
 
 def test_el_fichero_no_contiene_password(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    ruta = config.guardar_global(
-        "https://aula.ejemplo.org/centro", "profe", {"pruebas": 1, "real": 2}
-    )
+    ruta = config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     texto = ruta.read_text(encoding="utf-8")
     assert "password" not in texto.lower()
     assert "contraseña" not in texto.lower()
@@ -256,8 +253,8 @@ class TestAdaptadorAula:
 
 def test_pruebas_y_real_no_pueden_coincidir(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "g")
-    config.guardar_global("https://aula.ejemplo.org/centro", "profe", {"pruebas": 1, "real": 2})
-    (tmp_path / "tiza.toml").write_text("[cursos]\npruebas = 2\n", encoding="utf-8")
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
+    (tmp_path / "tiza.toml").write_text("[cursos]\npruebas = 2\nreal = 2\n", encoding="utf-8")
     with pytest.raises(config.ErrorConfig) as exc:
         config.resolver(tmp_path)
     assert exc.value.codigo == "CURSOS_IGUALES"
@@ -344,7 +341,8 @@ def test_guardar_carpeta_rechaza_cursos_no_tabla(tmp_path):
 
 def test_resolver_acepta_solo_el_curso_real(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global("https://aula.ejemplo.org/centro", "profe", {"real": 5678})
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
+    (tmp_path / "tiza.toml").write_text("[cursos]\nreal = 5678\n", encoding="utf-8")
     resuelta = config.resolver(tmp_path)
     assert resuelta.cursos == {"real": 5678}
     assert resuelta.sin_pruebas is False
@@ -352,14 +350,12 @@ def test_resolver_acepta_solo_el_curso_real(tmp_path, monkeypatch):
 
 def test_sin_pruebas_en_la_carpeta_quita_el_curso_de_pruebas(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global(
-        "https://aula.ejemplo.org/centro",
-        "profe",
-        {"pruebas": 1234, "real": 5678},
-    )
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     carpeta = tmp_path / "asignatura"
     carpeta.mkdir()
-    (carpeta / "tiza.toml").write_text("[cursos]\nsin_pruebas = true\n", encoding="utf-8")
+    (carpeta / "tiza.toml").write_text(
+        "[cursos]\nreal = 5678\nsin_pruebas = true\n", encoding="utf-8"
+    )
     resuelta = config.resolver(carpeta)
     assert resuelta.cursos == {"real": 5678}
     assert resuelta.sin_pruebas is True
@@ -367,15 +363,11 @@ def test_sin_pruebas_en_la_carpeta_quita_el_curso_de_pruebas(tmp_path, monkeypat
 
 def test_un_curso_de_pruebas_explicito_vuelve_a_ganar(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global(
-        "https://aula.ejemplo.org/centro",
-        "profe",
-        {"pruebas": 1234, "real": 5678},
-    )
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     carpeta = tmp_path / "asignatura"
     carpeta.mkdir()
     (carpeta / "tiza.toml").write_text(
-        "[cursos]\npruebas = 9999\nsin_pruebas = true\n", encoding="utf-8"
+        "[cursos]\npruebas = 9999\nreal = 5678\nsin_pruebas = true\n", encoding="utf-8"
     )
     resuelta = config.resolver(carpeta)
     assert resuelta.cursos == {"pruebas": 9999, "real": 5678}
@@ -384,7 +376,7 @@ def test_un_curso_de_pruebas_explicito_vuelve_a_ganar(tmp_path, monkeypatch):
 
 def test_sin_pruebas_tiene_que_ser_booleano(tmp_path, monkeypatch):
     usar_directorio(tmp_path, monkeypatch)
-    config.guardar_global("https://aula.ejemplo.org/centro", "profe", {"real": 5678})
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     carpeta = tmp_path / "asignatura"
     carpeta.mkdir()
     (carpeta / "tiza.toml").write_text("[cursos]\nsin_pruebas = 1\n", encoding="utf-8")

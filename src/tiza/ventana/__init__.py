@@ -37,7 +37,7 @@ def _configurar(ventana: Ventana) -> bool:
             return False
         try:
             base = config.preparar_url(respuesta["url"])
-            config.guardar_global(base, respuesta["usuario"], {})
+            config.guardar_global(base, respuesta["usuario"])
             return True
         except ErrorConfig as exc:
             error = ayuda.explicar(exc.codigo) or exc.codigo

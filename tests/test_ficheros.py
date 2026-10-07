@@ -70,9 +70,7 @@ def test_un_fallo_al_escribir_conserva_el_fichero_anterior(tmp_path, monkeypatch
         "informe": lambda n: informe.escribir(_informe(n), tmp_path),
         "estructura": lambda n: publicar.escribir_estructura(tmp_path, {"version": n}),
         "verificados": lambda n: publicar.guardar_verificado(tmp_path, "a" * 64, f"v{n}.md", n),
-        "config": lambda n: config.guardar_global(
-            "https://aula.ejemplo.org/centro", f"profe{n}", {}
-        ),
+        "config": lambda n: config.guardar_global("https://aula.ejemplo.org/centro", f"profe{n}"),
         "autoprueba": lambda n: config.registrar_autoprueba(1234, date(2026, 10, 3), f"v{n}"),
     }
     ruta = escritores[estado](1)

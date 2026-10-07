@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from dobles import MoodleFalso, PresenciaFalsa, enlace_simbolico
+from dobles import MoodleFalso, PresenciaFalsa, configurar_aula, enlace_simbolico
 from tiza import buzon, config, contenido, publicar, sesion
 
 TAREA = (
@@ -414,13 +414,9 @@ class TestProcesarPeticionSinPruebas:
 
 def preparar_abrir(tmp_path, monkeypatch, moodle=None, cursos=None):
     monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
-    config.guardar_global(
-        "https://aula.ejemplo.org/centro",
-        "profe",
-        {"pruebas": 1234, "real": 5678} if cursos is None else cursos,
-    )
     carpeta = tmp_path / "asignatura"
     carpeta.mkdir()
+    configurar_aula(carpeta, {"pruebas": 1234, "real": 5678} if cursos is None else cursos)
     moodle = moodle or MoodleFalso()
     monkeypatch.setattr(publicar, "autenticar", lambda url, usuario, password: moodle)
     atendidas: list = []
@@ -669,7 +665,9 @@ class TestAbrir:
         carpeta, _atendidas = preparar_abrir(
             tmp_path, monkeypatch, moodle=moodle, cursos={"real": 5678}
         )
-        (carpeta / "tiza.toml").write_text("[cursos]\nsin_pruebas = true\n", encoding="utf-8")
+        (carpeta / "tiza.toml").write_text(
+            "[cursos]\nreal = 5678\nsin_pruebas = true\n", encoding="utf-8"
+        )
         autopruebas: list = []
         monkeypatch.setattr(
             publicar,
@@ -690,7 +688,9 @@ class TestAbrir:
 
     def test_el_docente_rechaza_la_confirmacion_sin_pruebas(self, tmp_path, monkeypatch):
         carpeta, atendidas = preparar_abrir(tmp_path, monkeypatch, cursos={"real": 5678})
-        (carpeta / "tiza.toml").write_text("[cursos]\nsin_pruebas = true\n", encoding="utf-8")
+        (carpeta / "tiza.toml").write_text(
+            "[cursos]\nreal = 5678\nsin_pruebas = true\n", encoding="utf-8"
+        )
         presencia = PresenciaFalsa(sin_pruebas=False)
         assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 1
         assert atendidas == []

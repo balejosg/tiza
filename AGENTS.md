@@ -73,7 +73,8 @@ en español.
   skill, entre los marcadores `formato:inicio` y `formato:fin`. Cambiar una
   firma obliga a subir la versión menor.
 - `src/tiza/cli.py`, `config.py` y `terminal.py`: despacho, configuración sin
-  contraseña y presencia humana en la terminal (`terminal.PresenciaTerminal`:
+  contraseña (la global solo guarda URL y usuario; los cursos viven solo en el
+  `tiza.toml` de cada carpeta) y presencia humana en la terminal (`terminal.PresenciaTerminal`:
   TTY, `getpass`, confirmación `[s/N]`); `cli.instalar_skill` copia la skill a
   Claude Code, Codex, opencode y `~/.agents/skills`.
 - `src/tiza/ventana/`: la ventana de sesión (extra `[ventana]`, pywebview).
