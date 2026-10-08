@@ -170,6 +170,7 @@ class PaqueteH5P:
 
     nombre: str
     ruta: Path
+    machine_name: str = ""
     titulo: str | None = None
     libreria: str | None = None  # «H5P.Blanks 1.14»
     ficheros: tuple[str, ...] = ()  # entradas que se conservan

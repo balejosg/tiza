@@ -419,6 +419,7 @@ def _validar_paquete(
         PaqueteH5P(
             nombre=ruta.name,
             ruta=ruta,
+            machine_name=h5p_limpio["mainLibrary"],
             titulo=titulo,
             libreria=libreria,
             ficheros=tuple(sorted(set(ficheros))),

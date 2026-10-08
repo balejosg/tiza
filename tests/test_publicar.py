@@ -1883,3 +1883,262 @@ class TestRepublicarCuestionario:
         self._publicar_v2(moodle, tmp_path)
         assert moodle.bancos["1,999"] == {777: "Del curso"}
         assert 999 not in [hueco for hueco, _pregunta in moodle.huecos(cmid)]
+
+
+# --------------------------------------------------------------------------- #
+# Actividades H5P
+# --------------------------------------------------------------------------- #
+
+H5P_HUECOS = 'tipo: rellenar_huecos\ntextos:\n  - "El agua hierve a [[100]] grados."\n'
+
+
+def documento_h5p(tmp_path, actividad=H5P_HUECOS, nombre="Repaso H5P", **campos_actividad):
+    actividad = (
+        actividad.rstrip("\n")
+        + "\n"
+        + "".join(f"{clave}: {valor}\n" for clave, valor in campos_actividad.items())
+    )
+    indentado = "\n".join(
+        "  " + linea if linea else linea for linea in actividad.strip("\n").split("\n")
+    )
+    ruta = tmp_path / "actividad-h5p.md"
+    ruta.write_text(
+        f"---\ntipo: h5p\nnombre: {nombre}\nseccion: 3\n"
+        f"actividad:\n{indentado}\n---\n\nDescripción de la actividad.\n",
+        encoding="utf-8",
+    )
+    return contenido.cargar(ruta)
+
+
+def documento_paquete_h5p(tmp_path, nombre="paquete.h5p", titulo="Paquete de prueba"):
+    import io as _io
+    import zipfile as _zipfile
+
+    ruta_paquete = tmp_path / nombre
+    buf = _io.BytesIO()
+    with _zipfile.ZipFile(buf, "w") as zip_:
+        zip_.writestr(
+            "h5p.json",
+            '{"title":"' + titulo + '","mainLibrary":"H5P.Blanks",'
+            '"preloadedDependencies":[{"machineName":"H5P.Blanks","majorVersion":1,'
+            '"minorVersion":14}]}',
+        )
+        zip_.writestr("content/content.json", '{"questions":["El agua hierve a *100*."]}')
+        zip_.writestr("H5P.Blanks-1.14/library.json", '{"machineName":"H5P.Blanks"}')
+    ruta_paquete.write_bytes(buf.getvalue())
+    ruta = tmp_path / "actividad-paquete.md"
+    ruta.write_text(
+        "---\ntipo: h5p\nnombre: Actividad con paquete\nseccion: 3\n"
+        f"paquete: {nombre}\n---\n\nDescripción.\n",
+        encoding="utf-8",
+    )
+    return contenido.cargar(ruta, raiz=tmp_path)
+
+
+class TestPublicarH5P:
+    def test_payload_generado(self, tmp_path):
+        doc = documento_h5p(tmp_path, calificacion="7")
+        payload = publicar.payload_h5p(doc, "html", 55, 56, False)
+        assert payload["_qf__mod_h5pactivity_mod_form"] == "1"
+        assert payload["name"] == "Repaso H5P"
+        assert payload["introeditor[text]"] == "html"
+        assert (payload["introeditor[itemid]"], payload["packagefile"]) == ("55", "56")
+        assert payload["grade[modgrade_type]"] == "point"
+        assert payload["grade[modgrade_point]"] == "7"
+        assert payload["enabletracking"] == "1"
+        assert payload["grademethod"] == "1"
+        assert payload["reviewmode"] == "1"
+        assert payload["displayopt[export]"] == "0"
+        assert payload["displayopt[embed]"] == "0"
+        assert payload["displayopt[copyright]"] == "0"
+        assert payload["visible"] == "0"
+
+    def test_payload_tarjetas_sin_seguimiento(self, tmp_path):
+        actividad = 'tipo: tarjetas\ntarjetas:\n  - {anverso: "¿2 + 2?", reverso: "4"}\n'
+        doc = documento_h5p(tmp_path, actividad=actividad)
+        payload = publicar.payload_h5p(doc, "html", 1, 2, None)
+        assert payload["grade[modgrade_type]"] == "none"
+        assert payload["enabletracking"] == "0"
+        assert "grademethod" not in payload
+        assert "visible" not in payload
+
+    def test_payload_paquete(self, tmp_path):
+        doc = documento_paquete_h5p(tmp_path)
+        payload = publicar.payload_h5p(doc, "html", 1, 2, None)
+        assert payload["grade[modgrade_type]"] == "point"
+        assert payload["grade[modgrade_point]"] == "10"
+        assert payload["enabletracking"] == "1"
+
+    def test_crea_la_actividad_y_sube_el_paquete_generado(self, tmp_path):
+        from tiza.h5p import paquete_h5p
+
+        doc = documento_h5p(tmp_path)
+        moodle = MoodleFalso()
+        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        assert (resultado["tipo"], resultado["accion"], resultado["oculto"]) == (
+            "h5p",
+            "creada",
+            True,
+        )
+        assert resultado["url"].endswith("/mod/h5pactivity/view.php?id=100")
+        subida = next(llamada for llamada in moodle.llamadas if llamada[0] == "subir")
+        assert subida[1] == "actividad-h5p.h5p"
+        assert moodle.subidas[-1][1] == paquete_h5p(doc)
+        crear = next(llamada for llamada in moodle.llamadas if llamada[0] == "crear")
+        assert crear[3] == "h5p"
+        assert crear[4]["packagefile"] != crear[4]["introeditor[itemid]"]
+        operaciones = [llamada[0] for llamada in moodle.llamadas]
+        assert operaciones.index("subir") < operaciones.index("crear")
+        assert "comprobar_h5p" in operaciones
+        assert any("mod_h5pactivity/package/0/" in url for url in moodle.pluginfiles)
+
+    def test_el_paquete_subido_se_reempaqueta(self, tmp_path):
+        from tiza.h5p import reempaquetar
+
+        doc = documento_paquete_h5p(tmp_path)
+        moodle = MoodleFalso()
+        publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        assert moodle.subidas[-1][1] == reempaquetar(doc.paquete.ruta)
+        assert b"H5P.Blanks-1.14/library.json" not in moodle.subidas[-1][1]
+
+    def test_los_recursos_de_la_descripcion_tambien_suben(self, tmp_path):
+        (tmp_path / "img").mkdir()
+        (tmp_path / "img" / "foto.png").write_bytes(b"png")
+        ruta = tmp_path / "actividad-h5p.md"
+        ruta.write_text(
+            "---\ntipo: h5p\nnombre: Repaso H5P\nseccion: 3\nactividad:\n"
+            "  tipo: rellenar_huecos\n"
+            "  textos:\n"
+            '    - "El agua hierve a [[100]] grados."\n'
+            "---\n\nMira ![foto](img/foto.png).\n",
+            encoding="utf-8",
+        )
+        doc = contenido.cargar(ruta)
+        moodle = MoodleFalso()
+        publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        assert any("mod_h5pactivity/intro" in url for url in moodle.pluginfiles)
+
+    def test_si_no_se_despliega_se_borra_la_actividad(self, tmp_path):
+        class MoodleSinDesplegar(MoodleFalso):
+            def comprobar_h5p(self, cmid):
+                self.llamadas.append(("comprobar_h5p", cmid))
+                return False
+
+        moodle = MoodleSinDesplegar()
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle, 1234, moodle.secciones, documento_h5p(tmp_path), visible=False
+            )
+        assert exc.value.codigo == "H5P_NO_DESPLEGADO"
+        assert exc.value.cmid is None
+        assert moodle.secciones[0]["modulos"] == []
+
+    def test_sin_libreria_avisa_con_el_machine_name(self, tmp_path):
+        class MoodleSinLibreria(MoodleFalso):
+            def comprobar_h5p(self, cmid):
+                self.llamadas.append(("comprobar_h5p", cmid))
+                return False
+
+            def libreria_h5p_ausente(self, cmid, machine_name):
+                self.llamadas.append(("libreria_h5p_ausente", cmid, machine_name))
+                return True
+
+        moodle = MoodleSinLibreria()
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle, 1234, moodle.secciones, documento_h5p(tmp_path), visible=False
+            )
+        assert exc.value.codigo == "H5P_LIBRERIA_AUSENTE"
+        assert "H5P.Blanks" in exc.value.detalle
+        assert moodle.secciones[0]["modulos"] == []
+
+    def test_si_el_paquete_no_esta_en_pluginfile_se_borra(self, tmp_path):
+        moodle = MoodleFalso(pluginfiles_ok=False)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle, 1234, moodle.secciones, documento_h5p(tmp_path), visible=False
+            )
+        assert exc.value.codigo == "VERIFICACION_PAQUETE"
+        assert moodle.secciones[0]["modulos"] == []
+
+    def test_estructura_ajax_reconoce_la_actividad_h5p(self, monkeypatch):
+        estado = [
+            {
+                "id": 30,
+                "section": 1,
+                "name": "Proyecto",
+                "modules": [{"id": 57078, "name": "Repaso", "module": "h5pactivity"}],
+            }
+        ]
+        monkeypatch.setattr(publicar.py_course, "get_course", lambda *a, **k: estado)
+        moodle = publicar.Moodle("https://aula", object(), "clave", pausa=0)
+        assert moodle.estructura(838)[0]["modulos"] == [
+            {"cmid": 57078, "nombre": "Repaso", "tipo": "h5p"}
+        ]
+
+    def test_urls_pluginfile_y_del_paquete(self):
+        assert publicar.urls_pluginfile("https://aula", 97, "h5p", 5, "paquete.h5p") == [
+            "https://aula/pluginfile.php/97/mod_h5pactivity/intro/paquete.h5p",
+            "https://aula/pluginfile.php/97/mod_h5pactivity/intro/0/paquete.h5p",
+        ]
+        assert publicar.urls_paquete_h5p("https://aula", 97, 5, "paquete.h5p") == [
+            "https://aula/pluginfile.php/97/mod_h5pactivity/package/0/paquete.h5p",
+            "https://aula/pluginfile.php/97/mod_h5pactivity/package/5/paquete.h5p",
+        ]
+
+
+class TestRepublicarH5P:
+    def _publicar(self, moodle, tmp_path, **campos):
+        doc = documento_h5p(tmp_path, **campos)
+        return publicar.publicar_documento(moodle, 1234, moodle.estructura(1234), doc, visible=None)
+
+    def test_republicar_reutiliza_el_cmid(self, tmp_path):
+        moodle = MoodleFalso()
+        primero = self._publicar(moodle, tmp_path)
+        cmid = primero["cmid"]
+        segundo = self._publicar(moodle, tmp_path, calificacion="5")
+        assert (segundo["cmid"], segundo["accion"]) == (cmid, "actualizada")
+        assert segundo["oculto"] is True  # conserva la visibilidad
+        assert moodle.formularios[cmid]["grade[modgrade_point]"] == "5"
+        assert len([llamada for llamada in moodle.llamadas if llamada[0] == "subir"]) == 2
+
+    def test_republicar_con_visible_lo_muestra(self, tmp_path):
+        moodle = MoodleFalso()
+        self._publicar(moodle, tmp_path)
+        doc = documento_h5p(tmp_path, calificacion="3")
+        resultado = publicar.publicar_documento(
+            moodle, 1234, moodle.estructura(1234), doc, visible=True
+        )
+        assert resultado["oculto"] is False
+        assert moodle.formularios[resultado["cmid"]]["visible"] == "1"
+
+    def test_con_intentos_no_toca_nada(self, tmp_path):
+        moodle = MoodleFalso()
+        primero = self._publicar(moodle, tmp_path)
+        cmid = primero["cmid"]
+        moodle.intentos_h5p[cmid] = True
+        antes_formulario = dict(moodle.formularios[cmid])
+        antes_subidas = len(moodle.subidas)
+        llamadas_antes = len(moodle.llamadas)
+        with pytest.raises(ErrorPublicacion) as exc:
+            self._publicar(moodle, tmp_path, calificacion="5")
+        assert exc.value.codigo == "H5P_CON_INTENTOS"
+        assert exc.value.cmid is None
+        nuevas = [
+            llamada[0] for llamada in moodle.llamadas[llamadas_antes:] if llamada[0] != "estructura"
+        ]
+        assert nuevas == ["h5p_tiene_intentos"]
+        assert moodle.formularios[cmid] == antes_formulario
+        assert len(moodle.subidas) == antes_subidas
+
+    def test_republicar_un_paquete_actualiza_el_fichero(self, tmp_path):
+        moodle = MoodleFalso()
+        doc = documento_paquete_h5p(tmp_path)
+        primero = publicar.publicar_documento(
+            moodle, 1234, moodle.estructura(1234), doc, visible=None
+        )
+        segundo = publicar.publicar_documento(
+            moodle, 1234, moodle.estructura(1234), doc, visible=None
+        )
+        assert (segundo["cmid"], segundo["accion"]) == (primero["cmid"], "actualizada")
+        assert len(moodle.subidas) == 2

@@ -56,6 +56,7 @@ class MoodleFalso:
         self.cmid_nuevo = cmid_nuevo
         self.pluginfiles_ok = pluginfiles_ok
         self.llamadas: list[tuple] = []
+        self.subidas: list[tuple[str, bytes]] = []
         # Formulario de cada módulo: como python-moodle, cada payload se fusiona
         # sobre lo que ya había y lo que no se envía se conserva.
         self.formularios: dict[int, dict] = {}
@@ -71,6 +72,11 @@ class MoodleFalso:
         self.importados: list[bytes] = []
         self._siguiente_pregunta = 500
         self._siguiente_hueco = 900
+        # Actividades H5P: paquete subido, despliegue, librería e intentos.
+        self.paquetes_h5p: dict[int, str] = {}
+        self.despliegues_h5p: dict[int, bool] = {}
+        self.librerias_ausentes: dict[int, bool] = {}
+        self.intentos_h5p: dict[int, bool] = {}
 
     def crear_seccion(self, curso_id, nombre):
         self.llamadas.append(("crear_seccion", curso_id, nombre))
@@ -97,6 +103,7 @@ class MoodleFalso:
 
     def subir(self, curso_id, contexto, ruta, itemid):
         self.llamadas.append(("subir", Path(ruta).name, itemid))
+        self.subidas.append((Path(ruta).name, Path(ruta).read_bytes()))
         return itemid, Path(ruta).name
 
     def crear(self, curso_id, seccion_id, tipo, payload):
@@ -113,6 +120,11 @@ class MoodleFalso:
             self.instancias[cmid] = 5000 + cmid
             self.bancos[self.categorias[cmid]] = {}
             self.huecos_quiz[cmid] = []
+        if tipo == "h5p":
+            self.contextos[cmid] = 900 + cmid
+            self.instancias[cmid] = 5000 + cmid
+            self.paquetes_h5p[cmid] = payload.get("packagefile", "")
+            self.despliegues_h5p.setdefault(cmid, True)
         return cmid
 
     def actualizar(self, cmid, payload):
@@ -147,6 +159,10 @@ class MoodleFalso:
         self.instancias.pop(cmid, None)
         self.huecos_quiz.pop(cmid, None)
         self.intentos.pop(cmid, None)
+        self.paquetes_h5p.pop(cmid, None)
+        self.despliegues_h5p.pop(cmid, None)
+        self.librerias_ausentes.pop(cmid, None)
+        self.intentos_h5p.pop(cmid, None)
 
     # --- Cuestionarios: banco de preguntas y huecos -------------------------
 
@@ -200,6 +216,20 @@ class MoodleFalso:
         banco = self.bancos.get(self.categorias.get(cmid), {})
         for identificador in ids:
             banco.pop(identificador, None)
+
+    # --- Actividades H5P: despliegue e intentos ------------------------------
+
+    def comprobar_h5p(self, cmid):
+        self.llamadas.append(("comprobar_h5p", cmid))
+        return self.despliegues_h5p.get(cmid, True)
+
+    def libreria_h5p_ausente(self, cmid, machine_name):
+        self.llamadas.append(("libreria_h5p_ausente", cmid, machine_name))
+        return self.librerias_ausentes.get(cmid, False)
+
+    def h5p_tiene_intentos(self, cmid):
+        self.llamadas.append(("h5p_tiene_intentos", cmid))
+        return self.intentos_h5p.get(cmid, False)
 
 
 class PresenciaFalsa:
