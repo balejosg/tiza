@@ -173,7 +173,7 @@ La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
 `~/.agents/skills`). Si prefieres leer antes lo que ejecutas, abre
 `install.sh` o `install.ps1` en este repositorio; son unas pocas líneas.
 
-Los instaladores instalan la versión etiquetada `v0.11.0`; con `TIZA_REF=main`
+Los instaladores instalan la versión etiquetada `v0.12.0`; con `TIZA_REF=main`
 (o con otra etiqueta) antes de ejecutarlos eliges cuál. Para actualizar,
 `tiza actualizar` instala la última versión publicada (o la de `TIZA_REF`, si
 la defines) y reinstala la skill; necesita `git`, como el instalador. Hasta la
@@ -220,7 +220,7 @@ carpeta. La marca de confianza de Codex está en
 | `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados |
 | `tiza publicar <md>… --en pruebas` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): crea (oculto) o actualiza (conserva la visibilidad), verifica y registra el hash |
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
-| `tiza-ventana --carpeta <carpeta>` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.11.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
+| `tiza-ventana --carpeta <carpeta>` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.12.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
 | `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
 | `tiza revisar` | agente o docente | Solo lectura: comprueba el aislamiento de esta carpeta y avisa si es global |
