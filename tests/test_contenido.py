@@ -1371,12 +1371,12 @@ def paquete_h5p(tmp_path, nombre: str = "paquete.h5p", titulo: str = "Mi paquete
 
 
 def test_h5p_paquete_se_resuelve_y_entra_en_el_hash(tmp_path):
-    paquete = paquete_h5p(tmp_path)
+    paquete_h5p(tmp_path)
     md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: paquete.h5p\n---\n\nDescripción.\n"
     doc = cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
     assert doc.paquete is not None and doc.paquete.nombre == "paquete.h5p"
     original = hash_documento(doc)
-    paquete.write_bytes(paquete.read_bytes().replace(b'"questions"', b'"question"'))
+    paquete_h5p(tmp_path, titulo="Otro título")
     otro = cargar(escribir(tmp_path, md, "activ2.md"), raiz=tmp_path)
     assert hash_documento(otro) != original
 
@@ -1386,6 +1386,31 @@ def test_h5p_paquete_ausente_falla(tmp_path):
     with pytest.raises(ErrorContenido) as exc:
         cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
     assert exc.value.codigo == "RECURSO_AUSENTE"
+
+
+def test_h5p_paquete_invalido_falla_al_cargar(tmp_path):
+    (tmp_path / "roto.h5p").write_bytes(b"no es un zip")
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: roto.h5p\n---\n\nx\n"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    assert exc.value.codigo == "PAQUETE_H5P_INVALIDO"
+
+
+def test_h5p_paquete_muestra_los_enlaces_externos(tmp_path):
+    import zipfile as _zipfile
+
+    ruta = tmp_path / "paquete.h5p"
+    with _zipfile.ZipFile(ruta, "w") as zip_:
+        zip_.writestr(
+            "h5p.json",
+            '{"title":"Mi paquete","mainLibrary":"H5P.Blanks",'
+            '"preloadedDependencies":[{"machineName":"H5P.Blanks","majorVersion":1,'
+            '"minorVersion":14}]}',
+        )
+        zip_.writestr("content/content.json", '{"questions":["Mira https://ejemplo.org/apoyo."]}')
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: paquete.h5p\n---\n\nx\n"
+    doc = cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    assert doc.enlaces_externos == ["https://ejemplo.org/apoyo"]
 
 
 def test_h5p_paquete_oculto_falla(tmp_path):

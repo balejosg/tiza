@@ -37,6 +37,7 @@ __all__ = [
     "Fechas",
     "MarcaH5P",
     "Opcion",
+    "PaqueteH5P",
     "Pregunta",
     "Recurso",
     "TarjetaH5P",
@@ -164,6 +165,19 @@ class Recurso:
 
 
 @dataclass(frozen=True)
+class PaqueteH5P:
+    """``.h5p`` subido, ya validado y listo para reempaquetar."""
+
+    nombre: str
+    ruta: Path
+    titulo: str | None = None
+    libreria: str | None = None  # «H5P.Blanks 1.14»
+    ficheros: tuple[str, ...] = ()  # entradas que se conservan
+    externos: tuple[str, ...] = ()  # URL https de content.json, para el docente
+    descartadas: tuple[str, ...] = ()  # carpetas de librerías que se tiran siempre
+
+
+@dataclass(frozen=True)
 class Fechas:
     """Fechas de una tarea, ya convertidas a la zona del aula."""
 
@@ -275,7 +289,7 @@ class Documento:
     fechas: Fechas | None = None
     cuestionario: Cuestionario | None = None
     h5p: ActividadH5P | None = None
-    paquete: Recurso | None = None  # .h5p ya hecho que se sube tal cual (reempaquetado)
+    paquete: PaqueteH5P | None = None  # .h5p ya hecho que se sube reempaquetado
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
     enlaces_externos: list[str] = field(default_factory=list)  # los ve el docente antes de real
     incrustados: list[str] = field(default_factory=list)  # URL de los iframes, también las ve
@@ -331,6 +345,10 @@ def cargar(
             f"el nombre «{doc.paquete.nombre}» se usa para el paquete y para un recurso",
         )
     doc.enlaces_externos = _sin_repetir(analisis.externos, doc.cuestionario)
+    if doc.paquete is not None:
+        for url in doc.paquete.externos:
+            if url not in doc.enlaces_externos:
+                doc.enlaces_externos.append(url)
     doc.incrustados = _sin_repetir(analisis.incrustados, doc.cuestionario, externos=False)
     doc.hash_cargado = hash_documento(doc)
     return doc
@@ -723,7 +741,7 @@ def _html_de_pregunta(texto: str, donde: str, externos: list[str], incrustados: 
 
 def _validar_h5p(
     datos: dict[str, Any], base: Path, raiz: Path | None
-) -> tuple[ActividadH5P | None, Recurso | None]:
+) -> tuple[ActividadH5P | None, PaqueteH5P | None]:
     """Valida «actividad» (generada) o «paquete» (subido); nunca los dos."""
     actividad = datos.get("actividad")
     paquete = datos.get("paquete")
@@ -744,8 +762,8 @@ def _validar_h5p(
     return _leer_actividad_h5p(actividad), None
 
 
-def _resolver_paquete(valor: str, base: Path, raiz: Path | None) -> Recurso:
-    """El ``.h5p`` como recurso: dentro de la carpeta y con un tope de tamaño."""
+def _resolver_paquete(valor: str, base: Path, raiz: Path | None) -> PaqueteH5P:
+    """El ``.h5p`` como paquete validado: dentro de la carpeta y con un tope de tamaño."""
     ruta = _resolver_local(base, valor)
     if raiz is not None:
         _exigir_permitido(ruta, raiz)  # antes de mirar si existe
@@ -768,7 +786,9 @@ def _resolver_paquete(valor: str, base: Path, raiz: Path | None) -> Recurso:
         raise ErrorContenido(
             "RECURSO_AUSENTE", f"no se pudo leer el paquete «{ruta.name}»"
         ) from None
-    return Recurso(nombre=ruta.name, ruta=ruta)
+    from .h5p import validar_paquete  # import diferido: h5p importa contenido
+
+    return validar_paquete(ruta)
 
 
 def _leer_actividad_h5p(valor: Any) -> ActividadH5P:
@@ -1358,24 +1378,36 @@ def _retro_preview(retro_html: str | None) -> str:
 def _h5p_preview(doc: Documento) -> str:
     """Actividad H5P o resumen del paquete, para que el docente lo revise."""
     if doc.paquete is not None:
-        from .h5p import resumen_paquete
-
-        resumen = resumen_paquete(doc.paquete.ruta)
+        paquete = doc.paquete
         partes = ["<hr>", "<h2>Paquete H5P</h2>", "<ul>"]
-        partes.append(f"<li><strong>Fichero:</strong> {_html.escape(doc.paquete.nombre)}</li>")
-        if resumen["titulo"]:
-            partes.append(f"<li><strong>Título:</strong> {_html.escape(resumen['titulo'])}</li>")
-        if resumen["libreria"]:
+        partes.append(f"<li><strong>Fichero:</strong> {_html.escape(paquete.nombre)}</li>")
+        if paquete.titulo:
+            partes.append(f"<li><strong>Título:</strong> {_html.escape(paquete.titulo)}</li>")
+        if paquete.libreria:
             partes.append(
-                f"<li><strong>Librería principal:</strong> {_html.escape(resumen['libreria'])}</li>"
+                f"<li><strong>Librería principal:</strong> {_html.escape(paquete.libreria)}</li>"
             )
         partes.append("</ul>")
-        if resumen["ficheros"]:
+        if paquete.ficheros:
             partes.append("<p><strong>Ficheros:</strong></p><ul>")
-            for nombre in resumen["ficheros"][:20]:
+            for nombre in paquete.ficheros[:20]:
                 partes.append(f"<li>{_html.escape(nombre)}</li>")
-            if len(resumen["ficheros"]) > 20:
-                partes.append(f"<li>… y {len(resumen['ficheros']) - 20} más</li>")
+            if len(paquete.ficheros) > 20:
+                partes.append(f"<li>… y {len(paquete.ficheros) - 20} más</li>")
+            partes.append("</ul>")
+        if paquete.descartadas:
+            nombres = ", ".join(_html.escape(nombre) for nombre in paquete.descartadas)
+            partes.append(
+                f"<p><strong>Librerías descartadas:</strong> {nombres} "
+                "(tiza nunca sube sus ficheros)</p>"
+            )
+        if paquete.externos:
+            partes.append("<p><strong>Enlaces externos de la actividad:</strong></p><ul>")
+            for url in paquete.externos:
+                partes.append(
+                    f'<li><a href="{_html.escape(url)}" target="_blank" '
+                    f'rel="noopener noreferrer">{_html.escape(url)}</a></li>'
+                )
             partes.append("</ul>")
         return "\n".join(partes)
     actividad = doc.h5p
