@@ -1722,6 +1722,7 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
                     "tarea": "PUBLICAR_TAREA",
                     "cuestionario": "PUBLICAR_CUESTIONARIO",
                     "etiqueta": "PUBLICAR_ETIQUETA",
+                    "h5p": "PUBLICAR_H5P",
                 }[doc.tipo]
                 resultado = publicar_documento(moodle, curso_id, secciones, doc, visible=False)
                 cmids.append(resultado["cmid"])
@@ -1756,6 +1757,14 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
             if repetido["oculto"] is not True:
                 raise ErrorPublicacion("VISIBILIDAD_NO_CONSERVADA")
             paso("REPUBLICAR_ETIQUETA", "ok", f"cmid {repetido['cmid']}")
+            codigo_actual = "REPUBLICAR_H5P"
+            secciones = moodle.estructura(curso_id)
+            repetido = publicar_documento(moodle, curso_id, secciones, documentos[4], visible=None)
+            if repetido["cmid"] != cmids[4]:
+                raise ErrorPublicacion("REPUBLICAR_CMID_DISTINTO")
+            if repetido["oculto"] is not True:
+                raise ErrorPublicacion("VISIBILIDAD_NO_CONSERVADA")
+            paso("REPUBLICAR_H5P", "ok", f"cmid {repetido['cmid']}")
             codigo_actual = "VERIFICAR_CATEGORIA"
             cmid_quiz = cmids[2]
             categoria = moodle.categoria_cuestionario(cmid_quiz)
@@ -1867,4 +1876,19 @@ def _ejemplos(carpeta: Path, seccion: int) -> list[Documento]:
         "![punto](img/punto.png)\n",
         encoding="utf-8",
     )
-    return [cargar(pagina), cargar(tarea), cargar(cuestionario), cargar(etiqueta)]
+    h5p = carpeta / "h5p.md"
+    h5p.write_text(
+        "---\n"
+        "tipo: h5p\n"
+        "nombre: Autoprueba tiza (h5p)\n"
+        f"seccion: {seccion}\n"
+        "actividad:\n"
+        "  tipo: rellenar_huecos\n"
+        "  textos:\n"
+        '    - "El agua hierve a [[100]] grados."\n'
+        "---\n\n"
+        "Actividad temporal de la autoprueba.\n\n"
+        "![punto](img/punto.png)\n",
+        encoding="utf-8",
+    )
+    return [cargar(pagina), cargar(tarea), cargar(cuestionario), cargar(etiqueta), cargar(h5p)]

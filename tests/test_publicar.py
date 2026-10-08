@@ -258,11 +258,13 @@ class TestAutoprueba:
         assert "REPUBLICAR_CUESTIONARIO" in codigos
         assert "PUBLICAR_ETIQUETA" in codigos
         assert "REPUBLICAR_ETIQUETA" in codigos
+        assert "PUBLICAR_H5P" in codigos
+        assert "REPUBLICAR_H5P" in codigos
         assert "VERIFICAR_CATEGORIA" in codigos
         assert "LIMPIAR" in codigos
         assert resultado["errores"] == []
         borrados = [llamada for llamada in moodle.llamadas if llamada[0] == "borrar"]
-        assert len(borrados) == 4
+        assert len(borrados) == 5
         assert moodle.secciones[0]["modulos"] == []
 
     def test_la_autoprueba_detecta_una_categoria_que_no_es_la_del_modulo(self):
@@ -276,7 +278,7 @@ class TestAutoprueba:
         resultado = publicar.autoprueba(moodle, 1234)
         assert "VERIFICACION_PREGUNTAS" in resultado["errores"]
         assert [paso["codigo"] for paso in resultado["pasos"]][-2] == "VERIFICAR_CATEGORIA"
-        assert moodle.secciones[0]["modulos"] == []  # limpió los cuatro módulos
+        assert moodle.secciones[0]["modulos"] == []  # limpió los cinco módulos
 
     def test_la_autoprueba_detecta_que_el_banco_no_tiene_las_preguntas(self):
         class MoodleConBancoVacio(MoodleFalso):
