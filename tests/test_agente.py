@@ -285,7 +285,11 @@ def test_formato_documento_cubre_todos_los_tipos_y_campos():
     texto = agente.formato_documento()
     for tipo in contenido.TTIPOS + contenido.TIPOS_PREGUNTA:
         assert f"tipo: {tipo}" in texto, tipo
-    campos = set(contenido.CAMPOS_CUESTIONARIO) | set(contenido._CAMPOS_OPCION)
+    campos = (
+        set(contenido.CAMPOS_CUESTIONARIO)
+        | set(contenido._CAMPOS_OPCION)
+        | set(contenido.CAMPOS_H5P)
+    )
     for campos_pregunta in contenido._CAMPOS_PREGUNTA.values():
         campos |= campos_pregunta
     for campo in sorted(campos):
@@ -295,7 +299,7 @@ def test_formato_documento_cubre_todos_los_tipos_y_campos():
 def test_los_ejemplos_del_formato_son_validos(tmp_path):
     texto = agente.formato_documento()
     ejemplos = re.findall(r"```markdown\n(.*?)```", texto, re.DOTALL)
-    assert len(ejemplos) == 4
+    assert len(ejemplos) == len(contenido.TTIPOS)
     for ruta in ("apuntes.pdf", "img/foto.png", "img/figura1.png"):
         (tmp_path / ruta).parent.mkdir(exist_ok=True)
         (tmp_path / ruta).write_bytes(b"x")

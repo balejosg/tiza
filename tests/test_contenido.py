@@ -1168,3 +1168,286 @@ def test_render_respeta_lineas_en_blanco_dentro_de_pre_en_un_div():
     assert "<ul>" not in html
     assert "<p>" not in html
     assert "[Tu Nombre]\n\nPARTE 1:\n• Fase 1:\n  - Opciones: ...\n\nPARTE 2:\n</pre>" in html
+
+
+# --------------------------------------------------------------------------- #
+# Actividades H5P
+# --------------------------------------------------------------------------- #
+
+
+def h5p(actividad: str, **campos) -> str:
+    """Un documento h5p válido; ``actividad`` es el YAML ya escrito."""
+    extra = "".join(f"{clave}: {valor}\n" for clave, valor in campos.items())
+    indentado = "\n".join(
+        "  " + linea if linea else linea for linea in actividad.strip("\n").split("\n")
+    )
+    return (
+        f"---\ntipo: h5p\nnombre: Actividad H5P\nseccion: 3\n{extra}"
+        f"actividad:\n{indentado}\n---\n\nDescripción de la actividad.\n"
+    )
+
+
+RELLENAR_HUECOS = """
+tipo: rellenar_huecos
+textos:
+  - "El agua hierve a [[100]] grados."
+  - "La capital de Francia es [[París|Paris]]."
+"""
+
+
+def test_carga_h5p_rellenar_huecos_valido(tmp_path):
+    doc = cargar(escribir(tmp_path, h5p(RELLENAR_HUECOS), "actividad.md"))
+    assert (doc.tipo, doc.nombre, doc.seccion) == ("h5p", "Actividad H5P", 3)
+    assert doc.cuestionario is None and doc.fechas is None
+    assert doc.h5p is not None and doc.h5p.tipo == "rellenar_huecos"
+    assert len(doc.h5p.textos) == 2
+    assert doc.h5p.textos[0].h5p == "<p>El agua hierve a *100* grados.</p>\n"
+    [marca] = [parte for parte in doc.h5p.textos[1].partes if not isinstance(parte, str)]
+    assert marca.respuestas == ("París", "Paris")
+    assert doc.h5p.mayusculas is False
+    assert doc.h5p.calificacion == 10
+    assert doc.h5p.reintentar is True and doc.h5p.ver_solucion is True
+    assert doc.paquete is None
+
+
+def test_carga_h5p_con_ajustes(tmp_path):
+    actividad = (
+        RELLENAR_HUECOS
+        + "mayusculas: true\ncalificacion: 5\nreintentar: false\nver_solucion: false\n"
+    )
+    doc = cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    assert (doc.h5p.mayusculas, doc.h5p.calificacion) == (True, 5)
+    assert (doc.h5p.reintentar, doc.h5p.ver_solucion) == (False, False)
+
+
+def test_carga_h5p_arrastrar_palabras(tmp_path):
+    actividad = """
+tipo: arrastrar_palabras
+texto: "El [[sol]] brilla."
+distractores: [nube, lluvia]
+"""
+    doc = cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    assert doc.h5p.texto.h5p == "El *sol* brilla."
+    assert doc.h5p.distractores == ("nube", "lluvia")
+
+
+def test_carga_h5p_marcar_palabras(tmp_path):
+    actividad = """
+tipo: marcar_palabras
+enunciado: Marca los verbos.
+texto: "El niño [[come]] pan."
+"""
+    doc = cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    assert doc.h5p.enunciado == "Marca los verbos."
+    assert doc.h5p.texto.h5p == "<p>El niño *come* pan.</p>\n"
+
+
+def test_carga_h5p_tarjetas(tmp_path):
+    actividad = """
+tipo: tarjetas
+tarjetas:
+  - {anverso: "¿2 + 2?", reverso: "4"}
+  - anverso: "**Capital** de Francia"
+    reverso: París
+"""
+    doc = cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    assert [tarjeta.anverso for tarjeta in doc.h5p.tarjetas] == [
+        "¿2 + 2?",
+        "**Capital** de Francia",
+    ]
+    assert doc.h5p.tarjetas[1].reverso == "París"
+    assert "<strong>Capital</strong>" in doc.h5p.tarjetas[1].anverso_html
+
+
+def test_h5p_sin_actividad_ni_paquete_falla(tmp_path):
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\n---\n\nx\n"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, md, "actividad.md"))
+    assert exc.value.codigo == "CAMPO_FALTANTE"
+
+
+def test_h5p_con_actividad_y_paquete_falla(tmp_path):
+    md = h5p(RELLENAR_HUECOS).replace("---\n\nDescripción", "paquete: otro.h5p\n---\n\nDescripción")
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, md, "actividad.md"))
+    assert exc.value.codigo == "CAMPOS_INCOMPATIBLES"
+
+
+@pytest.mark.parametrize(
+    ("actividad", "codigo", "detalle"),
+    [
+        ("tipo: ruleta\n", "ACTIVIDAD_H5P_INVALIDA", "rellenar_huecos"),
+        ("tipo: rellenar_huecos\nextra: 1\n", "CAMPO_DESCONOCIDO", "extra"),
+        ("tipo: rellenar_huecos\ntextos: []\n", "ACTIVIDAD_H5P_INVALIDA", "textos"),
+        ("tipo: rellenar_huecos\ntextos: ['sin hueco']\n", "ACTIVIDAD_H5P_INVALIDA", "hueco"),
+        (
+            "tipo: rellenar_huecos\ntextos: ['2 * 3 = [[6]]']\n",
+            "ACTIVIDAD_H5P_INVALIDA",
+            "asterisco",
+        ),
+        ("tipo: rellenar_huecos\ntextos: ['[[a/b]]']\n", "ACTIVIDAD_H5P_INVALIDA", "respuesta"),
+        ("tipo: rellenar_huecos\ntextos: ['[[a:b]]']\n", "ACTIVIDAD_H5P_INVALIDA", "respuesta"),
+        ("tipo: rellenar_huecos\ntextos: ['[[a]] y [[b']\n", "ACTIVIDAD_H5P_INVALIDA", "cerrar"),
+        ("tipo: rellenar_huecos\ntextos: ['[[]]']\n", "ACTIVIDAD_H5P_INVALIDA", "vacía"),
+        ("tipo: rellenar_huecos\ntextos: ['[[a|]]']\n", "ACTIVIDAD_H5P_INVALIDA", "vacía"),
+        (
+            "tipo: rellenar_huecos\ntextos: ['[[a]]']\nmayusculas: sí\n",
+            "ACTIVIDAD_H5P_INVALIDA",
+            "mayusculas",
+        ),
+        (
+            "tipo: rellenar_huecos\ntextos: ['[[a]]']\ncalificacion: 0\n",
+            "ACTIVIDAD_H5P_INVALIDA",
+            "calificacion",
+        ),
+        (
+            "tipo: rellenar_huecos\ntextos: ['[[a]]']\nreintentar: 1\n",
+            "ACTIVIDAD_H5P_INVALIDA",
+            "reintentar",
+        ),
+        ("tipo: rellenar_huecos\ntextos: ['[[a]]', '']\n", "ACTIVIDAD_H5P_INVALIDA", "texto"),
+        ("tipo: tarjetas\ntarjetas: []\n", "ACTIVIDAD_H5P_INVALIDA", "tarjetas"),
+        ("tipo: tarjetas\ntarjetas: [{anverso: a}]\n", "ACTIVIDAD_H5P_INVALIDA", "reverso"),
+        (
+            "tipo: tarjetas\ntarjetas: [{anverso: a, reverso: b, extra: 1}]\n",
+            "CAMPO_DESCONOCIDO",
+            "extra",
+        ),
+        (
+            "tipo: tarjetas\ntarjetas: [{anverso: a, reverso: b}]\ncalificacion: 5\n",
+            "CAMPO_DESCONOCIDO",
+            "calificacion",
+        ),
+        ("tipo: marcar_palabras\ntexto: 'sin marca'\n", "ACTIVIDAD_H5P_INVALIDA", "enunciado"),
+        ("tipo: arrastrar_palabras\ntexto: 'sin marca'\n", "ACTIVIDAD_H5P_INVALIDA", "hueco"),
+    ],
+)
+def test_h5p_errores_de_actividad(tmp_path, actividad, codigo, detalle):
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    assert exc.value.codigo == codigo
+    assert detalle in exc.value.detalle
+
+
+def test_h5p_rechaza_bloques_y_formato_no_admitido(tmp_path):
+    actividad = """
+tipo: marcar_palabras
+enunciado: "Marca:\\n\\n- uno\\n- dos"
+texto: "El niño [[come]] pan."
+"""
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    assert exc.value.codigo == "ACTIVIDAD_H5P_INVALIDA"
+
+
+def test_h5p_rechaza_html_peligroso(tmp_path):
+    actividad = """
+tipo: marcar_palabras
+enunciado: "<script>alert(1)</script>"
+texto: "El niño [[come]] pan."
+"""
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    assert exc.value.codigo == "HTML_PELIGROSO"
+
+
+def paquete_h5p(tmp_path, nombre: str = "paquete.h5p", titulo: str = "Mi paquete"):
+    import io as _io
+    import zipfile as _zipfile
+
+    ruta = tmp_path / nombre
+    buf = _io.BytesIO()
+    with _zipfile.ZipFile(buf, "w") as zip_:
+        zip_.writestr(
+            "h5p.json",
+            f'{{"title":"{titulo}","mainLibrary":"H5P.Blanks",'
+            '"preloadedDependencies":[{"machineName":"H5P.Blanks","majorVersion":1,'
+            '"minorVersion":14}]}',
+        )
+        zip_.writestr("content/content.json", '{"questions":[]}')
+        zip_.writestr("content/imagen.png", b"png")
+    ruta.write_bytes(buf.getvalue())
+    return ruta
+
+
+def test_h5p_paquete_se_resuelve_y_entra_en_el_hash(tmp_path):
+    paquete = paquete_h5p(tmp_path)
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: paquete.h5p\n---\n\nDescripción.\n"
+    doc = cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    assert doc.paquete is not None and doc.paquete.nombre == "paquete.h5p"
+    original = hash_documento(doc)
+    paquete.write_bytes(paquete.read_bytes().replace(b'"questions"', b'"question"'))
+    otro = cargar(escribir(tmp_path, md, "activ2.md"), raiz=tmp_path)
+    assert hash_documento(otro) != original
+
+
+def test_h5p_paquete_ausente_falla(tmp_path):
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: no-existe.h5p\n---\n\nx\n"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    assert exc.value.codigo == "RECURSO_AUSENTE"
+
+
+def test_h5p_paquete_oculto_falla(tmp_path):
+    (tmp_path / ".oculto.h5p").write_bytes(b"x")
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: .oculto.h5p\n---\n\nx\n"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    assert exc.value.codigo == "RECURSO_NO_PERMITIDO"
+
+
+def test_h5p_paquete_fuera_de_la_carpeta_falla(tmp_path):
+    fuera = paquete_h5p(tmp_path)
+    carpeta = tmp_path / "clase"
+    carpeta.mkdir()
+    md = f"---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: {fuera}\n---\n\nx\n"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(carpeta, md, "actividad.md"), raiz=carpeta)
+    assert exc.value.codigo == "RUTA_FUERA_DE_CARPETA"
+
+
+def test_h5p_paquete_que_no_es_h5p_falla(tmp_path):
+    (tmp_path / "paquete.zip").write_bytes(b"x")
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: paquete.zip\n---\n\nx\n"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    assert exc.value.codigo == "PAQUETE_H5P_INVALIDO"
+
+
+def test_h5p_paquete_demasiado_grande_falla(tmp_path, monkeypatch):
+    monkeypatch.setattr(contenido, "MAX_PAQUETE_H5P_BYTES", 4)
+    paquete_h5p(tmp_path)
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: paquete.h5p\n---\n\nx\n"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    assert exc.value.codigo == "PAQUETE_H5P_DEMASIADO_GRANDE"
+
+
+def test_la_vista_previa_muestra_los_huecos_subrayados(tmp_path):
+    doc = cargar(escribir(tmp_path, h5p(RELLENAR_HUECOS), "actividad.md"))
+    texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
+    assert "Actividad H5P" in texto
+    assert "El agua hierve a <u>100</u> grados." in texto
+    assert "<u>París | Paris</u>" in texto
+
+
+def test_la_vista_previa_muestra_las_tarjetas(tmp_path):
+    actividad = """
+tipo: tarjetas
+tarjetas:
+  - {anverso: "¿2 + 2?", reverso: "4"}
+"""
+    doc = cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+    texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
+    assert "¿2 + 2?" in texto and "<strong>Reverso:</strong>" in texto
+    assert ">4<" in texto
+
+
+def test_la_vista_previa_muestra_el_resumen_del_paquete(tmp_path):
+    paquete_h5p(tmp_path, titulo="Mi paquete")
+    md = "---\ntipo: h5p\nnombre: A\nseccion: 1\npaquete: paquete.h5p\n---\n\nx\n"
+    doc = cargar(escribir(tmp_path, md, "actividad.md"), raiz=tmp_path)
+    texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
+    assert "Mi paquete" in texto
+    assert "H5P.Blanks" in texto
+    assert "content/content.json" in texto or "content.json" in texto

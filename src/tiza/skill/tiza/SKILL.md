@@ -35,7 +35,8 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    | Un test o examen que se corrija solo | `cuestionario` |
    | Un repaso sin nota | `cuestionario` con `intentos: ilimitados` y `retro` en cada pregunta |
    | Emparejar o unir con flechas | `cuestionario` con una `opcion_multiple` por elemento |
-   | Rellenar huecos | `cuestionario` con una `respuesta_corta` (o `numerica`) por hueco |
+   | Rellenar huecos | `h5p` con `rellenar_huecos` |
+   | Arrastrar palabras, marcar palabras o tarjetas | `h5p` (`arrastrar_palabras`, `marcar_palabras` o `tarjetas`) |
    | Preguntas sobre una imagen, gráfica o texto | `cuestionario` con la imagen o el texto en la descripción (el cuerpo) y enunciados que remitan a ella |
 
    ```markdown
@@ -117,7 +118,30 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    ![Punto de ejemplo](img/foto.png)
    ```
 
-   - `tipo`: `pagina`, `etiqueta`, `tarea` o `cuestionario`.
+   Para una actividad H5P generada por tiza, la actividad va en `actividad:`; el cuerpo es la descripción:
+
+   ```markdown
+   ---
+   tipo: h5p
+   nombre: Repaso de vocabulario
+   seccion: 3
+   actividad:
+     tipo: rellenar_huecos
+     textos:
+       - "El agua hierve a [[100]] grados."
+       - "La capital de Francia es [[París|Paris]]."
+     mayusculas: true            # opcional; por defecto false
+     calificacion: 10            # opcional; por defecto 10
+     reintentar: true            # opcional; por defecto true
+     ver_solucion: true          # opcional; por defecto true
+   ---
+
+   Descripción de la actividad.
+   ```
+
+   Los tipos generados son `rellenar_huecos` (`textos:`), `arrastrar_palabras` (`texto:` y `distractores:` opcional), `marcar_palabras` (`enunciado:` y `texto:`) y `tarjetas` (`tarjetas:` con `anverso:` y `reverso:`). Para subir un paquete hecho fuera, usa `paquete: paquete.h5p` en vez de `actividad:`.
+
+   - `tipo`: `pagina`, `etiqueta`, `tarea`, `cuestionario` o `h5p`.
    - `seccion`: **preferiblemente el nombre** de la sección entre comillas (`seccion: "Fracciones"`), porque vale igual en pruebas y en real. Si no existe, se crea **oculta** al publicar (`tiza comprobar` lo avisa; en real el docente lo confirma). También acepta el número de `estructura.json`, pero los números pueden no coincidir entre los dos cursos.
    - Si el docente te da un número grande (por ejemplo `12858`), suele ser el **id** de la URL del aula, no el número: búscalo en el campo `id` de las secciones de `estructura.json` y usa su `numero`. `tiza comprobar` lo detecta con `SECCION_ES_ID` y te dice el número.
    - Los ficheros locales (imágenes, PDF…) se suben solos: referencia `img/foto.png` o `apuntes.pdf` con rutas relativas al fichero. Tienen que estar dentro de la carpeta de la asignatura, no pueden ser ocultos (nombre o carpeta que empiezan por punto, como `.git/config`) ni pasar de 200 MB, y un `.md` o `.html` no puede pasar de 2 MB.
