@@ -9,8 +9,22 @@ $repo = "git+https://github.com/balejosg/tiza@$ref"
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     Write-Host "Instalando uv (gestor de Python)..."
-    Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+    # En un proceso hijo: el instalador de uv termina con «exit» y cerraría esta
+    # ventana de PowerShell si se ejecutara aquí con Invoke-Expression.
+    $nombre = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh.exe" } else { "powershell.exe" }
+    $exe = Join-Path $PSHOME $nombre
+    try {
+        & $exe -NoProfile -ExecutionPolicy ByPass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+    } catch {
+        $LASTEXITCODE = 1
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudo instalar uv. Instálalo a mano con «winget install --id=astral-sh.uv -e» (o mira https://docs.astral.sh/uv/) y vuelve a ejecutar este instalador."
+    }
     $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        throw "uv se instaló en una carpeta que no está en el PATH de esta terminal. Abre una terminal nueva y repite."
+    }
 }
 
 uv tool install --force $repo
