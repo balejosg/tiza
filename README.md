@@ -8,7 +8,7 @@
 `tiza` es una CLI y una skill portables para que docentes con un aula virtual
 Moodle preparen y publiquen **páginas, etiquetas, tareas y cuestionarios** en sus propios
 cursos con rol de profesor, usando cualquier agente (Claude Code, Codex,
-opencode…). Está pensada con dos ideas:
+opencode, la app de GitHub Copilot…). Está pensada con dos ideas:
 
 1. **El agente no toca la sesión del aula**: escribe y comprueba el contenido;
    para publicar deja una petición en un buzón de ficheros que atiende la sesión
@@ -31,7 +31,8 @@ Necesitas:
   virtual de tu centro;
 - un agente de IA que trabaje en la terminal. Claude Code y Codex necesitan una
   suscripción de pago o una clave de API; opencode es gratuito, pero hay que
-  conectarlo a un proveedor de modelos.
+  conectarlo a un proveedor de modelos; la app de GitHub Copilot necesita un
+  plan de Copilot o una clave propia.
 
 Funciona en Windows, macOS y Linux. La base es
 [python-moodle](https://pypi.org/project/python-moodle/) (MIT), que crea y
@@ -111,7 +112,11 @@ Son medidas para reducir riesgos, no garantías absolutas.
 
 El riesgo ajeno a la herramienta (un agente leyendo el perfil del navegador o
 Descargas) se cubre con [docs/aislamiento.md](docs/aislamiento.md), con
-configuración lista para copiar en Claude Code, Codex y opencode.
+configuración lista para copiar en Claude Code, Codex y opencode, y la receta
+para el sandbox de la app de GitHub Copilot (que se activa a mano por
+proyecto). Con Copilot usa una sesión local abierta en la carpeta de la
+asignatura: las sesiones en la nube de la app no ven tu `tiza sesion`, y su
+«computer use» queda fuera por las mismas reglas.
 
 ## Datos del alumnado: regla de oro
 
@@ -159,12 +164,13 @@ Y aísla tu agente del aula **en la carpeta de la asignatura** (lo explica
 si detecta que falta:
 
 ```bash
-tiza aislar     # añade las restricciones a esta carpeta (Claude Code, Codex y opencode)
+tiza aislar     # añade las restricciones a esta carpeta (Claude Code, Codex y opencode; con Copilot, muestra la receta)
 tiza revisar    # comprueba que todo está bien (solo lectura)
 ```
 
 La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
-`~/.config/opencode/skills`. Si prefieres leer antes lo que ejecutas, abre
+`~/.config/opencode/skills` (la app de Copilot la descubre desde
+`~/.agents/skills`). Si prefieres leer antes lo que ejecutas, abre
 `install.sh` o `install.ps1` en este repositorio; son unas pocas líneas.
 
 Los instaladores instalan la versión etiquetada `v0.11.0`; con `TIZA_REF=main`
@@ -196,7 +202,9 @@ tiza instalar-skill
 
 El aislamiento vive en la carpeta de cada asignatura (`.claude/`, `.codex/`,
 `opencode.jsonc`); `tiza aislar` dejó una copia `…antes-de-tiza-…` de cada
-fichero que ya existía. La marca de confianza de Codex está en
+fichero que ya existía. En la app de GitHub Copilot, el sandbox se activa a mano
+en cada proyecto (Ajustes › Proyectos › Sandbox) y no deja ficheros en la
+carpeta. La marca de confianza de Codex está en
 `~/.codex/config.toml` y se borra a mano.
 
 ## Uso
@@ -214,7 +222,7 @@ fichero que ya existía. La marca de confianza de Codex está en
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
 | `tiza-ventana --carpeta <carpeta>` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.11.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
-| `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code y Codex (con `--global`, a todos tus proyectos); con copia de seguridad |
+| `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
 | `tiza revisar` | agente o docente | Solo lectura: comprueba el aislamiento de esta carpeta y avisa si es global |
 
 Cuando algo falla, `tiza` muestra el código (por ejemplo `SESION_CADUCADA`) y

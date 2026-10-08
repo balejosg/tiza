@@ -62,14 +62,15 @@ En tu terminal (no en la del agente), **dentro de la carpeta de la asignatura**:
 
     tiza aislar
 
-Detecta Claude Code, Codex y opencode y te enseña los cambios que va a hacer
-**en la configuración de esa carpeta** (salvo la marca de confianza de Codex,
-que va en `~/.codex/config.toml`; lo explica la sección de Codex). Solo añade
-restricciones, nunca quita permisos. Con opencode crea `opencode.jsonc` si esa
-carpeta todavía no tiene ninguna configuración suya; si ya existe, no la toca y
-te recuerda qué reglas copiar a mano.
-Si dices que sí, guarda una copia `…antes-de-tiza-…` del fichero que ya exista y
-los aplica. La configuración de tus demás proyectos no cambia. Para comprobarlo
+Detecta Claude Code, Codex, opencode y la app de GitHub Copilot. Te enseña los
+cambios que va a hacer **en la configuración de esa carpeta** (salvo la marca de
+confianza de Codex, que va en `~/.codex/config.toml`; lo explica la sección de
+Codex). Solo añade restricciones, nunca quita permisos. Con opencode crea
+`opencode.jsonc` si esa carpeta todavía no tiene ninguna configuración suya; si
+ya existe, no la toca y te recuerda qué reglas copiar a mano. Con la app de
+Copilot no puede escribir nada: te imprime la receta para que la apliques en
+sus ajustes (mira la sección «GitHub Copilot»). Con los demás, si dices que sí,
+guarda una copia `…antes-de-tiza-…` del fichero que ya exista y los aplica. La configuración de tus demás proyectos no cambia. Para comprobarlo
 en cualquier momento, desde esa misma carpeta:
 
     tiza revisar
@@ -267,6 +268,54 @@ Versión 1 (si tu opencode todavía usa el objeto `permission`):
   en un usuario del sistema sin sesión abierta del aula.
 - La skill se instala en `~/.config/opencode/skills` y también se descubre desde
   `~/.claude/skills` y `~/.agents/skills`.
+
+## GitHub Copilot (app y CLI)
+
+La **app de GitHub Copilot** (la de escritorio, construida sobre Copilot CLI) no
+expone su configuración: su sandbox se activa **por proyecto y a mano** en
+Ajustes › Proyectos › Sandbox, y `tiza` no puede escribirlo ni comprobarlo. Por
+eso `tiza aislar`, cuando detecta Copilot, no cambia nada: imprime la receta
+exacta para tu equipo. Estos son los cambios que hay que hacer en la app:
+
+- **Activa el sandbox del proyecto.** Viene desactivado por defecto; sin él,
+  Copilot tiene internet, red local y credenciales de git/gh.
+- **Añade a mano las rutas denegadas** que imprime `tiza aislar`: son absolutas,
+  sin comodines, y bloquean también su subárbol. Incluyen los perfiles de
+  navegador y correo, Descargas y los almacenes de contraseñas (lectura), y la
+  configuración y la caché de tiza (lectura y escritura).
+- **Deniega el dominio del aula** (el servidor de tu configuración). Un dominio
+  denegado bloquea también sus subdominios, y las denegaciones ganan a los
+  permisos.
+- **Apaga la red local y las credenciales de git/gh**, que en la app vienen
+  activadas por defecto.
+- Comprueba los requisitos: en Linux hacen falta `bwrap` (≥ 0.5.0) y
+  `slirp4netns` en el `PATH`; en Windows, Windows 11 25H2 o 26H1 con los parches
+  de GitHub. `tiza revisar` avisa si no los encuentra, pero no puede saber si el
+  sandbox está activado en la app.
+- La skill se descubre desde `~/.agents/skills` (donde la copia el instalador) y
+  desde `~/.copilot/skills`.
+
+**Sesiones locales y worktrees.** Cada sesión local de la app trabaja en su
+propio *worktree* de git y rama; los «Chats» y el espacio en blanco no crean
+worktree. Si el agente acaba en un worktree, busca el buzón `.tiza/` en la
+carpeta equivocada y `tiza publicar` responde `SIN_SESION` con la pista «estás
+en un worktree de git…». Mientras no se compruebe con tu versión de la app, la
+forma que mejor encaja con tiza es abrir el agente en la propia carpeta de la
+asignatura: si esa carpeta no es un repositorio git, lo más probable es que la
+sesión local trabaje directamente en ella; si lo es, usa un «Chat» o el espacio
+en blanco abierto en ella.
+
+**No uses las sesiones en la nube** de la app: corren en GitHub, no en tu
+carpeta, y no ven tu `tiza sesion` ni el buzón. Tampoco su **«computer use»**:
+queda prohibida por las reglas de siempre (nada de navegador ni de control del
+escritorio hacia el aula).
+
+**Límite**: no está comprobado que el sandbox de la app limite las lecturas
+internas del agente (las herramientas de ficheros, aparte del shell). Hasta
+comprobarlo, `tiza revisar` lo deja como aviso: no guardes datos de alumnado en
+el equipo ni tengas el aula abierta en el navegador con ese usuario. Y recuerda
+que, con una cuenta de Copilot, GitHub puede recoger datos de la conversación:
+no escribas datos del alumnado en los prompts.
 
 ## Otros agentes
 

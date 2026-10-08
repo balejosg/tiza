@@ -1,7 +1,8 @@
 # Instalar `tiza` con la ayuda de un agente
 
 Este documento es para **pegárselo a tu agente de IA** (Claude Code, Codex,
-opencode…) y que te guíe en la instalación. Está escrito para el agente, pero
+opencode, la app de GitHub Copilot…) y que te guíe en la instalación. Está
+escrito para el agente, pero
 léelo tú antes: así sabes qué va a hacer y qué te pedirá a ti.
 
 Dile algo como: *«Lee INSTALAR_CON_AGENTE.md de https://github.com/balejosg/tiza
@@ -98,6 +99,13 @@ para que lea la configuración nueva.
 Si ya existe una configuración de opencode o queda un cambio a mano de Codex,
 `tiza aislar` no toca lo que hay (podría tener reglas propias): ayúdale a
 completarlo siguiendo [docs/aislamiento.md](docs/aislamiento.md).
+
+Con la **app de GitHub Copilot**, `tiza aislar` tampoco puede escribir su
+sandbox: imprime la receta y el docente la aplica en Ajustes › Proyectos ›
+Sandbox (activarlo, rutas denegadas, dominio del aula, apagar la red local y las
+credenciales de git/gh). La app trabaja en worktrees de git: la sesión del
+agente debe quedar en la carpeta de la asignatura, o `tiza publicar` responderá
+`SIN_SESION` con la pista.
 
 Cuando diga «Sesión abierta hasta…», ya puedes trabajar siguiendo la skill
 `tiza`.

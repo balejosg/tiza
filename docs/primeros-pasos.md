@@ -12,10 +12,10 @@ Esta guía es la versión corta. Los detalles están en el [README](../README.md
   programas, y unos 30 minutos la primera vez.
 - **Saber abrir una terminal** (en Windows, «PowerShell»; en macOS, «Terminal»).
   Solo tendrás que pegar un par de órdenes.
-- **Un agente de IA que trabaje en la terminal**: Claude Code, Codex u
-  opencode. Claude Code y Codex necesitan una suscripción de pago o una clave
-  de API. opencode es gratuito, pero hay que conectarlo a un proveedor de
-  modelos, que también puede ser de pago.
+- **Un agente de IA que trabaje en la terminal**: Claude Code, Codex, opencode
+  o la app de GitHub Copilot. Claude Code, Codex y Copilot necesitan una
+  suscripción de pago o una clave de API. opencode es gratuito, pero hay que
+  conectarlo a un proveedor de modelos, que también puede ser de pago.
 - **Un curso real en el aula virtual en el que seas profesor**, con tu alumnado.
   Si además tienes uno **de pruebas**, vacío, todo se publica primero ahí. Si no
   lo tienes, también puedes trabajar: en real solo se publica oculto y lo
@@ -52,7 +52,10 @@ Esta guía es la versión corta. Los detalles están en el [README](../README.md
    Te irá preguntando, por este orden:
    - la dirección de tu aula virtual y tu usuario;
    - si quieres **aislar** al agente en esta carpeta: responde `s`. Así no
-     puede entrar en el aula ni leer tu navegador;
+     puede entrar en el aula ni leer tu navegador. Con la app de GitHub
+     Copilot, `tiza aislar` no puede escribir su configuración: te dirá qué
+     activar en Ajustes › Proyectos › Sandbox y en qué carpeta debe quedar la
+     sesión del agente;
    - tu contraseña (solo aquí, nunca en el chat del agente);
    - cuál es tu curso real y, si lo tienes, el de pruebas, por su nombre (puedes
      elegir «No tengo curso de pruebas»: entonces en real solo se publicará
@@ -117,7 +120,8 @@ No mandes capturas del aula virtual (pueden salir alumnos), ni tu contraseña.
    `%LOCALAPPDATA%\tiza` en Windows.
 
 El aislamiento vive en la carpeta de cada asignatura (`.claude/`, `.codex/` y
-`opencode.jsonc`) y se va con ella. Si aplicaste `tiza aislar`, `tiza`
+`opencode.jsonc`) y se va con ella (en la app de GitHub Copilot se configura a
+mano en la propia app y no deja ficheros). Si aplicaste `tiza aislar`, `tiza`
 guardó una copia `…antes-de-tiza-…` de cada fichero que ya existía. Codex
 guarda además una marca de confianza de esa carpeta en `~/.codex/config.toml`,
 que puedes borrar a mano.
