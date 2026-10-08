@@ -176,7 +176,7 @@ La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
 Los instaladores instalan la versión etiquetada `v0.12.0`; con `TIZA_REF=main`
 (o con otra etiqueta) antes de ejecutarlos eliges cuál. Para actualizar,
 `tiza actualizar` instala la última versión publicada (o la de `TIZA_REF`, si
-la defines) y reinstala la skill; necesita `git`, como el instalador. Hasta la
+la defines) y reinstala la skill; para ello necesita `git`. Hasta la
 0.5.1, `tiza actualizar` no salía de la etiqueta instalada: desde esas
 versiones, vuelve a ejecutar el instalador una vez.
 

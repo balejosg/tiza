@@ -5,7 +5,13 @@
 # (por ejemplo TIZA_REF=main para la última versión).
 set -eu
 
-REPO="git+https://github.com/balejosg/tiza@${TIZA_REF:-v0.12.0}"
+REF="${TIZA_REF:-v0.12.0}"
+# Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
+# barra) siguen necesitando git.
+case "$REF" in
+    */*) PAQUETE="git+https://github.com/balejosg/tiza@$REF" ;;
+    *) PAQUETE="tiza @ https://github.com/balejosg/tiza/archive/$REF.zip" ;;
+esac
 
 if ! command -v uv >/dev/null 2>&1; then
     echo "Instalando uv (gestor de Python)..."
@@ -14,7 +20,7 @@ if ! command -v uv >/dev/null 2>&1; then
     export PATH
 fi
 
-uv tool install --force "$REPO"
+uv tool install --force "$PAQUETE"
 PATH="$(uv tool dir --bin 2>/dev/null || echo "$HOME/.local/bin"):$PATH"
 export PATH
 

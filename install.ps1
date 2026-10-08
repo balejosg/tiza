@@ -5,7 +5,13 @@
 $ErrorActionPreference = "Stop"
 
 $ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.12.0" }
-$repo = "git+https://github.com/balejosg/tiza@$ref"
+# Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
+# barra) siguen necesitando git.
+$paquete = if ($ref -match "/") {
+    "git+https://github.com/balejosg/tiza@$ref"
+} else {
+    "tiza @ https://github.com/balejosg/tiza/archive/$ref.zip"
+}
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     Write-Host "Instalando uv (gestor de Python)..."
@@ -27,7 +33,7 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     }
 }
 
-uv tool install --force $repo
+uv tool install --force "$paquete"
 if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar tiza." }
 $env:Path = "$(uv tool dir --bin);$env:Path"
 
