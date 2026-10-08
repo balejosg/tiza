@@ -432,12 +432,23 @@ class TestRevisar:
     def test_detecta_agentes_por_carpeta(self, tmp_path):
         (tmp_path / ".claude").mkdir()
         (tmp_path / ".codex").mkdir()
+        (tmp_path / ".copilot").mkdir()
         agentes = {c.agente for c in aislamiento.revisar(tmp_path, "Linux", tmp_path / "asig")}
-        assert {"Claude Code", "Codex"} <= agentes
+        assert {"Claude Code", "Codex", "GitHub Copilot"} <= agentes
+
+    def test_detecta_copilot_por_variable_de_entorno(self, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        home.mkdir()
+        datos = tmp_path / "copilot"
+        datos.mkdir()
+        monkeypatch.setenv("COPILOT_HOME", str(datos))
+        agentes = {c.agente for c in aislamiento.revisar(home, "Linux", tmp_path / "asig")}
+        assert "GitHub Copilot" in agentes
 
     def test_sin_agentes_avisa(self, tmp_path):
         comprobaciones = aislamiento.revisar(tmp_path, "Linux", tmp_path / "asig")
         assert [c.estado for c in comprobaciones] == ["aviso"]
+        assert "GitHub Copilot" in comprobaciones[0].texto
 
     def test_revisar_carpeta_en_descargas_sin_agentes_no_falta(self, tmp_path):
         carpeta = tmp_path / "Downloads" / "mates"
@@ -448,6 +459,56 @@ class TestRevisar:
         (tmp_path / ".claude" / "settings.json").write_text("{", encoding="utf-8")
         textos = faltas(aislamiento.revisar(tmp_path, "Linux", tmp_path))
         assert any("AJUSTES_ILEGIBLES" in t for t in textos)
+
+    def test_copilot_solo_avisa(self, tmp_path):
+        (tmp_path / ".copilot").mkdir()
+        comprobaciones = aislamiento.revisar(tmp_path, "Linux", tmp_path / "asig")
+        assert comprobaciones and all(c.estado == "aviso" for c in comprobaciones)
+
+    def test_copilot_ajustes_ilegibles_es_falta(self, tmp_path):
+        (tmp_path / ".copilot" / "settings.json").mkdir(parents=True)
+        comprobaciones = aislamiento.revisar(tmp_path, "Linux", tmp_path / "asig")
+        assert faltas(comprobaciones) == ["AJUSTES_ILEGIBLES: settings.json"]
+
+    def test_copilot_no_muestra_el_contenido_de_los_ajustes(self, tmp_path):
+        carpeta = tmp_path / ".copilot"
+        carpeta.mkdir()
+        (carpeta / "settings.json").write_text('{"api_key": "sk-secreta"}', encoding="utf-8")
+        textos = [c.texto for c in aislamiento.revisar(tmp_path, "Linux", tmp_path / "asig")]
+        assert all("sk-secreta" not in t for t in textos)
+
+
+class TestCopilot:
+    def test_ruta_por_defecto_y_con_variable(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("COPILOT_HOME", raising=False)
+        assert aislamiento.ruta_copilot(tmp_path) == tmp_path / ".copilot"
+        monkeypatch.setenv("COPILOT_HOME", str(tmp_path / "datos"))
+        assert aislamiento.ruta_copilot(tmp_path) == tmp_path / "datos"
+
+    def test_avisa_del_sandbox_y_del_host(self, tmp_path):
+        comprobaciones = aislamiento.revisar_copilot(tmp_path, "Linux", servidor=SERVIDOR)
+        textos = [c.texto for c in comprobaciones]
+        assert any("sandbox" in t for t in textos)
+        assert any(SERVIDOR in t for t in textos)
+
+    def test_sin_servidor_avisa_y_no_inventa_host(self, tmp_path):
+        textos = [c.texto for c in aislamiento.revisar_copilot(tmp_path, "Linux")]
+        assert any("sin comprobar" in t for t in textos)
+        assert all(SERVIDOR not in t for t in textos)
+
+    def test_avisa_si_faltan_bwrap_o_slirp4netns(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(aislamiento.shutil, "which", lambda _nombre: None)
+        textos = [c.texto for c in aislamiento.revisar_copilot(tmp_path, "Linux")]
+        assert any("bwrap" in t and "slirp4netns" in t for t in textos)
+
+    def test_no_avisa_si_esta_todo_instalado(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(aislamiento.shutil, "which", lambda nombre: f"/usr/bin/{nombre}")
+        textos = [c.texto for c in aislamiento.revisar_copilot(tmp_path, "Linux")]
+        assert all("bwrap" not in t for t in textos)
+
+    def test_windows_avisa_de_requisitos(self, tmp_path):
+        textos = [c.texto for c in aislamiento.revisar_copilot(tmp_path, "Windows")]
+        assert any("25H2" in t for t in textos)
 
 
 class TestProyecto:

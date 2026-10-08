@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import shutil
 import tomllib
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -23,6 +25,7 @@ __all__ = [
     "AVISO_GLOBAL",
     "CODEX",
     "CONFIG_OPENCODE",
+    "COPILOT",
     "Comprobacion",
     "ErrorAislamiento",
     "OPENCODE",
@@ -36,11 +39,13 @@ __all__ = [
     "revisar",
     "revisar_claude",
     "revisar_codex",
+    "revisar_copilot",
     "revisar_opencode",
     "ruta_claude",
     "ruta_claude_proyecto",
     "ruta_codex",
     "ruta_codex_proyecto",
+    "ruta_copilot",
     "rutas_tiza",
     "rutas_privadas",
     "rutas_reabiertas",
@@ -504,6 +509,7 @@ def fusionar_claude(
 
 CODEX = "Codex"
 OPENCODE = "opencode"
+COPILOT = "GitHub Copilot"
 CONFIG_OPENCODE = ("opencode.json", "opencode.jsonc")
 _MODOS_CODEX = {"read-only", "workspace-write"}
 
@@ -769,6 +775,93 @@ def revisar_opencode(
     return lista
 
 
+def ruta_copilot(home: Path) -> Path:
+    """Directorio de datos de Copilot: ``COPILOT_HOME`` o ``~/.copilot``."""
+    base = os.environ.get("COPILOT_HOME", "").strip()
+    return Path(base) if base else home / ".copilot"
+
+
+def _se_puede_leer(ruta: Path) -> bool:
+    """Abre el fichero sin leerlo entero: sus claves (de API) no se muestran jamás."""
+    try:
+        with ruta.open("rb") as fichero:
+            fichero.read(1)
+    except OSError:
+        return False
+    return True
+
+
+def _avisos_plataforma_copilot(sistema: str) -> list[Comprobacion]:
+    """Requisitos del sandbox de Copilot; solo avisos: tiza no sabe si está activado."""
+    if sistema == "Linux":
+        faltan = [n for n in ("bwrap", "slirp4netns") if shutil.which(n) is None]
+        if faltan:
+            return [
+                Comprobacion(
+                    COPILOT,
+                    "aviso",
+                    "el sandbox de la app necesita "
+                    + " y ".join(faltan)
+                    + " en el PATH; sin ellos no funcionará",
+                )
+            ]
+    elif sistema == "Windows":
+        return [
+            Comprobacion(
+                COPILOT,
+                "aviso",
+                "en Windows el sandbox de la app exige Windows 11 25H2 o 26H1 con los parches "
+                "de GitHub; si no, no funcionará",
+            )
+        ]
+    return []
+
+
+def revisar_copilot(
+    home: Path, sistema: str, *, servidor: str | None = None
+) -> list[Comprobacion]:
+    """Solo lectura y solo avisos: la app no permite comprobar su sandbox desde fuera.
+
+    Si el fichero de ajustes del CLI no se puede leer, se avisa con
+    ``AJUSTES_ILEGIBLES`` sin mostrar su contenido (puede tener claves de API).
+    """
+    ajustes = ruta_copilot(home) / "settings.json"
+    if ajustes.exists() and (not ajustes.is_file() or not _se_puede_leer(ajustes)):
+        return [Comprobacion(COPILOT, "falta", "AJUSTES_ILEGIBLES: settings.json")]
+    lista = [
+        Comprobacion(
+            COPILOT,
+            "aviso",
+            "el sandbox se activa por proyecto (Ajustes › Proyectos › Sandbox) y tiza no puede "
+            "comprobarlo; ejecuta «tiza aislar» para ver la receta",
+        )
+    ]
+    if servidor is None:
+        lista.append(
+            Comprobacion(
+                COPILOT,
+                "aviso",
+                "red hacia el aula sin comprobar: no se pudo leer el servidor configurado; "
+                "deniégalo en el sandbox de la app si lo tienes configurado",
+            )
+        )
+    else:
+        lista.append(
+            Comprobacion(COPILOT, "aviso", f"recuerda denegar la red hacia {servidor} en la app")
+        )
+    lista.append(
+        Comprobacion(
+            COPILOT,
+            "aviso",
+            "no está comprobado que el sandbox limite las lecturas internas del agente: "
+            "la configuración y la caché de tiza podrían quedar legibles. No guardes datos "
+            "de alumnado en este equipo ni tengas el aula abierta en el navegador con este usuario.",
+        )
+    )
+    lista += _avisos_plataforma_copilot(sistema)
+    return lista
+
+
 def contenido_opencode(sistema: str, reabrir: Sequence[str] = ()) -> str:
     """Configuración de opencode (v2) que ``revisar_opencode`` acepta como aislada.
 
@@ -875,12 +968,15 @@ def revisar(home: Path, sistema: str, carpeta: Path) -> list[Comprobacion]:
         (carpeta / nombre).is_file() for nombre in ("opencode.json", "opencode.jsonc")
     ):
         lista += revisar_opencode(home, carpeta, servidor=servidor)
+    if ruta_copilot(home).is_dir():
+        lista += revisar_copilot(home, sistema, servidor=servidor)
     if not lista:
         lista.append(
             Comprobacion(
                 "—",
                 "aviso",
-                "no se ha encontrado Claude Code, Codex ni opencode; configura tu agente con docs/aislamiento.md",
+                "no se ha encontrado Claude Code, Codex, opencode ni GitHub Copilot; "
+                "configura tu agente con docs/aislamiento.md",
             )
         )
     return lista

@@ -392,7 +392,7 @@ def _ultima_etiqueta(git: str) -> str | None:
 
 
 def instalar_skill(home: Path) -> list[Path]:
-    """Copia la skill portable a los directorios de Claude Code, Codex y opencode."""
+    """Copia la skill portable a los directorios de los agentes (Claude Code, Codex, opencode y Copilot)."""
     origen = importlib.resources.files("tiza").joinpath("skill", "tiza", "SKILL.md")
     texto = origen.read_text(encoding="utf-8")
     destinos = [
