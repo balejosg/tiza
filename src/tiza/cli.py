@@ -62,7 +62,8 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("actualizar", help="actualiza tiza y su skill a la última versión")
     sub.add_parser("revisar", help="comprueba que el agente está aislado del aula (solo lectura)")
     aislar = sub.add_parser(
-        "aislar", help="añade el aislamiento a esta carpeta (Claude Code y Codex)"
+        "aislar",
+        help="añade el aislamiento a esta carpeta (Claude Code, Codex, opencode y Copilot)",
     )
     aislar.add_argument(
         "--global",
@@ -451,6 +452,15 @@ def _copia_de_seguridad(ruta: Path) -> Path | None:
     return copia
 
 
+def _avisar_copilot(servidor: str | None) -> None:
+    """Receta de la app de Copilot: su configuración no se escribe, solo se guía."""
+    if not aislamiento.ruta_copilot(_home()).is_dir():
+        return
+    print()
+    for linea in aislamiento.receta_copilot(_sistema(), _home(), servidor=servidor):
+        print(linea)
+
+
 def _aislar(args) -> int:
     try:
         terminal.exigir_tty()
@@ -487,6 +497,7 @@ def _aislar(args) -> int:
         return 1
     if resultado is None:
         return 1
+    _avisar_copilot(servidor)
     return _revisar(args)
 
 
@@ -567,6 +578,7 @@ def _aislar_global(args, servidor: str | None) -> int:
         _opencode(escrituras, home / ".config" / "opencode", home, sistema, "global", servidor)
     if not _aplicar_escrituras(escrituras):
         return 1
+    _avisar_copilot(servidor)
     return _revisar(args)
 
 
@@ -646,9 +658,7 @@ def _configuracion_inicial(
         cfg = config.resolver(Path.cwd())
     except ErrorTerminal as exc:
         if sin_sesion:
-            detalle = (
-                "pide al docente que ejecute «tiza empezar» en su terminal, en esta carpeta"
-            )
+            detalle = "pide al docente que ejecute «tiza empezar» en su terminal, en esta carpeta"
             pasos: list[dict] = []
             pista = agente.pista_worktree(Path.cwd())
             if pista is not None:

@@ -1518,6 +1518,24 @@ class TestAislar:
         assert cli.main(["aislar"]) == 1
         assert not (tmp_path / ".claude").exists()
 
+    def test_aislar_con_copilot_solo_imprime_la_receta(self, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        (home / ".copilot").mkdir(parents=True)
+        carpeta = tmp_path / "asignatura"
+        carpeta.mkdir()
+        (carpeta / "pagina.md").write_text(PAGINA, encoding="utf-8")
+        monkeypatch.setattr(cli, "_home", lambda: home)
+        monkeypatch.setattr(cli, "_sistema", lambda: "Linux")
+        monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
+        monkeypatch.chdir(carpeta)
+        salida = simular_terminal(monkeypatch)
+        responder(monkeypatch, [])  # no debe preguntar
+        assert cli.main(["aislar"]) == 0
+        texto = salida.contenido()
+        assert "Ajustes › Proyectos › Sandbox" in texto
+        assert str(home / ".config" / "google-chrome") in texto
+        assert not (home / ".copilot" / "settings.json").exists()
+
     def test_revisar_avisa_si_solo_global(self, tmp_path, monkeypatch):
         self.preparar(tmp_path, monkeypatch)
         salida = simular_terminal(monkeypatch)

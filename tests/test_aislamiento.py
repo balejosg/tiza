@@ -510,6 +510,29 @@ class TestCopilot:
         textos = [c.texto for c in aislamiento.revisar_copilot(tmp_path, "Windows")]
         assert any("25H2" in t for t in textos)
 
+    @pytest.mark.parametrize("sistema", ["Linux", "Darwin", "Windows"])
+    def test_receta_expande_rutas_y_host(self, sistema, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            aislamiento.platformdirs, "user_config_dir", lambda app: str(tmp_path / "cfg" / app)
+        )
+        monkeypatch.setattr(
+            aislamiento.platformdirs, "user_cache_dir", lambda app: str(tmp_path / "cache" / app)
+        )
+        texto = "\n".join(aislamiento.receta_copilot(sistema, tmp_path, servidor=SERVIDOR))
+        assert "~" not in texto
+        for ruta in aislamiento.rutas_privadas(sistema):
+            if ruta.startswith("~/"):
+                assert str(tmp_path / ruta[2:]) in texto
+        assert str(tmp_path / "cfg" / "tiza") in texto
+        assert str(tmp_path / "cache" / "tiza") in texto
+        assert SERVIDOR in texto
+        assert "red local" in texto
+
+    def test_receta_sin_servidor_avisa_y_no_inventa_host(self, tmp_path):
+        texto = "\n".join(aislamiento.receta_copilot("Linux", tmp_path))
+        assert "no se pudo leer el servidor configurado" in texto
+        assert SERVIDOR not in texto
+
 
 class TestProyecto:
     def test_rutas_de_proyecto(self, tmp_path):

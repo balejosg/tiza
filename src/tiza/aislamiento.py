@@ -41,6 +41,7 @@ __all__ = [
     "revisar_codex",
     "revisar_copilot",
     "revisar_opencode",
+    "receta_copilot",
     "ruta_claude",
     "ruta_claude_proyecto",
     "ruta_codex",
@@ -817,9 +818,7 @@ def _avisos_plataforma_copilot(sistema: str) -> list[Comprobacion]:
     return []
 
 
-def revisar_copilot(
-    home: Path, sistema: str, *, servidor: str | None = None
-) -> list[Comprobacion]:
+def revisar_copilot(home: Path, sistema: str, *, servidor: str | None = None) -> list[Comprobacion]:
     """Solo lectura y solo avisos: la app no permite comprobar su sandbox desde fuera.
 
     Si el fichero de ajustes del CLI no se puede leer, se avisa con
@@ -860,6 +859,38 @@ def revisar_copilot(
     )
     lista += _avisos_plataforma_copilot(sistema)
     return lista
+
+
+def _ruta_de_la_receta(ruta: str, home: Path) -> str:
+    expandida = _expandir(ruta, home, None)
+    return str(expandida) if expandida is not None else ruta
+
+
+def receta_copilot(sistema: str, home: Path, *, servidor: str | None = None) -> list[str]:
+    """Receta para el sandbox de la app de Copilot: tiza no escribe su configuración.
+
+    La app no admite comodines ni ``~``, así que las rutas van expandidas para
+    este equipo; además del host del aula (si se conoce), se recuerda apagar la
+    red local y las credenciales de git/gh, que vienen activadas por defecto.
+    """
+    leer = [_ruta_de_la_receta(ruta, home) for ruta in rutas_privadas(sistema) + rutas_tiza()]
+    escribir = [_ruta_de_la_receta(ruta, home) for ruta in rutas_tiza()]
+    lineas = [
+        "GitHub Copilot app: activa el sandbox del proyecto (Ajustes › Proyectos › Sandbox) y añade:",
+        "  - apaga «red local» y «credenciales de git/gh» (vienen activadas por defecto)",
+        "  - rutas denegadas de lectura:",
+        *[f"      {ruta}" for ruta in leer],
+        "  - rutas denegadas de escritura:",
+        *[f"      {ruta}" for ruta in escribir],
+    ]
+    if servidor is None:
+        lineas.append(
+            "  - dominio del aula: no se pudo leer el servidor configurado; deniégalo a mano"
+        )
+    else:
+        lineas.append(f"  - dominio del aula denegado: {servidor}")
+    lineas.append("  - no uses las sesiones en la nube de la app ni su «computer use»")
+    return lineas
 
 
 def contenido_opencode(sistema: str, reabrir: Sequence[str] = ()) -> str:
