@@ -101,7 +101,7 @@ en español.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.
-- La versión (`0.12.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.13.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - Commits en `main`, estilo Conventional Commits en español (`feat:`, `fix:`,
