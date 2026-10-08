@@ -36,7 +36,7 @@ from . import (
     rutas,
 )
 from .config import Config, ErrorConfig
-from .contenido import Documento, ErrorContenido, Fechas, hash_documento
+from .contenido import NOMBRES_H5P, Documento, ErrorContenido, Fechas, hash_documento
 from .informe import ErrorInforme
 from .publicar import AulaVirtual, ErrorPublicacion
 
@@ -134,6 +134,9 @@ class DocumentoResumen:
     enlaces_externos: tuple[str, ...] = ()
     incrustados: tuple[str, ...] = ()  # URL de los iframes, tal como se publicarán
     recursos: tuple[str, ...] = ()  # ficheros locales que se suben, relativos a la carpeta
+    h5p: str | None = None  # actividad H5P generada («Rellenar huecos»)
+    h5p_libreria: str | None = None  # librería principal de un paquete subido
+    h5p_descartadas: tuple[str, ...] = ()  # librerías que tiza no sube nunca
 
     @classmethod
     def de(cls, doc: Documento, base: Path, vista_previa: Path | None = None) -> DocumentoResumen:
@@ -147,6 +150,9 @@ class DocumentoResumen:
             enlaces_externos=tuple(doc.enlaces_externos),
             incrustados=tuple(doc.incrustados),
             recursos=tuple(_relativa(recurso.ruta, base) for recurso in doc.recursos),
+            h5p=(NOMBRES_H5P.get(doc.h5p.tipo, doc.h5p.tipo) if doc.h5p is not None else None),
+            h5p_libreria=doc.paquete.libreria if doc.paquete is not None else None,
+            h5p_descartadas=doc.paquete.descartadas if doc.paquete is not None else (),
         )
 
 

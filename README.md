@@ -1,4 +1,4 @@
-# tiza — publica páginas, etiquetas, tareas y cuestionarios en tu aula virtual con ayuda de un agente de IA
+# tiza — publica páginas, etiquetas, tareas, cuestionarios y actividades H5P en tu aula virtual con ayuda de un agente de IA
 
 > **Proyecto independiente y no oficial.** No está afiliado a Moodle ni a
 > ninguna administración educativa, y su Delegación de Protección de Datos no lo
@@ -6,7 +6,8 @@
 > de tu centro y las del aula virtual que uses.
 
 `tiza` es una CLI y una skill portables para que docentes con un aula virtual
-Moodle preparen y publiquen **páginas, etiquetas, tareas y cuestionarios** en sus propios
+Moodle preparen y publiquen **páginas, etiquetas, tareas, cuestionarios y
+actividades H5P** en sus propios
 cursos con rol de profesor, usando cualquier agente (Claude Code, Codex,
 opencode, la app de GitHub Copilot…). Está pensada con dos ideas:
 
@@ -347,6 +348,39 @@ seccion: 3
 Este tema empieza hoy: ![foto](img/foto.png)
 ```
 
+Para una **actividad H5P** generada por tiza, la actividad va en la cabecera
+(`actividad:`) y el cuerpo es la descripción. Las respuestas se escriben entre
+`[[...]]` y las alternativas con `[[a|b]]` (mira
+[`ejemplos/h5p-huecos.md`](ejemplos/h5p-huecos.md) y
+[`ejemplos/h5p-tarjetas.md`](ejemplos/h5p-tarjetas.md)):
+
+```markdown
+---
+tipo: h5p
+nombre: Repaso de vocabulario
+seccion: 3
+actividad:
+  tipo: rellenar_huecos
+  textos:
+    - "El agua hierve a [[100]] grados."
+    - "La capital de Francia es [[París|Paris]]."
+  mayusculas: true            # opcional; por defecto false
+  calificacion: 10            # opcional; por defecto 10
+  reintentar: true            # opcional; por defecto true
+  ver_solucion: true          # opcional; por defecto true
+---
+
+Descripción de la actividad.
+```
+
+Los cuatro tipos generados son `rellenar_huecos` (`textos:`),
+`arrastrar_palabras` (`texto:` y `distractores:` opcional), `marcar_palabras`
+(`enunciado:` y `texto:`) y `tarjetas` (`tarjetas:` con `anverso:` y `reverso:`;
+no califican y no llevan seguimiento). Para subir un paquete hecho fuera
+(h5p.org, Lumi, otro Moodle), usa `paquete: paquete.h5p` en vez de `actividad:`:
+tiza lo valida y lo reempaqueta **sin librerías ni JavaScript** antes de
+subirlo, y los enlaces `https` que lleve el paquete te los enseña al confirmar.
+
 Para maquetar con estilo, o para pegar HTML hecho en otra herramienta, usa un
 fichero `.html` con el mismo bloque YAML y, debajo, HTML (un fragmento o un
 documento completo: solo se publica el `<body>`). Mira
@@ -387,7 +421,18 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   (`CUESTIONARIO_CON_INTENTOS`): revisa bien las respuestas correctas antes de
   publicarlo en el curso real y, para corregirlo después, crea otro con un
   `nombre` distinto.
-- Si ya existe una página, etiqueta, tarea o cuestionario con el mismo `nombre`
+- Una actividad H5P generada lleva `actividad:` con uno de los cuatro tipos.
+  Los huecos y las palabras se marcan con `[[respuesta]]`; las alternativas
+  (`[[a|b]]`) solo valen en `rellenar_huecos`. Dentro de una respuesta no se
+  admiten `*`, `/` ni `:` (H5P les da otro significado). El texto admite negrita
+  y cursiva, sin imágenes ni ficheros locales. Con `paquete:` tiza valida el
+  `.h5p` (estructura, medios y tamaño) y lo reempaqueta sin librerías antes de
+  subirlo: debe estar dentro de la carpeta de la asignatura y tiza nunca sube
+  JavaScript. Las tarjetas no califican ni llevan seguimiento.
+- Cuando la actividad H5P ya tiene intentos, tiza no la cambia
+  (`H5P_CON_INTENTOS`): crea otra con otro `nombre` si necesitas modificarla.
+- Si ya existe una página, etiqueta, tarea, cuestionario o actividad H5P con el
+  mismo `nombre`
   en esa sección, se actualiza (mismo cmid) **y conserva su visibilidad**; si no,
   se crea oculto. `--visible` lo muestra al alumnado y `--oculto` lo oculta,
   exista o no.
@@ -420,11 +465,13 @@ Para recuperar el curso de pruebas, cambia esa línea por `pruebas = 1234`.
 
 ## Prueba de contrato
 
-`tiza autoprueba` publica una página, una tarea, un cuestionario y una
-etiqueta temporales en el curso de pruebas, comprueba que se crean, que
-republicar reutiliza el mismo cmid y que las imágenes responden, y que las
+`tiza autoprueba` publica una página, una tarea, un cuestionario, una
+etiqueta y una actividad H5P (de rellenar huecos) temporales en el curso de
+pruebas, comprueba que se crean, que H5P arranca, que republicar reutiliza el
+mismo cmid y que las imágenes responden, y que las
 preguntas del cuestionario quedan en el banco de su propia categoría; después
-lo borra todo (también si algo falla). Conviene ejecutarla:
+lo borra todo (también si algo falla). Así se detecta si el aula pierde alguna
+librería H5P. Conviene ejecutarla:
 
 - tras instalar `tiza` o actualizar python-moodle;
 - al empezar el curso (cada septiembre), por si el aula cambió.

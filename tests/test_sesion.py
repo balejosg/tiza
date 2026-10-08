@@ -60,6 +60,22 @@ def test_el_resumen_lleva_los_iframes_aparte_de_los_enlaces(tmp_path):
     assert resumen.enlaces_externos == ("https://ejemplo.org/x",)
 
 
+def test_el_resumen_de_una_actividad_h5p_lleva_sus_datos(tmp_path):
+    (tmp_path / "actividad.md").write_text(
+        "---\ntipo: h5p\nnombre: Repaso\nseccion: 1\nactividad:\n"
+        "  tipo: marcar_palabras\n"
+        "  enunciado: Marca los verbos.\n"
+        '  texto: "El niño [[come]] pan."\n'
+        "---\n\nDescripción.\n",
+        encoding="utf-8",
+    )
+    doc = contenido.cargar(tmp_path / "actividad.md")
+    resumen = sesion.DocumentoResumen.de(doc, tmp_path.resolve())
+    assert (resumen.tipo, resumen.nombre) == ("h5p", "Repaso")
+    assert resumen.h5p == "Marcar palabras"
+    assert resumen.h5p_libreria is None and resumen.h5p_descartadas == ()
+
+
 def test_el_doble_cumple_la_interfaz_de_presencia():
     metodos = [
         nombre

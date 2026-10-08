@@ -49,7 +49,7 @@ _REF_VALIDA = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._/-]{0,99}\Z")  # etiqueta, r
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tiza",
-        description="Publica páginas, etiquetas, tareas y cuestionarios en tu aula virtual Moodle con rol de profesor.",
+        description="Publica páginas, etiquetas, tareas, cuestionarios y actividades H5P en tu aula virtual Moodle con rol de profesor.",
     )
     parser.add_argument("--version", action="version", version=f"tiza {__version__}")
     sub = parser.add_subparsers(dest="comando", required=True)
@@ -82,7 +82,7 @@ def _parser() -> argparse.ArgumentParser:
 
     publicar_parser = sub.add_parser(
         "publicar",
-        help="crea o actualiza páginas, etiquetas, tareas y cuestionarios (autenticado)",
+        help="crea o actualiza páginas, etiquetas, tareas, cuestionarios y actividades H5P (autenticado)",
         description="Lo nuevo se crea oculto y lo que ya existe conserva su visibilidad, "
         "salvo con --visible u --oculto.",
     )

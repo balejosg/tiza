@@ -351,6 +351,36 @@ def test_confirmar_real_muestra_todo_y_pregunta_con_el_nombre(monkeypatch, capsy
     assert vistos == [("real", 5678, "Matemáticas 2ºB")]
 
 
+def test_confirmar_real_muestra_el_tipo_y_el_paquete_h5p(monkeypatch, capsys):
+    monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
+    generado = _doc(
+        tipo="h5p",
+        nombre="Repaso H5P",
+        h5p="Rellenar huecos",
+    )
+    paquete = _doc(
+        tipo="h5p",
+        nombre="Actividad con paquete",
+        h5p_libreria="H5P.Blanks 1.14",
+        h5p_descartadas=("H5P.Blanks-1.14", "FontAwesome-4.5"),
+        enlaces_externos=("https://ejemplo.org/apoyo",),
+    )
+    resumen = sesion.ResumenPublicacion(
+        curso=5678,
+        nombre_curso="Matemáticas 2ºB",
+        documentos=(generado, paquete),
+        secciones_nuevas=(),
+        visible=None,
+    )
+    assert terminal.PresenciaTerminal().confirmar_real(resumen) is True
+    salida = capsys.readouterr().out
+    assert "Contenido interactivo (H5P) «Repaso H5P»" in salida
+    assert "actividad H5P: Rellenar huecos" in salida
+    assert "paquete H5P: H5P.Blanks 1.14" in salida
+    assert "no se sube la librería H5P.Blanks-1.14" in salida
+    assert "enlace externo: https://ejemplo.org/apoyo" in salida
+
+
 def test_pedir_password_ensena_el_servidor(monkeypatch, capsys):
     monkeypatch.setattr(terminal.getpass, "getpass", lambda _prompt="": "secreta")
     presencia = terminal.PresenciaTerminal()

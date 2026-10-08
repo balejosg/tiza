@@ -98,6 +98,13 @@ def test_acepta_un_cuestionario(tmp_path):
     escribir(documento, tmp_path / ".tiza")
 
 
+def test_acepta_una_actividad_h5p(tmp_path):
+    documento = informe_valido()
+    documento["ficheros"][0]["tipo"] = "h5p"
+    documento["ficheros"][0]["url"] = "https://aula.example.org/mod/h5pactivity/view.php?id=456"
+    escribir(documento, tmp_path / ".tiza")
+
+
 def test_rechaza_un_tipo_de_fichero_que_no_existe(tmp_path):
     documento = informe_valido()
     documento["ficheros"][0]["tipo"] = "encuesta"

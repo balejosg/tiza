@@ -139,7 +139,9 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    Descripción de la actividad.
    ```
 
-   Los tipos generados son `rellenar_huecos` (`textos:`), `arrastrar_palabras` (`texto:` y `distractores:` opcional), `marcar_palabras` (`enunciado:` y `texto:`) y `tarjetas` (`tarjetas:` con `anverso:` y `reverso:`). Para subir un paquete hecho fuera, usa `paquete: paquete.h5p` en vez de `actividad:`.
+   Los tipos generados son `rellenar_huecos` (`textos:`), `arrastrar_palabras` (`texto:` y `distractores:` opcional), `marcar_palabras` (`enunciado:` y `texto:`) y `tarjetas` (`tarjetas:` con `anverso:` y `reverso:`). En todos, las respuestas se escriben `[[respuesta]]` y las alternativas `[[a|b]]` (solo en `rellenar_huecos`); dentro de una respuesta no valen `*`, `/` ni `:` y el texto admite negrita y cursiva, pero no imágenes ni ficheros locales. Las tarjetas no califican ni llevan seguimiento. Ajustes comunes: `calificacion` (1 a 100; por defecto 10; no vale en `tarjetas`), `reintentar` y `ver_solucion` (true/false; `ver_solucion` no vale en `tarjetas`).
+
+   Para subir un paquete hecho fuera, usa `paquete: paquete.h5p` en vez de `actividad:`. El `.h5p` tiene que ser uno que el **docente haya dejado en la carpeta de la asignatura**: no lo generes, no lo descargues y no lo pidas por red. tiza lo valida, descarta sus librerías (nunca sube JavaScript) y lo reempaqueta; si el paquete pide una librería que el aula no tiene, responde `H5P_LIBRERIA_AUSENTE`. Si la actividad ya tiene intentos, tiza no la cambia (`H5P_CON_INTENTOS`): crea otra con un `nombre` distinto.
 
    - `tipo`: `pagina`, `etiqueta`, `tarea`, `cuestionario` o `h5p`.
    - `seccion`: **preferiblemente el nombre** de la sección entre comillas (`seccion: "Fracciones"`), porque vale igual en pruebas y en real. Si no existe, se crea **oculta** al publicar (`tiza comprobar` lo avisa; en real el docente lo confirma). También acepta el número de `estructura.json`, pero los números pueden no coincidir entre los dos cursos.
@@ -207,7 +209,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
    Sin `--oculto`, tiza responde `SOLO_OCULTO_SIN_PRUEBAS` y no publica nada. Al abrir la sesión sin curso de pruebas, el docente ve el aviso y confirma que sigue sin él; en esta carpeta no hay `tiza autoprueba` (`SIN_CURSO_PRUEBAS`): revisa el contenido publicado oculto en el curso real antes de pedir al docente que lo haga visible.
 
-   Un cuestionario en real no se puede corregir en cuanto un alumno empieza un intento. Antes de publicarlo en real, pide al docente que revise en la vista previa o en el curso de pruebas las respuestas correctas, las `aceptadas`, las tolerancias, las fechas y los intentos.
+   Un cuestionario en real no se puede corregir en cuanto un alumno empieza un intento. Antes de publicarlo en real, pide al docente que revise en la vista previa o en el curso de pruebas las respuestas correctas, las `aceptadas`, las tolerancias, las fechas y los intentos. Lo mismo vale para una actividad H5P: en cuanto tiene intentos, tiza ya no la cambia.
 
    Lanza ese comando con el mayor tiempo de espera que permita tu herramienta (en Claude Code, `timeout: 600000`): espera hasta 10 minutos a que el docente confirme. Si tu herramienta lo corta antes, la petición se retira sola en unos 20 segundos y un «s» tardío ya no publica: avisa al docente y vuelve a lanzarlo.
 

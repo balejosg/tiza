@@ -227,6 +227,7 @@ _TIPOS = {
     "tarea": "Tarea",
     "cuestionario": "Cuestionario",
     "etiqueta": "Área de texto y medios",
+    "h5p": "Contenido interactivo (H5P)",
 }
 
 
@@ -320,6 +321,12 @@ class PresenciaTerminal:
                 print(f"      vista previa: {enlace(doc.vista_previa)}")
             for url in doc.enlaces_externos:
                 print(f"      enlace externo: {texto_seguro(url)}")
+            if doc.h5p is not None:
+                print(f"      actividad H5P: {texto_seguro(doc.h5p)}")
+            if doc.h5p_libreria:
+                print(f"      paquete H5P: {texto_seguro(doc.h5p_libreria)}")
+            for libreria in doc.h5p_descartadas:
+                print(f"      no se sube la librería {texto_seguro(libreria)}")
             for url in doc.incrustados:
                 print(f"      incrusta: {texto_seguro(url)}")
             for ruta in doc.recursos:

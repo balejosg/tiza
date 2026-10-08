@@ -27,7 +27,7 @@ COMANDOS = {
 RESULTADOS = {"ok", "error", "abortado"}
 RESULTADOS_PASO = {"ok", "fallo"}
 ACCIONES = {"creada", "actualizada", "borrada", "verificada"}
-TIPOS = {"pagina", "tarea", "cuestionario", "etiqueta"}
+TIPOS = {"pagina", "tarea", "cuestionario", "etiqueta", "h5p"}
 
 _CAMPOS_RAIZ = {
     "version",

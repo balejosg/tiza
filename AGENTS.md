@@ -54,6 +54,12 @@ en español.
   cambiar `SKILL.md` y el README. Depende de `html5lib` y `tinycss2`.
 - `src/tiza/contenido.py`: Markdown o HTML + frontmatter, recursos locales,
   vista previa y hash del documento; todo offline.
+- `src/tiza/cuestionario.py` y `src/tiza/h5p.py`: construcción offline del XML de
+  preguntas y del paquete `.h5p` (solo contenido, determinista), y validación y
+  reempaquetado de los paquetes subidos. `h5p.LIBRERIAS` fija la mayor.menor
+  confirmada en la espiga (CT 130); una actualización del aula dentro del mismo
+  mayor sigue sirviendo. tiza nunca sube librerías ni JavaScript: los paquetes
+  subidos se reconstruyen solo con `h5p.json` y `content/`.
 - `src/tiza/buzon.py`: protocolo de ficheros agente↔docente (escrituras
   atómicas, latido, huella del código). La compatibilidad entre agente y sesión
   es la versión del protocolo (`buzon.VERSION_PROTOCOLO`), no la huella. Editar

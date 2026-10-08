@@ -402,6 +402,19 @@ class TestEjemplosDelRepo:
         texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
         assert "<iframe" not in texto
 
+    def test_los_ejemplos_de_h5p_cargan(self):
+        raiz = Path(__file__).resolve().parent.parent / "ejemplos"
+        huecos = cargar(raiz / "h5p-huecos.md")
+        assert huecos.tipo == "h5p" and huecos.h5p.tipo == "rellenar_huecos"
+        assert [recurso.nombre for recurso in huecos.recursos] == ["punto.png"]
+        tarjetas = cargar(raiz / "h5p-tarjetas.md")
+        assert tarjetas.h5p.tipo == "tarjetas"
+        assert [tarjeta.anverso for tarjeta in tarjetas.h5p.tarjetas] == [
+            "house",
+            "book",
+            "**water**",
+        ]
+
 
 class TestHash:
     def test_hash_estable_entre_rutas(self, tmp_path):
