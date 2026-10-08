@@ -812,7 +812,9 @@ class Moodle:
     def h5p_tiene_intentos(self, cmid: int) -> bool:
         """Hay intentos si el informe enlaza algún ``attemptid=<n>``; nada más.
 
-        Nunca se leen nombres, notas ni cuántos intentos hay.
+        Nunca se leen nombres, notas ni cuántos intentos hay. Sin seguimiento
+        (p. ej. las tarjetas) Moodle no tiene informe y responde 404: no puede
+        haber intentos.
         """
         self._esperar()
         respuesta = self._reducir(
@@ -822,6 +824,8 @@ class Moodle:
             params={"id": cmid},
             timeout=TIEMPO_ESPERA,
         )
+        if getattr(respuesta, "status_code", 0) == 404:
+            return False
         self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
         return bool(re.search(r"attemptid=\d+", getattr(respuesta, "text", "") or ""))
 

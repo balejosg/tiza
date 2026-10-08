@@ -2144,3 +2144,80 @@ class TestRepublicarH5P:
         )
         assert (segundo["cmid"], segundo["accion"]) == (primero["cmid"], "actualizada")
         assert len(moodle.subidas) == 2
+
+
+# --------------------------------------------------------------------------- #
+# H5P: adaptador real
+# --------------------------------------------------------------------------- #
+
+VISTA_CON_EMBED = (
+    '<html><body><iframe src="/h5p/embed.php?url=https%3A%2F%2Faula%2Fpluginfile.php"></iframe>'
+    "</body></html>"
+)
+
+EMBED_DESPLEGADO = (
+    '<html><body><script>H5PIntegration = {"contents":{"cid-1":{}},"core":{"wwwroot":"x"}};'
+    '</script><div class="h5p-iframe"></div></body></html>'
+)
+
+
+class _SesionH5P:
+    """Sesión falsa que sirve las páginas del adaptador H5P."""
+
+    def __init__(self):
+        self.paginas: dict[str, object] = {}
+        self.gets: list[tuple] = []
+
+    def respuesta(self, clave: str, valor) -> None:
+        self.paginas[clave] = valor
+
+    def get(self, url, params=None, **kwargs):
+        self.gets.append((url, params))
+        for clave, valor in self.paginas.items():
+            if clave in url:
+                return valor if isinstance(valor, _Rq) else _Rq(str(valor))
+        return _Rq("")
+
+
+class TestAdaptadorH5P:
+    def _moodle(self, sesion: _SesionH5P) -> publicar.Moodle:
+        return publicar.Moodle("https://aula/centro", sesion, "clave", pausa=0)
+
+    def test_desplegado_cuando_el_embed_trae_integracion(self):
+        sesion = _SesionH5P()
+        sesion.respuesta("view.php", VISTA_CON_EMBED)
+        sesion.respuesta("embed.php", EMBED_DESPLEGADO)
+        assert self._moodle(sesion).comprobar_h5p(5) is True
+
+    def test_no_desplegado_sin_integracion(self):
+        sesion = _SesionH5P()
+        sesion.respuesta("view.php", VISTA_CON_EMBED)
+        sesion.respuesta("embed.php", "<html>sin h5p</html>")
+        assert self._moodle(sesion).comprobar_h5p(5) is False
+
+    def test_no_desplegado_sin_iframe(self):
+        sesion = _SesionH5P()
+        sesion.respuesta("view.php", "<html>sin iframe</html>")
+        assert self._moodle(sesion).comprobar_h5p(5) is False
+
+    def test_menciona_la_libreria_esperada(self):
+        sesion = _SesionH5P()
+        sesion.respuesta("view.php", VISTA_CON_EMBED)
+        sesion.respuesta("embed.php", "<html>Falta H5P.Blanks 1.15</html>")
+        assert self._moodle(sesion).libreria_h5p_ausente(5, "H5P.Blanks") is True
+        assert self._moodle(sesion).libreria_h5p_ausente(5, "H5P.DragText") is False
+
+    def test_intentos_por_el_enlace_del_informe(self):
+        sesion = _SesionH5P()
+        sesion.respuesta("report.php", '<a href="report.php?id=5&attemptid=3">ver</a>')
+        assert self._moodle(sesion).h5p_tiene_intentos(5) is True
+
+    def test_sin_intentos_no_hay_enlaces(self):
+        sesion = _SesionH5P()
+        sesion.respuesta("report.php", "<table><tr><th>Alumno</th></tr></table>")
+        assert self._moodle(sesion).h5p_tiene_intentos(5) is False
+
+    def test_un_informe_404_es_actividad_sin_seguimiento(self):
+        sesion = _SesionH5P()
+        sesion.respuesta("report.php", _Rq("", status_code=404))
+        assert self._moodle(sesion).h5p_tiene_intentos(47) is False
