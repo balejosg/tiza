@@ -159,6 +159,22 @@ def test_la_explicacion_no_entra_en_el_json(tmp_path):
     assert "Qué hacer" not in ruta.read_text(encoding="utf-8")
 
 
+def test_el_aviso_de_worktree_cabe_en_el_esquema():
+    documento = informe_con_errores("SIN_SESION")
+    documento["pasos"] = [
+        {
+            "codigo": "SIN_SESION",
+            "resultado": "fallo",
+            "detalle": (
+                "estás en un worktree de git; abre la sesión del agente "
+                "en la carpeta de la asignatura"
+            ),
+        }
+    ]
+    validar(documento)
+    assert any(linea.startswith("Paso SIN_SESION: fallo") for linea in resumen(documento))
+
+
 def test_rechaza_controles_c1_y_bidi():
     for caracter in ("\x9b", "\N{RIGHT-TO-LEFT OVERRIDE}", "\u061c"):
         documento = informe_valido()

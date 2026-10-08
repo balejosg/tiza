@@ -100,6 +100,17 @@ class TestSinTTY:
         assert "SIN_SESION" in informe["errores"]
         assert "SIN_TTY" not in informe["errores"]
 
+    def test_publicar_sin_tty_en_worktree_lo_dice(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        escribir_pagina(tmp_path)
+        (tmp_path / ".git").write_text("gitdir: /otra/.git/worktrees/asig\n", encoding="utf-8")
+        simular_terminal(monkeypatch, interactiva=False)
+        assert cli.main(["publicar", "pagina.md", "--en", "pruebas"]) == 1
+        informe = leer_informe(tmp_path)
+        assert "SIN_SESION" in informe["errores"]
+        assert "worktree de git" in informe["pasos"][0]["detalle"]
+        assert "worktree de git" in capsys.readouterr().err
+
     def test_sesion_sin_tty_falla(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         configurar(tmp_path, monkeypatch)

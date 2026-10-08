@@ -192,6 +192,26 @@ class TestBuzon:
         assert documento["errores"] == ["SIN_SESION"]
         informe.validar(documento)
 
+    def test_sin_sesion_en_worktree_lo_dice(self, tmp_path):
+        (tmp_path / ".git").write_text("gitdir: /otra/.git/worktrees/asig\n", encoding="utf-8")
+        documento = agente.publicar(tmp_path, ["p.md"], "pruebas")
+        assert documento["errores"] == ["SIN_SESION"]
+        assert "worktree de git" in documento["pasos"][0]["detalle"]
+        informe.validar(documento)
+
+    def test_sin_sesion_fuera_de_worktree_no_cambia(self, tmp_path):
+        documento = agente.publicar(tmp_path, ["p.md"], "pruebas")
+        assert documento["errores"] == ["SIN_SESION"]
+        assert documento["pasos"] == []
+
+    def test_pista_worktree_solo_con_git_fichero(self, tmp_path):
+        assert agente.pista_worktree(tmp_path) is None
+        (tmp_path / ".git").mkdir()
+        assert agente.pista_worktree(tmp_path) is None
+        (tmp_path / ".git").rmdir()
+        (tmp_path / ".git").write_text("gitdir: /otra/.git/worktrees/asig\n", encoding="utf-8")
+        assert "worktree" in agente.pista_worktree(tmp_path)
+
     def test_sesion_incompatible(self, tmp_path):
         dir_tiza = tmp_path / ".tiza"
         ruta = buzon.crear_sesion(dir_tiza, datetime.now(UTC) + timedelta(minutes=5))

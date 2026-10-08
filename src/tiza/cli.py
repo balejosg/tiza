@@ -646,10 +646,19 @@ def _configuracion_inicial(
         cfg = config.resolver(Path.cwd())
     except ErrorTerminal as exc:
         if sin_sesion:
+            detalle = (
+                "pide al docente que ejecute «tiza empezar» en su terminal, en esta carpeta"
+            )
+            pasos: list[dict] = []
+            pista = agente.pista_worktree(Path.cwd())
+            if pista is not None:
+                detalle = pista
+                pasos.append({"codigo": "SIN_SESION", "resultado": "fallo", "detalle": pista})
             return None, _fallo(
                 comando,
                 "SIN_SESION",
-                "pide al docente que ejecute «tiza empezar» en su terminal, en esta carpeta",
+                detalle,
+                pasos=pasos,
                 entorno=entorno,
                 exc=exc,
                 debug=debug,

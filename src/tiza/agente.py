@@ -30,6 +30,7 @@ __all__ = [
     "formato_documento",
     "peticion_estructura",
     "peticion_publicar",
+    "pista_worktree",
     "publicar",
 ]
 
@@ -224,6 +225,19 @@ class _Cancelada(Exception):
     """El docente dejó de esperar."""
 
 
+def pista_worktree(carpeta: str | Path) -> str | None:
+    """Pista cuando la carpeta es un worktree enlazado de git (``.git`` es un fichero).
+
+    En un worktree, el buzón de la asignatura no existe: el agente debe trabajar
+    desde la carpeta de la asignatura, donde el docente abrió la sesión.
+    """
+    if (Path(carpeta) / ".git").is_file():
+        return (
+            "estás en un worktree de git; abre la sesión del agente en la carpeta de la asignatura"
+        )
+    return None
+
+
 def _enviar(
     carpeta: str | Path, peticion: dict, espera: float, cancelar: threading.Event | None
 ) -> dict:
@@ -231,7 +245,12 @@ def _enviar(
     comando, entorno = peticion["comando"], peticion["entorno"]
     if not buzon.sesion_activa(dir_tiza):
         codigo = "SESION_INCOMPATIBLE" if buzon.sesion_incompatible(dir_tiza) else "SIN_SESION"
-        return informe.crear(comando, "error", [], [], [codigo], entorno)
+        pasos: list[dict] = []
+        if codigo == "SIN_SESION":
+            pista = pista_worktree(carpeta)
+            if pista is not None:
+                pasos.append({"codigo": "SIN_SESION", "resultado": "fallo", "detalle": pista})
+        return informe.crear(comando, "error", pasos, [], [codigo], entorno)
 
     def dormir(segundos: float) -> None:
         if cancelar is None:
