@@ -150,6 +150,11 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    - Solo se aceptan fechas en formato `AAAA-MM-DD` o `AAAA-MM-DD HH:MM` (hora del aula, con `Europe/Madrid` por defecto).
    - `limite` es la fecha límite: después ya no se admiten entregas. Sin `limite`, se admiten con retraso sin fin.
    - `nombre` debe coincidir con el módulo que se quiera actualizar: si ya existe una página, etiqueta, tarea o cuestionario con ese nombre en esa sección, se actualiza (mismo cmid) y, si no, se crea.
+   - **Itinerario (opcional, todos los tipos)**: cuándo cuenta la actividad como hecha y cuándo se abre. Si no lo declaras, lo que haya en el aula **se conserva**.
+     - `finalizacion`: `ninguna` (la desactiva), `manual` (el alumno la marca), `ver`, `entregar` (solo tarea) o `calificar` (tarea, cuestionario y H5P que califica). La etiqueta solo admite `ninguna` y `manual`; otro valor da `FINALIZACION_NO_ADMITIDA`. No existe «aprobar». `fecha_esperada` (opcional) es el «completar antes de», solo informativo.
+     - `restricciones`: `desde` y `hasta` (fechas), `completar` (hasta 10 ficheros `.md` de la carpeta, con ruta relativa a este fichero: «se abre cuando completen esas actividades») y `ocultar_si_no_cumple` (`true`: oculta del todo; por defecto se ve en gris con la condición). Siempre se exigen todas («y»). `restricciones: {}` quita las que puso tiza.
+     - **Nunca** restricciones por grupo, agrupamiento, perfil, rol o nota, ni nada que dependa de datos del alumnado: tiza no las admite (`CAMPO_DESCONOCIDO`). Si el docente las pide, dile que se ponen a mano en el aula.
+     - Ejemplo de tema: `pagina.md` con `finalizacion: ver`; `test.md` con `finalizacion: calificar` y `restricciones: {completar: [pagina.md]}`; `tarea.md` con `restricciones: {completar: [test.md], desde: 2026-10-20}`. Se publican en **una petición**: tiza las ordena por dependencias.
    - **Etiqueta**: mismo Markdown/HTML y mismo filtro que una página, pero el contenido se muestra directamente en la página del curso. Úsala para un texto breve, una imagen o un vídeo, sin actividad ni entrega.
    - **Cuestionario**:
      - Ajustes, todos opcionales: `apertura` y `cierre` (`apertura` < `cierre`), `tiempo_limite` (minutos, de 1 a 600), `intentos` (de 1 a 10 o `ilimitados`; por defecto 1) y `mezclar_respuestas` (`true` o `false`; por defecto `true`).
@@ -232,6 +237,17 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 - **Cambiar solo las fechas**: `tiza publicar <md>… --en pruebas --solo-fechas` (y `--en real --solo-fechas`) cambia las fechas de tareas y cuestionarios que ya existen en el aula. No toca el contenido, las preguntas, los intentos ni la visibilidad, así que también sirve para un cuestionario con intentos. No admite `--visible` ni `--oculto`, y si la actividad no existe responde `MODULO_AUSENTE`. Para mover fechas en bloque: edita los `.md`, ejecuta `tiza comprobar`, y después `--solo-fechas` en pruebas y en real. En real, el docente ve cada fecha antes y después. En una tarea, tiza desactiva siempre «Recordarme calificar antes de» (también al publicarla sin `--solo-fechas`); si el docente lo tenía puesto, la confirmación se lo enseña.
 - tiza **no toca las fechas de un alumno concreto** (prórrogas, excepciones de un cuestionario). Si el docente las pide, dile que las ponga en el aula a mano.
 - Ni el calendario ni los `.md` llevan datos del alumnado: no escribas en ellos nombres ni grupos.
+
+## Itinerario: finalización y restricciones
+
+- `tiza comprobar` valida los campos y las dependencias (`DEPENDENCIA_INVALIDA` si un fichero de `completar` no existe o no vale, `DEPENDENCIA_CIRCULAR` si se piden en círculo) y avisa con el paso `DEPENDENCIA_SIN_FINALIZACION` si la actividad de la que se depende no declara una finalización (sin ella, nadie la completa y la siguiente no se abre; no es un error: el docente puede tenerla puesta en el aula).
+- Al publicar, la dependencia debe estar ya publicada **en ese curso** (o ir en la misma petición); si no, `DEPENDENCIA_NO_PUBLICADA` y no se escribe nada. En varios cursos reales se resuelve curso a curso. Después tiza relee el aula y lo comprueba (`ITINERARIO_NO_APLICADO` si no coincide).
+- Códigos que debes explicar al docente con sus palabras:
+  - `RESTRICCION_AJENA`: la actividad ya tiene una restricción puesta a mano (de grupo u otra clase) que tiza no gestiona. No se tocó nada; **no digas de qué clase es** ni la intentes quitar: que el docente decida en el aula.
+  - `FINALIZACION_BLOQUEADA`: algún alumno ya completó la actividad y el aula no deja cambiarla sin borrar ese estado. No se tocó nada; quita `finalizacion` del `.md` o déjala como está. tiza nunca desbloquea.
+  - `FINALIZACION_DESACTIVADA`: el curso no tiene activada la finalización; el docente la activa en los ajustes del curso (tiza no los cambia). Las restricciones por fecha no la necesitan.
+- tiza nunca lee el estado de finalización ni nada del alumnado. La confirmación de real enseña el itinerario en lenguaje llano (con los nombres que tienen los `.md`).
+- Con `--solo-fechas` el itinerario no se toca.
 
 ## Varios cursos reales (1º A, 1º B, 1º C…)
 

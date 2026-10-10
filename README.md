@@ -439,6 +439,33 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   exista o no.
 - Hay ejemplos completos en [`ejemplos/`](ejemplos/).
 
+### Itinerario: finalización y restricciones
+
+Cualquier actividad puede declarar cuándo cuenta como completada y cuándo se
+abre; sin estos campos, lo que ya haya en el aula se conserva:
+
+```yaml
+finalizacion: ver          # ninguna | manual | ver | entregar (tarea) | calificar
+fecha_esperada: 2026-11-20 # opcional: «completar antes de» (informativa)
+restricciones:
+  desde: 2026-10-20        # opcional; también hasta
+  completar: [test.md]     # hasta 10 .md de la carpeta: se abre al completarlos
+  ocultar_si_no_cumple: false   # por defecto se ve en gris con la condición
+```
+
+- La etiqueta solo admite `ninguna` y `manual`. Todas las condiciones se exigen
+  a la vez, y `restricciones: {}` quita las de tiza. Las restricciones por
+  grupo, perfil o nota no existen: tiza no toca datos ni grupos del alumnado.
+- Una carpeta entera (página → test → tarea) se publica en una petición: tiza
+  ordena los ficheros por sus dependencias y cada curso real resuelve las suyas.
+- Si la actividad ya tiene una restricción puesta a mano en el aula, tiza no la
+  toca (`RESTRICCION_AJENA`); si algún alumno ya la completó, tampoco cambia cómo
+  se completa (`FINALIZACION_BLOQUEADA`), porque el aula borraría ese estado; y
+  si el curso no tiene activada la finalización, lo dice
+  (`FINALIZACION_DESACTIVADA`) sin cambiar los ajustes del curso.
+- tiza nunca lee el estado de finalización ni informes del alumnado. La
+  confirmación del curso real enseña el itinerario en lenguaje llano.
+
 ### `tiza.toml` por asignatura
 
 Los cursos son de cada asignatura y solo se guardan en el `tiza.toml` de su
