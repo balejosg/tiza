@@ -56,6 +56,16 @@ MENSAJES: dict[str, str] = {
     "SECCION_INVALIDA": "La sección debe ser su nombre (recomendado) o su número en .tiza/estructura.json.",
     "FECHA_INVALIDA": "Escribe las fechas como AAAA-MM-DD o AAAA-MM-DD HH:MM.",
     "FECHAS_INCOHERENTES": "Las fechas deben cumplir apertura antes que entrega y entrega antes que limite; en un cuestionario, apertura antes que cierre.",
+    # Itinerario: finalización y restricciones
+    "FINALIZACION_NO_ADMITIDA": "«finalizacion» no vale para este tipo de actividad (o «fecha_esperada» no tiene finalización). Valores: ninguna, manual, ver, entregar (tarea) y calificar (tarea, cuestionario y H5P); la etiqueta solo admite ninguna y manual.",
+    "RESTRICCION_INVALIDA": "«restricciones» solo admite desde, hasta, completar (hasta 10 ficheros .md de la carpeta, sin repetir) y ocultar_si_no_cumple (true o false). Las restricciones por grupo o por datos del alumnado se ponen a mano en el aula.",
+    "DEPENDENCIA_CIRCULAR": "Los ficheros de «completar» se piden unos a otros (o uno a sí mismo). Quita la dependencia que cierra el círculo.",
+    "DEPENDENCIA_INVALIDA": "Un fichero de «completar» no existe o no es válido. Corrígelo y repite «tiza comprobar».",
+    "DEPENDENCIA_NO_PUBLICADA": "Un fichero de «completar» aún no está publicado en este curso. Publícalo antes (o en la misma petición) y repite.",
+    "RESTRICCION_AJENA": "Esa actividad ya tiene una restricción puesta a mano en el aula (de grupo u otra clase) que tiza no gestiona. No se ha tocado nada: quítala en el aula o deja de declarar «restricciones» en el .md.",
+    "FINALIZACION_BLOQUEADA": "Algún alumno ya ha completado esa actividad y el aula no deja cambiar cómo se completa sin borrar ese estado. No se ha tocado nada: quita «finalizacion» del .md o déjala como está en el aula.",
+    "FINALIZACION_DESACTIVADA": "El curso no tiene activada la finalización. Actívala en los ajustes del curso («Finalización de actividad») y repite; tiza no cambia los ajustes del curso.",
+    "ITINERARIO_NO_APLICADO": "El aula no guardó la finalización o las restricciones tal como se pidieron. Revisa la actividad en el aula y repite la publicación.",
     # Preguntas de un cuestionario
     "PREGUNTAS_INVALIDAS": "El cuestionario necesita una lista «preguntas» de 1 a 100, y cada entrada debe ser un mapa.",
     "TIPO_PREGUNTA_INVALIDO": "Una pregunta usa un tipo que tiza no conoce. Usa opcion_multiple, verdadero_falso, respuesta_corta o numerica.",

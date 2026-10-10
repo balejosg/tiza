@@ -103,6 +103,24 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
                 detalle = f"{ruta.name}: {campo} {dia.isoformat()}"
                 pasos.append({"codigo": codigo, "resultado": "ok", "detalle": detalle})
         avisos = tuple(avisos_doc)
+        problema = revisar_dependencias(doc, raiz)
+        if problema is not None:
+            errores.append(problema[0])
+            pasos.append(_paso_fallido(ruta.name, problema[0]))
+            resultados.append(FicheroComprobado(ruta.name, problema[0], problema[1], avisos=avisos))
+            continue
+        for relativa in doc.restricciones.completar if doc.restricciones else ():
+            dependencia = contenido.cargar(raiz / relativa, raiz=raiz)
+            if dependencia.finalizacion is None or dependencia.finalizacion.modo == "ninguna":
+                # Sin finalización no hay nada que completar: se avisa, no se bloquea (el aula
+                # puede tenerla puesta a mano y tiza no lee el aula al comprobar).
+                pasos.append(
+                    {
+                        "codigo": "DEPENDENCIA_SIN_FINALIZACION",
+                        "resultado": "ok",
+                        "detalle": f"{ruta.name}: {relativa}",
+                    }
+                )
         curso = _curso_a_comprobar(estructura)
         seccion = buscar_seccion(curso[1], doc.seccion) if curso is not None else None
         if curso is not None and seccion is None and isinstance(doc.seccion, str):
@@ -150,6 +168,42 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
     documento = informe.crear("comprobar", "error" if errores else "ok", pasos, datos, errores)
     informe.validar(documento)
     return Comprobacion(documento, tuple(resultados))
+
+
+MAX_PROFUNDIDAD_DEPENDENCIAS = 20
+
+
+def revisar_dependencias(doc: Documento, raiz: Path) -> tuple[str, str] | None:
+    """Comprueba los ficheros de ``completar``: que existan, sean válidos y no formen un ciclo.
+
+    Devuelve (código, detalle) o None. El detalle solo nombra ficheros de la carpeta.
+    """
+    cargados: dict[str, Documento | None] = {}
+
+    def cargar_dep(relativa: str) -> Documento | None:
+        if relativa not in cargados:
+            try:
+                cargados[relativa] = contenido.cargar(raiz / relativa, raiz=raiz)
+            except ErrorContenido:
+                cargados[relativa] = None
+        return cargados[relativa]
+
+    def visitar(actual: Documento, camino: tuple[Path, ...]) -> tuple[str, str] | None:
+        if actual.restricciones is None:
+            return None
+        for relativa in actual.restricciones.completar:
+            dep = cargar_dep(relativa)
+            if dep is None:
+                return "DEPENDENCIA_INVALIDA", relativa
+            ruta = dep.ruta.resolve()
+            if ruta in camino or len(camino) >= MAX_PROFUNDIDAD_DEPENDENCIAS:
+                return "DEPENDENCIA_CIRCULAR", relativa
+            problema = visitar(dep, (*camino, ruta))
+            if problema is not None:
+                return problema
+        return None
+
+    return visitar(doc, (doc.ruta.resolve(),))
 
 
 def _paso_fallido(fichero: str, codigo: str) -> dict:

@@ -470,3 +470,78 @@ class TestVariosCursosReales:
         informe_ = agente.comprobar(tmp_path, ["p.md"]).informe
         assert informe_["resultado"] == "ok"
         assert any(p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in informe_["pasos"])
+
+
+class TestDependencias:
+    def md(self, tmp_path, nombre, completar=()):
+        lista = "[" + ", ".join(completar) + "]"
+        escribir(
+            tmp_path,
+            nombre,
+            f"---\ntipo: pagina\nnombre: {nombre}\nseccion: 3\nrestricciones:\n  completar: {lista}\n---\n\nx\n",
+        )
+
+    def comprobar(self, tmp_path, ficheros):
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        return agente.comprobar(tmp_path, ficheros)
+
+    def test_dependencias_validas(self, tmp_path):
+        self.md(tmp_path, "a.md")
+        self.md(tmp_path, "b.md", ["a.md"])
+        informe_ = self.comprobar(tmp_path, ["b.md", "a.md"]).informe
+        assert informe_["resultado"] == "ok"
+
+    def test_dependencia_que_no_existe(self, tmp_path):
+        self.md(tmp_path, "b.md", ["falta.md"])
+        resultado = self.comprobar(tmp_path, ["b.md"])
+        assert resultado.informe["errores"] == ["DEPENDENCIA_INVALIDA"]
+        assert resultado.ficheros[0].detalle == "falta.md"
+
+    def test_dependencia_con_un_error_propio_no_es_error_interno(self, tmp_path):
+        escribir(tmp_path, "a.md", "sin frontmatter")
+        self.md(tmp_path, "b.md", ["a.md"])
+        assert self.comprobar(tmp_path, ["b.md"]).informe["errores"] == ["DEPENDENCIA_INVALIDA"]
+
+    def test_ciclo_directo_e_indirecto(self, tmp_path):
+        self.md(tmp_path, "a.md", ["b.md"])
+        self.md(tmp_path, "b.md", ["c.md"])
+        self.md(tmp_path, "c.md", ["a.md"])
+        informe_ = self.comprobar(tmp_path, ["a.md"]).informe
+        assert informe_["errores"] == ["DEPENDENCIA_CIRCULAR"]
+
+    def test_un_ciclo_que_no_incluye_al_fichero_pedido_tambien_se_detecta(self, tmp_path):
+        self.md(tmp_path, "a.md", ["b.md"])
+        self.md(tmp_path, "b.md", ["c.md"])
+        self.md(tmp_path, "c.md", ["b.md"])
+        assert self.comprobar(tmp_path, ["a.md"]).informe["errores"] == ["DEPENDENCIA_CIRCULAR"]
+
+    def test_cadena_larga_sin_ciclo_no_se_desborda(self, tmp_path):
+        for n in range(40):
+            self.md(tmp_path, f"f{n}.md", [f"f{n + 1}.md"])
+        self.md(tmp_path, "f40.md")
+        informe_ = self.comprobar(tmp_path, ["f0.md"]).informe
+        assert informe_["errores"] == ["DEPENDENCIA_CIRCULAR"]  # más profundo que el máximo
+
+    def test_el_detalle_no_cuenta_lo_que_hay_fuera(self, tmp_path):
+        self.md(tmp_path, "b.md", ["../fuera.md"])
+        informe_ = self.comprobar(tmp_path, ["b.md"]).informe
+        assert informe_["errores"] == ["RUTA_FUERA_DE_CARPETA"]
+
+    def test_avisa_si_la_dependencia_no_declara_finalizacion(self, tmp_path):
+        self.md(tmp_path, "a.md")
+        self.md(tmp_path, "b.md", ["a.md"])
+        pasos = self.comprobar(tmp_path, ["b.md"]).informe["pasos"]
+        aviso = [p for p in pasos if p["codigo"] == "DEPENDENCIA_SIN_FINALIZACION"]
+        assert aviso == [
+            {"codigo": "DEPENDENCIA_SIN_FINALIZACION", "resultado": "ok", "detalle": "b.md: a.md"}
+        ]
+
+    def test_no_avisa_si_la_dependencia_se_completa(self, tmp_path):
+        escribir(
+            tmp_path,
+            "a.md",
+            "---\ntipo: pagina\nnombre: A\nseccion: 3\nfinalizacion: ver\n---\n\nx\n",
+        )
+        self.md(tmp_path, "b.md", ["a.md"])
+        pasos = self.comprobar(tmp_path, ["b.md"]).informe["pasos"]
+        assert not any(p["codigo"] == "DEPENDENCIA_SIN_FINALIZACION" for p in pasos)

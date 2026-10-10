@@ -375,6 +375,7 @@ class PresenciaVentana:
                     "titulo": describir_documento(doc),
                     "fichero": _texto(doc.fichero),
                     "fechas": [_texto(linea) for linea in describir_cambios(doc)],
+                    "itinerario": [] if solo else [_texto(linea) for linea in doc.itinerario],
                     "enlaces": [] if solo else [_texto(url) for url in doc.enlaces_externos],
                     "incrustados": [] if solo else [_texto(url) for url in doc.incrustados],
                     "recursos": [] if solo else [_texto(ruta) for ruta in doc.recursos],
@@ -403,6 +404,7 @@ class PresenciaVentana:
                     "tipo": _texto(doc.tipo),
                     "nombre": _texto(doc.nombre),
                     "existe": doc.existe,
+                    "itinerario": [_texto(linea) for linea in doc.itinerario],
                 }
                 for doc in resumen.documentos
             ],

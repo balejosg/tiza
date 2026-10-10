@@ -35,14 +35,17 @@ __all__ = [
     "Cuestionario",
     "Documento",
     "Fechas",
+    "Finalizacion",
     "MarcaH5P",
     "Opcion",
     "PaqueteH5P",
     "Pregunta",
     "Recurso",
+    "Restricciones",
     "TarjetaH5P",
     "TextoH5P",
     "cargar",
+    "describir_itinerario",
     "hash_documento",
     "html_para_moodle",
     "html_para_preview",
@@ -53,7 +56,19 @@ __all__ = [
 EXTENSIONES = (".md", ".html", ".htm")  # en minúsculas; el resto de ficheros no es contenido
 _EXTENSIONES_HTML = frozenset({".html", ".htm"})
 TTIPOS = ("pagina", "tarea", "cuestionario", "etiqueta", "h5p")
-CAMPOS_COMUNES = {"tipo", "nombre", "seccion"}
+CAMPOS_ITINERARIO = {"finalizacion", "fecha_esperada", "restricciones"}
+CAMPOS_COMUNES = {"tipo", "nombre", "seccion"} | CAMPOS_ITINERARIO
+# Cómo cuenta una actividad como completada, según su tipo (confirmado en Moodle 4.5).
+# «aprobar» queda fuera: necesita una nota para aprobar (fase B).
+FINALIZACIONES = {
+    "pagina": ("ninguna", "manual", "ver"),
+    "etiqueta": ("ninguna", "manual"),
+    "tarea": ("ninguna", "manual", "ver", "entregar", "calificar"),
+    "cuestionario": ("ninguna", "manual", "ver", "calificar"),
+    "h5p": ("ninguna", "manual", "ver", "calificar"),
+}
+CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
+MAX_DEPENDENCIAS = 10
 CAMPOS_TAREA = {"apertura", "entrega", "limite"}
 CAMPOS_CUESTIONARIO = {
     "apertura",
@@ -188,6 +203,28 @@ class Fechas:
 
 
 @dataclass(frozen=True)
+class Finalizacion:
+    """Cuándo cuenta una actividad como completada (``ninguna`` la desactiva)."""
+
+    modo: str
+    esperada: datetime | None = None  # «completar antes de»: solo informativa en Moodle
+
+
+@dataclass(frozen=True)
+class Restricciones:
+    """Cuándo está disponible: por fecha y por haber completado otras actividades de tiza.
+
+    Todo vacío es «quitar las restricciones de tiza». Solo se admiten estas dos clases de
+    condición, siempre unidas con «y»; nunca grupos, perfiles ni datos del alumnado.
+    """
+
+    desde: datetime | None = None
+    hasta: datetime | None = None
+    completar: tuple[str, ...] = ()  # ficheros .md de la carpeta, normalizados (con «/»)
+    ocultar: bool = False  # sin cumplirse: oculta (por defecto, en gris con la condición)
+
+
+@dataclass(frozen=True)
 class Opcion:
     """Opción de una pregunta de opción múltiple, ya validada."""
 
@@ -291,6 +328,9 @@ class Documento:
     cuestionario: Cuestionario | None = None
     h5p: ActividadH5P | None = None
     paquete: PaqueteH5P | None = None  # .h5p ya hecho que se sube reempaquetado
+    # None: el .md no lo declara y lo que haya en el aula se conserva.
+    finalizacion: Finalizacion | None = None
+    restricciones: Restricciones | None = None
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
     enlaces_externos: list[str] = field(default_factory=list)  # los ve el docente antes de real
     incrustados: list[str] = field(default_factory=list)  # URL de los iframes, también las ve
@@ -439,6 +479,8 @@ def _validar(
             "SECCION_INVALIDA", "la sección debe ser un número entero >= 0 o un nombre"
         )
 
+    finalizacion = _validar_finalizacion(datos, tipo, zona)
+    restricciones = _validar_restricciones(datos, ruta, zona, raiz)
     fechas = None
     cuestionario = None
     h5p = None
@@ -475,7 +517,147 @@ def _validar(
         cuestionario=cuestionario,
         h5p=h5p,
         paquete=paquete,
+        finalizacion=finalizacion,
+        restricciones=restricciones,
     )
+
+
+# --------------------------------------------------------------------------- #
+# Finalización y restricciones
+# --------------------------------------------------------------------------- #
+
+
+def _validar_finalizacion(datos: dict[str, Any], tipo: str, zona: ZoneInfo) -> Finalizacion | None:
+    if "finalizacion" not in datos:
+        if "fecha_esperada" in datos:
+            raise ErrorContenido(
+                "FINALIZACION_NO_ADMITIDA", "fecha_esperada necesita «finalizacion»"
+            )
+        return None
+    modo = datos["finalizacion"]
+    admitidos = FINALIZACIONES[tipo]
+    if not isinstance(modo, str) or modo not in admitidos:
+        raise ErrorContenido(
+            "FINALIZACION_NO_ADMITIDA",
+            f"en {tipo}, finalizacion debe ser " + ", ".join(admitidos),
+        )
+    esperada = None
+    if "fecha_esperada" in datos:
+        if modo == "ninguna":
+            raise ErrorContenido(
+                "FINALIZACION_NO_ADMITIDA", "fecha_esperada no vale con «finalizacion: ninguna»"
+            )
+        if datos["fecha_esperada"] is None:
+            raise ErrorContenido("FECHA_INVALIDA", "fecha_esperada no puede estar vacía")
+        esperada = _fecha(datos["fecha_esperada"], zona, time(23, 59))
+    return Finalizacion(modo=modo, esperada=esperada)
+
+
+def _validar_restricciones(
+    datos: dict[str, Any], ruta: Path, zona: ZoneInfo, raiz: Path | None
+) -> Restricciones | None:
+    if "restricciones" not in datos:
+        return None
+    valor = datos["restricciones"]
+    if not isinstance(valor, dict):
+        raise ErrorContenido("RESTRICCION_INVALIDA", "restricciones debe ser un mapa")
+    for campo in valor:
+        if campo not in CAMPOS_RESTRICCIONES:
+            raise ErrorContenido(
+                "CAMPO_DESCONOCIDO", f"campo «{campo}» no permitido en restricciones"
+            )
+    desde = _fecha(valor["desde"], zona, time(0, 0)) if valor.get("desde") is not None else None
+    hasta = _fecha(valor["hasta"], zona, time(23, 59)) if valor.get("hasta") is not None else None
+    if desde is not None and hasta is not None and not desde < hasta:
+        raise ErrorContenido("FECHAS_INCOHERENTES", "debe cumplirse desde < hasta")
+    ocultar = valor.get("ocultar_si_no_cumple", False)
+    if not isinstance(ocultar, bool):
+        raise ErrorContenido("RESTRICCION_INVALIDA", "ocultar_si_no_cumple debe ser true o false")
+    completar = _validar_dependencias(valor.get("completar", []), ruta, raiz)
+    return Restricciones(desde=desde, hasta=hasta, completar=completar, ocultar=ocultar)
+
+
+def _validar_dependencias(valor: Any, ruta: Path, raiz: Path | None) -> tuple[str, ...]:
+    """Las rutas de ``completar``, relativas a la carpeta, dentro de ella y sin repetir."""
+    if not isinstance(valor, list):
+        raise ErrorContenido("RESTRICCION_INVALIDA", "completar debe ser una lista de ficheros")
+    if len(valor) > MAX_DEPENDENCIAS:
+        raise ErrorContenido(
+            "RESTRICCION_INVALIDA", f"completar admite como mucho {MAX_DEPENDENCIAS} ficheros"
+        )
+    carpeta = raiz if raiz is not None else ruta.parent.resolve()
+    propia = ruta.resolve()
+    salida: list[str] = []
+    for item in valor:
+        if not isinstance(item, str) or not item.strip() or _CONTROL.search(item):
+            raise ErrorContenido("RESTRICCION_INVALIDA", "cada fichero de completar debe ser texto")
+        destino = _resolver_local(ruta.parent, item.strip())
+        if raiz is not None:
+            _exigir_permitido(destino, raiz)  # antes de mirar si existe
+        elif not destino.is_relative_to(carpeta):
+            raise ErrorContenido(
+                "RUTA_FUERA_DE_CARPETA", "un fichero de completar está fuera de la carpeta"
+            )
+        if destino.suffix.lower() not in EXTENSIONES:
+            raise ErrorContenido(
+                "RESTRICCION_INVALIDA", f"«{destino.name}» no es un fichero de contenido"
+            )
+        if destino == propia:
+            raise ErrorContenido(
+                "DEPENDENCIA_CIRCULAR", "un documento no puede depender de sí mismo"
+            )
+        relativa = destino.relative_to(carpeta).as_posix()
+        if relativa in salida:
+            raise ErrorContenido("RESTRICCION_INVALIDA", f"«{destino.name}» está repetido")
+        salida.append(relativa)
+    return tuple(salida)
+
+
+_MODOS_LLANOS = {
+    "ninguna": "no se marca como completada",
+    "manual": "marcarla el alumno como hecha",
+    "ver": "verla",
+    "entregar": "entregarla",
+    "calificar": "tener nota",
+}
+
+
+def describir_itinerario(doc: Documento, nombres: dict[str, str] | None = None) -> list[str]:
+    """El itinerario en lenguaje llano, solo con lo que dice el ``.md``.
+
+    ``nombres``: nombre de cada fichero de ``completar``, tal como está en su ``.md``.
+    """
+    lineas: list[str] = []
+    if doc.finalizacion is not None:
+        modo = doc.finalizacion.modo
+        lineas.append(
+            "No se marca como completada"
+            if modo == "ninguna"
+            else f"Se completa al: {_MODOS_LLANOS[modo]}"
+        )
+        if doc.finalizacion.esperada is not None:
+            lineas.append(f"Fecha esperada: {_formato_fecha(doc.finalizacion.esperada)}")
+    restricciones = doc.restricciones
+    if restricciones is not None:
+        condiciones: list[str] = []
+        if restricciones.desde is not None:
+            condiciones.append(f"desde {_formato_fecha(restricciones.desde)}")
+        if restricciones.hasta is not None:
+            condiciones.append(f"hasta {_formato_fecha(restricciones.hasta)}")
+        for fichero in restricciones.completar:
+            nombre = (nombres or {}).get(fichero)
+            etiqueta = f"«{nombre}» ({fichero})" if nombre else fichero
+            condiciones.append(f"cuando completen {etiqueta}")
+        if not condiciones:
+            lineas.append("Se quitan las restricciones de tiza")
+        else:
+            lineas.append("Disponible: " + " · ".join(condiciones))
+            lineas.append(
+                "Si no se cumple: se oculta"
+                if restricciones.ocultar
+                else "Si no se cumple: se ve en gris"
+            )
+    return lineas
 
 
 # --------------------------------------------------------------------------- #
@@ -1316,6 +1498,9 @@ def _plantilla(doc: Documento, dir_preview: Path) -> str:
         metadatos.append(("Reintentar", "sí" if doc.h5p.reintentar else "no"))
     if doc.paquete is not None:
         metadatos.append(("Paquete", doc.paquete.nombre))
+    for linea in describir_itinerario(doc):
+        clave, _, resto = linea.partition(": ")
+        metadatos.append((clave, resto) if resto else ("Itinerario", linea))
     filas = "\n".join(
         f"<li><strong>{clave}:</strong> {_html.escape(valor)}</li>" for clave, valor in metadatos
     )
@@ -1481,6 +1666,10 @@ def hash_documento(doc: Documento) -> str:
     if doc.h5p is not None:
         resumen.update(b"\n--h5p--\n")
         resumen.update(repr(doc.h5p).encode("utf-8"))
+    if doc.finalizacion is not None or doc.restricciones is not None:
+        resumen.update(b"\n--itinerario--\n")
+        resumen.update(repr(doc.finalizacion).encode("utf-8"))
+        resumen.update(repr(doc.restricciones).encode("utf-8"))
     if doc.paquete is not None:
         resumen.update(b"\n--paquete--\n")
         resumen.update(doc.paquete.nombre.encode("utf-8"))

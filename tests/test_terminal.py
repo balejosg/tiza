@@ -635,3 +635,57 @@ def test_con_un_solo_curso_no_hay_cabecera(monkeypatch, capsys):
     )
     terminal.PresenciaTerminal().confirmar_real(resumen)
     assert "Curso 1 de" not in capsys.readouterr().out
+
+
+def test_la_confirmacion_de_real_enseña_el_itinerario(monkeypatch, capsys):
+    monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
+    documento = sesion.DocumentoResumen(
+        fichero="t.md",
+        tipo="tarea",
+        nombre="Problemas",
+        seccion=3,
+        fechas=None,
+        itinerario=("Se completa al: entregarla", "Disponible: cuando completen «Test» (test.md)"),
+    )
+    resumen = sesion.ResumenPublicacion(
+        curso=1, nombre_curso=None, documentos=(documento,), secciones_nuevas=(), visible=None
+    )
+    terminal.PresenciaTerminal().confirmar_real(resumen)
+    salida = capsys.readouterr().out
+    assert "Se completa al: entregarla" in salida
+    assert "Disponible: cuando completen «Test» (test.md)" in salida
+    # Con --solo-fechas no se aplica el itinerario: no se enseña.
+    solo = sesion.ResumenPublicacion(
+        curso=1,
+        nombre_curso=None,
+        documentos=(documento,),
+        secciones_nuevas=(),
+        visible=None,
+        solo_fechas=True,
+    )
+    terminal.PresenciaTerminal().confirmar_real(solo)
+    assert "Se completa al" not in capsys.readouterr().out
+
+
+def test_la_confirmacion_corta_enseña_el_itinerario(monkeypatch, capsys):
+    monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
+    breve = sesion.DocumentoBreve(
+        fichero="p.md", tipo="pagina", nombre="P", itinerario=("Si no se cumple: se oculta",)
+    )
+    resumen = sesion.ResumenSinPruebas(
+        curso=1, nombre_curso=None, documentos=(breve,), secciones_nuevas=()
+    )
+    terminal.PresenciaTerminal().confirmar_real_sin_pruebas(resumen)
+    assert "Si no se cumple: se oculta" in capsys.readouterr().out
+
+
+def test_el_itinerario_se_saneada_al_enseñarse(monkeypatch, capsys):
+    monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
+    breve = sesion.DocumentoBreve(
+        fichero="p.md", tipo="pagina", nombre="P", itinerario=("hola\x1b[31mrojo",)
+    )
+    resumen = sesion.ResumenSinPruebas(
+        curso=1, nombre_curso=None, documentos=(breve,), secciones_nuevas=()
+    )
+    terminal.PresenciaTerminal().confirmar_real_sin_pruebas(resumen)
+    assert "\x1b" not in capsys.readouterr().out

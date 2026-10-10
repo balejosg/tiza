@@ -52,13 +52,19 @@ __all__ = [
     "asegurar_secciones",
     "autoprueba",
     "buscar_seccion",
+    "aplicar_itinerario",
     "cargar_estructura",
     "cargar_verificados",
     "comprobar_puerta_real",
     "escribir_estructura",
     "fechas_esperadas",
     "guardar_verificado",
+    "es_disponibilidad_de_tiza",
     "modulo_de",
+    "payload_disponibilidad",
+    "payload_finalizacion",
+    "preparar_itinerario",
+    "validar_disponibilidad",
     "payload_cuestionario",
     "payload_etiqueta",
     "payload_h5p",
@@ -449,6 +455,14 @@ class Moodle:
             "fechas": {
                 campo: _fecha_leida(formulario, campo)
                 for campo in CAMPOS_FECHA_TAREA + CAMPOS_FECHA_CUESTIONARIO
+            },
+            # Solo para uso interno de la sesión: nunca llega a .tiza ni al agente.
+            "itinerario": {
+                "campos": {
+                    campo: _campo(formulario, campo) for campo in CAMPOS_FINALIZACION_LEIDOS
+                },
+                "esperada": _fecha_leida(formulario, "completionexpected"),
+                "disponibilidad": _campo(formulario, "availabilityconditionsjson") or "",
             },
         }
 
@@ -1247,17 +1261,25 @@ def publicar_documento(
     doc: Documento,
     *,
     visible: bool | None,
+    dependencias: dict[str, int] | None = None,
 ) -> dict:
     """Crea o actualiza un documento y lo verifica releyendo el módulo.
 
     ``visible=None`` conserva la visibilidad de lo que ya existe; lo nuevo se crea oculto.
     Los recursos se copian una sola vez y se comprueba que siguen siendo los que
     el docente confirmó (``hash_cargado``): sustituirlos después no sirve.
+    ``dependencias``: el cmid, en este curso, de cada fichero de ``restricciones.completar``.
     """
     with tempfile.TemporaryDirectory(prefix="tiza-recursos-") as temporal:
         copia = _congelar_recursos(doc, Path(temporal))
         return _publicar_congelado(
-            moodle, curso_id, secciones, copia, visible=visible, original=doc
+            moodle,
+            curso_id,
+            secciones,
+            copia,
+            visible=visible,
+            original=doc,
+            dependencias=dependencias or {},
         )
 
 
@@ -1284,11 +1306,14 @@ def _publicar_congelado(
     *,
     visible: bool | None,
     original: Documento,
+    dependencias: dict[str, int],
 ) -> dict:
     seccion = buscar_seccion(secciones, doc.seccion)
     if seccion is None:
         raise ErrorPublicacion("SECCION_AUSENTE", doc.ruta.name)
     existente = modulo_de(secciones, doc)
+    # Antes de escribir nada: una restricción ajena o una finalización bloqueada paran todo.
+    envio = preparar_itinerario(moodle, doc, existente, dependencias)
 
     # Sin indicación: lo nuevo nace oculto y lo que ya existe conserva su visibilidad.
     if visible is None and existente is None:
@@ -1336,6 +1361,7 @@ def _publicar_congelado(
         except ErrorPublicacion as exc:
             exc.cmid = cmid
             raise
+    aplicar_itinerario(moodle, doc, cmid, envio)
     return {
         "nombre": original.ruta.name,
         "tipo": doc.tipo,
@@ -1525,6 +1551,283 @@ def _publicar_h5p(
             exc.cmid = cmid
         raise
     return cmid, accion, info
+
+
+# --------------------------------------------------------------------------- #
+# Itinerario: finalización y restricciones de acceso
+# --------------------------------------------------------------------------- #
+
+# Campos del formulario que se leen para decidir (uso interno; nunca salen de la sesión).
+CAMPOS_FINALIZACION_LEIDOS = (
+    "completion",
+    "completionview",
+    "completionsubmit",
+    "completionusegrade",
+    "completionunlocked",
+)
+# Campos de «cuándo se completa» que tiene cada tipo (confirmado en Moodle 4.5).
+_BANDERAS_POR_TIPO = {
+    "pagina": ("completionview",),
+    "etiqueta": (),
+    "tarea": ("completionview", "completionsubmit", "completionusegrade"),
+    "cuestionario": ("completionview", "completionusegrade"),
+    "h5p": ("completionview", "completionusegrade"),
+}
+_BANDERA_DE_MODO = {
+    "ver": "completionview",
+    "entregar": "completionsubmit",
+    "calificar": "completionusegrade",
+}
+# Lista blanca de las condiciones de acceso que tiza escribe y reconoce como suyas.
+_TIPOS_DE_TIZA = frozenset({"date", "completion"})
+
+
+def payload_finalizacion(doc: Documento, *, solo_fecha_esperada: bool = False) -> dict:
+    """Campos de finalización del formulario, o ``{}`` si el documento no la declara.
+
+    Se envían todos los de su tipo (los no usados a 0): la fusión conserva lo que no se
+    envía, y un modo anterior dejaría su casilla marcada.
+    """
+    finalizacion = doc.finalizacion
+    if finalizacion is None:
+        return {}
+    payload: dict[str, str] = {}
+    esperada = finalizacion.esperada
+    if esperada is None:
+        payload["completionexpected[enabled]"] = "0"
+    else:
+        payload["completionexpected[enabled]"] = "1"
+        for parte, valor in zip(
+            ("year", "month", "day", "hour", "minute"), _partes(esperada), strict=True
+        ):
+            payload[f"completionexpected[{parte}]"] = str(valor)
+    if solo_fecha_esperada:
+        return payload
+    modo = finalizacion.modo
+    payload["completion"] = {"ninguna": "0", "manual": "1"}.get(modo, "2")
+    if modo in _BANDERA_DE_MODO:
+        elegida = _BANDERA_DE_MODO[modo]
+        for bandera in _BANDERAS_POR_TIPO[doc.tipo]:
+            payload[bandera] = "1" if bandera == elegida else "0"
+    return payload
+
+
+def modo_leido(tipo: str, campos: dict) -> str | None:
+    """El modo de finalización que dice el formulario; None si no es uno de los de tiza."""
+    completion = campos.get("completion")
+    if completion == "0":
+        return "ninguna"
+    if completion == "1":
+        return "manual"
+    if completion != "2":
+        return None
+    marcadas = [
+        modo
+        for modo, bandera in _BANDERA_DE_MODO.items()
+        if bandera in _BANDERAS_POR_TIPO[tipo] and campos.get(bandera) == "1"
+    ]
+    return marcadas[0] if len(marcadas) == 1 else None
+
+
+def _condiciones_de(restricciones, dependencias: dict[str, int]) -> tuple[list[dict], list[bool]]:
+    condiciones: list[dict] = []
+    if restricciones.desde is not None:
+        condiciones.append({"type": "date", "d": ">=", "t": int(restricciones.desde.timestamp())})
+    if restricciones.hasta is not None:
+        condiciones.append({"type": "date", "d": "<", "t": int(restricciones.hasta.timestamp())})
+    for fichero in restricciones.completar:
+        condiciones.append({"type": "completion", "cm": dependencias[fichero], "e": 1})
+    return condiciones, [not restricciones.ocultar] * len(condiciones)
+
+
+def validar_disponibilidad(texto: str) -> None:
+    """Rechaza cualquier JSON de acceso que no sea «y» de fechas y finalizaciones.
+
+    Es el último control antes de enviar: nunca sale de tiza una condición de grupo,
+    agrupamiento, perfil, nota ni nada que no sea fecha o finalización.
+    """
+    if texto == "":
+        return
+    try:
+        datos = json.loads(texto)
+    except ValueError:
+        raise ErrorPublicacion("RESTRICCION_INVALIDA") from None
+    if (
+        not isinstance(datos, dict)
+        or set(datos) != {"op", "c", "showc"}
+        or datos["op"] != "&"
+        or not isinstance(datos["c"], list)
+        or not datos["c"]
+        or not isinstance(datos["showc"], list)
+        or len(datos["showc"]) != len(datos["c"])
+        or any(not isinstance(visible, bool) for visible in datos["showc"])
+    ):
+        raise ErrorPublicacion("RESTRICCION_INVALIDA")
+    for condicion in datos["c"]:
+        if not isinstance(condicion, dict):
+            raise ErrorPublicacion("RESTRICCION_INVALIDA")
+        if condicion.get("type") == "date":
+            valido = (
+                set(condicion) == {"type", "d", "t"}
+                and condicion["d"] in (">=", "<")
+                and _es_entero(condicion["t"])
+            )
+        elif condicion.get("type") == "completion":
+            valido = (
+                set(condicion) == {"type", "cm", "e"}
+                and _es_entero(condicion["cm"])
+                and condicion["e"] == 1
+            )
+        else:
+            valido = False
+        if not valido:
+            raise ErrorPublicacion("RESTRICCION_INVALIDA")
+
+
+def _es_entero(valor: Any) -> bool:
+    return isinstance(valor, int) and not isinstance(valor, bool)
+
+
+def payload_disponibilidad(doc: Documento, dependencias: dict[str, int]) -> dict:
+    """``availabilityconditionsjson`` de lo que declara el documento (vacío: quitar)."""
+    restricciones = doc.restricciones
+    if restricciones is None:
+        return {}
+    condiciones, visibles = _condiciones_de(restricciones, dependencias)
+    texto = (
+        json.dumps({"op": "&", "c": condiciones, "showc": visibles}, separators=(",", ":"))
+        if condiciones
+        else ""
+    )
+    validar_disponibilidad(texto)
+    return {"availabilityconditionsjson": texto}
+
+
+def es_disponibilidad_de_tiza(texto: str) -> bool:
+    """¿La restricción que ya tiene el aula usa solo clases que tiza gestiona?
+
+    Una restricción vacía lo es. Cualquier otra cosa (grupo, perfil, nota, un «o»,
+    condiciones anidadas…) es ajena: tiza no la toca ni dice de qué clase es.
+    """
+    if not texto or not texto.strip():
+        return True
+    try:
+        datos = json.loads(texto)
+    except ValueError:
+        return False
+    if not isinstance(datos, dict) or datos.get("op") != "&" or "show" in datos:
+        return False
+    condiciones = datos.get("c")
+    if not isinstance(condiciones, list):
+        return False
+    return all(
+        isinstance(condicion, dict) and condicion.get("type") in _TIPOS_DE_TIZA
+        for condicion in condiciones
+    )
+
+
+def _misma_disponibilidad(leida: str, esperada: str) -> bool:
+    def normal(texto: str) -> Any:
+        if not texto or not texto.strip():
+            return None
+        try:
+            datos = json.loads(texto)
+        except ValueError:
+            return texto
+        if isinstance(datos, dict) and not datos.get("c"):
+            return None  # sin condiciones es lo mismo que vacío
+        return datos
+
+    return normal(leida) == normal(esperada)
+
+
+@dataclasses.dataclass(frozen=True)
+class EnvioItinerario:
+    """Lo que hay que enviar tras publicar el contenido; ``vacio`` si el documento no declara nada."""
+
+    payload: dict
+    finalizacion: bool  # hay que comprobar la finalización tras enviarla
+    disponibilidad: str | None  # JSON esperado, o None si el documento no declara restricciones
+
+    @property
+    def vacio(self) -> bool:
+        return not self.payload
+
+
+def preparar_itinerario(
+    moodle: AulaVirtual, doc: Documento, existente: dict | None, dependencias: dict[str, int]
+) -> EnvioItinerario:
+    """Decide qué se enviará y, antes de escribir nada, rechaza lo que no se puede aplicar.
+
+    Lo que el aula ya tiene se examina aquí dentro y no sale: solo se devuelve un código.
+    """
+    if doc.finalizacion is None and doc.restricciones is None:
+        return EnvioItinerario({}, False, None)
+    faltan = [
+        f
+        for f in (doc.restricciones.completar if doc.restricciones else ())
+        if f not in dependencias
+    ]
+    if faltan:
+        raise ErrorPublicacion("DEPENDENCIA_NO_PUBLICADA", faltan[0])
+    payload: dict = {}
+    disponibilidad = payload_disponibilidad(doc, dependencias)
+    payload.update(disponibilidad)
+    finalizacion = payload_finalizacion(doc)
+    actual: dict | None = None
+    if existente is not None:
+        actual = moodle.leer_modulo(existente["cmid"]).get("itinerario") or {}
+        if doc.restricciones is not None and not es_disponibilidad_de_tiza(
+            actual.get("disponibilidad", "")
+        ):
+            raise ErrorPublicacion("RESTRICCION_AJENA", doc.ruta.name)
+        if doc.finalizacion is not None:
+            campos = actual.get("campos") or {}
+            if campos.get("completion") is None and campos.get("completionunlocked") is None:
+                raise ErrorPublicacion("FINALIZACION_DESACTIVADA", doc.ruta.name)
+            if campos.get("completionunlocked") == "0":
+                if modo_leido(doc.tipo, campos) != doc.finalizacion.modo:
+                    raise ErrorPublicacion("FINALIZACION_BLOQUEADA", doc.ruta.name)
+                # El modo ya es el pedido: solo la fecha esperada, que no está bloqueada.
+                finalizacion = payload_finalizacion(doc, solo_fecha_esperada=True)
+    payload.update(finalizacion)
+    return EnvioItinerario(
+        payload,
+        doc.finalizacion is not None,
+        disponibilidad["availabilityconditionsjson"] if disponibilidad else None,
+    )
+
+
+def aplicar_itinerario(
+    moodle: AulaVirtual, doc: Documento, cmid: int, envio: EnvioItinerario
+) -> None:
+    """Envía la finalización y las restricciones y comprueba que el aula las guardó."""
+    if envio.vacio:
+        return
+    moodle.actualizar(cmid, envio.payload)
+    leido = moodle.leer_modulo(cmid).get("itinerario") or {}
+    try:
+        _verificar_itinerario(doc, leido, envio)
+    except ErrorPublicacion as exc:
+        exc.cmid = cmid
+        raise
+
+
+def _verificar_itinerario(doc: Documento, leido: dict, envio: EnvioItinerario) -> None:
+    if envio.finalizacion and doc.finalizacion is not None:
+        campos = leido.get("campos") or {}
+        if campos.get("completion") is None:
+            # El formulario no trae la finalización: el curso no la tiene activada.
+            raise ErrorPublicacion("FINALIZACION_DESACTIVADA", doc.ruta.name)
+        if modo_leido(doc.tipo, campos) != doc.finalizacion.modo:
+            raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
+        esperada = doc.finalizacion.esperada
+        if leido.get("esperada") != (None if esperada is None else _partes(esperada)):
+            raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
+    if envio.disponibilidad is not None and not _misma_disponibilidad(
+        leido.get("disponibilidad", ""), envio.disponibilidad
+    ):
+        raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
 
 
 def buscar_seccion(secciones: list[dict], clave: int | str) -> dict | None:

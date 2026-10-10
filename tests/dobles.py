@@ -11,6 +11,7 @@ from tiza import config, rutas
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
     CAMPOS_FECHA_TAREA,
+    CAMPOS_FINALIZACION_LEIDOS,
     DETALLE_INTENTOS_REPUBLICAR,
     ErrorPublicacion,
 )
@@ -45,6 +46,7 @@ class MoodleFalso:
         pluginfiles_ok=True,
         cursos=None,
         secciones_por_curso=None,
+        sin_finalizacion=False,
     ):
         self.base_url = "https://aula.example.org/centro"
         self.secciones = (
@@ -62,6 +64,10 @@ class MoodleFalso:
         )
         # Con varios cursos reales: las secciones propias de cada curso (los demás usan ``secciones``).
         self.secciones_por_curso: dict[int, list] = dict(secciones_por_curso or {})
+        # Moodle: un curso sin finalización ignora sus campos; con alumnos que ya completaron
+        # una actividad, esta queda bloqueada y las actualizaciones ya no cambian su finalización.
+        self.sin_finalizacion = sin_finalizacion
+        self.bloqueadas: set[int] = set()
         self.cmid_nuevo = cmid_nuevo
         self.pluginfiles_ok = pluginfiles_ok
         self.llamadas: list[tuple] = []
@@ -124,7 +130,7 @@ class MoodleFalso:
         cmid = self.cmid_nuevo
         self.cmid_nuevo += 1
         self.llamadas.append(("crear", curso_id, seccion_id, tipo, payload))
-        self.formularios[cmid] = {"visible": "1", **payload}  # Moodle crea visible si no se indica
+        self.formularios[cmid] = {"visible": "1", **self._admitido(cmid, payload)}
         for seccion in self._de(curso_id):
             if seccion["id"] == seccion_id:
                 seccion["modulos"].append({"cmid": cmid, "nombre": payload["name"], "tipo": tipo})
@@ -143,7 +149,21 @@ class MoodleFalso:
 
     def actualizar(self, cmid, payload):
         self.llamadas.append(("actualizar", cmid, payload))
-        self.formularios.setdefault(cmid, {"visible": "1"}).update(payload)
+        self.formularios.setdefault(cmid, {"visible": "1"}).update(self._admitido(cmid, payload))
+
+    def _campos_de_finalizacion(self, cmid, formulario):
+        if self.sin_finalizacion:  # el formulario no trae ninguno de estos campos
+            return dict.fromkeys(CAMPOS_FINALIZACION_LEIDOS)
+        campos = {campo: formulario.get(campo) for campo in CAMPOS_FINALIZACION_LEIDOS}
+        campos["completion"] = formulario.get("completion", "0")
+        campos["completionunlocked"] = "0" if cmid in self.bloqueadas else "1"
+        return campos
+
+    def _admitido(self, cmid, payload):
+        """Lo que Moodle guardaría: sin finalización o con ella bloqueada, la ignora en silencio."""
+        if not (self.sin_finalizacion or cmid in self.bloqueadas):
+            return payload
+        return {k: v for k, v in payload.items() if not k.startswith("completion")}
 
     def leer_modulo(self, cmid):
         self.llamadas.append(("leer_modulo", cmid))
@@ -155,6 +175,11 @@ class MoodleFalso:
             "visible": formulario.get("visible"),
             "contexto": self.contextos.get(cmid, 999),
             "fechas": {campo: _fecha_del_formulario(formulario, campo) for campo in _CAMPOS_FECHA},
+            "itinerario": {
+                "campos": self._campos_de_finalizacion(cmid, formulario),
+                "esperada": _fecha_del_formulario(formulario, "completionexpected"),
+                "disponibilidad": formulario.get("availabilityconditionsjson", ""),
+            },
         }
 
     def comprobar_pluginfile(self, url):

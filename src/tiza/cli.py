@@ -910,6 +910,7 @@ def _publicar_directa_en(
                     tipo=doc.tipo,
                     nombre=doc.nombre,
                     existe=publicar.ya_existe(secciones, doc),
+                    itinerario=sesion.itinerario_de(doc, Path.cwd().resolve()),
                 )
                 for doc in documentos
             ),

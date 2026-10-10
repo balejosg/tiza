@@ -322,7 +322,7 @@ class TestProcesarPeticionSinPruebas:
         [corto] = presencia.resumenes_cortos
         assert (corto.curso, corto.nombre_curso) == (5678, "Matemáticas 2ºB")
         [doc] = corto.documentos
-        assert set(vars(doc)) == {"fichero", "tipo", "nombre", "existe"}
+        assert set(vars(doc)) == {"fichero", "tipo", "nombre", "existe", "itinerario"}
         assert (doc.fichero, doc.tipo, doc.nombre) == ("pagina.md", "pagina", "Repaso")
         assert doc.existe is False  # el curso no tiene todavía esa página
         assert not (carpeta / ".tiza" / "preview").exists()  # no hay vista previa
@@ -1332,3 +1332,132 @@ class TestElegirCursosReales:
             ("real", 101, "1º A", False),
             ("real", 102, None, True),
         ]
+
+
+# --- itinerario en la sesión ------------------------------------------------ #
+
+
+def md_it(carpeta: Path, nombre: str, titulo: str, extra: str = "") -> None:
+    (carpeta / nombre).write_text(
+        f"---\ntipo: pagina\nnombre: {titulo}\nseccion: 3\n{extra}---\n\nHola\n", encoding="utf-8"
+    )
+
+
+def publicar_pruebas(carpeta, ficheros, moodle, cfg=CFG, presencia=None):
+    datos = {**peticion("pruebas"), "ficheros": ficheros}
+    return sesion.procesar_peticion(datos, moodle, cfg, carpeta, presencia or PresenciaFalsa())
+
+
+class TestItinerarioEnLaSesion:
+    def test_se_publica_primero_la_dependencia_aunque_se_pida_despues(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "test.md", "Test", "finalizacion: ver\n")
+        md_it(carpeta, "tarea.md", "Siguiente", "restricciones:\n  completar: [test.md]\n")
+        moodle = MoodleFalso()
+        documento = publicar_pruebas(carpeta, ["tarea.md", "test.md"], moodle)
+        assert documento["resultado"] == "ok"
+        assert [f["nombre"] for f in documento["ficheros"]] == ["test.md", "tarea.md"]
+        cm_test, cm_tarea = (f["cmid"] for f in documento["ficheros"])
+        texto = moodle.formularios[cm_tarea]["availabilityconditionsjson"]
+        assert json.loads(texto)["c"] == [{"type": "completion", "cm": cm_test, "e": 1}]
+
+    def test_una_dependencia_ya_publicada_se_resuelve_en_el_curso(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "test.md", "Test")
+        md_it(carpeta, "tarea.md", "Siguiente", "restricciones:\n  completar: [test.md]\n")
+        moodle = MoodleFalso()
+        publicar_pruebas(carpeta, ["test.md"], moodle)
+        documento = publicar_pruebas(carpeta, ["tarea.md"], moodle)
+        assert documento["resultado"] == "ok"
+        [fichero] = documento["ficheros"]
+        texto = moodle.formularios[fichero["cmid"]]["availabilityconditionsjson"]
+        assert json.loads(texto)["c"][0]["cm"] == 100
+
+    def test_dependencia_no_publicada_no_escribe_nada(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "test.md", "Test")
+        md_it(carpeta, "otra.md", "Otra")
+        md_it(carpeta, "tarea.md", "Siguiente", "restricciones:\n  completar: [test.md]\n")
+        moodle = MoodleFalso()
+        documento = publicar_pruebas(carpeta, ["otra.md", "tarea.md"], moodle)
+        assert documento["errores"] == ["DEPENDENCIA_NO_PUBLICADA"]
+        assert not any(ll[0] in ("crear", "actualizar", "crear_seccion") for ll in moodle.llamadas)
+
+    def test_dependencia_invalida(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "tarea.md", "Siguiente", "restricciones:\n  completar: [falta.md]\n")
+        documento = publicar_pruebas(carpeta, ["tarea.md"], MoodleFalso())
+        assert documento["errores"] == ["DEPENDENCIA_INVALIDA"]
+
+    def test_ciclo_en_la_peticion_no_publica_nada(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "a.md", "A", "restricciones:\n  completar: [b.md]\n")
+        md_it(carpeta, "b.md", "B", "restricciones:\n  completar: [a.md]\n")
+        moodle = MoodleFalso()
+        documento = publicar_pruebas(carpeta, ["a.md", "b.md"], moodle)
+        assert documento["errores"] == ["DEPENDENCIA_CIRCULAR"]
+        assert not any(ll[0] in ("crear", "actualizar") for ll in moodle.llamadas)
+
+    def test_el_orden_sin_dependencias_se_conserva(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        for nombre in ("c.md", "a.md", "b.md"):
+            md_it(carpeta, nombre, nombre)
+        docs = [
+            contenido.cargar(carpeta / n, raiz=carpeta.resolve()) for n in ("c.md", "a.md", "b.md")
+        ]
+        ordenados = sesion.ordenar_por_dependencias(docs, carpeta.resolve())
+        assert [d.ruta.name for d in ordenados] == ["c.md", "a.md", "b.md"]  # type: ignore[union-attr]
+
+    def test_cada_curso_real_resuelve_sus_propias_dependencias(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "test.md", "Test")
+        md_it(carpeta, "tarea.md", "Siguiente", "restricciones:\n  completar: [test.md]\n")
+        moodle = aula_con_dos_cursos()
+        # Solo el curso 101 tiene publicado el test.
+        sesion.publicar_con(
+            moodle,
+            "real",
+            101,
+            [contenido.cargar(carpeta / "test.md")],
+            False,
+            carpeta,
+            PresenciaFalsa(),
+        )
+        verificar_en_pruebas(carpeta, "tarea.md")
+        datos = {**peticion("real"), "ficheros": ["tarea.md"], "visible": False}
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=(True, True))
+        documento = sesion.procesar_peticion(
+            datos, moodle, CFG_DOS, carpeta, presencia, nombres=NOMBRES_DOS
+        )
+        assert documento["resultado"] == "error"
+        assert documento["errores"] == ["DEPENDENCIA_NO_PUBLICADA"]
+        assert [f["curso"] for f in documento["ficheros"]] == [101]
+
+    def test_el_informe_no_lleva_nada_de_finalizacion_ni_de_disponibilidad(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "a.md", "A", "finalizacion: ver\nrestricciones:\n  desde: 2026-10-12\n")
+        moodle = MoodleFalso()
+        moodle.bloqueadas.add(100)
+        documento = publicar_pruebas(carpeta, ["a.md"], moodle)
+        informe_json = json.dumps(documento) + (carpeta / ".tiza" / "informe.json").read_text(
+            encoding="utf-8"
+        )
+        for palabra in ("completion", "availability", "disponibilidad", "itinerario"):
+            assert palabra not in informe_json
+        sesion.estructura_con(moodle, CFG, carpeta)
+        estructura = (carpeta / ".tiza" / "estructura.json").read_text(encoding="utf-8")
+        assert "completion" not in estructura and "availab" not in estructura
+
+    def test_la_restriccion_ajena_es_un_codigo_sin_mas(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        md_it(carpeta, "a.md", "A", "restricciones:\n  desde: 2026-10-12\n")
+        moodle = MoodleFalso()
+        moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "A", "tipo": "pagina"}]
+        moodle.formularios[55] = {
+            "name": "A",
+            "availabilityconditionsjson": '{"op":"&","c":[{"type":"group","id":7}],"showc":[true]}',
+        }
+        documento = publicar_pruebas(carpeta, ["a.md"], moodle)
+        assert documento["errores"] == ["RESTRICCION_AJENA"]
+        assert "group" not in json.dumps(documento) and "7" not in str(documento["pasos"])

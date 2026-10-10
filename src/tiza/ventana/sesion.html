@@ -252,6 +252,9 @@ ul { margin: 6px 0; padding-left: 20px; }
         doc.fechas.forEach(function (linea) {
           caja.appendChild(el("p", null, linea));
         });
+        doc.itinerario.forEach(function (linea) {
+          caja.appendChild(el("p", null, linea));
+        });
         if (doc.enlaces.length) {
           caja.appendChild(el("p", null, "Enlaces externos:"));
           caja.appendChild(lista(doc.enlaces));
@@ -293,6 +296,9 @@ ul { margin: 6px 0; padding-left: 20px; }
         } else if (doc.existe === null || doc.existe === undefined) {
           nodos.push(el("p", "aviso", "Puede que ya exista en el aula: se ocultará si estaba visible."));
         }
+        (doc.itinerario || []).forEach(function (linea) {
+          nodos.push(el("p", null, linea));
+        });
       });
       p.secciones.forEach(function (seccion) {
         nodos.push(el("p", "aviso", "Se creará la sección «" + seccion + "» (oculta)."));

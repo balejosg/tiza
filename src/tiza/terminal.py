@@ -465,6 +465,9 @@ class PresenciaTerminal:
                 print(f"      fichero {texto_seguro(doc.fichero)}, verificado en pruebas")
             for linea in describir_cambios(doc):
                 print(f"      {linea}")
+            if not resumen.solo_fechas:
+                for linea in doc.itinerario:
+                    print(f"      {texto_seguro(linea)}")
             if doc.vista_previa is not None:
                 print(f"      vista previa: {enlace(doc.vista_previa)}")
             if resumen.solo_fechas:
@@ -508,6 +511,8 @@ class PresenciaTerminal:
                 print("      Ya existe en el aula: se ocultará si estaba visible.")
             elif doc.existe is None:
                 print("      Puede que ya exista en el aula: se ocultará si estaba visible.")
+            for linea in doc.itinerario:
+                print(f"      {texto_seguro(linea)}")
         for nombre in resumen.secciones_nuevas:
             print(f"  Se creará la sección «{texto_seguro(nombre)}» (oculta).")
         return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)

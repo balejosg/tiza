@@ -598,3 +598,36 @@ def test_real_solo_fechas_pinta_las_fechas_y_no_el_contenido(tmp_path):
     assert puente.responder(pantalla["numero"], False) is True
     hilo.join(5)
     assert resultado["valor"] is False
+
+
+def test_la_confirmacion_de_real_lleva_el_itinerario(tmp_path):
+    ventana, presencia, puente = preparar(tmp_path)
+    documento = sesion.DocumentoResumen(
+        fichero="t.md",
+        tipo="tarea",
+        nombre="T",
+        seccion=3,
+        fechas=None,
+        itinerario=("Se completa al: verla <b>",),
+    )
+    resumen = sesion.ResumenPublicacion(
+        curso=1, nombre_curso=None, documentos=(documento,), secciones_nuevas=(), visible=None
+    )
+    hilo, _ = en_hilo(lambda: presencia.confirmar_real(resumen))
+    pantalla = esperar_pantalla(ventana, "real")
+    assert pantalla["documentos"][0]["itinerario"] == ["Se completa al: verla <b>"]
+    puente.responder(pantalla["numero"], False)
+    hilo.join(5)
+    solo = sesion.ResumenPublicacion(
+        curso=1,
+        nombre_curso=None,
+        documentos=(documento,),
+        secciones_nuevas=(),
+        visible=None,
+        solo_fechas=True,
+    )
+    hilo, _ = en_hilo(lambda: presencia.confirmar_real(solo))
+    pantalla = esperar_pantalla(ventana, "real", despues_de=pantalla["numero"])
+    assert pantalla["documentos"][0]["itinerario"] == []
+    puente.responder(pantalla["numero"], False)
+    hilo.join(5)

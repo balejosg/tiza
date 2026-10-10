@@ -2379,3 +2379,328 @@ class TestSoloFechas:
             publicar.publicar_fechas(moodle, moodle.secciones, doc)
         assert exc.value.codigo == "SOLO_FECHAS_NO_APLICA"
         assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
+
+
+# --- itinerario: finalización y restricciones ------------------------------ #
+
+import json  # noqa: E402
+
+
+def doc_itinerario(tmp_path, extra: str, nombre="pagina.md", tipo="pagina", titulo="Repaso"):
+    for dep in ("test1.md",):
+        if not (tmp_path / dep).exists():
+            (tmp_path / dep).write_text(
+                "---\ntipo: pagina\nnombre: Test uno\nseccion: 3\n---\n\nx\n", encoding="utf-8"
+            )
+    ruta = tmp_path / nombre
+    ruta.write_text(
+        f"---\ntipo: {tipo}\nnombre: {titulo}\nseccion: 3\n{extra}---\n\nHola\n", encoding="utf-8"
+    )
+    return contenido.cargar(ruta, raiz=tmp_path.resolve())
+
+
+def aula_con(modulos=None, **opciones) -> MoodleFalso:
+    secciones = [{"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": modulos or []}]
+    return MoodleFalso(secciones=secciones, **opciones)
+
+
+def publicar_itinerario(moodle, doc, dependencias=None):
+    return publicar.publicar_documento(
+        moodle, 1234, moodle.secciones, doc, visible=None, dependencias=dependencias
+    )
+
+
+class TestPayloadFinalizacion:
+    @pytest.mark.parametrize(
+        ("modo", "esperado"),
+        [
+            ("ninguna", {"completion": "0"}),
+            ("manual", {"completion": "1"}),
+            ("ver", {"completion": "2", "completionview": "1"}),
+        ],
+    )
+    def test_pagina(self, tmp_path, modo, esperado):
+        doc = doc_itinerario(tmp_path, f"finalizacion: {modo}\n")
+        payload = publicar.payload_finalizacion(doc)
+        assert {
+            k: v for k, v in payload.items() if not k.startswith("completionexpected")
+        } == esperado
+        assert payload["completionexpected[enabled]"] == "0"
+
+    def test_tarea_envia_todos_sus_campos_para_no_heredar_un_modo_anterior(self, tmp_path):
+        extra = "apertura: 2026-10-01\nentrega: 2026-10-10\nfinalizacion: entregar\n"
+        doc = doc_itinerario(tmp_path, extra, "t.md", "tarea", "Tarea")
+        payload = publicar.payload_finalizacion(doc)
+        assert payload["completion"] == "2"
+        assert (payload["completionsubmit"], payload["completionview"]) == ("1", "0")
+        assert payload["completionusegrade"] == "0"
+
+    def test_calificar(self, tmp_path):
+        extra = "apertura: 2026-10-01\nentrega: 2026-10-10\nfinalizacion: calificar\n"
+        doc = doc_itinerario(tmp_path, extra, "t.md", "tarea", "Tarea")
+        payload = publicar.payload_finalizacion(doc)
+        assert (payload["completionusegrade"], payload["completionsubmit"]) == ("1", "0")
+
+    def test_fecha_esperada(self, tmp_path):
+        doc = doc_itinerario(tmp_path, "finalizacion: ver\nfecha_esperada: 2026-11-20\n")
+        payload = publicar.payload_finalizacion(doc)
+        assert payload["completionexpected[enabled]"] == "1"
+        assert [payload[f"completionexpected[{p}]"] for p in ("year", "month", "day")] == [
+            "2026",
+            "11",
+            "20",
+        ]
+
+    def test_sin_declarar_no_envia_nada(self, tmp_path):
+        assert publicar.payload_finalizacion(documento(tmp_path)) == {}
+        assert publicar.payload_disponibilidad(documento(tmp_path), {}) == {}
+
+
+class TestPayloadDisponibilidad:
+    def test_fechas_y_dependencias_compactas_con_y(self, tmp_path):
+        doc = doc_itinerario(
+            tmp_path,
+            "restricciones:\n  desde: 2026-10-12\n  hasta: 2026-11-01\n  completar: [test1.md]\n",
+        )
+        texto = publicar.payload_disponibilidad(doc, {"test1.md": 64})["availabilityconditionsjson"]
+        datos = json.loads(texto)
+        assert datos["op"] == "&"
+        assert [c["type"] for c in datos["c"]] == ["date", "date", "completion"]
+        assert [c.get("d") for c in datos["c"][:2]] == [">=", "<"]
+        assert datos["c"][2] == {"type": "completion", "cm": 64, "e": 1}
+        assert datos["showc"] == [True, True, True]
+        assert " " not in texto  # compacto, como lo guarda Moodle
+
+    def test_ocultar_si_no_cumple(self, tmp_path):
+        doc = doc_itinerario(
+            tmp_path, "restricciones:\n  completar: [test1.md]\n  ocultar_si_no_cumple: true\n"
+        )
+        texto = publicar.payload_disponibilidad(doc, {"test1.md": 64})["availabilityconditionsjson"]
+        assert json.loads(texto)["showc"] == [False]
+
+    def test_vacias_quitan(self, tmp_path):
+        doc = doc_itinerario(tmp_path, "restricciones: {}\n")
+        assert publicar.payload_disponibilidad(doc, {}) == {"availabilityconditionsjson": ""}
+
+    def test_la_fecha_es_un_instante_utc(self, tmp_path):
+        doc = doc_itinerario(tmp_path, "restricciones:\n  desde: 2026-10-12\n")
+        datos = json.loads(publicar.payload_disponibilidad(doc, {})["availabilityconditionsjson"])
+        assert datos["c"][0]["t"] == int(doc.restricciones.desde.timestamp())  # type: ignore[union-attr]
+
+
+class TestValidadorDeDisponibilidad:
+    """El último control antes de enviar: aunque se construya a mano, solo fecha y finalización."""
+
+    @pytest.mark.parametrize(
+        "condicion",
+        [
+            {"type": "group", "id": 1},
+            {"type": "group"},
+            {"type": "grouping", "id": 1},
+            {"type": "profile", "cf": "email", "op": "contains", "v": "x"},
+            {"type": "grade", "id": 1, "min": 5},
+            {"type": "otro"},
+            {"type": "date", "d": ">=", "t": 1, "extra": 1},
+            {"type": "date", "d": "=", "t": 1},
+            {"type": "date", "d": ">=", "t": True},
+            {"type": "date", "d": ">=", "t": "1"},
+            {"type": "completion", "cm": 5, "e": 0},
+            {"type": "completion", "cm": 5, "e": 2},
+            {"type": "completion", "cm": "5", "e": 1},
+            {"c": [], "op": "&", "showc": []},
+            "texto",
+            None,
+        ],
+    )
+    def test_rechaza_lo_que_no_es_de_tiza(self, condicion):
+        texto = json.dumps({"op": "&", "c": [condicion], "showc": [True]})
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.validar_disponibilidad(texto)
+        assert exc.value.codigo == "RESTRICCION_INVALIDA"
+
+    @pytest.mark.parametrize(
+        "datos",
+        [
+            {"op": "|", "show": True, "c": [{"type": "date", "d": ">=", "t": 1}]},
+            {"op": "&", "c": [{"type": "date", "d": ">=", "t": 1}], "showc": [True], "x": 1},
+            {"op": "&", "c": [{"type": "date", "d": ">=", "t": 1}], "showc": []},
+            {"op": "&", "c": [{"type": "date", "d": ">=", "t": 1}], "showc": ["si"]},
+            {"op": "&", "c": [], "showc": []},
+            {"op": "&", "c": [{"op": "&", "c": [], "showc": []}], "showc": [True]},
+            [],
+        ],
+    )
+    def test_rechaza_estructuras_raras(self, datos):
+        with pytest.raises(ErrorPublicacion):
+            publicar.validar_disponibilidad(json.dumps(datos))
+
+    def test_rechaza_json_roto_y_acepta_vacio_y_lo_valido(self):
+        with pytest.raises(ErrorPublicacion):
+            publicar.validar_disponibilidad("{no")
+        publicar.validar_disponibilidad("")
+        publicar.validar_disponibilidad(
+            json.dumps({"op": "&", "c": [{"type": "completion", "cm": 5, "e": 1}], "showc": [True]})
+        )
+
+    @pytest.mark.parametrize(
+        ("texto", "es_de_tiza"),
+        [
+            ("", True),
+            ('{"op":"&","c":[{"type":"date","d":">=","t":1}],"showc":[true]}', True),
+            ('{"op":"&","c":[{"type":"completion","cm":5,"e":2}],"showc":[true]}', True),
+            ('{"op":"&","c":[{"type":"group","id":1}],"showc":[true]}', False),
+            (
+                '{"op":"&","c":[{"type":"date","d":">=","t":1},{"type":"profile"}],"showc":[true,true]}',
+                False,
+            ),
+            ('{"op":"|","show":true,"c":[{"type":"date","d":">=","t":1}]}', False),
+            ('{"op":"&","c":[{"op":"&","c":[{"type":"date"}]}],"showc":[true]}', False),
+            ("no es json", False),
+            ("[]", False),
+        ],
+    )
+    def test_reconoce_las_restricciones_ajenas(self, texto, es_de_tiza):
+        assert publicar.es_disponibilidad_de_tiza(texto) is es_de_tiza
+
+
+class TestPublicarConItinerario:
+    def test_pagina_nueva_con_finalizacion_y_restriccion(self, tmp_path):
+        doc = doc_itinerario(tmp_path, "finalizacion: ver\nrestricciones:\n  desde: 2026-10-12\n")
+        moodle = aula_con()
+        resultado = publicar_itinerario(moodle, doc)
+        assert resultado["accion"] == "creada"
+        formulario = moodle.formularios[resultado["cmid"]]
+        assert formulario["completion"] == "2" and formulario["completionview"] == "1"
+        assert json.loads(formulario["availabilityconditionsjson"])["c"][0]["type"] == "date"
+
+    def test_sin_declarar_no_toca_lo_que_hay(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        moodle.formularios[55] = {
+            "name": "Repaso",
+            "visible": "1",
+            "completion": "2",
+            "completionview": "1",
+            "availabilityconditionsjson": '{"op":"&","c":[{"type":"group","id":1}],"showc":[true]}',
+        }
+        antes = dict(moodle.formularios[55])
+        publicar_itinerario(moodle, documento(tmp_path))
+        for campo in ("completion", "completionview", "availabilityconditionsjson"):
+            assert moodle.formularios[55][campo] == antes[campo]
+
+    def test_restricciones_vacias_quitan_las_de_tiza(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        moodle.formularios[55] = {
+            "name": "Repaso",
+            "availabilityconditionsjson": '{"op":"&","c":[{"type":"date","d":">=","t":1}],"showc":[true]}',
+        }
+        publicar_itinerario(moodle, doc_itinerario(tmp_path, "restricciones: {}\n"))
+        assert moodle.formularios[55]["availabilityconditionsjson"] == ""
+
+    def test_finalizacion_ninguna_desactiva(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        moodle.formularios[55] = {"name": "Repaso", "completion": "2", "completionview": "1"}
+        publicar_itinerario(moodle, doc_itinerario(tmp_path, "finalizacion: ninguna\n"))
+        assert moodle.formularios[55]["completion"] == "0"
+
+    def test_restriccion_ajena_no_envia_nada(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        ajena = '{"op":"&","c":[{"type":"group","id":1}],"showc":[true]}'
+        moodle.formularios[55] = {"name": "Repaso", "availabilityconditionsjson": ajena}
+        doc = doc_itinerario(tmp_path, "restricciones:\n  desde: 2026-10-12\n")
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_itinerario(moodle, doc)
+        assert exc.value.codigo == "RESTRICCION_AJENA"
+        assert moodle.formularios[55]["availabilityconditionsjson"] == ajena
+        assert not any(ll[0] == "actualizar" for ll in moodle.llamadas)  # ni el contenido
+        assert "group" not in str(exc.value.detalle)
+
+    def test_finalizacion_sin_restricciones_no_mira_la_ajena(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        ajena = '{"op":"&","c":[{"type":"group","id":1}],"showc":[true]}'
+        moodle.formularios[55] = {"name": "Repaso", "availabilityconditionsjson": ajena}
+        publicar_itinerario(moodle, doc_itinerario(tmp_path, "finalizacion: manual\n"))
+        assert moodle.formularios[55]["availabilityconditionsjson"] == ajena
+        assert moodle.formularios[55]["completion"] == "1"
+
+    def test_finalizacion_bloqueada_no_toca_nada(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        moodle.formularios[55] = {"name": "Repaso", "completion": "2", "completionview": "1"}
+        moodle.bloqueadas.add(55)
+        doc = doc_itinerario(tmp_path, "finalizacion: manual\n")
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_itinerario(moodle, doc)
+        assert exc.value.codigo == "FINALIZACION_BLOQUEADA"
+        assert not any(ll[0] == "actualizar" for ll in moodle.llamadas)
+        assert moodle.formularios[55]["completion"] == "2"
+
+    def test_bloqueada_pero_igual_a_lo_pedido_sigue_adelante(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        moodle.formularios[55] = {"name": "Repaso", "completion": "2", "completionview": "1"}
+        moodle.bloqueadas.add(55)
+        doc = doc_itinerario(tmp_path, "finalizacion: ver\nrestricciones:\n  desde: 2026-10-12\n")
+        publicar_itinerario(moodle, doc)
+        assert json.loads(moodle.formularios[55]["availabilityconditionsjson"])["c"]
+
+    def test_nunca_se_envia_el_desbloqueo(self, tmp_path):
+        moodle = aula_con()
+        publicar_itinerario(moodle, doc_itinerario(tmp_path, "finalizacion: ver\n"))
+        enviados = [ll[2] for ll in moodle.llamadas if ll[0] in ("crear", "actualizar")]
+        assert all("completionunlocked" not in str(p) for p in enviados)
+
+    def test_curso_sin_finalizacion_en_una_actividad_nueva(self, tmp_path):
+        moodle = aula_con(sin_finalizacion=True)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_itinerario(moodle, doc_itinerario(tmp_path, "finalizacion: ver\n"))
+        assert exc.value.codigo == "FINALIZACION_DESACTIVADA"
+        assert exc.value.cmid is not None  # el contenido ya está: el informe lo cuenta
+
+    def test_curso_sin_finalizacion_en_una_actividad_existente_no_escribe(self, tmp_path):
+        moodle = aula_con(
+            [{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}], sin_finalizacion=True
+        )
+        moodle.formularios[55] = {"name": "Repaso"}
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_itinerario(moodle, doc_itinerario(tmp_path, "finalizacion: ver\n"))
+        assert exc.value.codigo == "FINALIZACION_DESACTIVADA"
+        assert not any(ll[0] == "actualizar" for ll in moodle.llamadas)
+
+    def test_restricciones_sin_finalizacion_funcionan_en_un_curso_sin_ella(self, tmp_path):
+        moodle = aula_con(sin_finalizacion=True)
+        resultado = publicar_itinerario(
+            moodle, doc_itinerario(tmp_path, "restricciones:\n  desde: 2026-10-12\n")
+        )
+        assert json.loads(moodle.formularios[resultado["cmid"]]["availabilityconditionsjson"])
+
+    def test_verificacion_si_el_aula_no_guarda_la_restriccion(self, tmp_path):
+        class AulaQueIgnora(MoodleFalso):
+            def _admitido(self, cmid, payload):
+                return {k: v for k, v in payload.items() if k != "availabilityconditionsjson"}
+
+        moodle = AulaQueIgnora(
+            secciones=[{"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []}]
+        )
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_itinerario(
+                moodle, doc_itinerario(tmp_path, "restricciones:\n  desde: 2026-10-12\n")
+            )
+        assert exc.value.codigo == "ITINERARIO_NO_APLICADO"
+
+    def test_dependencia_sin_cmid(self, tmp_path):
+        doc = doc_itinerario(tmp_path, "restricciones:\n  completar: [test1.md]\n")
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_itinerario(aula_con(), doc, {})
+        assert exc.value.codigo == "DEPENDENCIA_NO_PUBLICADA"
+        assert exc.value.detalle == "test1.md"
+
+    def test_la_restriccion_lleva_el_cmid_de_la_dependencia(self, tmp_path):
+        doc = doc_itinerario(tmp_path, "restricciones:\n  completar: [test1.md]\n")
+        moodle = aula_con()
+        resultado = publicar_itinerario(moodle, doc, {"test1.md": 64})
+        texto = moodle.formularios[resultado["cmid"]]["availabilityconditionsjson"]
+        assert json.loads(texto)["c"] == [{"type": "completion", "cm": 64, "e": 1}]
+
+    def test_lo_leido_del_aula_no_sale_en_el_resultado(self, tmp_path):
+        moodle = aula_con([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
+        moodle.formularios[55] = {"name": "Repaso", "availabilityconditionsjson": ""}
+        resultado = publicar_itinerario(moodle, doc_itinerario(tmp_path, "finalizacion: ver\n"))
+        assert "itinerario" not in str(resultado) and "completion" not in str(resultado)

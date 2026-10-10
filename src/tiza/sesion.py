@@ -66,6 +66,7 @@ __all__ = [
     "codigo_solo_fechas",
     "crear_dir_vistas",
     "depurar",
+    "ordenar_por_dependencias",
     "estructura_con",
     "informe_de_cursos",
     "procesar_peticion",
@@ -164,6 +165,8 @@ class DocumentoResumen:
     h5p_descartadas: tuple[str, ...] = ()  # librerías que tiza no sube nunca
     # None: no se ha comparado con el aula (pruebas, la confirmación corta…).
     cambios: tuple[CambioFecha, ...] | None = None
+    # Finalización y restricciones que declara el .md, en lenguaje llano (solo del .md).
+    itinerario: tuple[str, ...] = ()
 
     @classmethod
     def de(
@@ -187,6 +190,7 @@ class DocumentoResumen:
             h5p_libreria=doc.paquete.libreria if doc.paquete is not None else None,
             h5p_descartadas=doc.paquete.descartadas if doc.paquete is not None else (),
             cambios=cambios,
+            itinerario=itinerario_de(doc, base),
         )
 
 
@@ -218,6 +222,7 @@ class DocumentoBreve:
     tipo: str
     nombre: str
     existe: bool | None = False
+    itinerario: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -230,6 +235,22 @@ class ResumenSinPruebas:
     secciones_nuevas: tuple[str, ...]
     posicion: int = 1
     total: int = 1
+
+
+def itinerario_de(doc: Documento, base: Path) -> tuple[str, ...]:
+    """El itinerario del documento en lenguaje llano, con los nombres de sus dependencias.
+
+    Los nombres salen de los ``.md`` de la carpeta, nunca del aula.
+    """
+    if doc.finalizacion is None and doc.restricciones is None:
+        return ()
+    nombres: dict[str, str] = {}
+    for fichero in doc.restricciones.completar if doc.restricciones else ():
+        try:
+            nombres[fichero] = contenido.cargar(base / fichero, raiz=base).nombre
+        except ErrorContenido:
+            continue
+    return tuple(contenido.describir_itinerario(doc, nombres))
 
 
 def _relativa(ruta: Path, base: Path) -> str:
@@ -453,6 +474,54 @@ def cambios_de_fechas(
     return tuple(cambios)
 
 
+def ordenar_por_dependencias(documentos: list[Documento], base: Path) -> list[Documento] | None:
+    """Los documentos con sus dependencias de la misma petición antes (orden estable).
+
+    ``None`` si se piden unos a otros en círculo.
+    """
+    claves = [_relativa(doc.ruta, base) for doc in documentos]
+    pendientes = list(zip(claves, documentos, strict=True))
+    hechos: set[str] = set()
+    salida: list[Documento] = []
+    while pendientes:
+        for indice, (clave, doc) in enumerate(pendientes):
+            deps = doc.restricciones.completar if doc.restricciones else ()
+            if all(dep in hechos or dep not in claves for dep in deps):
+                salida.append(doc)
+                hechos.add(clave)
+                del pendientes[indice]
+                break
+        else:
+            return None
+    return salida
+
+
+def _resolver_dependencias(
+    base: Path,
+    secciones: list[dict],
+    documentos: list[Documento],
+    existentes: dict[str, int],
+) -> tuple[str, str] | None:
+    """Rellena ``existentes`` con el cmid en este curso de cada dependencia que no se pide.
+
+    Devuelve (código, fichero) si alguna no se puede resolver: se mira antes de escribir.
+    """
+    pedidas = {_relativa(doc.ruta, base) for doc in documentos}
+    for doc in documentos:
+        for fichero in doc.restricciones.completar if doc.restricciones else ():
+            if fichero in pedidas or fichero in existentes:
+                continue
+            try:
+                dep = contenido.cargar(base / fichero, raiz=base)
+            except ErrorContenido:
+                return "DEPENDENCIA_INVALIDA", fichero
+            modulo = publicar.modulo_de(secciones, dep)
+            if modulo is None:
+                return "DEPENDENCIA_NO_PUBLICADA", fichero
+            existentes[fichero] = modulo["cmid"]
+    return None
+
+
 def codigo_solo_fechas(secciones: list[dict], documentos: list[Documento]) -> str | None:
     """Por qué «--solo-fechas» no se puede aplicar a estos documentos, o None si sí."""
     for doc in documentos:
@@ -516,12 +585,29 @@ def publicar_con(
     """
     comando = "publicar"
     pasos: list[dict] = [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}]
+    base = Path(carpeta).resolve()
+    if not solo_fechas:
+        ordenados = ordenar_por_dependencias(documentos, base)
+        if ordenados is None:
+            pasos.append(
+                {"codigo": "DEPENDENCIAS", "resultado": "fallo", "detalle": "DEPENDENCIA_CIRCULAR"}
+            )
+            return informe.crear(
+                comando, "error", pasos, [], ["DEPENDENCIA_CIRCULAR"], entorno, curso
+            )
+        documentos = ordenados
     try:
         secciones = aula.estructura(curso)
     except ErrorPublicacion as exc:
         pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
         depurar(exc, debug)
         return informe.crear(comando, "error", pasos, [], [exc.codigo], entorno, curso)
+    existentes: dict[str, int] = {}
+    if not solo_fechas:
+        faltante = _resolver_dependencias(base, secciones, documentos, existentes)
+        if faltante is not None:
+            pasos.append({"codigo": "DEPENDENCIAS", "resultado": "fallo", "detalle": faltante[1]})
+            return informe.crear(comando, "error", pasos, [], [faltante[0]], entorno, curso)
     if solo_fechas:
         # Todo o nada: si alguno de los documentos no se puede cambiar, no se cambia ninguno.
         codigo = codigo_solo_fechas(secciones, documentos)
@@ -541,14 +627,21 @@ def publicar_con(
             pasos.append({"codigo": "CREAR_SECCION", "resultado": "ok", "detalle": nombre})
     paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
     ficheros: list[dict] = []
+    cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
     for doc in documentos:
         try:
             if solo_fechas:
                 resultado = publicar.publicar_fechas(aula, secciones, doc)
             else:
+                dependencias = {
+                    fichero: cmids[fichero]
+                    for fichero in (doc.restricciones.completar if doc.restricciones else ())
+                    if fichero in cmids
+                }
                 resultado = publicar.publicar_documento(
-                    aula, curso, secciones, doc, visible=visible
+                    aula, curso, secciones, doc, visible=visible, dependencias=dependencias
                 )
+                cmids[_relativa(doc.ruta, base)] = resultado["cmid"]
         except ErrorPublicacion as exc:
             pasos.append({"codigo": paso, "resultado": "fallo", "detalle": doc.ruta.name})
             depurar(exc, debug)
@@ -841,6 +934,7 @@ def _publicar_en_real(
                         tipo=doc.tipo,
                         nombre=doc.nombre,
                         existe=publicar.ya_existe(secciones, doc),
+                        itinerario=itinerario_de(doc, base),
                     )
                     for doc in documentos
                 ),

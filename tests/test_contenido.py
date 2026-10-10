@@ -1489,3 +1489,281 @@ def test_la_vista_previa_muestra_el_resumen_del_paquete(tmp_path):
     assert "Mi paquete" in texto
     assert "H5P.Blanks" in texto
     assert "content/content.json" in texto or "content.json" in texto
+
+
+# --- itinerario: finalización y restricciones ------------------------------ #
+
+
+def con_restricciones(tmp_path, restricciones: str, nombre: str = "tema.md", **campos) -> Path:
+    """Una página con ``restricciones`` (YAML ya indentado a mano) y otros campos."""
+    extra = "".join(f"{clave}: {valor}\n" for clave, valor in campos.items())
+    ruta = escribir(
+        tmp_path,
+        f"---\ntipo: pagina\nnombre: Tema\nseccion: 3\n{extra}restricciones:\n{restricciones}---\n\nHola\n",
+        nombre,
+    )
+    return ruta
+
+
+def cargar_en(tmp_path, ruta) -> contenido.Documento:
+    return cargar(ruta, raiz=tmp_path.resolve())
+
+
+def test_sin_los_campos_nuevos_no_declara_nada_y_el_hash_no_cambia(tmp_path):
+    doc = cargar_en(tmp_path, escribir(tmp_path, pagina("Hola")))
+    assert doc.finalizacion is None and doc.restricciones is None
+    # Mismo hash que antes de existir los campos: nada de lo ya verificado se invalida.
+    assert doc.hash_cargado == hash_documento(doc)
+    sin = hashlib.sha256()
+    sin.update(f"{doc.tipo}\n{doc.nombre}\n{doc.seccion}\n".encode())
+    sin.update(b"\n")
+    sin.update(doc.cuerpo.encode("utf-8"))
+    assert doc.hash_cargado == sin.hexdigest()
+
+
+@pytest.mark.parametrize(
+    ("tipo", "modo"),
+    [
+        ("pagina", "ninguna"),
+        ("pagina", "manual"),
+        ("pagina", "ver"),
+        ("etiqueta", "manual"),
+        ("tarea", "entregar"),
+        ("tarea", "calificar"),
+        ("cuestionario", "calificar"),
+        ("cuestionario", "ver"),
+    ],
+)
+def test_finalizacion_admitida_por_tipo(tmp_path, tipo, modo):
+    textos = {
+        "pagina": pagina("x", finalizacion=modo),
+        "etiqueta": f"---\ntipo: etiqueta\nnombre: E\nseccion: 3\nfinalizacion: {modo}\n---\n\nx\n",
+        "tarea": tarea("x", finalizacion=modo),
+        "cuestionario": CUESTIONARIO_BASE + f"finalizacion: {modo}\n---\n\nx\n",
+    }
+    doc = cargar_en(tmp_path, escribir(tmp_path, textos[tipo]))
+    assert doc.finalizacion == contenido.Finalizacion(modo=modo)
+
+
+CUESTIONARIO_BASE = (
+    "---\ntipo: cuestionario\nnombre: Q\nseccion: 3\npreguntas:\n"
+    "  - tipo: verdadero_falso\n    enunciado: ¿Sí?\n    respuesta: verdadero\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("texto", "modo"),
+    [
+        ("---\ntipo: etiqueta\nnombre: E\nseccion: 3\nfinalizacion: ver\n---\n\nx\n", "ver"),
+        (pagina("x", finalizacion="entregar"), "entregar"),
+        (pagina("x", finalizacion="calificar"), "calificar"),
+        (pagina("x", finalizacion="aprobar"), "aprobar"),
+        (tarea("x", finalizacion="aprobar"), "aprobar"),
+        (pagina("x", finalizacion="'ver'\nfinalizacion2: x"), "x"),
+        (pagina("x", finalizacion="[ver]"), "lista"),
+        (pagina("x", finalizacion="true"), "bool"),
+        (pagina("x", finalizacion=""), "vacio"),
+    ],
+)
+def test_finalizacion_no_admitida_se_rechaza(tmp_path, texto, modo):
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_en(tmp_path, escribir(tmp_path, texto))
+    assert exc.value.codigo in ("FINALIZACION_NO_ADMITIDA", "CAMPO_DESCONOCIDO")
+
+
+def test_fecha_esperada(tmp_path):
+    doc = cargar_en(
+        tmp_path, escribir(tmp_path, pagina("x", finalizacion="ver", fecha_esperada="2026-11-20"))
+    )
+    assert doc.finalizacion.esperada == datetime(2026, 11, 20, 23, 59, tzinfo=MADRID)  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize(
+    "campos",
+    [
+        {"fecha_esperada": "2026-11-20"},  # sin finalización
+        {"finalizacion": "ninguna", "fecha_esperada": "2026-11-20"},
+    ],
+)
+def test_fecha_esperada_necesita_una_finalizacion_real(tmp_path, campos):
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_en(tmp_path, escribir(tmp_path, pagina("x", **campos)))
+    assert exc.value.codigo == "FINALIZACION_NO_ADMITIDA"
+
+
+def test_fecha_esperada_invalida(tmp_path):
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_en(
+            tmp_path, escribir(tmp_path, pagina("x", finalizacion="ver", fecha_esperada="ayer"))
+        )
+    assert exc.value.codigo == "FECHA_INVALIDA"
+
+
+def test_restricciones_por_fecha_y_dependencias(tmp_path):
+    escribir(tmp_path, pagina("otra"), "test1.md")
+    ruta = con_restricciones(
+        tmp_path,
+        "  desde: 2026-10-12\n  hasta: 2026-11-01\n  completar: [test1.md]\n"
+        "  ocultar_si_no_cumple: true\n",
+    )
+    doc = cargar_en(tmp_path, ruta)
+    assert doc.restricciones == contenido.Restricciones(
+        desde=datetime(2026, 10, 12, 0, 0, tzinfo=MADRID),
+        hasta=datetime(2026, 11, 1, 23, 59, tzinfo=MADRID),
+        completar=("test1.md",),
+        ocultar=True,
+    )
+
+
+def test_restricciones_vacias_son_quitar(tmp_path):
+    ruta = escribir(
+        tmp_path, "---\ntipo: pagina\nnombre: T\nseccion: 3\nrestricciones: {}\n---\n\nx\n"
+    )
+    assert cargar_en(tmp_path, ruta).restricciones == contenido.Restricciones()
+
+
+def test_las_dependencias_se_normalizan_desde_la_carpeta_del_documento(tmp_path):
+    (tmp_path / "unidad").mkdir()
+    escribir(tmp_path / "unidad", pagina("a"), "a.md")
+    escribir(tmp_path, pagina("b"), "b.md")
+    ruta = con_restricciones(
+        tmp_path / "unidad", "  completar: [a.md, ../b.md, ./a.md]\n", nombre="c.md"
+    )
+    with pytest.raises(ErrorContenido) as exc:  # a.md y ./a.md son el mismo
+        cargar_en(tmp_path, ruta)
+    assert exc.value.codigo == "RESTRICCION_INVALIDA"
+    ruta = con_restricciones(tmp_path / "unidad", "  completar: [a.md, ../b.md]\n", nombre="c.md")
+    assert cargar_en(tmp_path, ruta).restricciones.completar == ("unidad/a.md", "b.md")  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize(
+    ("completar", "codigo"),
+    [
+        ("[../fuera.md]", "RUTA_FUERA_DE_CARPETA"),
+        ("[/etc/passwd]", "RUTA_FUERA_DE_CARPETA"),
+        ("[.oculto.md]", "RECURSO_NO_PERMITIDO"),
+        ("[.git/x.md]", "RECURSO_NO_PERMITIDO"),
+        ("[tiza.toml]", "RECURSO_NO_PERMITIDO"),
+        ("[calendario.toml]", "RECURSO_NO_PERMITIDO"),
+        ("[imagen.png]", "RESTRICCION_INVALIDA"),
+        ("[tema.md]", "DEPENDENCIA_CIRCULAR"),
+        ("[./tema.md]", "DEPENDENCIA_CIRCULAR"),
+        ("[a.md, a.md]", "RESTRICCION_INVALIDA"),
+        ("[1]", "RESTRICCION_INVALIDA"),
+        ("['']", "RESTRICCION_INVALIDA"),
+        ("a.md", "RESTRICCION_INVALIDA"),  # no es una lista
+        ("[" + ", ".join(f"f{n}.md" for n in range(11)) + "]", "RESTRICCION_INVALIDA"),
+    ],
+)
+def test_dependencias_hostiles(tmp_path, completar, codigo):
+    ruta = con_restricciones(tmp_path, f"  completar: {completar}\n")
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_en(tmp_path, ruta)
+    assert exc.value.codigo == codigo
+
+
+def test_la_ruta_fuera_se_rechaza_antes_de_mirar_si_existe(tmp_path):
+    """No se averigua qué hay fuera: el mismo error exista o no el fichero."""
+    (tmp_path.parent / "secreto.md").write_text("x", encoding="utf-8")
+    for destino in ("../secreto.md", "../no-existe.md"):
+        with pytest.raises(ErrorContenido) as exc:
+            cargar_en(tmp_path, con_restricciones(tmp_path, f"  completar: ['{destino}']\n"))
+        assert exc.value.codigo == "RUTA_FUERA_DE_CARPETA"
+
+
+def test_diez_dependencias_son_el_maximo(tmp_path):
+    nombres = [f"f{n}.md" for n in range(10)]
+    ruta = con_restricciones(tmp_path, "  completar: [" + ", ".join(nombres) + "]\n")
+    assert len(cargar_en(tmp_path, ruta).restricciones.completar) == 10  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize(
+    "restricciones",
+    [
+        "  grupo: 3\n",
+        "  grupos: [a]\n",
+        "  perfil: x\n",
+        "  nota_minima: 5\n",
+        "  o: [a.md]\n",
+    ],
+)
+def test_un_tipo_de_restriccion_desconocido_es_un_campo_desconocido(tmp_path, restricciones):
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_en(tmp_path, con_restricciones(tmp_path, restricciones))
+    assert exc.value.codigo == "CAMPO_DESCONOCIDO"
+
+
+@pytest.mark.parametrize(
+    ("restricciones", "codigo"),
+    [
+        ("  desde: 2026-11-01\n  hasta: 2026-10-01\n", "FECHAS_INCOHERENTES"),
+        ("  desde: 2026-11-01\n  hasta: 2026-11-01 00:00\n", "FECHAS_INCOHERENTES"),
+        ("  desde: nunca\n", "FECHA_INVALIDA"),
+        ("  ocultar_si_no_cumple: si\n", "RESTRICCION_INVALIDA"),
+        ("  ocultar_si_no_cumple: 1\n", "RESTRICCION_INVALIDA"),
+    ],
+)
+def test_restricciones_invalidas(tmp_path, restricciones, codigo):
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_en(tmp_path, con_restricciones(tmp_path, restricciones))
+    assert exc.value.codigo == codigo
+
+
+@pytest.mark.parametrize("valor", ["x", "[a]", "3", "null"])
+def test_restricciones_tiene_que_ser_un_mapa(tmp_path, valor):
+    ruta = escribir(
+        tmp_path, f"---\ntipo: pagina\nnombre: T\nseccion: 3\nrestricciones: {valor}\n---\n\nx\n"
+    )
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_en(tmp_path, ruta)
+    assert exc.value.codigo == "RESTRICCION_INVALIDA"
+
+
+def test_el_hash_incluye_el_itinerario_con_rutas_normalizadas(tmp_path):
+    escribir(tmp_path, pagina("otra"), "a.md")
+    base = cargar_en(tmp_path, escribir(tmp_path, pagina("x"), "p.md"))
+    con_ver = cargar_en(tmp_path, escribir(tmp_path, pagina("x", finalizacion="ver"), "p.md"))
+    con_dep = cargar_en(tmp_path, con_restricciones(tmp_path, "  completar: [a.md]\n", "p.md"))
+    con_dep2 = cargar_en(tmp_path, con_restricciones(tmp_path, "  completar: [./a.md]\n", "p.md"))
+    otra = cargar_en(tmp_path, con_restricciones(tmp_path, "  desde: 2026-10-12\n", "p.md"))
+    hashes = {base.hash_cargado, con_ver.hash_cargado, con_dep.hash_cargado, otra.hash_cargado}
+    assert len(hashes) == 4
+    assert con_dep.hash_cargado == con_dep2.hash_cargado
+
+
+def test_describir_itinerario_en_lenguaje_llano(tmp_path):
+    escribir(tmp_path, pagina("otra"), "test1.md")
+    ruta = con_restricciones(
+        tmp_path,
+        "  desde: 2026-10-12\n  completar: [test1.md]\n",
+        finalizacion="ver",
+        fecha_esperada="2026-11-20",
+    )
+    doc = cargar_en(tmp_path, ruta)
+    assert contenido.describir_itinerario(doc, {"test1.md": "Test tema 1"}) == [
+        "Se completa al: verla",
+        "Fecha esperada: 2026-11-20 23:59",
+        "Disponible: desde 2026-10-12 00:00 · cuando completen «Test tema 1» (test1.md)",
+        "Si no se cumple: se ve en gris",
+    ]
+    assert "cuando completen test1.md" in contenido.describir_itinerario(doc)[2]
+
+
+def test_describir_itinerario_quitar_y_nada(tmp_path):
+    vacio = cargar_en(tmp_path, con_restricciones(tmp_path, "  {}\n"))
+    assert contenido.describir_itinerario(vacio) == ["Se quitan las restricciones de tiza"]
+    ninguna = cargar_en(tmp_path, escribir(tmp_path, pagina("x", finalizacion="ninguna")))
+    assert contenido.describir_itinerario(ninguna) == ["No se marca como completada"]
+    assert (
+        contenido.describir_itinerario(cargar_en(tmp_path, escribir(tmp_path, pagina("x")))) == []
+    )
+
+
+def test_la_vista_previa_enseña_el_itinerario(tmp_path):
+    ruta = con_restricciones(
+        tmp_path, "  desde: 2026-10-12\n  ocultar_si_no_cumple: true\n", finalizacion="ver"
+    )
+    doc = cargar_en(tmp_path, ruta)
+    vista = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
+    assert "<strong>Se completa al:</strong> verla" in vista
+    assert "Si no se cumple:</strong> se oculta" in vista
