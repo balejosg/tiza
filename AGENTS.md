@@ -40,6 +40,18 @@ en español.
 
 ## Dónde tocar
 
+- `src/tiza/tipos/`: **un módulo por tipo de actividad** (página, etiqueta, tarea,
+  cuestionario y H5P) con lo que sabe cada uno: campos del frontmatter, validación,
+  fechas, finalización, payload, publicación, vista previa, nombre llano y
+  aportación al hash. Lo común está en `base.py` y el registro en `__init__.py`
+  (`TIPOS`, `obtener`, `de_modulo`): añadir un tipo o un subtipo es escribir un
+  adapter. `contenido.py` y `publicar.py` no tienen tablas ni ramas por tipo; las
+  fachadas (`contenido.TTIPOS`, `publicar.payload_*`) se mantienen por
+  compatibilidad. Los adapters importan `contenido`/`publicar` solo para sus clases
+  y errores, con import diferido donde haría ciclo. El orden de los tres huecos del
+  hash (`hash_fechas`/`hash_contenido`/`hash_extra`) reproduce el formato de
+  siempre: cambiarlo invalida `verificados.json`. El test de contrato es
+  `tests/test_tipos.py`.
 - `src/tiza/publicar.py`: **único módulo que habla con el aula**
   (python-moodle). Reduce toda excepción a códigos propios y nunca deja pasar
   texto de Moodle. Al importar parchea APIs privadas de python-moodle (sin token
@@ -53,10 +65,14 @@ en español.
   cubra el caso hostil en `tests/test_filtro.py` (incluido el de invariante) y
   cambiar `SKILL.md` y el README. Depende de `html5lib` y `tinycss2`.
 - `src/tiza/contenido.py`: Markdown o HTML + frontmatter, recursos locales,
-  vista previa y hash del documento; todo offline.
+  vista previa y hash del documento; todo offline. Valida lo común (nombre,
+  sección, finalización, restricciones) y le pide los campos propios y los
+  `Extras` al adapter del tipo; no conoce ningún tipo por su nombre. El formato
+  de las fechas en el hash (`tipos.base.formato_fecha`) no se cambia sin avisar.
 - `src/tiza/cuestionario.py` y `src/tiza/h5p.py`: construcción offline del XML de
-  preguntas y del paquete `.h5p` (solo contenido, determinista), y validación y
-  reempaquetado de los paquetes subidos. `h5p.LIBRERIAS` fija la mayor.menor
+  preguntas y del paquete `.h5p` (solo contenido, determinista); la validación de
+  las preguntas vive en `tipos/cuestionario.py` y la de las actividades y paquetes
+  en `tipos/h5p.py`. `h5p.LIBRERIAS` fija la mayor.menor
   confirmada en la espiga (CT 130); una actualización del aula dentro del mismo
   mayor sigue sirviendo. tiza nunca sube librerías ni JavaScript: los paquetes
   subidos se reconstruyen solo con `h5p.json` y `content/`.
