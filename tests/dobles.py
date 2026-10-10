@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import xml.etree.ElementTree as ET
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from tiza import buzon, config, rutas
+from tiza import buzon, config, informe, publicacion, rutas
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
     CAMPOS_FECHA_TAREA,
@@ -429,3 +430,34 @@ def configurar_aula(carpeta: Path, cursos: dict | None) -> None:
         (Path(carpeta) / rutas.FICHERO_ASIGNATURA).write_text(
             "\n".join(lineas) + "\n", encoding="utf-8"
         )
+
+
+def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
+    """Un aviso de cada código de ``publicacion.AVISOS``, con datos de juguete.
+
+    Lo usan los tests que barren todos los avisos (texto y presencias) para no
+    dejar ninguno sin cubrir.
+    """
+    doc = publicacion.DocumentoResumen("t.md", "pagina", "T", 3, None)
+    return {
+        "AUTOPRUEBA_FALLIDA": publicacion.Aviso.autoprueba_fallida(),
+        "CANCELADA": publicacion.Aviso.cancelada(),
+        "CREANDO_SECCION": publicacion.Aviso.creando_seccion("Tema"),
+        "CURSOS_GUARDADOS": publicacion.Aviso.cursos_guardados(Path("tiza.toml")),
+        "ERROR_INTERNO": publicacion.Aviso.error_interno("RuntimeError"),
+        "ESTRUCTURA_NO_LEIDA": publicacion.Aviso.estructura_no_leida(),
+        "FALLO": publicacion.Aviso.fallo("LOGIN_FALLIDO", ""),
+        "INFORME_NO_ESCRITO": publicacion.Aviso.informe_no_escrito(),
+        "MAXIMO_ALCANZADO": publicacion.Aviso.maximo_alcanzado(8),
+        "NOMBRES_NO_DISPONIBLES": publicacion.Aviso.nombres_no_disponibles(),
+        "PETICION_RETIRADA": publicacion.Aviso.peticion_retirada(),
+        "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),
+        "QUEDAN_MINUTOS": publicacion.Aviso.quedan_minutos(5),
+        "RESULTADO": publicacion.Aviso.resultado(
+            informe.crear("publicar", "ok", [], [], [], "pruebas", 1234)
+        ),
+        "SESION_ABIERTA": publicacion.Aviso.sesion_abierta(
+            datetime(2026, 10, 3, 10, 0, tzinfo=UTC)
+        ),
+        "SESION_CERRADA": publicacion.Aviso.sesion_cerrada("caducada"),
+    }

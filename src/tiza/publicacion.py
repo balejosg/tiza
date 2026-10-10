@@ -26,6 +26,7 @@ import sys
 import traceback
 from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass, field, replace
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -68,33 +69,38 @@ __all__ = [
 AVISO_DEBUG = "AVISO: salida de depuración; no la compartas."
 MAX_PUBLICACIONES_PRUEBAS = 50  # por sesión: frena a un agente en bucle
 
-# Lo que la publicación y la sesión cuentan al docente. Entre paréntesis, las claves de
-# ``datos``.
+# Lo que la publicación y la sesión cuentan al docente. Cada aviso tiene su
+# constructor tipado en ``Aviso`` (dueño de las claves de ``datos``) y su texto
+# llano en :mod:`tiza.mensajes`.
 AVISOS = frozenset(
     {
-        "AUTOPRUEBA_FALLIDA",  # la autoprueba falló y la sesión no se abre
-        "CANCELADA",  # el docente dijo que no o no dio la contraseña
-        "CREANDO_SECCION",  # (nombre) se crea una sección oculta
-        "CURSOS_GUARDADOS",  # (ruta) tiza.toml de la carpeta
-        "ERROR_INTERNO",  # (tipo) fallo inesperado al atender una petición
-        "ESTRUCTURA_NO_LEIDA",  # no se pudo leer la estructura al abrir
-        "FALLO",  # (codigo, detalle) la sesión no se pudo abrir
-        "INFORME_NO_ESCRITO",  # no se pudo escribir .tiza/informe.json
-        "MAXIMO_ALCANZADO",  # (horas) la sesión no se puede ampliar más
-        "NOMBRES_NO_DISPONIBLES",  # no se pudo leer la lista de cursos
-        "PETICION_RETIRADA",  # se confirmó cuando el agente ya no esperaba
-        "PUBLICANDO_EN_PRUEBAS",  # (documentos: tuple[DocumentoResumen, ...])
-        "QUEDAN_MINUTOS",  # (minutos) aviso antes del final
-        "RESULTADO",  # (documento) informe de lo que acaba de pasar
-        "SESION_ABIERTA",  # (caduca: datetime) sesión abierta o ampliada
-        "SESION_CERRADA",  # (motivo: "aula" | "caducada" | "desactualizada" | "docente")
+        "AUTOPRUEBA_FALLIDA",
+        "CANCELADA",
+        "CREANDO_SECCION",
+        "CURSOS_GUARDADOS",
+        "ERROR_INTERNO",
+        "ESTRUCTURA_NO_LEIDA",
+        "FALLO",
+        "INFORME_NO_ESCRITO",
+        "MAXIMO_ALCANZADO",
+        "NOMBRES_NO_DISPONIBLES",
+        "PETICION_RETIRADA",
+        "PUBLICANDO_EN_PRUEBAS",
+        "QUEDAN_MINUTOS",
+        "RESULTADO",
+        "SESION_ABIERTA",
+        "SESION_CERRADA",
     }
 )
 
 
 @dataclass(frozen=True)
 class Aviso:
-    """Algo que la publicación o la sesión cuentan al docente; ``codigo`` está en ``AVISOS``."""
+    """Algo que la publicación o la sesión cuentan al docente; ``codigo`` está en ``AVISOS``.
+
+    Cada código tiene aquí su constructor con los tipos de sus datos; el
+    constructor genérico queda para registros y pruebas.
+    """
 
     codigo: str
     datos: Mapping[str, Any] = field(default_factory=dict)
@@ -102,6 +108,70 @@ class Aviso:
     def __post_init__(self) -> None:
         if self.codigo not in AVISOS:
             raise ValueError(f"aviso desconocido: {self.codigo}")
+
+    @classmethod
+    def autoprueba_fallida(cls) -> Aviso:
+        return cls("AUTOPRUEBA_FALLIDA")
+
+    @classmethod
+    def cancelada(cls) -> Aviso:
+        return cls("CANCELADA")
+
+    @classmethod
+    def creando_seccion(cls, nombre: str) -> Aviso:
+        return cls("CREANDO_SECCION", {"nombre": nombre})
+
+    @classmethod
+    def cursos_guardados(cls, ruta: Path) -> Aviso:
+        return cls("CURSOS_GUARDADOS", {"ruta": ruta})
+
+    @classmethod
+    def error_interno(cls, tipo: str) -> Aviso:
+        return cls("ERROR_INTERNO", {"tipo": tipo})
+
+    @classmethod
+    def estructura_no_leida(cls) -> Aviso:
+        return cls("ESTRUCTURA_NO_LEIDA")
+
+    @classmethod
+    def fallo(cls, codigo: str, detalle: str = "") -> Aviso:
+        return cls("FALLO", {"codigo": codigo, "detalle": detalle})
+
+    @classmethod
+    def informe_no_escrito(cls) -> Aviso:
+        return cls("INFORME_NO_ESCRITO")
+
+    @classmethod
+    def maximo_alcanzado(cls, horas: int) -> Aviso:
+        return cls("MAXIMO_ALCANZADO", {"horas": horas})
+
+    @classmethod
+    def nombres_no_disponibles(cls) -> Aviso:
+        return cls("NOMBRES_NO_DISPONIBLES")
+
+    @classmethod
+    def peticion_retirada(cls) -> Aviso:
+        return cls("PETICION_RETIRADA")
+
+    @classmethod
+    def publicando_en_pruebas(cls, documentos: tuple[DocumentoResumen, ...]) -> Aviso:
+        return cls("PUBLICANDO_EN_PRUEBAS", {"documentos": documentos})
+
+    @classmethod
+    def quedan_minutos(cls, minutos: int) -> Aviso:
+        return cls("QUEDAN_MINUTOS", {"minutos": minutos})
+
+    @classmethod
+    def resultado(cls, documento: dict) -> Aviso:
+        return cls("RESULTADO", {"documento": documento})
+
+    @classmethod
+    def sesion_abierta(cls, caduca: datetime) -> Aviso:
+        return cls("SESION_ABIERTA", {"caduca": caduca})
+
+    @classmethod
+    def sesion_cerrada(cls, motivo: str) -> Aviso:
+        return cls("SESION_CERRADA", {"motivo": motivo})
 
 
 @dataclass(frozen=True)
@@ -327,7 +397,7 @@ def nombres_de_cursos(aula: AulaVirtual, presencia: Presencia, debug: bool) -> d
     try:
         return {curso["id"]: curso["nombre"] for curso in aula.mis_cursos()}
     except ErrorPublicacion as exc:
-        presencia.informar(Aviso("NOMBRES_NO_DISPONIBLES"))
+        presencia.informar(Aviso.nombres_no_disponibles())
         depurar(exc, debug)
         return {}
 
@@ -533,7 +603,7 @@ def publicar_con(
             return borrador.documento("error")
     else:
         for nombre in publicar.secciones_que_faltan(secciones, documentos):
-            presencia.informar(Aviso("CREANDO_SECCION", {"nombre": nombre}))
+            presencia.informar(Aviso.creando_seccion(nombre))
         try:
             secciones, creadas = publicar.asegurar_secciones(aula, curso, secciones, documentos)
         except ErrorPublicacion as exc:
@@ -686,10 +756,7 @@ def _en_pruebas(
         cupo["pruebas"] += len(documentos)
     if avisar:
         presencia.informar(
-            Aviso(
-                "PUBLICANDO_EN_PRUEBAS",
-                {"documentos": tuple(DocumentoResumen.de(doc, base) for doc in documentos)},
-            )
+            Aviso.publicando_en_pruebas(tuple(DocumentoResumen.de(doc, base) for doc in documentos))
         )
     return publicar_con(
         aula,
@@ -762,7 +829,7 @@ def _en_real(
             registro.append((posicion, curso, None))
             continue
         if vigente is not None and posicion > 1 and not vigente():
-            presencia.informar(Aviso("PETICION_RETIRADA"))
+            presencia.informar(Aviso.peticion_retirada())
             registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
             break
         try:
@@ -831,7 +898,7 @@ def _en_real(
             registro.append((posicion, curso, None))
             continue
         if vigente is not None and not vigente():
-            presencia.informar(Aviso("PETICION_RETIRADA"))
+            presencia.informar(Aviso.peticion_retirada())
             registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
             break
         documento = publicar_con(

@@ -6,12 +6,12 @@ import inspect
 import sys
 import threading
 import time
-from datetime import UTC, datetime
 from importlib import resources
 
 import pytest
 
-from tiza import config, informe, publicacion, sesion
+from dobles import avisos_de_ejemplo
+from tiza import config, mensajes, publicacion, sesion
 from tiza import ventana as paquete_ventana
 from tiza.ventana import pagina
 from tiza.ventana.estado import PresenciaVentana, Puente, Ventana
@@ -250,10 +250,15 @@ def test_confirmar_real_sin_pruebas_no_ofrece_vista_previa(tmp_path):
     )
     hilo, resultado = en_hilo(lambda: presencia.confirmar_real_sin_pruebas(resumen))
     pantalla = esperar_pantalla(ventana, "real_sin_pruebas")
-    assert pantalla["documentos"][0]["fichero"] == "t.md"
-    assert pantalla["documentos"][0]["existe"] is True
-    assert pantalla["documentos"][1]["existe"] is False
-    assert pantalla["documentos"][2]["existe"] is None
+    assert pantalla["documentos"][0]["titulo"] == "Tarea «T» (fichero t.md)"
+    assert pantalla["documentos"][0]["lineas"] == [
+        "Ya existe en el aula: se ocultará si estaba visible."
+    ]
+    assert pantalla["documentos"][1]["lineas"] == []
+    assert pantalla["documentos"][2]["lineas"] == [
+        "Puede que ya exista en el aula: se ocultará si estaba visible."
+    ]
+    assert pantalla["finales"] == ["Se creará la sección «Nueva» (oculta)."]
     assert "oculto" in pantalla["aviso"]
     assert puente.vista_previa(pantalla["numero"], 0) is False
     assert puente.responder(pantalla["numero"], True) is True
@@ -288,10 +293,12 @@ def test_real_ensena_el_resumen_saneado_y_abre_la_vista_previa(tmp_path):
     pantalla = esperar_pantalla(ventana, "real")
     texto = str(pantalla)
     assert "\x1b" not in texto and "\N{RIGHT-TO-LEFT OVERRIDE}" not in texto
-    assert pantalla["documentos"][0]["recursos"] == ["img/foto.png"]
-    assert pantalla["documentos"][0]["enlaces"] == ["https://ejemplo.org/x"]
-    assert pantalla["documentos"][0]["incrustados"] == ["https://wordwall.net/embed/a"]
-    assert "VISIBLE" in pantalla["visibilidad"]
+    lineas = pantalla["documentos"][0]["lineas"]
+    assert "fichero t.md, verificado en pruebas" in lineas
+    assert "se sube el fichero img/foto.png" in lineas
+    assert "enlace externo: https://ejemplo.org/x" in lineas
+    assert "incrusta: https://wordwall.net/embed/a" in lineas
+    assert any("VISIBLE" in linea for linea in pantalla["finales"])
     assert puente.vista_previa(pantalla["numero"], 0) is True
     assert abiertas == [vista.as_uri()]
     assert puente.vista_previa(pantalla["numero"], 1) is False  # fuera de .tiza/preview
@@ -377,38 +384,20 @@ def test_ampliar_sin_respuesta_es_no(tmp_path):
 
 def test_avisos_cambian_la_pantalla_y_el_registro(tmp_path):
     ventana, presencia, _puente = preparar(tmp_path)
-    presencia.informar(
-        publicacion.Aviso("SESION_ABIERTA", {"caduca": datetime(2026, 10, 3, 10, 0, tzinfo=UTC)})
-    )
+    ejemplo = avisos_de_ejemplo()
+    presencia.informar(ejemplo["SESION_ABIERTA"])
     assert ventana.estado()["pantalla"]["tipo"] == "abierta"
-    presencia.informar(
-        publicacion.Aviso(
-            "RESULTADO", {"documento": informe.crear("publicar", "ok", [], [], [], "pruebas", 1)}
-        )
-    )
-    assert any("ok" in linea for linea in ventana.estado()["registro"])
-    presencia.informar(publicacion.Aviso("FALLO", {"codigo": "LOGIN_FALLIDO", "detalle": ""}))
-    assert "LOGIN_FALLIDO" in ventana.estado()["registro"][-1]
+    presencia.informar(ejemplo["RESULTADO"])
+    assert any("Informe: ok" in linea for linea in ventana.estado()["registro"])
+    presencia.informar(ejemplo["FALLO"])
+    assert any("LOGIN_FALLIDO" in linea for linea in ventana.estado()["registro"])
     assert ventana.motivo
 
 
 def test_la_ventana_sabe_mostrar_todos_los_avisos(tmp_path):
     _ventana, presencia, _puente = preparar(tmp_path)
-    doc = publicacion.DocumentoResumen("t.md", "pagina", "T", 3, None)
-    datos = {
-        "CREANDO_SECCION": {"nombre": "Tema"},
-        "CURSOS_GUARDADOS": {"ruta": tmp_path / "tiza.toml"},
-        "ERROR_INTERNO": {"tipo": "RuntimeError"},
-        "FALLO": {"codigo": "LOGIN_FALLIDO", "detalle": ""},
-        "MAXIMO_ALCANZADO": {"horas": 8},
-        "PUBLICANDO_EN_PRUEBAS": {"documentos": (doc,)},
-        "QUEDAN_MINUTOS": {"minutos": 5},
-        "RESULTADO": {"documento": informe.crear("publicar", "ok", [], [], [], "pruebas", 1)},
-        "SESION_ABIERTA": {"caduca": datetime(2026, 10, 3, 10, 0, tzinfo=UTC)},
-        "SESION_CERRADA": {"motivo": "desactualizada"},
-    }
-    for codigo in sorted(publicacion.AVISOS):
-        presencia.informar(publicacion.Aviso(codigo, datos.get(codigo, {})))
+    for aviso in avisos_de_ejemplo().values():
+        presencia.informar(aviso)
 
 
 def test_el_puente_no_responde_fuera_de_nuestra_pagina(tmp_path):
@@ -590,13 +579,12 @@ def test_real_solo_fechas_pinta_las_fechas_y_no_el_contenido(tmp_path):
     hilo, resultado = en_hilo(lambda: presencia.confirmar_real(resumen))
     pantalla = esperar_pantalla(ventana, "real")
     assert pantalla["solo_fechas"] is True
-    assert pantalla["excepciones"] is True
-    assert pantalla["documentos"][0]["fechas"] == [
-        "entrega antes 10/10/2026 23:59 → ahora 12/10/2026 23:59"
-    ]
-    assert pantalla["documentos"][0]["enlaces"] == []
-    assert pantalla["documentos"][0]["recursos"] == []
-    assert pantalla["visibilidad"] == ""
+    lineas = pantalla["documentos"][0]["lineas"]
+    assert lineas[0] == "fichero t.md"
+    assert lineas[1] == "entrega antes 10/10/2026 23:59 → ahora 12/10/2026 23:59"
+    assert "https://ejemplo.org/x" not in " ".join(lineas)
+    assert "img/foto.png" not in " ".join(lineas)
+    assert mensajes.SOLO_FECHAS_TEXTO in pantalla["finales"]
     assert puente.responder(pantalla["numero"], False) is True
     hilo.join(5)
     assert resultado["valor"] is False
@@ -617,7 +605,10 @@ def test_la_confirmacion_de_real_lleva_el_itinerario(tmp_path):
     )
     hilo, _ = en_hilo(lambda: presencia.confirmar_real(resumen))
     pantalla = esperar_pantalla(ventana, "real")
-    assert pantalla["documentos"][0]["itinerario"] == ["Se completa al: verla <b>"]
+    assert pantalla["documentos"][0]["lineas"] == [
+        "fichero t.md, verificado en pruebas",
+        "Se completa al: verla <b>",
+    ]
     puente.responder(pantalla["numero"], False)
     hilo.join(5)
     solo = publicacion.ResumenPublicacion(
@@ -630,6 +621,6 @@ def test_la_confirmacion_de_real_lleva_el_itinerario(tmp_path):
     )
     hilo, _ = en_hilo(lambda: presencia.confirmar_real(solo))
     pantalla = esperar_pantalla(ventana, "real", despues_de=pantalla["numero"])
-    assert pantalla["documentos"][0]["itinerario"] == []
+    assert pantalla["documentos"][0]["lineas"] == ["fichero t.md"]
     puente.responder(pantalla["numero"], False)
     hilo.join(5)

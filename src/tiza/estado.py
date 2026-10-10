@@ -213,7 +213,7 @@ def comprobar_puerta_real(
     return [nombre for nombre, hash_doc in pares if hash_doc not in verificados]
 
 
-# Misma clase de caracteres que terminal.texto_seguro, contenido._CONTROL e
+# Misma clase de caracteres que mensajes.texto_seguro, contenido._CONTROL e
 # informe._TEXTO_PROHIBIDO; mantén las cuatro sincronizadas.
 _NO_IMPRIMIBLE = re.compile(r"[\x00-\x1f\x7f-\x9f\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
 

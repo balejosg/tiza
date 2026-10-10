@@ -94,12 +94,6 @@ ul { margin: 6px 0; padding-left: 20px; }
     return p.total > 1 ? "Curso " + p.posicion + " de " + p.total + ": " + p.curso : "Curso: " + p.curso;
   }
 
-  function lista(textos) {
-    var ul = el("ul");
-    textos.forEach(function (texto) { ul.appendChild(el("li", null, texto)); });
-    return ul;
-  }
-
   function responder(numero, valor) {
     var puente = api();
     if (puente) { puente.responder(numero, valor); }
@@ -205,7 +199,7 @@ ul { margin: 6px 0; padding-left: 20px; }
         if (curso.aviso) { nodos.push(el("p", "aviso", curso.aviso)); }
       });
       if (p.sin_pruebas) {
-        nodos.push(el("p", "error", "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."));
+        nodos.push(el("p", "error", p.aviso));
       }
       nodos.push(el("p", "suave", "Cada publicación en el curso real se confirmará en esta ventana."));
       nodos.push(siNo(p, "Abrir la conexión", "No"));
@@ -214,7 +208,7 @@ ul { margin: 6px 0; padding-left: 20px; }
     autoprueba: function (p) {
       return [
         el("h2", null, "Autoprueba"),
-        el("p", null, "Conviene pasarla: crea y borra contenido temporal en el curso de pruebas para comprobar que todo funciona (1-2 minutos)."),
+        el("p", null, p.texto),
         siNo(p, "Pasarla ahora", "Ahora no")];
     },
     sin_pruebas: function (p) {
@@ -224,7 +218,7 @@ ul { margin: 6px 0; padding-left: 20px; }
         siNo(p, "Sí, abrir sin pruebas", "No", "peligro")];
     },
     abierta: function (p) {
-      var nodos = [el("h2", null, "Conectado hasta las " + p.hasta)];
+      var nodos = [el("h2", null, "Sesión abierta"), el("p", null, p.texto)];
       var cursos = p.cursos || [];
       cursos.forEach(function (curso) {
         nodos.push(el("p", null, curso.entorno + ": " + curso.curso));
@@ -233,7 +227,6 @@ ul { margin: 6px 0; padding-left: 20px; }
       nodos.push(el("p", null, hay_pruebas
         ? "El asistente ya puede publicar en el curso de pruebas. Lo que vaya al curso real lo confirmarás aquí."
         : "Sin curso de pruebas: lo que vaya al curso real se publicará solo oculto y lo confirmarás aquí."));
-      nodos.push(el("p", "suave", "Deja esta ventana abierta mientras trabajas: al cerrarla se corta la conexión."));
       nodos.push(botones(boton("Cerrar la conexión", null, function () { api().cerrar_ventana(); })));
       return nodos;
     },
@@ -241,46 +234,22 @@ ul { margin: 6px 0; padding-left: 20px; }
       var titulo = p.solo_fechas ? "¿Cambiar solo las fechas en el curso REAL?" : "¿Publicar en el curso REAL?";
       var nodos = [el("h2", null, titulo), el("p", null, cabeceraCurso(p))];
       if (p.aviso_calendario) {
-        nodos.push(el("p", "aviso", "calendario.toml no se puede usar. " + p.aviso_calendario));
+        nodos.push(el("p", "aviso", p.aviso_calendario));
       }
       p.documentos.forEach(function (doc, indice) {
         var caja = el("div", "documento");
         caja.appendChild(el("p", null, doc.titulo));
-        caja.appendChild(el("p", "suave", p.solo_fechas
-          ? "Fichero " + doc.fichero
-          : "Fichero " + doc.fichero + ", verificado en pruebas"));
-        doc.fechas.forEach(function (linea) {
+        doc.lineas.forEach(function (linea) {
           caja.appendChild(el("p", null, linea));
         });
-        doc.itinerario.forEach(function (linea) {
-          caja.appendChild(el("p", null, linea));
-        });
-        if (doc.enlaces.length) {
-          caja.appendChild(el("p", null, "Enlaces externos:"));
-          caja.appendChild(lista(doc.enlaces));
-        }
-        if (doc.incrustados.length) {
-          caja.appendChild(el("p", null, "Contenido incrustado de otras webs:"));
-          caja.appendChild(lista(doc.incrustados));
-        }
-        if (doc.recursos.length) {
-          caja.appendChild(el("p", null, "Ficheros que se suben:"));
-          caja.appendChild(lista(doc.recursos));
-        }
         if (doc.vista) {
           caja.appendChild(botones(boton("Ver vista previa", null, function () { api().vista_previa(p.numero, indice); })));
         }
         nodos.push(caja);
       });
-      p.secciones.forEach(function (seccion) {
-        nodos.push(el("p", "aviso", "Se creará la sección «" + seccion + "» (oculta)."));
+      (p.finales || []).forEach(function (linea) {
+        nodos.push(el("p", "aviso", linea));
       });
-      if (p.excepciones) {
-        nodos.push(el("p", "suave", "Las excepciones de fecha de alumnos concretos no cambian: revísalas en el aula si las hay."));
-      }
-      nodos.push(el("p", "aviso", p.solo_fechas
-        ? "Solo cambian las fechas: el contenido, las preguntas, los intentos y la visibilidad no cambian."
-        : p.visibilidad));
       nodos.push(siNo(p, p.solo_fechas ? "Cambiar las fechas" : "Publicar en real", "No publicar", "peligro"));
       return nodos;
     },
@@ -290,20 +259,14 @@ ul { margin: 6px 0; padding-left: 20px; }
         el("p", null, cabeceraCurso(p)),
         el("p", "aviso", p.aviso)];
       p.documentos.forEach(function (doc) {
-        nodos.push(el("p", null, doc.tipo + ": «" + doc.nombre + "» (fichero " + doc.fichero + ")"));
-        if (doc.existe === true) {
-          nodos.push(el("p", "aviso", "Ya existe en el aula: se ocultará si estaba visible."));
-        } else if (doc.existe === null || doc.existe === undefined) {
-          nodos.push(el("p", "aviso", "Puede que ya exista en el aula: se ocultará si estaba visible."));
-        }
-        (doc.itinerario || []).forEach(function (linea) {
+        nodos.push(el("p", null, doc.titulo));
+        doc.lineas.forEach(function (linea) {
           nodos.push(el("p", null, linea));
         });
       });
-      p.secciones.forEach(function (seccion) {
-        nodos.push(el("p", "aviso", "Se creará la sección «" + seccion + "» (oculta)."));
+      (p.finales || []).forEach(function (linea) {
+        nodos.push(el("p", "aviso", linea));
       });
-      nodos.push(el("p", "aviso", "Solo se publicará oculto; el alumnado no lo verá."));
       nodos.push(siNo(p, "Publicar oculto", "No publicar", "peligro"));
       return nodos;
     },

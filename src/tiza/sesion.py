@@ -256,7 +256,7 @@ def _fallo(
     sesion_abierta.registrar(
         informe.crear(comando, "error", [], [], [codigo], entorno, curso), base, presencia
     )
-    presencia.informar(Aviso("FALLO", {"codigo": codigo, "detalle": detalle}))
+    presencia.informar(Aviso.fallo(codigo, detalle))
     if exc is not None:
         depurar(exc, debug)
     return 1
@@ -272,7 +272,7 @@ def _abortado(
     sesion_abierta.registrar(
         informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, curso), base, presencia
     )
-    presencia.informar(Aviso("CANCELADA"))
+    presencia.informar(Aviso.cancelada())
     return 1
 
 
@@ -372,7 +372,7 @@ def _completar_cursos(
     if pruebas is not None:
         cursos["pruebas"] = pruebas
     ruta = config.guardar_carpeta(base, cursos, sin_pruebas=sin_pruebas)
-    presencia.informar(Aviso("CURSOS_GUARDADOS", {"ruta": ruta}))
+    presencia.informar(Aviso.cursos_guardados(ruta))
     return config.resolver(base)
 
 
@@ -402,7 +402,7 @@ def _preparar(
         and presencia.confirmar_autoprueba()
         and not autoprueba_con(aula, pruebas, base, presencia, debug=debug)
     ):
-        presencia.informar(Aviso("AUTOPRUEBA_FALLIDA"))
+        presencia.informar(Aviso.autoprueba_fallida())
         return 1
     documento = sesion_abierta.registrar(
         sesion_abierta.estructura_con(aula, cfg, base, debug=debug), base, presencia
@@ -410,7 +410,7 @@ def _preparar(
     if "SESION_CADUCADA" in documento["errores"]:
         return 1
     if documento["resultado"] != "ok":
-        presencia.informar(Aviso("ESTRUCTURA_NO_LEIDA"))
+        presencia.informar(Aviso.estructura_no_leida())
     return None
 
 
@@ -439,7 +439,7 @@ def _servir(
     except buzon.ErrorBuzon as exc:
         return _fallo("sesion", exc.codigo, exc.detalle, base, presencia)
     except KeyboardInterrupt:
-        presencia.informar(Aviso("SESION_CERRADA", {"motivo": "docente"}))
+        presencia.informar(Aviso.sesion_cerrada("docente"))
     return 0
 
 
@@ -453,7 +453,7 @@ def _atender(
     cerrar: threading.Event | None = None,
 ) -> None:
     """Atiende el buzón y ofrece ampliar hasta que se cierre la sesión."""
-    presencia.informar(Aviso("SESION_ABIERTA", {"caduca": abierta.caduca}))
+    presencia.informar(Aviso.sesion_abierta(abierta.caduca))
     motivos: list[str] = []
 
     def terminar(documento: dict) -> bool:
@@ -474,17 +474,17 @@ def _atender(
             parar=cerrar.is_set if cerrar is not None else None,
         )
         if cerrar is not None and cerrar.is_set():
-            presencia.informar(Aviso("SESION_CERRADA", {"motivo": "docente"}))
+            presencia.informar(Aviso.sesion_cerrada("docente"))
             return
         if cerrada:
-            presencia.informar(Aviso("SESION_CERRADA", {"motivo": motivos[-1]}))
+            presencia.informar(Aviso.sesion_cerrada(motivos[-1]))
             return
         nueva = _ofrecer_ampliacion(apertura, abierta.caduca, presencia)
         if nueva is None:
-            presencia.informar(Aviso("SESION_CERRADA", {"motivo": "caducada"}))
+            presencia.informar(Aviso.sesion_cerrada("caducada"))
             return
         abierta.ampliar(nueva)
-        presencia.informar(Aviso("SESION_ABIERTA", {"caduca": nueva}))
+        presencia.informar(Aviso.sesion_abierta(nueva))
 
 
 def _aviso_previo(abierta: Any, presencia: Presencia) -> Callable[[], None]:
@@ -495,7 +495,7 @@ def _aviso_previo(abierta: Any, presencia: Presencia) -> Callable[[], None]:
         nonlocal avisado
         if not avisado and abierta.caduca - buzon.ahora_utc() <= timedelta(minutes=AVISO_MINUTOS):
             avisado = True
-            presencia.informar(Aviso("QUEDAN_MINUTOS", {"minutos": AVISO_MINUTOS}))
+            presencia.informar(Aviso.quedan_minutos(AVISO_MINUTOS))
 
     return avisar
 
@@ -510,7 +510,7 @@ def _ofrecer_ampliacion(
     reloj = ahora or buzon.ahora_utc
     maximo = apertura + timedelta(minutes=MAX_MINUTOS)
     if max(reloj(), caduca) >= maximo - timedelta(minutes=1):
-        presencia.informar(Aviso("MAXIMO_ALCANZADO", {"horas": MAX_MINUTOS // 60}))
+        presencia.informar(Aviso.maximo_alcanzado(MAX_MINUTOS // 60))
         return None
     if not presencia.ofrecer_ampliacion(AMPLIACION_MINUTOS, ESPERA_RESPUESTA_SEGUNDOS):
         return None
@@ -519,7 +519,7 @@ def _ofrecer_ampliacion(
 
 def _error_interno(exc: BaseException, presencia: Presencia, debug: bool) -> None:
     """El docente ve el tipo de fallo; el agente solo recibe ERROR_INTERNO."""
-    presencia.informar(Aviso("ERROR_INTERNO", {"tipo": type(exc).__name__}))
+    presencia.informar(Aviso.error_interno(type(exc).__name__))
     if debug:
         print(AVISO_DEBUG, file=sys.stderr)
         traceback.print_exception(exc)

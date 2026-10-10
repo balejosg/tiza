@@ -17,22 +17,14 @@ from __future__ import annotations
 import threading
 import time
 import webbrowser
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from .. import ayuda, estado, informe, rutas
+from .. import estado, mensajes, rutas
 from ..config import MAX_REALES
-from ..informe import ErrorInforme
 from ..publicacion import Aviso, ResumenPublicacion, ResumenSinPruebas
 from ..sesion import SIN_PRUEBAS, CursoSesion
-from ..terminal import (
-    cambian_fechas,
-    describir_cambios,
-    describir_curso,
-    describir_documento,
-    texto_seguro,
-)
 
 __all__ = ["PresenciaVentana", "Puente", "Ventana"]
 
@@ -42,28 +34,13 @@ MAX_TEXTO = 300
 _SIN_RESPUESTA = object()
 _INVALIDA = object()
 
-_PARA_QUE = {
-    "pruebas": "Donde se publica primero; el alumnado no lo ve.",
-    "real": "El que usa tu alumnado.",
-}
-_VISIBILIDAD: dict[bool | None, str] = {
-    True: "ATENCIÓN: se publicará VISIBLE para el alumnado.",
-    False: "Se publicará oculto (también lo que ya fuera visible).",
-    None: "Lo que ya exista conserva su visibilidad; lo nuevo se crea oculto.",
-}
-_CIERRE = {
-    "aula": (
-        "El aula ha cerrado la conexión: caducó, o entraste con este usuario desde "
-        "otro sitio (por ejemplo, el navegador)."
-    ),
-    "caducada": "Se acabó el tiempo de la conexión.",
-    "desactualizada": "tiza ha cambiado mientras la conexión estaba abierta.",
-    "docente": "Conexión cerrada.",
-}
+# Los avisos que cierran la ventana: además de anotarse, dejan el texto de la
+# pantalla final. Lo demás solo se anota.
+_CIERRAN = frozenset({"AUTOPRUEBA_FALLIDA", "CANCELADA", "FALLO", "SESION_CERRADA"})
 
 
 def _texto(valor: object) -> str:
-    return texto_seguro(valor, MAX_TEXTO)
+    return mensajes.texto_seguro(valor, MAX_TEXTO)
 
 
 def _password(respuesta: Any, _opciones: Any) -> Any:
@@ -301,8 +278,8 @@ class PresenciaVentana:
             {
                 "tipo": "elegir_curso",
                 "entorno": entorno,
-                "para_que": _PARA_QUE.get(entorno, ""),
-                "opciones": [texto_seguro(curso["nombre"], 80) for curso in opciones],
+                "para_que": mensajes.PARA_QUE.get(entorno, ""),
+                "opciones": [mensajes.texto_seguro(curso["nombre"], 80) for curso in opciones],
                 "sin_pruebas": permite_sin,
             },
             opciones={
@@ -317,9 +294,9 @@ class PresenciaVentana:
         return self._ventana.preguntar(
             {
                 "tipo": "elegir_reales",
-                "para_que": _PARA_QUE.get("real", ""),
+                "para_que": mensajes.PARA_QUE.get("real", ""),
                 "maximo": MAX_REALES,
-                "opciones": [texto_seguro(curso["nombre"], 80) for curso in opciones],
+                "opciones": [mensajes.texto_seguro(curso["nombre"], 80) for curso in opciones],
             },
             opciones={"ids": [curso["id"] for curso in opciones], "excluir": excluir},
         )
@@ -328,64 +305,55 @@ class PresenciaVentana:
         filas = [
             {
                 "entorno": curso.entorno,
-                "curso": describir_curso(curso.id, curso.nombre),
-                "aviso": "No aparece entre tus cursos: comprueba el id." if curso.ajeno else "",
+                "curso": mensajes.describir_curso(curso.id, curso.nombre),
+                "aviso": mensajes.AVISO_AJENO if curso.ajeno else "",
             }
             for curso in cursos
         ]
         self._cursos = filas
         sin_pruebas = not any(curso.entorno == "pruebas" for curso in cursos)
         return (
-            self._ventana.preguntar({"tipo": "cursos", "cursos": filas, "sin_pruebas": sin_pruebas})
-            is True
-        )
-
-    def confirmar_autoprueba(self) -> bool:
-        return self._ventana.preguntar({"tipo": "autoprueba"}) is True
-
-    def confirmar_sin_pruebas(self) -> bool:
-        return (
             self._ventana.preguntar(
                 {
-                    "tipo": "sin_pruebas",
-                    "aviso": (
-                        "Sin curso de pruebas: no habrá verificación previa y en real "
-                        "solo se publicará oculto."
-                    ),
+                    "tipo": "cursos",
+                    "cursos": filas,
+                    "sin_pruebas": sin_pruebas,
+                    "aviso": mensajes.SIN_PRUEBAS_AVISO,
                 }
             )
             is True
         )
 
+    def confirmar_autoprueba(self) -> bool:
+        return (
+            self._ventana.preguntar({"tipo": "autoprueba", "texto": mensajes.AUTOPRUEBA_TEXTO})
+            is True
+        )
+
+    def confirmar_sin_pruebas(self) -> bool:
+        return (
+            self._ventana.preguntar({"tipo": "sin_pruebas", "aviso": mensajes.SIN_PRUEBAS_AVISO})
+            is True
+        )
+
     def confirmar_real(self, resumen: ResumenPublicacion) -> bool:
-        solo = resumen.solo_fechas  # el contenido no cambia: no se listan sus enlaces ni ficheros
+        detalle = mensajes.detalle_real(resumen)
         pantalla = {
             "tipo": "real",
-            "curso": describir_curso(resumen.curso, resumen.nombre_curso),
-            "posicion": resumen.posicion,
-            "total": resumen.total,
-            "solo_fechas": solo,
-            "aviso_calendario": (
-                ayuda.explicar(resumen.aviso_calendario) or ""
-                if resumen.aviso_calendario is not None
-                else ""
-            ),
-            "excepciones": cambian_fechas(resumen),
+            "solo_fechas": detalle.solo_fechas,
+            "curso": detalle.curso,
+            "posicion": detalle.posicion,
+            "total": detalle.total,
+            "aviso_calendario": detalle.aviso_calendario or "",
             "documentos": [
                 {
-                    "titulo": describir_documento(doc),
-                    "fichero": _texto(doc.fichero),
-                    "fechas": [_texto(linea) for linea in describir_cambios(doc)],
-                    "itinerario": [] if solo else [_texto(linea) for linea in doc.itinerario],
-                    "enlaces": [] if solo else [_texto(url) for url in doc.enlaces_externos],
-                    "incrustados": [] if solo else [_texto(url) for url in doc.incrustados],
-                    "recursos": [] if solo else [_texto(ruta) for ruta in doc.recursos],
+                    "titulo": doc.titulo,
+                    "lineas": list(doc.lineas),
                     "vista": doc.vista_previa is not None,
                 }
-                for doc in resumen.documentos
+                for doc in detalle.documentos
             ],
-            "secciones": [_texto(nombre) for nombre in resumen.secciones_nuevas],
-            "visibilidad": "" if solo else _VISIBILIDAD[resumen.visible],
+            "finales": list(detalle.finales),
         }
         self._ventana.preparar_vistas(tuple(doc.vista_previa for doc in resumen.documentos))
         try:
@@ -394,23 +362,17 @@ class PresenciaVentana:
             self._ventana.preparar_vistas(())
 
     def confirmar_real_sin_pruebas(self, resumen: ResumenSinPruebas) -> bool:
+        detalle = mensajes.detalle_corto(resumen)
         pantalla = {
             "tipo": "real_sin_pruebas",
-            "curso": describir_curso(resumen.curso, resumen.nombre_curso),
-            "posicion": resumen.posicion,
-            "total": resumen.total,
+            "curso": detalle.curso,
+            "posicion": detalle.posicion,
+            "total": detalle.total,
+            "aviso": detalle.aviso,
             "documentos": [
-                {
-                    "fichero": _texto(doc.fichero),
-                    "tipo": _texto(doc.tipo),
-                    "nombre": _texto(doc.nombre),
-                    "existe": doc.existe,
-                    "itinerario": [_texto(linea) for linea in doc.itinerario],
-                }
-                for doc in resumen.documentos
+                {"titulo": doc.titulo, "lineas": list(doc.lineas)} for doc in detalle.documentos
             ],
-            "secciones": [_texto(nombre) for nombre in resumen.secciones_nuevas],
-            "aviso": "Sin curso de pruebas: se publicará solo oculto, sin verificación previa.",
+            "finales": list(detalle.finales),
         }
         return self._ventana.preguntar(pantalla) is True
 
@@ -418,71 +380,15 @@ class PresenciaVentana:
         return self._ventana.preguntar({"tipo": "ampliar", "minutos": minutos}, plazo=plazo) is True
 
     def informar(self, aviso: Aviso) -> None:
-        getattr(self, f"_aviso_{aviso.codigo.lower()}")(aviso.datos)
-
-    def _cierre(self, texto: str) -> None:
-        self._ventana.motivo = texto
-        self._ventana.anotar(texto)
-
-    def _aviso_autoprueba_fallida(self, _datos: Mapping[str, Any]) -> None:
-        self._cierre("La autoprueba ha fallado: no se abre la conexión.")
-
-    def _aviso_cancelada(self, _datos: Mapping[str, Any]) -> None:
-        self._cierre("No se ha abierto la conexión.")
-
-    def _aviso_creando_seccion(self, datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar(f"Creando la sección «{datos['nombre']}» (oculta).")
-
-    def _aviso_cursos_guardados(self, _datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar(f"Cursos guardados en {rutas.FICHERO_ASIGNATURA} de la carpeta.")
-
-    def _aviso_error_interno(self, datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar(
-            f"Fallo inesperado al atender una petición ({datos['tipo']}). Si se repite, "
-            "cierra y vuelve a abrir la conexión."
-        )
-
-    def _aviso_estructura_no_leida(self, _datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar("No se pudo leer la estructura del curso; se podrá pedir después.")
-
-    def _aviso_fallo(self, datos: Mapping[str, Any]) -> None:
-        codigo = datos["codigo"]
-        self._cierre(f"{codigo}: {ayuda.explicar(codigo) or 'no se pudo abrir la conexión.'}")
-
-    def _aviso_informe_no_escrito(self, _datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar(f"No se pudo escribir {rutas.CARPETA_TRABAJO}/informe.json.")
-
-    def _aviso_maximo_alcanzado(self, datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar(f"La conexión ha llegado al máximo de {datos['horas']} horas.")
-
-    def _aviso_nombres_no_disponibles(self, _datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar("No se pudo leer la lista de tus cursos; se muestran sus ids.")
-
-    def _aviso_peticion_retirada(self, _datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar("El asistente ya no esperaba esta petición: no se ha publicado.")
-
-    def _aviso_publicando_en_pruebas(self, datos: Mapping[str, Any]) -> None:
-        for doc in datos["documentos"]:
-            self._ventana.anotar(f"Publicando en pruebas: {describir_documento(doc)}")
-
-    def _aviso_quedan_minutos(self, datos: Mapping[str, Any]) -> None:
-        self._ventana.anotar(f"Quedan menos de {datos['minutos']} minutos de conexión.")
-
-    def _aviso_resultado(self, datos: Mapping[str, Any]) -> None:
-        try:
-            lineas = informe.resumen(datos["documento"])
-        except ErrorInforme:
-            return
+        lineas = mensajes.lineas_de_aviso(aviso)
+        if aviso.codigo == "SESION_ABIERTA":
+            self._ventana.mostrar(
+                {"tipo": "abierta", "texto": lineas[0].texto, "cursos": self._cursos}
+            )
+        if aviso.codigo in _CIERRAN:
+            self._ventana.motivo = " ".join(linea.texto for linea in lineas)
         for linea in lineas:
-            self._ventana.anotar(linea)
-
-    def _aviso_sesion_abierta(self, datos: Mapping[str, Any]) -> None:
-        hora = datos["caduca"].astimezone().strftime("%H:%M")
-        self._ventana.mostrar({"tipo": "abierta", "hasta": hora, "cursos": self._cursos})
-        self._ventana.anotar(f"Conectado hasta las {hora}.")
-
-    def _aviso_sesion_cerrada(self, datos: Mapping[str, Any]) -> None:
-        self._cierre(_CIERRE[datos["motivo"]])
+            self._ventana.anotar(linea.texto)
 
 
 class Puente:

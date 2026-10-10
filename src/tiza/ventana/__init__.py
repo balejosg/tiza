@@ -13,7 +13,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from .. import ayuda, config, sesion
+from .. import ayuda, config, mensajes, sesion
 from ..config import ErrorConfig
 from . import pagina, webview2
 from .estado import PresenciaVentana, Puente, Ventana
@@ -70,7 +70,7 @@ def _flujo(
         elegir_cursos = False  # solo la primera vez: al reconectar se usan los guardados
         if ventana.cerrar.is_set():
             return codigo
-        texto = ventana.motivo or "Conexión cerrada."
+        texto = ventana.motivo or mensajes.texto_cierre("docente")
         if ventana.preguntar({"tipo": "cerrada", "texto": texto}) is not True:
             return codigo
     return codigo

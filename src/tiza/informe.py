@@ -103,7 +103,7 @@ _CAMPOS_FICHERO = {
 _CODIGO = re.compile(r"\A[A-Z][A-Z0-9_]{1,39}\Z")
 _HASH = re.compile(r"\A[0-9a-f]{64}\Z")
 _URL = re.compile(r"\Ahttps?://[^\s<>]+\Z")
-# Misma clase de caracteres que terminal.texto_seguro, contenido._CONTROL y
+# Misma clase de caracteres que mensajes.texto_seguro, contenido._CONTROL y
 # publicar._NO_IMPRIMIBLE; mantén las cuatro sincronizadas.
 _TEXTO_PROHIBIDO = re.compile(
     r"[<>\x00-\x1f\x7f-\x9f\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069]"

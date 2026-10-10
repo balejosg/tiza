@@ -897,7 +897,7 @@ class TestSesionConNombres:
         _codigo, salida, _ = abrir_sesion_falsa(
             tmp_path, monkeypatch, ["n"], cursos={"pruebas": 1234, "real": 9999}
         )
-        assert "no aparece entre tus cursos" in salida
+        assert "No aparece entre tus cursos" in salida
 
     def test_nombre_de_curso_de_moodle_se_sanea(self, tmp_path, monkeypatch):
         moodle = MoodleFalso(
@@ -1343,10 +1343,8 @@ class TestSinCursoDePruebasCli:
         assert informe["resultado"] == "ok"
         assert informe["ficheros"][0]["oculto"] is True
         texto = salida.contenido()
-        assert (
-            "Sin curso de pruebas: se publicará solo en oculto en el curso "
-            "«Matemáticas 2ºB» (id 5678)" in texto
-        )
+        assert "Sin curso de pruebas: se publicará solo en oculto." in texto
+        assert "Se va a publicar en el curso REAL" in texto
         assert "Página «Repaso»" in texto
 
     def test_publicar_directo_rechaza_el_destino_sin_pedir_password(self, tmp_path, monkeypatch):

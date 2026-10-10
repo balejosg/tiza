@@ -100,8 +100,9 @@ en español.
 - `src/tiza/publicacion.py`: **la publicación como proceso**, común a la terminal
   directa y a la sesión: puertas (`puerta_real`, `SOLO_OCULTO_SIN_PRUEBAS`),
   resúmenes y confirmación por curso, flujo de solo-fechas, `publicar_con` e
-  `informe_de_cursos`, y los tipos que ve la `Presencia` (`Aviso`, resúmenes,
-  vistas previas). Lo que distingue a cada llamador entra como decisión explícita
+  `informe_de_cursos`, y los tipos que ve la `Presencia` (`Aviso` —con un
+  constructor tipado por aviso—, resúmenes, vistas previas). Lo que distingue a
+  cada llamador entra como decisión explícita
   y documentada (`verificados` en memoria o disco, `vigente` solo en la sesión,
   `cupo` solo en la sesión, `omitidos` de la terminal directa).
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
@@ -123,16 +124,25 @@ en español.
   `estado.py`, así que `tiza comprobar` no carga python-moodle. El formato de
   los `.md` vive solo en la skill, entre los marcadores `formato:inicio` y
   `formato:fin`. Cambiar una firma obliga a subir la versión menor.
+- `src/tiza/mensajes.py`: **el texto llano que ve el docente**, venga de la
+  terminal o de la ventana: `texto_seguro`, el nombre llano del tipo, las tablas
+  (`PARA_QUE`, `VISIBILIDAD`, `CIERRE`), los avisos (una conversión por código,
+  registrada) y los resúmenes de confirmación (`detalle_real`/`detalle_corto`).
+  Las presencias solo adaptan: `terminal.py` imprime (stdout lo normal, stderr
+  las líneas de error) y `ventana/estado.py` pinta pantalla y registro. Las
+  claves de `Aviso.datos` las fija cada constructor tipado de `publicacion.Aviso`
+  y solo se leen aquí.
 - `src/tiza/cli.py`, `config.py` y `terminal.py`: despacho, configuración sin
   contraseña (la global solo guarda URL y usuario; los cursos viven solo en el
   `tiza.toml` de cada carpeta) y presencia humana en la terminal (`terminal.PresenciaTerminal`:
-  TTY, `getpass`, confirmación `[s/N]`); `cli.instalar_skill` copia la skill a
-  Claude Code, Codex, opencode y `~/.agents/skills`.
+  TTY, `getpass`, confirmación `[s/N]`, con el texto de `mensajes`); `cli.instalar_skill`
+  copia la skill a Claude Code, Codex, opencode y `~/.agents/skills`.
 - `src/tiza/ventana/`: la ventana de sesión (extra `[ventana]`, pywebview).
   `estado.py` no importa pywebview y es lo que se prueba; `Puente` es lo único
   que ve JavaScript (todo lo interno empieza por `_`, porque pywebview expone
-  también los atributos públicos que sean objetos). La página
-  (`sesion.html`) no usa `innerHTML` ni nada remoto y lleva CSP con nonce.
+  también los atributos públicos que sean objetos). La página (`sesion.html`)
+  pinta las líneas que da `mensajes`, no usa `innerHTML` ni nada remoto y lleva
+  CSP con nonce.
 - Estado de trabajo en `.tiza/` (`informe.json`, `estructura.json`,
   `verificados.json`, `preview/`, `buzon/`): los nombres y formatos de lo que
   no es buzón viven en `estado.py`. `.tiza/`, `planes/` y `dist/` están

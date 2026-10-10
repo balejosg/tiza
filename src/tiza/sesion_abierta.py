@@ -42,8 +42,8 @@ def registrar(documento: dict, carpeta: Path, presencia: Presencia) -> dict:
     try:
         informe.escribir(documento, Path(carpeta) / rutas.CARPETA_TRABAJO)
     except (informe.ErrorInforme, OSError):
-        presencia.informar(publicacion.Aviso("INFORME_NO_ESCRITO"))
-    presencia.informar(publicacion.Aviso("RESULTADO", {"documento": documento}))
+        presencia.informar(publicacion.Aviso.informe_no_escrito())
+    presencia.informar(publicacion.Aviso.resultado(documento))
     return documento
 
 

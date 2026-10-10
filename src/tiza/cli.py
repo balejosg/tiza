@@ -26,6 +26,7 @@ from . import (
     config,
     contenido,
     informe,
+    mensajes,
     publicacion,
     publicar,
     rutas,
@@ -264,7 +265,7 @@ def _abortado(comando: str, entorno: str | None = None, curso: int | None = None
 def _explicar(nombre: str, codigo: str, detalle: str = "") -> str:
     """Línea para quien corrige el fichero: texto local de tiza, nunca de Moodle."""
     texto = f"{nombre}: {codigo}" + (f": {detalle}" if detalle else "")
-    return terminal.texto_seguro(texto, 300)
+    return mensajes.texto_seguro(texto, 300)
 
 
 def _imprimir_error(codigo: str, detalle: str = "") -> None:
@@ -776,16 +777,14 @@ def _publicar_directa(args) -> int:
             return _fallo(
                 comando,
                 exc.codigo,
-                terminal.texto_seguro(f"{Path(nombre).name}: {exc.detalle}", 300),
+                mensajes.texto_seguro(f"{Path(nombre).name}: {exc.detalle}", 300),
                 entorno=entorno,
                 curso=unico,
                 exc=exc,
                 debug=args.debug,
             )
     if sin_pruebas and not solo_fechas:
-        print(
-            "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."
-        )
+        print(mensajes.SIN_PRUEBAS_AVISO)
     # La puerta de real se comprueba antes de la contraseña; el flujo unificado la repite
     # con la misma regla (es gratis: el hash ya está calculado).
     if entorno == "real" and not solo_fechas and not sin_pruebas:

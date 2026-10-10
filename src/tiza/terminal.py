@@ -3,50 +3,38 @@
 La contraseña solo puede llegar por ``getpass`` desde una terminal
 interactiva. No existe ninguna opción, variable de entorno ni fichero que la
 acepte.
+
+El texto que ve el docente lo decide :mod:`tiza.mensajes`; aquí solo se
+pregunta, se imprime (stdout lo normal, stderr las líneas de error) y se
+comprueba que hay una terminal delante.
 """
 
 from __future__ import annotations
 
 import getpass
 import queue
-import re
 import sys
 import threading
 import time
-from collections.abc import Mapping
-from datetime import datetime
 from pathlib import Path
-from typing import Any
 
-from . import ayuda, informe, tipos
+from . import mensajes
 from .config import MAX_REALES
-from .informe import ErrorInforme
-from .publicacion import (
-    CAMPO_RECORDATORIO,
-    Aviso,
-    DocumentoResumen,
-    ResumenPublicacion,
-    ResumenSinPruebas,
-)
+from .publicacion import Aviso, ResumenPublicacion, ResumenSinPruebas
 from .sesion import SIN_PRUEBAS, CursoSesion
 
 __all__ = [
     "ErrorTerminal",
     "PresenciaTerminal",
-    "cambian_fechas",
-    "describir_cambios",
-    "describir_documento",
-    "enlace",
-    "imprimir_error",
     "confirmar",
     "confirmar_destino",
-    "describir_curso",
     "elegir_curso",
     "elegir_cursos_reales",
+    "enlace",
     "exigir_tty",
+    "imprimir_error",
     "pedir_password",
     "preguntar_con_limite",
-    "texto_seguro",
 ]
 
 
@@ -57,24 +45,6 @@ class ErrorTerminal(Exception):
         super().__init__(codigo)
         self.codigo = codigo
         self.detalle = detalle
-
-
-# Controles C0/C1 (incluido ESC y CSI) y controles bidireccionales (incluido
-# U+061C, ARABIC LETTER MARK): con ellos un texto ajeno podría borrar o
-# reescribir lo que el docente lee antes de confirmar. Misma clase de caracteres
-# que informe._TEXTO_PROHIBIDO, contenido._CONTROL y publicar._NO_IMPRIMIBLE;
-# mantén las cuatro sincronizadas.
-_NO_IMPRIMIBLE = re.compile(r"[\x00-\x1f\x7f-\x9f\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
-
-
-def texto_seguro(texto: object, maximo: int = 120) -> str:
-    """Texto del agente o de Moodle apto para la terminal del docente."""
-    if maximo < 1:
-        return ""
-    limpio = _NO_IMPRIMIBLE.sub("", str(texto))
-    if len(limpio) > maximo:
-        limpio = limpio[: maximo - 1] + "…"
-    return limpio
 
 
 def exigir_tty() -> None:
@@ -88,16 +58,11 @@ def exigir_tty() -> None:
 
 def confirmar_destino(entorno: str, curso: int, nombre: str | None = None) -> bool:
     """Muestra el destino y pide confirmación explícita ([s/N])."""
-    print(f"Curso de destino: {describir_curso(curso, nombre)} (entorno: {entorno})")
+    print(f"Curso de destino: {mensajes.describir_curso(curso, nombre)} (entorno: {entorno})")
     return confirmar("¿Continuar con este curso?")
 
 
 _SI = {"s", "si", "sí"}
-
-_PARA_QUE = {
-    "pruebas": "donde se publica primero; el alumnado no lo ve",
-    "real": "el que usa tu alumnado",
-}
 
 
 def confirmar(pregunta: str) -> bool:
@@ -142,12 +107,6 @@ def _cabecera_de_curso(posicion: int, total: int, curso: str) -> None:
         print(f"Curso {posicion} de {total}: {curso}")
 
 
-def describir_curso(curso: int, nombre: str | None) -> str:
-    if nombre:
-        return f"«{texto_seguro(nombre, 80)}» (id {curso})"
-    return f"id {curso}"
-
-
 def _numero(valor: str) -> int | None:
     """Convierte una entrada de teclado en número, o None si no lo es."""
     try:
@@ -163,11 +122,11 @@ def elegir_curso(entorno: str, cursos: list[dict], excluir: int | None = None) -
     y en real solo se publicará oculto.
     """
     opciones = [curso for curso in cursos if curso["id"] != excluir]
-    print(f"¿Cuál es tu curso de {entorno.upper()}? ({_PARA_QUE[entorno]})")
+    print(f"¿Cuál es tu curso de {entorno.upper()}? ({mensajes.PARA_QUE[entorno]})")
     if not opciones:
         return _pedir_id(entorno, excluir)
     for indice, curso in enumerate(opciones, 1):
-        print(f"  {indice}. {texto_seguro(curso['nombre'], 80)}")
+        print(f"  {indice}. {mensajes.texto_seguro(curso['nombre'], 80)}")
     opcion_sin = None
     if entorno == "pruebas":
         opcion_sin = len(opciones) + 1
@@ -208,11 +167,11 @@ def elegir_cursos_reales(cursos: list[dict], excluir: int | None = None) -> list
     Se publica en todos, en el orden en que los escribe; None si cancela.
     """
     opciones = [curso for curso in cursos if curso["id"] != excluir]
-    print(f"¿Cuáles son tus cursos REALES? ({_PARA_QUE['real']}; hasta {MAX_REALES})")
+    print(f"¿Cuáles son tus cursos REALES? ({mensajes.PARA_QUE['real']}; hasta {MAX_REALES})")
     if not opciones:
         return _pedir_ids(excluir)
     for indice, curso in enumerate(opciones, 1):
-        print(f"  {indice}. {texto_seguro(curso['nombre'], 80)}")
+        print(f"  {indice}. {mensajes.texto_seguro(curso['nombre'], 80)}")
     print("  0. No están en la lista: escribiré sus ids")
     while True:
         try:
@@ -289,113 +248,8 @@ def enlace(ruta: Path) -> str:
 
 def imprimir_error(codigo: str, detalle: str = "") -> None:
     """Error para el docente: código, detalle y qué hacer (textos de tiza)."""
-    mensaje = f"ERROR [{codigo}]"
-    if detalle:
-        mensaje += f": {detalle}"
-    print(mensaje, file=sys.stderr)
-    texto = ayuda.explicar(codigo)
-    if texto is not None:
-        print(f"Qué hacer: {texto}", file=sys.stderr)
-
-
-# El nombre llano de cada tipo lo fija su módulo; si el tipo es ajeno (un módulo del
-# aula que no es de tiza), se enseña su nombre crudo.
-_TIPOS = {tipo.nombre: tipo.llano for tipo in tipos.TODOS}
-
-
-def _fecha_llana(momento: datetime) -> str:
-    return momento.strftime("%d/%m/%Y %H:%M")
-
-
-_AVISOS_LLANOS = {
-    "FECHA_FUERA_DE_CURSO": "fuera del curso escolar",
-    "FECHA_FESTIVA": "festivo",
-    "FECHA_FIN_DE_SEMANA": "fin de semana",
-    "FECHA_SIN_CLASE": "no es día de clase",
-}
-_EXCEPCIONES = (
-    "Las excepciones de fecha de alumnos concretos no cambian: revísalas en el aula si las hay."
-)
-
-
-def _fecha_o_sin(valor: tuple[int, int, int, int, int] | None) -> str:
-    return "sin fecha" if valor is None else _fecha_llana(datetime(*valor))
-
-
-def describir_cambios(doc: DocumentoResumen) -> list[str]:
-    """Una línea por fecha: lo que hay en el aula y lo que se publicaría, con sus avisos."""
-    lineas: list[str] = []
-    for cambio in doc.cambios or ():
-        if cambio.estado == "nueva":
-            linea = f"{cambio.campo} {_fecha_o_sin(cambio.despues)} (la actividad es nueva)"
-        elif cambio.estado == "igual":
-            linea = f"{cambio.campo} {_fecha_o_sin(cambio.despues)} (sin cambios)"
-        elif cambio.estado == "cambia":
-            linea = (
-                f"{cambio.campo} antes {_fecha_o_sin(cambio.antes)} "
-                f"→ ahora {_fecha_o_sin(cambio.despues)}"
-            )
-        else:
-            linea = (
-                f"{cambio.campo}: no se pudieron leer las fechas actuales del aula; "
-                f"se publicaría {_fecha_o_sin(cambio.despues)}"
-            )
-        avisos = [_AVISOS_LLANOS.get(codigo, codigo) for codigo in cambio.avisos]
-        if avisos:
-            linea += " — " + ", ".join(avisos)
-        lineas.append(linea)
-    return lineas
-
-
-def cambian_fechas(resumen: ResumenPublicacion) -> bool:
-    """Si alguna fecha cambia, o no se pudo comparar con el aula: toca recordar las excepciones.
-
-    El recordatorio de calificación es del docente, no del alumnado: por sí solo no cuenta.
-    """
-    return any(
-        cambio.estado in ("cambia", "desconocida") and cambio.campo != CAMPO_RECORDATORIO
-        for doc in resumen.documentos
-        for cambio in doc.cambios or ()
-    )
-
-
-def describir_documento(doc: DocumentoResumen) -> str:
-    """Qué se va a publicar, en lenguaje llano y saneado para la terminal.
-
-    Con ``cambios`` (la confirmación de real), las fechas van en sus propias líneas.
-    """
-    if isinstance(doc.seccion, str):
-        seccion = f"sección «{texto_seguro(doc.seccion)}»"
-    else:
-        seccion = f"sección {doc.seccion}"
-    texto = f"{_TIPOS.get(doc.tipo, doc.tipo)} «{texto_seguro(doc.nombre)}» → {seccion}"
-    if doc.fechas and doc.cambios is None:
-        texto += "; " + ", ".join(
-            f"{fecha.campo} {_fecha_llana(fecha.momento)}"
-            for fecha in doc.fechas
-            if fecha.momento is not None
-        )
-    return texto
-
-
-_VISIBILIDAD: dict[bool | None, str] = {
-    True: "ATENCIÓN: se publicará VISIBLE para el alumnado.",
-    False: "Se publicará oculto (también lo que ya fuera visible).",
-    None: "Lo que ya exista conserva su visibilidad; lo nuevo se crea oculto.",
-}
-
-_CIERRE = {
-    "aula": (
-        "El aula ha cerrado la sesión (caducó, o entraste con este usuario "
-        "desde otro sitio, como el navegador). Vuelve a abrirla con «tiza empezar»."
-    ),
-    "caducada": "La sesión ha caducado; se cierra.",
-    "desactualizada": (
-        "tiza ha cambiado mientras la sesión estaba abierta; se cierra. "
-        "Vuelve a abrirla con «tiza empezar»."
-    ),
-    "docente": "\nSesión cerrada.",
-}
+    for linea in mensajes.lineas_de_error(codigo, detalle):
+        print(linea.texto, file=sys.stderr)
 
 
 class PresenciaTerminal:
@@ -414,101 +268,51 @@ class PresenciaTerminal:
     def confirmar_cursos(self, cursos: list[CursoSesion]) -> bool:
         print("Cursos de esta sesión:")
         for curso in cursos:
-            linea = f"  {curso.entorno + ':':8} {describir_curso(curso.id, curso.nombre)}"
+            linea = f"  {curso.entorno + ':':8} {mensajes.describir_curso(curso.id, curso.nombre)}"
             if curso.ajeno:
-                linea += " — no aparece entre tus cursos: comprueba el id"
+                linea += f" — {mensajes.AVISO_AJENO}"
             if curso.entorno == "real":
                 linea += " — cada publicación en real se confirmará aquí"
             print(linea)
         if not any(curso.entorno == "pruebas" for curso in cursos):
-            print(
-                "AVISO: Sin curso de pruebas: no habrá verificación previa y en real "
-                "solo se publicará oculto."
-            )
+            print(f"AVISO: {mensajes.SIN_PRUEBAS_AVISO}")
         return confirmar("¿Abrir la sesión con estos cursos?")
 
     def confirmar_sin_pruebas(self) -> bool:
-        print(
-            "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."
-        )
+        print(mensajes.SIN_PRUEBAS_AVISO)
         return confirmar("¿Abrir la sesión sin curso de pruebas?")
 
     def confirmar_autoprueba(self) -> bool:
-        print(
-            "Conviene pasar la autoprueba: crea y borra contenido temporal en el curso de "
-            "pruebas para comprobar que todo funciona (1-2 minutos)."
-        )
+        print(mensajes.AUTOPRUEBA_TEXTO)
         return confirmar("¿Pasarla ahora?")
 
     def confirmar_real(self, resumen: ResumenPublicacion) -> bool:
-        curso = describir_curso(resumen.curso, resumen.nombre_curso)
-        _cabecera_de_curso(resumen.posicion, resumen.total, curso)
-        if resumen.solo_fechas:
-            print(f"Se van a cambiar solo las fechas en el curso REAL {curso}:")
-        else:
-            print(f"Se va a publicar en el curso REAL {curso}:")
-        if resumen.aviso_calendario is not None:
-            print(
-                f"  AVISO: calendario.toml no se puede usar. {ayuda.explicar(resumen.aviso_calendario)}"
-            )
-        for doc in resumen.documentos:
-            print(f"  - {describir_documento(doc)}")
-            if resumen.solo_fechas:
-                print(f"      fichero {texto_seguro(doc.fichero)}")
-            else:
-                print(f"      fichero {texto_seguro(doc.fichero)}, verificado en pruebas")
-            for linea in describir_cambios(doc):
+        detalle = mensajes.detalle_real(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        print(detalle.encabezado)
+        if detalle.aviso_calendario is not None:
+            print(f"  {detalle.aviso_calendario}")
+        for doc in detalle.documentos:
+            print(f"  - {doc.titulo}")
+            for linea in doc.lineas:
                 print(f"      {linea}")
-            if not resumen.solo_fechas:
-                for linea in doc.itinerario:
-                    print(f"      {texto_seguro(linea)}")
             if doc.vista_previa is not None:
                 print(f"      vista previa: {enlace(doc.vista_previa)}")
-            if resumen.solo_fechas:
-                continue  # el contenido no cambia: no se listan sus enlaces ni sus ficheros
-            for url in doc.enlaces_externos:
-                print(f"      enlace externo: {texto_seguro(url)}")
-            if doc.h5p is not None:
-                print(f"      actividad H5P: {texto_seguro(doc.h5p)}")
-            if doc.h5p_libreria:
-                print(f"      paquete H5P: {texto_seguro(doc.h5p_libreria)}")
-            for libreria in doc.h5p_descartadas:
-                print(f"      no se sube la librería {texto_seguro(libreria)}")
-            for url in doc.incrustados:
-                print(f"      incrusta: {texto_seguro(url)}")
-            for ruta in doc.recursos:
-                print(f"      se sube el fichero {texto_seguro(ruta)}")
-        if cambian_fechas(resumen):
-            print(f"  {_EXCEPCIONES}")
-        for nombre in resumen.secciones_nuevas:
-            print(f"  Se creará la sección «{texto_seguro(nombre)}» (oculta).")
-        if resumen.solo_fechas:
-            print(
-                "  Solo cambian las fechas: el contenido, las preguntas, los intentos "
-                "y la visibilidad no cambian."
-            )
-        else:
-            print(f"  {_VISIBILIDAD[resumen.visible]}")
+        for linea in detalle.finales:
+            print(f"  {linea}")
         return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
 
     def confirmar_real_sin_pruebas(self, resumen: ResumenSinPruebas) -> bool:
-        curso = describir_curso(resumen.curso, resumen.nombre_curso)
-        _cabecera_de_curso(resumen.posicion, resumen.total, curso)
-        print(f"Sin curso de pruebas: se publicará solo en oculto en el curso {curso}.")
-        print("Se va a publicar en el curso REAL, sin verificación previa:")
-        for doc in resumen.documentos:
-            print(
-                f"  - {_TIPOS.get(doc.tipo, doc.tipo)} «{texto_seguro(doc.nombre)}»"
-                f" (fichero {texto_seguro(doc.fichero)})"
-            )
-            if doc.existe is True:
-                print("      Ya existe en el aula: se ocultará si estaba visible.")
-            elif doc.existe is None:
-                print("      Puede que ya exista en el aula: se ocultará si estaba visible.")
-            for linea in doc.itinerario:
-                print(f"      {texto_seguro(linea)}")
-        for nombre in resumen.secciones_nuevas:
-            print(f"  Se creará la sección «{texto_seguro(nombre)}» (oculta).")
+        detalle = mensajes.detalle_corto(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        print(detalle.aviso)
+        print(detalle.encabezado)
+        for doc in detalle.documentos:
+            print(f"  - {doc.titulo}")
+            for linea in doc.lineas:
+                print(f"      {linea}")
+        for linea in detalle.finales:
+            print(f"  {linea}")
         return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
 
     def ofrecer_ampliacion(self, minutos: int, plazo: float) -> bool:
@@ -518,75 +322,5 @@ class PresenciaTerminal:
         )
 
     def informar(self, aviso: Aviso) -> None:
-        getattr(self, f"_aviso_{aviso.codigo.lower()}")(aviso.datos)
-
-    def _aviso_autoprueba_fallida(self, _datos: Mapping[str, Any]) -> None:
-        print("No se abre la sesión porque la autoprueba ha fallado.", file=sys.stderr)
-
-    def _aviso_cancelada(self, _datos: Mapping[str, Any]) -> None:
-        print("Operación cancelada.", file=sys.stderr)
-
-    def _aviso_creando_seccion(self, datos: Mapping[str, Any]) -> None:
-        print(f"Creando la sección «{texto_seguro(datos['nombre'])}» (oculta)...")
-
-    def _aviso_cursos_guardados(self, datos: Mapping[str, Any]) -> None:
-        print(f"Cursos guardados en {datos['ruta']}.")
-
-    def _aviso_error_interno(self, datos: Mapping[str, Any]) -> None:
-        imprimir_error(
-            "ERROR_INTERNO",
-            f"al atender una petición ({datos['tipo']}); "
-            "repite con «tiza sesion --debug» para ver el detalle.",
-        )
-
-    def _aviso_estructura_no_leida(self, _datos: Mapping[str, Any]) -> None:
-        print("No se pudo leer la estructura; el agente podrá pedirla con «tiza estructura».")
-
-    def _aviso_fallo(self, datos: Mapping[str, Any]) -> None:
-        mensaje = f"ERROR [{datos['codigo']}]"
-        if datos.get("detalle"):
-            mensaje += f": {datos['detalle']}"
-        print(mensaje, file=sys.stderr)
-
-    def _aviso_informe_no_escrito(self, _datos: Mapping[str, Any]) -> None:
-        print("AVISO: no se pudo escribir .tiza/informe.json.", file=sys.stderr)
-
-    def _aviso_maximo_alcanzado(self, datos: Mapping[str, Any]) -> None:
-        print(
-            f"La sesión ha llegado al máximo de {datos['horas']} horas. "
-            "Abre otra cuando la necesites."
-        )
-
-    def _aviso_nombres_no_disponibles(self, _datos: Mapping[str, Any]) -> None:
-        print("No se pudo leer la lista de tus cursos; se mostrarán solo los ids.")
-
-    def _aviso_peticion_retirada(self, _datos: Mapping[str, Any]) -> None:
-        print("El agente ya no espera esta petición; no se publica.")
-
-    def _aviso_publicando_en_pruebas(self, datos: Mapping[str, Any]) -> None:
-        print("El agente pide publicar en pruebas:")
-        for doc in datos["documentos"]:
-            print(f"  - {describir_documento(doc)}")
-
-    def _aviso_quedan_minutos(self, datos: Mapping[str, Any]) -> None:
-        print(
-            f"Quedan menos de {datos['minutos']} minutos de sesión. "
-            "Al llegar la hora podrás ampliarla aquí."
-        )
-
-    def _aviso_resultado(self, datos: Mapping[str, Any]) -> None:
-        try:
-            lineas = informe.resumen(datos["documento"])
-        except ErrorInforme:
-            return
-        for linea in lineas:
-            print(linea)
-
-    def _aviso_sesion_abierta(self, datos: Mapping[str, Any]) -> None:
-        hora = datos["caduca"].astimezone().strftime("%Y-%m-%d %H:%M")
-        print(
-            f"Sesión abierta hasta {hora}. Deja esta terminal abierta; pulsa Ctrl+C para cerrarla."
-        )
-
-    def _aviso_sesion_cerrada(self, datos: Mapping[str, Any]) -> None:
-        print(_CIERRE[datos["motivo"]])
+        for linea in mensajes.lineas_de_aviso(aviso):
+            print(linea.texto, file=sys.stderr if linea.error else sys.stdout)
