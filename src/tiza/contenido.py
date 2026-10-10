@@ -517,6 +517,12 @@ _MODOS_LLANOS = {
 }
 
 
+def _formato_fecha(momento: datetime) -> str:
+    # Formato del docente para el itinerario; los adapters formatean con
+    # ``tipos.base.formato_fecha``, que produce exactamente el mismo texto.
+    return momento.strftime("%Y-%m-%d %H:%M")
+
+
 def describir_itinerario(doc: Documento, nombres: dict[str, str] | None = None) -> list[str]:
     """El itinerario en lenguaje llano, solo con lo que dice el ``.md``.
 
@@ -828,40 +834,15 @@ def previsualizar(doc: Documento, dir_tiza: str | Path, *, nombre: str | None = 
 
 
 def _plantilla(doc: Documento, dir_preview: Path) -> str:
+    from . import tipos  # diferido: el registro importa este módulo
+
+    tipo = tipos.obtener(doc.tipo)
     metadatos = [
         ("Tipo", doc.tipo),
         ("Nombre", doc.nombre),
         ("Sección", str(doc.seccion)),
     ]
-    if doc.fechas is not None:
-        metadatos.append(("Apertura", _formato_fecha(doc.fechas.apertura)))
-        metadatos.append(("Entrega", _formato_fecha(doc.fechas.entrega)))
-        if doc.fechas.limite is not None:
-            metadatos.append(("Límite", _formato_fecha(doc.fechas.limite)))
-    if doc.cuestionario is not None:
-        cuestionario = doc.cuestionario
-        if cuestionario.apertura is not None:
-            metadatos.append(("Apertura", _formato_fecha(cuestionario.apertura)))
-        if cuestionario.cierre is not None:
-            metadatos.append(("Cierre", _formato_fecha(cuestionario.cierre)))
-        if cuestionario.tiempo_limite is not None:
-            metadatos.append(("Tiempo límite", f"{cuestionario.tiempo_limite} minutos"))
-        metadatos.append(
-            ("Intentos", "ilimitados" if cuestionario.intentos == 0 else str(cuestionario.intentos))
-        )
-        metadatos.append(("Mezclar respuestas", "sí" if cuestionario.mezclar_respuestas else "no"))
-    if doc.h5p is not None:
-        from .tipos.h5p import NOMBRES_H5P
-
-        metadatos.append(("Actividad H5P", NOMBRES_H5P.get(doc.h5p.tipo, doc.h5p.tipo)))
-        if doc.h5p.tipo == "tarjetas":
-            metadatos.append(("Calificación", "no califica"))
-        else:
-            metadatos.append(("Calificación máxima", str(doc.h5p.calificacion)))
-            metadatos.append(("Ver solución", "sí" if doc.h5p.ver_solucion else "no"))
-        metadatos.append(("Reintentar", "sí" if doc.h5p.reintentar else "no"))
-    if doc.paquete is not None:
-        metadatos.append(("Paquete", doc.paquete.nombre))
+    metadatos.extend(tipo.metadatos_preview(doc))
     for linea in describir_itinerario(doc):
         clave, _, resto = linea.partition(": ")
         metadatos.append((clave, resto) if resto else ("Itinerario", linea))
@@ -869,8 +850,7 @@ def _plantilla(doc: Documento, dir_preview: Path) -> str:
         f"<li><strong>{clave}:</strong> {_html.escape(valor)}</li>" for clave, valor in metadatos
     )
     contenido = html_para_preview(doc, dir_preview)
-    preguntas = _preguntas_preview(doc)
-    h5p = _h5p_preview(doc)
+    extra = tipo.extra_preview(doc)
     return (
         "<!DOCTYPE html>\n"
         '<html lang="es">\n<head>\n<meta charset="utf-8">\n'
@@ -879,172 +859,32 @@ def _plantilla(doc: Documento, dir_preview: Path) -> str:
         '<p style="border:2px solid #b00;padding:.5rem;font-weight:bold">'
         "VISTA PREVIA: este contenido todavía no se ha publicado.</p>\n"
         f"<h1>{_html.escape(doc.nombre)}</h1>\n<ul>{filas}</ul>\n<hr>\n"
-        f"{contenido}\n{preguntas}\n{h5p}\n"
+        f"{contenido}\n{extra}\n"
         "</body>\n</html>\n"
     )
 
 
-def _preguntas_preview(doc: Documento) -> str:
-    """Las preguntas del cuestionario, numeradas y con las correctas marcadas."""
-    if doc.cuestionario is None:
-        return ""
-    from .tipos.cuestionario import NOMBRES_PREGUNTA
-
-    partes = ["<hr>", "<h2>Preguntas del cuestionario</h2>", "<ol>"]
-    for pregunta in doc.cuestionario.preguntas:
-        tipo = NOMBRES_PREGUNTA.get(pregunta.tipo, pregunta.tipo)
-        partes.append(f"<li><p><strong>{_html.escape(tipo)}</strong></p>")
-        partes.append(f"<div>{pregunta.html}</div>")
-        if pregunta.opciones:
-            partes.append("<ul>")
-            for opcion in pregunta.opciones:
-                marca = " <strong>(correcta)</strong>" if opcion.correcta else ""
-                partes.append(f"<li>{opcion.html}{marca}{_retro_preview(opcion.retro_html)}</li>")
-            partes.append("</ul>")
-        elif pregunta.tipo == "verdadero_falso":
-            respuesta = "Verdadero" if pregunta.respuesta == "verdadero" else "Falso"
-            partes.append(f"<p>Respuesta correcta: <strong>{respuesta}</strong></p>")
-        elif pregunta.tipo == "respuesta_corta":
-            aceptadas = ", ".join(_html.escape(a) for a in pregunta.aceptadas)
-            partes.append(f"<p>Respuestas válidas: <strong>{aceptadas}</strong></p>")
-        elif pregunta.tipo == "numerica" and pregunta.valor is not None:
-            partes.append(
-                f"<p>Valor: <strong>{_html.escape(numero_texto(pregunta.valor))}</strong>"
-            )
-            if pregunta.tolerancia:
-                partes[-1] += f" (tolerancia ±{_html.escape(numero_texto(pregunta.tolerancia))})"
-            partes[-1] += "</p>"
-        partes.append(_retro_preview(pregunta.retro_html))
-        partes.append("</li>")
-    partes.append("</ol>")
-    return "\n".join(partes)
-
-
-def _retro_preview(retro_html: str | None) -> str:
-    """La retroalimentación como bloque: su HTML ya trae párrafos y no cabe en un <p> ni en un <em>."""
-    if retro_html is None:
-        return ""
-    return f"<div><p><em>Retroalimentación:</em></p>{retro_html}</div>"
-
-
-def _h5p_preview(doc: Documento) -> str:
-    """Actividad H5P o resumen del paquete, para que el docente lo revise."""
-    if doc.paquete is not None:
-        paquete = doc.paquete
-        partes = ["<hr>", "<h2>Paquete H5P</h2>", "<ul>"]
-        partes.append(f"<li><strong>Fichero:</strong> {_html.escape(paquete.nombre)}</li>")
-        if paquete.titulo:
-            partes.append(f"<li><strong>Título:</strong> {_html.escape(paquete.titulo)}</li>")
-        if paquete.libreria:
-            partes.append(
-                f"<li><strong>Librería principal:</strong> {_html.escape(paquete.libreria)}</li>"
-            )
-        partes.append("</ul>")
-        if paquete.ficheros:
-            partes.append("<p><strong>Ficheros:</strong></p><ul>")
-            for nombre in paquete.ficheros[:20]:
-                partes.append(f"<li>{_html.escape(nombre)}</li>")
-            if len(paquete.ficheros) > 20:
-                partes.append(f"<li>… y {len(paquete.ficheros) - 20} más</li>")
-            partes.append("</ul>")
-        if paquete.descartadas:
-            nombres = ", ".join(_html.escape(nombre) for nombre in paquete.descartadas)
-            partes.append(
-                f"<p><strong>Librerías descartadas:</strong> {nombres} "
-                "(tiza nunca sube sus ficheros)</p>"
-            )
-        if paquete.externos:
-            partes.append("<p><strong>Enlaces externos de la actividad:</strong></p><ul>")
-            for url in paquete.externos:
-                partes.append(
-                    f'<li><a href="{_html.escape(url)}" target="_blank" '
-                    f'rel="noopener noreferrer">{_html.escape(url)}</a></li>'
-                )
-            partes.append("</ul>")
-        return "\n".join(partes)
-    actividad = doc.h5p
-    if actividad is None:
-        return ""
-    from .tipos.h5p import NOMBRES_H5P
-
-    partes = ["<hr>", "<h2>Actividad H5P</h2>"]
-    partes.append(
-        "<p><strong>Tipo:</strong> "
-        f"{_html.escape(NOMBRES_H5P.get(actividad.tipo, actividad.tipo))}</p>"
-    )
-    if actividad.tipo == "rellenar_huecos":
-        partes.append("<ol>")
-        for texto in actividad.textos:
-            partes.append(f"<li>{_h5p_marcas_html(texto)}</li>")
-        partes.append("</ol>")
-    elif actividad.tipo == "arrastrar_palabras":
-        assert actividad.texto is not None
-        partes.append(f"<p>{_h5p_marcas_html(actividad.texto)}</p>")
-        if actividad.distractores:
-            distractores = ", ".join(_html.escape(d) for d in actividad.distractores)
-            partes.append(f"<p><strong>Distractores:</strong> {distractores}</p>")
-    elif actividad.tipo == "marcar_palabras":
-        assert actividad.texto is not None
-        if actividad.enunciado_html:
-            partes.append(f"<p>{actividad.enunciado_html}</p>")
-        partes.append(f"<p>{_h5p_marcas_html(actividad.texto)}</p>")
-    else:
-        partes.append("<ol>")
-        for tarjeta in actividad.tarjetas:
-            partes.append(
-                f"<li><p><strong>Anverso:</strong></p>{tarjeta.anverso_html}"
-                f"<p><strong>Reverso:</strong></p>{tarjeta.reverso_html}</li>"
-            )
-        partes.append("</ol>")
-    return "\n".join(partes)
-
-
-def _h5p_marcas_html(texto: TextoH5P) -> str:
-    """El texto de la actividad con las marcas subrayadas y sus alternativas."""
-    salida: list[str] = []
-    for parte in texto.partes:
-        if isinstance(parte, MarcaH5P):
-            alternativas = " | ".join(_html.escape(respuesta) for respuesta in parte.respuestas)
-            salida.append(f"<u>{alternativas}</u>")
-        elif texto.plano:
-            salida.append(_html.escape(parte))
-        else:
-            salida.append(parte)
-    return "".join(salida)
-
-
-def _formato_fecha(momento: datetime) -> str:
-    return momento.strftime("%Y-%m-%d %H:%M")
-
-
 def hash_documento(doc: Documento) -> str:
-    """Hash estable del contenido y sus recursos (no depende de la ruta)."""
+    """Hash estable del contenido y sus recursos (no depende de la ruta).
+
+    Cada tipo aporta sus bytes por los tres huecos del adapter (fechas, contenido
+    específico y extra) en el orden de siempre, para no invalidar los hashes ya
+    verificados en pruebas.
+    """
+    from . import tipos  # diferido: el registro importa este módulo
+
+    tipo = tipos.obtener(doc.tipo)
     resumen = hashlib.sha256()
     resumen.update(f"{doc.tipo}\n{doc.nombre}\n{doc.seccion}\n".encode())
-    if doc.fechas is not None:
-        resumen.update(_formato_fecha(doc.fechas.apertura).encode("utf-8"))
-        resumen.update(_formato_fecha(doc.fechas.entrega).encode("utf-8"))
-        if doc.fechas.limite is not None:
-            resumen.update(_formato_fecha(doc.fechas.limite).encode("utf-8"))
+    tipo.hash_fechas(doc, resumen)
     resumen.update(b"\n")
     resumen.update(doc.cuerpo.encode("utf-8"))
-    if doc.cuestionario is not None:
-        resumen.update(b"\n--cuestionario--\n")
-        resumen.update(_hash_cuestionario(doc.cuestionario))
-    if doc.h5p is not None:
-        resumen.update(b"\n--h5p--\n")
-        resumen.update(repr(doc.h5p).encode("utf-8"))
+    tipo.hash_contenido(doc, resumen)
     if doc.finalizacion is not None or doc.restricciones is not None:
         resumen.update(b"\n--itinerario--\n")
         resumen.update(repr(doc.finalizacion).encode("utf-8"))
         resumen.update(repr(doc.restricciones).encode("utf-8"))
-    if doc.paquete is not None:
-        resumen.update(b"\n--paquete--\n")
-        resumen.update(doc.paquete.nombre.encode("utf-8"))
-        resumen.update(b"\n")
-        with doc.paquete.ruta.open("rb") as fichero:
-            while trozo := fichero.read(_TROZO_HASH):
-                resumen.update(trozo)
+    tipo.hash_extra(doc, resumen)
     for recurso in sorted(doc.recursos, key=lambda item: item.nombre):
         resumen.update(b"\n--recurso--\n")
         resumen.update(recurso.nombre.encode("utf-8"))
@@ -1053,8 +893,3 @@ def hash_documento(doc: Documento) -> str:
             while trozo := fichero.read(_TROZO_HASH):
                 resumen.update(trozo)
     return resumen.hexdigest()
-
-
-def _hash_cuestionario(cuestionario: Cuestionario) -> bytes:
-    """Ajustes y preguntas; el repr de los dataclass congelados es estable y completo."""
-    return repr(cuestionario).encode("utf-8")

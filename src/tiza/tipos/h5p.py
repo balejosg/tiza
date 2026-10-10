@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import html as _html
 import re
+import tempfile
+from pathlib import Path
 from typing import Any
 
 from bs4 import Tag
@@ -18,7 +20,16 @@ from ..contenido import (
     TextoH5P,
 )
 from ..filtro import CONTROL as _CONTROL
-from .base import Contexto, Extras, Tipo
+from ..h5p import LIBRERIAS, paquete_h5p, reempaquetar
+from .base import (
+    Contexto,
+    ContextoPublicacion,
+    Extras,
+    Tipo,
+    campo_visible,
+    deshacer_modulo,
+    verificar,
+)
 
 # Todos los campos que puede llevar el bloque del frontmatter, entre los del
 # documento («actividad», «paquete») y los de la actividad generada. Lo usa
@@ -95,6 +106,145 @@ class H5P(Tipo):
     def validar(self, datos: dict, ctx: Contexto) -> Extras:
         h5p, paquete = _validar_h5p(datos, ctx)
         return Extras(h5p=h5p, paquete=paquete)
+
+    def payload(self, doc, html, itemid, visible, *, itemid_paquete: int | None = None) -> dict:
+        """Formulario de una actividad H5P.
+
+        ``itemid`` es el borrador de la descripción y ``itemid_paquete`` el del
+        fichero .h5p (van separados para que no se mezclen). Las tarjetas no
+        califican: seguimiento desactivado y sin nota.
+        """
+        assert itemid_paquete is not None
+        actividad = doc.h5p
+        califica = doc.paquete is not None or (
+            actividad is not None and actividad.tipo != "tarjetas"
+        )
+        payload = {
+            "_qf__mod_h5pactivity_mod_form": "1",
+            "name": doc.nombre,
+            "introeditor[text]": html,
+            "introeditor[format]": "1",
+            "introeditor[itemid]": str(itemid),
+            "packagefile": str(itemid_paquete),
+            "displayopt[export]": "0",  # sin descarga
+            "displayopt[embed]": "0",  # sin código de incrustar
+            "displayopt[copyright]": "0",
+            "submitbutton": "Guardar cambios y regresar al curso",
+        }
+        if califica:
+            payload["grade[modgrade_type]"] = "point"
+            payload["grade[modgrade_point]"] = str(actividad.calificacion if actividad else 10)
+            payload["enabletracking"] = "1"
+            payload["grademethod"] = "1"  # nota más alta
+            payload["reviewmode"] = "1"  # revisión al completar
+        else:
+            payload["grade[modgrade_type]"] = "none"
+            payload["enabletracking"] = "0"
+        payload.update(campo_visible(visible))
+        return payload
+
+    def publicar(self, p: ContextoPublicacion) -> tuple[int, str, dict]:
+        """Crea o actualiza la actividad H5P y la verifica."""
+        from ..publicar import DETALLE_H5P_INTENTOS, ErrorPublicacion
+
+        if p.existente is not None and p.moodle.h5p_tiene_intentos(p.existente["cmid"]):
+            raise ErrorPublicacion("H5P_CON_INTENTOS", DETALLE_H5P_INTENTOS)
+        machine_name, paquete, nombre_base = self._paquete(p.doc)
+        itemid_paquete = p.itemid + 1
+        with tempfile.TemporaryDirectory(prefix="tiza-h5p-") as temporal:
+            ruta = Path(temporal) / f"{nombre_base}.h5p"
+            ruta.write_bytes(paquete)
+            _itemid, nombre_final = p.moodle.subir(
+                p.curso_id, p.moodle.contexto(p.curso_id), ruta, itemid_paquete
+            )
+        payload = self.payload(p.doc, p.html, p.itemid, p.visible, itemid_paquete=itemid_paquete)
+
+        if p.existente is not None:
+            cmid = p.existente["cmid"]
+            p.moodle.actualizar(cmid, payload)
+            accion = "actualizada"
+        else:
+            cmid = p.moodle.crear(p.curso_id, p.seccion["id"], self.nombre, payload)
+            accion = "creada"
+
+        try:
+            info = verificar(p.moodle, self, p.doc, cmid, paquete=nombre_final)
+            if not p.moodle.comprobar_h5p(cmid):
+                if p.moodle.libreria_h5p_ausente(cmid, machine_name):
+                    raise ErrorPublicacion(
+                        "H5P_LIBRERIA_AUSENTE", f"el aula no tiene la librería {machine_name}"
+                    )
+                raise ErrorPublicacion(
+                    "H5P_NO_DESPLEGADO", "la actividad se creó, pero H5P no llegó a arrancar"
+                )
+        except ErrorPublicacion as exc:
+            if p.existente is None:
+                deshacer_modulo(p.moodle, p.curso_id, cmid, exc)
+            else:
+                exc.cmid = cmid
+            raise
+        return cmid, accion, info
+
+    @staticmethod
+    def _paquete(doc) -> tuple[str, bytes, str]:
+        """(librería principal, bytes del .h5p, nombre base) según el documento."""
+        if doc.h5p is not None:
+            machine_name = LIBRERIAS[doc.h5p.tipo][0]
+            return machine_name, paquete_h5p(doc), doc.ruta.stem
+        assert doc.paquete is not None
+        return (
+            doc.paquete.machine_name,
+            reempaquetar(doc.paquete.ruta),
+            Path(doc.paquete.nombre).stem,
+        )
+
+    def urls_pluginfile(self, base_url, contexto, instance, nombre) -> list[str]:
+        # La descripción va en mod_h5pactivity/intro; el paquete va aparte.
+        raiz = f"{base_url}/pluginfile.php/{contexto}/mod_h5pactivity"
+        return [f"{raiz}/intro/{nombre}", f"{raiz}/intro/0/{nombre}"]
+
+    def metadatos_preview(self, doc) -> list[tuple[str, str]]:
+        filas: list[tuple[str, str]] = []
+        if doc.h5p is not None:
+            filas.append(("Actividad H5P", NOMBRES_H5P.get(doc.h5p.tipo, doc.h5p.tipo)))
+            if doc.h5p.tipo == "tarjetas":
+                filas.append(("Calificación", "no califica"))
+            else:
+                filas.append(("Calificación máxima", str(doc.h5p.calificacion)))
+                filas.append(("Ver solución", "sí" if doc.h5p.ver_solucion else "no"))
+            filas.append(("Reintentar", "sí" if doc.h5p.reintentar else "no"))
+        if doc.paquete is not None:
+            filas.append(("Paquete", doc.paquete.nombre))
+        return filas
+
+    def extra_preview(self, doc) -> str:
+        """Actividad H5P o resumen del paquete, para que el docente lo revise."""
+        return _h5p_preview(doc)
+
+    def hash_contenido(self, doc, resumen) -> None:
+        if doc.h5p is None:
+            return
+        resumen.update(b"\n--h5p--\n")
+        resumen.update(repr(doc.h5p).encode("utf-8"))
+
+    def hash_extra(self, doc, resumen) -> None:
+        if doc.paquete is None:
+            return
+        resumen.update(b"\n--paquete--\n")
+        resumen.update(doc.paquete.nombre.encode("utf-8"))
+        resumen.update(b"\n")
+        with doc.paquete.ruta.open("rb") as fichero:
+            while trozo := fichero.read(1024 * 1024):
+                resumen.update(trozo)
+
+    def extras_resumen(self, doc) -> dict:
+        if doc.h5p is None and doc.paquete is None:
+            return {}
+        return {
+            "h5p": (NOMBRES_H5P.get(doc.h5p.tipo, doc.h5p.tipo) if doc.h5p is not None else None),
+            "h5p_libreria": doc.paquete.libreria if doc.paquete is not None else None,
+            "h5p_descartadas": doc.paquete.descartadas if doc.paquete is not None else (),
+        }
 
 
 # --------------------------------------------------------------------------- #
@@ -420,3 +570,87 @@ def _html_inline(valor: str, donde: str, permitidas: frozenset[str], ctx: Contex
                 f"{donde}: la etiqueta <{nodo.name}> no se admite en este campo",
             )
     return filtro.serializar(analisis.cuerpo)
+
+
+def _h5p_preview(doc) -> str:
+    """Actividad H5P o resumen del paquete, para que el docente lo revise."""
+    if doc.paquete is not None:
+        paquete = doc.paquete
+        partes = ["<hr>", "<h2>Paquete H5P</h2>", "<ul>"]
+        partes.append(f"<li><strong>Fichero:</strong> {_html.escape(paquete.nombre)}</li>")
+        if paquete.titulo:
+            partes.append(f"<li><strong>Título:</strong> {_html.escape(paquete.titulo)}</li>")
+        if paquete.libreria:
+            partes.append(
+                f"<li><strong>Librería principal:</strong> {_html.escape(paquete.libreria)}</li>"
+            )
+        partes.append("</ul>")
+        if paquete.ficheros:
+            partes.append("<p><strong>Ficheros:</strong></p><ul>")
+            for nombre in paquete.ficheros[:20]:
+                partes.append(f"<li>{_html.escape(nombre)}</li>")
+            if len(paquete.ficheros) > 20:
+                partes.append(f"<li>… y {len(paquete.ficheros) - 20} más</li>")
+            partes.append("</ul>")
+        if paquete.descartadas:
+            nombres = ", ".join(_html.escape(nombre) for nombre in paquete.descartadas)
+            partes.append(
+                f"<p><strong>Librerías descartadas:</strong> {nombres} "
+                "(tiza nunca sube sus ficheros)</p>"
+            )
+        if paquete.externos:
+            partes.append("<p><strong>Enlaces externos de la actividad:</strong></p><ul>")
+            for url in paquete.externos:
+                partes.append(
+                    f'<li><a href="{_html.escape(url)}" target="_blank" '
+                    f'rel="noopener noreferrer">{_html.escape(url)}</a></li>'
+                )
+            partes.append("</ul>")
+        return "\n".join(partes)
+    actividad = doc.h5p
+    if actividad is None:
+        return ""
+    partes = ["<hr>", "<h2>Actividad H5P</h2>"]
+    partes.append(
+        "<p><strong>Tipo:</strong> "
+        f"{_html.escape(NOMBRES_H5P.get(actividad.tipo, actividad.tipo))}</p>"
+    )
+    if actividad.tipo == "rellenar_huecos":
+        partes.append("<ol>")
+        for texto in actividad.textos:
+            partes.append(f"<li>{_h5p_marcas_html(texto)}</li>")
+        partes.append("</ol>")
+    elif actividad.tipo == "arrastrar_palabras":
+        assert actividad.texto is not None
+        partes.append(f"<p>{_h5p_marcas_html(actividad.texto)}</p>")
+        if actividad.distractores:
+            distractores = ", ".join(_html.escape(d) for d in actividad.distractores)
+            partes.append(f"<p><strong>Distractores:</strong> {distractores}</p>")
+    elif actividad.tipo == "marcar_palabras":
+        assert actividad.texto is not None
+        if actividad.enunciado_html:
+            partes.append(f"<p>{actividad.enunciado_html}</p>")
+        partes.append(f"<p>{_h5p_marcas_html(actividad.texto)}</p>")
+    else:
+        partes.append("<ol>")
+        for tarjeta in actividad.tarjetas:
+            partes.append(
+                f"<li><p><strong>Anverso:</strong></p>{tarjeta.anverso_html}"
+                f"<p><strong>Reverso:</strong></p>{tarjeta.reverso_html}</li>"
+            )
+        partes.append("</ol>")
+    return "\n".join(partes)
+
+
+def _h5p_marcas_html(texto: TextoH5P) -> str:
+    """El texto de la actividad con las marcas subrayadas y sus alternativas."""
+    salida: list[str] = []
+    for parte in texto.partes:
+        if isinstance(parte, MarcaH5P):
+            alternativas = " | ".join(_html.escape(respuesta) for respuesta in parte.respuestas)
+            salida.append(f"<u>{alternativas}</u>")
+        elif texto.plano:
+            salida.append(_html.escape(parte))
+        else:
+            salida.append(parte)
+    return "".join(salida)

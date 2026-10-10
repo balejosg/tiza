@@ -39,10 +39,7 @@ from py_moodle.session import MoodleSessionError
 from . import __version__, tipos
 from .config import AdaptadorAula, DestinoNoPermitido
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
-from .cuestionario import preguntas_xml
 from .ficheros import asegurar_directorio, escribir_json
-from .h5p import LIBRERIAS as H5P_LIBRERIAS
-from .h5p import paquete_h5p, reempaquetar
 from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
 from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
@@ -1028,80 +1025,26 @@ def autenticar(base_url: str, usuario: str, password: str) -> Moodle:
 
 
 # --------------------------------------------------------------------------- #
-# Payloads de módulo
+# Payloads de módulo (fachada del registro: cada formulario lo arma su adapter)
 # --------------------------------------------------------------------------- #
 
 
-def _campo_visible(visible: bool | None) -> dict:
-    """Sin valor, el formulario conserva la visibilidad que ya tenga el módulo."""
-    return {} if visible is None else {"visible": "1" if visible else "0"}
-
-
 def payload_pagina(doc: Documento, html: str, itemid: int, visible: bool | None) -> dict:
-    payload = {
-        "_qf__mod_page_mod_form": "1",
-        "name": doc.nombre,
-        "page[text]": html,
-        "page[format]": "1",
-        "page[itemid]": str(itemid),
-        "submitbutton": "Save and return to course",
-    }
-    payload.update(_campo_visible(visible))
-    return payload
+    return tipos.obtener("pagina").payload(doc, html, itemid, visible)
 
 
 def payload_etiqueta(doc: Documento, html: str, itemid: int, visible: bool | None) -> dict:
-    payload = {
-        "_qf__mod_label_mod_form": "1",
-        "name": doc.nombre,
-        "introeditor[text]": html,
-        "introeditor[format]": "1",
-        "introeditor[itemid]": str(itemid),
-        "submitbutton2": "Save and return to course",
-    }
-    payload.update(_campo_visible(visible))
-    return payload
+    return tipos.obtener("etiqueta").payload(doc, html, itemid, visible)
 
 
 def payload_tarea(doc: Documento, html: str, itemid: int, visible: bool | None) -> dict:
     """Formulario de una tarea."""
-    payload: dict[str, Any] = {
-        "_qf__mod_assign_mod_form": "1",
-        "name": doc.nombre,
-        "introeditor[text]": html,
-        "introeditor[format]": "1",
-        "introeditor[itemid]": str(itemid),
-        "introattachments": str(itemid),
-        "submitbutton": "Save and display",
-    }
-    payload.update(tipos.fechas_payload(tipos.obtener("tarea"), doc))
-    payload.update(_campo_visible(visible))
-    return payload
+    return tipos.obtener("tarea").payload(doc, html, itemid, visible)
 
 
 def payload_cuestionario(doc: Documento, html: str, itemid: int, visible: bool | None) -> dict:
-    cuestionario = doc.cuestionario
-    assert cuestionario is not None
-    payload: dict[str, Any] = {
-        "_qf__mod_quiz_mod_form": "1",
-        "name": doc.nombre,
-        "introeditor[text]": html,
-        "introeditor[format]": "1",
-        "introeditor[itemid]": str(itemid),
-        "submitbutton2": "Save and return to course",
-    }
-    payload.update(tipos.fechas_payload(tipos.obtener("cuestionario"), doc))
-    if cuestionario.tiempo_limite is not None:
-        payload["timelimit[enabled]"] = "1"
-        payload["timelimit[number]"] = str(cuestionario.tiempo_limite)
-        payload["timelimit[timeunit]"] = "60"  # minutos
-    else:
-        payload["timelimit[enabled]"] = "0"
-    # En Moodle, 0 intentos es «ilimitados».
-    payload["attempts"] = "0" if cuestionario.intentos == 0 else str(cuestionario.intentos)
-    payload["shuffleanswers"] = "1" if cuestionario.mezclar_respuestas else "0"
-    payload.update(_campo_visible(visible))
-    return payload
+    """Formulario de un cuestionario; las preguntas van aparte, por el banco."""
+    return tipos.obtener("cuestionario").payload(doc, html, itemid, visible)
 
 
 def payload_h5p(
@@ -1110,34 +1053,9 @@ def payload_h5p(
     """Formulario de una actividad H5P.
 
     ``itemid`` es el borrador de la descripción y ``itemid_paquete`` el del
-    fichero .h5p (van separados para que no se mezclen). Las tarjetas no
-    califican: seguimiento desactivado y sin nota.
+    fichero .h5p (van separados para que no se mezclen).
     """
-    actividad = doc.h5p
-    califica = doc.paquete is not None or (actividad is not None and actividad.tipo != "tarjetas")
-    payload: dict[str, Any] = {
-        "_qf__mod_h5pactivity_mod_form": "1",
-        "name": doc.nombre,
-        "introeditor[text]": html,
-        "introeditor[format]": "1",
-        "introeditor[itemid]": str(itemid),
-        "packagefile": str(itemid_paquete),
-        "displayopt[export]": "0",  # sin descarga
-        "displayopt[embed]": "0",  # sin código de incrustar
-        "displayopt[copyright]": "0",
-        "submitbutton": "Guardar cambios y regresar al curso",
-    }
-    if califica:
-        payload["grade[modgrade_type]"] = "point"
-        payload["grade[modgrade_point]"] = str(actividad.calificacion if actividad else 10)
-        payload["enabletracking"] = "1"
-        payload["grademethod"] = "1"  # nota más alta
-        payload["reviewmode"] = "1"  # revisión al completar
-    else:
-        payload["grade[modgrade_type]"] = "none"
-        payload["enabletracking"] = "0"
-    payload.update(_campo_visible(visible))
-    return payload
+    return tipos.obtener("h5p").payload(doc, html, itemid, visible, itemid_paquete=itemid_paquete)
 
 
 def payload_solo_fechas(doc: Documento) -> dict:
@@ -1241,34 +1159,19 @@ def _publicar_congelado(
                     f"@@PLUGINFILE@@/{nombre_final}",
                 )
     pasos: list[dict] = []
-    if doc.tipo == "cuestionario":
-        cmid, accion, info = _publicar_cuestionario(
-            moodle, curso_id, seccion, doc, html, itemid, visible, existente
+    tipo = tipos.obtener(doc.tipo)
+    cmid, accion, info = tipo.publicar(
+        tipos.ContextoPublicacion(
+            moodle=moodle,
+            curso_id=curso_id,
+            seccion=seccion,
+            doc=doc,
+            html=html,
+            itemid=itemid,
+            visible=visible,
+            existente=existente,
         )
-    elif doc.tipo == "h5p":
-        cmid, accion, info = _publicar_h5p(
-            moodle, curso_id, seccion, doc, html, itemid, visible, existente
-        )
-    else:
-        if doc.tipo == "tarea":
-            payload = payload_tarea(doc, html, itemid, visible)
-        else:
-            payload = {
-                "pagina": payload_pagina,
-                "etiqueta": payload_etiqueta,
-            }[doc.tipo](doc, html, itemid, visible)
-        if existente is not None:
-            cmid = existente["cmid"]
-            moodle.actualizar(cmid, payload)
-            accion = "actualizada"
-        else:
-            cmid = moodle.crear(curso_id, seccion["id"], doc.tipo, payload)
-            accion = "creada"
-        try:
-            info = _verificar(moodle, doc, cmid)
-        except ErrorPublicacion as exc:
-            exc.cmid = cmid
-            raise
+    )
     aplicar_itinerario(moodle, doc, cmid, envio)
     return {
         "nombre": original.ruta.name,
@@ -1282,183 +1185,6 @@ def _publicar_congelado(
         "verificado": True,
         "pasos": pasos,
     }
-
-
-# --------------------------------------------------------------------------- #
-# Cuestionarios: preguntas, republicación y limpieza
-# --------------------------------------------------------------------------- #
-
-
-def _publicar_cuestionario(
-    moodle: AulaVirtual,
-    curso_id: int,
-    seccion: dict,
-    doc: Documento,
-    html: str,
-    itemid: int,
-    visible: bool | None,
-    existente: dict | None,
-) -> tuple[int, str, dict]:
-    """Crea o republica un cuestionario y devuelve (cmid, acción, formulario).
-
-    Lo nuevo se crea con sus preguntas y, si algo falla después de crear el
-    módulo, se borra entero (se lleva sus preguntas). En uno existente se añade
-    antes de quitar para que un fallo no lo deje vacío.
-    """
-    cuestionario = doc.cuestionario
-    assert cuestionario is not None
-    cuantas = len(cuestionario.preguntas)
-    payload = payload_cuestionario(doc, html, itemid, visible)
-    xml = preguntas_xml(doc)
-    nuevas: list[int] = []
-
-    if existente is None:
-        cmid = moodle.crear(curso_id, seccion["id"], doc.tipo, payload)
-        try:
-            categoria = moodle.categoria_cuestionario(cmid)
-            nuevas = _importar_preguntas(moodle, curso_id, cmid, categoria, xml, cuantas)
-            moodle.anadir_preguntas(cmid, nuevas)
-        except ErrorPublicacion as exc:
-            _borrar_modulo_si_falla(moodle, curso_id, cmid, exc)
-            raise
-        accion = "creada"
-    else:
-        cmid = existente["cmid"]
-        if moodle.tiene_intentos(cmid):
-            raise ErrorPublicacion("CUESTIONARIO_CON_INTENTOS", DETALLE_INTENTOS)
-        categoria = moodle.categoria_cuestionario(cmid)
-        # Lo que hay ahora: sus huecos y las preguntas de su banco.
-        viejos = moodle.huecos(cmid)
-        viejas = moodle.preguntas_en_categoria(cmid, categoria)
-        try:
-            nuevas = _importar_preguntas(moodle, curso_id, cmid, categoria, xml, cuantas)
-        except ErrorPublicacion:
-            # La republicación no ha cambiado nada: fuera las nuevas a medias.
-            _borrar_nuevas(moodle, cmid, nuevas)
-            raise
-        try:
-            moodle.anadir_preguntas(cmid, nuevas)
-        except ErrorPublicacion:
-            _borrar_nuevas(moodle, cmid, nuevas)
-            raise
-        quizid = moodle.leer_modulo(cmid).get("instance")
-        if not isinstance(quizid, int):
-            raise ErrorPublicacion("ERROR_QUITAR_PREGUNTAS")
-        for hueco, _pregunta in viejos:
-            moodle.quitar_hueco(curso_id, quizid, hueco)
-        moodle.borrar_preguntas(cmid, sorted(viejas))
-        moodle.actualizar(cmid, payload)
-        accion = "actualizada"
-
-    try:
-        info = _verificar(moodle, doc, cmid, preguntas=nuevas)
-    except ErrorPublicacion as exc:
-        if existente is None:
-            _borrar_modulo_si_falla(moodle, curso_id, cmid, exc)
-        else:
-            exc.cmid = cmid
-        raise
-    return cmid, accion, info
-
-
-def _importar_preguntas(
-    moodle: AulaVirtual, curso_id: int, cmid: int, categoria: str, xml: bytes, cuantas: int
-) -> list[int]:
-    """Importa el XML y comprueba que llegaron todas las preguntas."""
-    nuevas = moodle.importar_preguntas(curso_id, cmid, categoria, xml)
-    if len(nuevas) != cuantas:
-        raise ErrorPublicacion(
-            "ERROR_IMPORTACION",
-            f"se esperaban {cuantas} preguntas y el aula importó {len(nuevas)}",
-        )
-    return nuevas
-
-
-def _borrar_nuevas(moodle: AulaVirtual, cmid: int, ids: list[int]) -> None:
-    if not ids:
-        return
-    try:
-        moodle.borrar_preguntas(cmid, ids)
-    except ErrorPublicacion:
-        pass  # el cuestionario sigue como estaba; las nuevas se borrarán al republicar
-
-
-def _borrar_modulo_si_falla(
-    moodle: AulaVirtual, curso_id: int, cmid: int, exc: ErrorPublicacion
-) -> None:
-    """Deshace un módulo nuevo a medias; si no puede, deja el cmid al llamador."""
-    try:
-        moodle.borrar(curso_id, cmid)
-    except ErrorPublicacion:
-        exc.cmid = cmid
-
-
-# --------------------------------------------------------------------------- #
-# Actividades H5P: paquete, creación y verificación
-# --------------------------------------------------------------------------- #
-
-
-def _paquete_de_h5p(doc: Documento) -> tuple[str, bytes, str]:
-    """(librería principal, bytes del .h5p, nombre base) según el documento."""
-    if doc.h5p is not None:
-        machine_name = H5P_LIBRERIAS[doc.h5p.tipo][0]
-        return machine_name, paquete_h5p(doc), doc.ruta.stem
-    assert doc.paquete is not None
-    return (
-        doc.paquete.machine_name,
-        reempaquetar(doc.paquete.ruta),
-        Path(doc.paquete.nombre).stem,
-    )
-
-
-def _publicar_h5p(
-    moodle: AulaVirtual,
-    curso_id: int,
-    seccion: dict,
-    doc: Documento,
-    html: str,
-    itemid: int,
-    visible: bool | None,
-    existente: dict | None,
-) -> tuple[int, str, dict]:
-    """Crea o actualiza la actividad H5P y devuelve (cmid, acción, formulario)."""
-    if existente is not None and moodle.h5p_tiene_intentos(existente["cmid"]):
-        raise ErrorPublicacion("H5P_CON_INTENTOS", DETALLE_H5P_INTENTOS)
-    machine_name, paquete, nombre_base = _paquete_de_h5p(doc)
-    itemid_paquete = itemid + 1
-    with tempfile.TemporaryDirectory(prefix="tiza-h5p-") as temporal:
-        ruta = Path(temporal) / f"{nombre_base}.h5p"
-        ruta.write_bytes(paquete)
-        _itemid, nombre_final = moodle.subir(
-            curso_id, moodle.contexto(curso_id), ruta, itemid_paquete
-        )
-    payload = payload_h5p(doc, html, itemid, itemid_paquete, visible)
-
-    if existente is not None:
-        cmid = existente["cmid"]
-        moodle.actualizar(cmid, payload)
-        accion = "actualizada"
-    else:
-        cmid = moodle.crear(curso_id, seccion["id"], doc.tipo, payload)
-        accion = "creada"
-
-    try:
-        info = _verificar(moodle, doc, cmid, paquete=nombre_final)
-        if not moodle.comprobar_h5p(cmid):
-            if moodle.libreria_h5p_ausente(cmid, machine_name):
-                raise ErrorPublicacion(
-                    "H5P_LIBRERIA_AUSENTE", f"el aula no tiene la librería {machine_name}"
-                )
-            raise ErrorPublicacion(
-                "H5P_NO_DESPLEGADO", "la actividad se creó, pero H5P no llegó a arrancar"
-            )
-    except ErrorPublicacion as exc:
-        if existente is None:
-            _borrar_modulo_si_falla(moodle, curso_id, cmid, exc)
-        else:
-            exc.cmid = cmid
-        raise
-    return cmid, accion, info
 
 
 # --------------------------------------------------------------------------- #
@@ -1778,41 +1504,6 @@ def asegurar_secciones(
     return secciones, creadas
 
 
-def _verificar(
-    moodle: AulaVirtual,
-    doc: Documento,
-    cmid: int,
-    preguntas: list[int] | None = None,
-    paquete: str | None = None,
-) -> dict:
-    info = moodle.leer_modulo(cmid)
-    if (info.get("nombre") or "").strip() != doc.nombre:
-        raise ErrorPublicacion("VERIFICACION_NOMBRE", doc.ruta.name)
-    leidas = info.get("fechas") or {}
-    if any(leidas.get(campo) != valor for campo, valor in fechas_esperadas(doc).items()):
-        raise ErrorPublicacion("FECHAS_NO_APLICADAS", doc.ruta.name)
-    texto = info.get("texto") or ""
-    for recurso in doc.recursos:
-        if recurso.nombre not in texto:
-            raise ErrorPublicacion("VERIFICACION_TEXTO", doc.ruta.name)
-        urls = urls_pluginfile(
-            moodle.base_url, info.get("contexto"), doc.tipo, info.get("instance"), recurso.nombre
-        )
-        if not any(moodle.comprobar_pluginfile(url) for url in urls):
-            raise ErrorPublicacion("VERIFICACION_FICHERO", doc.ruta.name)
-    if paquete is not None:
-        urls = urls_paquete_h5p(
-            moodle.base_url, info.get("contexto"), info.get("instance"), paquete
-        )
-        if not any(moodle.comprobar_pluginfile(url) for url in urls):
-            raise ErrorPublicacion("VERIFICACION_PAQUETE", doc.ruta.name)
-    if preguntas is not None:
-        en_huecos = [identificador for _hueco, identificador in moodle.huecos(cmid)]
-        if en_huecos != list(preguntas):
-            raise ErrorPublicacion("VERIFICACION_PREGUNTAS", doc.ruta.name)
-    return info
-
-
 def publicar_fechas(moodle: AulaVirtual, secciones: list[dict], doc: Documento) -> dict:
     """Cambia solo las fechas de una tarea o un cuestionario que ya está en el aula.
 
@@ -1859,26 +1550,13 @@ def _oculto(visible: bool | None, info: dict) -> bool | None:
 
 
 def urls_pluginfile(base_url: str, contexto, tipo: str, instance, nombre: str) -> list[str]:
-    raiz = f"{base_url}/pluginfile.php/{contexto}/mod_{tipos.obtener(tipo).modulo}"
-    if tipo == "pagina":
-        return [f"{raiz}/content/{instance}/{nombre}"]
-    if tipo == "cuestionario":
-        # La descripción de un cuestionario va en mod_quiz/intro (sin itemid).
-        return [f"{raiz}/intro/{nombre}", f"{raiz}/intro/0/{nombre}"]
-    if tipo == "etiqueta":
-        # El texto de una etiqueta va en mod_label/intro (sin itemid).
-        return [f"{raiz}/intro/{nombre}"]
-    if tipo == "h5p":
-        # La descripción va en mod_h5pactivity/intro; el paquete va aparte.
-        return [f"{raiz}/intro/{nombre}", f"{raiz}/intro/0/{nombre}"]
-    # En una tarea, intro no lleva itemid e introattachment usa el 0.
-    return [f"{raiz}/intro/{nombre}", f"{raiz}/introattachment/0/{nombre}"]
+    """Fachada del registro: cada tipo sabe dónde vive su recurso (``@@PLUGINFILE@@``)."""
+    return tipos.obtener(tipo).urls_pluginfile(base_url, contexto, instance, nombre)
 
 
 def urls_paquete_h5p(base_url: str, contexto, instance, nombre: str) -> list[str]:
     """Las dos formas válidas de la ruta del paquete (la espiga comprobó ambas)."""
-    raiz = f"{base_url}/pluginfile.php/{contexto}/mod_h5pactivity/package"
-    return [f"{raiz}/0/{nombre}", f"{raiz}/{instance}/{nombre}"]
+    return tipos.base.urls_paquete_h5p(base_url, contexto, instance, nombre)
 
 
 def url_modulo(base_url: str, tipo: str, cmid: int) -> str:

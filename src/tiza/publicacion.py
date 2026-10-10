@@ -34,7 +34,6 @@ from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
 from .publicar import AulaVirtual, ErrorPublicacion
 from .tipos import CAMPO_RECORDATORIO, FechaActividad
-from .tipos.h5p import NOMBRES_H5P
 
 if TYPE_CHECKING:  # solo para el tipo; la sesión importa este módulo
     from .sesion import CursoSesion
@@ -165,11 +164,9 @@ class DocumentoResumen:
             enlaces_externos=tuple(doc.enlaces_externos),
             incrustados=tuple(doc.incrustados),
             recursos=tuple(_relativa(recurso.ruta, base) for recurso in doc.recursos),
-            h5p=(NOMBRES_H5P.get(doc.h5p.tipo, doc.h5p.tipo) if doc.h5p is not None else None),
-            h5p_libreria=doc.paquete.libreria if doc.paquete is not None else None,
-            h5p_descartadas=doc.paquete.descartadas if doc.paquete is not None else (),
             cambios=cambios,
             itinerario=itinerario_de(doc, base),
+            **tipos.obtener(doc.tipo).extras_resumen(doc),
         )
 
 
@@ -576,8 +573,10 @@ def publicar_con(
             )
         ficheros.append({**{clave: resultado[clave] for clave in _CAMPOS_FICHERO}, "curso": curso})
         detalle = doc.ruta.name
-        if doc.cuestionario is not None and not solo_fechas:
-            detalle = f"{detalle}: {len(doc.cuestionario.preguntas)} preguntas"
+        if not solo_fechas:
+            extra = tipos.obtener(doc.tipo).detalle(doc)
+            if extra:
+                detalle = f"{detalle}: {extra}"
         pasos.append({"codigo": paso, "resultado": "ok", "detalle": detalle})
         for extra in resultado.get("pasos", []):
             pasos.append(extra)

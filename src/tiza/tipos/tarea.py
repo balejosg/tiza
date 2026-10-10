@@ -5,7 +5,16 @@ from __future__ import annotations
 from datetime import time
 
 from ..contenido import ErrorContenido, Fechas
-from .base import CAMPO_RECORDATORIO, Contexto, Extras, FechaActividad, Tipo, fechas_payload
+from .base import (
+    CAMPO_RECORDATORIO,
+    Contexto,
+    Extras,
+    FechaActividad,
+    Tipo,
+    campo_visible,
+    fechas_payload,
+    formato_fecha,
+)
 
 # Campos propios del frontmatter y campos de fecha del formulario de Moodle
 # (en español: «Permitir entregas desde», «Fecha de entrega», «Fecha límite» y
@@ -60,3 +69,42 @@ class Tarea(Tipo):
             "submitbutton": "Save and display",
             **fechas_payload(self, doc),
         }
+
+    def payload(self, doc, html, itemid, visible, *, itemid_paquete=None) -> dict:
+        payload = {
+            "_qf__mod_assign_mod_form": "1",
+            "name": doc.nombre,
+            "introeditor[text]": html,
+            "introeditor[format]": "1",
+            "introeditor[itemid]": str(itemid),
+            "introattachments": str(itemid),
+            "submitbutton": "Save and display",
+        }
+        payload.update(fechas_payload(self, doc))
+        payload.update(campo_visible(visible))
+        return payload
+
+    def urls_pluginfile(self, base_url, contexto, instance, nombre) -> list[str]:
+        # En una tarea, intro no lleva itemid e introattachment usa el 0.
+        raiz = f"{base_url}/pluginfile.php/{contexto}/mod_assign"
+        return [f"{raiz}/intro/{nombre}", f"{raiz}/introattachment/0/{nombre}"]
+
+    def metadatos_preview(self, doc) -> list[tuple[str, str]]:
+        fechas = doc.fechas
+        if fechas is None:
+            return []
+        filas = [
+            ("Apertura", formato_fecha(fechas.apertura)),
+            ("Entrega", formato_fecha(fechas.entrega)),
+        ]
+        if fechas.limite is not None:
+            filas.append(("Límite", formato_fecha(fechas.limite)))
+        return filas
+
+    def hash_fechas(self, doc, resumen) -> None:
+        if doc.fechas is None:
+            return
+        resumen.update(formato_fecha(doc.fechas.apertura).encode("utf-8"))
+        resumen.update(formato_fecha(doc.fechas.entrega).encode("utf-8"))
+        if doc.fechas.limite is not None:
+            resumen.update(formato_fecha(doc.fechas.limite).encode("utf-8"))

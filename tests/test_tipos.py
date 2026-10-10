@@ -193,3 +193,90 @@ class TestFechas:
                     assert any(clave.startswith(f"{campo}[") for clave in payload)
             else:
                 assert payload is None
+
+
+class TestPayload:
+    def test_cada_tipo_arma_su_formulario(self, cargar):
+        for tipo in tipos.TODOS:
+            doc = cargar(tipo.nombre)
+            payload = tipo.payload(doc, "<p>texto</p>", 7, None, itemid_paquete=8)
+            assert any(clave.startswith("_qf__mod_") for clave in payload), tipo.nombre
+            assert payload.get("name") == doc.nombre
+            assert "visible" not in payload  # sin indicación, la visibilidad se conserva
+
+    def test_cada_tipo_dice_donde_vive_su_recurso(self):
+        for tipo in tipos.TODOS:
+            urls = tipo.urls_pluginfile("https://aula", 5, 77, "foto.png")
+            assert urls and all("pluginfile.php" in url for url in urls), tipo.nombre
+
+    def test_solo_cuestionario_lleva_detalle_y_solo_h5p_extras(self, cargar):
+        for tipo in tipos.TODOS:
+            doc = cargar(tipo.nombre)
+            if tipo.nombre == "cuestionario":
+                assert tipo.detalle(doc) == "1 preguntas"
+            else:
+                assert tipo.detalle(doc) is None
+            extras = tipo.extras_resumen(doc)
+            assert bool(extras) == (tipo.nombre == "h5p"), tipo.nombre
+
+
+class TestVistaPrevia:
+    def test_cada_tipo_aporta_sus_metadatos_y_su_bloque(self, cargar):
+        for tipo in tipos.TODOS:
+            doc = cargar(tipo.nombre)
+            metadatos = tipo.metadatos_preview(doc)
+            assert isinstance(metadatos, list)
+            assert all(len(fila) == 2 for fila in metadatos)
+            assert isinstance(tipo.extra_preview(doc), str)
+
+    def test_el_cuestionario_enseña_las_preguntas_y_el_h5p_su_actividad(self, cargar):
+        cuestionario = tipos.obtener("cuestionario")
+        assert "Preguntas del cuestionario" in cuestionario.extra_preview(cargar("cuestionario"))
+        h5p = tipos.obtener("h5p")
+        assert "Actividad H5P" in h5p.extra_preview(cargar("h5p"))
+        for nombre in ("pagina", "etiqueta", "tarea"):
+            assert tipos.obtener(nombre).extra_preview(cargar(nombre)) == ""
+
+
+class TestHash:
+    """El hash no cambia de bytes: el registro de verificados sigue valiendo."""
+
+    def _de_siempre(self, doc) -> str:
+        import hashlib
+
+        resumen = hashlib.sha256()
+        resumen.update(f"{doc.tipo}\n{doc.nombre}\n{doc.seccion}\n".encode())
+        if doc.fechas is not None:
+            fechas = [doc.fechas.apertura, doc.fechas.entrega]
+            if doc.fechas.limite is not None:
+                fechas.append(doc.fechas.limite)
+            for momento in fechas:
+                resumen.update(momento.strftime("%Y-%m-%d %H:%M").encode("utf-8"))
+        resumen.update(b"\n")
+        resumen.update(doc.cuerpo.encode("utf-8"))
+        if doc.cuestionario is not None:
+            resumen.update(b"\n--cuestionario--\n")
+            resumen.update(repr(doc.cuestionario).encode("utf-8"))
+        if doc.h5p is not None:
+            resumen.update(b"\n--h5p--\n")
+            resumen.update(repr(doc.h5p).encode("utf-8"))
+        if doc.finalizacion is not None or doc.restricciones is not None:
+            resumen.update(b"\n--itinerario--\n")
+            resumen.update(repr(doc.finalizacion).encode("utf-8"))
+            resumen.update(repr(doc.restricciones).encode("utf-8"))
+        if doc.paquete is not None:
+            resumen.update(b"\n--paquete--\n")
+            resumen.update(doc.paquete.nombre.encode("utf-8"))
+            resumen.update(b"\n")
+            resumen.update(doc.paquete.ruta.read_bytes())
+        for recurso in sorted(doc.recursos, key=lambda item: item.nombre):
+            resumen.update(b"\n--recurso--\n")
+            resumen.update(recurso.nombre.encode("utf-8"))
+            resumen.update(b"\n")
+            resumen.update(recurso.ruta.read_bytes())
+        return resumen.hexdigest()
+
+    def test_el_hash_de_cada_tipo_es_el_de_siempre(self, cargar):
+        for tipo in tipos.TODOS:
+            doc = cargar(tipo.nombre)
+            assert contenido.hash_documento(doc) == self._de_siempre(doc), tipo.nombre

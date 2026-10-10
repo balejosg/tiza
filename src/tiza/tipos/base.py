@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 
 if TYPE_CHECKING:  # solo para anotar; los adapters sí importan las clases al construir
     from ..contenido import ActividadH5P, Cuestionario, Documento, Fechas, PaqueteH5P
+    from ..publicar import AulaVirtual, ErrorPublicacion
 
 # Nombre llano del «recordarme calificar antes de» de una tarea: tiza nunca lo pone y
 # toda publicación de una tarea lo desactiva, así que la confirmación de real tiene que
@@ -83,6 +84,24 @@ class Contexto:
     paquete_h5p: Callable[[str], PaqueteH5P]  # resuelve y valida un .h5p de la carpeta
 
 
+@dataclass(frozen=True)
+class ContextoPublicacion:
+    """Todo lo que un tipo necesita para crear o actualizar su módulo en el aula.
+
+    Lo construye ``publicar._publicar_congelado`` con el aula ya abierta y los
+    recursos ya subidos; el adapter solo arma su payload y su flujo.
+    """
+
+    moodle: AulaVirtual
+    curso_id: int
+    seccion: dict
+    doc: Documento
+    html: str  # el texto del documento, ya con @@PLUGINFILE@@
+    itemid: int  # borrador del texto
+    visible: bool | None  # None: lo que ya exista conserva su visibilidad
+    existente: dict | None  # el módulo que se actualizaría, si ya existe
+
+
 class Tipo:
     """Lo que sabe un tipo de actividad. La base solo cumple la interfaz."""
 
@@ -108,6 +127,77 @@ class Tipo:
 
     def payload_solo_fechas(self, doc: Documento) -> dict[str, str] | None:
         """Formulario mínimo para cambiar solo las fechas, o None si no aplica."""
+        return None
+
+    # --- Payload, publicación y verificación -------------------------------
+
+    def payload(
+        self,
+        doc: Documento,
+        html: str,
+        itemid: int,
+        visible: bool | None,
+        *,
+        itemid_paquete: int | None = None,
+    ) -> dict[str, str]:
+        """Los campos del formulario de creación/actualización del módulo."""
+        raise NotImplementedError
+
+    def publicar(self, p: ContextoPublicacion) -> tuple[int, str, dict]:
+        """Crea o actualiza el módulo y lo verifica; devuelve (cmid, acción, formulario)."""
+        payload = self.payload(p.doc, p.html, p.itemid, p.visible)
+        if p.existente is not None:
+            cmid = p.existente["cmid"]
+            p.moodle.actualizar(cmid, payload)
+            accion = "actualizada"
+        else:
+            cmid = p.moodle.crear(p.curso_id, p.seccion["id"], self.nombre, payload)
+            accion = "creada"
+        from ..publicar import ErrorPublicacion
+
+        try:
+            info = verificar(p.moodle, self, p.doc, cmid)
+        except ErrorPublicacion as exc:
+            exc.cmid = cmid
+            raise
+        return cmid, accion, info
+
+    def urls_pluginfile(self, base_url: str, contexto, instance, nombre: str) -> list[str]:
+        """Las URL donde mirar que un recurso local quedó subido al módulo."""
+        return []
+
+    # --- Vista previa ------------------------------------------------------
+
+    def metadatos_preview(self, doc: Documento) -> list[tuple[str, str]]:
+        """Las filas propias del tipo en la cabecera de la vista previa."""
+        return []
+
+    def extra_preview(self, doc: Documento) -> str:
+        """El bloque extra de la vista previa (preguntas, resumen del paquete…)."""
+        return ""
+
+    # --- Aportación al hash -------------------------------------------------
+
+    # El orden con el que ``contenido`` llama a estos tres huecos reproduce el hash
+    # de siempre, para no invalidar .tiza/verificados.json al actualizar tiza.
+
+    def hash_fechas(self, doc: Documento, resumen: Any) -> None:
+        """Añade al hash lo que va tras la cabecera (las fechas de una tarea)."""
+
+    def hash_contenido(self, doc: Documento, resumen: Any) -> None:
+        """Añade al hash lo que va tras el cuerpo (preguntas, actividad H5P)."""
+
+    def hash_extra(self, doc: Documento, resumen: Any) -> None:
+        """Añade al hash lo que va tras el itinerario (el paquete .h5p)."""
+
+    # --- Resúmenes ----------------------------------------------------------
+
+    def extras_resumen(self, doc: Documento) -> dict[str, Any]:
+        """Datos propios que la confirmación de real enseña de este tipo."""
+        return {}
+
+    def detalle(self, doc: Documento) -> str | None:
+        """Un detalle corto para el paso del informe («12 preguntas»)."""
         return None
 
 
@@ -205,3 +295,100 @@ def modo_leido(tipo: Tipo, campos: dict) -> str | None:
         if bandera in tipo.banderas and campos.get(bandera) == "1"
     ]
     return marcadas[0] if len(marcadas) == 1 else None
+
+
+# --------------------------------------------------------------------------- #
+# Payload y publicación compartidos
+# --------------------------------------------------------------------------- #
+
+
+def campo_visible(visible: bool | None) -> dict[str, str]:
+    """Sin valor, el formulario conserva la visibilidad que ya tenga el módulo."""
+    return {} if visible is None else {"visible": "1" if visible else "0"}
+
+
+def formato_fecha(momento: datetime) -> str:
+    return momento.strftime("%Y-%m-%d %H:%M")
+
+
+def verificar(
+    moodle: AulaVirtual,
+    tipo: Tipo,
+    doc: Documento,
+    cmid: int,
+    *,
+    preguntas: list[int] | None = None,
+    paquete: str | None = None,
+) -> dict:
+    """Relee el módulo y comprueba nombre, fechas, recursos y lo específico del tipo."""
+    from ..publicar import ErrorPublicacion
+
+    info = moodle.leer_modulo(cmid)
+    if (info.get("nombre") or "").strip() != doc.nombre:
+        raise ErrorPublicacion("VERIFICACION_NOMBRE", doc.ruta.name)
+    leidas = info.get("fechas") or {}
+    if any(leidas.get(campo) != valor for campo, valor in fechas_esperadas(tipo, doc).items()):
+        raise ErrorPublicacion("FECHAS_NO_APLICADAS", doc.ruta.name)
+    texto = info.get("texto") or ""
+    for recurso in doc.recursos:
+        if recurso.nombre not in texto:
+            raise ErrorPublicacion("VERIFICACION_TEXTO", doc.ruta.name)
+        urls = tipo.urls_pluginfile(
+            moodle.base_url, info.get("contexto"), info.get("instance"), recurso.nombre
+        )
+        if not any(moodle.comprobar_pluginfile(url) for url in urls):
+            raise ErrorPublicacion("VERIFICACION_FICHERO", doc.ruta.name)
+    if paquete is not None:
+        urls = urls_paquete_h5p(
+            moodle.base_url, info.get("contexto"), info.get("instance"), paquete
+        )
+        if not any(moodle.comprobar_pluginfile(url) for url in urls):
+            raise ErrorPublicacion("VERIFICACION_PAQUETE", doc.ruta.name)
+    if preguntas is not None:
+        en_huecos = [identificador for _hueco, identificador in moodle.huecos(cmid)]
+        if en_huecos != list(preguntas):
+            raise ErrorPublicacion("VERIFICACION_PREGUNTAS", doc.ruta.name)
+    return info
+
+
+def urls_paquete_h5p(base_url: str, contexto, instance, nombre: str) -> list[str]:
+    """Las dos formas válidas de la ruta del paquete (la espiga comprobó ambas)."""
+    raiz = f"{base_url}/pluginfile.php/{contexto}/mod_h5pactivity/package"
+    return [f"{raiz}/0/{nombre}", f"{raiz}/{instance}/{nombre}"]
+
+
+def importar_preguntas(
+    moodle: AulaVirtual, curso_id: int, cmid: int, categoria: str, xml: bytes, cuantas: int
+) -> list[int]:
+    """Importa el XML y comprueba que llegaron todas las preguntas."""
+    from ..publicar import ErrorPublicacion
+
+    nuevas = moodle.importar_preguntas(curso_id, cmid, categoria, xml)
+    if len(nuevas) != cuantas:
+        raise ErrorPublicacion(
+            "ERROR_IMPORTACION",
+            f"se esperaban {cuantas} preguntas y el aula importó {len(nuevas)}",
+        )
+    return nuevas
+
+
+def borrar_nuevas(moodle: AulaVirtual, cmid: int, ids: list[int]) -> None:
+    """Deshace una importación a medias; si no puede, se borrarán al republicar."""
+    from ..publicar import ErrorPublicacion
+
+    if not ids:
+        return
+    try:
+        moodle.borrar_preguntas(cmid, ids)
+    except ErrorPublicacion:
+        pass  # el cuestionario sigue como estaba; las nuevas se borrarán al republicar
+
+
+def deshacer_modulo(moodle: AulaVirtual, curso_id: int, cmid: int, exc: ErrorPublicacion) -> None:
+    """Borra un módulo nuevo a medias; si no puede, deja el cmid al llamador."""
+    from ..publicar import ErrorPublicacion
+
+    try:
+        moodle.borrar(curso_id, cmid)
+    except ErrorPublicacion:
+        exc.cmid = cmid

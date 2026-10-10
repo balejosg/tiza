@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html as _html
 import math
 from datetime import time
 from pathlib import Path
@@ -9,8 +10,22 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from .. import contenido, filtro
-from ..contenido import ErrorContenido
-from .base import Contexto, Extras, FechaActividad, Tipo, fechas_payload
+from ..contenido import ErrorContenido, numero_texto
+from ..cuestionario import preguntas_xml
+from .base import (
+    Contexto,
+    ContextoPublicacion,
+    Extras,
+    FechaActividad,
+    Tipo,
+    borrar_nuevas,
+    campo_visible,
+    deshacer_modulo,
+    fechas_payload,
+    formato_fecha,
+    importar_preguntas,
+    verificar,
+)
 
 # Campos propios del frontmatter (las preguntas van dentro) y campos de fecha del
 # formulario de Moodle («Abrir el cuestionario» y «Cerrar el cuestionario»).
@@ -68,6 +83,172 @@ class Cuestionario(Tipo):
             "submitbutton2": "Save and return to course",
             **fechas_payload(self, doc),
         }
+
+    def payload(self, doc, html, itemid, visible, *, itemid_paquete=None) -> dict:
+        cuestionario = doc.cuestionario
+        assert cuestionario is not None
+        payload = {
+            "_qf__mod_quiz_mod_form": "1",
+            "name": doc.nombre,
+            "introeditor[text]": html,
+            "introeditor[format]": "1",
+            "introeditor[itemid]": str(itemid),
+            "submitbutton2": "Save and return to course",
+        }
+        payload.update(fechas_payload(self, doc))
+        if cuestionario.tiempo_limite is not None:
+            payload["timelimit[enabled]"] = "1"
+            payload["timelimit[number]"] = str(cuestionario.tiempo_limite)
+            payload["timelimit[timeunit]"] = "60"  # minutos
+        else:
+            payload["timelimit[enabled]"] = "0"
+        # En Moodle, 0 intentos es «ilimitados».
+        payload["attempts"] = "0" if cuestionario.intentos == 0 else str(cuestionario.intentos)
+        payload["shuffleanswers"] = "1" if cuestionario.mezclar_respuestas else "0"
+        payload.update(campo_visible(visible))
+        return payload
+
+    def publicar(self, p: ContextoPublicacion) -> tuple[int, str, dict]:
+        """Crea o republica un cuestionario con sus preguntas.
+
+        Lo nuevo se crea con sus preguntas y, si algo falla después de crear el
+        módulo, se borra entero (se lleva sus preguntas). En uno existente se añade
+        antes de quitar para que un fallo no lo deje vacío.
+        """
+        from ..publicar import DETALLE_INTENTOS, ErrorPublicacion
+
+        doc = p.doc
+        cuestionario = doc.cuestionario
+        assert cuestionario is not None
+        cuantas = len(cuestionario.preguntas)
+        payload = self.payload(doc, p.html, p.itemid, p.visible)
+        xml = preguntas_xml(doc)
+        nuevas: list[int] = []
+
+        if p.existente is None:
+            cmid = p.moodle.crear(p.curso_id, p.seccion["id"], self.nombre, payload)
+            try:
+                categoria = p.moodle.categoria_cuestionario(cmid)
+                nuevas = importar_preguntas(p.moodle, p.curso_id, cmid, categoria, xml, cuantas)
+                p.moodle.anadir_preguntas(cmid, nuevas)
+            except ErrorPublicacion as exc:
+                deshacer_modulo(p.moodle, p.curso_id, cmid, exc)
+                raise
+            accion = "creada"
+        else:
+            cmid = p.existente["cmid"]
+            if p.moodle.tiene_intentos(cmid):
+                raise ErrorPublicacion("CUESTIONARIO_CON_INTENTOS", DETALLE_INTENTOS)
+            categoria = p.moodle.categoria_cuestionario(cmid)
+            # Lo que hay ahora: sus huecos y las preguntas de su banco.
+            viejos = p.moodle.huecos(cmid)
+            viejas = p.moodle.preguntas_en_categoria(cmid, categoria)
+            try:
+                nuevas = importar_preguntas(p.moodle, p.curso_id, cmid, categoria, xml, cuantas)
+            except ErrorPublicacion:
+                # La republicación no ha cambiado nada: fuera las nuevas a medias.
+                borrar_nuevas(p.moodle, cmid, nuevas)
+                raise
+            try:
+                p.moodle.anadir_preguntas(cmid, nuevas)
+            except ErrorPublicacion:
+                borrar_nuevas(p.moodle, cmid, nuevas)
+                raise
+            quizid = p.moodle.leer_modulo(cmid).get("instance")
+            if not isinstance(quizid, int):
+                raise ErrorPublicacion("ERROR_QUITAR_PREGUNTAS")
+            for hueco, _pregunta in viejos:
+                p.moodle.quitar_hueco(p.curso_id, quizid, hueco)
+            p.moodle.borrar_preguntas(cmid, sorted(viejas))
+            p.moodle.actualizar(cmid, payload)
+            accion = "actualizada"
+
+        try:
+            info = verificar(p.moodle, self, doc, cmid, preguntas=nuevas)
+        except ErrorPublicacion as exc:
+            if p.existente is None:
+                deshacer_modulo(p.moodle, p.curso_id, cmid, exc)
+            else:
+                exc.cmid = cmid
+            raise
+        return cmid, accion, info
+
+    def urls_pluginfile(self, base_url, contexto, instance, nombre) -> list[str]:
+        # La descripción de un cuestionario va en mod_quiz/intro (sin itemid).
+        raiz = f"{base_url}/pluginfile.php/{contexto}/mod_quiz"
+        return [f"{raiz}/intro/{nombre}", f"{raiz}/intro/0/{nombre}"]
+
+    def metadatos_preview(self, doc) -> list[tuple[str, str]]:
+        cuestionario = doc.cuestionario
+        if cuestionario is None:
+            return []
+        filas: list[tuple[str, str]] = []
+        if cuestionario.apertura is not None:
+            filas.append(("Apertura", formato_fecha(cuestionario.apertura)))
+        if cuestionario.cierre is not None:
+            filas.append(("Cierre", formato_fecha(cuestionario.cierre)))
+        if cuestionario.tiempo_limite is not None:
+            filas.append(("Tiempo límite", f"{cuestionario.tiempo_limite} minutos"))
+        filas.append(
+            ("Intentos", "ilimitados" if cuestionario.intentos == 0 else str(cuestionario.intentos))
+        )
+        filas.append(("Mezclar respuestas", "sí" if cuestionario.mezclar_respuestas else "no"))
+        return filas
+
+    def extra_preview(self, doc) -> str:
+        """Las preguntas, numeradas y con las correctas marcadas."""
+        if doc.cuestionario is None:
+            return ""
+        partes = ["<hr>", "<h2>Preguntas del cuestionario</h2>", "<ol>"]
+        for pregunta in doc.cuestionario.preguntas:
+            tipo = NOMBRES_PREGUNTA.get(pregunta.tipo, pregunta.tipo)
+            partes.append(f"<li><p><strong>{_html.escape(tipo)}</strong></p>")
+            partes.append(f"<div>{pregunta.html}</div>")
+            if pregunta.opciones:
+                partes.append("<ul>")
+                for opcion in pregunta.opciones:
+                    marca = " <strong>(correcta)</strong>" if opcion.correcta else ""
+                    partes.append(
+                        f"<li>{opcion.html}{marca}{_retro_preview(opcion.retro_html)}</li>"
+                    )
+                partes.append("</ul>")
+            elif pregunta.tipo == "verdadero_falso":
+                respuesta = "Verdadero" if pregunta.respuesta == "verdadero" else "Falso"
+                partes.append(f"<p>Respuesta correcta: <strong>{respuesta}</strong></p>")
+            elif pregunta.tipo == "respuesta_corta":
+                aceptadas = ", ".join(_html.escape(a) for a in pregunta.aceptadas)
+                partes.append(f"<p>Respuestas válidas: <strong>{aceptadas}</strong></p>")
+            elif pregunta.tipo == "numerica" and pregunta.valor is not None:
+                partes.append(
+                    f"<p>Valor: <strong>{_html.escape(numero_texto(pregunta.valor))}</strong>"
+                )
+                if pregunta.tolerancia:
+                    partes[-1] += (
+                        f" (tolerancia ±{_html.escape(numero_texto(pregunta.tolerancia))})"
+                    )
+                partes[-1] += "</p>"
+            partes.append(_retro_preview(pregunta.retro_html))
+            partes.append("</li>")
+        partes.append("</ol>")
+        return "\n".join(partes)
+
+    def hash_contenido(self, doc, resumen) -> None:
+        if doc.cuestionario is None:
+            return
+        resumen.update(b"\n--cuestionario--\n")
+        resumen.update(repr(doc.cuestionario).encode("utf-8"))
+
+    def detalle(self, doc) -> str | None:
+        if doc.cuestionario is None:
+            return None
+        return f"{len(doc.cuestionario.preguntas)} preguntas"
+
+
+def _retro_preview(retro_html: str | None) -> str:
+    """La retroalimentación como bloque: su HTML ya trae párrafos y no cabe en un <p>."""
+    if retro_html is None:
+        return ""
+    return f"<div><p><em>Retroalimentación:</em></p>{retro_html}</div>"
 
 
 # --------------------------------------------------------------------------- #
