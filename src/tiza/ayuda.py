@@ -19,7 +19,7 @@ MENSAJES: dict[str, str] = {
     "SESION_DESACTUALIZADA": "tiza ha cambiado después de abrir la sesión y la sesión se ha cerrado sola para no publicar con el código viejo. Vuelve a abrirla con «tiza empezar».",
     "SIN_RESPUESTA": "La sesión no respondió a tiempo. Mira la terminal de la sesión: puede estar esperando tu confirmación.",
     "RESPUESTA_INVALIDA": "La respuesta de la sesión no es válida. Cierra la sesión con Ctrl+C y vuelve a abrirla con «tiza empezar».",
-    "PETICION_INVALIDA": "La petición al buzón no es válida. Usa solo «tiza publicar» y «tiza estructura» con rutas dentro de la carpeta.",
+    "PETICION_INVALIDA": "La petición no es válida. Usa solo «tiza publicar» y «tiza estructura», con rutas dentro de la carpeta; «--solo-fechas» no admite «--visible» ni «--oculto».",
     "PETICION_RETIRADA": "Confirmaste cuando el agente ya había dejado de esperar. No se ha publicado nada; pide al agente que lo repita.",
     "LIMITE_PUBLICACIONES": "Se ha llegado al máximo de publicaciones en pruebas de esta sesión. Revisa qué está haciendo el agente y abre una sesión nueva.",
     "ABORTADO": "Has respondido que no. No se ha publicado nada.",
@@ -116,6 +116,9 @@ MENSAJES: dict[str, str] = {
     "VERIFICACION_FICHERO": "La actividad se publicó, pero falta un fichero. Revísala en el curso de pruebas.",
     "REPUBLICAR_CMID_DISTINTO": "Al republicar se creó una actividad nueva en vez de actualizar la existente. El aula ha cambiado: avisa a quien mantiene tiza.",
     "FECHAS_NO_APLICADAS": "El aula no guardó las fechas de la tarea tal como se enviaron. Revisa las fechas a mano en el aula y avisa a quien mantiene tiza con este código.",
+    "MODULO_AUSENTE": "«--solo-fechas» solo cambia las fechas de una tarea o de un cuestionario que ya está en el aula, con el mismo tipo, nombre y sección. Publica antes el contenido completo.",
+    "SOLO_FECHAS_NO_APLICA": "«--solo-fechas» solo sirve para tareas y cuestionarios. Para páginas, etiquetas o H5P, publica el contenido completo sin ese flag.",
+    "CALENDARIO_INVALIDO": "calendario.toml no se puede usar: no es TOML válido, tiene un campo desconocido, una fecha mal escrita, un día de clase que no existe o pesa más de 64 KB. Corrígelo o bórralo; los documentos se comprueban igual, sin avisos de festivos.",
     "VISIBILIDAD_NO_CONSERVADA": "Al republicar, el aula cambió la visibilidad de la actividad. Revisa en el aula si debe verse y avisa a quien mantiene tiza con este código.",
     "ERROR_CURSOS": "No se pudo leer la lista de tus cursos. Puedes escribir el id del curso; lo ves en su URL: course/view.php?id=1234.",
     # Instalación

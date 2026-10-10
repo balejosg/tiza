@@ -442,3 +442,119 @@ def test_cierre_porque_tiza_cambio(capsys):
         sesion.Aviso("SESION_CERRADA", {"motivo": "desactualizada"})
     )
     assert "tiza ha cambiado mientras la sesión estaba abierta" in capsys.readouterr().out
+
+
+class TestCambiosDeFecha:
+    def doc(self, **cambios):
+        return sesion.DocumentoResumen("t.md", "tarea", "Problemas", 3, None, **cambios)
+
+    def test_una_linea_por_fecha_segun_su_estado(self):
+        cambios = (
+            sesion.CambioFecha("apertura", (2026, 10, 1, 0, 0), (2026, 10, 1, 0, 0), "igual"),
+            sesion.CambioFecha(
+                "entrega",
+                (2026, 10, 10, 23, 59),
+                (2026, 10, 12, 23, 59),
+                "cambia",
+                ("FECHA_FESTIVA",),
+            ),
+            sesion.CambioFecha("límite", None, (2026, 10, 15, 23, 59), "nueva"),
+        )
+        assert terminal.describir_cambios(self.doc(cambios=cambios)) == [
+            "apertura 01/10/2026 00:00 (sin cambios)",
+            "entrega antes 10/10/2026 23:59 → ahora 12/10/2026 23:59 — festivo",
+            "límite 15/10/2026 23:59 (la actividad es nueva)",
+        ]
+
+    def test_si_no_se_pudo_leer_el_aula_se_dice(self):
+        cambio = sesion.CambioFecha("entrega", None, (2026, 10, 12, 23, 59), "desconocida")
+        assert terminal.describir_cambios(self.doc(cambios=(cambio,))) == [
+            "entrega: no se pudieron leer las fechas actuales del aula; "
+            "se publicaría 12/10/2026 23:59"
+        ]
+
+    def test_sin_cambios_calculados_no_hay_lineas(self):
+        assert terminal.describir_cambios(self.doc()) == []
+
+    def test_con_cambios_la_descripcion_no_repite_las_fechas(self):
+        from tiza.contenido import Fechas
+
+        fechas = Fechas(
+            apertura=datetime(2026, 10, 1, 0, 0),
+            entrega=datetime(2026, 10, 12, 23, 59),
+            limite=None,
+        )
+        sin_cambios = sesion.DocumentoResumen("t.md", "tarea", "P", 3, fechas)
+        con_cambios = sesion.DocumentoResumen("t.md", "tarea", "P", 3, fechas, cambios=())
+        assert "entrega 12/10/2026 23:59" in terminal.describir_documento(sin_cambios)
+        assert "entrega" not in terminal.describir_documento(con_cambios)
+
+    def test_solo_fechas_no_lista_el_contenido_y_avisa_de_las_excepciones(
+        self, monkeypatch, capsys
+    ):
+        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
+        cambio = sesion.CambioFecha(
+            "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia"
+        )
+        doc = self.doc(
+            enlaces_externos=("https://ejemplo.org/x",),
+            recursos=("img/foto.png",),
+            cambios=(cambio,),
+        )
+        resumen = sesion.ResumenPublicacion(5678, None, (doc,), (), None, solo_fechas=True)
+        terminal.PresenciaTerminal().confirmar_real(resumen)
+        salida = capsys.readouterr().out
+        assert "cambiar solo las fechas" in salida
+        assert "https://ejemplo.org/x" not in salida and "img/foto.png" not in salida
+        assert "excepciones de fecha de alumnos" in salida
+        assert "Solo cambian las fechas" in salida
+        assert "Se publicará" not in salida
+
+    @pytest.mark.parametrize(
+        ("estado", "recuerda"),
+        [("cambia", True), ("desconocida", True), ("igual", False), ("nueva", False)],
+    )
+    def test_las_excepciones_se_recuerdan_si_la_fecha_cambia_o_no_se_sabe(
+        self, monkeypatch, capsys, estado, recuerda
+    ):
+        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
+        cambio = sesion.CambioFecha(
+            "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), estado
+        )
+        resumen = sesion.ResumenPublicacion(
+            5678, None, (self.doc(cambios=(cambio,)),), (), None, solo_fechas=True
+        )
+        assert terminal.cambian_fechas(resumen) is recuerda
+        terminal.PresenciaTerminal().confirmar_real(resumen)
+        assert ("excepciones de fecha de alumnos" in capsys.readouterr().out) is recuerda
+
+    def test_el_recordatorio_de_calificacion_que_se_quita_se_enseña(self):
+        cambio = sesion.CambioFecha(sesion.CAMPO_RECORDATORIO, (2026, 10, 20, 0, 0), None, "cambia")
+        assert terminal.describir_cambios(self.doc(cambios=(cambio,))) == [
+            "recordatorio de calificación antes 20/10/2026 00:00 → ahora sin fecha"
+        ]
+
+    def test_el_recordatorio_por_si_solo_no_obliga_a_recordar_las_excepciones(self):
+        recordatorio = sesion.CambioFecha(
+            sesion.CAMPO_RECORDATORIO, (2026, 10, 20, 0, 0), None, "cambia"
+        )
+        entrega = sesion.CambioFecha(
+            "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia"
+        )
+        solo = sesion.ResumenPublicacion(
+            5678, None, (self.doc(cambios=(recordatorio,)),), (), None, solo_fechas=True
+        )
+        con_entrega = sesion.ResumenPublicacion(
+            5678, None, (self.doc(cambios=(recordatorio, entrega)),), (), None, solo_fechas=True
+        )
+        assert terminal.cambian_fechas(solo) is False
+        assert terminal.cambian_fechas(con_entrega) is True
+
+    def test_el_aviso_de_calendario_se_explica_en_una_linea(self, monkeypatch, capsys):
+        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
+        resumen = sesion.ResumenPublicacion(
+            5678, None, (self.doc(),), (), False, aviso_calendario="CALENDARIO_INVALIDO"
+        )
+        terminal.PresenciaTerminal().confirmar_real(resumen)
+        salida = capsys.readouterr().out
+        assert "AVISO: calendario.toml no se puede usar." in salida

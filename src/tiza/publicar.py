@@ -1079,15 +1079,7 @@ def payload_tarea(doc: Documento, html: str, itemid: int, visible: bool | None) 
         "introattachments": str(itemid),
         "submitbutton": "Save and display",
     }
-    if doc.fechas is not None:
-        payload.update(_fechas_payload("allowsubmissionsfromdate", doc.fechas.apertura))
-        payload.update(_fechas_payload("duedate", doc.fechas.entrega))
-        # «limite» es la fecha límite de Moodle: después ya no se admiten entregas.
-        if doc.fechas.limite is not None:
-            payload.update(_fechas_payload("cutoffdate", doc.fechas.limite))
-        else:
-            payload["cutoffdate[enabled]"] = "0"
-        payload["gradingduedate[enabled]"] = "0"
+    payload.update(_fechas_tarea(doc))
     payload.update(_campo_visible(visible))
     return payload
 
@@ -1103,14 +1095,7 @@ def payload_cuestionario(doc: Documento, html: str, itemid: int, visible: bool |
         "introeditor[itemid]": str(itemid),
         "submitbutton2": "Save and return to course",
     }
-    if cuestionario.apertura is not None:
-        payload.update(_fechas_payload("timeopen", cuestionario.apertura))
-    else:
-        payload["timeopen[enabled]"] = "0"
-    if cuestionario.cierre is not None:
-        payload.update(_fechas_payload("timeclose", cuestionario.cierre))
-    else:
-        payload["timeclose[enabled]"] = "0"
+    payload.update(_fechas_cuestionario(doc))
     if cuestionario.tiempo_limite is not None:
         payload["timelimit[enabled]"] = "1"
         payload["timelimit[number]"] = str(cuestionario.tiempo_limite)
@@ -1158,6 +1143,58 @@ def payload_h5p(
         payload["enabletracking"] = "0"
     payload.update(_campo_visible(visible))
     return payload
+
+
+def _fechas_tarea(doc: Documento) -> dict:
+    """Apertura, entrega y, si lo hay, el límite de entregas de una tarea."""
+    payload: dict[str, Any] = {}
+    if doc.fechas is not None:
+        payload.update(_fechas_payload("allowsubmissionsfromdate", doc.fechas.apertura))
+        payload.update(_fechas_payload("duedate", doc.fechas.entrega))
+        # «limite» es la fecha límite de Moodle: después ya no se admiten entregas.
+        if doc.fechas.limite is not None:
+            payload.update(_fechas_payload("cutoffdate", doc.fechas.limite))
+        else:
+            payload["cutoffdate[enabled]"] = "0"
+        payload["gradingduedate[enabled]"] = "0"
+    return payload
+
+
+def _fechas_cuestionario(doc: Documento) -> dict:
+    """Apertura y cierre de un cuestionario; sin fecha, se desactiva en el aula."""
+    cuestionario = doc.cuestionario
+    assert cuestionario is not None
+    payload: dict[str, Any] = {}
+    if cuestionario.apertura is not None:
+        payload.update(_fechas_payload("timeopen", cuestionario.apertura))
+    else:
+        payload["timeopen[enabled]"] = "0"
+    if cuestionario.cierre is not None:
+        payload.update(_fechas_payload("timeclose", cuestionario.cierre))
+    else:
+        payload["timeclose[enabled]"] = "0"
+    return payload
+
+
+def payload_solo_fechas(doc: Documento) -> dict:
+    """Formulario mínimo para cambiar solo las fechas de una actividad ya publicada.
+
+    No lleva nombre, texto, preguntas, intentos ni visibilidad: python-moodle fusiona
+    el formulario con lo que ya tiene el módulo, así que esos campos no cambian.
+    """
+    if doc.tipo == "tarea":
+        return {
+            "_qf__mod_assign_mod_form": "1",
+            "submitbutton": "Save and display",
+            **_fechas_tarea(doc),
+        }
+    if doc.tipo == "cuestionario":
+        return {
+            "_qf__mod_quiz_mod_form": "1",
+            "submitbutton2": "Save and return to course",
+            **_fechas_cuestionario(doc),
+        }
+    raise ErrorPublicacion("SOLO_FECHAS_NO_APLICA", doc.ruta.name)
 
 
 def _fechas_payload(campo: str, momento: datetime) -> dict:
@@ -1606,6 +1643,44 @@ def _verificar(
         en_huecos = [identificador for _hueco, identificador in moodle.huecos(cmid)]
         if en_huecos != list(preguntas):
             raise ErrorPublicacion("VERIFICACION_PREGUNTAS", doc.ruta.name)
+    return info
+
+
+def publicar_fechas(moodle: AulaVirtual, secciones: list[dict], doc: Documento) -> dict:
+    """Cambia solo las fechas de una tarea o un cuestionario que ya está en el aula.
+
+    No toca el contenido, los recursos, las preguntas, los intentos ni la
+    visibilidad, así que no pasa por la puerta de pruebas ni sube nada. Si el
+    módulo no existe, no envía nada.
+    """
+    existente = modulo_de(secciones, doc)
+    if existente is None:
+        raise ErrorPublicacion("MODULO_AUSENTE", doc.ruta.name)
+    cmid = existente["cmid"]
+    moodle.actualizar(cmid, payload_solo_fechas(doc))
+    info = _verificar_fechas(moodle, doc, cmid)
+    seccion = buscar_seccion(secciones, doc.seccion) or {}
+    return {
+        "nombre": doc.ruta.name,
+        "tipo": doc.tipo,
+        "cmid": cmid,
+        "accion": "actualizada",
+        "oculto": _oculto(None, info),
+        "url": url_modulo(moodle.base_url, doc.tipo, cmid),
+        "seccion": seccion.get("nombre") or str(doc.seccion),
+        # El contenido no cambia: el hash es el que el docente ya vio al confirmar.
+        "hash": doc.hash_cargado or None,
+        "verificado": True,
+        "pasos": [],
+    }
+
+
+def _verificar_fechas(moodle: AulaVirtual, doc: Documento, cmid: int) -> dict:
+    """Relee el módulo y comprueba solo sus fechas; el resto no se mira."""
+    info = moodle.leer_modulo(cmid)
+    leidas = info.get("fechas") or {}
+    if any(leidas.get(campo) != valor for campo, valor in fechas_esperadas(doc).items()):
+        raise ErrorPublicacion("FECHAS_NO_APLICADAS", doc.ruta.name)
     return info
 
 

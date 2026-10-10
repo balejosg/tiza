@@ -309,3 +309,70 @@ def test_los_ejemplos_del_formato_son_validos(tmp_path):
         escribir(tmp_path, ruta.name, ejemplo)
         tipos.append(contenido.cargar(ruta).tipo)
     assert tipos == list(contenido.TTIPOS)
+
+
+class TestCalendarioEnComprobar:
+    TAREA = (
+        "---\ntipo: tarea\nnombre: Problemas\nseccion: 3\n"
+        "apertura: 2026-10-01\nentrega: 2026-10-12\n---\n\nResuelve.\n"
+    )
+
+    def test_un_festivo_avisa_y_el_fichero_pasa(self, tmp_path):
+        escribir(tmp_path, "t.md", self.TAREA)
+        escribir(tmp_path, "calendario.toml", "festivos = [2026-10-12]\n")
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(tmp_path, ["t.md"])
+        assert resultado.informe["resultado"] == "ok"
+        informe.validar(resultado.informe)
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert fichero.avisos == ("FECHA_FESTIVA",)
+        avisos = [p for p in resultado.informe["pasos"] if p["codigo"] == "FECHA_FESTIVA"]
+        assert avisos == [
+            {"codigo": "FECHA_FESTIVA", "resultado": "ok", "detalle": "t.md: entrega 2026-10-12"}
+        ]
+
+    def test_un_calendario_invalido_es_un_error_pero_los_documentos_se_comprueban(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        escribir(tmp_path, "calendario.toml", "color = 'rojo'\n")
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        assert resultado.informe["resultado"] == "error"
+        assert resultado.informe["errores"] == ["CALENDARIO_INVALIDO"]
+        informe.validar(resultado.informe)
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert fichero.avisos == ()
+
+    def test_un_calendario_con_marcas_no_rompe_comprobar(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        escribir(tmp_path, "calendario.toml", 'dias_de_clase = ["<b>"]\n')
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        assert resultado.informe["errores"] == ["CALENDARIO_INVALIDO"]
+        informe.validar(resultado.informe)
+        [paso] = [p for p in resultado.informe["pasos"] if p["codigo"] == "CALENDARIO"]
+        assert "<" not in paso["detalle"] and "b?" in paso["detalle"]
+
+    def test_un_calendario_hostil_no_rompe_comprobar(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        escribir(tmp_path, "calendario.toml", "festivos = " + "[" * 5000 + "]" * 5000 + "\n")
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        assert resultado.informe["errores"] == ["CALENDARIO_INVALIDO"]
+        informe.validar(resultado.informe)
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+
+    def test_sin_calendario_no_hay_avisos(self, tmp_path):
+        escribir(tmp_path, "t.md", self.TAREA)
+        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        [fichero] = agente.comprobar(tmp_path, ["t.md"]).ficheros
+        assert fichero.avisos == ()
+
+
+def test_peticion_con_solo_fechas_viaja_en_el_buzon():
+    assert agente.peticion_publicar(["a.md"], "real", solo_fechas=True)["solo_fechas"] is True
+    peticion = agente.peticion_publicar(["a.md"], "real")
+    assert peticion["solo_fechas"] is False
+    assert peticion["visible"] is None

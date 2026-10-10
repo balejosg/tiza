@@ -72,9 +72,9 @@ INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
-VERSION_PROTOCOLO = 2  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
+VERSION_PROTOCOLO = 3  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
 
-_CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible"}
+_CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible", "solo_fechas"}
 _ID = re.compile(r"\A[0-9a-f]{32}\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _ABSOLUTA = re.compile(r"\A(?:[/\\]|[A-Za-z]:)")
@@ -215,6 +215,8 @@ def validar_peticion(peticion: Any) -> None:
         raise ErrorBuzon("PETICION_INVALIDA", "comando no permitido")
     if peticion["visible"] is not None and not isinstance(peticion["visible"], bool):
         raise ErrorBuzon("PETICION_INVALIDA", "visible debe ser booleano o nulo")
+    if not isinstance(peticion["solo_fechas"], bool):
+        raise ErrorBuzon("PETICION_INVALIDA", "solo_fechas debe ser booleano")
     ficheros = peticion["ficheros"]
     if not isinstance(ficheros, list):
         raise ErrorBuzon("PETICION_INVALIDA", "ficheros debe ser una lista")
@@ -230,11 +232,18 @@ def validar_peticion(peticion: Any) -> None:
             raise ErrorBuzon("PETICION_INVALIDA", "estructura no admite ficheros")
         if entorno is not None:
             raise ErrorBuzon("PETICION_INVALIDA", "estructura no admite entorno")
+        if peticion["solo_fechas"]:
+            raise ErrorBuzon("PETICION_INVALIDA", "estructura no admite solo_fechas")
     else:
         if entorno is None:
             raise ErrorBuzon("PETICION_INVALIDA", "publicar exige entorno")
         if not ficheros:
             raise ErrorBuzon("PETICION_INVALIDA", "publicar exige al menos un fichero")
+        if peticion["solo_fechas"] and peticion["visible"] is not None:
+            raise ErrorBuzon(
+                "PETICION_INVALIDA",
+                "solo_fechas no admite visible: las fechas no cambian la visibilidad",
+            )
 
 
 def _validar_ruta(nombre: Any) -> None:

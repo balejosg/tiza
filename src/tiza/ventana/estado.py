@@ -24,7 +24,13 @@ from typing import Any
 from .. import ayuda, informe, rutas
 from ..informe import ErrorInforme
 from ..sesion import SIN_PRUEBAS, Aviso, CursoSesion, ResumenPublicacion, ResumenSinPruebas
-from ..terminal import describir_curso, describir_documento, texto_seguro
+from ..terminal import (
+    cambian_fechas,
+    describir_cambios,
+    describir_curso,
+    describir_documento,
+    texto_seguro,
+)
 
 __all__ = ["PresenciaVentana", "Puente", "Ventana"]
 
@@ -303,22 +309,31 @@ class PresenciaVentana:
         )
 
     def confirmar_real(self, resumen: ResumenPublicacion) -> bool:
+        solo = resumen.solo_fechas  # el contenido no cambia: no se listan sus enlaces ni ficheros
         pantalla = {
             "tipo": "real",
             "curso": describir_curso(resumen.curso, resumen.nombre_curso),
+            "solo_fechas": solo,
+            "aviso_calendario": (
+                ayuda.explicar(resumen.aviso_calendario) or ""
+                if resumen.aviso_calendario is not None
+                else ""
+            ),
+            "excepciones": cambian_fechas(resumen),
             "documentos": [
                 {
                     "titulo": describir_documento(doc),
                     "fichero": _texto(doc.fichero),
-                    "enlaces": [_texto(url) for url in doc.enlaces_externos],
-                    "incrustados": [_texto(url) for url in doc.incrustados],
-                    "recursos": [_texto(ruta) for ruta in doc.recursos],
+                    "fechas": [_texto(linea) for linea in describir_cambios(doc)],
+                    "enlaces": [] if solo else [_texto(url) for url in doc.enlaces_externos],
+                    "incrustados": [] if solo else [_texto(url) for url in doc.incrustados],
+                    "recursos": [] if solo else [_texto(ruta) for ruta in doc.recursos],
                     "vista": doc.vista_previa is not None,
                 }
                 for doc in resumen.documentos
             ],
             "secciones": [_texto(nombre) for nombre in resumen.secciones_nuevas],
-            "visibilidad": _VISIBILIDAD[resumen.visible],
+            "visibilidad": "" if solo else _VISIBILIDAD[resumen.visible],
         }
         self._ventana.preparar_vistas(tuple(doc.vista_previa for doc in resumen.documentos))
         try:

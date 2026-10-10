@@ -488,6 +488,7 @@ def peticion_publicar(ficheros=("pagina.md",), entorno="pruebas", **cambios) -> 
         "ficheros": list(ficheros),
         "entorno": entorno,
         "visible": False,
+        "solo_fechas": False,
     }
     peticion.update(cambios)
     return peticion
@@ -501,6 +502,7 @@ def peticion_estructura() -> dict:
         "ficheros": [],
         "entorno": None,
         "visible": False,
+        "solo_fechas": False,
     }
 
 
@@ -1083,6 +1085,7 @@ def test_el_cupo_de_pruebas_se_agota(tmp_path):
         "ficheros": ["p.md"],
         "entorno": "pruebas",
         "visible": False,
+        "solo_fechas": False,
     }
     cfg = config.Config(
         url="https://aula.ejemplo.org", usuario="u", cursos={"pruebas": 1, "real": 2}
@@ -1919,3 +1922,54 @@ def test_publicar_con_sesion_incompatible_lo_explica(tmp_path, monkeypatch):
     monkeypatch.setattr(buzon, "sesion_incompatible", lambda *a, **k: "9.0.0")
     assert cli.main(["publicar", "pagina.md", "--en", "pruebas"]) == 1
     assert "SESION_INCOMPATIBLE" in leer_informe(tmp_path)["errores"]
+
+
+class TestSoloFechasEnCli:
+    def test_solo_fechas_con_oculto_se_rechaza_sin_tocar_nada(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        escribir_pagina(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        assert cli.main(["publicar", "pagina.md", "--en", "real", "--solo-fechas", "--oculto"]) == 1
+        assert leer_informe(tmp_path)["errores"] == ["PETICION_INVALIDA"]
+
+    def test_con_sesion_el_flag_viaja_en_la_peticion(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        escribir_pagina(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        capturadas: list = []
+        monkeypatch.setattr(
+            cli,
+            "_responder_buzon",
+            lambda comando, peticion, dir_tiza, **k: capturadas.append(peticion) or 0,
+        )
+        assert cli.main(["publicar", "pagina.md", "--en", "real", "--solo-fechas"]) == 0
+        [peticion] = capturadas
+        assert peticion["solo_fechas"] is True and peticion["visible"] is None
+
+    def test_directo_en_real_lee_el_aula_y_pide_confirmacion_antes_de_cambiar(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "tarea.md").write_text(TAREA, encoding="utf-8")
+        configurar(tmp_path, monkeypatch)
+        salida = simular_terminal(monkeypatch)
+        responder(monkeypatch, ["s"])
+        moodle = MoodleFalso(
+            secciones=[
+                {
+                    "numero": 3,
+                    "nombre": "Fracciones",
+                    "id": 30,
+                    "modulos": [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}],
+                }
+            ]
+        )
+        moodle.formularios[55] = {"name": "Problemas", "visible": "1"}
+        monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: moodle)
+        assert cli.main(["publicar", "tarea.md", "--en", "real", "--solo-fechas"]) == 0
+        assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 10, 23, 59)
+        mostrado = "".join(salida.texto)
+        assert "cambiar solo las fechas" in mostrado
+        assert "entrega antes sin fecha → ahora 10/10/2026 23:59" in mostrado
+        assert not any(llamada[0] in ("crear", "subir") for llamada in moodle.llamadas)

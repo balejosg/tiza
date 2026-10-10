@@ -27,6 +27,7 @@ def peticion_valida(**cambios) -> dict:
         "ficheros": ["pagina.md"],
         "entorno": "pruebas",
         "visible": False,
+        "solo_fechas": False,
     }
     base.update(cambios)
     return base
@@ -867,3 +868,37 @@ def test_atender_para_cuando_se_le_pide(tmp_path):
     )
     assert cerrada is False
     assert procesadas == []
+
+
+class TestSoloFechasEnLaPeticion:
+    def test_admite_solo_fechas_sin_visibilidad(self):
+        buzon.validar_peticion(peticion_valida(solo_fechas=True, visible=None))
+
+    def test_el_campo_es_obligatorio(self):
+        datos = peticion_valida()
+        del datos["solo_fechas"]
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(datos)
+        assert exc.value.codigo == "PETICION_INVALIDA"
+
+    @pytest.mark.parametrize("valor", ["si", 1, None])
+    def test_debe_ser_booleano(self, valor):
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(peticion_valida(solo_fechas=valor, visible=None))
+        assert exc.value.codigo == "PETICION_INVALIDA"
+
+    def test_no_se_combina_con_visible(self):
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(peticion_valida(solo_fechas=True, visible=False))
+        assert exc.value.codigo == "PETICION_INVALIDA"
+
+    def test_la_estructura_no_lo_admite(self):
+        datos = peticion_valida(
+            comando="estructura", ficheros=[], entorno=None, solo_fechas=True, visible=None
+        )
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(datos)
+        assert exc.value.codigo == "PETICION_INVALIDA"
+
+    def test_el_protocolo_sube_con_el_campo(self):
+        assert buzon.VERSION_PROTOCOLO == 3

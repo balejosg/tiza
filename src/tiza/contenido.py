@@ -142,7 +142,7 @@ MAX_ENUNCIADO = 5000
 MAX_DOCUMENTO_BYTES = 2 * 1024 * 1024  # el .md o .html; los recursos se miden aparte
 MAX_RECURSO_BYTES = 200 * 1024 * 1024
 _TROZO_HASH = 1024 * 1024
-_FICHEROS_DE_TIZA = frozenset({rutas.FICHERO_ASIGNATURA})
+_FICHEROS_DE_TIZA = frozenset({rutas.FICHERO_ASIGNATURA, rutas.FICHERO_CALENDARIO})
 
 _FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n?(.*)\Z", re.DOTALL)
 

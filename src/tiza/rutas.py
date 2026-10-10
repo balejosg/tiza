@@ -9,3 +9,5 @@ from __future__ import annotations
 
 CARPETA_TRABAJO = ".tiza"  # estado de la asignatura: informe, estructura, buzón y vistas
 FICHERO_ASIGNATURA = "tiza.toml"  # cursos de esta asignatura; lo escribe el docente
+# Calendario escolar opcional: solo da avisos de fechas, nunca bloquea una publicación.
+FICHERO_CALENDARIO = "calendario.toml"

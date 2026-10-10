@@ -17,7 +17,8 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
-from . import buzon, contenido, informe, rutas
+from . import buzon, calendario, contenido, informe, rutas
+from .calendario import ErrorCalendario
 from .contenido import Documento, ErrorContenido, hash_documento
 from .publicar import ErrorPublicacion, buscar_seccion, cargar_estructura
 
@@ -44,6 +45,7 @@ class FicheroComprobado:
     detalle: str = ""  # explicación del error para quien corrige el fichero
     vista_previa: Path | None = None
     seccion_nueva: str | None = None  # sección por nombre que se creará (oculta) al publicar
+    avisos: tuple[str, ...] = ()  # FECHA_FESTIVA… según calendario.toml; nunca son errores
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,15 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
     else:
         pasos.append({"codigo": "ESTRUCTURA", "resultado": "ok", "detalle": None})
 
+    # El calendario es una ayuda: si no se puede leer, el error se cuenta pero los
+    # documentos se comprueban igual.
+    try:
+        cal = calendario.cargar(base)
+    except ErrorCalendario as exc:
+        cal = None
+        errores.append(exc.codigo)
+        pasos.append({"codigo": "CALENDARIO", "resultado": "fallo", "detalle": exc.detalle})
+
     for nombre in ficheros:
         ruta = base / nombre
         try:
@@ -85,13 +96,22 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             pasos.append(_paso_fallido(ruta.name, exc.codigo))
             resultados.append(FicheroComprobado(ruta.name, exc.codigo, exc.detalle))
             continue
+        avisos_doc: list[str] = []
+        for campo, dia, clase in calendario.fechas_del_documento(doc):
+            for codigo in calendario.avisos(cal, dia, clase=clase):
+                avisos_doc.append(codigo)
+                detalle = f"{ruta.name}: {campo} {dia.isoformat()}"
+                pasos.append({"codigo": codigo, "resultado": "ok", "detalle": detalle})
+        avisos = tuple(avisos_doc)
         curso = _curso_a_comprobar(estructura)
         seccion = buscar_seccion(curso[1], doc.seccion) if curso is not None else None
         if curso is not None and seccion is None and isinstance(doc.seccion, str):
             pasos.append({"codigo": "COMPROBAR", "resultado": "ok", "detalle": ruta.name})
             datos.append(_fichero(doc, doc.seccion))
             resultados.append(
-                FicheroComprobado(ruta.name, vista_previa=vista, seccion_nueva=doc.seccion)
+                FicheroComprobado(
+                    ruta.name, vista_previa=vista, seccion_nueva=doc.seccion, avisos=avisos
+                )
             )
             continue
         pista = (
@@ -102,7 +122,7 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
         if pista is not None:
             errores.append("SECCION_ES_ID")
             pasos.append(_paso_fallido(ruta.name, "SECCION_ES_ID"))
-            resultados.append(FicheroComprobado(ruta.name, "SECCION_ES_ID", pista))
+            resultados.append(FicheroComprobado(ruta.name, "SECCION_ES_ID", pista, avisos=avisos))
         elif curso is not None and seccion is None:
             errores.append("SECCION_AUSENTE")
             pasos.append(_paso_fallido(ruta.name, "SECCION_AUSENTE"))
@@ -110,10 +130,12 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
                 f"no existe la sección {doc.seccion} en el curso de {curso[0]} "
                 f"({rutas.CARPETA_TRABAJO}/estructura.json)"
             )
-            resultados.append(FicheroComprobado(ruta.name, "SECCION_AUSENTE", detalle))
+            resultados.append(
+                FicheroComprobado(ruta.name, "SECCION_AUSENTE", detalle, avisos=avisos)
+            )
         else:
             pasos.append({"codigo": "COMPROBAR", "resultado": "ok", "detalle": ruta.name})
-            resultados.append(FicheroComprobado(ruta.name, vista_previa=vista))
+            resultados.append(FicheroComprobado(ruta.name, vista_previa=vista, avisos=avisos))
         datos.append(_fichero(doc, seccion["nombre"] if seccion else None))
 
     documento = informe.crear("comprobar", "error" if errores else "ok", pasos, datos, errores)
@@ -164,8 +186,18 @@ def _pista_de_id(estructura: dict, doc: Documento) -> str | None:
     return None
 
 
-def peticion_publicar(ficheros: Sequence[str], entorno: str, visible: bool | None = None) -> dict:
-    """Petición de publicar para el buzón (``visible=None``: lo que exista conserva)."""
+def peticion_publicar(
+    ficheros: Sequence[str],
+    entorno: str,
+    visible: bool | None = None,
+    *,
+    solo_fechas: bool = False,
+) -> dict:
+    """Petición de publicar para el buzón (``visible=None``: lo que exista conserva).
+
+    ``solo_fechas`` cambia solo las fechas de tareas y cuestionarios ya publicados;
+    no admite ``visible``.
+    """
     return {
         "version": buzon.VERSION_PROTOCOLO,
         "id": uuid.uuid4().hex,
@@ -173,6 +205,7 @@ def peticion_publicar(ficheros: Sequence[str], entorno: str, visible: bool | Non
         "ficheros": list(ficheros),
         "entorno": entorno,
         "visible": visible,
+        "solo_fechas": solo_fechas,
     }
 
 
@@ -184,6 +217,7 @@ def peticion_estructura() -> dict:
         "ficheros": [],
         "entorno": None,
         "visible": None,
+        "solo_fechas": False,
     }
 
 
@@ -193,11 +227,13 @@ def publicar(
     entorno: str,
     *,
     visible: bool | None = None,
+    solo_fechas: bool = False,
     espera: float = buzon.ESPERA_POR_DEFECTO,
     cancelar: threading.Event | None = None,
 ) -> dict:
     """Pide a la sesión del docente que publique; en real, el docente confirma."""
-    return _enviar(carpeta, peticion_publicar(ficheros, entorno, visible), espera, cancelar)
+    peticion = peticion_publicar(ficheros, entorno, visible, solo_fechas=solo_fechas)
+    return _enviar(carpeta, peticion, espera, cancelar)
 
 
 def estructura(

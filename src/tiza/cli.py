@@ -97,6 +97,12 @@ def _parser() -> argparse.ArgumentParser:
     visibilidad.add_argument(
         "--oculto", action="store_true", help="oculta lo que se publica, aunque ya fuera visible"
     )
+    publicar_parser.add_argument(
+        "--solo-fechas",
+        action="store_true",
+        help="cambia solo las fechas de tareas y cuestionarios ya publicados; no toca el "
+        "contenido, las preguntas, los intentos ni la visibilidad",
+    )
     publicar_parser.add_argument("--debug", action="store_true")
 
     autoprueba = sub.add_parser(
@@ -735,8 +741,10 @@ def _publicar_directa(args) -> int:
         return salida
     curso = cfg.cursos[entorno]
     visible = _visibilidad(args)
+    solo_fechas = args.solo_fechas
     sin_pruebas = entorno == "real" and "pruebas" not in cfg.cursos
-    if sin_pruebas and visible is not False:
+    # Con --solo-fechas no cambia la visibilidad: el aviso de «solo oculto» no aplica.
+    if sin_pruebas and visible is not False and not solo_fechas:
         return _fallo(
             comando,
             "SOLO_OCULTO_SIN_PRUEBAS",
@@ -758,7 +766,11 @@ def _publicar_directa(args) -> int:
                 exc=exc,
                 debug=args.debug,
             )
-    if sin_pruebas:
+    if solo_fechas:
+        # En real, la confirmación enseña las fechas antes y después: se pide tras leer el aula.
+        if entorno == "pruebas" and not terminal.confirmar_destino(entorno, curso):
+            return _abortado(comando, entorno, curso)
+    elif sin_pruebas:
         print(
             "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."
         )
@@ -791,7 +803,7 @@ def _publicar_directa(args) -> int:
             exc=exc,
             debug=args.debug,
         )
-    if sin_pruebas:
+    if solo_fechas and entorno == "real":
         try:
             secciones = moodle.estructura(curso)
         except ErrorPublicacion as exc:
@@ -804,20 +816,36 @@ def _publicar_directa(args) -> int:
                 exc=exc,
                 debug=args.debug,
             )
+        codigo = sesion.codigo_solo_fechas(secciones, documentos)
+        if codigo is not None:
+            return _fallo(comando, codigo, entorno=entorno, curso=curso)
+        resumen_real = sesion.resumen_solo_fechas(
+            moodle,
+            curso,
+            _nombre_del_curso(moodle, curso),
+            documentos,
+            Path.cwd().resolve(),
+            secciones,
+            debug=args.debug,
+        )
+        if not terminal.PresenciaTerminal().confirmar_real(resumen_real):
+            return _abortado(comando, entorno, curso)
+    elif sin_pruebas:
         try:
-            nombre_curso = next(
-                (
-                    curso_.get("nombre")
-                    for curso_ in moodle.mis_cursos()
-                    if isinstance(curso_, dict) and curso_.get("id") == curso
-                ),
-                None,
+            secciones = moodle.estructura(curso)
+        except ErrorPublicacion as exc:
+            return _fallo(
+                comando,
+                exc.codigo,
+                exc.detalle,
+                entorno=entorno,
+                curso=curso,
+                exc=exc,
+                debug=args.debug,
             )
-        except ErrorPublicacion:
-            nombre_curso = None
         resumen = sesion.ResumenSinPruebas(
             curso=curso,
-            nombre_curso=nombre_curso,
+            nombre_curso=_nombre_del_curso(moodle, curso),
             documentos=tuple(
                 sesion.DocumentoBreve(
                     fichero=doc.ruta.name,
@@ -840,12 +868,35 @@ def _publicar_directa(args) -> int:
         Path.cwd(),
         terminal.PresenciaTerminal(),
         debug=args.debug,
+        solo_fechas=solo_fechas,
     )
     _escribir(documento)
     return 0 if documento["resultado"] == "ok" else 1
 
 
+def _nombre_del_curso(moodle, curso: int) -> str | None:
+    """Nombre del curso entre los del docente; None si no se puede leer la lista."""
+    try:
+        return next(
+            (
+                curso_.get("nombre")
+                for curso_ in moodle.mis_cursos()
+                if isinstance(curso_, dict) and curso_.get("id") == curso
+            ),
+            None,
+        )
+    except ErrorPublicacion:
+        return None
+
+
 def _publicar(args) -> int:
+    if args.solo_fechas and _visibilidad(args) is not None:
+        return _fallo(
+            "publicar",
+            "PETICION_INVALIDA",
+            "--solo-fechas no admite --visible ni --oculto: las fechas no cambian la visibilidad",
+            entorno=args.en,
+        )
     dir_tiza = _dir_tiza()
     if buzon.sesion_activa(dir_tiza):
         return _publicar_por_buzon(args, dir_tiza)
@@ -885,7 +936,9 @@ def _responder_buzon(
 
 
 def _publicar_por_buzon(args, dir_tiza: Path) -> int:
-    peticion = agente.peticion_publicar(args.ficheros, args.en, _visibilidad(args))
+    peticion = agente.peticion_publicar(
+        args.ficheros, args.en, _visibilidad(args), solo_fechas=args.solo_fechas
+    )
     return _responder_buzon("publicar", peticion, dir_tiza, debug=args.debug)
 
 

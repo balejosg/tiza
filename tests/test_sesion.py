@@ -9,13 +9,13 @@ import shutil
 import stat
 import threading
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from dobles import MoodleFalso, PresenciaFalsa, configurar_aula, enlace_simbolico
-from tiza import buzon, config, contenido, publicar, sesion
+from tiza import buzon, calendario, config, contenido, publicar, sesion
 
 TAREA = (
     '---\ntipo: tarea\nnombre: Problemas\nseccion: "Fracciones"\n'
@@ -121,12 +121,13 @@ def peticion(entorno="pruebas", visible=None) -> dict:
         "ficheros": ["pagina.md"],
         "entorno": entorno,
         "visible": visible,
+        "solo_fechas": False,
     }
 
 
-def verificar_en_pruebas(carpeta: Path) -> None:
-    doc = contenido.cargar(carpeta / "pagina.md")
-    publicar.guardar_verificado(carpeta / ".tiza", contenido.hash_documento(doc), "pagina.md", 100)
+def verificar_en_pruebas(carpeta: Path, nombre: str = "pagina.md") -> None:
+    doc = contenido.cargar(carpeta / nombre)
+    publicar.guardar_verificado(carpeta / ".tiza", contenido.hash_documento(doc), nombre, 100)
 
 
 def dejar_peticion(carpeta: Path, datos: dict) -> None:
@@ -405,6 +406,7 @@ class TestProcesarPeticionSinPruebas:
             "ficheros": [],
             "entorno": None,
             "visible": None,
+            "solo_fechas": False,
         }
         documento = sesion.procesar_peticion(
             peticion_estructura, MoodleFalso(), CFG_SIN_PRUEBAS, carpeta, PresenciaFalsa()
@@ -764,3 +766,283 @@ def test_cerrar_corta_el_buzon_sin_ofrecer_ampliar(tmp_path, monkeypatch):
     assert vistos[0]() is True
     assert presencia.avisos[-1] == sesion.Aviso("SESION_CERRADA", {"motivo": "docente"})
     assert not (buzon.carpeta_buzon(carpeta / ".tiza") / buzon.SESION).exists()
+
+
+def _fecha_formulario(campo: str, valor: tuple[int, int, int, int, int]) -> dict:
+    anio, mes, dia, hora, minuto = valor
+    return {
+        f"{campo}[enabled]": "1",
+        f"{campo}[year]": str(anio),
+        f"{campo}[month]": str(mes),
+        f"{campo}[day]": str(dia),
+        f"{campo}[hour]": str(hora),
+        f"{campo}[minute]": str(minuto),
+    }
+
+
+def _tarea(carpeta: Path, entrega: str = "2026-10-12", nombre: str = "tarea.md") -> None:
+    (carpeta / nombre).write_text(
+        "---\ntipo: tarea\nnombre: Problemas\nseccion: 3\napertura: 2026-10-01\n"
+        f"entrega: {entrega}\n---\n\nResuelve.\n",
+        encoding="utf-8",
+    )
+
+
+def _aula_con_tarea(entrega_antes=(2026, 10, 10, 23, 59)) -> MoodleFalso:
+    """Un aula donde la tarea ya está publicada con otra fecha de entrega."""
+    moodle = MoodleFalso()
+    moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
+    moodle.formularios[55] = {
+        "name": "Problemas",
+        "visible": "1",
+        "introeditor[text]": "<p>Resuelve.</p>",
+        **_fecha_formulario("allowsubmissionsfromdate", (2026, 10, 1, 0, 0)),
+        **_fecha_formulario("duedate", entrega_antes),
+    }
+    return moodle
+
+
+class PresenciaQueRetira(PresenciaFalsa):
+    """Confirma, pero antes retira la petición como si el agente hubiera dejado de esperar."""
+
+    def __init__(self, ruta_peticion: Path) -> None:
+        super().__init__(real=True)
+        self._ruta = ruta_peticion
+
+    def confirmar_real(self, resumen):
+        self.resumenes.append(resumen)
+        self._ruta.unlink()
+        return True
+
+
+class TestCambiosDeFechas:
+    def test_marca_cada_fecha_como_igual_o_cambia(self, tmp_path):
+        _tarea(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        moodle = _aula_con_tarea()
+        cambios = {
+            c.campo: c for c in sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        }
+        assert cambios["apertura"].estado == "igual"
+        assert cambios["entrega"].estado == "cambia"
+        assert cambios["entrega"].antes == (2026, 10, 10, 23, 59)
+        assert cambios["entrega"].despues == (2026, 10, 12, 23, 59)
+        assert "límite" not in cambios  # ni en el fichero ni en el aula
+        assert sesion.CAMPO_RECORDATORIO not in cambios  # el aula no lo tiene puesto
+
+    def test_ensena_que_se_quita_el_recordatorio_de_calificacion(self, tmp_path):
+        # Toda publicación de una tarea desactiva «Recordarme calificar antes de»: si el
+        # docente lo tenía puesto, la confirmación tiene que decírselo.
+        _tarea(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        moodle = _aula_con_tarea()
+        moodle.formularios[55].update(_fecha_formulario("gradingduedate", (2026, 10, 20, 0, 0)))
+        cambios = {
+            c.campo: c for c in sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        }
+        recordatorio = cambios[sesion.CAMPO_RECORDATORIO]
+        assert recordatorio.estado == "cambia"
+        assert recordatorio.antes == (2026, 10, 20, 0, 0)
+        assert recordatorio.despues is None
+        assert recordatorio.avisos == ()
+
+    def test_una_actividad_nueva_no_tiene_antes(self, tmp_path):
+        _tarea(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        moodle = MoodleFalso()
+        cambios = sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        assert {c.estado for c in cambios} == {"nueva"}
+        assert all(c.antes is None for c in cambios)
+
+    def test_si_el_aula_no_se_puede_leer_se_dice_sin_abortar(self, tmp_path):
+        _tarea(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+
+        class AulaCaida(MoodleFalso):
+            def leer_modulo(self, cmid):
+                raise publicar.ErrorPublicacion("ERROR_CONSULTA")
+
+        moodle = AulaCaida()
+        moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
+        cambios = sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        assert {c.estado for c in cambios} == {"desconocida"}
+        assert cambios[1].despues == (2026, 10, 12, 23, 59)
+
+    def test_los_avisos_del_calendario_van_con_su_fecha(self, tmp_path):
+        _tarea(tmp_path)  # entrega lunes 12 de octubre de 2026
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        festivo = calendario.Calendario(festivos=((date(2026, 10, 12), date(2026, 10, 12)),))
+        cambios = {c.campo: c for c in sesion.cambios_de_fechas(MoodleFalso(), [], doc, festivo)}
+        assert cambios["entrega"].avisos == ("FECHA_FESTIVA",)
+        assert cambios["apertura"].avisos == ()
+
+
+class TestSoloFechasEnProcesarPeticion:
+    def test_en_pruebas_cambia_la_fecha_sin_verificar_ni_pedir_nada(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        datos = peticion()
+        datos["ficheros"] = ["tarea.md"]
+        datos["solo_fechas"] = True
+        moodle = _aula_con_tarea()
+        presencia = PresenciaFalsa()
+        documento = sesion.procesar_peticion(datos, moodle, CFG, carpeta, presencia)
+        assert documento["resultado"] == "ok"
+        [fichero] = documento["ficheros"]
+        assert (fichero["accion"], fichero["cmid"]) == ("actualizada", 55)
+        assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)
+        assert presencia.resumenes == []
+        assert publicar.cargar_verificados(carpeta / ".tiza") == {}  # no es un contenido verificado
+        assert not any(llamada[0] in ("crear", "subir") for llamada in moodle.llamadas)
+
+    def test_en_real_ensena_antes_y_despues_y_publica_si_confirma(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        datos = peticion("real")
+        datos["ficheros"] = ["tarea.md"]
+        datos["solo_fechas"] = True
+        dejar_peticion(carpeta, datos)
+        moodle = _aula_con_tarea()
+        presencia = PresenciaFalsa(real=True)
+        documento = sesion.procesar_peticion(
+            datos, moodle, CFG, carpeta, presencia, nombres={5678: "Matemáticas 2ºB"}
+        )
+        assert documento["resultado"] == "ok"
+        [resumen] = presencia.resumenes
+        assert resumen.solo_fechas is True
+        assert (resumen.visible, resumen.secciones_nuevas) == (None, ())
+        [doc] = resumen.documentos
+        assert doc.vista_previa is None
+        estados = {c.campo: (c.estado, c.antes, c.despues) for c in doc.cambios}
+        assert estados["entrega"] == (
+            "cambia",
+            (2026, 10, 10, 23, 59),
+            (2026, 10, 12, 23, 59),
+        )
+        assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)
+
+    def test_en_real_rechazado_no_cambia_nada(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        datos = peticion("real")
+        datos["ficheros"] = ["tarea.md"]
+        datos["solo_fechas"] = True
+        dejar_peticion(carpeta, datos)
+        moodle = _aula_con_tarea()
+        documento = sesion.procesar_peticion(
+            datos, moodle, CFG, carpeta, PresenciaFalsa(real=False)
+        )
+        assert documento["resultado"] == "abortado"
+        assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
+
+    def test_en_real_sin_curso_de_pruebas_no_exige_oculto(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        datos = peticion("real")
+        datos["ficheros"] = ["tarea.md"]
+        datos["solo_fechas"] = True
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=True)
+        documento = sesion.procesar_peticion(
+            datos, _aula_con_tarea(), CFG_SIN_PRUEBAS, carpeta, presencia
+        )
+        assert documento["resultado"] == "ok"
+        assert presencia.resumenes_cortos == []
+        [resumen] = presencia.resumenes
+        assert resumen.solo_fechas is True
+
+    def test_una_pagina_no_admite_solo_fechas(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        datos = peticion()
+        datos["solo_fechas"] = True
+        moodle = MoodleFalso()
+        documento = sesion.procesar_peticion(datos, moodle, CFG, carpeta, PresenciaFalsa())
+        assert documento["resultado"] == "error"
+        assert documento["errores"] == ["SOLO_FECHAS_NO_APLICA"]
+        assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
+
+    def test_sin_el_modulo_no_cambia_nada(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        datos = peticion()
+        datos["ficheros"] = ["tarea.md"]
+        datos["solo_fechas"] = True
+        documento = sesion.procesar_peticion(datos, MoodleFalso(), CFG, carpeta, PresenciaFalsa())
+        assert documento["errores"] == ["MODULO_AUSENTE"]
+
+    def test_publicar_con_es_todo_o_nada_aunque_no_pase_por_la_sesion(self, tmp_path):
+        # La terminal del docente llama a publicar_con sin la validación previa de la sesión.
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        (carpeta / "otra.md").write_text(
+            "---\ntipo: tarea\nnombre: Otra\nseccion: 3\napertura: 2026-10-01\n"
+            "entrega: 2026-10-12\n---\n\nResuelve.\n",
+            encoding="utf-8",
+        )
+        documentos = [contenido.cargar(carpeta / "tarea.md"), contenido.cargar(carpeta / "otra.md")]
+        moodle = _aula_con_tarea()  # «Problemas» existe; «Otra», no
+        documento = sesion.publicar_con(
+            moodle, "pruebas", 1234, documentos, None, carpeta, PresenciaFalsa(), solo_fechas=True
+        )
+        assert documento["resultado"] == "error"
+        assert documento["errores"] == ["MODULO_AUSENTE"]
+        assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
+        assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 10, 23, 59)
+
+    def test_si_se_retira_tras_confirmar_no_publica(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        datos = peticion("real")
+        datos["ficheros"] = ["tarea.md"]
+        datos["solo_fechas"] = True
+        dejar_peticion(carpeta, datos)
+        ruta = buzon.carpeta_buzon(carpeta / ".tiza") / f"{datos['id']}{buzon.SUFIJO_PETICION}"
+        moodle = _aula_con_tarea()
+        documento = sesion.procesar_peticion(datos, moodle, CFG, carpeta, PresenciaQueRetira(ruta))
+        assert documento["errores"] == ["PETICION_RETIRADA"]
+        assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
+
+    def test_el_informe_no_guarda_las_fechas_del_aula(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        datos = peticion("real")
+        datos["ficheros"] = ["tarea.md"]
+        datos["solo_fechas"] = True
+        dejar_peticion(carpeta, datos)
+        sesion.procesar_peticion(datos, _aula_con_tarea(), CFG, carpeta, PresenciaFalsa(real=True))
+        for ruta in (carpeta / ".tiza").rglob("*"):
+            if ruta.is_file():
+                texto = ruta.read_text(encoding="utf-8", errors="ignore")
+                assert "duedate" not in texto and "2026-10-10" not in texto, ruta.name
+
+
+class TestCalendarioEnLaConfirmacion:
+    def test_un_calendario_invalido_se_dice_y_publicar_sigue(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        (carpeta / "calendario.toml").write_text("color = 'rojo'\n", encoding="utf-8")
+        verificar_en_pruebas(carpeta)
+        datos = peticion("real")
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=True)
+        documento = sesion.procesar_peticion(datos, MoodleFalso(), CFG, carpeta, presencia)
+        assert documento["resultado"] == "ok"
+        [resumen] = presencia.resumenes
+        assert resumen.aviso_calendario == "CALENDARIO_INVALIDO"
+        assert resumen.solo_fechas is False
+
+    def test_la_confirmacion_normal_lleva_los_cambios_de_fecha(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        (carpeta / "calendario.toml").write_text("festivos = [2026-10-12]\n", encoding="utf-8")
+        verificar_en_pruebas(carpeta, "tarea.md")
+        datos = peticion("real")
+        datos["ficheros"] = ["tarea.md"]
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=True)
+        sesion.procesar_peticion(datos, _aula_con_tarea(), CFG, carpeta, presencia)
+        [resumen] = presencia.resumenes
+        assert resumen.aviso_calendario is None
+        [doc] = resumen.documentos
+        entrega = next(c for c in doc.cambios if c.campo == "entrega")
+        assert entrega.estado == "cambia"
+        assert entrega.avisos == ("FECHA_FESTIVA",)

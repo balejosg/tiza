@@ -28,6 +28,7 @@ import platformdirs
 from . import (
     __version__,
     buzon,
+    calendario,
     config,
     contenido,
     ficheros,
@@ -46,6 +47,8 @@ __all__ = [
     "AVISO_DEBUG",
     "AVISO_MINUTOS",
     "Aviso",
+    "CAMPO_RECORDATORIO",
+    "CambioFecha",
     "CursoSesion",
     "DocumentoBreve",
     "DocumentoResumen",
@@ -58,6 +61,9 @@ __all__ = [
     "SIN_PRUEBAS",
     "abrir",
     "autoprueba_con",
+    "cambios_de_fechas",
+    "cargar_calendario",
+    "codigo_solo_fechas",
     "crear_dir_vistas",
     "depurar",
     "estructura_con",
@@ -65,6 +71,7 @@ __all__ = [
     "publicar_con",
     "puerta_real",
     "registrar",
+    "resumen_solo_fechas",
 ]
 
 MAX_MINUTOS = 480
@@ -122,6 +129,23 @@ class CursoSesion:
 
 
 @dataclass(frozen=True)
+class CambioFecha:
+    """Una fecha de la actividad frente a la que hay en el aula. La ve solo el docente.
+
+    ``antes`` y ``despues`` son (año, mes, día, hora, minuto), o None si no hay fecha.
+    ``estado``: ``nueva`` (la actividad no existe en el aula), ``igual``, ``cambia`` o
+    ``desconocida`` (no se pudo leer el aula: solo se enseña lo que se publicaría).
+    """
+
+    # «apertura», «entrega», «límite», «cierre» o CAMPO_RECORDATORIO
+    campo: str
+    antes: tuple[int, int, int, int, int] | None
+    despues: tuple[int, int, int, int, int] | None
+    estado: str
+    avisos: tuple[str, ...] = ()  # FECHA_FESTIVA… según calendario.toml; nunca bloquean
+
+
+@dataclass(frozen=True)
 class DocumentoResumen:
     """Lo que el docente necesita ver de un documento antes de publicarlo."""
 
@@ -137,9 +161,17 @@ class DocumentoResumen:
     h5p: str | None = None  # actividad H5P generada («Rellenar huecos»)
     h5p_libreria: str | None = None  # librería principal de un paquete subido
     h5p_descartadas: tuple[str, ...] = ()  # librerías que tiza no sube nunca
+    # None: no se ha comparado con el aula (pruebas, la confirmación corta…).
+    cambios: tuple[CambioFecha, ...] | None = None
 
     @classmethod
-    def de(cls, doc: Documento, base: Path, vista_previa: Path | None = None) -> DocumentoResumen:
+    def de(
+        cls,
+        doc: Documento,
+        base: Path,
+        vista_previa: Path | None = None,
+        cambios: tuple[CambioFecha, ...] | None = None,
+    ) -> DocumentoResumen:
         return cls(
             fichero=doc.ruta.name,
             tipo=doc.tipo,
@@ -153,6 +185,7 @@ class DocumentoResumen:
             h5p=(NOMBRES_H5P.get(doc.h5p.tipo, doc.h5p.tipo) if doc.h5p is not None else None),
             h5p_libreria=doc.paquete.libreria if doc.paquete is not None else None,
             h5p_descartadas=doc.paquete.descartadas if doc.paquete is not None else (),
+            cambios=cambios,
         )
 
 
@@ -165,6 +198,8 @@ class ResumenPublicacion:
     documentos: tuple[DocumentoResumen, ...]
     secciones_nuevas: tuple[str, ...]
     visible: bool | None  # True: visible; False: oculto; None: lo que exista conserva
+    solo_fechas: bool = False  # «--solo-fechas»: el contenido y la visibilidad no cambian
+    aviso_calendario: str | None = None  # código si calendario.toml no se pudo usar
 
 
 @dataclass(frozen=True)
@@ -327,6 +362,118 @@ def puerta_real(
     return publicar.comprobar_puerta_real(verificados, pares)
 
 
+def cargar_calendario(carpeta: Path) -> tuple[calendario.Calendario | None, str | None]:
+    """El calendario de la carpeta y, si existe pero no se puede usar, su código.
+
+    Nunca aborta: sin calendario válido, las fechas simplemente no llevan avisos.
+    """
+    try:
+        return calendario.cargar(carpeta), None
+    except calendario.ErrorCalendario as exc:
+        return None, exc.codigo
+
+
+# «Recordarme calificar antes de»: tiza nunca lo pone y toda publicación de una tarea lo
+# desactiva (Moodle rechaza una entrega posterior a ese recordatorio), así que si el aula lo
+# tiene puesto, la confirmación tiene que enseñar que se quita.
+CAMPO_RECORDATORIO = "recordatorio de calificación"
+
+# Campo que ve el docente → campo del formulario de Moodle, por tipo de actividad.
+_FECHAS_LLANAS = {
+    "tarea": (
+        ("apertura", "allowsubmissionsfromdate"),
+        ("entrega", "duedate"),
+        ("límite", "cutoffdate"),
+        (CAMPO_RECORDATORIO, "gradingduedate"),
+    ),
+    "cuestionario": (("apertura", "timeopen"), ("cierre", "timeclose")),
+}
+
+
+def cambios_de_fechas(
+    aula: AulaVirtual,
+    secciones: list[dict],
+    doc: Documento,
+    cal: calendario.Calendario | None,
+    *,
+    debug: bool = False,
+) -> tuple[CambioFecha, ...]:
+    """Las fechas que se publicarían frente a las que tiene el aula, con sus avisos.
+
+    Solo lo lee la presencia: no se guarda en ``.tiza`` ni sale hacia el agente. Las
+    fechas de cada alumno (excepciones de cuestionario, prórrogas de tarea) no se
+    leen nunca.
+    """
+    campos = _FECHAS_LLANAS.get(doc.tipo)
+    if campos is None:
+        return ()
+    esperadas = publicar.fechas_esperadas(doc)
+    avisos_de = calendario.avisos_por_campo(cal, doc)
+    existente = publicar.modulo_de(secciones, doc)
+    actuales: dict | None = None
+    if existente is not None:
+        try:
+            actuales = aula.leer_modulo(existente["cmid"]).get("fechas") or {}
+        except ErrorPublicacion as exc:
+            depurar(exc, debug)  # no aborta: se dice al docente que no se pudo leer
+    cambios: list[CambioFecha] = []
+    for campo, clave in campos:
+        despues = esperadas.get(clave)
+        avisos = avisos_de.get(campo, ())
+        if existente is None or actuales is None:
+            if despues is None:
+                continue
+            estado = "nueva" if existente is None else "desconocida"
+            cambios.append(CambioFecha(campo, None, despues, estado, avisos))
+            continue
+        antes = actuales.get(clave)
+        if antes is None and despues is None:
+            continue
+        estado = "igual" if antes == despues else "cambia"
+        cambios.append(CambioFecha(campo, antes, despues, estado, avisos))
+    return tuple(cambios)
+
+
+def codigo_solo_fechas(secciones: list[dict], documentos: list[Documento]) -> str | None:
+    """Por qué «--solo-fechas» no se puede aplicar a estos documentos, o None si sí."""
+    for doc in documentos:
+        if doc.tipo not in _FECHAS_LLANAS:
+            return "SOLO_FECHAS_NO_APLICA"
+        if publicar.modulo_de(secciones, doc) is None:
+            return "MODULO_AUSENTE"
+    return None
+
+
+def resumen_solo_fechas(
+    aula: AulaVirtual,
+    curso: int,
+    nombre_curso: str | None,
+    documentos: list[Documento],
+    carpeta: Path,
+    secciones: list[dict],
+    *,
+    debug: bool = False,
+) -> ResumenPublicacion:
+    """Lo que se confirma en real con «--solo-fechas»: fechas antes y después, nada más."""
+    cal, aviso = cargar_calendario(carpeta)
+    return ResumenPublicacion(
+        curso=curso,
+        nombre_curso=nombre_curso,
+        documentos=tuple(
+            DocumentoResumen.de(
+                doc,
+                carpeta,
+                cambios=cambios_de_fechas(aula, secciones, doc, cal, debug=debug),
+            )
+            for doc in documentos
+        ),
+        secciones_nuevas=(),
+        visible=None,
+        solo_fechas=True,
+        aviso_calendario=aviso,
+    )
+
+
 def publicar_con(
     aula: AulaVirtual,
     entorno: str,
@@ -337,8 +484,13 @@ def publicar_con(
     presencia: Presencia,
     *,
     debug: bool = False,
+    solo_fechas: bool = False,
 ) -> dict:
-    """Con el aula ya abierta: publica y verifica los documentos."""
+    """Con el aula ya abierta: publica y verifica los documentos.
+
+    Con ``solo_fechas`` solo cambia las fechas de lo que ya existe: no crea secciones,
+    no sube recursos y no registra nada como verificado en pruebas.
+    """
     comando = "publicar"
     pasos: list[dict] = [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}]
     try:
@@ -347,25 +499,38 @@ def publicar_con(
         pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
         depurar(exc, debug)
         return informe.crear(comando, "error", pasos, [], [exc.codigo], entorno, curso)
-    for nombre in publicar.secciones_que_faltan(secciones, documentos):
-        presencia.informar(Aviso("CREANDO_SECCION", {"nombre": nombre}))
-    try:
-        secciones, creadas = publicar.asegurar_secciones(aula, curso, secciones, documentos)
-    except ErrorPublicacion as exc:
-        pasos.append({"codigo": "CREAR_SECCION", "resultado": "fallo", "detalle": exc.codigo})
-        depurar(exc, debug)
-        return informe.crear(comando, "error", pasos, [], [exc.codigo], entorno, curso)
-    for nombre in creadas:
-        pasos.append({"codigo": "CREAR_SECCION", "resultado": "ok", "detalle": nombre})
+    if solo_fechas:
+        # Todo o nada: si alguno de los documentos no se puede cambiar, no se cambia ninguno.
+        codigo = codigo_solo_fechas(secciones, documentos)
+        if codigo is not None:
+            pasos.append({"codigo": "SOLO_FECHAS", "resultado": "fallo", "detalle": codigo})
+            return informe.crear(comando, "error", pasos, [], [codigo], entorno, curso)
+    else:
+        for nombre in publicar.secciones_que_faltan(secciones, documentos):
+            presencia.informar(Aviso("CREANDO_SECCION", {"nombre": nombre}))
+        try:
+            secciones, creadas = publicar.asegurar_secciones(aula, curso, secciones, documentos)
+        except ErrorPublicacion as exc:
+            pasos.append({"codigo": "CREAR_SECCION", "resultado": "fallo", "detalle": exc.codigo})
+            depurar(exc, debug)
+            return informe.crear(comando, "error", pasos, [], [exc.codigo], entorno, curso)
+        for nombre in creadas:
+            pasos.append({"codigo": "CREAR_SECCION", "resultado": "ok", "detalle": nombre})
+    paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
     ficheros: list[dict] = []
     for doc in documentos:
         try:
-            resultado = publicar.publicar_documento(aula, curso, secciones, doc, visible=visible)
+            if solo_fechas:
+                resultado = publicar.publicar_fechas(aula, secciones, doc)
+            else:
+                resultado = publicar.publicar_documento(
+                    aula, curso, secciones, doc, visible=visible
+                )
         except ErrorPublicacion as exc:
-            pasos.append({"codigo": "PUBLICAR", "resultado": "fallo", "detalle": doc.ruta.name})
+            pasos.append({"codigo": paso, "resultado": "fallo", "detalle": doc.ruta.name})
             depurar(exc, debug)
             return informe.crear(comando, "error", pasos, ficheros, [exc.codigo], entorno, curso)
-        if entorno == "pruebas":
+        if entorno == "pruebas" and not solo_fechas:
             publicar.guardar_verificado(
                 Path(carpeta) / rutas.CARPETA_TRABAJO,
                 resultado["hash"],
@@ -374,9 +539,9 @@ def publicar_con(
             )
         ficheros.append({clave: resultado[clave] for clave in _CAMPOS_FICHERO})
         detalle = doc.ruta.name
-        if doc.cuestionario is not None:
+        if doc.cuestionario is not None and not solo_fechas:
             detalle = f"{detalle}: {len(doc.cuestionario.preguntas)} preguntas"
-        pasos.append({"codigo": "PUBLICAR", "resultado": "ok", "detalle": detalle})
+        pasos.append({"codigo": paso, "resultado": "ok", "detalle": detalle})
         for extra in resultado.get("pasos", []):
             pasos.append(extra)
     return informe.crear(comando, "ok", pasos, ficheros, [], entorno, curso)
@@ -506,6 +671,19 @@ def procesar_peticion(
                 comando, "error", [], [], ["RUTA_FUERA_DE_CARPETA"], entorno, curso
             )
         documentos.append(doc)
+    if peticion["solo_fechas"]:
+        return _solo_fechas(
+            aula,
+            peticion,
+            documentos,
+            base,
+            presencia,
+            entorno=entorno,
+            curso=curso,
+            cupo=cupo,
+            nombres=nombres or {},
+            debug=debug,
+        )
     visible = peticion["visible"]
     if entorno == "real":
         # Sin curso de pruebas no hay verificación previa ni vista que enseñar:
@@ -552,15 +730,22 @@ def procesar_peticion(
                 ]
             except ErrorContenido as exc:
                 return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
+            cal, aviso_calendario = cargar_calendario(base)
             resumen = ResumenPublicacion(
                 curso=curso,
                 nombre_curso=(nombres or {}).get(curso),
                 documentos=tuple(
-                    DocumentoResumen.de(doc, base, vista)
+                    DocumentoResumen.de(
+                        doc,
+                        base,
+                        vista,
+                        cambios=cambios_de_fechas(aula, secciones, doc, cal, debug=debug),
+                    )
                     for doc, vista in zip(documentos, vistas, strict=True)
                 ),
                 secciones_nuevas=tuple(nuevas),
                 visible=peticion["visible"],
+                aviso_calendario=aviso_calendario,
             )
             confirmado = presencia.confirmar_real(resumen)
         if not confirmado:
@@ -587,6 +772,66 @@ def procesar_peticion(
     if verificados is not None and entorno == "pruebas" and documento["resultado"] == "ok":
         for fichero in documento["ficheros"]:
             verificados[fichero["hash"]] = {"nombre": fichero["nombre"], "cmid": fichero["cmid"]}
+    return registrar(documento, base, presencia)
+
+
+def _solo_fechas(
+    aula: AulaVirtual,
+    peticion: dict,
+    documentos: list[Documento],
+    base: Path,
+    presencia: Presencia,
+    *,
+    entorno: str,
+    curso: int,
+    cupo: dict | None,
+    nombres: dict[int, str],
+    debug: bool,
+) -> dict:
+    """«--solo-fechas»: cambia las fechas de lo que ya está publicado; el contenido no.
+
+    No pasa por la puerta de pruebas ni por el aviso de curso sin pruebas: no cambia
+    nada que el docente no vea en la confirmación de real.
+    """
+    comando = "publicar"
+    try:
+        secciones = aula.estructura(curso)
+    except ErrorPublicacion as exc:
+        return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
+    codigo = codigo_solo_fechas(secciones, documentos)
+    if codigo is not None:
+        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+    if entorno == "real":
+        resumen = resumen_solo_fechas(
+            aula,
+            curso,
+            nombres.get(curso),
+            documentos,
+            base,
+            secciones,
+            debug=debug,
+        )
+        if not presencia.confirmar_real(resumen):
+            return informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, curso)
+        if not buzon.peticion_pendiente(base / rutas.CARPETA_TRABAJO, peticion["id"]):
+            presencia.informar(Aviso("PETICION_RETIRADA"))
+            return informe.crear(comando, "error", [], [], ["PETICION_RETIRADA"], entorno, curso)
+    else:
+        if cupo is not None:
+            if cupo["pruebas"] + len(documentos) > MAX_PUBLICACIONES_PRUEBAS:
+                return informe.crear(
+                    comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso
+                )
+            cupo["pruebas"] += len(documentos)
+        presencia.informar(
+            Aviso(
+                "PUBLICANDO_EN_PRUEBAS",
+                {"documentos": tuple(DocumentoResumen.de(doc, base) for doc in documentos)},
+            )
+        )
+    documento = publicar_con(
+        aula, entorno, curso, documentos, None, base, presencia, debug=debug, solo_fechas=True
+    )
     return registrar(documento, base, presencia)
 
 

@@ -2221,3 +2221,161 @@ class TestAdaptadorH5P:
         sesion = _SesionH5P()
         sesion.respuesta("report.php", _Rq("", status_code=404))
         assert self._moodle(sesion).h5p_tiene_intentos(47) is False
+
+
+def _fecha_en_formulario(campo: str, valor: tuple[int, int, int, int, int]) -> dict:
+    anio, mes, dia, hora, minuto = valor
+    return {
+        f"{campo}[enabled]": "1",
+        f"{campo}[year]": str(anio),
+        f"{campo}[month]": str(mes),
+        f"{campo}[day]": str(dia),
+        f"{campo}[hour]": str(hora),
+        f"{campo}[minute]": str(minuto),
+    }
+
+
+# Nada que cambie el contenido, las preguntas, los intentos o la visibilidad.
+_ESCRITURAS_DE_CONTENIDO = {
+    "crear",
+    "subir",
+    "borrar",
+    "importar_preguntas",
+    "anadir_preguntas",
+    "borrar_preguntas",
+    "quitar_hueco",
+    "tiene_intentos",
+}
+
+
+class TestSoloFechas:
+    def tarea(self, tmp_path, entrega="2026-10-12"):
+        ruta = tmp_path / "t.md"
+        ruta.write_text(
+            "---\ntipo: tarea\nnombre: Problemas\nseccion: 3\n"
+            f"apertura: 2026-10-01\nentrega: {entrega}\n---\n\nResuelve.\n",
+            encoding="utf-8",
+        )
+        return contenido.cargar(ruta)
+
+    def cuestionario(self, tmp_path, cierre="2026-10-27"):
+        extra = f"cierre: {cierre}\n" if cierre else ""
+        ruta = tmp_path / "c.md"
+        ruta.write_text(
+            "---\ntipo: cuestionario\nnombre: Repaso\nseccion: 3\n"
+            f"apertura: 2026-10-20\n{extra}intentos: 2\n"
+            "preguntas:\n  - tipo: verdadero_falso\n    enunciado: x\n    respuesta: verdadero\n"
+            "---\n\nDescripción.\n",
+            encoding="utf-8",
+        )
+        return contenido.cargar(ruta)
+
+    def aula_con(self, doc, fechas_antiguas: dict, cmid: int = 55) -> MoodleFalso:
+        """Un aula con el módulo ya publicado: su contenido y sus fechas de antes."""
+        moodle = MoodleFalso()
+        moodle.secciones[0]["modulos"] = [{"cmid": cmid, "nombre": doc.nombre, "tipo": doc.tipo}]
+        formulario = {
+            "name": doc.nombre,
+            "visible": "1",
+            "introeditor[text]": "<p>antes</p>",
+            "attempts": "2",
+        }
+        for campo, valor in fechas_antiguas.items():
+            formulario.update(_fecha_en_formulario(campo, valor))
+        moodle.formularios[cmid] = formulario
+        return moodle
+
+    def test_el_payload_de_una_tarea_solo_lleva_las_fechas(self, tmp_path):
+        payload = publicar.payload_solo_fechas(self.tarea(tmp_path))
+        assert not {"name", "introeditor[text]", "visible", "attempts"} & set(payload)
+        assert payload["duedate[day]"] == "12"
+        assert payload["cutoffdate[enabled]"] == "0"
+
+    def test_el_payload_de_una_tarea_desactiva_el_recordatorio_de_calificacion(self, tmp_path):
+        # Deliberado: Moodle rechaza una entrega posterior al recordatorio («Recordarme
+        # calificar antes de»), y la confirmación de real enseña que se quita.
+        payload = publicar.payload_solo_fechas(self.tarea(tmp_path))
+        assert payload["gradingduedate[enabled]"] == "0"
+
+    def test_el_payload_de_un_cuestionario_no_toca_intentos_ni_tiempo(self, tmp_path):
+        payload = publicar.payload_solo_fechas(self.cuestionario(tmp_path))
+        ajustes = {"attempts", "shuffleanswers", "timelimit[enabled]", "name", "visible"}
+        assert not ajustes & set(payload)
+        assert payload["timeclose[day]"] == "27"
+        assert payload["timeopen[day]"] == "20"
+
+    def test_una_pagina_no_admite_solo_fechas(self, tmp_path):
+        ruta = tmp_path / "p.md"
+        ruta.write_text("---\ntipo: pagina\nnombre: P\nseccion: 3\n---\n\nx\n", encoding="utf-8")
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.payload_solo_fechas(contenido.cargar(ruta))
+        assert exc.value.codigo == "SOLO_FECHAS_NO_APLICA"
+
+    def test_cambia_la_fecha_y_deja_el_resto_como_estaba(self, tmp_path):
+        doc = self.tarea(tmp_path)
+        antiguas = {"duedate": (2026, 10, 10, 23, 59)}
+        moodle = self.aula_con(doc, antiguas)
+        resultado = publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        assert (resultado["accion"], resultado["cmid"]) == ("actualizada", 55)
+        assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)
+        formulario = moodle.formularios[55]
+        assert (formulario["name"], formulario["introeditor[text]"]) == (
+            "Problemas",
+            "<p>antes</p>",
+        )
+        assert formulario["attempts"] == "2"
+        assert resultado["hash"] == doc.hash_cargado
+        escrituras = {llamada[0] for llamada in moodle.llamadas} & _ESCRITURAS_DE_CONTENIDO
+        assert escrituras == set()
+
+    def test_un_cuestionario_con_intentos_cambia_solo_su_cierre(self, tmp_path):
+        doc = self.cuestionario(tmp_path, cierre="2026-10-27")
+        antiguas = {"timeclose": (2026, 10, 26, 23, 59)}
+        moodle = self.aula_con(doc, antiguas)
+        moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Repaso", "tipo": "cuestionario"}]
+        publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        assert moodle.leer_modulo(55)["fechas"]["timeclose"] == (2026, 10, 27, 23, 59)
+        assert moodle.formularios[55]["attempts"] == "2"
+        assert not ({llamada[0] for llamada in moodle.llamadas} & _ESCRITURAS_DE_CONTENIDO)
+
+    def test_sin_cierre_en_el_fichero_la_fecha_del_aula_se_quita(self, tmp_path):
+        doc = self.cuestionario(tmp_path, cierre=None)
+        moodle = self.aula_con(doc, {"timeclose": (2026, 10, 26, 23, 59)})
+        moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Repaso", "tipo": "cuestionario"}]
+        publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        assert moodle.leer_modulo(55)["fechas"]["timeclose"] is None
+
+    def test_sin_el_modulo_no_envia_nada(self, tmp_path):
+        doc = self.tarea(tmp_path)
+        moodle = MoodleFalso()
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        assert exc.value.codigo == "MODULO_AUSENTE"
+        assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
+
+    def test_si_el_aula_no_guarda_las_fechas_falla(self, tmp_path):
+        doc = self.tarea(tmp_path)
+
+        class AulaQueNoCambia(MoodleFalso):
+            def leer_modulo(self, cmid):
+                info = super().leer_modulo(cmid)
+                info["fechas"]["duedate"] = (2026, 10, 10, 23, 59)
+                return info
+
+        moodle = AulaQueNoCambia()
+        moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
+        moodle.formularios[55] = {"name": "Problemas", "visible": "1"}
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        assert exc.value.codigo == "FECHAS_NO_APLICADAS"
+
+    def test_una_pagina_con_modulo_tampoco_admite_solo_fechas(self, tmp_path):
+        ruta = tmp_path / "p.md"
+        ruta.write_text("---\ntipo: pagina\nnombre: P\nseccion: 3\n---\n\nx\n", encoding="utf-8")
+        doc = contenido.cargar(ruta)
+        moodle = MoodleFalso()
+        moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "P", "tipo": "pagina"}]
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        assert exc.value.codigo == "SOLO_FECHAS_NO_APLICA"
+        assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)

@@ -21,6 +21,7 @@ from typing import Any
 from . import ayuda, informe
 from .informe import ErrorInforme
 from .sesion import (
+    CAMPO_RECORDATORIO,
     SIN_PRUEBAS,
     Aviso,
     CursoSesion,
@@ -32,6 +33,8 @@ from .sesion import (
 __all__ = [
     "ErrorTerminal",
     "PresenciaTerminal",
+    "cambian_fechas",
+    "describir_cambios",
     "describir_documento",
     "enlace",
     "imprimir_error",
@@ -235,14 +238,69 @@ def _fecha_llana(momento: datetime) -> str:
     return momento.strftime("%d/%m/%Y %H:%M")
 
 
+_AVISOS_LLANOS = {
+    "FECHA_FUERA_DE_CURSO": "fuera del curso escolar",
+    "FECHA_FESTIVA": "festivo",
+    "FECHA_FIN_DE_SEMANA": "fin de semana",
+    "FECHA_SIN_CLASE": "no es día de clase",
+}
+_EXCEPCIONES = (
+    "Las excepciones de fecha de alumnos concretos no cambian: revísalas en el aula si las hay."
+)
+
+
+def _fecha_o_sin(valor: tuple[int, int, int, int, int] | None) -> str:
+    return "sin fecha" if valor is None else _fecha_llana(datetime(*valor))
+
+
+def describir_cambios(doc: DocumentoResumen) -> list[str]:
+    """Una línea por fecha: lo que hay en el aula y lo que se publicaría, con sus avisos."""
+    lineas: list[str] = []
+    for cambio in doc.cambios or ():
+        if cambio.estado == "nueva":
+            linea = f"{cambio.campo} {_fecha_o_sin(cambio.despues)} (la actividad es nueva)"
+        elif cambio.estado == "igual":
+            linea = f"{cambio.campo} {_fecha_o_sin(cambio.despues)} (sin cambios)"
+        elif cambio.estado == "cambia":
+            linea = (
+                f"{cambio.campo} antes {_fecha_o_sin(cambio.antes)} "
+                f"→ ahora {_fecha_o_sin(cambio.despues)}"
+            )
+        else:
+            linea = (
+                f"{cambio.campo}: no se pudieron leer las fechas actuales del aula; "
+                f"se publicaría {_fecha_o_sin(cambio.despues)}"
+            )
+        avisos = [_AVISOS_LLANOS.get(codigo, codigo) for codigo in cambio.avisos]
+        if avisos:
+            linea += " — " + ", ".join(avisos)
+        lineas.append(linea)
+    return lineas
+
+
+def cambian_fechas(resumen: ResumenPublicacion) -> bool:
+    """Si alguna fecha cambia, o no se pudo comparar con el aula: toca recordar las excepciones.
+
+    El recordatorio de calificación es del docente, no del alumnado: por sí solo no cuenta.
+    """
+    return any(
+        cambio.estado in ("cambia", "desconocida") and cambio.campo != CAMPO_RECORDATORIO
+        for doc in resumen.documentos
+        for cambio in doc.cambios or ()
+    )
+
+
 def describir_documento(doc: DocumentoResumen) -> str:
-    """Qué se va a publicar, en lenguaje llano y saneado para la terminal."""
+    """Qué se va a publicar, en lenguaje llano y saneado para la terminal.
+
+    Con ``cambios`` (la confirmación de real), las fechas van en sus propias líneas.
+    """
     if isinstance(doc.seccion, str):
         seccion = f"sección «{texto_seguro(doc.seccion)}»"
     else:
         seccion = f"sección {doc.seccion}"
     texto = f"{_TIPOS.get(doc.tipo, doc.tipo)} «{texto_seguro(doc.nombre)}» → {seccion}"
-    if doc.fechas is not None:
+    if doc.fechas is not None and doc.cambios is None:
         texto += (
             f"; apertura {_fecha_llana(doc.fechas.apertura)}, "
             f"entrega {_fecha_llana(doc.fechas.entrega)}"
@@ -313,12 +371,26 @@ class PresenciaTerminal:
 
     def confirmar_real(self, resumen: ResumenPublicacion) -> bool:
         curso = describir_curso(resumen.curso, resumen.nombre_curso)
-        print(f"El agente pide publicar en el curso REAL {curso}:")
+        if resumen.solo_fechas:
+            print(f"El agente pide cambiar solo las fechas en el curso REAL {curso}:")
+        else:
+            print(f"El agente pide publicar en el curso REAL {curso}:")
+        if resumen.aviso_calendario is not None:
+            print(
+                f"  AVISO: calendario.toml no se puede usar. {ayuda.explicar(resumen.aviso_calendario)}"
+            )
         for doc in resumen.documentos:
             print(f"  - {describir_documento(doc)}")
-            print(f"      fichero {texto_seguro(doc.fichero)}, verificado en pruebas")
+            if resumen.solo_fechas:
+                print(f"      fichero {texto_seguro(doc.fichero)}")
+            else:
+                print(f"      fichero {texto_seguro(doc.fichero)}, verificado en pruebas")
+            for linea in describir_cambios(doc):
+                print(f"      {linea}")
             if doc.vista_previa is not None:
                 print(f"      vista previa: {enlace(doc.vista_previa)}")
+            if resumen.solo_fechas:
+                continue  # el contenido no cambia: no se listan sus enlaces ni sus ficheros
             for url in doc.enlaces_externos:
                 print(f"      enlace externo: {texto_seguro(url)}")
             if doc.h5p is not None:
@@ -331,9 +403,17 @@ class PresenciaTerminal:
                 print(f"      incrusta: {texto_seguro(url)}")
             for ruta in doc.recursos:
                 print(f"      se sube el fichero {texto_seguro(ruta)}")
+        if cambian_fechas(resumen):
+            print(f"  {_EXCEPCIONES}")
         for nombre in resumen.secciones_nuevas:
             print(f"  Se creará la sección «{texto_seguro(nombre)}» (oculta).")
-        print(f"  {_VISIBILIDAD[resumen.visible]}")
+        if resumen.solo_fechas:
+            print(
+                "  Solo cambian las fechas: el contenido, las preguntas, los intentos "
+                "y la visibilidad no cambian."
+            )
+        else:
+            print(f"  {_VISIBILIDAD[resumen.visible]}")
         return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
 
     def confirmar_real_sin_pruebas(self, resumen: ResumenSinPruebas) -> bool:

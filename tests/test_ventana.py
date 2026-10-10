@@ -502,3 +502,33 @@ def test_main_valida_los_minutos():
 
     with pytest.raises(SystemExit):
         paquete_ventana.main(["--carpeta", ".", "--minutos", "0"])
+
+
+def test_real_solo_fechas_pinta_las_fechas_y_no_el_contenido(tmp_path):
+    abiertas: list = []
+    ventana, presencia, puente = preparar(tmp_path, abiertas)
+    cambio = sesion.CambioFecha("entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia")
+    doc = sesion.DocumentoResumen(
+        "t.md",
+        "tarea",
+        "Problemas",
+        3,
+        None,
+        enlaces_externos=("https://ejemplo.org/x",),
+        recursos=("img/foto.png",),
+        cambios=(cambio,),
+    )
+    resumen = sesion.ResumenPublicacion(5678, "Mates", (doc,), (), None, solo_fechas=True)
+    hilo, resultado = en_hilo(lambda: presencia.confirmar_real(resumen))
+    pantalla = esperar_pantalla(ventana, "real")
+    assert pantalla["solo_fechas"] is True
+    assert pantalla["excepciones"] is True
+    assert pantalla["documentos"][0]["fechas"] == [
+        "entrega antes 10/10/2026 23:59 → ahora 12/10/2026 23:59"
+    ]
+    assert pantalla["documentos"][0]["enlaces"] == []
+    assert pantalla["documentos"][0]["recursos"] == []
+    assert pantalla["visibilidad"] == ""
+    assert puente.responder(pantalla["numero"], False) is True
+    hilo.join(5)
+    assert resultado["valor"] is False
