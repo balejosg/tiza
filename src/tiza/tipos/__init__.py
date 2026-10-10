@@ -10,6 +10,8 @@ from __future__ import annotations
 from .base import (
     BANDERA_DE_MODO,
     CAMPO_RECORDATORIO,
+    Contexto,
+    Extras,
     FechaActividad,
     Tipo,
     fechas_esperadas,
@@ -28,6 +30,8 @@ from .tarea import Tarea
 __all__ = [
     "BANDERA_DE_MODO",
     "CAMPO_RECORDATORIO",
+    "Contexto",
+    "Extras",
     "FechaActividad",
     "TODOS",
     "TIPOS",

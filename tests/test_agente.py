@@ -281,16 +281,21 @@ def test_formato_documento_sale_de_la_skill():
 
 
 def test_formato_documento_cubre_todos_los_tipos_y_campos():
-    # Si contenido.py gana un tipo o un campo, la skill debe enseñarlo al agente.
-    texto = agente.formato_documento()
-    for tipo in contenido.TTIPOS + contenido.TIPOS_PREGUNTA:
-        assert f"tipo: {tipo}" in texto, tipo
-    campos = (
-        set(contenido.CAMPOS_CUESTIONARIO)
-        | set(contenido._CAMPOS_OPCION)
-        | set(contenido.CAMPOS_H5P)
+    # Si el registro gana un tipo o un campo, la skill debe enseñarlo al agente.
+    from tiza.tipos import TIPOS
+    from tiza.tipos.cuestionario import (
+        _CAMPOS_OPCION,
+        _CAMPOS_PREGUNTA,
+        CAMPOS_CUESTIONARIO,
+        TIPOS_PREGUNTA,
     )
-    for campos_pregunta in contenido._CAMPOS_PREGUNTA.values():
+    from tiza.tipos.h5p import CAMPOS_H5P
+
+    texto = agente.formato_documento()
+    for tipo in TIPOS + TIPOS_PREGUNTA:
+        assert f"tipo: {tipo}" in texto, tipo
+    campos = set(CAMPOS_CUESTIONARIO) | set(_CAMPOS_OPCION) | set(CAMPOS_H5P)
+    for campos_pregunta in _CAMPOS_PREGUNTA.values():
         campos |= campos_pregunta
     for campo in sorted(campos):
         assert f"{campo}:" in texto, campo

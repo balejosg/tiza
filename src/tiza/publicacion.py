@@ -31,9 +31,10 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from . import calendario, contenido, informe, publicar, rutas, tipos
 from .config import Config
-from .contenido import NOMBRES_H5P, Documento, ErrorContenido, hash_documento
+from .contenido import Documento, ErrorContenido, hash_documento
 from .publicar import AulaVirtual, ErrorPublicacion
 from .tipos import CAMPO_RECORDATORIO, FechaActividad
+from .tipos.h5p import NOMBRES_H5P
 
 if TYPE_CHECKING:  # solo para el tipo; la sesión importa este módulo
     from .sesion import CursoSesion

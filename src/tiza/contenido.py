@@ -8,13 +8,12 @@ from __future__ import annotations
 import copy
 import hashlib
 import html as _html
-import math
 import os
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlsplit
 from zoneinfo import ZoneInfo
 
@@ -22,18 +21,17 @@ import yaml
 from bs4 import BeautifulSoup, Tag
 from markdown_it import MarkdownIt
 
-from . import filtro, rutas, tipos
+from . import filtro, rutas
 from .ficheros import FicheroNoSeguro, asegurar_directorio, escribir_texto, leer_bytes_acotado
 from .filtro import CONTROL as _CONTROL
-from .tipos.cuestionario import CAMPOS_CUESTIONARIO
-from .tipos.h5p import CAMPOS_H5P
+
+if TYPE_CHECKING:  # el registro importa este módulo: el import va dentro de las funciones
+    from . import tipos
 
 __all__ = [
     "EXTENSIONES",
     "MAX_DOCUMENTO_BYTES",
     "MAX_RECURSO_BYTES",
-    "CAMPOS_CUESTIONARIO",
-    "CAMPOS_H5P",
     "ErrorContenido",
     "ActividadH5P",
     "Cuestionario",
@@ -59,72 +57,14 @@ __all__ = [
 
 EXTENSIONES = (".md", ".html", ".htm")  # en minúsculas; el resto de ficheros no es contenido
 _EXTENSIONES_HTML = frozenset({".html", ".htm"})
-# El orden canónico de los tipos y sus campos propios lo fija el registro (tipos/).
-TTIPOS = tipos.TIPOS
+# Orden canónico de los tipos; el dueño es ``tipos.TIPOS`` y un test comprueba que no
+# se separan (aquí no se puede importar el registro: el registro importa este módulo).
+TTIPOS = ("pagina", "tarea", "cuestionario", "etiqueta", "h5p")
 CAMPOS_ITINERARIO = {"finalizacion", "fecha_esperada", "restricciones"}
 CAMPOS_COMUNES = {"tipo", "nombre", "seccion"} | CAMPOS_ITINERARIO
 CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
 MAX_DEPENDENCIAS = 10
-
-# Actividades H5P generadas. Las etiquetas que admite cada campo de las
-# librerías (semantics) limitan el Markdown en línea que se conserva.
-TIPOS_H5P = ("rellenar_huecos", "arrastrar_palabras", "marcar_palabras", "tarjetas")
-NOMBRES_H5P = {
-    "rellenar_huecos": "Rellenar huecos",
-    "arrastrar_palabras": "Arrastrar palabras",
-    "marcar_palabras": "Marcar palabras",
-    "tarjetas": "Tarjetas",
-}
-_CAMPOS_TARJETA = {"anverso", "reverso"}
-_CAMPOS_H5P_POR_TIPO = {
-    "rellenar_huecos": {
-        "tipo",
-        "textos",
-        "mayusculas",
-        "calificacion",
-        "reintentar",
-        "ver_solucion",
-    },
-    "arrastrar_palabras": {
-        "tipo",
-        "texto",
-        "distractores",
-        "calificacion",
-        "reintentar",
-        "ver_solucion",
-    },
-    "marcar_palabras": {"tipo", "enunciado", "texto", "calificacion", "reintentar", "ver_solucion"},
-    "tarjetas": {"tipo", "tarjetas", "reintentar"},
-}
-# Markdown en línea que sobrevive al filtro de cada campo H5P (negrita, cursiva…).
-_INLINE_HUECOS = frozenset({"strong", "em", "u", "del", "s", "code", "br"})
-_INLINE_MARCAR = frozenset({"strong", "em", "u", "code", "br"})
-_INLINE_TARJETA = frozenset({"strong", "em", "code", "br"})
-MAX_TEXTOS_H5P = 30
-MAX_TARJETAS = 100
-MAX_TEXTO_H5P = 5000
-MAX_RESPUESTA_H5P = 200
-MAX_DISTRACTORES = 20
-MAX_ALTERNATIVAS_H5P = 10
 MAX_PAQUETE_H5P_BYTES = 64 * 1024 * 1024  # el .h5p subido
-
-TIPOS_PREGUNTA = ("opcion_multiple", "verdadero_falso", "respuesta_corta", "numerica")
-NOMBRES_PREGUNTA = {
-    "opcion_multiple": "Opción múltiple",
-    "verdadero_falso": "Verdadero o falso",
-    "respuesta_corta": "Respuesta corta",
-    "numerica": "Numérica",
-}
-_CAMPOS_PREGUNTA_BASE = {"tipo", "enunciado", "retro"}
-_CAMPOS_PREGUNTA = {
-    "opcion_multiple": _CAMPOS_PREGUNTA_BASE | {"opciones"},
-    "verdadero_falso": _CAMPOS_PREGUNTA_BASE | {"respuesta"},
-    "respuesta_corta": _CAMPOS_PREGUNTA_BASE | {"aceptadas", "mayusculas"},
-    "numerica": _CAMPOS_PREGUNTA_BASE | {"valor", "tolerancia"},
-}
-_CAMPOS_OPCION = {"texto", "correcta", "retro"}
-MAX_PREGUNTAS = 100
-MAX_ENUNCIADO = 5000
 MAX_DOCUMENTO_BYTES = 2 * 1024 * 1024  # el .md o .html; los recursos se miden aparte
 MAX_RECURSO_BYTES = 200 * 1024 * 1024
 _TROZO_HASH = 1024 * 1024
@@ -410,6 +350,8 @@ def _validar(
         raise ErrorContenido(
             "TIPO_INVALIDO", "tipo debe ser pagina, tarea, cuestionario, etiqueta o h5p"
         )
+    from . import tipos  # diferido: el registro importa este módulo al cargarse
+
     adapter = tipos.obtener(tipo)
 
     permitidos = CAMPOS_COMUNES | adapter.campos
@@ -446,29 +388,15 @@ def _validar(
 
     finalizacion = _validar_finalizacion(datos, adapter, zona)
     restricciones = _validar_restricciones(datos, ruta, zona, raiz)
-    fechas = None
-    cuestionario = None
-    h5p = None
-    paquete = None
-    if tipo == "tarea":
-        for campo in ("apertura", "entrega"):
-            if datos.get(campo) is None:
-                raise ErrorContenido("CAMPO_FALTANTE", f"falta el campo «{campo}»")
-        apertura = _fecha(datos["apertura"], zona, time(0, 0))
-        entrega = _fecha(datos["entrega"], zona, time(23, 59))
-        limite = (
-            _fecha(datos["limite"], zona, time(23, 59)) if datos.get("limite") is not None else None
-        )
-        if not (apertura < entrega and (limite is None or entrega < limite)):
-            raise ErrorContenido(
-                "FECHAS_INCOHERENTES",
-                "debe cumplirse apertura < entrega" + (" < límite" if limite else ""),
-            )
-        fechas = Fechas(apertura=apertura, entrega=entrega, limite=limite)
-    elif tipo == "cuestionario":
-        cuestionario = _validar_cuestionario(datos, zona)
-    elif tipo == "h5p":
-        h5p, paquete = _validar_h5p(datos, ruta.parent, raiz)
+    ctx = tipos.Contexto(
+        zona=zona,
+        ruta=ruta,
+        raiz=raiz,
+        fecha=lambda valor, hora: _fecha(valor, zona, hora),
+        render=_render,
+        paquete_h5p=lambda valor: _resolver_paquete(valor, ruta.parent, raiz),
+    )
+    extras = adapter.validar(datos, ctx)
 
     return Documento(
         ruta=ruta,
@@ -478,10 +406,10 @@ def _validar(
         cuerpo=cuerpo,
         html="",
         recursos=[],
-        fechas=fechas,
-        cuestionario=cuestionario,
-        h5p=h5p,
-        paquete=paquete,
+        fechas=extras.fechas,
+        cuestionario=extras.cuestionario,
+        h5p=extras.h5p,
+        paquete=extras.paquete,
         finalizacion=finalizacion,
         restricciones=restricciones,
     )
@@ -628,288 +556,8 @@ def describir_itinerario(doc: Documento, nombres: dict[str, str] | None = None) 
 
 
 # --------------------------------------------------------------------------- #
-# Validación de un cuestionario
+# Paquete .h5p subido
 # --------------------------------------------------------------------------- #
-
-
-def _validar_cuestionario(datos: dict[str, Any], zona: ZoneInfo) -> Cuestionario:
-    apertura = (
-        _fecha(datos["apertura"], zona, time(0, 0)) if datos.get("apertura") is not None else None
-    )
-    cierre = (
-        _fecha(datos["cierre"], zona, time(23, 59)) if datos.get("cierre") is not None else None
-    )
-    if apertura is not None and cierre is not None and not apertura < cierre:
-        raise ErrorContenido("FECHAS_INCOHERENTES", "debe cumplirse apertura < cierre")
-
-    tiempo_limite = datos.get("tiempo_limite")
-    if tiempo_limite is not None and (
-        isinstance(tiempo_limite, bool)
-        or not isinstance(tiempo_limite, int)
-        or not 1 <= tiempo_limite <= 600
-    ):
-        raise ErrorContenido(
-            "AJUSTE_INVALIDO", "«tiempo_limite» debe ser un número entero entre 1 y 600 (minutos)"
-        )
-
-    intentos = _leer_intentos(datos.get("intentos"))
-    mezclar = datos.get("mezclar_respuestas")
-    if mezclar is None:
-        mezclar = True
-    elif not isinstance(mezclar, bool):
-        raise ErrorContenido("AJUSTE_INVALIDO", "«mezclar_respuestas» debe ser true o false")
-
-    valor_preguntas = datos.get("preguntas")
-    if not isinstance(valor_preguntas, list) or not 1 <= len(valor_preguntas) <= MAX_PREGUNTAS:
-        raise ErrorContenido(
-            "PREGUNTAS_INVALIDAS",
-            f"«preguntas» debe ser una lista de 1 a {MAX_PREGUNTAS} preguntas",
-        )
-
-    externos: list[str] = []
-    incrustados: list[str] = []
-    preguntas = tuple(
-        _validar_pregunta(pregunta, numero, externos, incrustados)
-        for numero, pregunta in enumerate(valor_preguntas, 1)
-    )
-    return Cuestionario(
-        preguntas=preguntas,
-        apertura=apertura,
-        cierre=cierre,
-        tiempo_limite=tiempo_limite,
-        intentos=intentos,
-        mezclar_respuestas=mezclar,
-        externos=tuple(externos),
-        incrustados=tuple(incrustados),
-    )
-
-
-def _leer_intentos(valor: Any) -> int:
-    if valor is None:
-        return 1
-    if isinstance(valor, str) and valor.strip().casefold() == "ilimitados":
-        return 0
-    if isinstance(valor, bool) or not isinstance(valor, int) or not 1 <= valor <= 10:
-        raise ErrorContenido(
-            "AJUSTE_INVALIDO", "«intentos» debe ser un número entero entre 1 y 10 o «ilimitados»"
-        )
-    return valor
-
-
-def _validar_pregunta(
-    valor: Any, numero: int, externos: list[str], incrustados: list[str]
-) -> Pregunta:
-    donde = f"pregunta {numero}"
-    if not isinstance(valor, dict):
-        raise ErrorContenido("PREGUNTAS_INVALIDAS", f"{donde}: cada pregunta debe ser un mapa")
-
-    tipo = valor.get("tipo")
-    if tipo not in TIPOS_PREGUNTA:
-        raise ErrorContenido(
-            "TIPO_PREGUNTA_INVALIDO",
-            f"{donde}: «tipo» debe ser uno de: {', '.join(TIPOS_PREGUNTA)}",
-        )
-    for campo in valor:
-        if campo not in _CAMPOS_PREGUNTA[tipo]:
-            raise ErrorContenido(
-                "CAMPO_DESCONOCIDO", f"{donde}: campo «{campo}» no permitido en «{tipo}»"
-            )
-
-    enunciado = valor.get("enunciado")
-    if not isinstance(enunciado, str) or not enunciado.strip() or len(enunciado) > MAX_ENUNCIADO:
-        raise ErrorContenido(
-            "ENUNCIADO_INVALIDO",
-            f"{donde}: el enunciado debe ser texto de 1 a {MAX_ENUNCIADO} caracteres",
-        )
-    html = _html_de_pregunta(enunciado, donde, externos, incrustados)
-
-    retro = _texto_opcional(valor.get("retro"), donde, "retro")
-    retro_html = (
-        _html_de_pregunta(retro, donde, externos, incrustados) if retro is not None else None
-    )
-
-    if tipo == "opcion_multiple":
-        opciones = _validar_opciones(valor.get("opciones"), donde, externos, incrustados)
-        return Pregunta(
-            tipo=tipo,
-            enunciado=enunciado,
-            html=html,
-            opciones=opciones,
-            retro=retro,
-            retro_html=retro_html,
-        )
-    if tipo == "verdadero_falso":
-        respuesta = valor.get("respuesta")
-        if respuesta not in ("verdadero", "falso"):
-            raise ErrorContenido(
-                "RESPUESTA_PREGUNTA_INVALIDA", f"{donde}: «respuesta» debe ser verdadero o falso"
-            )
-        return Pregunta(
-            tipo=tipo,
-            enunciado=enunciado,
-            html=html,
-            respuesta=respuesta,
-            retro=retro,
-            retro_html=retro_html,
-        )
-    if tipo == "respuesta_corta":
-        aceptadas = valor.get("aceptadas")
-        if (
-            not isinstance(aceptadas, list)
-            or not aceptadas
-            or any(not isinstance(a, str) or not a.strip() for a in aceptadas)
-        ):
-            raise ErrorContenido(
-                "RESPUESTA_PREGUNTA_INVALIDA",
-                f"{donde}: «aceptadas» debe ser una lista de respuestas no vacías",
-            )
-        mayusculas = valor.get("mayusculas")
-        if mayusculas is not None and not isinstance(mayusculas, bool):
-            raise ErrorContenido(
-                "RESPUESTA_PREGUNTA_INVALIDA", f"{donde}: «mayusculas» debe ser true o false"
-            )
-        return Pregunta(
-            tipo=tipo,
-            enunciado=enunciado,
-            html=html,
-            aceptadas=tuple(a.strip() for a in aceptadas),
-            mayusculas=bool(mayusculas),
-            retro=retro,
-            retro_html=retro_html,
-        )
-    # numerica
-    valor_num = valor.get("valor")
-    if (
-        isinstance(valor_num, bool)
-        or not isinstance(valor_num, (int, float))
-        or not math.isfinite(valor_num)
-    ):
-        raise ErrorContenido("RESPUESTA_PREGUNTA_INVALIDA", f"{donde}: «valor» debe ser un número")
-    tolerancia = valor.get("tolerancia")
-    if tolerancia is None:
-        tolerancia = 0
-    if (
-        isinstance(tolerancia, bool)
-        or not isinstance(tolerancia, (int, float))
-        or not math.isfinite(tolerancia)
-        or tolerancia < 0
-    ):
-        raise ErrorContenido(
-            "RESPUESTA_PREGUNTA_INVALIDA",
-            f"{donde}: «tolerancia» debe ser un número mayor o igual que 0",
-        )
-    return Pregunta(
-        tipo=tipo,
-        enunciado=enunciado,
-        html=html,
-        valor=float(valor_num),
-        tolerancia=float(tolerancia),
-        retro=retro,
-        retro_html=retro_html,
-    )
-
-
-def _validar_opciones(
-    valor: Any, donde: str, externos: list[str], incrustados: list[str]
-) -> tuple[Opcion, ...]:
-    if not isinstance(valor, list) or not 2 <= len(valor) <= 10:
-        raise ErrorContenido(
-            "OPCIONES_INVALIDAS", f"{donde}: «opciones» debe ser una lista de 2 a 10"
-        )
-    opciones: list[Opcion] = []
-    for numero, opcion in enumerate(valor, 1):
-        donde_opcion = f"{donde}, opción {numero}"
-        if not isinstance(opcion, dict):
-            raise ErrorContenido("OPCIONES_INVALIDAS", f"{donde_opcion}: debe ser un mapa")
-        for campo in opcion:
-            if campo not in _CAMPOS_OPCION:
-                raise ErrorContenido(
-                    "CAMPO_DESCONOCIDO", f"{donde_opcion}: campo «{campo}» no permitido"
-                )
-        texto = opcion.get("texto")
-        if not isinstance(texto, str) or not texto.strip():
-            raise ErrorContenido("OPCIONES_INVALIDAS", f"{donde_opcion}: falta «texto»")
-        correcta = opcion.get("correcta")
-        if correcta is not None and not isinstance(correcta, bool):
-            raise ErrorContenido(
-                "OPCIONES_INVALIDAS", f"{donde_opcion}: «correcta» debe ser true o false"
-            )
-        retro = _texto_opcional(opcion.get("retro"), donde_opcion, "retro")
-        opciones.append(
-            Opcion(
-                texto=texto,
-                html=_html_de_pregunta(texto, donde_opcion, externos, incrustados),
-                correcta=bool(correcta),
-                retro=retro,
-                retro_html=(
-                    _html_de_pregunta(retro, donde_opcion, externos, incrustados)
-                    if retro is not None
-                    else None
-                ),
-            )
-        )
-    if not any(opcion.correcta for opcion in opciones):
-        raise ErrorContenido(
-            "OPCIONES_INVALIDAS", f"{donde}: ninguna opción está marcada como correcta"
-        )
-    return tuple(opciones)
-
-
-def _texto_opcional(valor: Any, donde: str, campo: str) -> str | None:
-    if valor is None:
-        return None
-    if not isinstance(valor, str):
-        raise ErrorContenido("PREGUNTAS_INVALIDAS", f"{donde}: «{campo}» debe ser texto")
-    return valor
-
-
-def _html_de_pregunta(texto: str, donde: str, externos: list[str], incrustados: list[str]) -> str:
-    """Renderiza un campo Markdown de una pregunta y lo pasa por el filtro."""
-    try:
-        analisis = filtro.analizar(_render(texto))
-    except filtro.HtmlPeligroso as exc:
-        raise ErrorContenido("HTML_PELIGROSO", f"{donde}: {exc.detalle}") from None
-    if analisis.locales:
-        nombre = Path(unquote(urlsplit(analisis.locales[0]).path)).name
-        detalle = f"«{nombre}»" if nombre else "una imagen o un enlace a fichero"
-        raise ErrorContenido(
-            "RECURSO_EN_PREGUNTA", f"{donde}: no se admiten recursos locales ({detalle})"
-        )
-    for url in analisis.externos:
-        if url not in externos:
-            externos.append(url)
-    for url in analisis.incrustados:
-        if url not in incrustados:
-            incrustados.append(url)
-    return filtro.serializar(analisis.cuerpo)
-
-
-# --------------------------------------------------------------------------- #
-# Validación de una actividad H5P
-# --------------------------------------------------------------------------- #
-
-
-def _validar_h5p(
-    datos: dict[str, Any], base: Path, raiz: Path | None
-) -> tuple[ActividadH5P | None, PaqueteH5P | None]:
-    """Valida «actividad» (generada) o «paquete» (subido); nunca los dos."""
-    actividad = datos.get("actividad")
-    paquete = datos.get("paquete")
-    if actividad is not None and paquete is not None:
-        raise ErrorContenido(
-            "CAMPOS_INCOMPATIBLES", "una actividad H5P lleva «actividad» o «paquete», no los dos"
-        )
-    if actividad is None and paquete is None:
-        raise ErrorContenido("CAMPO_FALTANTE", "falta el campo «actividad» o «paquete»")
-    if paquete is not None:
-        if not isinstance(paquete, str) or not paquete.strip():
-            raise ErrorContenido(
-                "PAQUETE_H5P_INVALIDO", "«paquete» debe ser la ruta de un fichero .h5p"
-            )
-        if not paquete.strip().lower().endswith(".h5p"):
-            raise ErrorContenido("PAQUETE_H5P_INVALIDO", "«paquete» debe apuntar a un fichero .h5p")
-        return None, _resolver_paquete(paquete.strip(), base, raiz)
-    return _leer_actividad_h5p(actividad), None
 
 
 def _resolver_paquete(valor: str, base: Path, raiz: Path | None) -> PaqueteH5P:
@@ -939,299 +587,6 @@ def _resolver_paquete(valor: str, base: Path, raiz: Path | None) -> PaqueteH5P:
     from .h5p import validar_paquete  # import diferido: h5p importa contenido
 
     return validar_paquete(ruta)
-
-
-def _leer_actividad_h5p(valor: Any) -> ActividadH5P:
-    if not isinstance(valor, dict):
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", "«actividad» debe ser un mapa")
-    tipo = valor.get("tipo")
-    if tipo not in TIPOS_H5P:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA", f"«tipo» debe ser uno de: {', '.join(TIPOS_H5P)}"
-        )
-    for campo in valor:
-        if campo not in _CAMPOS_H5P_POR_TIPO[tipo]:
-            raise ErrorContenido(
-                "CAMPO_DESCONOCIDO", f"actividad: campo «{campo}» no permitido en «{tipo}»"
-            )
-    reintentar = _bool_h5p(valor.get("reintentar"), "reintentar", True)
-    if tipo == "rellenar_huecos":
-        textos_valor = valor.get("textos")
-        if not isinstance(textos_valor, list) or not 1 <= len(textos_valor) <= MAX_TEXTOS_H5P:
-            raise ErrorContenido(
-                "ACTIVIDAD_H5P_INVALIDA",
-                f"«textos» debe ser una lista de 1 a {MAX_TEXTOS_H5P} textos",
-            )
-        textos = tuple(
-            _texto_con_marcas(texto, f"textos {numero}", permitidas=_INLINE_HUECOS, huecos=True)
-            for numero, texto in enumerate(textos_valor, 1)
-        )
-        return ActividadH5P(
-            tipo=tipo,
-            textos=textos,
-            mayusculas=_bool_h5p(valor.get("mayusculas"), "mayusculas", False),
-            calificacion=_calificacion_h5p(valor.get("calificacion")),
-            reintentar=reintentar,
-            ver_solucion=_bool_h5p(valor.get("ver_solucion"), "ver_solucion", True),
-        )
-    if tipo == "arrastrar_palabras":
-        texto = valor.get("texto")
-        distrayentes = valor.get("distractores")
-        if distrayentes is None:
-            distractores: tuple[str, ...] = ()
-        elif (
-            not isinstance(distrayentes, list)
-            or len(distrayentes) > MAX_DISTRACTORES
-            or any(not isinstance(item, str) or not item.strip() for item in distrayentes)
-        ):
-            raise ErrorContenido(
-                "ACTIVIDAD_H5P_INVALIDA",
-                f"«distractores» debe ser una lista de hasta {MAX_DISTRACTORES} palabras",
-            )
-        else:
-            distractores = tuple(
-                _respuesta_h5p(item, f"distractor {numero}")
-                for numero, item in enumerate(distrayentes, 1)
-            )
-        return ActividadH5P(
-            tipo=tipo,
-            texto=_texto_con_marcas(
-                texto, "texto", permitidas=frozenset(), huecos=True, plano=True
-            ),
-            distractores=distractores,
-            calificacion=_calificacion_h5p(valor.get("calificacion")),
-            reintentar=reintentar,
-            ver_solucion=_bool_h5p(valor.get("ver_solucion"), "ver_solucion", True),
-        )
-    if tipo == "marcar_palabras":
-        enunciado = valor.get("enunciado")
-        if not isinstance(enunciado, str) or not enunciado.strip():
-            raise ErrorContenido(
-                "ACTIVIDAD_H5P_INVALIDA", "«enunciado» debe ser texto de 1 a 5000 caracteres"
-            )
-        return ActividadH5P(
-            tipo=tipo,
-            texto=_texto_con_marcas(
-                valor.get("texto"), "texto", permitidas=_INLINE_MARCAR, huecos=True
-            ),
-            enunciado=enunciado,
-            enunciado_html=_html_inline_h5p(enunciado, "enunciado", _INLINE_MARCAR),
-            calificacion=_calificacion_h5p(valor.get("calificacion")),
-            reintentar=reintentar,
-            ver_solucion=_bool_h5p(valor.get("ver_solucion"), "ver_solucion", True),
-        )
-    # tarjetas
-    tarjetas_valor = valor.get("tarjetas")
-    if not isinstance(tarjetas_valor, list) or not 1 <= len(tarjetas_valor) <= MAX_TARJETAS:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA", f"«tarjetas» debe ser una lista de 1 a {MAX_TARJETAS}"
-        )
-    tarjetas: list[TarjetaH5P] = []
-    for numero, tarjeta in enumerate(tarjetas_valor, 1):
-        donde = f"tarjeta {numero}"
-        if not isinstance(tarjeta, dict):
-            raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: debe ser un mapa")
-        for campo in tarjeta:
-            if campo not in _CAMPOS_TARJETA:
-                raise ErrorContenido("CAMPO_DESCONOCIDO", f"{donde}: campo «{campo}» no permitido")
-        anverso = _texto_tarjeta(tarjeta.get("anverso"), donde, "anverso")
-        reverso = _texto_tarjeta(tarjeta.get("reverso"), donde, "reverso")
-        tarjetas.append(
-            TarjetaH5P(
-                anverso=anverso,
-                reverso=reverso,
-                anverso_html=_html_inline_h5p(anverso, f"{donde}, anverso", _INLINE_TARJETA),
-                reverso_html=_html_inline_h5p(reverso, f"{donde}, reverso", _INLINE_TARJETA),
-            )
-        )
-    return ActividadH5P(tipo=tipo, tarjetas=tuple(tarjetas), reintentar=reintentar)
-
-
-def _bool_h5p(valor: Any, campo: str, por_defecto: bool) -> bool:
-    if valor is None:
-        return por_defecto
-    if not isinstance(valor, bool):
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"«{campo}» debe ser true o false")
-    return valor
-
-
-def _calificacion_h5p(valor: Any) -> int:
-    if valor is None:
-        return 10
-    if isinstance(valor, bool) or not isinstance(valor, int) or not 1 <= valor <= 100:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA", "«calificacion» debe ser un número entero entre 1 y 100"
-        )
-    return valor
-
-
-def _texto_tarjeta(valor: Any, donde: str, campo: str) -> str:
-    if not isinstance(valor, str) or not valor.strip():
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: falta «{campo}» o está vacío")
-    if len(valor) > MAX_TEXTO_H5P or _CONTROL.search(valor):
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: «{campo}» no es un texto válido")
-    return valor
-
-
-def _respuesta_h5p(valor: Any, donde: str) -> str:
-    """Una respuesta o distractor: texto plano sin la sintaxis de H5P."""
-    if not isinstance(valor, str) or not valor.strip():
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: no puede estar vacía")
-    texto = valor.strip()
-    if len(texto) > MAX_RESPUESTA_H5P or _CONTROL.search(texto):
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: no es una respuesta válida")
-    if "[[" in texto or "]]" in texto:
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: no puede llevar marcas [[...]]")
-    if "*" in texto:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA",
-            f"{donde}: no se admite «*» en una respuesta (H5P lo usa para las marcas)",
-        )
-    if "/" in texto or ":" in texto:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA",
-            f"{donde}: no se admiten «/» ni «:» en una respuesta (H5P les da otro significado)",
-        )
-    return texto
-
-
-def _texto_con_marcas(
-    valor: Any,
-    donde: str,
-    *,
-    permitidas: frozenset[str],
-    huecos: bool = False,
-    plano: bool = False,
-) -> TextoH5P:
-    """Texto con ``[[respuesta]]`` o ``[[a|b]]``; devuelve sus partes y el texto H5P."""
-    if not isinstance(valor, str) or not valor.strip():
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: debe ser un texto")
-    if len(valor) > MAX_TEXTO_H5P or _CONTROL.search(valor):
-        raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: no es un texto válido")
-    if plano and "*" in valor:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA",
-            f"{donde}: no se admite el asterisco (*) fuera de las marcas (escribe las respuestas entre [[...]])",
-        )
-    partes, marcas = _partir_marcas(valor, donde)
-    if huecos and not marcas:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA", f"{donde}: falta al menos un hueco [[respuesta]]"
-        )
-    if plano:
-        return TextoH5P(partes=tuple(partes), h5p=_h5p_plano(partes), plano=True)
-    h5p, partes_html = _h5p_html(partes, permitidas, donde)
-    return TextoH5P(partes=tuple(partes_html), h5p=h5p)
-
-
-def _partir_marcas(valor: str, donde: str) -> tuple[list[str | MarcaH5P], list[MarcaH5P]]:
-    partes: list[str | MarcaH5P] = []
-    marcas: list[MarcaH5P] = []
-    posicion = 0
-    while True:
-        inicio = valor.find("[[", posicion)
-        if inicio == -1:
-            partes.append(valor[posicion:])
-            if "]]" in valor[posicion:]:
-                raise ErrorContenido(
-                    "ACTIVIDAD_H5P_INVALIDA", f"{donde}: hay un «]]» sin abrir una marca"
-                )
-            break
-        cierre = valor.find("]]", inicio + 2)
-        if cierre == -1:
-            raise ErrorContenido(
-                "ACTIVIDAD_H5P_INVALIDA", f"{donde}: falta cerrar la marca con «]]»"
-            )
-        contenido = valor[inicio + 2 : cierre]
-        if "[[" in contenido or "]]" in contenido:
-            raise ErrorContenido(
-                "ACTIVIDAD_H5P_INVALIDA", f"{donde}: las marcas no se pueden anidar"
-            )
-        alternativas = tuple(alternativa.strip() for alternativa in contenido.split("|"))
-        if not contenido.strip():
-            raise ErrorContenido("ACTIVIDAD_H5P_INVALIDA", f"{donde}: hay una marca [[...]] vacía")
-        if len(alternativas) > MAX_ALTERNATIVAS_H5P or any(
-            not alternativa for alternativa in alternativas
-        ):
-            raise ErrorContenido(
-                "ACTIVIDAD_H5P_INVALIDA", f"{donde}: una respuesta [[...]] está vacía"
-            )
-        respuestas = tuple(
-            _respuesta_h5p(alternativa, f"{donde} (respuesta)") for alternativa in alternativas
-        )
-        marca = MarcaH5P(respuestas=respuestas)
-        partes.append(valor[posicion:inicio])
-        partes.append(marca)
-        marcas.append(marca)
-        posicion = cierre + 2
-    return partes, marcas
-
-
-def _h5p_plano(partes: list[str | MarcaH5P]) -> str:
-    """Texto sin HTML (campos que H5P escapa): las marcas se sustituyen tal cual."""
-    salida: list[str] = []
-    for parte in partes:
-        if isinstance(parte, MarcaH5P):
-            salida.append("*" + "/".join(parte.respuestas) + "*")
-        else:
-            salida.append(parte)
-    return "".join(salida)
-
-
-def _h5p_html(
-    partes: list[str | MarcaH5P],
-    permitidas: frozenset[str],
-    donde: str,
-) -> tuple[str, list[str | MarcaH5P]]:
-    """Texto con Markdown en línea y las marcas traducidas a ``*a/b*``."""
-    base = "TIZAH5P"
-    extra = ""
-    while f"{base}{extra}" in "".join(parte for parte in partes if isinstance(parte, str)):
-        extra += "X"
-    token = f"{base}{extra}"
-    piezas: list[str] = []
-    marcas: list[MarcaH5P] = []
-    for parte in partes:
-        if isinstance(parte, MarcaH5P):
-            piezas.append(f"{token}:{len(marcas)}:")
-            marcas.append(parte)
-        else:
-            piezas.append(parte)
-    html = _html_inline_h5p("".join(piezas), donde, permitidas)
-    if "*" in html:
-        raise ErrorContenido(
-            "ACTIVIDAD_H5P_INVALIDA",
-            f"{donde}: no se admite el asterisco (*) fuera de las marcas (escribe las respuestas entre [[...]])",
-        )
-    trozos = re.split(rf"{re.escape(token)}:(\d+):", html)
-    salida: list[str] = []
-    partes_html: list[str | MarcaH5P] = []
-    for posicion, trozo in enumerate(trozos):
-        if posicion % 2 == 0:
-            salida.append(trozo)
-            partes_html.append(trozo)
-            continue
-        marca = marcas[int(trozo)]
-        partes_html.append(marca)
-        salida.append(
-            "*" + "/".join(_html.escape(respuesta) for respuesta in marca.respuestas) + "*"
-        )
-    return "".join(salida), partes_html
-
-
-def _html_inline_h5p(valor: str, donde: str, permitidas: frozenset[str]) -> str:
-    """Markdown en línea validado por el filtro, solo con las etiquetas permitidas."""
-    try:
-        analisis = filtro.analizar(_render(valor))
-    except filtro.HtmlPeligroso as exc:
-        raise ErrorContenido("HTML_PELIGROSO", f"{donde}: {exc.detalle}") from None
-    for nodo in analisis.cuerpo.descendants:
-        if isinstance(nodo, Tag) and (nodo.name or "").lower() not in permitidas | {"p"}:
-            raise ErrorContenido(
-                "ACTIVIDAD_H5P_INVALIDA",
-                f"{donde}: la etiqueta <{nodo.name}> no se admite en este campo",
-            )
-    return filtro.serializar(analisis.cuerpo)
 
 
 def numero_texto(valor: float | int) -> str:
@@ -1496,6 +851,8 @@ def _plantilla(doc: Documento, dir_preview: Path) -> str:
         )
         metadatos.append(("Mezclar respuestas", "sí" if cuestionario.mezclar_respuestas else "no"))
     if doc.h5p is not None:
+        from .tipos.h5p import NOMBRES_H5P
+
         metadatos.append(("Actividad H5P", NOMBRES_H5P.get(doc.h5p.tipo, doc.h5p.tipo)))
         if doc.h5p.tipo == "tarjetas":
             metadatos.append(("Calificación", "no califica"))
@@ -1531,6 +888,8 @@ def _preguntas_preview(doc: Documento) -> str:
     """Las preguntas del cuestionario, numeradas y con las correctas marcadas."""
     if doc.cuestionario is None:
         return ""
+    from .tipos.cuestionario import NOMBRES_PREGUNTA
+
     partes = ["<hr>", "<h2>Preguntas del cuestionario</h2>", "<ol>"]
     for pregunta in doc.cuestionario.preguntas:
         tipo = NOMBRES_PREGUNTA.get(pregunta.tipo, pregunta.tipo)
@@ -1606,6 +965,8 @@ def _h5p_preview(doc: Documento) -> str:
     actividad = doc.h5p
     if actividad is None:
         return ""
+    from .tipos.h5p import NOMBRES_H5P
+
     partes = ["<hr>", "<h2>Actividad H5P</h2>"]
     partes.append(
         "<p><strong>Tipo:</strong> "

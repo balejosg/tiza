@@ -385,7 +385,9 @@ class TestEjemplosDelRepo:
         raiz = Path(__file__).resolve().parent.parent / "ejemplos"
         doc = cargar(raiz / "cuestionario.md")
         assert doc.tipo == "cuestionario"
-        assert [p.tipo for p in doc.cuestionario.preguntas] == list(contenido.TIPOS_PREGUNTA)
+        from tiza.tipos.cuestionario import TIPOS_PREGUNTA
+
+        assert [p.tipo for p in doc.cuestionario.preguntas] == list(TIPOS_PREGUNTA)
         assert [recurso.nombre for recurso in doc.recursos] == ["punto.png"]
 
     def test_el_ejemplo_de_maquetado_pasa_el_filtro_y_tiene_un_iframe_de_cada_grupo(self, tmp_path):

@@ -13,12 +13,15 @@ que hace el resto de tiza por encima del protocolo.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
-from typing import TYPE_CHECKING
+from datetime import datetime, time
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
-if TYPE_CHECKING:  # solo para anotar; nunca en tiempo de ejecución (ciclo con contenido)
-    from ..contenido import Documento
+if TYPE_CHECKING:  # solo para anotar; los adapters sí importan las clases al construir
+    from ..contenido import ActividadH5P, Cuestionario, Documento, Fechas, PaqueteH5P
 
 # Nombre llano del «recordarme calificar antes de» de una tarea: tiza nunca lo pone y
 # toda publicación de una tarea lo desactiva, así que la confirmación de real tiene que
@@ -49,6 +52,37 @@ class FechaActividad:
     exige_clase: bool = False  # el calendario avisa si el día no es de clase
 
 
+@dataclass(frozen=True)
+class Extras:
+    """Lo que la validación de un tipo añade al ``Documento``.
+
+    Todo lo demás (ruta, nombre, sección, cuerpo, finalización, restricciones) es
+    común y lo construye ``contenido``. Cada adapter solo rellena lo suyo.
+    """
+
+    fechas: Fechas | None = None  # tarea
+    cuestionario: Cuestionario | None = None
+    h5p: ActividadH5P | None = None
+    paquete: PaqueteH5P | None = None  # .h5p ya hecho que se sube reempaquetado
+
+
+@dataclass(frozen=True)
+class Contexto:
+    """Lo que la validación de un tipo necesita del resto de tiza.
+
+    Lo construye ``contenido`` al validar el frontmatter: así los adapters no
+    dependen de sus entresijos (fechas, render de Markdown, rutas seguras) y se
+    pueden probar sin montar un documento entero.
+    """
+
+    zona: ZoneInfo
+    ruta: Path
+    raiz: Path | None
+    fecha: Callable[[Any, time], datetime]  # (valor ISO, hora por defecto) -> datetime
+    render: Callable[[str], str]  # Markdown a HTML (el que usa todo el contenido)
+    paquete_h5p: Callable[[str], PaqueteH5P]  # resuelve y valida un .h5p de la carpeta
+
+
 class Tipo:
     """Lo que sabe un tipo de actividad. La base solo cumple la interfaz."""
 
@@ -59,6 +93,12 @@ class Tipo:
     finalizaciones: tuple[str, ...] = ()  # modos de finalización admitidos
     banderas: tuple[str, ...] = ()  # casillas del formulario de «cuándo se completa»
     campos_fecha: tuple[str, ...] = ()  # campos del formulario de Moodle con fecha
+
+    # --- Campos y validación ----------------------------------------------
+
+    def validar(self, datos: dict[str, Any], ctx: Contexto) -> Extras:
+        """Valida los campos propios (los comunes ya los validó ``contenido``)."""
+        return Extras()
 
     # --- Fechas -----------------------------------------------------------
 

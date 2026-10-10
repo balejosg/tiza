@@ -78,6 +78,72 @@ class TestRegistro:
             assert set(tipo.banderas) <= set(BANDERA_DE_MODO.values())
 
 
+class TestValidacion:
+    def test_cada_tipo_rellena_sus_extras_y_solo_los_suyos(self, cargar):
+        esperado = {
+            "pagina": (False, False, False, False),
+            "etiqueta": (False, False, False, False),
+            "tarea": (True, False, False, False),
+            "cuestionario": (False, True, False, False),
+            "h5p": (False, False, True, False),
+        }
+        for tipo in tipos.TODOS:
+            doc = cargar(tipo.nombre)
+            tenidos = (
+                doc.fechas is not None,
+                doc.cuestionario is not None,
+                doc.h5p is not None,
+                doc.paquete is not None,
+            )
+            assert tenidos == esperado[tipo.nombre], tipo.nombre
+
+    def test_un_paquete_subido_llega_sin_actividad(self, tmp_path):
+        import json
+        import zipfile
+
+        h5p_json = {
+            "mainLibrary": "H5P.Blanks",
+            "preloadedDependencies": [
+                {"machineName": "H5P.Blanks", "majorVersion": 1, "minorVersion": 14}
+            ],
+            "embedTypes": ["iframe"],
+        }
+        with zipfile.ZipFile(tmp_path / "paquete.h5p", "w") as paquete:
+            paquete.writestr("h5p.json", json.dumps(h5p_json))
+            paquete.writestr("content/content.json", json.dumps({"questions": []}))
+        ruta = tmp_path / "h.md"
+        ruta.write_text(
+            "---\ntipo: h5p\nnombre: H\nseccion: 1\npaquete: paquete.h5p\n---\n\nx\n",
+            encoding="utf-8",
+        )
+        doc = contenido.cargar(ruta, raiz=tmp_path)
+        assert doc.h5p is None
+        assert doc.paquete is not None and doc.paquete.machine_name == "H5P.Blanks"
+
+    def test_la_validacion_sigue_siendo_la_de_siempre(self, tmp_path):
+        """Los códigos estables no cambian al mudarse al adapter."""
+        casos = {
+            "CAMPO_FALTANTE": "---\ntipo: tarea\nnombre: T\nseccion: 1\n---\n\nx\n",
+            "FECHAS_INCOHERENTES": (
+                "---\ntipo: tarea\nnombre: T\nseccion: 1\n"
+                "apertura: 2026-10-10\nentrega: 2026-10-01\n---\n\nx\n"
+            ),
+            "ACTIVIDAD_H5P_INVALIDA": (
+                "---\ntipo: h5p\nnombre: H\nseccion: 1\nactividad:\n"
+                '  tipo: rellenar_huecos\n  textos:\n    - "sin huecos"\n---\n\nx\n'
+            ),
+            "PREGUNTAS_INVALIDAS": (
+                "---\ntipo: cuestionario\nnombre: C\nseccion: 1\npreguntas: []\n---\n\nx\n"
+            ),
+        }
+        ruta = tmp_path / "caso.md"
+        for codigo, contenido_md in casos.items():
+            ruta.write_text(contenido_md, encoding="utf-8")
+            with pytest.raises(contenido.ErrorContenido) as exc:
+                contenido.cargar(ruta)
+            assert exc.value.codigo == codigo, codigo
+
+
 class TestFechas:
     def test_cada_tipo_declara_sus_campos_de_fecha_en_orden(self, cargar):
         for tipo in tipos.TODOS:
