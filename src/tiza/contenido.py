@@ -1314,7 +1314,47 @@ def _render(cuerpo: str) -> str:
     # que queda de un <pre> se leería como Markdown. Dentro de <pre> las líneas en
     # blanco se sustituyen por una marca y se restauran tras el render.
     cuerpo = _PRE.sub(lambda m: _BLANCO.sub(_MARCA, m.group(0)), cuerpo)
-    return markdown.render(cuerpo).replace(_MARCA, "")
+    cuerpo, formulas = _apartar_formulas(cuerpo)
+    salida = markdown.render(cuerpo).replace(_MARCA, "")
+    return _FORMULA_MARCADA.sub(lambda m: formulas[int(m.group(1))], salida)
+
+
+# Fórmulas LaTeX: se apartan antes del Markdown y vuelven como texto, con sus
+# delimitadores, para que ``*`` y ``_`` no se lean como cursiva ni se pierdan las barras.
+_FORMULA_INICIO = "\ue001"
+_FORMULA_FIN = "\ue002"
+_FORMULA_MARCADA = re.compile(f"{_FORMULA_INICIO}(\\d+){_FORMULA_FIN}")
+_MAX_FORMULA = 2000
+_MAX_FORMULAS = 500
+_TEXTO_O_FORMULA = re.compile(
+    r"(?P<codigo>```.*?```|~~~.*?~~~|`[^`\n]*`|<pre\b.*?</pre>)"
+    r"|(?P<formula>\$\$.*?\$\$|\\\(.*?\\\)|\\\[.*?\\\])"
+    r"|(?P<abierta>\$\$|\\\(|\\\[)",
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+def _apartar_formulas(cuerpo: str) -> tuple[str, list[str]]:
+    formulas: list[str] = []
+
+    def apartar(m: re.Match[str]) -> str:
+        if m.group("codigo") is not None:
+            return m.group(0)
+        if m.group("abierta") is not None:
+            raise ErrorContenido(
+                "FORMULA_SIN_CERRAR",
+                f"la fórmula que empieza por «{m.group('abierta')}» no se cierra",
+            )
+        formula = m.group("formula")
+        if len(formula) > _MAX_FORMULA or len(formulas) >= _MAX_FORMULAS:
+            raise ErrorContenido(
+                "FORMULA_INVALIDA",
+                f"una fórmula supera {_MAX_FORMULA} caracteres o hay más de {_MAX_FORMULAS}",
+            )
+        formulas.append(_html.escape(formula, quote=False))
+        return f"{_FORMULA_INICIO}{len(formulas) - 1}{_FORMULA_FIN}"
+
+    return _TEXTO_O_FORMULA.sub(apartar, cuerpo), formulas
 
 
 _MARCA = "\ue000"  # carácter de uso privado: no aparece en texto real

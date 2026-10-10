@@ -12,7 +12,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from dobles import enlace_simbolico
-from tiza import contenido
+from tiza import contenido, filtro
 from tiza import contenido as contenido_modulo
 from tiza.contenido import (
     ErrorContenido,
@@ -1767,3 +1767,67 @@ def test_la_vista_previa_enseña_el_itinerario(tmp_path):
     vista = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
     assert "<strong>Se completa al:</strong> verla" in vista
     assert "Si no se cumple:</strong> se oculta" in vista
+
+
+class TestFormulas:
+    @pytest.mark.parametrize(
+        "formula",
+        [
+            r"\(a*b*c\)",
+            r"\(x_1 + x_2 = y_1\)",
+            r"$$\sum_{i=1}^{n} x_i = \frac{a_1}{b_1}$$",
+            "\\[ a \\\\ b \\]",
+        ],
+    )
+    def test_la_formula_llega_caracter_a_caracter(self, formula):
+        html = contenido._render(f"Antes {formula} después")
+        assert formula in html
+        assert "<em>" not in html
+
+    def test_en_bloque_con_salto_de_linea_de_latex(self):
+        formula = "\\[\na \\\\\nb_1 * b_2\n\\]"
+        assert formula in contenido._render(f"Texto\n\n{formula}\n\nFin")
+
+    def test_en_una_celda_de_tabla(self):
+        html = contenido._render("| a | b |\n|---|---|\n| \\(x_1*x_2\\) | 2 |\n")
+        assert "\\(x_1*x_2\\)" in html and "<td>" in html
+
+    def test_menor_y_ampersand_salen_escapados(self):
+        html = contenido._render(r"\(a<b & c\)")
+        assert r"\(a&lt;b &amp; c\)" in html
+
+    def test_fuera_de_formula_el_markdown_sigue_funcionando(self):
+        assert "<em>x</em>" in contenido._render(r"*x* y \(a\)")
+
+    def test_el_codigo_no_se_toca(self):
+        html = contenido._render("`\\(a*b*c\\)` y\n\n```\n$$x_1 y_2$$\n```\n")
+        assert "\\(a*b*c\\)" in html and "$$x_1 y_2$$" in html
+
+    def test_el_dolar_simple_no_es_formula(self):
+        html = contenido._render("Cuesta 5 $ y 10 $, *rebaja*")
+        assert "5 $ y 10 $" in html and "<em>rebaja</em>" in html
+
+    @pytest.mark.parametrize("texto", [r"a \(b", r"a \[b", "a $$b"])
+    def test_formula_sin_cerrar(self, texto):
+        with pytest.raises(contenido.ErrorContenido) as exc:
+            contenido._render(texto)
+        assert exc.value.codigo == "FORMULA_SIN_CERRAR"
+
+    def test_limites(self):
+        with pytest.raises(contenido.ErrorContenido) as exc:
+            contenido._render("\\(" + "x" * 3000 + "\\)")
+        assert exc.value.codigo == "FORMULA_INVALIDA"
+        with pytest.raises(contenido.ErrorContenido) as exc:
+            contenido._render(" ".join(["\\(x\\)"] * 600))
+        assert exc.value.codigo == "FORMULA_INVALIDA"
+
+    def test_un_html_no_cambia(self, tmp_path):
+        ruta = tmp_path / "p.html"
+        assert contenido._a_html(ruta, "<p>\\(a*b*c\\)</p>") == "<p>\\(a*b*c\\)</p>"
+
+    def test_formula_hostil_no_crea_etiquetas(self):
+        html = contenido._render(r'\(<script>alert(1)</script><img src=x onerror="y">\)')
+        analisis = filtro.analizar(html)
+        texto = filtro.serializar(analisis.cuerpo)
+        assert "<script" not in texto and "<img" not in texto
+        assert analisis.cuerpo.find("script") is None

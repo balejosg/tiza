@@ -73,6 +73,8 @@ MENSAJES: dict[str, str] = {
     "OPCIONES_INVALIDAS": "Una pregunta de opción múltiple necesita entre 2 y 10 opciones no vacías y al menos una marcada como correcta.",
     "RESPUESTA_PREGUNTA_INVALIDA": "La respuesta de una pregunta no es válida: revisa el campo que indica el mensaje (respuesta, aceptadas, mayusculas, valor o tolerancia).",
     "AJUSTE_INVALIDO": "Un ajuste del cuestionario está fuera de rango: intentos (del 1 al 10 o «ilimitados»), tiempo_limite (1 a 600 minutos) o mezclar_respuestas (true o false).",
+    "FORMULA_SIN_CERRAR": "Una fórmula empieza con \\(, \\[ o $$ y no se cierra; ciérrala con \\), \\] o $$. Si querías escribir esos signos como texto, ponlos entre comillas inversas (`).",
+    "FORMULA_INVALIDA": "Una fórmula es demasiado larga (más de 2000 caracteres) o el documento tiene más de 500; divídela o simplifica el documento.",
     "RECURSO_EN_PREGUNTA": "Las preguntas no admiten imágenes ni ficheros locales; escribe el enunciado, las opciones y la retroalimentación como Markdown.",
     "HTML_PELIGROSO": "El contenido lleva HTML que tiza no admite. Quita o cambia lo que diga el mensaje: scripts, comentarios, estilos o clases fuera de la lista, o iframes de webs que no están permitidas.",
     "RECURSO_AUSENTE": "Falta una imagen o un fichero enlazado desde el fichero. Cópialo a la carpeta o corrige la ruta.",
