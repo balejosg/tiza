@@ -105,11 +105,17 @@ en español.
   y documentada (`verificados` en memoria o disco, `vigente` solo en la sesión,
   `cupo` solo en la sesión, `omitidos` de la terminal directa).
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
-  autoprueba, estructura y buzón). Solo habla con el docente a través de una
+  autoprueba y el ciclo de la sesión). Solo habla con el docente a través de una
   `Presencia` y no importa `terminal` ni `cli`; todo recibe la carpeta de la
-  asignatura, nunca usa el directorio actual. `procesar_peticion` despacha al
-  módulo de publicación con lo que solo existe en una sesión: la vigencia de la
-  petición, el cupo y el registro de verificados en memoria.
+  asignatura, nunca usa el directorio actual.
+- `src/tiza/sesion_abierta.py`: la sesión ya abierta: su estado (aula,
+  configuración capturada, presencia, nombres, vistas y lo que solo vive en
+  memoria: cupo y verificados) y la interfaz que atiende una petición del buzón
+  y devuelve el informe. `SesionAbierta.atender` valida la petición con el
+  esquema del buzón y la despacha a `publicacion` con lo que solo existe en una
+  sesión: la vigencia de la petición, el cupo y el registro de verificados en
+  memoria. Es la superficie de los tests de la petición (test_sesion_abierta.py),
+  y `estructura_con` y `registrar` viven aquí, con ella.
 - `src/tiza/agente.py`: API pública del lado del agente para interfaces
   propias (`comprobar`, `estructura`, `publicar`, `estado_sesion`,
   `formato_documento`). Sin consola: todo lo que devuelve pasa por
@@ -136,8 +142,9 @@ en español.
 
 - Errores con `ErrorX(codigo, detalle)` y códigos `MAYUSCULAS_CON_GUION`
   estables: los usan la skill y el README, no los renombres a la ligera.
-- Los tests usan los dobles `MoodleFalso` y `PresenciaFalsa` de `tests/dobles.py` y los helpers
-  `simular_terminal`, `responder` y `configurar` de `tests/test_cli.py`.
+- Los tests usan los dobles `MoodleFalso` y `PresenciaFalsa` de `tests/dobles.py` (con
+  `peticion`, `dejar_peticion`, `tarea_en`, `aula_con_tarea` y `enlace_simbolico`) y los
+  helpers `simular_terminal`, `responder` y `configurar` de `tests/test_cli.py`.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.

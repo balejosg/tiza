@@ -30,6 +30,7 @@ from . import (
     publicar,
     rutas,
     sesion,
+    sesion_abierta,
     terminal,
 )
 from .config import ErrorConfig
@@ -725,7 +726,7 @@ def _estructura_directa(args) -> int:
         moodle = publicar.autenticar(cfg.url, cfg.usuario, password)
     except ErrorPublicacion as exc:
         return _fallo(comando, exc.codigo, exc.detalle, exc=exc, debug=args.debug)
-    documento = sesion.estructura_con(moodle, cfg, Path.cwd(), debug=args.debug)
+    documento = sesion_abierta.estructura_con(moodle, cfg, Path.cwd(), debug=args.debug)
     _escribir(documento)
     return 0 if documento["resultado"] == "ok" else 1
 

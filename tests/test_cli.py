@@ -20,6 +20,7 @@ from tiza import (
     informe,
     publicar,
     sesion,
+    sesion_abierta,
     terminal,
 )
 
@@ -462,7 +463,7 @@ def informe_ok(*, comando="publicar", entorno="pruebas", curso=1234) -> dict:
 
 def peticion_publicar(ficheros=("pagina.md",), entorno="pruebas", **cambios) -> dict:
     peticion = {
-        "version": 1,
+        "version": buzon.VERSION_PROTOCOLO,
         "id": "a" * 32,
         "comando": "publicar",
         "ficheros": list(ficheros),
@@ -476,7 +477,7 @@ def peticion_publicar(ficheros=("pagina.md",), entorno="pruebas", **cambios) -> 
 
 def peticion_estructura() -> dict:
     return {
-        "version": 1,
+        "version": buzon.VERSION_PROTOCOLO,
         "id": "a" * 32,
         "comando": "estructura",
         "ficheros": [],
@@ -562,9 +563,10 @@ class TestBuzonAgente:
 
 def procesar(peticion, moodle, cfg, base, _dir_tiza=None, **opciones):
     """Lo que hace «tiza sesion» con una petición, con la presencia de la terminal."""
-    return sesion.procesar_peticion(
-        peticion, moodle, cfg, base, terminal.PresenciaTerminal(), **opciones
+    abierta = sesion_abierta.SesionAbierta(
+        moodle, cfg, base, terminal.PresenciaTerminal(), **opciones
     )
+    return abierta.atender(peticion)
 
 
 class TestProcesarPeticion:
@@ -603,6 +605,7 @@ class TestProcesarPeticion:
         (tmp_path / "tiza.toml").write_text("[cursos]\nreal = 2222\n", encoding="utf-8")
         doc = contenido.cargar(tmp_path / "pagina.md")
         estado.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
+        verificados = estado.cargar_verificados(dir_tiza)  # el registro en memoria de la sesión
         llamadas: list = []
         monkeypatch.setattr(
             terminal,
@@ -615,6 +618,7 @@ class TestProcesarPeticion:
             cfg,
             base,
             dir_tiza,
+            verificados=verificados,
         )
         assert llamadas == [("real", 5678)]
         assert documento["curso"] == 5678

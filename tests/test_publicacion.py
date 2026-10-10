@@ -1,20 +1,28 @@
 """Tests de la publicación como proceso (tiza.publicacion).
 
 Las reglas que comparten la terminal directa y la sesión (puertas, resúmenes,
-confirmaciones y registro por curso) se prueban a través de ``procesar_peticion``
-en test_sesion.py; aquí van las decisiones explícitas de cada llamador: el
-registro de verificados, la vigencia de la petición, el cupo, el aviso de
-pruebas y los cursos ya descartados.
+confirmaciones y registro por curso) se prueban a través de
+``SesionAbierta.atender`` en test_sesion_abierta.py; aquí van las decisiones
+explícitas de cada llamador: el registro de verificados, la vigencia de la
+petición, el cupo, el aviso de pruebas, los cursos ya descartados y los cambios
+de fechas de la confirmación.
 """
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
 
-from dobles import MoodleFalso, PresenciaFalsa
-from tiza import config, contenido, estado, publicacion
+from dobles import (
+    MoodleFalso,
+    PresenciaFalsa,
+    aula_con_tarea,
+    fecha_en_formulario,
+    tarea_en,
+)
+from tiza import calendario, config, contenido, estado, publicacion, publicar
 
 PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
 
@@ -152,3 +160,67 @@ def test_los_omitidos_no_se_confirman_y_salen_en_el_informe(tmp_path):
     assert [resumen.curso for resumen in presencia.resumenes] == [102]
     assert {"codigo": "CURSO_OMITIDO", "resultado": "ok", "detalle": "101"} in documento["pasos"]
     assert documento["resultado"] == "ok"
+
+
+class TestCambiosDeFechas:
+    def test_marca_cada_fecha_como_igual_o_cambia(self, tmp_path):
+        tarea_en(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        moodle = aula_con_tarea()
+        cambios = {
+            c.campo: c for c in publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        }
+        assert cambios["apertura"].estado == "igual"
+        assert cambios["entrega"].estado == "cambia"
+        assert cambios["entrega"].antes == (2026, 10, 10, 23, 59)
+        assert cambios["entrega"].despues == (2026, 10, 12, 23, 59)
+        assert "límite" not in cambios  # ni en el fichero ni en el aula
+        assert publicacion.CAMPO_RECORDATORIO not in cambios  # el aula no lo tiene puesto
+
+    def test_ensena_que_se_quita_el_recordatorio_de_calificacion(self, tmp_path):
+        # Toda publicación de una tarea desactiva «Recordarme calificar antes de»: si el
+        # docente lo tenía puesto, la confirmación tiene que decírselo.
+        tarea_en(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        moodle = aula_con_tarea()
+        moodle.formularios[55].update(fecha_en_formulario("gradingduedate", (2026, 10, 20, 0, 0)))
+        cambios = {
+            c.campo: c for c in publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        }
+        recordatorio = cambios[publicacion.CAMPO_RECORDATORIO]
+        assert recordatorio.estado == "cambia"
+        assert recordatorio.antes == (2026, 10, 20, 0, 0)
+        assert recordatorio.despues is None
+        assert recordatorio.avisos == ()
+
+    def test_una_actividad_nueva_no_tiene_antes(self, tmp_path):
+        tarea_en(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        moodle = MoodleFalso()
+        cambios = publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        assert {c.estado for c in cambios} == {"nueva"}
+        assert all(c.antes is None for c in cambios)
+
+    def test_si_el_aula_no_se_puede_leer_se_dice_sin_abortar(self, tmp_path):
+        tarea_en(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+
+        class AulaCaida(MoodleFalso):
+            def leer_modulo(self, cmid):
+                raise publicar.ErrorPublicacion("ERROR_CONSULTA")
+
+        moodle = AulaCaida()
+        moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
+        cambios = publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        assert {c.estado for c in cambios} == {"desconocida"}
+        assert cambios[1].despues == (2026, 10, 12, 23, 59)
+
+    def test_los_avisos_del_calendario_van_con_su_fecha(self, tmp_path):
+        tarea_en(tmp_path)  # entrega lunes 12 de octubre de 2026
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        festivo = calendario.Calendario(festivos=((date(2026, 10, 12), date(2026, 10, 12)),))
+        cambios = {
+            c.campo: c for c in publicacion.cambios_de_fechas(MoodleFalso(), [], doc, festivo)
+        }
+        assert cambios["entrega"].avisos == ("FECHA_FESTIVA",)
+        assert cambios["apertura"].avisos == ()

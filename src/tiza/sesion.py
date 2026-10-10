@@ -1,11 +1,13 @@
-"""La sesión del docente, sin terminal: login, cursos, buzón y ciclo de la sesión.
+"""La sesión del docente, sin terminal: login, cursos y ciclo de la sesión.
 
 Es el lado de confianza de tiza. Habla con el docente solo a través de una
 ``Presencia`` (la terminal de ``tiza sesion`` o una ventana) y con el aula solo
-a través de :mod:`tiza.publicar`. La publicación en sí (puertas, resúmenes y
-confirmaciones) vive en :mod:`tiza.publicacion`. No escribe en la consola, salvo
-la traza de ``--debug``: lo que el docente ve lo decide la presencia, que además
-sanea los textos ajenos (del agente o de Moodle).
+a través de :mod:`tiza.publicar`. El estado que existe tras el login y la
+atención de las peticiones del buzón viven en :mod:`tiza.sesion_abierta`; la
+publicación en sí (puertas, resúmenes y confirmaciones), en
+:mod:`tiza.publicacion`. No escribe en la consola, salvo la traza de ``--debug``:
+lo que el docente ve lo decide la presencia, que además sanea los textos ajenos
+(del agente o de Moodle).
 """
 
 from __future__ import annotations
@@ -30,17 +32,14 @@ from . import (
     __version__,
     buzon,
     config,
-    contenido,
-    estado,
     ficheros,
     informe,
     publicacion,
     publicar,
     rutas,
+    sesion_abierta,
 )
 from .config import Config, ErrorConfig
-from .contenido import Documento, ErrorContenido
-from .informe import ErrorInforme
 from .publicacion import AVISO_DEBUG, Aviso, Presencia, depurar
 from .publicar import AulaVirtual, ErrorPublicacion
 
@@ -54,9 +53,6 @@ __all__ = [
     "abrir",
     "autoprueba_con",
     "crear_dir_vistas",
-    "estructura_con",
-    "procesar_peticion",
-    "registrar",
 ]
 
 MAX_MINUTOS = 480
@@ -75,58 +71,6 @@ class CursoSesion:
     id: int
     nombre: str | None  # de Moodle: solo para la presencia, nunca a .tiza
     ajeno: bool  # hay lista de cursos y este id no está en ella
-
-
-def registrar(documento: dict, carpeta: Path, presencia: Presencia) -> dict:
-    """Escribe ``.tiza/informe.json`` y se lo cuenta al docente."""
-    try:
-        informe.escribir(documento, Path(carpeta) / rutas.CARPETA_TRABAJO)
-    except (ErrorInforme, OSError):
-        presencia.informar(Aviso("INFORME_NO_ESCRITO"))
-    presencia.informar(Aviso("RESULTADO", {"documento": documento}))
-    return documento
-
-
-def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool = False) -> dict:
-    """Con el aula ya abierta: lee y guarda la estructura de los cursos configurados."""
-    borrador = informe.Borrador("estructura")
-    borrador.paso("LOGIN")
-    cursos: dict[str, Any] = {}
-    try:
-        destinos: list[tuple[str, int]] = []
-        if "pruebas" in cfg.cursos:
-            destinos.append(("pruebas", cfg.cursos["pruebas"]))
-        destinos += [("real", curso_id) for curso_id in cfg.reales]
-        for nombre, curso_id in destinos:
-            secciones = aula.estructura(curso_id)
-            curso = {
-                "id": curso_id,
-                "secciones": [
-                    {
-                        "numero": seccion["numero"],
-                        "nombre": seccion["nombre"],
-                        "id": seccion["id"],
-                    }
-                    for seccion in secciones
-                ],
-            }
-            if nombre == "real":
-                cursos.setdefault("real", []).append(curso)
-            else:
-                cursos[nombre] = curso
-            borrador.paso("ESTRUCTURA", detalle=f"{nombre}: {len(secciones)} secciones")
-    except ErrorPublicacion as exc:
-        borrador.fallo("ESTRUCTURA", exc.codigo)
-        borrador.error(exc.codigo)
-        depurar(exc, debug)
-        return borrador.documento("error")
-    try:
-        estado.escribir_estructura(Path(carpeta) / rutas.CARPETA_TRABAJO, cursos)
-    except estado.ErrorEstado as exc:
-        borrador.fallo("ESTRUCTURA", exc.codigo)
-        borrador.error(exc.codigo)
-        return borrador.documento("error")
-    return borrador.documento()
 
 
 def crear_dir_vistas(carpeta: str | Path | None = None) -> Path:
@@ -181,114 +125,6 @@ def _borrar_sesiones_muertas(raiz: Path) -> None:
                 shutil.rmtree(ruta, ignore_errors=True)
         except OSError:
             continue
-
-
-def _ruta_dentro(base: Path, nombre: str) -> Path | None:
-    try:
-        ruta = (base / nombre).resolve()
-    except (OSError, RuntimeError):
-        return None
-    if not ruta.is_relative_to(base):
-        return None
-    return ruta
-
-
-def procesar_peticion(
-    peticion: dict,
-    aula: AulaVirtual,
-    cfg: Config,
-    carpeta: Path,
-    presencia: Presencia,
-    *,
-    verificados: dict[str, estado.Verificado] | None = None,
-    cupo: dict | None = None,
-    nombres: dict[int, str] | None = None,
-    dir_vistas: Path | None = None,
-    debug: bool = False,
-) -> dict:
-    """Lado del docente: convierte una petición del buzón en un informe.
-
-    ``cfg`` es la configuración capturada al abrir la sesión: alterar
-    ``tiza.toml`` después no puede redirigir la publicación. ``dir_vistas`` es el
-    directorio privado donde se escriben las vistas previas de la confirmación
-    (``crear_dir_vistas``); sin él, van a ``.tiza/preview`` de la carpeta.
-
-    Lo común con la terminal directa vive en
-    :func:`tiza.publicacion.publicar_en_cursos`; aquí quedan la lectura de la
-    petición y lo que solo existe en una sesión: la vigencia de la petición, el
-    cupo y el registro de verificados en memoria.
-    """
-    comando = peticion["comando"]
-    base = Path(carpeta).resolve()
-    if comando == "estructura":
-        if not cfg.reales:
-            return informe.crear(comando, "error", [], [], ["CURSO_NO_CONFIGURADO"])
-        return registrar(estructura_con(aula, cfg, base, debug=debug), base, presencia)
-    entorno = peticion["entorno"]
-    cursos_de_entorno: tuple[int, ...] = (
-        (cfg.cursos["pruebas"],) if "pruebas" in cfg.cursos and entorno == "pruebas" else ()
-    )
-    if entorno == "real":
-        cursos_de_entorno = cfg.reales
-    if not cursos_de_entorno:
-        codigo = "SIN_CURSO_PRUEBAS" if entorno == "pruebas" else "CURSO_NO_CONFIGURADO"
-        return informe.crear(comando, "error", [], [], [codigo], entorno)
-    # En el informe, el curso solo si es uno: con varios, cada fichero lleva el suyo.
-    curso = cursos_de_entorno[0] if len(cursos_de_entorno) == 1 else None
-    documentos: list[Documento] = []
-    for nombre in peticion["ficheros"]:
-        ruta = _ruta_dentro(base, nombre)
-        if ruta is None:
-            return informe.crear(
-                comando, "error", [], [], ["RUTA_FUERA_DE_CARPETA"], entorno, curso
-            )
-        try:
-            doc = contenido.cargar(ruta, raiz=base)
-        except ErrorContenido as exc:
-            return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
-        # Defensa en profundidad: ``cargar`` con ``raiz`` ya lo impide.
-        if any(not recurso.ruta.resolve().is_relative_to(base) for recurso in doc.recursos):
-            return informe.crear(
-                comando, "error", [], [], ["RUTA_FUERA_DE_CARPETA"], entorno, curso
-            )
-        documentos.append(doc)
-    dir_tiza = base / rutas.CARPETA_TRABAJO
-    if entorno == "real":
-        documento = publicacion.publicar_en_cursos(
-            aula,
-            cfg,
-            documentos,
-            base,
-            presencia,
-            entorno="real",
-            visible=peticion["visible"],
-            solo_fechas=peticion["solo_fechas"],
-            verificados=verificados,
-            vigente=lambda: buzon.peticion_pendiente(dir_tiza, peticion["id"]),
-            nombres=nombres or {},
-            dir_vistas=dir_vistas,
-            debug=debug,
-        )
-        return registrar(documento, base, presencia)
-    documento = publicacion.publicar_en_cursos(
-        aula,
-        cfg,
-        documentos,
-        base,
-        presencia,
-        entorno="pruebas",
-        visible=peticion["visible"],
-        solo_fechas=peticion["solo_fechas"],
-        cupo=cupo,
-        avisar_en_pruebas=True,
-        debug=debug,
-    )
-    if verificados is not None and documento["resultado"] == "ok":
-        for fichero in documento["ficheros"]:
-            estado.anotar_verificado(
-                verificados, fichero["hash"], fichero["nombre"], fichero["cmid"]
-            )
-    return registrar(documento, base, presencia)
 
 
 def abrir(
@@ -391,7 +227,7 @@ def autoprueba_con(
     for causa in resultado.get("causas", []):
         depurar(causa, debug)
     pasos: list[informe.Paso] = [informe.Paso("LOGIN"), *resultado["pasos"]]
-    registrar(
+    sesion_abierta.registrar(
         informe.crear(
             "autoprueba", resultado["resultado"], pasos, [], resultado["errores"], "pruebas", curso
         ),
@@ -417,7 +253,9 @@ def _fallo(
     debug: bool = False,
 ) -> int:
     """La sesión no se pudo abrir: informe para el agente y explicación para el docente."""
-    registrar(informe.crear(comando, "error", [], [], [codigo], entorno, curso), base, presencia)
+    sesion_abierta.registrar(
+        informe.crear(comando, "error", [], [], [codigo], entorno, curso), base, presencia
+    )
     presencia.informar(Aviso("FALLO", {"codigo": codigo, "detalle": detalle}))
     if exc is not None:
         depurar(exc, debug)
@@ -431,7 +269,7 @@ def _abortado(
     entorno: str | None = None,
     curso: int | None = None,
 ) -> int:
-    registrar(
+    sesion_abierta.registrar(
         informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, curso), base, presencia
     )
     presencia.informar(Aviso("CANCELADA"))
@@ -566,7 +404,9 @@ def _preparar(
     ):
         presencia.informar(Aviso("AUTOPRUEBA_FALLIDA"))
         return 1
-    documento = registrar(estructura_con(aula, cfg, base, debug=debug), base, presencia)
+    documento = sesion_abierta.registrar(
+        sesion_abierta.estructura_con(aula, cfg, base, debug=debug), base, presencia
+    )
     if "SESION_CADUCADA" in documento["errores"]:
         return 1
     if documento["resultado"] != "ok":
@@ -590,26 +430,12 @@ def _servir(
     dir_tiza = base / rutas.CARPETA_TRABAJO
     apertura = datetime.now(UTC)
     caduca = apertura + timedelta(minutes=minutos)
-    cupo = {"pruebas": 0}
-    verificados: dict[str, estado.Verificado] = {}  # solo lo publicado en pruebas en esta sesión
-
-    def procesar(peticion: dict) -> dict:
-        return procesar_peticion(
-            peticion,
-            aula,
-            cfg,
-            base,
-            presencia,
-            verificados=verificados,
-            cupo=cupo,
-            nombres=nombres,
-            dir_vistas=dir_vistas,
-            debug=debug,
-        )
-
+    abierta = sesion_abierta.SesionAbierta(
+        aula, cfg, base, presencia, nombres=nombres, dir_vistas=dir_vistas, debug=debug
+    )
     try:
-        with buzon.abrir_sesion(dir_tiza, caduca) as abierta:
-            _atender(dir_tiza, procesar, apertura, abierta, presencia, debug, cerrar)
+        with buzon.abrir_sesion(dir_tiza, caduca) as actual:
+            _atender(dir_tiza, abierta.atender, apertura, actual, presencia, debug, cerrar)
     except buzon.ErrorBuzon as exc:
         return _fallo("sesion", exc.codigo, exc.detalle, base, presencia)
     except KeyboardInterrupt:

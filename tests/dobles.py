@@ -1,13 +1,14 @@
-"""Dobles compartidos por los tests: un aula virtual en memoria, sin red."""
+"""Dobles y datos compartidos por los tests: un aula virtual en memoria, sin red."""
 
 from __future__ import annotations
 
+import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 
-from tiza import config, rutas
+from tiza import buzon, config, rutas
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
     CAMPOS_FECHA_TAREA,
@@ -15,6 +16,54 @@ from tiza.publicar import (
     DETALLE_INTENTOS_REPUBLICAR,
     ErrorPublicacion,
 )
+
+PAGINA = (
+    "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\n![foto](img/foto.png)\n"
+)
+
+
+def peticion(entorno: str = "pruebas", visible: bool | None = None, **cambios) -> dict:
+    """Una petición del buzón válida; cada test cambia solo lo que mira."""
+    datos = {
+        "version": buzon.VERSION_PROTOCOLO,
+        "id": "b" * 32,
+        "comando": "publicar",
+        "ficheros": ["pagina.md"],
+        "entorno": entorno,
+        "visible": visible,
+        "solo_fechas": False,
+    }
+    datos.update(cambios)
+    return datos
+
+
+def dejar_peticion(carpeta: Path, datos: dict) -> Path:
+    """Deja una petición en el buzón de la carpeta, como haría el agente."""
+    carpeta_buzon = buzon.carpeta_buzon(Path(carpeta) / ".tiza")
+    carpeta_buzon.mkdir(parents=True, exist_ok=True)
+    ruta = carpeta_buzon / f"{datos['id']}{buzon.SUFIJO_PETICION}"
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+    return ruta
+
+
+def fecha_en_formulario(campo: str, valor: tuple[int, int, int, int, int]) -> dict:
+    anio, mes, dia, hora, minuto = valor
+    return {
+        f"{campo}[enabled]": "1",
+        f"{campo}[year]": str(anio),
+        f"{campo}[month]": str(mes),
+        f"{campo}[day]": str(dia),
+        f"{campo}[hour]": str(hora),
+        f"{campo}[minute]": str(minuto),
+    }
+
+
+def tarea_en(carpeta: Path, entrega: str = "2026-10-12", nombre: str = "tarea.md") -> None:
+    (carpeta / nombre).write_text(
+        "---\ntipo: tarea\nnombre: Problemas\nseccion: 3\napertura: 2026-10-01\n"
+        f"entrega: {entrega}\n---\n\nResuelve.\n",
+        encoding="utf-8",
+    )
 
 
 def _fecha_del_formulario(formulario: dict, campo: str):
@@ -272,6 +321,20 @@ class MoodleFalso:
     def h5p_tiene_intentos(self, cmid):
         self.llamadas.append(("h5p_tiene_intentos", cmid))
         return self.intentos_h5p.get(cmid, False)
+
+
+def aula_con_tarea(entrega_antes=(2026, 10, 10, 23, 59)) -> MoodleFalso:
+    """Un aula donde la tarea ya está publicada con otra fecha de entrega."""
+    moodle = MoodleFalso()
+    moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
+    moodle.formularios[55] = {
+        "name": "Problemas",
+        "visible": "1",
+        "introeditor[text]": "<p>Resuelve.</p>",
+        **fecha_en_formulario("allowsubmissionsfromdate", (2026, 10, 1, 0, 0)),
+        **fecha_en_formulario("duedate", entrega_antes),
+    }
+    return moodle
 
 
 class PresenciaFalsa:
