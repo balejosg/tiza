@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from dobles import MoodleFalso, PresenciaFalsa, configurar_aula, enlace_simbolico
-from tiza import buzon, calendario, config, contenido, publicar, sesion
+from tiza import buzon, calendario, config, contenido, publicacion, publicar, sesion
 
 TAREA = (
     '---\ntipo: tarea\nnombre: Problemas\nseccion: "Fracciones"\n'
@@ -26,11 +26,11 @@ TAREA = (
 
 def test_aviso_desconocido_falla():
     with pytest.raises(ValueError):
-        sesion.Aviso("NO_EXISTE")
+        publicacion.Aviso("NO_EXISTE")
 
 
 def test_aviso_conocido_guarda_sus_datos():
-    aviso = sesion.Aviso("CREANDO_SECCION", {"nombre": "Fracciones"})
+    aviso = publicacion.Aviso("CREANDO_SECCION", {"nombre": "Fracciones"})
     assert aviso.datos["nombre"] == "Fracciones"
 
 
@@ -39,7 +39,7 @@ def test_resumen_de_un_documento(tmp_path):
     (tmp_path / "img" / "foto.png").write_bytes(b"png")
     (tmp_path / "tarea.md").write_text(TAREA, encoding="utf-8")
     doc = contenido.cargar(tmp_path / "tarea.md")
-    resumen = sesion.DocumentoResumen.de(doc, tmp_path.resolve())
+    resumen = publicacion.DocumentoResumen.de(doc, tmp_path.resolve())
     assert resumen.fichero == "tarea.md"
     assert (resumen.tipo, resumen.nombre, resumen.seccion) == ("tarea", "Problemas", "Fracciones")
     assert resumen.fechas is not None
@@ -55,7 +55,7 @@ def test_el_resumen_lleva_los_iframes_aparte_de_los_enlaces(tmp_path):
         encoding="utf-8",
     )
     doc = contenido.cargar(tmp_path / "pagina.md")
-    resumen = sesion.DocumentoResumen.de(doc, tmp_path.resolve())
+    resumen = publicacion.DocumentoResumen.de(doc, tmp_path.resolve())
     assert resumen.incrustados == ("https://www.youtube-nocookie.com/embed/abc",)
     assert resumen.enlaces_externos == ("https://ejemplo.org/x",)
 
@@ -70,7 +70,7 @@ def test_el_resumen_de_una_actividad_h5p_lleva_sus_datos(tmp_path):
         encoding="utf-8",
     )
     doc = contenido.cargar(tmp_path / "actividad.md")
-    resumen = sesion.DocumentoResumen.de(doc, tmp_path.resolve())
+    resumen = publicacion.DocumentoResumen.de(doc, tmp_path.resolve())
     assert (resumen.tipo, resumen.nombre) == ("h5p", "Repaso")
     assert resumen.h5p == "Marcar palabras"
     assert resumen.h5p_libreria is None and resumen.h5p_descartadas == ()
@@ -79,12 +79,12 @@ def test_el_resumen_de_una_actividad_h5p_lleva_sus_datos(tmp_path):
 def test_el_doble_cumple_la_interfaz_de_presencia():
     metodos = [
         nombre
-        for nombre, valor in vars(sesion.Presencia).items()
+        for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
     assert len(metodos) == 10
     for nombre in metodos:
-        esperado = list(inspect.signature(getattr(sesion.Presencia, nombre)).parameters)
+        esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaFalsa, nombre)).parameters)
         assert obtenido == esperado, nombre
 
@@ -678,7 +678,7 @@ class TestAbrir:
         assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
         assert len(atendidas) == 2
         assert presencia.codigos().count("SESION_ABIERTA") == 2
-        assert presencia.avisos[-1] == sesion.Aviso("SESION_CERRADA", {"motivo": "caducada"})
+        assert presencia.avisos[-1] == publicacion.Aviso("SESION_CERRADA", {"motivo": "caducada"})
 
     def test_sin_curso_de_pruebas_solo_lee_y_confirma_el_real(self, tmp_path, monkeypatch):
         moodle = MoodleFalso()
@@ -749,7 +749,7 @@ def test_la_sesion_se_cierra_si_su_codigo_cambia(tmp_path, monkeypatch):
     )
     presencia = PresenciaFalsa()
     assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
-    assert presencia.avisos[-1] == sesion.Aviso("SESION_CERRADA", {"motivo": "desactualizada"})
+    assert presencia.avisos[-1] == publicacion.Aviso("SESION_CERRADA", {"motivo": "desactualizada"})
 
 
 def test_cerrar_corta_el_buzon_sin_ofrecer_ampliar(tmp_path, monkeypatch):
@@ -766,7 +766,7 @@ def test_cerrar_corta_el_buzon_sin_ofrecer_ampliar(tmp_path, monkeypatch):
     presencia = PresenciaFalsa(ampliar=(True,))
     assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False, cerrar=cerrar) == 0
     assert vistos[0]() is True
-    assert presencia.avisos[-1] == sesion.Aviso("SESION_CERRADA", {"motivo": "docente"})
+    assert presencia.avisos[-1] == publicacion.Aviso("SESION_CERRADA", {"motivo": "docente"})
     assert not (buzon.carpeta_buzon(carpeta / ".tiza") / buzon.SESION).exists()
 
 
@@ -823,14 +823,14 @@ class TestCambiosDeFechas:
         doc = contenido.cargar(tmp_path / "tarea.md")
         moodle = _aula_con_tarea()
         cambios = {
-            c.campo: c for c in sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+            c.campo: c for c in publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
         }
         assert cambios["apertura"].estado == "igual"
         assert cambios["entrega"].estado == "cambia"
         assert cambios["entrega"].antes == (2026, 10, 10, 23, 59)
         assert cambios["entrega"].despues == (2026, 10, 12, 23, 59)
         assert "límite" not in cambios  # ni en el fichero ni en el aula
-        assert sesion.CAMPO_RECORDATORIO not in cambios  # el aula no lo tiene puesto
+        assert publicacion.CAMPO_RECORDATORIO not in cambios  # el aula no lo tiene puesto
 
     def test_ensena_que_se_quita_el_recordatorio_de_calificacion(self, tmp_path):
         # Toda publicación de una tarea desactiva «Recordarme calificar antes de»: si el
@@ -840,9 +840,9 @@ class TestCambiosDeFechas:
         moodle = _aula_con_tarea()
         moodle.formularios[55].update(_fecha_formulario("gradingduedate", (2026, 10, 20, 0, 0)))
         cambios = {
-            c.campo: c for c in sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+            c.campo: c for c in publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
         }
-        recordatorio = cambios[sesion.CAMPO_RECORDATORIO]
+        recordatorio = cambios[publicacion.CAMPO_RECORDATORIO]
         assert recordatorio.estado == "cambia"
         assert recordatorio.antes == (2026, 10, 20, 0, 0)
         assert recordatorio.despues is None
@@ -852,7 +852,7 @@ class TestCambiosDeFechas:
         _tarea(tmp_path)
         doc = contenido.cargar(tmp_path / "tarea.md")
         moodle = MoodleFalso()
-        cambios = sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        cambios = publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
         assert {c.estado for c in cambios} == {"nueva"}
         assert all(c.antes is None for c in cambios)
 
@@ -866,7 +866,7 @@ class TestCambiosDeFechas:
 
         moodle = AulaCaida()
         moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
-        cambios = sesion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        cambios = publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
         assert {c.estado for c in cambios} == {"desconocida"}
         assert cambios[1].despues == (2026, 10, 12, 23, 59)
 
@@ -874,7 +874,9 @@ class TestCambiosDeFechas:
         _tarea(tmp_path)  # entrega lunes 12 de octubre de 2026
         doc = contenido.cargar(tmp_path / "tarea.md")
         festivo = calendario.Calendario(festivos=((date(2026, 10, 12), date(2026, 10, 12)),))
-        cambios = {c.campo: c for c in sesion.cambios_de_fechas(MoodleFalso(), [], doc, festivo)}
+        cambios = {
+            c.campo: c for c in publicacion.cambios_de_fechas(MoodleFalso(), [], doc, festivo)
+        }
         assert cambios["entrega"].avisos == ("FECHA_FESTIVA",)
         assert cambios["apertura"].avisos == ()
 
@@ -983,7 +985,7 @@ class TestSoloFechasEnProcesarPeticion:
         )
         documentos = [contenido.cargar(carpeta / "tarea.md"), contenido.cargar(carpeta / "otra.md")]
         moodle = _aula_con_tarea()  # «Problemas» existe; «Otra», no
-        documento = sesion.publicar_con(
+        documento = publicacion.publicar_con(
             moodle, "pruebas", 1234, documentos, None, carpeta, PresenciaFalsa(), solo_fechas=True
         )
         assert documento["resultado"] == "error"
@@ -1285,6 +1287,15 @@ class TestEstructuraConVariosReales:
         assert datos["cursos"]["real"][1]["secciones"][0]["nombre"] == "Tema tres"
         assert "1º A" not in json.dumps(datos, ensure_ascii=False)
 
+    def test_fuera_del_esquema_no_se_escribe(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        moodle = MoodleFalso(
+            secciones=[{"numero": 1, "nombre": "<b>x</b>", "id": 9, "modulos": []}]
+        )
+        documento = sesion.estructura_con(moodle, CFG, carpeta)
+        assert documento["errores"] == ["ESTRUCTURA_INVALIDA"]
+        assert not (carpeta / ".tiza" / "estructura.json").exists()
+
 
 class TestElegirCursosReales:
     def preparar(self, tmp_path, monkeypatch, presencia, cursos=None):
@@ -1405,7 +1416,7 @@ class TestItinerarioEnLaSesion:
         docs = [
             contenido.cargar(carpeta / n, raiz=carpeta.resolve()) for n in ("c.md", "a.md", "b.md")
         ]
-        ordenados = sesion.ordenar_por_dependencias(docs, carpeta.resolve())
+        ordenados = publicacion.ordenar_por_dependencias(docs, carpeta.resolve())
         assert [d.ruta.name for d in ordenados] == ["c.md", "a.md", "b.md"]  # type: ignore[union-attr]
 
     def test_cada_curso_real_resuelve_sus_propias_dependencias(self, tmp_path):
@@ -1414,7 +1425,7 @@ class TestItinerarioEnLaSesion:
         md_it(carpeta, "tarea.md", "Siguiente", "restricciones:\n  completar: [test.md]\n")
         moodle = aula_con_dos_cursos()
         # Solo el curso 101 tiene publicado el test.
-        sesion.publicar_con(
+        publicacion.publicar_con(
             moodle,
             "real",
             101,

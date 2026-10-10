@@ -25,6 +25,7 @@ from . import (
     config,
     contenido,
     informe,
+    publicacion,
     publicar,
     rutas,
     sesion,
@@ -33,11 +34,9 @@ from . import (
 from .config import ErrorConfig
 from .contenido import ErrorContenido
 from .informe import ErrorInforme
+from .publicacion import AVISO_DEBUG
 from .publicar import ErrorPublicacion
-from .sesion import (
-    AVISO_DEBUG,
-    MAX_MINUTOS,
-)
+from .sesion import MAX_MINUTOS
 from .terminal import ErrorTerminal
 
 __all__ = ["main", "instalar_skill"]
@@ -252,22 +251,6 @@ def _fallo(
         print(AVISO_DEBUG, file=sys.stderr)
         traceback.print_exception(exc.__cause__ or exc)
     return 1
-
-
-def _fallo_en_pantalla(
-    detalle_codigo: str,
-    detalle: str,
-    exc: BaseException | None,
-    debug: bool,
-) -> None:
-    """El error de un curso para el docente; el informe lo escribe quien reúne los cursos."""
-    mensaje = f"ERROR [{detalle_codigo}]"
-    if detalle:
-        mensaje += f": {detalle}"
-    print(mensaje, file=sys.stderr)
-    if debug and exc is not None:
-        print(AVISO_DEBUG, file=sys.stderr)
-        traceback.print_exception(exc.__cause__ or exc)
 
 
 def _abortado(comando: str, entorno: str | None = None, curso: int | None = None) -> int:
@@ -772,8 +755,9 @@ def _publicar_directa(args) -> int:
     visible = _visibilidad(args)
     solo_fechas = args.solo_fechas
     sin_pruebas = entorno == "real" and "pruebas" not in cfg.cursos
-    # Con --solo-fechas no cambia la visibilidad: el aviso de «solo oculto» no aplica.
-    if sin_pruebas and visible is not False and not solo_fechas:
+    # Sin curso de pruebas solo se publica oculto (o solo fechas): se rechaza antes de
+    # pedir la contraseña.
+    if publicacion.exige_oculto_sin_pruebas(cfg, visible, solo_fechas=solo_fechas):
         return _fallo(
             comando,
             "SOLO_OCULTO_SIN_PRUEBAS",
@@ -781,10 +765,11 @@ def _publicar_directa(args) -> int:
             entorno=entorno,
             curso=unico,
         )
+    base = Path.cwd().resolve()
     documentos = []
     for nombre in args.ficheros:
         try:
-            documentos.append(contenido.cargar(nombre, raiz=Path.cwd().resolve()))
+            documentos.append(contenido.cargar(nombre, raiz=base))
         except ErrorContenido as exc:
             return _fallo(
                 comando,
@@ -795,31 +780,27 @@ def _publicar_directa(args) -> int:
                 exc=exc,
                 debug=args.debug,
             )
-    # (posición, curso, informe o None si el docente dijo que no): como en la sesión.
-    registro: list[tuple[int, int, dict | None]] = []
-    aceptados: list[tuple[int, int]] = []
     if sin_pruebas and not solo_fechas:
         print(
             "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."
         )
+    # La puerta de real se comprueba antes de la contraseña; el flujo unificado la repite
+    # con la misma regla (es gratis: el hash ya está calculado).
     if entorno == "real" and not solo_fechas and not sin_pruebas:
-        faltan = sesion.puerta_real(Path.cwd(), documentos)
+        faltan = publicacion.puerta_real(base, documentos)
         if faltan:
             return _fallo(
-                comando,
-                "VERIFICACION_PENDIENTE",
-                ", ".join(faltan),
-                entorno=entorno,
-                curso=unico,
+                comando, "VERIFICACION_PENDIENTE", ", ".join(faltan), entorno=entorno, curso=unico
             )
-    for posicion, curso in enumerate(cursos, 1):
-        # En real con --solo-fechas, la confirmación enseña las fechas antes y después:
-        # se pide tras leer el aula.
-        if solo_fechas and entorno == "real" or terminal.confirmar_destino(entorno, curso):
-            aceptados.append((posicion, curso))
-        else:
-            registro.append((posicion, curso, None))
-    if not aceptados:
+    # La terminal del docente descarta cursos antes de pedir la contraseña; después, la
+    # confirmación de lo que cambia (y el resto del flujo) es la misma que la de la sesión.
+    omitidos: set[int] = set()
+    for curso in cursos:
+        if not (solo_fechas and entorno == "real") and not terminal.confirmar_destino(
+            entorno, curso
+        ):
+            omitidos.add(curso)
+    if len(omitidos) == total:
         return _abortado(comando, entorno, unico)
     _mostrar_servidor(cfg)
     password = terminal.pedir_password()
@@ -836,116 +817,31 @@ def _publicar_directa(args) -> int:
             debug=args.debug,
         )
     presencia = terminal.PresenciaTerminal()
-    for posicion, curso in aceptados:
-        resultado = _publicar_directa_en(
-            args,
+    nombres = (
+        publicacion.nombres_de_cursos(moodle, presencia, args.debug) if entorno == "real" else {}
+    )
+    necesita_vistas = entorno == "real" and not solo_fechas and not sin_pruebas
+    dir_vistas = sesion.crear_dir_vistas() if necesita_vistas else None
+    try:
+        documento = publicacion.publicar_en_cursos(
             moodle,
-            presencia,
+            cfg,
             documentos,
-            entorno,
-            curso,
-            posicion,
-            total,
-            sin_pruebas,
-            visible,
+            base,
+            presencia,
+            entorno=entorno,
+            visible=visible,
+            solo_fechas=solo_fechas,
+            omitidos=omitidos,
+            nombres=nombres,
+            dir_vistas=dir_vistas,
+            debug=args.debug,
         )
-        registro.append((posicion, curso, resultado))
-        if resultado is not None and resultado["resultado"] != "ok":
-            break
-    registro.sort(key=lambda fila: fila[0])
-    documento = sesion.informe_de_cursos(comando, entorno, total, unico, registro)
+    finally:
+        if dir_vistas is not None:
+            shutil.rmtree(dir_vistas, ignore_errors=True)
     _escribir(documento)
     return 0 if documento["resultado"] == "ok" else 1
-
-
-def _publicar_directa_en(
-    args,
-    moodle,
-    presencia,
-    documentos,
-    entorno: str,
-    curso: int,
-    posicion: int,
-    total: int,
-    sin_pruebas: bool,
-    visible: bool | None,
-) -> dict | None:
-    """Un curso de «tiza publicar» sin sesión: informe, o None si el docente dice que no."""
-    comando = "publicar"
-    solo_fechas = args.solo_fechas
-
-    def fallo(codigo: str, detalle: str = "", exc: BaseException | None = None) -> dict:
-        _fallo_en_pantalla(codigo, detalle, exc, args.debug)
-        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
-
-    if solo_fechas and entorno == "real" or sin_pruebas:
-        try:
-            secciones = moodle.estructura(curso)
-        except ErrorPublicacion as exc:
-            return fallo(exc.codigo, exc.detalle, exc)
-    if solo_fechas and entorno == "real":
-        codigo = sesion.codigo_solo_fechas(secciones, documentos)
-        if codigo is not None:
-            return fallo(codigo)
-        resumen_real = sesion.resumen_solo_fechas(
-            moodle,
-            curso,
-            _nombre_del_curso(moodle, curso),
-            documentos,
-            Path.cwd().resolve(),
-            secciones,
-            debug=args.debug,
-            posicion=posicion,
-            total=total,
-        )
-        if not presencia.confirmar_real(resumen_real):
-            return None
-    elif sin_pruebas:
-        resumen = sesion.ResumenSinPruebas(
-            curso=curso,
-            nombre_curso=_nombre_del_curso(moodle, curso),
-            documentos=tuple(
-                sesion.DocumentoBreve(
-                    fichero=doc.ruta.name,
-                    tipo=doc.tipo,
-                    nombre=doc.nombre,
-                    existe=publicar.ya_existe(secciones, doc),
-                    itinerario=sesion.itinerario_de(doc, Path.cwd().resolve()),
-                )
-                for doc in documentos
-            ),
-            secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
-            posicion=posicion,
-            total=total,
-        )
-        if not presencia.confirmar_real_sin_pruebas(resumen):
-            return None
-    return sesion.publicar_con(
-        moodle,
-        entorno,
-        curso,
-        documentos,
-        visible,
-        Path.cwd(),
-        presencia,
-        debug=args.debug,
-        solo_fechas=solo_fechas,
-    )
-
-
-def _nombre_del_curso(moodle, curso: int) -> str | None:
-    """Nombre del curso entre los del docente; None si no se puede leer la lista."""
-    try:
-        return next(
-            (
-                curso_.get("nombre")
-                for curso_ in moodle.mis_cursos()
-                if isinstance(curso_, dict) and curso_.get("id") == curso
-            ),
-            None,
-        )
-    except ErrorPublicacion:
-        return None
 
 
 def _publicar(args) -> int:

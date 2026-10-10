@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import time
 import tomllib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -206,11 +204,16 @@ class TestPublicar:
         publicar.guardar_verificado(
             tmp_path / ".tiza", contenido.hash_documento(doc), "pagina.md", 100
         )
-        simular_terminal(monkeypatch)
-        responder(monkeypatch, ["s"])
+        salida = simular_terminal(monkeypatch)
+        responder(monkeypatch, ["s", "s"])  # destino y resumen
         monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: MoodleFalso())
         assert cli.main(["publicar", "pagina.md", "--en", "real"]) == 0
         assert leer_informe(tmp_path)["resultado"] == "ok"
+        texto = salida.contenido()
+        assert "Se va a publicar en el curso REAL" in texto
+        assert "vista previa: " in texto
+        # La vista va al directorio privado, no a la carpeta que escribe el agente.
+        assert not (tmp_path / ".tiza" / "preview").exists()
 
     def test_error_de_moodle_no_se_filtra(self, tmp_path, monkeypatch):
         class MoodleQueFalla(MoodleFalso):
@@ -580,14 +583,6 @@ class TestBuzonAgente:
         assert "Informe: ok" in salida.contenido()
 
 
-def dejar_peticion(dir_tiza: Path, peticion: dict) -> None:
-    carpeta = buzon.carpeta_buzon(dir_tiza)
-    carpeta.mkdir(parents=True, exist_ok=True)
-    (carpeta / f"{peticion['id']}{buzon.SUFIJO_PETICION}").write_text(
-        json.dumps(peticion), encoding="utf-8"
-    )
-
-
 def procesar(peticion, moodle, cfg, base, _dir_tiza=None, **opciones):
     """Lo que hace «tiza sesion» con una petición, con la presencia de la terminal."""
     return sesion.procesar_peticion(
@@ -596,31 +591,16 @@ def procesar(peticion, moodle, cfg, base, _dir_tiza=None, **opciones):
 
 
 class TestProcesarPeticion:
+    """Solo el despacho de la sesión: la publicación se prueba en ``test_publicacion.py``
+    y el ciclo de la sesión, en ``test_sesion.py``."""
+
     def preparar(self, tmp_path, monkeypatch, cursos=None) -> object:
         monkeypatch.chdir(tmp_path)
         escribir_pagina(tmp_path)
         configurar(tmp_path, monkeypatch, cursos)
         return config.resolver(tmp_path)
 
-    def test_pruebas_publica_sin_confirmar_y_registra_verificado(self, tmp_path, monkeypatch):
-        cfg = self.preparar(tmp_path, monkeypatch)
-
-        def no_confirmar(*a, **k):
-            raise AssertionError("las publicaciones en pruebas no piden confirmación")
-
-        monkeypatch.setattr(terminal, "confirmar_destino", no_confirmar)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        documento = procesar(peticion_publicar(), MoodleFalso(), cfg, base, dir_tiza)
-        assert documento["resultado"] == "ok"
-        assert documento["entorno"] == "pruebas"
-        assert documento["ficheros"][0]["cmid"] == 100
-        assert (dir_tiza / "informe.json").is_file()
-        verificados = publicar.cargar_verificados(dir_tiza)
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        assert contenido.hash_documento(doc) in verificados
-
-    def test_real_sin_verificar_rechaza(self, tmp_path, monkeypatch):
+    def test_real_sin_verificar_rechaza_antes_de_confirmar(self, tmp_path, monkeypatch):
         cfg = self.preparar(tmp_path, monkeypatch)
         llamadas: list = []
         monkeypatch.setattr(
@@ -638,191 +618,6 @@ class TestProcesarPeticion:
         )
         assert "VERIFICACION_PENDIENTE" in documento["errores"]
         assert llamadas == []
-
-    def test_real_con_no_queda_abortado(self, tmp_path, monkeypatch):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(
-            terminal, "confirmar_destino", lambda entorno, curso, nombre=None: False
-        )
-        moodle = MoodleFalso()
-        documento = procesar(peticion_publicar(entorno="real"), moodle, cfg, base, dir_tiza)
-        assert documento["resultado"] == "abortado"
-        assert "ABORTADO" in documento["errores"]
-        assert [llamada for llamada in moodle.llamadas if llamada[0] == "crear"] == []
-
-    def test_real_con_si_publica(self, tmp_path, monkeypatch):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        llamadas: list = []
-        monkeypatch.setattr(
-            terminal,
-            "confirmar_destino",
-            lambda entorno, curso, nombre=None: llamadas.append((entorno, curso)) or True,
-        )
-        moodle = MoodleFalso()
-        peticion = peticion_publicar(entorno="real")
-        dejar_peticion(dir_tiza, peticion)
-        documento = procesar(peticion, moodle, cfg, base, dir_tiza)
-        assert documento["resultado"] == "ok"
-        assert llamadas == [("real", 5678)]
-        assert any(llamada[0] == "crear" for llamada in moodle.llamadas)
-
-    def test_real_avisa_de_las_secciones_que_creara(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        escribir_pagina(tmp_path, PAGINA.replace("seccion: 3", 'seccion: "Fracciones"'))
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(
-            terminal, "confirmar_destino", lambda entorno, curso, nombre=None: False
-        )
-        moodle = MoodleFalso()
-        procesar(peticion_publicar(entorno="real"), moodle, cfg, base, dir_tiza)
-        assert "Se creará la sección «Fracciones» (oculta)" in capsys.readouterr().out
-        assert not any(l[0] == "crear_seccion" for l in moodle.llamadas)
-
-    def test_real_avisa_si_sera_visible(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(
-            terminal, "confirmar_destino", lambda entorno, curso, nombre=None: False
-        )
-        procesar(
-            peticion_publicar(entorno="real", visible=True), MoodleFalso(), cfg, base, dir_tiza
-        )
-        salida = capsys.readouterr().out
-        assert "VISIBLE" in salida
-        assert "verificado en pruebas" in salida
-        procesar(peticion_publicar(entorno="real"), MoodleFalso(), cfg, base, dir_tiza)
-        assert "oculto" in capsys.readouterr().out
-
-    def test_real_sin_indicar_dice_que_conserva(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        procesar(
-            peticion_publicar(entorno="real", visible=None), MoodleFalso(), cfg, base, dir_tiza
-        )
-        assert "conserva su visibilidad" in capsys.readouterr().out
-
-    def test_real_describe_lo_que_se_publica(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        (tmp_path / "pagina.md").write_text(TAREA, encoding="utf-8")
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        vistos: list = []
-        monkeypatch.setattr(
-            terminal,
-            "confirmar_destino",
-            lambda entorno, curso, nombre=None: vistos.append(nombre) or False,
-        )
-        procesar(
-            peticion_publicar(entorno="real"),
-            MoodleFalso(),
-            cfg,
-            base,
-            dir_tiza,
-            nombres={5678: "Matemáticas 2ºB"},
-        )
-        salida = capsys.readouterr().out
-        assert "Tarea «Problemas» → sección «Fracciones»" in salida
-        # Una fecha sin hora es fin de día en contenido._fecha (23:59).
-        assert "entrega 10/10/2026 23:59" in salida
-        assert "«Matemáticas 2ºB»" in salida
-        assert vistos == ["Matemáticas 2ºB"]
-
-    def test_real_regenera_y_enlaza_la_vista_previa(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        vista = dir_tiza / "preview" / "pagina.html"
-        vista.parent.mkdir(parents=True, exist_ok=True)
-        vista.write_text("vieja", encoding="utf-8")
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        procesar(peticion_publicar(entorno="real"), MoodleFalso(), cfg, base, dir_tiza)
-        salida = capsys.readouterr().out
-        assert f"vista previa: {vista.resolve().as_uri()}" in salida
-        assert vista.read_text(encoding="utf-8") != "vieja"
-
-    def test_texto_del_agente_no_inyecta_escapes(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(
-            contenido, "cargar", lambda ruta, *a, **k: _con_nombre(doc, "Repaso\x1b[2K")
-        )
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        monkeypatch.setattr(sesion, "puerta_real", lambda *a, **k: [])
-        procesar(peticion_publicar(entorno="real"), MoodleFalso(), cfg, base, dir_tiza)
-        assert "\x1b" not in capsys.readouterr().out
-
-    def test_real_confirmado_tarde_no_publica(self, tmp_path, monkeypatch):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda entorno, curso, nombre=None: True)
-        moodle = MoodleFalso()
-        # El agente ya desistió: no hay fichero de petición en el buzón.
-        documento = procesar(peticion_publicar(entorno="real"), moodle, cfg, base, dir_tiza)
-        assert "PETICION_RETIRADA" in documento["errores"]
-        assert [llamada for llamada in moodle.llamadas if llamada[0] == "crear"] == []
-
-    def test_real_con_peticion_sin_renovar_no_publica(self, tmp_path, monkeypatch):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
-        peticion = peticion_publicar(entorno="real")
-        dejar_peticion(dir_tiza, peticion)
-        ruta = buzon.carpeta_buzon(dir_tiza) / f"{peticion['id']}{buzon.SUFIJO_PETICION}"
-        viejo = time.time() - buzon.LATIDO_MAX - 1
-        os.utime(ruta, (viejo, viejo))  # al agente lo mató su herramienta sin avisar
-        moodle = MoodleFalso()
-        documento = procesar(peticion, moodle, cfg, base, dir_tiza)
-        assert "PETICION_RETIRADA" in documento["errores"]
-        assert not any(llamada[0] == "crear" for llamada in moodle.llamadas)
-
-    def test_real_lista_los_ficheros_que_se_suben(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        (tmp_path / "img").mkdir()
-        (tmp_path / "img" / "foto.png").write_bytes(b"png")
-        escribir_pagina(tmp_path, PAGINA.replace("Contenido.", "![foto](img/foto.png)"))
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        procesar(peticion_publicar(entorno="real"), MoodleFalso(), cfg, base, dir_tiza)
-        assert "se sube el fichero img/foto.png" in capsys.readouterr().out
-
-    def test_minutos_tiene_limite(self):
-        with pytest.raises(SystemExit):
-            cli._parser().parse_args(["sesion", "--minutos", "100000"])
-        assert cli._parser().parse_args(["sesion", "--minutos", "480"]).minutos == 480
 
     def test_tiza_toml_posterior_no_redirige_la_sesion(self, tmp_path, monkeypatch):
         cfg = self.preparar(tmp_path, monkeypatch)
@@ -846,26 +641,6 @@ class TestProcesarPeticion:
         )
         assert llamadas == [("real", 5678)]
         assert documento["curso"] == 5678
-
-    def test_recurso_fuera_de_la_carpeta(self, tmp_path, monkeypatch):
-        base = tmp_path / "asignatura"
-        base.mkdir()
-        (tmp_path / "fuera.png").write_bytes(b"png")
-        (base / "pagina.md").write_text(
-            "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n![x](../fuera.png)\n",
-            encoding="utf-8",
-        )
-        monkeypatch.chdir(base)
-        configurar(base, monkeypatch)
-        cfg = config.resolver(base)
-        documento = procesar(
-            peticion_publicar(),
-            MoodleFalso(),
-            cfg,
-            base.resolve(),
-            base / ".tiza",
-        )
-        assert "RUTA_FUERA_DE_CARPETA" in documento["errores"]
 
     def test_error_de_moodle_no_se_filtra(self, tmp_path, monkeypatch):
         cfg = self.preparar(tmp_path, monkeypatch)
@@ -891,45 +666,11 @@ class TestProcesarPeticion:
         assert datos["cursos"]["pruebas"]["id"] == 1234
         assert datos["cursos"]["real"][0]["id"] == 5678
 
-    def test_real_lista_tambien_las_imagenes_externas(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        escribir_pagina(
-            tmp_path, PAGINA.replace("Contenido.", "![x](https://cdn.example.org/p.png)")
-        )
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        procesar(peticion_publicar(entorno="real"), MoodleFalso(), cfg, base, dir_tiza)
-        assert "enlace externo: https://cdn.example.org/p.png" in capsys.readouterr().out
 
-    def test_real_lista_los_iframes_como_incrustados(self, tmp_path, monkeypatch, capsys):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        escribir_pagina(
-            tmp_path,
-            PAGINA.replace(
-                "Contenido.", '<iframe src="https://www.youtube.com/embed/abc"></iframe>'
-            ),
-        )
-        base = tmp_path.resolve()
-        dir_tiza = base / ".tiza"
-        doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
-        monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        procesar(peticion_publicar(entorno="real"), MoodleFalso(), cfg, base, dir_tiza)
-        salida = capsys.readouterr().out
-        assert "incrusta: https://www.youtube-nocookie.com/embed/abc" in salida
-        assert "enlace externo" not in salida
-
-    def test_estructura_fuera_del_esquema_no_se_escribe(self, tmp_path, monkeypatch):
-        cfg = self.preparar(tmp_path, monkeypatch)
-        moodle = MoodleFalso(
-            secciones=[{"numero": 1, "nombre": "<b>x</b>", "id": 9, "modulos": []}]
-        )
-        documento = sesion.estructura_con(moodle, cfg, tmp_path)
-        assert documento["errores"] == ["ESTRUCTURA_INVALIDA"]
-        assert not (tmp_path / ".tiza" / "estructura.json").exists()
+def test_minutos_tiene_limite():
+    with pytest.raises(SystemExit):
+        cli._parser().parse_args(["sesion", "--minutos", "100000"])
+    assert cli._parser().parse_args(["sesion", "--minutos", "480"]).minutos == 480
 
 
 ETIQUETAS = (
@@ -1063,40 +804,6 @@ class TestActualizar:
         assert "ACTUALIZACION_FALLIDA" in capsys.readouterr().err
 
 
-def test_la_puerta_real_de_la_sesion_ignora_verificados_json(tmp_path):
-    from tiza import contenido
-
-    md = tmp_path / "p.md"
-    md.write_text("---\ntipo: pagina\nnombre: P\nseccion: 1\n---\n\nhola\n", encoding="utf-8")
-    doc = contenido.cargar(md)
-    dir_tiza = tmp_path / ".tiza"
-    publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "p.md", 7)
-    assert sesion.puerta_real(tmp_path, [doc]) == []
-    assert sesion.puerta_real(tmp_path, [doc], {}) == ["p.md"]
-
-
-def test_el_cupo_de_pruebas_se_agota(tmp_path):
-    md = tmp_path / "p.md"
-    md.write_text("---\ntipo: pagina\nnombre: P\nseccion: 1\n---\n\nhola\n", encoding="utf-8")
-    peticion = {
-        "version": 1,
-        "id": "a" * 32,
-        "comando": "publicar",
-        "ficheros": ["p.md"],
-        "entorno": "pruebas",
-        "visible": False,
-        "solo_fechas": False,
-    }
-    cfg = config.Config(
-        url="https://aula.ejemplo.org", usuario="u", cursos={"pruebas": 1}, reales=(2,)
-    )
-    cupo = {"pruebas": sesion.MAX_PUBLICACIONES_PRUEBAS}
-    documento = procesar(
-        peticion, MoodleFalso(), cfg, tmp_path.resolve(), tmp_path / ".tiza", cupo=cupo
-    )
-    assert documento["errores"] == ["LIMITE_PUBLICACIONES"]
-
-
 def test_error_interno_explica_que_hacer(monkeypatch, capsys):
     def romper(_args):
         raise RuntimeError("boom")
@@ -1128,12 +835,6 @@ TAREA = (
     '---\ntipo: tarea\nnombre: Problemas\nseccion: "Fracciones"\n'
     "apertura: 2026-10-01\nentrega: 2026-10-10\n---\n\nResuelve.\n"
 )
-
-
-def _con_nombre(doc, nombre):
-    import dataclasses
-
-    return dataclasses.replace(doc, nombre=nombre)
 
 
 def abrir_sesion_falsa(
@@ -1999,7 +1700,7 @@ class TestVariosCursosRealesCli:
 
     def test_publicar_directo_confirma_cada_curso_y_publica_en_todos(self, tmp_path, monkeypatch):
         moodle = self.preparar(tmp_path, monkeypatch)
-        responder(monkeypatch, ["s", "s"])  # un destino por curso
+        responder(monkeypatch, ["s", "s", "s", "s"])  # destino y resumen de cada curso
         assert cli.main(["publicar", "pagina.md", "--en", "real"]) == 0
         informe = leer_informe(tmp_path)
         assert informe["curso"] is None
@@ -2008,7 +1709,7 @@ class TestVariosCursosRealesCli:
 
     def test_decir_que_no_a_un_curso_publica_en_el_otro(self, tmp_path, monkeypatch):
         moodle = self.preparar(tmp_path, monkeypatch)
-        responder(monkeypatch, ["n", "s"])
+        responder(monkeypatch, ["n", "s", "s"])  # no al destino del primero; el segundo, sí
         assert cli.main(["publicar", "pagina.md", "--en", "real"]) == 0
         informe = leer_informe(tmp_path)
         assert [f["curso"] for f in informe["ficheros"]] == [102]

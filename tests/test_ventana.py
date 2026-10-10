@@ -11,7 +11,7 @@ from importlib import resources
 
 import pytest
 
-from tiza import config, informe, sesion
+from tiza import config, informe, publicacion, sesion
 from tiza import ventana as paquete_ventana
 from tiza.ventana import pagina
 from tiza.ventana.estado import PresenciaVentana, Puente, Ventana
@@ -43,11 +43,11 @@ def preparar(tmp_path, abiertas=None):
 def test_presencia_ventana_cumple_la_interfaz():
     metodos = [
         nombre
-        for nombre, valor in vars(sesion.Presencia).items()
+        for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
     for nombre in metodos:
-        esperado = list(inspect.signature(getattr(sesion.Presencia, nombre)).parameters)
+        esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaVentana, nombre)).parameters)
         assert obtenido == esperado, nombre
 
@@ -185,7 +185,7 @@ def test_elegir_cursos_reales_se_puede_cancelar(tmp_path):
 
 def test_la_confirmacion_de_real_lleva_la_posicion_del_curso(tmp_path):
     ventana, presencia, puente = preparar(tmp_path)
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         curso=102,
         nombre_curso="1º B",
         documentos=(),
@@ -238,13 +238,13 @@ def test_confirmar_sin_pruebas_pantalla(tmp_path):
 
 def test_confirmar_real_sin_pruebas_no_ofrece_vista_previa(tmp_path):
     ventana, presencia, puente = preparar(tmp_path)
-    resumen = sesion.ResumenSinPruebas(
+    resumen = publicacion.ResumenSinPruebas(
         curso=5678,
         nombre_curso="Mates",
         documentos=(
-            sesion.DocumentoBreve("t.md", "tarea", "T", existe=True),
-            sesion.DocumentoBreve("n.md", "pagina", "N", existe=False),
-            sesion.DocumentoBreve("d.md", "pagina", "D", existe=None),
+            publicacion.DocumentoBreve("t.md", "tarea", "T", existe=True),
+            publicacion.DocumentoBreve("n.md", "pagina", "N", existe=False),
+            publicacion.DocumentoBreve("d.md", "pagina", "D", existe=None),
         ),
         secciones_nuevas=("Nueva",),
     )
@@ -269,7 +269,7 @@ def test_real_ensena_el_resumen_saneado_y_abre_la_vista_previa(tmp_path):
     vista.write_text("x", encoding="utf-8")
     fuera = tmp_path / "fuera.html"
     fuera.write_text("x", encoding="utf-8")
-    doc = sesion.DocumentoResumen(
+    doc = publicacion.DocumentoResumen(
         fichero="t\N{RIGHT-TO-LEFT OVERRIDE}.md",
         tipo="pagina",
         nombre="Repaso\x1b[2K",
@@ -280,8 +280,8 @@ def test_real_ensena_el_resumen_saneado_y_abre_la_vista_previa(tmp_path):
         incrustados=("https://wordwall.net/embed/a\x1b",),
         recursos=("img/foto.png",),
     )
-    otro = sesion.DocumentoResumen("o.md", "pagina", "Otro", 3, None, vista_previa=fuera)
-    resumen = sesion.ResumenPublicacion(
+    otro = publicacion.DocumentoResumen("o.md", "pagina", "Otro", 3, None, vista_previa=fuera)
+    resumen = publicacion.ResumenPublicacion(
         5678, "Mates\N{RIGHT-TO-LEFT OVERRIDE}", (doc, otro), ("Nueva",), True
     )
     hilo, resultado = en_hilo(lambda: presencia.confirmar_real(resumen))
@@ -315,9 +315,9 @@ def test_con_directorio_privado_solo_se_abren_sus_vistas(tmp_path):
         vista.write_text("x", encoding="utf-8")
 
     def documento(vista):
-        return sesion.DocumentoResumen("t.md", "pagina", "T", 3, None, vista_previa=vista)
+        return publicacion.DocumentoResumen("t.md", "pagina", "T", 3, None, vista_previa=vista)
 
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         5678, "Mates", (documento(dentro), documento(de_la_carpeta)), (), True
     )
     hilo, resultado = en_hilo(lambda: presencia.confirmar_real(resumen))
@@ -378,23 +378,23 @@ def test_ampliar_sin_respuesta_es_no(tmp_path):
 def test_avisos_cambian_la_pantalla_y_el_registro(tmp_path):
     ventana, presencia, _puente = preparar(tmp_path)
     presencia.informar(
-        sesion.Aviso("SESION_ABIERTA", {"caduca": datetime(2026, 10, 3, 10, 0, tzinfo=UTC)})
+        publicacion.Aviso("SESION_ABIERTA", {"caduca": datetime(2026, 10, 3, 10, 0, tzinfo=UTC)})
     )
     assert ventana.estado()["pantalla"]["tipo"] == "abierta"
     presencia.informar(
-        sesion.Aviso(
+        publicacion.Aviso(
             "RESULTADO", {"documento": informe.crear("publicar", "ok", [], [], [], "pruebas", 1)}
         )
     )
     assert any("ok" in linea for linea in ventana.estado()["registro"])
-    presencia.informar(sesion.Aviso("FALLO", {"codigo": "LOGIN_FALLIDO", "detalle": ""}))
+    presencia.informar(publicacion.Aviso("FALLO", {"codigo": "LOGIN_FALLIDO", "detalle": ""}))
     assert "LOGIN_FALLIDO" in ventana.estado()["registro"][-1]
     assert ventana.motivo
 
 
 def test_la_ventana_sabe_mostrar_todos_los_avisos(tmp_path):
     _ventana, presencia, _puente = preparar(tmp_path)
-    doc = sesion.DocumentoResumen("t.md", "pagina", "T", 3, None)
+    doc = publicacion.DocumentoResumen("t.md", "pagina", "T", 3, None)
     datos = {
         "CREANDO_SECCION": {"nombre": "Tema"},
         "CURSOS_GUARDADOS": {"ruta": tmp_path / "tiza.toml"},
@@ -407,8 +407,8 @@ def test_la_ventana_sabe_mostrar_todos_los_avisos(tmp_path):
         "SESION_ABIERTA": {"caduca": datetime(2026, 10, 3, 10, 0, tzinfo=UTC)},
         "SESION_CERRADA": {"motivo": "desactualizada"},
     }
-    for codigo in sorted(sesion.AVISOS):
-        presencia.informar(sesion.Aviso(codigo, datos.get(codigo, {})))
+    for codigo in sorted(publicacion.AVISOS):
+        presencia.informar(publicacion.Aviso(codigo, datos.get(codigo, {})))
 
 
 def test_el_puente_no_responde_fuera_de_nuestra_pagina(tmp_path):
@@ -573,8 +573,10 @@ def test_main_valida_los_minutos():
 def test_real_solo_fechas_pinta_las_fechas_y_no_el_contenido(tmp_path):
     abiertas: list = []
     ventana, presencia, puente = preparar(tmp_path, abiertas)
-    cambio = sesion.CambioFecha("entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia")
-    doc = sesion.DocumentoResumen(
+    cambio = publicacion.CambioFecha(
+        "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia"
+    )
+    doc = publicacion.DocumentoResumen(
         "t.md",
         "tarea",
         "Problemas",
@@ -584,7 +586,7 @@ def test_real_solo_fechas_pinta_las_fechas_y_no_el_contenido(tmp_path):
         recursos=("img/foto.png",),
         cambios=(cambio,),
     )
-    resumen = sesion.ResumenPublicacion(5678, "Mates", (doc,), (), None, solo_fechas=True)
+    resumen = publicacion.ResumenPublicacion(5678, "Mates", (doc,), (), None, solo_fechas=True)
     hilo, resultado = en_hilo(lambda: presencia.confirmar_real(resumen))
     pantalla = esperar_pantalla(ventana, "real")
     assert pantalla["solo_fechas"] is True
@@ -602,7 +604,7 @@ def test_real_solo_fechas_pinta_las_fechas_y_no_el_contenido(tmp_path):
 
 def test_la_confirmacion_de_real_lleva_el_itinerario(tmp_path):
     ventana, presencia, puente = preparar(tmp_path)
-    documento = sesion.DocumentoResumen(
+    documento = publicacion.DocumentoResumen(
         fichero="t.md",
         tipo="tarea",
         nombre="T",
@@ -610,7 +612,7 @@ def test_la_confirmacion_de_real_lleva_el_itinerario(tmp_path):
         fechas=None,
         itinerario=("Se completa al: verla <b>",),
     )
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         curso=1, nombre_curso=None, documentos=(documento,), secciones_nuevas=(), visible=None
     )
     hilo, _ = en_hilo(lambda: presencia.confirmar_real(resumen))
@@ -618,7 +620,7 @@ def test_la_confirmacion_de_real_lleva_el_itinerario(tmp_path):
     assert pantalla["documentos"][0]["itinerario"] == ["Se completa al: verla <b>"]
     puente.responder(pantalla["numero"], False)
     hilo.join(5)
-    solo = sesion.ResumenPublicacion(
+    solo = publicacion.ResumenPublicacion(
         curso=1,
         nombre_curso=None,
         documentos=(documento,),

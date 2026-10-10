@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from tiza import informe, sesion, terminal
+from tiza import informe, publicacion, sesion, terminal
 
 
 class TerminalFalsa:
@@ -291,17 +291,17 @@ def _doc(**cambios):
         "recursos": (),
     }
     datos.update(cambios)
-    return sesion.DocumentoResumen(**datos)
+    return publicacion.DocumentoResumen(**datos)
 
 
 def test_presencia_terminal_cumple_la_interfaz():
     metodos = [
         nombre
-        for nombre, valor in vars(sesion.Presencia).items()
+        for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
     for nombre in metodos:
-        esperado = list(inspect.signature(getattr(sesion.Presencia, nombre)).parameters)
+        esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(terminal.PresenciaTerminal, nombre)).parameters)
         assert obtenido == esperado, nombre
 
@@ -320,8 +320,8 @@ def test_la_terminal_sabe_mostrar_todos_los_avisos(capsys):
         "SESION_CERRADA": {"motivo": "caducada"},
     }
     presencia = terminal.PresenciaTerminal()
-    for codigo in sorted(sesion.AVISOS):
-        presencia.informar(sesion.Aviso(codigo, datos.get(codigo, {})))
+    for codigo in sorted(publicacion.AVISOS):
+        presencia.informar(publicacion.Aviso(codigo, datos.get(codigo, {})))
     salida = capsys.readouterr()
     assert "Creando la sección «Tema» (oculta)..." in salida.out
     assert "La sesión ha caducado; se cierra." in salida.out
@@ -336,13 +336,13 @@ def test_confirmar_real_sin_pruebas_muestra_lo_justo(monkeypatch, capsys):
         "confirmar_destino",
         lambda entorno, curso, nombre=None: vistos.append((entorno, curso, nombre)) or True,
     )
-    resumen = sesion.ResumenSinPruebas(
+    resumen = publicacion.ResumenSinPruebas(
         curso=5678,
         nombre_curso="Matemáticas 2ºB",
         documentos=(
-            sesion.DocumentoBreve("t.md", "tarea", "Problemas", existe=True),
-            sesion.DocumentoBreve("nueva.md", "pagina", "Nueva", existe=False),
-            sesion.DocumentoBreve("duda.md", "pagina", "Duda", existe=None),
+            publicacion.DocumentoBreve("t.md", "tarea", "Problemas", existe=True),
+            publicacion.DocumentoBreve("nueva.md", "pagina", "Nueva", existe=False),
+            publicacion.DocumentoBreve("duda.md", "pagina", "Duda", existe=None),
         ),
         secciones_nuevas=("Fracciones",),
     )
@@ -370,7 +370,7 @@ def test_confirmar_real_muestra_todo_y_pregunta_con_el_nombre(monkeypatch, capsy
         "confirmar_destino",
         lambda entorno, curso, nombre=None: vistos.append((entorno, curso, nombre)) or True,
     )
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         curso=5678,
         nombre_curso="Matemáticas 2ºB",
         documentos=(
@@ -413,7 +413,7 @@ def test_confirmar_real_muestra_el_tipo_y_el_paquete_h5p(monkeypatch, capsys):
         h5p_descartadas=("H5P.Blanks-1.14", "FontAwesome-4.5"),
         enlaces_externos=("https://ejemplo.org/apoyo",),
     )
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         curso=5678,
         nombre_curso="Matemáticas 2ºB",
         documentos=(generado, paquete),
@@ -487,26 +487,26 @@ def test_ofrecer_ampliacion_usa_la_pregunta_con_plazo(monkeypatch):
 
 def test_cierre_porque_tiza_cambio(capsys):
     terminal.PresenciaTerminal().informar(
-        sesion.Aviso("SESION_CERRADA", {"motivo": "desactualizada"})
+        publicacion.Aviso("SESION_CERRADA", {"motivo": "desactualizada"})
     )
     assert "tiza ha cambiado mientras la sesión estaba abierta" in capsys.readouterr().out
 
 
 class TestCambiosDeFecha:
     def doc(self, **cambios):
-        return sesion.DocumentoResumen("t.md", "tarea", "Problemas", 3, None, **cambios)
+        return publicacion.DocumentoResumen("t.md", "tarea", "Problemas", 3, None, **cambios)
 
     def test_una_linea_por_fecha_segun_su_estado(self):
         cambios = (
-            sesion.CambioFecha("apertura", (2026, 10, 1, 0, 0), (2026, 10, 1, 0, 0), "igual"),
-            sesion.CambioFecha(
+            publicacion.CambioFecha("apertura", (2026, 10, 1, 0, 0), (2026, 10, 1, 0, 0), "igual"),
+            publicacion.CambioFecha(
                 "entrega",
                 (2026, 10, 10, 23, 59),
                 (2026, 10, 12, 23, 59),
                 "cambia",
                 ("FECHA_FESTIVA",),
             ),
-            sesion.CambioFecha("límite", None, (2026, 10, 15, 23, 59), "nueva"),
+            publicacion.CambioFecha("límite", None, (2026, 10, 15, 23, 59), "nueva"),
         )
         assert terminal.describir_cambios(self.doc(cambios=cambios)) == [
             "apertura 01/10/2026 00:00 (sin cambios)",
@@ -515,7 +515,7 @@ class TestCambiosDeFecha:
         ]
 
     def test_si_no_se_pudo_leer_el_aula_se_dice(self):
-        cambio = sesion.CambioFecha("entrega", None, (2026, 10, 12, 23, 59), "desconocida")
+        cambio = publicacion.CambioFecha("entrega", None, (2026, 10, 12, 23, 59), "desconocida")
         assert terminal.describir_cambios(self.doc(cambios=(cambio,))) == [
             "entrega: no se pudieron leer las fechas actuales del aula; "
             "se publicaría 12/10/2026 23:59"
@@ -532,8 +532,8 @@ class TestCambiosDeFecha:
             entrega=datetime(2026, 10, 12, 23, 59),
             limite=None,
         )
-        sin_cambios = sesion.DocumentoResumen("t.md", "tarea", "P", 3, fechas)
-        con_cambios = sesion.DocumentoResumen("t.md", "tarea", "P", 3, fechas, cambios=())
+        sin_cambios = publicacion.DocumentoResumen("t.md", "tarea", "P", 3, fechas)
+        con_cambios = publicacion.DocumentoResumen("t.md", "tarea", "P", 3, fechas, cambios=())
         assert "entrega 12/10/2026 23:59" in terminal.describir_documento(sin_cambios)
         assert "entrega" not in terminal.describir_documento(con_cambios)
 
@@ -541,7 +541,7 @@ class TestCambiosDeFecha:
         self, monkeypatch, capsys
     ):
         monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        cambio = sesion.CambioFecha(
+        cambio = publicacion.CambioFecha(
             "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia"
         )
         doc = self.doc(
@@ -549,7 +549,7 @@ class TestCambiosDeFecha:
             recursos=("img/foto.png",),
             cambios=(cambio,),
         )
-        resumen = sesion.ResumenPublicacion(5678, None, (doc,), (), None, solo_fechas=True)
+        resumen = publicacion.ResumenPublicacion(5678, None, (doc,), (), None, solo_fechas=True)
         terminal.PresenciaTerminal().confirmar_real(resumen)
         salida = capsys.readouterr().out
         assert "cambiar solo las fechas" in salida
@@ -566,10 +566,10 @@ class TestCambiosDeFecha:
         self, monkeypatch, capsys, estado, recuerda
     ):
         monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        cambio = sesion.CambioFecha(
+        cambio = publicacion.CambioFecha(
             "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), estado
         )
-        resumen = sesion.ResumenPublicacion(
+        resumen = publicacion.ResumenPublicacion(
             5678, None, (self.doc(cambios=(cambio,)),), (), None, solo_fechas=True
         )
         assert terminal.cambian_fechas(resumen) is recuerda
@@ -577,22 +577,24 @@ class TestCambiosDeFecha:
         assert ("excepciones de fecha de alumnos" in capsys.readouterr().out) is recuerda
 
     def test_el_recordatorio_de_calificacion_que_se_quita_se_enseña(self):
-        cambio = sesion.CambioFecha(sesion.CAMPO_RECORDATORIO, (2026, 10, 20, 0, 0), None, "cambia")
+        cambio = publicacion.CambioFecha(
+            publicacion.CAMPO_RECORDATORIO, (2026, 10, 20, 0, 0), None, "cambia"
+        )
         assert terminal.describir_cambios(self.doc(cambios=(cambio,))) == [
             "recordatorio de calificación antes 20/10/2026 00:00 → ahora sin fecha"
         ]
 
     def test_el_recordatorio_por_si_solo_no_obliga_a_recordar_las_excepciones(self):
-        recordatorio = sesion.CambioFecha(
-            sesion.CAMPO_RECORDATORIO, (2026, 10, 20, 0, 0), None, "cambia"
+        recordatorio = publicacion.CambioFecha(
+            publicacion.CAMPO_RECORDATORIO, (2026, 10, 20, 0, 0), None, "cambia"
         )
-        entrega = sesion.CambioFecha(
+        entrega = publicacion.CambioFecha(
             "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia"
         )
-        solo = sesion.ResumenPublicacion(
+        solo = publicacion.ResumenPublicacion(
             5678, None, (self.doc(cambios=(recordatorio,)),), (), None, solo_fechas=True
         )
-        con_entrega = sesion.ResumenPublicacion(
+        con_entrega = publicacion.ResumenPublicacion(
             5678, None, (self.doc(cambios=(recordatorio, entrega)),), (), None, solo_fechas=True
         )
         assert terminal.cambian_fechas(solo) is False
@@ -600,7 +602,7 @@ class TestCambiosDeFecha:
 
     def test_el_aviso_de_calendario_se_explica_en_una_linea(self, monkeypatch, capsys):
         monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: False)
-        resumen = sesion.ResumenPublicacion(
+        resumen = publicacion.ResumenPublicacion(
             5678, None, (self.doc(),), (), False, aviso_calendario="CALENDARIO_INVALIDO"
         )
         terminal.PresenciaTerminal().confirmar_real(resumen)
@@ -610,7 +612,7 @@ class TestCambiosDeFecha:
 
 def test_con_varios_cursos_cada_confirmacion_lleva_su_cabecera(monkeypatch, capsys):
     monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         curso=102,
         nombre_curso="1º B",
         documentos=(),
@@ -621,7 +623,7 @@ def test_con_varios_cursos_cada_confirmacion_lleva_su_cabecera(monkeypatch, caps
     )
     assert terminal.PresenciaTerminal().confirmar_real(resumen) is True
     assert "Curso 2 de 3: «1º B» (id 102)" in capsys.readouterr().out
-    corto = sesion.ResumenSinPruebas(
+    corto = publicacion.ResumenSinPruebas(
         curso=103, nombre_curso=None, documentos=(), secciones_nuevas=(), posicion=3, total=3
     )
     assert terminal.PresenciaTerminal().confirmar_real_sin_pruebas(corto) is True
@@ -630,7 +632,7 @@ def test_con_varios_cursos_cada_confirmacion_lleva_su_cabecera(monkeypatch, caps
 
 def test_con_un_solo_curso_no_hay_cabecera(monkeypatch, capsys):
     monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         curso=5678, nombre_curso=None, documentos=(), secciones_nuevas=(), visible=None
     )
     terminal.PresenciaTerminal().confirmar_real(resumen)
@@ -639,7 +641,7 @@ def test_con_un_solo_curso_no_hay_cabecera(monkeypatch, capsys):
 
 def test_la_confirmacion_de_real_enseña_el_itinerario(monkeypatch, capsys):
     monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
-    documento = sesion.DocumentoResumen(
+    documento = publicacion.DocumentoResumen(
         fichero="t.md",
         tipo="tarea",
         nombre="Problemas",
@@ -647,7 +649,7 @@ def test_la_confirmacion_de_real_enseña_el_itinerario(monkeypatch, capsys):
         fechas=None,
         itinerario=("Se completa al: entregarla", "Disponible: cuando completen «Test» (test.md)"),
     )
-    resumen = sesion.ResumenPublicacion(
+    resumen = publicacion.ResumenPublicacion(
         curso=1, nombre_curso=None, documentos=(documento,), secciones_nuevas=(), visible=None
     )
     terminal.PresenciaTerminal().confirmar_real(resumen)
@@ -655,7 +657,7 @@ def test_la_confirmacion_de_real_enseña_el_itinerario(monkeypatch, capsys):
     assert "Se completa al: entregarla" in salida
     assert "Disponible: cuando completen «Test» (test.md)" in salida
     # Con --solo-fechas no se aplica el itinerario: no se enseña.
-    solo = sesion.ResumenPublicacion(
+    solo = publicacion.ResumenPublicacion(
         curso=1,
         nombre_curso=None,
         documentos=(documento,),
@@ -669,10 +671,10 @@ def test_la_confirmacion_de_real_enseña_el_itinerario(monkeypatch, capsys):
 
 def test_la_confirmacion_corta_enseña_el_itinerario(monkeypatch, capsys):
     monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
-    breve = sesion.DocumentoBreve(
+    breve = publicacion.DocumentoBreve(
         fichero="p.md", tipo="pagina", nombre="P", itinerario=("Si no se cumple: se oculta",)
     )
-    resumen = sesion.ResumenSinPruebas(
+    resumen = publicacion.ResumenSinPruebas(
         curso=1, nombre_curso=None, documentos=(breve,), secciones_nuevas=()
     )
     terminal.PresenciaTerminal().confirmar_real_sin_pruebas(resumen)
@@ -681,10 +683,10 @@ def test_la_confirmacion_corta_enseña_el_itinerario(monkeypatch, capsys):
 
 def test_el_itinerario_se_saneada_al_enseñarse(monkeypatch, capsys):
     monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
-    breve = sesion.DocumentoBreve(
+    breve = publicacion.DocumentoBreve(
         fichero="p.md", tipo="pagina", nombre="P", itinerario=("hola\x1b[31mrojo",)
     )
-    resumen = sesion.ResumenSinPruebas(
+    resumen = publicacion.ResumenSinPruebas(
         curso=1, nombre_curso=None, documentos=(breve,), secciones_nuevas=()
     )
     terminal.PresenciaTerminal().confirmar_real_sin_pruebas(resumen)

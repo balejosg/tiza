@@ -21,15 +21,14 @@ from typing import Any
 from . import ayuda, informe
 from .config import MAX_REALES
 from .informe import ErrorInforme
-from .sesion import (
+from .publicacion import (
     CAMPO_RECORDATORIO,
-    SIN_PRUEBAS,
     Aviso,
-    CursoSesion,
     DocumentoResumen,
     ResumenPublicacion,
     ResumenSinPruebas,
 )
+from .sesion import SIN_PRUEBAS, CursoSesion
 
 __all__ = [
     "ErrorTerminal",
@@ -450,9 +449,9 @@ class PresenciaTerminal:
         curso = describir_curso(resumen.curso, resumen.nombre_curso)
         _cabecera_de_curso(resumen.posicion, resumen.total, curso)
         if resumen.solo_fechas:
-            print(f"El agente pide cambiar solo las fechas en el curso REAL {curso}:")
+            print(f"Se van a cambiar solo las fechas en el curso REAL {curso}:")
         else:
-            print(f"El agente pide publicar en el curso REAL {curso}:")
+            print(f"Se va a publicar en el curso REAL {curso}:")
         if resumen.aviso_calendario is not None:
             print(
                 f"  AVISO: calendario.toml no se puede usar. {ayuda.explicar(resumen.aviso_calendario)}"
@@ -501,7 +500,7 @@ class PresenciaTerminal:
         curso = describir_curso(resumen.curso, resumen.nombre_curso)
         _cabecera_de_curso(resumen.posicion, resumen.total, curso)
         print(f"Sin curso de pruebas: se publicará solo en oculto en el curso {curso}.")
-        print("El agente pide publicar en el curso REAL, sin verificación previa:")
+        print("Se va a publicar en el curso REAL, sin verificación previa:")
         for doc in resumen.documentos:
             print(
                 f"  - {_TIPOS.get(doc.tipo, doc.tipo)} «{texto_seguro(doc.nombre)}»"

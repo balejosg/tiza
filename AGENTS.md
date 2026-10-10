@@ -68,10 +68,19 @@ en español.
   hay que reabrirla.
 - `src/tiza/informe.py`: esquema cerrado. Cualquier campo nuevo de la salida
   debe añadirse aquí y a sus tests.
+- `src/tiza/publicacion.py`: **la publicación como proceso**, común a la terminal
+  directa y a la sesión: puertas (`puerta_real`, `SOLO_OCULTO_SIN_PRUEBAS`),
+  resúmenes y confirmación por curso, flujo de solo-fechas, `publicar_con` e
+  `informe_de_cursos`, y los tipos que ve la `Presencia` (`Aviso`, resúmenes,
+  vistas previas). Lo que distingue a cada llamador entra como decisión explícita
+  y documentada (`verificados` en memoria o disco, `vigente` solo en la sesión,
+  `cupo` solo en la sesión, `omitidos` de la terminal directa).
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
-  autoprueba, estructura, puertas, cupo y buzón). Solo habla con el docente a
-  través de una `Presencia` y no importa `terminal` ni `cli`; todo recibe la
-  carpeta de la asignatura, nunca usa el directorio actual.
+  autoprueba, estructura y buzón). Solo habla con el docente a través de una
+  `Presencia` y no importa `terminal` ni `cli`; todo recibe la carpeta de la
+  asignatura, nunca usa el directorio actual. `procesar_peticion` despacha al
+  módulo de publicación con lo que solo existe en una sesión: la vigencia de la
+  petición, el cupo y el registro de verificados en memoria.
 - `src/tiza/agente.py`: API pública del lado del agente para interfaces
   propias (`comprobar`, `estructura`, `publicar`, `estado_sesion`,
   `formato_documento`). Sin consola: todo lo que devuelve pasa por

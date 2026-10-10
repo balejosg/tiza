@@ -24,7 +24,8 @@ from typing import Any
 from .. import ayuda, informe, rutas
 from ..config import MAX_REALES
 from ..informe import ErrorInforme
-from ..sesion import SIN_PRUEBAS, Aviso, CursoSesion, ResumenPublicacion, ResumenSinPruebas
+from ..publicacion import Aviso, ResumenPublicacion, ResumenSinPruebas
+from ..sesion import SIN_PRUEBAS, CursoSesion
 from ..terminal import (
     cambian_fechas,
     describir_cambios,
@@ -279,7 +280,7 @@ class Ventana:
 
 
 class PresenciaVentana:
-    """La presencia de la ventana de sesión: cumple ``sesion.Presencia``."""
+    """La presencia de la ventana de sesión: cumple ``publicacion.Presencia``."""
 
     def __init__(self, ventana: Ventana) -> None:
         self._ventana = ventana
