@@ -110,8 +110,10 @@ en español.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.
-- La versión (`0.16.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.16.1`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
+- `educaplay` es el único resultado legítimo al buscar restos del renombrado con
+  `educa` antes de commitear en el público (el dominio de Educaplay): no lo «arregles».
 - Commits en `main`, estilo Conventional Commits en español (`feat:`, `fix:`,
   `docs:`, `test:`).
