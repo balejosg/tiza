@@ -466,6 +466,16 @@ restricciones:
 - tiza nunca lee el estado de finalización ni informes del alumnado. La
   confirmación del curso real enseña el itinerario en lenguaje llano.
 
+### Preparar un tema entero
+
+Pide al agente «prepárame el tema 3 de fracciones»: la skill le indica que primero
+pregunte en un solo mensaje lo que falte (curso, sesiones, fechas, sección, documento
+curricular), que te proponga la secuencia antes de escribir nada y que encadene las
+piezas con el itinerario. `ejemplos/unidad/` es una unidad de seis piezas (presentación,
+dos páginas, práctica H5P, cuestionario y tarea). tiza comprueba el formato y la
+seguridad y la publica en una petición; el contenido y los criterios curriculares los
+revisas tú en la vista previa y en el curso de pruebas.
+
 ### `tiza.toml` por asignatura
 
 Los cursos son de cada asignatura y solo se guardan en el `tiza.toml` de su

@@ -1769,6 +1769,29 @@ def test_la_vista_previa_enseña_el_itinerario(tmp_path):
     assert "Si no se cumple:</strong> se oculta" in vista
 
 
+class TestEjemploDeUnidad:
+    def test_la_unidad_de_ejemplo_carga_y_se_ordena_sin_ciclo(self, tmp_path):
+        import shutil
+
+        from tiza import agente, publicacion
+
+        origen = Path(__file__).resolve().parent.parent / "ejemplos" / "unidad"
+        raiz = tmp_path / "unidad"
+        shutil.copytree(origen, raiz)
+        ficheros = sorted(p.name for p in raiz.glob("*.md"))
+        assert len(ficheros) == 6
+        comprobacion = agente.comprobar(raiz, ficheros)
+        assert [(f.fichero, f.codigo) for f in comprobacion.ficheros if f.codigo] == []
+        documentos = [cargar(raiz / nombre, raiz=raiz) for nombre in reversed(ficheros)]
+        orden = publicacion.ordenar_por_dependencias(documentos, raiz)
+        assert orden is not None
+        puestos = [d.ruta.name for d in orden]
+        assert sorted(puestos) == ficheros
+        for doc in orden:
+            for dep in doc.restricciones.completar if doc.restricciones else ():
+                assert puestos.index(dep) < puestos.index(doc.ruta.name)
+
+
 class TestFormulas:
     @pytest.mark.parametrize(
         "formula",
