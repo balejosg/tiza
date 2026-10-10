@@ -72,7 +72,7 @@ INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
-VERSION_PROTOCOLO = 3  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
+VERSION_PROTOCOLO = 4  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
 
 _CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible", "solo_fechas"}
 _ID = re.compile(r"\A[0-9a-f]{32}\Z")

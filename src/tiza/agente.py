@@ -135,6 +135,15 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             )
         else:
             pasos.append({"codigo": "COMPROBAR", "resultado": "ok", "detalle": ruta.name})
+            if _seccion_distinta_entre_cursos(estructura, doc):
+                # Texto fijo: el fichero y el número, nunca los nombres de las secciones.
+                pasos.append(
+                    {
+                        "codigo": "SECCION_DISTINTA_ENTRE_CURSOS",
+                        "resultado": "ok",
+                        "detalle": f"{ruta.name}: sección {doc.seccion}",
+                    }
+                )
             resultados.append(FicheroComprobado(ruta.name, vista_previa=vista, avisos=avisos))
         datos.append(_fichero(doc, seccion["nombre"] if seccion else None))
 
@@ -157,32 +166,63 @@ def _fichero(doc: Documento, seccion: str | None) -> dict:
         "url": None,
         "seccion": seccion,
         "hash": hash_documento(doc),
+        "curso": None,
     }
 
 
+def _cursos_de(estructura: dict | None, entorno: str) -> list[list]:
+    """Las secciones de cada curso de ``entorno`` en ``estructura.json`` (v1: uno; v2: varios)."""
+    try:
+        cursos = estructura["cursos"][entorno]  # type: ignore[index]
+    except (KeyError, TypeError):
+        return []
+    if isinstance(cursos, dict):
+        cursos = [cursos]
+    if not isinstance(cursos, list):
+        return []
+    salida = []
+    for curso in cursos:
+        secciones = curso.get("secciones") if isinstance(curso, dict) else None
+        if isinstance(secciones, list):
+            salida.append(secciones)
+    return salida
+
+
 def _curso_a_comprobar(estructura: dict | None) -> tuple[str, list] | None:
-    """El curso donde se publicará: el de pruebas o, si no hay, el real."""
+    """El curso donde se publicará: el de pruebas o, si no hay, el primer real."""
     if not estructura:
         return None
     for entorno in ("pruebas", "real"):
-        try:
-            secciones = estructura["cursos"][entorno]["secciones"]
-        except (KeyError, TypeError):
-            continue
-        if isinstance(secciones, list):
-            return entorno, secciones
+        cursos = _cursos_de(estructura, entorno)
+        if cursos:
+            return entorno, cursos[0]
     return None
+
+
+def _seccion_distinta_entre_cursos(estructura: dict | None, doc: Documento) -> bool:
+    """¿El número de sección de ``doc`` tiene nombres distintos en los cursos reales?"""
+    if not isinstance(doc.seccion, int) or isinstance(doc.seccion, bool):
+        return False
+    reales = _cursos_de(estructura, "real")
+    if len(reales) < 2:
+        return False
+    nombres = set()
+    for secciones in reales:
+        seccion = buscar_seccion(secciones, doc.seccion)
+        nombres.add(str(seccion.get("nombre")) if seccion else None)
+    return len(nombres) > 1
 
 
 def _pista_de_id(estructura: dict, doc: Documento) -> str | None:
     """Si ``seccion`` es el id de la URL del aula, el texto que dice qué número poner."""
-    for entorno, curso in (estructura.get("cursos") or {}).items():
-        for seccion in (curso or {}).get("secciones") or []:
-            if isinstance(seccion, dict) and seccion.get("id") == doc.seccion:
-                return (
-                    f"{doc.seccion} es el id de la sección «{seccion.get('nombre')}» del curso "
-                    f"de {entorno}; escribe «seccion: {seccion.get('numero')}»."
-                )
+    for entorno in ("pruebas", "real"):
+        for secciones in _cursos_de(estructura, entorno):
+            for seccion in secciones:
+                if isinstance(seccion, dict) and seccion.get("id") == doc.seccion:
+                    return (
+                        f"{doc.seccion} es el id de la sección «{seccion.get('nombre')}» del curso "
+                        f"de {entorno}; escribe «seccion: {seccion.get('numero')}»."
+                    )
     return None
 
 

@@ -121,6 +121,11 @@ def _parser() -> argparse.ArgumentParser:
         help="minutos que dura la sesión (por defecto, 60)",
     )
     sesion.add_argument("--debug", action="store_true")
+    sesion.add_argument(
+        "--elegir-cursos",
+        action="store_true",
+        help="vuelve a preguntar el curso de pruebas y los reales y los guarda",
+    )
 
     empezar = sub.add_parser(
         "empezar",
@@ -133,6 +138,11 @@ def _parser() -> argparse.ArgumentParser:
         help="minutos que dura la sesión (por defecto, 60; se puede ampliar)",
     )
     empezar.add_argument("--debug", action="store_true")
+    empezar.add_argument(
+        "--elegir-cursos",
+        action="store_true",
+        help="vuelve a preguntar el curso de pruebas y los reales y los guarda",
+    )
     return parser
 
 
@@ -242,6 +252,22 @@ def _fallo(
         print(AVISO_DEBUG, file=sys.stderr)
         traceback.print_exception(exc.__cause__ or exc)
     return 1
+
+
+def _fallo_en_pantalla(
+    detalle_codigo: str,
+    detalle: str,
+    exc: BaseException | None,
+    debug: bool,
+) -> None:
+    """El error de un curso para el docente; el informe lo escribe quien reúne los cursos."""
+    mensaje = f"ERROR [{detalle_codigo}]"
+    if detalle:
+        mensaje += f": {detalle}"
+    print(mensaje, file=sys.stderr)
+    if debug and exc is not None:
+        print(AVISO_DEBUG, file=sys.stderr)
+        traceback.print_exception(exc.__cause__ or exc)
 
 
 def _abortado(comando: str, entorno: str | None = None, curso: int | None = None) -> int:
@@ -682,7 +708,7 @@ def _configuracion_inicial(
         return None, _fallo(comando, exc.codigo, exc.detalle, entorno=entorno, exc=exc, debug=debug)
     except ErrorConfig as exc:
         return None, _fallo(comando, exc.codigo, exc.detalle, entorno=entorno, exc=exc, debug=debug)
-    if entorno is not None and cfg.cursos.get(entorno) is None:
+    if entorno is not None and not (cfg.reales if entorno == "real" else cfg.cursos.get(entorno)):
         if entorno == "pruebas":
             return None, _fallo(comando, "SIN_CURSO_PRUEBAS", entorno=entorno)
         return None, _fallo(comando, "CURSO_NO_CONFIGURADO", entorno, entorno=entorno)
@@ -702,11 +728,12 @@ def _estructura_directa(args) -> int:
     cfg, salida = _configuracion_inicial(args, comando, sin_sesion=True)
     if cfg is None:
         return salida
-    if "real" not in cfg.cursos:
+    if not cfg.reales:
         return _fallo(comando, "CURSO_NO_CONFIGURADO", "real")
-    for nombre in ("pruebas", "real"):
-        curso = cfg.cursos.get(nombre)
-        if curso is not None and not terminal.confirmar_destino(nombre, curso):
+    destinos = [("pruebas", cfg.cursos["pruebas"])] if "pruebas" in cfg.cursos else []
+    destinos += [("real", curso) for curso in cfg.reales]
+    for nombre, curso in destinos:
+        if not terminal.confirmar_destino(nombre, curso):
             return _abortado(comando, nombre, curso)
     _mostrar_servidor(cfg)
     password = terminal.pedir_password()
@@ -739,7 +766,9 @@ def _publicar_directa(args) -> int:
     cfg, salida = _configuracion_inicial(args, comando, entorno, sin_sesion=True)
     if cfg is None:
         return salida
-    curso = cfg.cursos[entorno]
+    cursos = list(cfg.reales) if entorno == "real" else [cfg.cursos["pruebas"]]
+    total = len(cursos)
+    unico = cursos[0] if total == 1 else None  # en el informe, el curso solo si es uno
     visible = _visibilidad(args)
     solo_fechas = args.solo_fechas
     sin_pruebas = entorno == "real" and "pruebas" not in cfg.cursos
@@ -750,7 +779,7 @@ def _publicar_directa(args) -> int:
             "SOLO_OCULTO_SIN_PRUEBAS",
             "sin curso de pruebas solo se publica en real con --oculto",
             entorno=entorno,
-            curso=curso,
+            curso=unico,
         )
     documentos = []
     for nombre in args.ficheros:
@@ -762,33 +791,36 @@ def _publicar_directa(args) -> int:
                 exc.codigo,
                 terminal.texto_seguro(f"{Path(nombre).name}: {exc.detalle}", 300),
                 entorno=entorno,
-                curso=curso,
+                curso=unico,
                 exc=exc,
                 debug=args.debug,
             )
-    if solo_fechas:
-        # En real, la confirmación enseña las fechas antes y después: se pide tras leer el aula.
-        if entorno == "pruebas" and not terminal.confirmar_destino(entorno, curso):
-            return _abortado(comando, entorno, curso)
-    elif sin_pruebas:
+    # (posición, curso, informe o None si el docente dijo que no): como en la sesión.
+    registro: list[tuple[int, int, dict | None]] = []
+    aceptados: list[tuple[int, int]] = []
+    if sin_pruebas and not solo_fechas:
         print(
             "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."
         )
-        if not terminal.confirmar_destino("real", curso):
-            return _abortado(comando, entorno, curso)
-    else:
-        if not terminal.confirmar_destino(entorno, curso):
-            return _abortado(comando, entorno, curso)
-        if entorno == "real":
-            faltan = sesion.puerta_real(Path.cwd(), documentos)
-            if faltan:
-                return _fallo(
-                    comando,
-                    "VERIFICACION_PENDIENTE",
-                    ", ".join(faltan),
-                    entorno=entorno,
-                    curso=curso,
-                )
+    if entorno == "real" and not solo_fechas and not sin_pruebas:
+        faltan = sesion.puerta_real(Path.cwd(), documentos)
+        if faltan:
+            return _fallo(
+                comando,
+                "VERIFICACION_PENDIENTE",
+                ", ".join(faltan),
+                entorno=entorno,
+                curso=unico,
+            )
+    for posicion, curso in enumerate(cursos, 1):
+        # En real con --solo-fechas, la confirmación enseña las fechas antes y después:
+        # se pide tras leer el aula.
+        if solo_fechas and entorno == "real" or terminal.confirmar_destino(entorno, curso):
+            aceptados.append((posicion, curso))
+        else:
+            registro.append((posicion, curso, None))
+    if not aceptados:
+        return _abortado(comando, entorno, unico)
     _mostrar_servidor(cfg)
     password = terminal.pedir_password()
     try:
@@ -799,26 +831,62 @@ def _publicar_directa(args) -> int:
             exc.codigo,
             exc.detalle,
             entorno=entorno,
-            curso=curso,
+            curso=unico,
             exc=exc,
             debug=args.debug,
         )
-    if solo_fechas and entorno == "real":
+    presencia = terminal.PresenciaTerminal()
+    for posicion, curso in aceptados:
+        resultado = _publicar_directa_en(
+            args,
+            moodle,
+            presencia,
+            documentos,
+            entorno,
+            curso,
+            posicion,
+            total,
+            sin_pruebas,
+            visible,
+        )
+        registro.append((posicion, curso, resultado))
+        if resultado is not None and resultado["resultado"] != "ok":
+            break
+    registro.sort(key=lambda fila: fila[0])
+    documento = sesion.informe_de_cursos(comando, entorno, total, unico, registro)
+    _escribir(documento)
+    return 0 if documento["resultado"] == "ok" else 1
+
+
+def _publicar_directa_en(
+    args,
+    moodle,
+    presencia,
+    documentos,
+    entorno: str,
+    curso: int,
+    posicion: int,
+    total: int,
+    sin_pruebas: bool,
+    visible: bool | None,
+) -> dict | None:
+    """Un curso de «tiza publicar» sin sesión: informe, o None si el docente dice que no."""
+    comando = "publicar"
+    solo_fechas = args.solo_fechas
+
+    def fallo(codigo: str, detalle: str = "", exc: BaseException | None = None) -> dict:
+        _fallo_en_pantalla(codigo, detalle, exc, args.debug)
+        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+
+    if solo_fechas and entorno == "real" or sin_pruebas:
         try:
             secciones = moodle.estructura(curso)
         except ErrorPublicacion as exc:
-            return _fallo(
-                comando,
-                exc.codigo,
-                exc.detalle,
-                entorno=entorno,
-                curso=curso,
-                exc=exc,
-                debug=args.debug,
-            )
+            return fallo(exc.codigo, exc.detalle, exc)
+    if solo_fechas and entorno == "real":
         codigo = sesion.codigo_solo_fechas(secciones, documentos)
         if codigo is not None:
-            return _fallo(comando, codigo, entorno=entorno, curso=curso)
+            return fallo(codigo)
         resumen_real = sesion.resumen_solo_fechas(
             moodle,
             curso,
@@ -827,22 +895,12 @@ def _publicar_directa(args) -> int:
             Path.cwd().resolve(),
             secciones,
             debug=args.debug,
+            posicion=posicion,
+            total=total,
         )
-        if not terminal.PresenciaTerminal().confirmar_real(resumen_real):
-            return _abortado(comando, entorno, curso)
+        if not presencia.confirmar_real(resumen_real):
+            return None
     elif sin_pruebas:
-        try:
-            secciones = moodle.estructura(curso)
-        except ErrorPublicacion as exc:
-            return _fallo(
-                comando,
-                exc.codigo,
-                exc.detalle,
-                entorno=entorno,
-                curso=curso,
-                exc=exc,
-                debug=args.debug,
-            )
         resumen = sesion.ResumenSinPruebas(
             curso=curso,
             nombre_curso=_nombre_del_curso(moodle, curso),
@@ -856,22 +914,22 @@ def _publicar_directa(args) -> int:
                 for doc in documentos
             ),
             secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
+            posicion=posicion,
+            total=total,
         )
-        if not terminal.PresenciaTerminal().confirmar_real_sin_pruebas(resumen):
-            return _abortado(comando, entorno, curso)
-    documento = sesion.publicar_con(
+        if not presencia.confirmar_real_sin_pruebas(resumen):
+            return None
+    return sesion.publicar_con(
         moodle,
         entorno,
         curso,
         documentos,
         visible,
         Path.cwd(),
-        terminal.PresenciaTerminal(),
+        presencia,
         debug=args.debug,
         solo_fechas=solo_fechas,
     )
-    _escribir(documento)
-    return 0 if documento["resultado"] == "ok" else 1
 
 
 def _nombre_del_curso(moodle, curso: int) -> str | None:
@@ -963,6 +1021,7 @@ def _sesion(args) -> int:
         minutos=args.minutos,
         preparar=False,
         debug=args.debug,
+        elegir_cursos=args.elegir_cursos,
     )
 
 
@@ -1023,6 +1082,7 @@ def _empezar(args) -> int:
         minutos=args.minutos,
         preparar=True,
         debug=args.debug,
+        elegir_cursos=args.elegir_cursos,
     )
 
 

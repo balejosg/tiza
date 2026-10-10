@@ -136,6 +136,71 @@ def test_elegir_curso_real_no_admite_quedarse_sin_curso(tmp_path):
     assert resultado["valor"] == 5678
 
 
+def test_elegir_cursos_reales_por_casillas_e_ids(tmp_path):
+    ventana, presencia, puente = preparar(tmp_path)
+    cursos = [
+        {"id": 1234, "nombre": "Pruebas"},
+        {"id": 101, "nombre": "1º A <b>"},
+        {"id": 102, "nombre": "1º B"},
+    ]
+    hilo, resultado = en_hilo(lambda: presencia.elegir_cursos_reales(cursos, 1234))
+    pantalla = esperar_pantalla(ventana, "elegir_reales")
+    assert pantalla["opciones"] == [
+        "1º A <b>",
+        "1º B",
+    ]  # sin el de pruebas; la página lo pinta como texto
+    n = pantalla["numero"]
+    assert puente.responder(n, {"indices": []}) is False  # ninguno
+    assert puente.responder(n, {"indices": [2]}) is False  # fuera de rango
+    assert puente.responder(n, {"indices": [True]}) is False
+    assert puente.responder(n, {"indices": [0, 0]}) is False  # repetido
+    assert puente.responder(n, {"indices": [0], "ids": "101"}) is False  # repetido con el id
+    assert puente.responder(n, {"indices": [0], "ids": "1234"}) is False  # el de pruebas
+    assert puente.responder(n, {"indices": [0], "ids": "12a"}) is False
+    assert puente.responder(n, {"indices": [0], "ids": "0"}) is False
+    assert puente.responder(n, {"indices": [1, 0], "ids": " 300 , 400"}) is True
+    hilo.join(5)
+    assert resultado["valor"] == [102, 101, 300, 400]
+
+
+def test_elegir_cursos_reales_no_pasa_del_maximo(tmp_path):
+    ventana, presencia, puente = preparar(tmp_path)
+    hilo, resultado = en_hilo(lambda: presencia.elegir_cursos_reales([], None))
+    pantalla = esperar_pantalla(ventana, "elegir_reales")
+    n = pantalla["numero"]
+    assert puente.responder(n, {"ids": "1,2,3,4,5,6,7"}) is False
+    assert puente.responder(n, {"ids": "1,2,3,4,5,6"}) is True
+    hilo.join(5)
+    assert resultado["valor"] == [1, 2, 3, 4, 5, 6]
+
+
+def test_elegir_cursos_reales_se_puede_cancelar(tmp_path):
+    ventana, presencia, puente = preparar(tmp_path)
+    hilo, resultado = en_hilo(lambda: presencia.elegir_cursos_reales([], None))
+    pantalla = esperar_pantalla(ventana, "elegir_reales")
+    assert puente.responder(pantalla["numero"], None) is True
+    hilo.join(5)
+    assert resultado["valor"] is None
+
+
+def test_la_confirmacion_de_real_lleva_la_posicion_del_curso(tmp_path):
+    ventana, presencia, puente = preparar(tmp_path)
+    resumen = sesion.ResumenPublicacion(
+        curso=102,
+        nombre_curso="1º B",
+        documentos=(),
+        secciones_nuevas=(),
+        visible=None,
+        posicion=2,
+        total=3,
+    )
+    hilo, _ = en_hilo(lambda: presencia.confirmar_real(resumen))
+    pantalla = esperar_pantalla(ventana, "real")
+    assert (pantalla["posicion"], pantalla["total"]) == (2, 3)
+    puente.responder(pantalla["numero"], False)
+    hilo.join(5)
+
+
 def test_confirmar_cursos_avisa_si_no_hay_pruebas(tmp_path):
     ventana, presencia, puente = preparar(tmp_path)
     cursos = [sesion.CursoSesion("real", 5678, "Matemáticas", False)]
@@ -399,6 +464,7 @@ def test_la_pagina_pinta_todas_las_pantallas():
         "configurar",
         "password",
         "elegir_curso",
+        "elegir_reales",
         "cursos",
         "autoprueba",
         "sin_pruebas",

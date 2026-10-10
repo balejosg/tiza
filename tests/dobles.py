@@ -38,7 +38,14 @@ def enlace_simbolico(enlace: Path, destino: Path) -> None:
 class MoodleFalso:
     """Doble del adaptador del aula: registra llamadas y no toca la red."""
 
-    def __init__(self, secciones=None, cmid_nuevo: int = 100, pluginfiles_ok=True, cursos=None):
+    def __init__(
+        self,
+        secciones=None,
+        cmid_nuevo: int = 100,
+        pluginfiles_ok=True,
+        cursos=None,
+        secciones_por_curso=None,
+    ):
         self.base_url = "https://aula.example.org/centro"
         self.secciones = (
             secciones
@@ -53,6 +60,8 @@ class MoodleFalso:
                 {"id": 1234, "nombre": "Pruebas de Mates"},
             ]
         )
+        # Con varios cursos reales: las secciones propias de cada curso (los demás usan ``secciones``).
+        self.secciones_por_curso: dict[int, list] = dict(secciones_por_curso or {})
         self.cmid_nuevo = cmid_nuevo
         self.pluginfiles_ok = pluginfiles_ok
         self.llamadas: list[tuple] = []
@@ -78,20 +87,25 @@ class MoodleFalso:
         self.librerias_ausentes: dict[int, bool] = {}
         self.intentos_h5p: dict[int, bool] = {}
 
+    def _de(self, curso_id):
+        return self.secciones_por_curso.get(curso_id, self.secciones)
+
     def crear_seccion(self, curso_id, nombre):
         self.llamadas.append(("crear_seccion", curso_id, nombre))
-        numero = max((s["numero"] for s in self.secciones), default=-1) + 1
+        secciones = self._de(curso_id)
+        numero = max((s["numero"] for s in secciones), default=-1) + 1
         seccion_id = 1000 + numero
-        self.secciones.append({"numero": numero, "nombre": nombre, "id": seccion_id, "modulos": []})
+        secciones.append({"numero": numero, "nombre": nombre, "id": seccion_id, "modulos": []})
         return seccion_id
 
     def borrar_seccion(self, curso_id, seccion_id):
         self.llamadas.append(("borrar_seccion", curso_id, seccion_id))
-        self.secciones[:] = [s for s in self.secciones if s["id"] != seccion_id]
+        secciones = self._de(curso_id)
+        secciones[:] = [s for s in secciones if s["id"] != seccion_id]
 
     def estructura(self, curso_id):
         self.llamadas.append(("estructura", curso_id))
-        return self.secciones
+        return self._de(curso_id)
 
     def mis_cursos(self):
         self.llamadas.append(("mis_cursos",))
@@ -111,7 +125,7 @@ class MoodleFalso:
         self.cmid_nuevo += 1
         self.llamadas.append(("crear", curso_id, seccion_id, tipo, payload))
         self.formularios[cmid] = {"visible": "1", **payload}  # Moodle crea visible si no se indica
-        for seccion in self.secciones:
+        for seccion in self._de(curso_id):
             if seccion["id"] == seccion_id:
                 seccion["modulos"].append({"cmid": cmid, "nombre": payload["name"], "tipo": tipo})
         if tipo == "cuestionario":
@@ -150,7 +164,10 @@ class MoodleFalso:
 
     def borrar(self, curso_id, cmid):
         self.llamadas.append(("borrar", cmid))
-        for seccion in self.secciones:
+        for seccion in [
+            *self.secciones,
+            *(x for l in self.secciones_por_curso.values() for x in l),
+        ]:
             seccion["modulos"] = [m for m in seccion["modulos"] if m["cmid"] != cmid]
         categoria = self.categorias.pop(cmid, None)
         if categoria is not None:
@@ -240,17 +257,22 @@ class PresenciaFalsa:
         *,
         password: str | None = "secreta",
         cursos: tuple[int, ...] = (),
+        reales: tuple[int, ...] | None = None,
         confirmar_cursos: bool = True,
         autoprueba: bool = False,
-        real: bool = True,
+        real: bool | tuple[bool, ...] = True,  # una respuesta por curso real, en orden
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
     ) -> None:
         self.password = password
         self._cursos = list(cursos)
+        self._reales = (
+            reales  # lo que responde «elegir_cursos_reales»; None: lo que quede en cursos
+        )
+        self.reales_vistos: list[tuple[list, int | None]] = []
         self._confirmar_cursos = confirmar_cursos
         self._autoprueba = autoprueba
-        self._real = real
+        self._real = list(real) if isinstance(real, tuple) else real
         self._sin_pruebas = sin_pruebas
         self._ampliar = list(ampliar)
         self.passwords_pedidas: list[tuple[str, str]] = []
@@ -267,6 +289,12 @@ class PresenciaFalsa:
     def elegir_curso(self, entorno, cursos, excluir):
         return self._cursos.pop(0) if self._cursos else None
 
+    def elegir_cursos_reales(self, cursos, excluir):
+        self.reales_vistos.append((list(cursos), excluir))
+        if self._reales is not None:
+            return list(self._reales)
+        return [self._cursos.pop(0)] if self._cursos else None
+
     def confirmar_cursos(self, cursos):
         self.cursos_vistos.append(list(cursos))
         return self._confirmar_cursos
@@ -274,13 +302,18 @@ class PresenciaFalsa:
     def confirmar_autoprueba(self):
         return self._autoprueba
 
+    def _respuesta_real(self):
+        if isinstance(self._real, list):
+            return self._real.pop(0) if self._real else False
+        return self._real
+
     def confirmar_real(self, resumen):
         self.resumenes.append(resumen)
-        return self._real
+        return self._respuesta_real()
 
     def confirmar_real_sin_pruebas(self, resumen):
         self.resumenes_cortos.append(resumen)
-        return self._real
+        return self._respuesta_real()
 
     def confirmar_sin_pruebas(self):
         self.sin_pruebas_pedidas += 1

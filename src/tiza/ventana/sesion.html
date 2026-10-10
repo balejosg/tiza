@@ -23,6 +23,7 @@ h2 { font-size: 16px; margin: 0 0 10px; }
 .error { color: var(--peligro); }
 .aviso { color: var(--aviso); }
 label { display: block; font-weight: 600; margin: 10px 0 4px; }
+label.casilla { font-weight: 400; margin: 6px 0; }
 input { width: 100%; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; }
 .botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--borde); background: #fff; cursor: pointer; }
@@ -87,6 +88,10 @@ ul { margin: 6px 0; padding-left: 20px; }
     caja.appendChild(nombre);
     caja.appendChild(entrada);
     return { nodo: caja, entrada: entrada };
+  }
+
+  function cabeceraCurso(p) {
+    return p.total > 1 ? "Curso " + p.posicion + " de " + p.total + ": " + p.curso : "Curso: " + p.curso;
   }
 
   function lista(textos) {
@@ -168,6 +173,31 @@ ul { margin: 6px 0; padding-left: 20px; }
         boton("Cancelar", null, function () { responder(p.numero, null); })));
       return nodos;
     },
+    elegir_reales: function (p) {
+      var nodos = [
+        el("h2", null, "¿Cuáles son tus cursos REALES?"),
+        el("p", "suave", p.para_que + ". Se publicará en todos los que marques (hasta " + p.maximo + ").")];
+      var casillas = [];
+      p.opciones.forEach(function (nombre) {
+        var etiqueta = el("label", "casilla");
+        var marca = document.createElement("input");
+        marca.type = "checkbox";
+        casillas.push(marca);
+        etiqueta.appendChild(marca);
+        etiqueta.appendChild(document.createTextNode(" " + nombre));
+        nodos.push(etiqueta);
+      });
+      var id = campo("O escribe sus ids separados por comas (course/view.php?id=1234)", "text", "ids");
+      nodos.push(id.nodo);
+      nodos.push(botones(
+        boton("Usar estos cursos", "principal", function () {
+          var indices = [];
+          casillas.forEach(function (marca, indice) { if (marca.checked) { indices.push(indice); } });
+          responder(p.numero, { indices: indices, ids: id.entrada.value });
+        }),
+        boton("Cancelar", null, function () { responder(p.numero, null); })));
+      return nodos;
+    },
     cursos: function (p) {
       var nodos = [el("h2", null, "Cursos de esta conexión")];
       p.cursos.forEach(function (curso) {
@@ -209,7 +239,7 @@ ul { margin: 6px 0; padding-left: 20px; }
     },
     real: function (p) {
       var titulo = p.solo_fechas ? "¿Cambiar solo las fechas en el curso REAL?" : "¿Publicar en el curso REAL?";
-      var nodos = [el("h2", null, titulo), el("p", null, "Curso: " + p.curso)];
+      var nodos = [el("h2", null, titulo), el("p", null, cabeceraCurso(p))];
       if (p.aviso_calendario) {
         nodos.push(el("p", "aviso", "calendario.toml no se puede usar. " + p.aviso_calendario));
       }
@@ -254,7 +284,7 @@ ul { margin: 6px 0; padding-left: 20px; }
     real_sin_pruebas: function (p) {
       var nodos = [
         el("h2", null, "¿Publicar oculto en el curso REAL?"),
-        el("p", null, "Curso: " + p.curso),
+        el("p", null, cabeceraCurso(p)),
         el("p", "aviso", p.aviso)];
       p.documentos.forEach(function (doc) {
         nodos.push(el("p", null, doc.tipo + ": «" + doc.nombre + "» (fichero " + doc.fichero + ")"));

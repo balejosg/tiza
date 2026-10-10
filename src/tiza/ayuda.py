@@ -30,7 +30,7 @@ MENSAJES: dict[str, str] = {
     "CONFIG_INCOMPLETA": "Falta la URL o el usuario del aula. Ejecuta «tiza configurar» en tu terminal.",
     "CONFIG_ILEGIBLE": "El fichero de configuración está dañado. Ejecuta «tiza configurar» para crearlo de nuevo.",
     "TIZA_TOML_INVALIDO": "El fichero tiza.toml de esta carpeta tiene un error. Corrígelo o bórralo y vuelve a elegir los cursos.",
-    "CURSO_INVALIDO": "Un id de curso no es válido: debe ser un número entero positivo.",
+    "CURSO_INVALIDO": "Un id de curso no es válido: debe ser un número entero positivo (y «real» admite una lista de 1 a 6 sin repetidos).",
     "CURSOS_IGUALES": "El curso de pruebas y el real no pueden ser el mismo. Elige un curso de pruebas distinto.",
     "CURSO_NO_CONFIGURADO": "Falta el curso de destino. El real es obligatorio; el de pruebas es opcional (sin él solo se publica oculto en real).",
     "SIN_CURSO_PRUEBAS": "No hay curso de pruebas configurado. Para tenerlo, añade «pruebas = 1234» al tiza.toml de la carpeta y borra «sin_pruebas»; sin él, en real solo se publica oculto.",

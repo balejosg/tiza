@@ -24,6 +24,7 @@ COMANDOS = {
     "autoprueba",
     "sesion",
 }
+MAX_CURSOS_REALES = 6  # igual que config.MAX_REALES (este módulo no importa config)
 RESULTADOS = {"ok", "error", "abortado"}
 RESULTADOS_PASO = {"ok", "fallo"}
 ACCIONES = {"creada", "actualizada", "borrada", "verificada"}
@@ -40,7 +41,17 @@ _CAMPOS_RAIZ = {
     "errores",
 }
 _CAMPOS_PASO = {"codigo", "resultado", "detalle"}
-_CAMPOS_FICHERO = {"nombre", "tipo", "cmid", "accion", "oculto", "url", "seccion", "hash"}
+_CAMPOS_FICHERO = {
+    "nombre",
+    "tipo",
+    "cmid",
+    "accion",
+    "oculto",
+    "url",
+    "seccion",
+    "hash",
+    "curso",  # el curso donde está (nulo en «comprobar»): un .md sale una vez por curso
+}
 
 _CODIGO = re.compile(r"\A[A-Z][A-Z0-9_]{1,39}\Z")
 _HASH = re.compile(r"\A[0-9a-f]{64}\Z")
@@ -122,6 +133,7 @@ def _validar_fichero(fichero: Any) -> None:
     _exigir_texto(fichero["nombre"], "nombre")
     _exigir_opcion(fichero["tipo"], TIPOS, "tipo de fichero")
     _exigir_entero_o_nulo(fichero["cmid"], "cmid")
+    _exigir_entero_o_nulo(fichero["curso"], "curso del fichero")
     if fichero["accion"] is not None:
         _exigir_opcion(fichero["accion"], ACCIONES, "acción")
     if fichero["oculto"] is not None and not isinstance(fichero["oculto"], bool):
@@ -145,26 +157,38 @@ def validar_estructura(datos: Any) -> None:
     if not isinstance(datos, dict):
         raise ErrorInforme("TIPO_INCORRECTO", "la estructura debe ser un objeto")
     _exigir_campos(datos, _CAMPOS_ESTRUCTURA, "estructura")
-    if datos["version"] != 1:
-        raise ErrorInforme("VALOR_NO_PERMITIDO", "version debe ser 1")
+    # v1: «real» es un curso; v2: «real» es una lista de cursos (uno por curso real).
+    if datos["version"] not in (1, 2) or isinstance(datos["version"], bool):
+        raise ErrorInforme("VALOR_NO_PERMITIDO", "version debe ser 1 o 2")
     _exigir_texto(datos["generado"], "generado")
     if not isinstance(datos["cursos"], dict):
         raise ErrorInforme("TIPO_INCORRECTO", "cursos debe ser un objeto")
     for entorno, curso in datos["cursos"].items():
         _exigir_opcion(entorno, {"pruebas", "real"}, "entorno")
-        if not isinstance(curso, dict):
-            raise ErrorInforme("TIPO_INCORRECTO", "cada curso debe ser un objeto")
-        _exigir_campos(curso, _CAMPOS_CURSO, "curso")
-        _exigir_entero(curso["id"], "id del curso")
-        for seccion in _exigir_lista(curso["secciones"], "secciones"):
-            if not isinstance(seccion, dict):
-                raise ErrorInforme("TIPO_INCORRECTO", "cada sección debe ser un objeto")
-            _exigir_campos(seccion, _CAMPOS_SECCION, "sección")
-            _exigir_entero(seccion["numero"], "número de sección")
-            _exigir_entero(seccion["id"], "id de sección")
-            if not isinstance(seccion["nombre"], str):
-                raise ErrorInforme("TIPO_INCORRECTO", "el nombre de la sección debe ser texto")
-            _exigir_texto(seccion["nombre"], "nombre de sección")
+        if datos["version"] == 2 and entorno == "real":
+            lista = _exigir_lista(curso, "cursos reales")
+            if not 1 <= len(lista) <= MAX_CURSOS_REALES:
+                raise ErrorInforme("VALOR_NO_PERMITIDO", "número de cursos reales no permitido")
+            for uno in lista:
+                _validar_curso_estructura(uno)
+        else:
+            _validar_curso_estructura(curso)
+
+
+def _validar_curso_estructura(curso: Any) -> None:
+    if not isinstance(curso, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "cada curso debe ser un objeto")
+    _exigir_campos(curso, _CAMPOS_CURSO, "curso")
+    _exigir_entero(curso["id"], "id del curso")
+    for seccion in _exigir_lista(curso["secciones"], "secciones"):
+        if not isinstance(seccion, dict):
+            raise ErrorInforme("TIPO_INCORRECTO", "cada sección debe ser un objeto")
+        _exigir_campos(seccion, _CAMPOS_SECCION, "sección")
+        _exigir_entero(seccion["numero"], "número de sección")
+        _exigir_entero(seccion["id"], "id de sección")
+        if not isinstance(seccion["nombre"], str):
+            raise ErrorInforme("TIPO_INCORRECTO", "el nombre de la sección debe ser texto")
+        _exigir_texto(seccion["nombre"], "nombre de sección")
 
 
 def _exigir_entero(valor: Any, nombre: str) -> None:
@@ -256,6 +280,8 @@ def resumen(documento: dict) -> list[str]:
             partes.append("visible")
         if fichero["seccion"]:
             partes.append(f"sección {fichero['seccion']}")
+        if fichero["curso"] is not None and documento["curso"] is None:
+            partes.append(f"curso {fichero['curso']}")  # varios cursos: de cuál es
         lineas.append(" — ".join(partes))
         if fichero["url"]:
             lineas.append(f"  Ver en el aula: {fichero['url']}")

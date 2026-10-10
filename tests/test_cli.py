@@ -239,7 +239,7 @@ class TestEstructura:
         assert cli.main(["estructura"]) == 0
         datos = json.loads((tmp_path / ".tiza" / "estructura.json").read_text(encoding="utf-8"))
         assert datos["cursos"]["pruebas"]["id"] == 1234
-        assert datos["cursos"]["real"]["id"] == 5678
+        assert datos["cursos"]["real"][0]["id"] == 5678
         assert datos["cursos"]["pruebas"]["secciones"][0]["numero"] == 3
 
 
@@ -889,7 +889,7 @@ class TestProcesarPeticion:
         assert documento["resultado"] == "ok"
         datos = json.loads((dir_tiza / "estructura.json").read_text(encoding="utf-8"))
         assert datos["cursos"]["pruebas"]["id"] == 1234
-        assert datos["cursos"]["real"]["id"] == 5678
+        assert datos["cursos"]["real"][0]["id"] == 5678
 
     def test_real_lista_tambien_las_imagenes_externas(self, tmp_path, monkeypatch, capsys):
         cfg = self.preparar(tmp_path, monkeypatch)
@@ -1088,7 +1088,7 @@ def test_el_cupo_de_pruebas_se_agota(tmp_path):
         "solo_fechas": False,
     }
     cfg = config.Config(
-        url="https://aula.ejemplo.org", usuario="u", cursos={"pruebas": 1, "real": 2}
+        url="https://aula.ejemplo.org", usuario="u", cursos={"pruebas": 1}, reales=(2,)
     )
     cupo = {"pruebas": sesion.MAX_PUBLICACIONES_PRUEBAS}
     documento = procesar(
@@ -1146,6 +1146,7 @@ def abrir_sesion_falsa(
     comando="sesion",
     configurado=True,
     autoprueba_ok=True,
+    extra=(),
 ):
     """Ejecuta un comando autenticado sin red: login falso y atención que termina al instante."""
     monkeypatch.chdir(tmp_path)
@@ -1172,7 +1173,7 @@ def abrir_sesion_falsa(
         monkeypatch.setattr(
             publicar, "autoprueba", lambda m, c: {"resultado": "ok", "pasos": [], "errores": []}
         )
-    codigo = cli.main([comando])
+    codigo = cli.main([comando, *extra])
     return codigo, salida.contenido(), atendidas
 
 
@@ -1632,7 +1633,7 @@ class TestSinCursoDePruebasCli:
         assert cli.main(["estructura"]) == 0
         datos = json.loads((tmp_path / ".tiza" / "estructura.json").read_text(encoding="utf-8"))
         assert set(datos["cursos"]) == {"real"}
-        assert datos["cursos"]["real"]["secciones"][0]["numero"] == 3
+        assert datos["cursos"]["real"][0]["secciones"][0]["numero"] == 3
 
     @pytest.mark.parametrize("visibilidad", [[], ["--visible"]])
     def test_publicar_directo_en_real_sin_pruebas_exige_oculto(
@@ -1973,3 +1974,105 @@ class TestSoloFechasEnCli:
         assert "cambiar solo las fechas" in mostrado
         assert "entrega antes sin fecha → ahora 10/10/2026 23:59" in mostrado
         assert not any(llamada[0] in ("crear", "subir") for llamada in moodle.llamadas)
+
+
+class TestVariosCursosRealesCli:
+    CURSOS = {"pruebas": 1234, "real": [101, 102]}
+
+    def preparar(self, tmp_path, monkeypatch, cursos=None):
+        monkeypatch.chdir(tmp_path)
+        escribir_pagina(tmp_path)
+        configurar(tmp_path, monkeypatch, cursos or self.CURSOS)
+        doc = contenido.cargar(tmp_path / "pagina.md")
+        publicar.guardar_verificado(
+            tmp_path / ".tiza", contenido.hash_documento(doc), "pagina.md", 100
+        )
+        simular_terminal(monkeypatch)
+        moodle = MoodleFalso(
+            secciones_por_curso={
+                101: [{"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []}],
+                102: [{"numero": 3, "nombre": "Tema 3", "id": 31, "modulos": []}],
+            }
+        )
+        monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: moodle)
+        return moodle
+
+    def test_publicar_directo_confirma_cada_curso_y_publica_en_todos(self, tmp_path, monkeypatch):
+        moodle = self.preparar(tmp_path, monkeypatch)
+        responder(monkeypatch, ["s", "s"])  # un destino por curso
+        assert cli.main(["publicar", "pagina.md", "--en", "real"]) == 0
+        informe = leer_informe(tmp_path)
+        assert informe["curso"] is None
+        assert [f["curso"] for f in informe["ficheros"]] == [101, 102]
+        assert [ll[1] for ll in moodle.llamadas if ll[0] == "crear"] == [101, 102]
+
+    def test_decir_que_no_a_un_curso_publica_en_el_otro(self, tmp_path, monkeypatch):
+        moodle = self.preparar(tmp_path, monkeypatch)
+        responder(monkeypatch, ["n", "s"])
+        assert cli.main(["publicar", "pagina.md", "--en", "real"]) == 0
+        informe = leer_informe(tmp_path)
+        assert [f["curso"] for f in informe["ficheros"]] == [102]
+        assert {"codigo": "CURSO_OMITIDO", "resultado": "ok", "detalle": "101"} in informe["pasos"]
+        assert [ll[1] for ll in moodle.llamadas if ll[0] == "crear"] == [102]
+
+    def test_decir_que_no_a_todos_no_pide_password_y_aborta(self, tmp_path, monkeypatch):
+        moodle = self.preparar(tmp_path, monkeypatch)
+        responder(monkeypatch, ["n", "n"])
+        monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
+        assert cli.main(["publicar", "pagina.md", "--en", "real"]) == 1
+        assert leer_informe(tmp_path)["errores"] == ["ABORTADO"]
+        assert not any(ll[0] == "crear" for ll in moodle.llamadas)
+
+    def test_pruebas_sigue_siendo_un_curso(self, tmp_path, monkeypatch):
+        self.preparar(tmp_path, monkeypatch)
+        responder(monkeypatch, ["s"])
+        assert cli.main(["publicar", "pagina.md", "--en", "pruebas"]) == 0
+        assert leer_informe(tmp_path)["curso"] == 1234
+
+    def test_estructura_directa_confirma_todos_los_cursos(self, tmp_path, monkeypatch):
+        self.preparar(tmp_path, monkeypatch)
+        responder(monkeypatch, ["s", "s", "s"])  # pruebas y los dos reales
+        assert cli.main(["estructura"]) == 0
+        datos = json.loads((tmp_path / ".tiza" / "estructura.json").read_text(encoding="utf-8"))
+        assert datos["version"] == 2
+        assert [c["id"] for c in datos["cursos"]["real"]] == [101, 102]
+
+
+class TestElegirCursosCli:
+    @pytest.mark.parametrize("comando", ["sesion", "empezar"])
+    def test_elegir_cursos_vuelve_a_preguntar_y_guarda(self, tmp_path, monkeypatch, comando):
+        # Ya hay cursos (9 y 8): con el flag se elige otra vez. Pruebas: opción 2 (1234);
+        # reales: lo que queda es la opción 1 (5678). Después, «s» para abrir.
+        respuestas = ["2", "1", "s"] + (["n"] if comando == "empezar" else [])
+        codigo, _salida, _atendidas = abrir_sesion_falsa(
+            tmp_path,
+            monkeypatch,
+            respuestas,
+            cursos={"pruebas": 9, "real": 8},
+            comando=comando,
+            extra=("--elegir-cursos",),
+        )
+        assert codigo == 0
+        assert config.cargar_carpeta(tmp_path)["cursos"] == {"pruebas": 1234, "real": 5678}
+
+    def test_sin_el_flag_no_pregunta_aunque_haya_varios(self, tmp_path, monkeypatch):
+        codigo, salida, _ = abrir_sesion_falsa(
+            tmp_path, monkeypatch, ["s"], cursos={"pruebas": 1234, "real": [5678, 5679]}
+        )
+        assert codigo == 0
+        assert "id 5678" in salida and "id 5679" in salida
+        assert "CURSOS REALES" not in salida
+
+    def test_elige_varios_reales_de_golpe(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso(
+            cursos=[
+                {"id": 1, "nombre": "Pruebas"},
+                {"id": 101, "nombre": "1º A"},
+                {"id": 102, "nombre": "1º B"},
+            ]
+        )
+        codigo, _, _ = abrir_sesion_falsa(
+            tmp_path, monkeypatch, ["1", "2,1", "s"], moodle=moodle, cursos={}
+        )
+        assert codigo == 0
+        assert config.cargar_carpeta(tmp_path)["cursos"] == {"pruebas": 1, "real": [102, 101]}

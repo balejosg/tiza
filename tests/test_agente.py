@@ -376,3 +376,97 @@ def test_peticion_con_solo_fechas_viaja_en_el_buzon():
     peticion = agente.peticion_publicar(["a.md"], "real")
     assert peticion["solo_fechas"] is False
     assert peticion["visible"] is None
+
+
+class TestVariosCursosReales:
+    def estructura(self, tmp_path, nombres):
+        publicar.escribir_estructura(
+            tmp_path / ".tiza",
+            {
+                "version": 2,
+                "generado": "2026-10-03T10:00:00+00:00",
+                "cursos": {
+                    "real": [
+                        {
+                            "id": 100 + n,
+                            "secciones": [{"numero": 3, "nombre": nombre, "id": 30 + n}],
+                        }
+                        for n, nombre in enumerate(nombres)
+                    ]
+                },
+            },
+        )
+
+    def test_el_numero_se_comprueba_en_el_primer_curso_real(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        self.estructura(tmp_path, ["Tema 3", "Tema 3"])
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        assert resultado.informe["resultado"] == "ok"
+        assert resultado.informe["ficheros"][0]["seccion"] == "Tema 3"
+        assert resultado.informe["ficheros"][0]["curso"] is None
+        assert not any(
+            p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in resultado.informe["pasos"]
+        )
+
+    def test_avisa_si_el_numero_tiene_nombres_distintos(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        self.estructura(tmp_path, ["Tema 3", "Tercer tema"])
+        informe_ = agente.comprobar(tmp_path, ["p.md"]).informe
+        assert informe_["resultado"] == "ok"
+        [aviso] = [p for p in informe_["pasos"] if p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS"]
+        assert aviso["resultado"] == "ok"
+        assert aviso["detalle"] == "p.md: sección 3"  # sin los nombres de las secciones
+        assert "Tercer tema" not in str(informe_)
+
+    def test_por_nombre_no_avisa(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", 'seccion: "Tema 3"'))
+        self.estructura(tmp_path, ["Tema 3", "Tercer tema"])
+        informe_ = agente.comprobar(tmp_path, ["p.md"]).informe
+        assert not any(p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in informe_["pasos"])
+
+    def test_un_curso_donde_falta_el_numero_cuenta_como_distinto(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        self.estructura(tmp_path, ["Tema 3"])
+        publicar.escribir_estructura(
+            tmp_path / ".tiza",
+            {
+                "version": 2,
+                "generado": "2026-10-03T10:00:00+00:00",
+                "cursos": {
+                    "real": [
+                        {"id": 101, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 33}]},
+                        {"id": 102, "secciones": [{"numero": 0, "nombre": "General", "id": 1}]},
+                    ]
+                },
+            },
+        )
+        informe_ = agente.comprobar(tmp_path, ["p.md"]).informe
+        assert any(p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in informe_["pasos"])
+
+    def test_la_pista_de_id_mira_en_todos_los_cursos_reales(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", "seccion: 31"))
+        self.estructura(tmp_path, ["Tema 3", "Tema 3"])
+        [fichero] = agente.comprobar(tmp_path, ["p.md"]).ficheros
+        assert fichero.codigo == "SECCION_ES_ID"
+        assert "escribe «seccion: 3»" in fichero.detalle
+
+    def test_una_estructura_manipulada_no_rompe_comprobar(self, tmp_path):
+        escribir(tmp_path, "p.md", PAGINA)
+        publicar.escribir_estructura(
+            tmp_path / ".tiza",
+            {
+                "version": 2,
+                "generado": "x",
+                "cursos": {
+                    "real": [
+                        {"id": 1, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 1}]},
+                        {"id": 2, "secciones": [{"numero": 3, "nombre": {"a": 1}, "id": 2}]},
+                        "basura",
+                        {"id": 3, "secciones": "no"},
+                    ]
+                },
+            },
+        )
+        informe_ = agente.comprobar(tmp_path, ["p.md"]).informe
+        assert informe_["resultado"] == "ok"
+        assert any(p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in informe_["pasos"])

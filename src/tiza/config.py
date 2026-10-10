@@ -27,6 +27,7 @@ __all__ = [
     "Config",
     "DestinoNoPermitido",
     "ErrorConfig",
+    "MAX_REALES",
     "cargar_carpeta",
     "guardar_carpeta",
     "guardar_global",
@@ -39,6 +40,7 @@ __all__ = [
 ]
 
 APP = "tiza"
+MAX_REALES = 6  # cada curso son varias peticiones al aula: no se carga de más
 
 
 class ErrorConfig(Exception):
@@ -54,8 +56,9 @@ class ErrorConfig(Exception):
 class Config:
     url: str
     usuario: str
-    cursos: dict[str, int]
+    cursos: dict[str, int]  # solo «pruebas»: los cursos reales van en ``reales``
     sin_pruebas: bool = False  # el docente eligió no tener curso de pruebas
+    reales: tuple[int, ...] = ()  # de 1 a MAX_REALES cursos, en el orden de tiza.toml
 
 
 def directorio_global() -> Path:
@@ -301,15 +304,19 @@ _CLAVE_TOML = re.compile(r"\A[A-Za-z0-9_-]+\Z")
 
 
 def guardar_carpeta(
-    carpeta: str | Path, cursos: dict[str, int], *, sin_pruebas: bool = False
+    carpeta: str | Path, cursos: dict[str, Any], *, sin_pruebas: bool = False
 ) -> Path:
     """Fusiona ``cursos`` en ``<carpeta>/tiza.toml``.
+
+    ``real`` es un id o una lista de ids; uno solo se escribe como entero (como siempre).
 
     Solo reescribe un tiza.toml que contenga únicamente ``[cursos]`` y sin
     comentarios; si hay más, no lo toca y pide editarlo a mano. Con
     ``sin_pruebas`` guarda que el docente no quiere curso de pruebas (y quita
     cualquier id de pruebas que hubiera).
     """
+    if isinstance(cursos, dict) and isinstance(cursos.get("real"), tuple):
+        cursos = {**cursos, "real": list(cursos["real"])}
     _validar_curso(cursos)
     if not isinstance(sin_pruebas, bool):
         raise ErrorConfig("CURSO_INVALIDO")
@@ -342,6 +349,8 @@ def guardar_carpeta(
     _validar_curso(fuente)
     actuales = {clave: valor for clave, valor in fuente.items() if clave != "sin_pruebas"}
     actuales.update(cursos)
+    if isinstance(actuales.get("real"), list) and len(actuales["real"]) == 1:
+        actuales["real"] = actuales["real"][0]
     if sin_pruebas:
         actuales.pop("pruebas", None)
     if any(not _CLAVE_TOML.match(clave) for clave in actuales):
@@ -349,9 +358,10 @@ def guardar_carpeta(
             "TIZA_TOML_INVALIDO",
             f"nombre de curso no válido en {rutas.FICHERO_ASIGNATURA}",
         )
-    if "pruebas" in actuales and actuales.get("pruebas") == actuales.get("real"):
-        raise ErrorConfig("CURSOS_IGUALES", "pruebas y real no pueden ser el mismo curso")
-    lineas = ["[cursos]"] + [f"{clave} = {valor}" for clave, valor in sorted(actuales.items())]
+    _exigir_distintos(actuales.get("pruebas"), _reales_de(actuales))
+    lineas = ["[cursos]"] + [
+        f"{clave} = {_valor_toml(valor)}" for clave, valor in sorted(actuales.items())
+    ]
     if sin_pruebas:
         lineas.append("sin_pruebas = true")
     escribir_texto(ruta, "\n".join(lineas) + "\n")
@@ -375,17 +385,41 @@ def resolver(carpeta: str | Path) -> Config:
     _validar_curso(fuente)
     sin_pruebas = fuente.get("sin_pruebas") is True and "pruebas" not in fuente
     cursos: dict[str, int] = {
-        clave: valor for clave, valor in fuente.items() if clave != "sin_pruebas"
+        clave: valor for clave, valor in fuente.items() if clave not in ("sin_pruebas", "real")
     }
+    reales = _reales_de(fuente)
     validar_url(url)
-    if "pruebas" in cursos and cursos.get("pruebas") == cursos.get("real"):
-        raise ErrorConfig("CURSOS_IGUALES", "pruebas y real no pueden ser el mismo curso")
+    _exigir_distintos(cursos.get("pruebas"), reales)
     return Config(
         url=url.rstrip("/"),
         usuario=usuario,
         cursos=cursos,
         sin_pruebas=sin_pruebas,
+        reales=reales,
     )
+
+
+def _reales_de(cursos: dict) -> tuple[int, ...]:
+    """Los ids de ``real`` (un entero o una lista) ya validados; vacía si no hay."""
+    valor = cursos.get("real")
+    if valor is None:
+        return ()
+    return tuple(valor) if isinstance(valor, list) else (valor,)
+
+
+def _exigir_distintos(pruebas: int | None, reales: tuple[int, ...]) -> None:
+    if pruebas is not None and pruebas in reales:
+        raise ErrorConfig("CURSOS_IGUALES", "pruebas y real no pueden ser el mismo curso")
+
+
+def _valor_toml(valor: Any) -> str:
+    if isinstance(valor, list):
+        return "[" + ", ".join(str(curso) for curso in valor) + "]"
+    return str(valor)
+
+
+def _es_id(valor: Any) -> bool:
+    return isinstance(valor, int) and not isinstance(valor, bool) and valor > 0
 
 
 def _validar_curso(cursos: dict) -> None:
@@ -398,7 +432,15 @@ def _validar_curso(cursos: dict) -> None:
             if not isinstance(valor, bool):
                 raise ErrorConfig("CURSO_INVALIDO")
             continue
-        if isinstance(valor, bool) or not isinstance(valor, int) or valor <= 0:
+        if clave == "real" and isinstance(valor, list):
+            if (
+                not 1 <= len(valor) <= MAX_REALES
+                or not all(_es_id(curso) for curso in valor)
+                or len(set(valor)) != len(valor)
+            ):
+                raise ErrorConfig("CURSO_INVALIDO")
+            continue
+        if not _es_id(valor):
             raise ErrorConfig("CURSO_INVALIDO")
 
 

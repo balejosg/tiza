@@ -67,6 +67,7 @@ __all__ = [
     "crear_dir_vistas",
     "depurar",
     "estructura_con",
+    "informe_de_cursos",
     "procesar_peticion",
     "publicar_con",
     "puerta_real",
@@ -200,6 +201,8 @@ class ResumenPublicacion:
     visible: bool | None  # True: visible; False: oculto; None: lo que exista conserva
     solo_fechas: bool = False  # «--solo-fechas»: el contenido y la visibilidad no cambian
     aviso_calendario: str | None = None  # código si calendario.toml no se pudo usar
+    posicion: int = 1  # «Curso k de n»: con varios cursos reales, una confirmación por curso
+    total: int = 1
 
 
 @dataclass(frozen=True)
@@ -225,6 +228,8 @@ class ResumenSinPruebas:
     nombre_curso: str | None
     documentos: tuple[DocumentoBreve, ...]
     secciones_nuevas: tuple[str, ...]
+    posicion: int = 1
+    total: int = 1
 
 
 def _relativa(ruta: Path, base: Path) -> str:
@@ -251,6 +256,11 @@ class Presencia(Protocol):
         Para ``pruebas`` también admite ``SIN_PRUEBAS``: el docente no tiene
         curso de pruebas y en real solo se publicará oculto.
         """
+        ...
+
+    def elegir_cursos_reales(self, cursos: list[dict], excluir: int | None) -> list[int] | None:
+        """Ids de 1 a ``config.MAX_REALES`` cursos reales, en orden, sin ``excluir`` (el de
+        pruebas); None si cancela."""
         ...
 
     def confirmar_cursos(self, cursos: list[CursoSesion]) -> bool:
@@ -307,20 +317,29 @@ def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool
     """Con el aula ya abierta: lee y guarda la estructura de los cursos configurados."""
     comando = "estructura"
     pasos: list[dict] = [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}]
-    cursos: dict[str, dict] = {}
+    cursos: dict[str, Any] = {}
     try:
-        for nombre in ("pruebas", "real"):
-            curso_id = cfg.cursos.get(nombre)
-            if curso_id is None:
-                continue
+        destinos: list[tuple[str, int]] = []
+        if "pruebas" in cfg.cursos:
+            destinos.append(("pruebas", cfg.cursos["pruebas"]))
+        destinos += [("real", curso_id) for curso_id in cfg.reales]
+        for nombre, curso_id in destinos:
             secciones = aula.estructura(curso_id)
-            cursos[nombre] = {
+            curso = {
                 "id": curso_id,
                 "secciones": [
-                    {"numero": seccion["numero"], "nombre": seccion["nombre"], "id": seccion["id"]}
+                    {
+                        "numero": seccion["numero"],
+                        "nombre": seccion["nombre"],
+                        "id": seccion["id"],
+                    }
                     for seccion in secciones
                 ],
             }
+            if nombre == "real":
+                cursos.setdefault("real", []).append(curso)
+            else:
+                cursos[nombre] = curso
             pasos.append(
                 {
                     "codigo": "ESTRUCTURA",
@@ -333,7 +352,7 @@ def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool
         depurar(exc, debug)
         return informe.crear(comando, "error", pasos, [], [exc.codigo])
     datos = {
-        "version": 1,
+        "version": 2,
         "generado": datetime.now(UTC).isoformat(timespec="seconds"),
         "cursos": cursos,
     }
@@ -453,6 +472,8 @@ def resumen_solo_fechas(
     secciones: list[dict],
     *,
     debug: bool = False,
+    posicion: int = 1,
+    total: int = 1,
 ) -> ResumenPublicacion:
     """Lo que se confirma en real con «--solo-fechas»: fechas antes y después, nada más."""
     cal, aviso = cargar_calendario(carpeta)
@@ -471,6 +492,8 @@ def resumen_solo_fechas(
         visible=None,
         solo_fechas=True,
         aviso_calendario=aviso,
+        posicion=posicion,
+        total=total,
     )
 
 
@@ -537,7 +560,7 @@ def publicar_con(
                 resultado["nombre"],
                 resultado["cmid"],
             )
-        ficheros.append({clave: resultado[clave] for clave in _CAMPOS_FICHERO})
+        ficheros.append({**{clave: resultado[clave] for clave in _CAMPOS_FICHERO}, "curso": curso})
         detalle = doc.ruta.name
         if doc.cuestionario is not None and not solo_fechas:
             detalle = f"{detalle}: {len(doc.cuestionario.preguntas)} preguntas"
@@ -646,14 +669,20 @@ def procesar_peticion(
     comando = peticion["comando"]
     base = Path(carpeta).resolve()
     if comando == "estructura":
-        if "real" not in cfg.cursos:
+        if not cfg.reales:
             return informe.crear(comando, "error", [], [], ["CURSO_NO_CONFIGURADO"])
         return registrar(estructura_con(aula, cfg, base, debug=debug), base, presencia)
     entorno = peticion["entorno"]
-    curso = cfg.cursos.get(entorno)
-    if curso is None:
+    cursos_de_entorno: tuple[int, ...] = (
+        (cfg.cursos["pruebas"],) if "pruebas" in cfg.cursos and entorno == "pruebas" else ()
+    )
+    if entorno == "real":
+        cursos_de_entorno = cfg.reales
+    if not cursos_de_entorno:
         codigo = "SIN_CURSO_PRUEBAS" if entorno == "pruebas" else "CURSO_NO_CONFIGURADO"
         return informe.crear(comando, "error", [], [], [codigo], entorno)
+    # En el informe, el curso solo si es uno: con varios, cada fichero lleva el suyo.
+    curso = cursos_de_entorno[0] if len(cursos_de_entorno) == 1 else None
     documentos: list[Documento] = []
     for nombre in peticion["ficheros"]:
         ruta = _ruta_dentro(base, nombre)
@@ -671,44 +700,141 @@ def procesar_peticion(
                 comando, "error", [], [], ["RUTA_FUERA_DE_CARPETA"], entorno, curso
             )
         documentos.append(doc)
-    if peticion["solo_fechas"]:
-        return _solo_fechas(
-            aula,
+    if entorno == "real":
+        documento = _publicar_en_real(
             peticion,
+            aula,
+            cfg,
             documentos,
             base,
             presencia,
-            entorno=entorno,
-            curso=curso,
-            cupo=cupo,
+            verificados=verificados,
             nombres=nombres or {},
+            dir_vistas=dir_vistas,
             debug=debug,
         )
+        return registrar(documento, base, presencia)
+    if peticion["solo_fechas"]:
+        return _solo_fechas(
+            aula,
+            documentos,
+            base,
+            presencia,
+            curso=cursos_de_entorno[0],
+            cupo=cupo,
+            debug=debug,
+        )
+    if cupo is not None:
+        if cupo["pruebas"] + len(documentos) > MAX_PUBLICACIONES_PRUEBAS:
+            return informe.crear(comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso)
+        cupo["pruebas"] += len(documentos)
+    presencia.informar(
+        Aviso(
+            "PUBLICANDO_EN_PRUEBAS",
+            {"documentos": tuple(DocumentoResumen.de(doc, base) for doc in documentos)},
+        )
+    )
+    documento = publicar_con(
+        aula,
+        entorno,
+        cursos_de_entorno[0],
+        documentos,
+        peticion["visible"],
+        base,
+        presencia,
+        debug=debug,
+    )
+    if verificados is not None and documento["resultado"] == "ok":
+        for fichero in documento["ficheros"]:
+            verificados[fichero["hash"]] = {"nombre": fichero["nombre"], "cmid": fichero["cmid"]}
+    return registrar(documento, base, presencia)
+
+
+def _publicar_en_real(
+    peticion: dict,
+    aula: AulaVirtual,
+    cfg: Config,
+    documentos: list[Documento],
+    base: Path,
+    presencia: Presencia,
+    *,
+    verificados: dict | None,
+    nombres: dict[int, str],
+    dir_vistas: Path | None,
+    debug: bool,
+) -> dict:
+    """Publica en cada curso real, en el orden de ``tiza.toml``, con una confirmación por curso.
+
+    Si el docente dice que no a un curso, se omite y se sigue con el siguiente; si un curso
+    falla, se para ahí y el informe dice qué cursos quedaron hechos. La puerta de real se
+    comprueba una vez (el hash es del documento) y las vistas previas se generan una vez.
+    """
+    comando, entorno = "publicar", "real"
+    reales = cfg.reales
+    total = len(reales)
+    solo_fechas = peticion["solo_fechas"]
     visible = peticion["visible"]
-    if entorno == "real":
+    dir_tiza = base / rutas.CARPETA_TRABAJO
+    sin_pruebas = "pruebas" not in cfg.cursos
+    unico = reales[0] if total == 1 else None
+
+    def fallo(codigo: str, curso: int | None = unico) -> dict:
+        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+
+    vistas: list[Path | None] = [None] * len(documentos)
+    if not solo_fechas:
         # Sin curso de pruebas no hay verificación previa ni vista que enseñar:
         # se compensa publicando solo en oculto y con una confirmación corta.
-        sin_pruebas = "pruebas" not in cfg.cursos
         if sin_pruebas:
             if visible is not False:
-                return informe.crear(
-                    comando, "error", [], [], ["SOLO_OCULTO_SIN_PRUEBAS"], entorno, curso
-                )
+                return fallo("SOLO_OCULTO_SIN_PRUEBAS")
             visible = False
-        elif puerta_real(base, documentos, verificados):
-            return informe.crear(
-                comando, "error", [], [], ["VERIFICACION_PENDIENTE"], entorno, curso
-            )
+        else:
+            if puerta_real(base, documentos, verificados):
+                return fallo("VERIFICACION_PENDIENTE")
+            raiz_vistas = dir_vistas if dir_vistas is not None else dir_tiza
+            try:
+                vistas = [
+                    contenido.previsualizar(doc, raiz_vistas, nombre=nombre)
+                    for doc, nombre in zip(documentos, _nombres_de_vista(documentos), strict=True)
+                ]
+            except ErrorContenido as exc:
+                return fallo(exc.codigo)
+    cal, aviso_calendario = cargar_calendario(base)
+
+    registro: list[tuple[int, int, dict | None]] = []  # (posición, curso, informe o None: omitido)
+    for posicion, curso in enumerate(reales, 1):
+        if posicion > 1 and not buzon.peticion_pendiente(dir_tiza, peticion["id"]):
+            presencia.informar(Aviso("PETICION_RETIRADA"))
+            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+            break
         try:
             secciones = aula.estructura(curso)
         except ErrorPublicacion as exc:
-            return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
-        nuevas = publicar.secciones_que_faltan(secciones, documentos)
-        dir_tiza = base / rutas.CARPETA_TRABAJO
-        if sin_pruebas:
+            registro.append((posicion, curso, fallo(exc.codigo, curso)))
+            break
+        nombre_curso = nombres.get(curso)
+        if solo_fechas:
+            codigo = codigo_solo_fechas(secciones, documentos)
+            if codigo is not None:
+                registro.append((posicion, curso, fallo(codigo, curso)))
+                break
+            resumen = resumen_solo_fechas(
+                aula,
+                curso,
+                nombre_curso,
+                documentos,
+                base,
+                secciones,
+                debug=debug,
+                posicion=posicion,
+                total=total,
+            )
+            confirmado = presencia.confirmar_real(resumen)
+        elif sin_pruebas:
             corto = ResumenSinPruebas(
                 curso=curso,
-                nombre_curso=(nombres or {}).get(curso),
+                nombre_curso=nombre_curso,
                 documentos=tuple(
                     DocumentoBreve(
                         fichero=doc.ruta.name,
@@ -718,22 +844,15 @@ def procesar_peticion(
                     )
                     for doc in documentos
                 ),
-                secciones_nuevas=tuple(nuevas),
+                secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
+                posicion=posicion,
+                total=total,
             )
             confirmado = presencia.confirmar_real_sin_pruebas(corto)
         else:
-            raiz_vistas = dir_vistas if dir_vistas is not None else dir_tiza
-            try:
-                vistas = [
-                    contenido.previsualizar(doc, raiz_vistas, nombre=nombre)
-                    for doc, nombre in zip(documentos, _nombres_de_vista(documentos), strict=True)
-                ]
-            except ErrorContenido as exc:
-                return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
-            cal, aviso_calendario = cargar_calendario(base)
             resumen = ResumenPublicacion(
                 curso=curso,
-                nombre_curso=(nombres or {}).get(curso),
+                nombre_curso=nombre_curso,
                 documentos=tuple(
                     DocumentoResumen.de(
                         doc,
@@ -743,57 +862,104 @@ def procesar_peticion(
                     )
                     for doc, vista in zip(documentos, vistas, strict=True)
                 ),
-                secciones_nuevas=tuple(nuevas),
-                visible=peticion["visible"],
+                secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
+                visible=visible,
                 aviso_calendario=aviso_calendario,
+                posicion=posicion,
+                total=total,
             )
             confirmado = presencia.confirmar_real(resumen)
         if not confirmado:
-            return informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, curso)
+            registro.append((posicion, curso, None))
+            continue
         if not buzon.peticion_pendiente(dir_tiza, peticion["id"]):
             presencia.informar(Aviso("PETICION_RETIRADA"))
-            return informe.crear(comando, "error", [], [], ["PETICION_RETIRADA"], entorno, curso)
-    else:
-        if cupo is not None:
-            if cupo["pruebas"] + len(documentos) > MAX_PUBLICACIONES_PRUEBAS:
-                return informe.crear(
-                    comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso
-                )
-            cupo["pruebas"] += len(documentos)
-        presencia.informar(
-            Aviso(
-                "PUBLICANDO_EN_PRUEBAS",
-                {"documentos": tuple(DocumentoResumen.de(doc, base) for doc in documentos)},
-            )
+            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+            break
+        documento = publicar_con(
+            aula,
+            entorno,
+            curso,
+            documentos,
+            None if solo_fechas else visible,
+            base,
+            presencia,
+            debug=debug,
+            solo_fechas=solo_fechas,
         )
-    documento = publicar_con(
-        aula, entorno, curso, documentos, visible, base, presencia, debug=debug
+        registro.append((posicion, curso, documento))
+        if documento["resultado"] != "ok":
+            break
+    return informe_de_cursos(comando, entorno, total, unico, registro)
+
+
+def informe_de_cursos(
+    comando: str,
+    entorno: str,
+    total: int,
+    unico: int | None,
+    registro: list[tuple[int, int, dict | None]],
+) -> dict:
+    """Un informe con lo que pasó en cada curso real; con un solo curso, el de siempre."""
+    if total == 1:
+        informe_unico = registro[0][2]
+        if informe_unico is None:
+            return informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, unico)
+        return informe_unico
+    pasos: list[dict] = []
+    ficheros: list[dict] = []
+    errores: list[str] = []
+    login = any(
+        paso["codigo"] == "LOGIN"
+        for _, _, doc in registro
+        if doc is not None
+        for paso in doc["pasos"]
     )
-    if verificados is not None and entorno == "pruebas" and documento["resultado"] == "ok":
-        for fichero in documento["ficheros"]:
-            verificados[fichero["hash"]] = {"nombre": fichero["nombre"], "cmid": fichero["cmid"]}
-    return registrar(documento, base, presencia)
+    if login:
+        pasos.append({"codigo": "LOGIN", "resultado": "ok", "detalle": None})
+    publicados = 0
+    for posicion, curso, doc in registro:
+        if doc is None:
+            pasos.append({"codigo": "CURSO_OMITIDO", "resultado": "ok", "detalle": str(curso)})
+            continue
+        fallido = doc["resultado"] != "ok"
+        pasos.append(
+            {
+                "codigo": "CURSO",
+                "resultado": "fallo" if fallido else "ok",
+                "detalle": f"{posicion} de {total}: {curso}",
+            }
+        )
+        pasos.extend(paso for paso in doc["pasos"] if paso["codigo"] != "LOGIN")
+        ficheros.extend(doc["ficheros"])
+        if fallido:
+            errores.extend(doc["errores"])
+        else:
+            publicados += 1
+    if errores:
+        resultado = "error"
+    elif publicados == 0:
+        resultado, errores = "abortado", ["ABORTADO"]
+    else:
+        resultado = "ok"
+    return informe.crear(comando, resultado, pasos, ficheros, errores, entorno, None)
 
 
 def _solo_fechas(
     aula: AulaVirtual,
-    peticion: dict,
     documentos: list[Documento],
     base: Path,
     presencia: Presencia,
     *,
-    entorno: str,
     curso: int,
     cupo: dict | None,
-    nombres: dict[int, str],
     debug: bool,
 ) -> dict:
-    """«--solo-fechas»: cambia las fechas de lo que ya está publicado; el contenido no.
+    """«--solo-fechas» en el curso de pruebas: cambia las fechas de lo ya publicado.
 
-    No pasa por la puerta de pruebas ni por el aviso de curso sin pruebas: no cambia
-    nada que el docente no vea en la confirmación de real.
+    No pasa por la puerta de pruebas. En real lo hace ``_publicar_en_real``.
     """
-    comando = "publicar"
+    comando, entorno = "publicar", "pruebas"
     try:
         secciones = aula.estructura(curso)
     except ErrorPublicacion as exc:
@@ -801,34 +967,16 @@ def _solo_fechas(
     codigo = codigo_solo_fechas(secciones, documentos)
     if codigo is not None:
         return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
-    if entorno == "real":
-        resumen = resumen_solo_fechas(
-            aula,
-            curso,
-            nombres.get(curso),
-            documentos,
-            base,
-            secciones,
-            debug=debug,
+    if cupo is not None:
+        if cupo["pruebas"] + len(documentos) > MAX_PUBLICACIONES_PRUEBAS:
+            return informe.crear(comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso)
+        cupo["pruebas"] += len(documentos)
+    presencia.informar(
+        Aviso(
+            "PUBLICANDO_EN_PRUEBAS",
+            {"documentos": tuple(DocumentoResumen.de(doc, base) for doc in documentos)},
         )
-        if not presencia.confirmar_real(resumen):
-            return informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, curso)
-        if not buzon.peticion_pendiente(base / rutas.CARPETA_TRABAJO, peticion["id"]):
-            presencia.informar(Aviso("PETICION_RETIRADA"))
-            return informe.crear(comando, "error", [], [], ["PETICION_RETIRADA"], entorno, curso)
-    else:
-        if cupo is not None:
-            if cupo["pruebas"] + len(documentos) > MAX_PUBLICACIONES_PRUEBAS:
-                return informe.crear(
-                    comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso
-                )
-            cupo["pruebas"] += len(documentos)
-        presencia.informar(
-            Aviso(
-                "PUBLICANDO_EN_PRUEBAS",
-                {"documentos": tuple(DocumentoResumen.de(doc, base) for doc in documentos)},
-            )
-        )
+    )
     documento = publicar_con(
         aula, entorno, curso, documentos, None, base, presencia, debug=debug, solo_fechas=True
     )
@@ -844,6 +992,7 @@ def abrir(
     debug: bool = False,
     cerrar: threading.Event | None = None,
     dir_vistas: Path | None = None,
+    elegir_cursos: bool = False,
 ) -> int:
     """Abre la sesión del docente en ``carpeta`` y atiende el buzón hasta cerrarla.
 
@@ -853,6 +1002,7 @@ def abrir(
 
     ``dir_vistas`` es el directorio privado de las vistas previas
     (``crear_dir_vistas``). Si no se da, la sesión crea el suyo y lo borra al cerrarse.
+    Con ``elegir_cursos`` se vuelve a preguntar el curso de pruebas y los reales.
     """
     if dir_vistas is not None:
         return _abrir(
@@ -863,6 +1013,7 @@ def abrir(
             debug=debug,
             cerrar=cerrar,
             dir_vistas=dir_vistas,
+            elegir_cursos=elegir_cursos,
         )
     propio = crear_dir_vistas(carpeta)
     try:
@@ -874,6 +1025,7 @@ def abrir(
             debug=debug,
             cerrar=cerrar,
             dir_vistas=propio,
+            elegir_cursos=elegir_cursos,
         )
     finally:
         shutil.rmtree(propio, ignore_errors=True)
@@ -888,6 +1040,7 @@ def _abrir(
     debug: bool,
     cerrar: threading.Event | None,
     dir_vistas: Path,
+    elegir_cursos: bool,
 ) -> int:
     base = Path(carpeta).resolve()
     try:
@@ -901,7 +1054,7 @@ def _abrir(
         return _fallo(
             "sesion", "DIRECTORIO_NO_SEGURO", detalle, base, presencia, exc=exc, debug=debug
         )
-    abierta = _iniciar(cfg, base, presencia, debug)
+    abierta = _iniciar(cfg, base, presencia, debug, elegir_cursos)
     if isinstance(abierta, int):
         return abierta
     cfg, aula, nombres = abierta
@@ -978,7 +1131,7 @@ def _abortado(
 
 
 def _iniciar(
-    cfg: Config, base: Path, presencia: Presencia, debug: bool
+    cfg: Config, base: Path, presencia: Presencia, debug: bool, elegir_cursos: bool = False
 ) -> tuple[Config, AulaVirtual, dict[int, str]] | int:
     """Contraseña, login y cursos; devuelve (cfg, aula, nombres) o el código de salida."""
     comando = "sesion"
@@ -996,7 +1149,7 @@ def _iniciar(
     try:
         aula = publicar.autenticar(cfg.url, cfg.usuario, password)
     except ErrorPublicacion as exc:
-        entorno = "pruebas" if "pruebas" in cfg.cursos else "real"
+        entorno, curso = _entorno_del_informe(cfg)
         return _fallo(
             comando,
             exc.codigo,
@@ -1004,23 +1157,36 @@ def _iniciar(
             base,
             presencia,
             entorno=entorno,
-            curso=cfg.cursos.get(entorno),
+            curso=curso,
             exc=exc,
             debug=debug,
         )
     nombres = _nombres_de_cursos(aula, presencia, debug)
     try:
-        completa = _completar_cursos(cfg, nombres, base, presencia)
+        completa = _completar_cursos(cfg, nombres, base, presencia, elegir=elegir_cursos)
     except ErrorConfig as exc:
         return _fallo(comando, exc.codigo, exc.detalle, base, presencia, exc=exc, debug=debug)
     if completa is None:
         return _abortado(comando, base, presencia)
     if not _confirmar_cursos(completa, nombres, presencia):
-        entorno = "pruebas" if "pruebas" in completa.cursos else "real"
-        return _abortado(comando, base, presencia, entorno, completa.cursos[entorno])
+        entorno, curso = _entorno_del_informe(completa)
+        return _abortado(comando, base, presencia, entorno, curso)
     if completa.sin_pruebas and not presencia.confirmar_sin_pruebas():
-        return _abortado(comando, base, presencia, "real", completa.cursos.get("real"))
+        return _abortado(
+            comando,
+            base,
+            presencia,
+            "real",
+            completa.reales[0] if len(completa.reales) == 1 else None,
+        )
     return completa, aula, nombres
+
+
+def _entorno_del_informe(cfg: Config) -> tuple[str, int | None]:
+    """Entorno y curso con que se informa de un fallo general (el curso, solo si es uno)."""
+    if "pruebas" in cfg.cursos:
+        return "pruebas", cfg.cursos["pruebas"]
+    return "real", cfg.reales[0] if len(cfg.reales) == 1 else None
 
 
 def _nombres_de_cursos(aula: AulaVirtual, presencia: Presencia, debug: bool) -> dict[int, str]:
@@ -1034,43 +1200,57 @@ def _nombres_de_cursos(aula: AulaVirtual, presencia: Presencia, debug: bool) -> 
 
 
 def _completar_cursos(
-    cfg: Config, nombres: dict[int, str], base: Path, presencia: Presencia
+    cfg: Config,
+    nombres: dict[int, str],
+    base: Path,
+    presencia: Presencia,
+    *,
+    elegir: bool = False,
 ) -> Config | None:
     """Pide los cursos que falten y los guarda en el tiza.toml de la carpeta.
 
-    El curso real es obligatorio; el de pruebas se puede dejar sin configurar
+    Hace falta al menos un curso real; el de pruebas se puede dejar sin configurar
     (``SIN_PRUEBAS``): en real solo se publicará oculto y no se vuelve a preguntar.
+    Con ``elegir`` se vuelve a preguntar todo, aunque ya esté configurado.
     """
-    if "real" in cfg.cursos and ("pruebas" in cfg.cursos or cfg.sin_pruebas):
+    if not elegir and cfg.reales and ("pruebas" in cfg.cursos or cfg.sin_pruebas):
         return cfg
     lista = [{"id": curso, "nombre": nombre} for curso, nombre in nombres.items()]
-    elegidos = dict(cfg.cursos)
-    sin_pruebas = cfg.sin_pruebas
-    for entorno, otro in (("pruebas", "real"), ("real", "pruebas")):
-        if entorno in elegidos or (entorno == "pruebas" and sin_pruebas):
-            continue
-        curso = presencia.elegir_curso(entorno, lista, elegidos.get(otro))
+    pruebas = None if elegir else cfg.cursos.get("pruebas")
+    reales = () if elegir else cfg.reales
+    sin_pruebas = False if elegir else cfg.sin_pruebas
+    if pruebas is None and not sin_pruebas:
+        curso = presencia.elegir_curso("pruebas", lista, reales[0] if reales else None)
         if curso is None:
             return None
-        if entorno == "pruebas" and curso == SIN_PRUEBAS:
+        if curso == SIN_PRUEBAS:
             sin_pruebas = True
-            continue
-        elegidos[entorno] = curso
-    ruta = config.guardar_carpeta(base, elegidos, sin_pruebas=sin_pruebas)
+        else:
+            pruebas = curso
+    if not reales:
+        elegidos = presencia.elegir_cursos_reales(lista, pruebas)
+        if not elegidos:
+            return None
+        reales = tuple(elegidos)
+    cursos: dict[str, Any] = {"real": list(reales)}
+    if pruebas is not None:
+        cursos["pruebas"] = pruebas
+    ruta = config.guardar_carpeta(base, cursos, sin_pruebas=sin_pruebas)
     presencia.informar(Aviso("CURSOS_GUARDADOS", {"ruta": ruta}))
     return config.resolver(base)
 
 
 def _confirmar_cursos(cfg: Config, nombres: dict[int, str], presencia: Presencia) -> bool:
+    ids = [("pruebas", cfg.cursos["pruebas"])] if "pruebas" in cfg.cursos else []
+    ids += [("real", curso) for curso in cfg.reales]
     cursos = [
         CursoSesion(
             entorno=entorno,
-            id=cfg.cursos[entorno],
-            nombre=nombres.get(cfg.cursos[entorno]),
-            ajeno=bool(nombres) and cfg.cursos[entorno] not in nombres,
+            id=curso,
+            nombre=nombres.get(curso),
+            ajeno=bool(nombres) and curso not in nombres,
         )
-        for entorno in ("pruebas", "real")
-        if entorno in cfg.cursos
+        for entorno, curso in ids
     ]
     return presencia.confirmar_cursos(cursos)
 

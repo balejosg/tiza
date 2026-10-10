@@ -43,7 +43,14 @@ def _configurar(ventana: Ventana) -> bool:
             error = ayuda.explicar(exc.codigo) or exc.codigo
 
 
-def _flujo(ventana: Ventana, presencia: PresenciaVentana, *, minutos: int, debug: bool) -> int:
+def _flujo(
+    ventana: Ventana,
+    presencia: PresenciaVentana,
+    *,
+    minutos: int,
+    debug: bool,
+    elegir_cursos: bool = False,
+) -> int:
     """Configura si hace falta, abre la sesión y ofrece reconectar al cerrarse."""
     codigo = 1
     while not ventana.cerrar.is_set():
@@ -58,7 +65,9 @@ def _flujo(ventana: Ventana, presencia: PresenciaVentana, *, minutos: int, debug
             debug=debug,
             cerrar=ventana.cerrar,
             dir_vistas=ventana.dir_vistas,
+            elegir_cursos=elegir_cursos,
         )
+        elegir_cursos = False  # solo la primera vez: al reconectar se usan los guardados
         if ventana.cerrar.is_set():
             return codigo
         texto = ventana.motivo or "Conexión cerrada."
@@ -67,7 +76,9 @@ def _flujo(ventana: Ventana, presencia: PresenciaVentana, *, minutos: int, debug
     return codigo
 
 
-def ejecutar(carpeta: str | Path, *, minutos: int = 60, debug: bool = False) -> int:
+def ejecutar(
+    carpeta: str | Path, *, minutos: int = 60, debug: bool = False, elegir_cursos: bool = False
+) -> int:
     """Abre la ventana de sesión para ``carpeta``; devuelve 0 o 1 como «tiza sesion»."""
     if sys.platform == "win32" and not webview2.instalado():
         webview2.avisar_que_falta()
@@ -76,13 +87,26 @@ def ejecutar(carpeta: str | Path, *, minutos: int = 60, debug: bool = False) -> 
 
     dir_vistas = sesion.crear_dir_vistas()
     try:
-        return _abrir_ventana(webview, Path(carpeta), dir_vistas, minutos=minutos, debug=debug)
+        return _abrir_ventana(
+            webview,
+            Path(carpeta),
+            dir_vistas,
+            minutos=minutos,
+            debug=debug,
+            elegir_cursos=elegir_cursos,
+        )
     finally:
         shutil.rmtree(dir_vistas, ignore_errors=True)
 
 
 def _abrir_ventana(
-    webview: Any, carpeta: Path, dir_vistas: Path, *, minutos: int, debug: bool
+    webview: Any,
+    carpeta: Path,
+    dir_vistas: Path,
+    *,
+    minutos: int,
+    debug: bool,
+    elegir_cursos: bool = False,
 ) -> int:
     ventana = Ventana(carpeta, dir_vistas=dir_vistas)
     presencia = PresenciaVentana(ventana)
@@ -112,7 +136,9 @@ def _abrir_ventana(
         if sys.platform == "win32" and webview.renderer != "edgechromium":
             web.destroy()  # MSHTML: sin WebView2 no se sigue
             return
-        resultado["codigo"] = _flujo(ventana, presencia, minutos=minutos, debug=debug)
+        resultado["codigo"] = _flujo(
+            ventana, presencia, minutos=minutos, debug=debug, elegir_cursos=elegir_cursos
+        )
         web.destroy()
 
     def arrancar() -> None:
@@ -143,5 +169,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--carpeta", required=True, help="carpeta de la asignatura")
     parser.add_argument("--minutos", type=_minutos, default=60, help="minutos de conexión")
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "--elegir-cursos",
+        action="store_true",
+        help="vuelve a preguntar el curso de pruebas y los reales",
+    )
     args = parser.parse_args(argv)
-    return ejecutar(args.carpeta, minutos=args.minutos, debug=args.debug)
+    return ejecutar(
+        args.carpeta, minutos=args.minutos, debug=args.debug, elegir_cursos=args.elegir_cursos
+    )

@@ -901,4 +901,4 @@ class TestSoloFechasEnLaPeticion:
         assert exc.value.codigo == "PETICION_INVALIDA"
 
     def test_el_protocolo_sube_con_el_campo(self):
-        assert buzon.VERSION_PROTOCOLO == 3
+        assert buzon.VERSION_PROTOCOLO == 4

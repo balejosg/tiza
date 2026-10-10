@@ -30,6 +30,7 @@ def informe_valido() -> dict:
                 "url": "https://aula.example.org/mod/page/view.php?id=456",
                 "seccion": "Tema 3",
                 "hash": "a" * 64,
+                "curso": 5678,
             }
         ],
         "errores": [],
@@ -250,3 +251,65 @@ def test_crear_da_un_informe_valido():
     assert documento["ficheros"] == []
     assert documento["errores"] == ["SIN_SESION"]
     assert (documento["entorno"], documento["curso"]) == ("pruebas", 1234)
+
+
+def _curso(id_: int, nombre: str = "General") -> dict:
+    return {"id": id_, "secciones": [{"numero": 0, "nombre": nombre, "id": 9}]}
+
+
+def test_estructura_v2_admite_una_lista_de_cursos_reales():
+    datos = {
+        "version": 2,
+        "generado": "2026-10-03T10:00:00+00:00",
+        "cursos": {"pruebas": _curso(1234), "real": [_curso(101), _curso(102, "Tema")]},
+    }
+    validar_estructura(datos)
+
+
+def test_estructura_v1_sigue_valiendo_con_un_objeto():
+    validar_estructura({**estructura_valida(), "cursos": {"real": _curso(5678)}})
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [
+        {"version": 2, "cursos": {"real": _curso(101)}},  # v2: «real» es una lista
+        {"version": 2, "cursos": {"real": []}},
+        {"version": 2, "cursos": {"real": [_curso(n) for n in range(1, 8)]}},
+        {"version": 2, "cursos": {"real": [_curso(1), "x"]}},
+        {"version": 2, "cursos": {"pruebas": [_curso(1)]}},  # pruebas sigue siendo un objeto
+        {"version": 1, "cursos": {"real": [_curso(101)]}},  # v1: «real» es un objeto
+        {"version": 3, "cursos": {}},
+        {"version": True, "cursos": {}},
+    ],
+)
+def test_estructura_con_formas_no_validas_se_rechaza(datos):
+    with pytest.raises(ErrorInforme):
+        validar_estructura({"generado": "2026-10-03T10:00:00+00:00", **datos})
+
+
+def test_el_maximo_de_cursos_reales_es_el_de_la_configuracion():
+    from tiza import config, informe
+
+    assert informe.MAX_CURSOS_REALES == config.MAX_REALES
+
+
+def test_el_fichero_lleva_su_curso_o_nulo():
+    documento = informe_valido()
+    documento["ficheros"][0]["curso"] = None
+    validar(documento)
+    documento["ficheros"][0]["curso"] = "101"
+    with pytest.raises(ErrorInforme):
+        validar(documento)
+    documento["ficheros"][0].pop("curso")
+    with pytest.raises(ErrorInforme):
+        validar(documento)
+
+
+def test_el_resumen_dice_el_curso_de_cada_fichero_solo_con_varios():
+    documento = informe_valido()
+    linea = next(linea for linea in resumen(documento) if linea.startswith("Fichero"))
+    assert "curso 5678" not in linea  # un solo curso: ya lo dice «Curso:»
+    documento["curso"] = None
+    linea = next(linea for linea in resumen(documento) if linea.startswith("Fichero"))
+    assert "curso 5678" in linea

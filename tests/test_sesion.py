@@ -82,7 +82,7 @@ def test_el_doble_cumple_la_interfaz_de_presencia():
         for nombre, valor in vars(sesion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
-    assert len(metodos) == 9
+    assert len(metodos) == 10
     for nombre in metodos:
         esperado = list(inspect.signature(getattr(sesion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaFalsa, nombre)).parameters)
@@ -95,12 +95,14 @@ PAGINA = (
 CFG = config.Config(
     url="https://aula.ejemplo.org/centro",
     usuario="profe",
-    cursos={"pruebas": 1234, "real": 5678},
+    cursos={"pruebas": 1234},
+    reales=(5678,),
 )
 CFG_SIN_PRUEBAS = config.Config(
     url="https://aula.ejemplo.org/centro",
     usuario="profe",
-    cursos={"real": 5678},
+    cursos={},
+    reales=(5678,),
     sin_pruebas=True,
 )
 
@@ -414,7 +416,7 @@ class TestProcesarPeticionSinPruebas:
         assert documento["resultado"] == "ok"
         datos = json.loads((carpeta / ".tiza" / "estructura.json").read_text(encoding="utf-8"))
         assert set(datos["cursos"]) == {"real"}
-        assert datos["cursos"]["real"]["secciones"][0]["nombre"] == "Tema 3"
+        assert datos["cursos"]["real"][0]["secciones"][0]["nombre"] == "Tema 3"
 
     def test_con_pruebas_la_puerta_y_la_vista_previa_siguen_igual(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)
@@ -1046,3 +1048,287 @@ class TestCalendarioEnLaConfirmacion:
         entrega = next(c for c in doc.cambios if c.campo == "entrega")
         assert entrega.estado == "cambia"
         assert entrega.avisos == ("FECHA_FESTIVA",)
+
+
+# --- varios cursos reales -------------------------------------------------- #
+
+CFG_DOS = config.Config(
+    url="https://aula.ejemplo.org/centro",
+    usuario="profe",
+    cursos={"pruebas": 1234},
+    reales=(101, 102),
+)
+CFG_DOS_SIN_PRUEBAS = config.Config(
+    url="https://aula.ejemplo.org/centro",
+    usuario="profe",
+    cursos={},
+    reales=(101, 102),
+    sin_pruebas=True,
+)
+NOMBRES_DOS = {101: "1º A", 102: "1º B"}
+
+
+def aula_con_dos_cursos() -> MoodleFalso:
+    def seccion(nombre):
+        return [{"numero": 3, "nombre": nombre, "id": 30, "modulos": []}]
+
+    return MoodleFalso(secciones_por_curso={101: seccion("Tema 3"), 102: seccion("Tema tres")})
+
+
+def publicar_en_real(tmp_path, presencia, cfg=CFG_DOS, moodle=None, datos=None):
+    carpeta = preparar_carpeta(tmp_path)
+    verificar_en_pruebas(carpeta)
+    datos = datos or peticion("real")
+    dejar_peticion(carpeta, datos)
+    moodle = moodle or aula_con_dos_cursos()
+    documento = sesion.procesar_peticion(
+        datos, moodle, cfg, carpeta, presencia, nombres=NOMBRES_DOS
+    )
+    return carpeta, moodle, documento
+
+
+class TestVariosCursosReales:
+    def test_publica_en_los_dos_con_una_confirmacion_por_curso(self, tmp_path):
+        presencia = PresenciaFalsa(real=(True, True))
+        _, moodle, documento = publicar_en_real(tmp_path, presencia)
+        assert documento["resultado"] == "ok"
+        assert [(r.curso, r.nombre_curso, r.posicion, r.total) for r in presencia.resumenes] == [
+            (101, "1º A", 1, 2),
+            (102, "1º B", 2, 2),
+        ]
+        creados = [llamada[1] for llamada in moodle.llamadas if llamada[0] == "crear"]
+        assert creados == [101, 102]
+        assert documento["curso"] is None
+        assert [(f["curso"], f["cmid"]) for f in documento["ficheros"]] == [(101, 100), (102, 101)]
+        assert [p["detalle"] for p in documento["pasos"] if p["codigo"] == "CURSO"] == [
+            "1 de 2: 101",
+            "2 de 2: 102",
+        ]
+        assert [p["codigo"] for p in documento["pasos"]].count("LOGIN") == 1
+
+    def test_la_puerta_y_las_vistas_se_hacen_una_vez(self, tmp_path):
+        presencia = PresenciaFalsa(real=(True, True))
+        _, _, _ = publicar_en_real(tmp_path, presencia)
+        primera, segunda = presencia.resumenes
+        assert primera.documentos[0].vista_previa == segunda.documentos[0].vista_previa
+        assert primera.documentos[0].vista_previa is not None
+
+    def test_sin_verificar_no_se_publica_en_ninguno(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        datos = peticion("real")
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=(True, True))
+        documento = sesion.procesar_peticion(
+            datos, aula_con_dos_cursos(), CFG_DOS, carpeta, presencia
+        )
+        assert documento["errores"] == ["VERIFICACION_PENDIENTE"]
+        assert presencia.resumenes == []
+
+    def test_no_en_el_primero_y_si_en_el_segundo(self, tmp_path):
+        presencia = PresenciaFalsa(real=(False, True))
+        _, moodle, documento = publicar_en_real(tmp_path, presencia)
+        assert documento["resultado"] == "ok"
+        assert [c for c in (ll[1] for ll in moodle.llamadas if ll[0] == "crear")] == [102]
+        assert [(f["curso"]) for f in documento["ficheros"]] == [102]
+        assert ("CURSO_OMITIDO", "101") in [(p["codigo"], p["detalle"]) for p in documento["pasos"]]
+
+    def test_no_en_todos_es_abortado(self, tmp_path):
+        presencia = PresenciaFalsa(real=False)
+        _, moodle, documento = publicar_en_real(tmp_path, presencia)
+        assert documento["resultado"] == "abortado"
+        assert documento["errores"] == ["ABORTADO"]
+        assert not any(llamada[0] == "crear" for llamada in moodle.llamadas)
+        assert [p["codigo"] for p in documento["pasos"]] == ["CURSO_OMITIDO", "CURSO_OMITIDO"]
+
+    def test_un_fallo_en_el_segundo_deja_hecho_el_primero(self, tmp_path):
+        moodle = aula_con_dos_cursos()
+        moodle.secciones_por_curso[102] = []  # sin la sección 3: no se puede publicar ahí
+        presencia = PresenciaFalsa(real=(True, True))
+        _, _, documento = publicar_en_real(tmp_path, presencia, moodle=moodle)
+        assert documento["resultado"] == "error"
+        assert [f["curso"] for f in documento["ficheros"]] == [101]
+        assert documento["errores"]
+        pasos = [(p["codigo"], p["resultado"]) for p in documento["pasos"]]
+        assert ("CURSO", "ok") in pasos and ("CURSO", "fallo") in pasos
+
+    def test_un_fallo_en_el_primero_no_sigue_con_el_segundo(self, tmp_path):
+        moodle = aula_con_dos_cursos()
+        moodle.secciones_por_curso[101] = []
+        presencia = PresenciaFalsa(real=(True, True))
+        _, _, documento = publicar_en_real(tmp_path, presencia, moodle=moodle)
+        assert documento["resultado"] == "error"
+        assert documento["ficheros"] == []
+        assert [r.curso for r in presencia.resumenes] == [101]
+
+    def test_retirada_entre_cursos(self, tmp_path, monkeypatch):
+        respuestas = iter(
+            [True, True, False]
+        )  # antes del 1.º (tras confirmar), 2.º y tras confirmar
+        monkeypatch.setattr(buzon, "peticion_pendiente", lambda *a, **k: next(respuestas))
+        presencia = PresenciaFalsa(real=(True, True))
+        _, moodle, documento = publicar_en_real(tmp_path, presencia)
+        assert documento["resultado"] == "error"
+        assert documento["errores"] == ["PETICION_RETIRADA"]
+        assert [f["curso"] for f in documento["ficheros"]] == [101]
+        assert "PETICION_RETIRADA" in presencia.codigos()
+
+    def test_las_secciones_nuevas_se_avisan_solo_en_el_curso_que_las_necesita(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        (carpeta / "pagina.md").write_text(
+            PAGINA.replace("seccion: 3", "seccion: Tema tres"), encoding="utf-8"
+        )
+        presencia = PresenciaFalsa(real=(True, True))
+        verificar_en_pruebas(carpeta)
+        datos = peticion("real")
+        dejar_peticion(carpeta, datos)
+        moodle = aula_con_dos_cursos()
+        documento = sesion.procesar_peticion(
+            datos, moodle, CFG_DOS, carpeta, presencia, nombres=NOMBRES_DOS
+        )
+        assert documento["resultado"] == "ok"
+        primero, segundo = presencia.resumenes
+        assert primero.secciones_nuevas == ("Tema tres",)
+        assert segundo.secciones_nuevas == ()
+
+    def test_sin_pruebas_exige_oculto_en_todos(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        datos = peticion("real")
+        dejar_peticion(carpeta, datos)
+        documento = sesion.procesar_peticion(
+            datos, aula_con_dos_cursos(), CFG_DOS_SIN_PRUEBAS, carpeta, PresenciaFalsa()
+        )
+        assert documento["errores"] == ["SOLO_OCULTO_SIN_PRUEBAS"]
+
+    def test_sin_pruebas_con_oculto_confirma_cada_curso(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        datos = peticion("real", visible=False)
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=(True, True))
+        moodle = aula_con_dos_cursos()
+        documento = sesion.procesar_peticion(
+            datos, moodle, CFG_DOS_SIN_PRUEBAS, carpeta, presencia, nombres=NOMBRES_DOS
+        )
+        assert documento["resultado"] == "ok"
+        assert [(r.curso, r.posicion, r.total) for r in presencia.resumenes_cortos] == [
+            (101, 1, 2),
+            (102, 2, 2),
+        ]
+
+    def test_un_solo_curso_da_el_informe_de_siempre(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        verificar_en_pruebas(carpeta)
+        datos = peticion("real")
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=True)
+        documento = sesion.procesar_peticion(datos, MoodleFalso(), CFG, carpeta, presencia)
+        assert documento["curso"] == 5678
+        assert [f["curso"] for f in documento["ficheros"]] == [5678]
+        assert all(p["codigo"] not in ("CURSO", "CURSO_OMITIDO") for p in documento["pasos"])
+        [resumen] = presencia.resumenes
+        assert (resumen.posicion, resumen.total) == (1, 1)
+
+    def test_un_solo_curso_dicho_que_no_es_abortado_como_siempre(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        verificar_en_pruebas(carpeta)
+        datos = peticion("real")
+        dejar_peticion(carpeta, datos)
+        documento = sesion.procesar_peticion(
+            datos, MoodleFalso(), CFG, carpeta, PresenciaFalsa(real=False)
+        )
+        assert (documento["resultado"], documento["errores"], documento["pasos"]) == (
+            "abortado",
+            ["ABORTADO"],
+            [],
+        )
+
+    def test_solo_fechas_pregunta_en_cada_curso(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        _tarea(carpeta)
+        moodle = aula_con_dos_cursos()
+        for curso, cmid in ((101, 55), (102, 56)):
+            moodle.secciones_por_curso[curso][0]["modulos"] = [
+                {"cmid": cmid, "nombre": "Problemas", "tipo": "tarea"}
+            ]
+            moodle.formularios[cmid] = _aula_con_tarea().formularios[55]
+        datos = {**peticion("real"), "ficheros": ["tarea.md"], "solo_fechas": True}
+        dejar_peticion(carpeta, datos)
+        presencia = PresenciaFalsa(real=(True, False))
+        documento = sesion.procesar_peticion(
+            datos, moodle, CFG_DOS, carpeta, presencia, nombres=NOMBRES_DOS
+        )
+        assert documento["resultado"] == "ok"
+        assert [(r.curso, r.solo_fechas, r.posicion) for r in presencia.resumenes] == [
+            (101, True, 1),
+            (102, True, 2),
+        ]
+        assert [f["curso"] for f in documento["ficheros"]] == [101]
+
+    def test_ningun_nombre_de_curso_llega_al_informe_ni_a_tiza(self, tmp_path):
+        presencia = PresenciaFalsa(real=(True, True))
+        carpeta, _, documento = publicar_en_real(tmp_path, presencia)
+        texto = json.dumps(documento, ensure_ascii=False)
+        assert "1º A" not in texto and "1º B" not in texto
+        for ruta in (carpeta / ".tiza").rglob("*"):
+            if ruta.is_file() and ruta.suffix in {".json", ".html", ".md"}:
+                assert "1º A" not in ruta.read_text(encoding="utf-8", errors="ignore")
+
+
+class TestEstructuraConVariosReales:
+    def test_escribe_la_version_2_con_una_lista_de_cursos_reales(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        documento = sesion.estructura_con(aula_con_dos_cursos(), CFG_DOS, carpeta)
+        assert documento["resultado"] == "ok"
+        datos = json.loads((carpeta / ".tiza" / "estructura.json").read_text(encoding="utf-8"))
+        assert datos["version"] == 2
+        assert datos["cursos"]["pruebas"]["id"] == 1234
+        assert [c["id"] for c in datos["cursos"]["real"]] == [101, 102]
+        assert datos["cursos"]["real"][1]["secciones"][0]["nombre"] == "Tema tres"
+        assert "1º A" not in json.dumps(datos, ensure_ascii=False)
+
+
+class TestElegirCursosReales:
+    def preparar(self, tmp_path, monkeypatch, presencia, cursos=None):
+        carpeta = tmp_path / "asignatura"
+        monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
+        configurar_aula(carpeta, cursos)
+        cfg = config.resolver(carpeta)
+        return carpeta, cfg
+
+    def test_pregunta_los_reales_de_golpe_y_los_guarda_en_lista(self, tmp_path, monkeypatch):
+        carpeta, cfg = self.preparar(tmp_path, monkeypatch, None, {"pruebas": 9})
+        presencia = PresenciaFalsa(reales=(101, 102))
+        completa = sesion._completar_cursos(cfg, {101: "A", 102: "B"}, carpeta, presencia)
+        assert completa is not None and completa.reales == (101, 102)
+        assert config.cargar_carpeta(carpeta)["cursos"] == {"pruebas": 9, "real": [101, 102]}
+        [(lista, excluir)] = presencia.reales_vistos
+        assert excluir == 9 and [c["id"] for c in lista] == [101, 102]
+
+    def test_cancelar_no_guarda_nada(self, tmp_path, monkeypatch):
+        carpeta, cfg = self.preparar(tmp_path, monkeypatch, None, {"pruebas": 9})
+        presencia = PresenciaFalsa(reales=())
+        assert sesion._completar_cursos(cfg, {}, carpeta, presencia) is None
+
+    def test_elegir_cursos_vuelve_a_preguntar_aunque_este_todo_configurado(
+        self, tmp_path, monkeypatch
+    ):
+        carpeta, cfg = self.preparar(tmp_path, monkeypatch, None, {"pruebas": 9, "real": 3})
+        presencia = PresenciaFalsa(cursos=(8,), reales=(4, 5))
+        completa = sesion._completar_cursos(cfg, {}, carpeta, presencia, elegir=True)
+        assert completa is not None
+        assert completa.cursos == {"pruebas": 8} and completa.reales == (4, 5)
+
+    def test_sin_elegir_no_pregunta_si_esta_todo(self, tmp_path, monkeypatch):
+        carpeta, cfg = self.preparar(tmp_path, monkeypatch, None, {"pruebas": 9, "real": [3, 4]})
+        presencia = PresenciaFalsa()
+        assert sesion._completar_cursos(cfg, {}, carpeta, presencia) is cfg
+        assert presencia.reales_vistos == []
+
+    def test_confirmar_cursos_enseña_todos_los_reales(self, tmp_path):
+        presencia = PresenciaFalsa()
+        sesion._confirmar_cursos(CFG_DOS, {101: "1º A"}, presencia)
+        [cursos] = presencia.cursos_vistos
+        assert [(c.entorno, c.id, c.nombre, c.ajeno) for c in cursos] == [
+            ("pruebas", 1234, None, True),
+            ("real", 101, "1º A", False),
+            ("real", 102, None, True),
+        ]

@@ -79,7 +79,7 @@ def test_la_carpeta_no_puede_fijar_ni_cambiar_la_url(tmp_path, monkeypatch):
     )
     resuelta = config.resolver(carpeta)
     assert resuelta.url == "https://aula.ejemplo.org/centro"
-    assert resuelta.cursos == {"real": 9}
+    assert resuelta.reales == (9,)
 
 
 def test_guardar_carpeta_no_puede_fijar_la_url(tmp_path):
@@ -344,7 +344,8 @@ def test_resolver_acepta_solo_el_curso_real(tmp_path, monkeypatch):
     config.guardar_global("https://aula.ejemplo.org/centro", "profe")
     (tmp_path / "tiza.toml").write_text("[cursos]\nreal = 5678\n", encoding="utf-8")
     resuelta = config.resolver(tmp_path)
-    assert resuelta.cursos == {"real": 5678}
+    assert resuelta.cursos == {}
+    assert resuelta.reales == (5678,)
     assert resuelta.sin_pruebas is False
 
 
@@ -357,7 +358,8 @@ def test_sin_pruebas_en_la_carpeta_quita_el_curso_de_pruebas(tmp_path, monkeypat
         "[cursos]\nreal = 5678\nsin_pruebas = true\n", encoding="utf-8"
     )
     resuelta = config.resolver(carpeta)
-    assert resuelta.cursos == {"real": 5678}
+    assert resuelta.cursos == {}
+    assert resuelta.reales == (5678,)
     assert resuelta.sin_pruebas is True
 
 
@@ -370,7 +372,8 @@ def test_un_curso_de_pruebas_explicito_vuelve_a_ganar(tmp_path, monkeypatch):
         "[cursos]\npruebas = 9999\nreal = 5678\nsin_pruebas = true\n", encoding="utf-8"
     )
     resuelta = config.resolver(carpeta)
-    assert resuelta.cursos == {"pruebas": 9999, "real": 5678}
+    assert resuelta.cursos == {"pruebas": 9999}
+    assert resuelta.reales == (5678,)
     assert resuelta.sin_pruebas is False
 
 
@@ -577,3 +580,82 @@ def test_preparar_url_inaccesible_o_rota(monkeypatch):
     with pytest.raises(config.ErrorConfig) as exc:
         config.preparar_url("https://aula.ejemplo.org/centro")
     assert exc.value.codigo == "URL_INVALIDA"
+
+
+# --- varios cursos reales -------------------------------------------------- #
+
+
+def _resolver_con(tmp_path, monkeypatch, toml: str):
+    usar_directorio(tmp_path, monkeypatch)
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
+    carpeta = tmp_path / "asignatura"
+    carpeta.mkdir()
+    (carpeta / "tiza.toml").write_text(toml, encoding="utf-8")
+    return config.resolver(carpeta)
+
+
+def test_real_entero_sigue_funcionando(tmp_path, monkeypatch):
+    resuelta = _resolver_con(tmp_path, monkeypatch, "[cursos]\npruebas = 9\nreal = 3\n")
+    assert resuelta.reales == (3,)
+    assert resuelta.cursos == {"pruebas": 9}
+
+
+def test_real_admite_una_lista_en_orden(tmp_path, monkeypatch):
+    resuelta = _resolver_con(tmp_path, monkeypatch, "[cursos]\nreal = [7, 3, 5]\n")
+    assert resuelta.reales == (7, 3, 5)
+    assert resuelta.cursos == {}
+
+
+def test_sin_real_no_hay_reales(tmp_path, monkeypatch):
+    assert _resolver_con(tmp_path, monkeypatch, "[cursos]\npruebas = 9\n").reales == ()
+
+
+@pytest.mark.parametrize(
+    "valor",
+    [
+        "[]",
+        "[1, 2, 3, 4, 5, 6, 7]",
+        "[1, 1]",
+        "[true]",
+        "[1, true]",
+        "[0]",
+        "[-1]",
+        '["1"]',
+        "[[1]]",
+    ],
+)
+def test_real_con_una_lista_no_valida_falla(tmp_path, monkeypatch, valor):
+    with pytest.raises(ErrorConfig) as exc:
+        _resolver_con(tmp_path, monkeypatch, f"[cursos]\nreal = {valor}\n")
+    assert exc.value.codigo == "CURSO_INVALIDO"
+
+
+def test_seis_reales_es_el_maximo(tmp_path, monkeypatch):
+    resuelta = _resolver_con(tmp_path, monkeypatch, "[cursos]\nreal = [1, 2, 3, 4, 5, 6]\n")
+    assert resuelta.reales == (1, 2, 3, 4, 5, 6)
+
+
+def test_pruebas_no_puede_estar_entre_los_reales(tmp_path, monkeypatch):
+    with pytest.raises(ErrorConfig) as exc:
+        _resolver_con(tmp_path, monkeypatch, "[cursos]\npruebas = 4\nreal = [3, 4]\n")
+    assert exc.value.codigo == "CURSOS_IGUALES"
+
+
+def test_guardar_carpeta_escribe_uno_como_entero_y_varios_como_lista(tmp_path):
+    ruta = config.guardar_carpeta(tmp_path, {"pruebas": 1, "real": [101]})
+    assert ruta.read_text(encoding="utf-8") == "[cursos]\npruebas = 1\nreal = 101\n"
+    config.guardar_carpeta(tmp_path, {"real": (101, 102)})
+    assert ruta.read_text(encoding="utf-8") == "[cursos]\npruebas = 1\nreal = [101, 102]\n"
+    assert config.cargar_carpeta(tmp_path)["cursos"]["real"] == [101, 102]
+
+
+def test_guardar_carpeta_rechaza_pruebas_entre_los_reales(tmp_path):
+    with pytest.raises(ErrorConfig) as exc:
+        config.guardar_carpeta(tmp_path, {"pruebas": 2, "real": [1, 2]})
+    assert exc.value.codigo == "CURSOS_IGUALES"
+
+
+def test_guardar_carpeta_rechaza_una_lista_no_valida(tmp_path):
+    with pytest.raises(ErrorConfig) as exc:
+        config.guardar_carpeta(tmp_path, {"real": [1, 1]})
+    assert exc.value.codigo == "CURSO_INVALIDO"

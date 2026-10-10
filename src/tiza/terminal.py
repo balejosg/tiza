@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from . import ayuda, informe
+from .config import MAX_REALES
 from .informe import ErrorInforme
 from .sesion import (
     CAMPO_RECORDATORIO,
@@ -42,6 +43,7 @@ __all__ = [
     "confirmar_destino",
     "describir_curso",
     "elegir_curso",
+    "elegir_cursos_reales",
     "exigir_tty",
     "pedir_password",
     "preguntar_con_limite",
@@ -135,6 +137,12 @@ def preguntar_con_limite(pregunta: str, segundos: float, *, tramo: float = 0.5) 
     return False
 
 
+def _cabecera_de_curso(posicion: int, total: int, curso: str) -> None:
+    """Con varios cursos reales, cada confirmación dice cuál es: «Curso 2 de 3: …»."""
+    if total > 1:
+        print(f"Curso {posicion} de {total}: {curso}")
+
+
 def describir_curso(curso: int, nombre: str | None) -> str:
     if nombre:
         return f"«{texto_seguro(nombre, 80)}» (id {curso})"
@@ -181,6 +189,72 @@ def elegir_curso(entorno: str, cursos: list[dict], excluir: int | None = None) -
         if numero is not None and 1 <= numero <= len(opciones):
             return opciones[numero - 1]["id"]
         print("Escribe uno de los números de la lista.")
+
+
+def _ids_distintos(valor: str, excluir: int | None) -> list[int] | None:
+    """Ids separados por comas, positivos, sin repetir, sin ``excluir`` y no más de MAX_REALES."""
+    numeros = [_numero(trozo.strip()) for trozo in valor.split(",")]
+    if (
+        any(numero is None or numero <= 0 or numero == excluir for numero in numeros)
+        or len(set(numeros)) != len(numeros)
+        or len(numeros) > MAX_REALES
+    ):
+        return None
+    return [numero for numero in numeros if numero is not None]
+
+
+def elegir_cursos_reales(cursos: list[dict], excluir: int | None = None) -> list[int] | None:
+    """El docente elige de 1 a MAX_REALES cursos reales con números separados por comas.
+
+    Se publica en todos, en el orden en que los escribe; None si cancela.
+    """
+    opciones = [curso for curso in cursos if curso["id"] != excluir]
+    print(f"¿Cuáles son tus cursos REALES? ({_PARA_QUE['real']}; hasta {MAX_REALES})")
+    if not opciones:
+        return _pedir_ids(excluir)
+    for indice, curso in enumerate(opciones, 1):
+        print(f"  {indice}. {texto_seguro(curso['nombre'], 80)}")
+    print("  0. No están en la lista: escribiré sus ids")
+    while True:
+        try:
+            valor = input("Números separados por comas, por ejemplo 1,3 (Enter para cancelar): ")
+        except EOFError:
+            return None
+        valor = valor.strip()
+        if not valor:
+            return None
+        if valor == "0":
+            return _pedir_ids(excluir)
+        numeros = [_numero(trozo.strip()) for trozo in valor.split(",")]
+        if (
+            all(numero is not None and 1 <= numero <= len(opciones) for numero in numeros)
+            and len(set(numeros)) == len(numeros)
+            and len(numeros) <= MAX_REALES
+        ):
+            return [opciones[numero - 1]["id"] for numero in numeros if numero is not None]
+        print(
+            f"Escribe números de la lista separados por comas, sin repetir y como máximo {MAX_REALES}."
+        )
+
+
+def _pedir_ids(excluir: int | None) -> list[int] | None:
+    while True:
+        try:
+            valor = input(
+                "Ids de los cursos reales separados por comas (en la URL del curso: "
+                "course/view.php?id=1234; Enter para cancelar): "
+            ).strip()
+        except EOFError:
+            return None
+        if not valor:
+            return None
+        ids = _ids_distintos(valor, excluir)
+        if ids is not None:
+            return ids
+        print(
+            "Escribe ids de curso válidos, sin repetir, distintos del curso de pruebas "
+            f"y como máximo {MAX_REALES}."
+        )
 
 
 def _pedir_id(entorno: str, excluir: int | None) -> int | None:
@@ -340,6 +414,9 @@ class PresenciaTerminal:
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:
         return elegir_curso(entorno, cursos, excluir=excluir)
 
+    def elegir_cursos_reales(self, cursos: list[dict], excluir: int | None) -> list[int] | None:
+        return elegir_cursos_reales(cursos, excluir=excluir)
+
     def confirmar_cursos(self, cursos: list[CursoSesion]) -> bool:
         print("Cursos de esta sesión:")
         for curso in cursos:
@@ -371,6 +448,7 @@ class PresenciaTerminal:
 
     def confirmar_real(self, resumen: ResumenPublicacion) -> bool:
         curso = describir_curso(resumen.curso, resumen.nombre_curso)
+        _cabecera_de_curso(resumen.posicion, resumen.total, curso)
         if resumen.solo_fechas:
             print(f"El agente pide cambiar solo las fechas en el curso REAL {curso}:")
         else:
@@ -418,6 +496,7 @@ class PresenciaTerminal:
 
     def confirmar_real_sin_pruebas(self, resumen: ResumenSinPruebas) -> bool:
         curso = describir_curso(resumen.curso, resumen.nombre_curso)
+        _cabecera_de_curso(resumen.posicion, resumen.total, curso)
         print(f"Sin curso de pruebas: se publicará solo en oculto en el curso {curso}.")
         print("El agente pide publicar en el curso REAL, sin verificación previa:")
         for doc in resumen.documentos:

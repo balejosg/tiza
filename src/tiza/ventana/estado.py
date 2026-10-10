@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from .. import ayuda, informe, rutas
+from ..config import MAX_REALES
 from ..informe import ErrorInforme
 from ..sesion import SIN_PRUEBAS, Aviso, CursoSesion, ResumenPublicacion, ResumenSinPruebas
 from ..terminal import (
@@ -104,6 +105,40 @@ def _elegir_curso(respuesta: Any, opciones: Any) -> Any:
     return _INVALIDA
 
 
+def _elegir_reales(respuesta: Any, opciones: Any) -> Any:
+    """Casillas marcadas (índices, en orden) y/o ids escritos: de 1 a MAX_REALES, sin repetir."""
+    if respuesta is None:
+        return None
+    if not isinstance(respuesta, dict):
+        return _INVALIDA
+    ids: list[int] = opciones["ids"]
+    elegidos: list[int] = []
+    indices = respuesta.get("indices", [])
+    if not isinstance(indices, list):
+        return _INVALIDA
+    for indice in indices:
+        if not isinstance(indice, int) or isinstance(indice, bool) or not 0 <= indice < len(ids):
+            return _INVALIDA
+        elegidos.append(ids[indice])
+    texto = respuesta.get("ids", "")
+    if not isinstance(texto, str) or len(texto) > 100:
+        return _INVALIDA
+    for trozo in texto.split(","):
+        trozo = trozo.strip()
+        if not trozo:
+            continue
+        if not trozo.isdigit() or len(trozo) > 12 or int(trozo) <= 0:
+            return _INVALIDA
+        elegidos.append(int(trozo))
+    if (
+        not 1 <= len(elegidos) <= MAX_REALES
+        or len(set(elegidos)) != len(elegidos)
+        or opciones["excluir"] in elegidos
+    ):
+        return _INVALIDA
+    return elegidos
+
+
 def _si_o_no(respuesta: Any, _opciones: Any) -> Any:
     return respuesta if isinstance(respuesta, bool) else _INVALIDA
 
@@ -112,6 +147,7 @@ _VALIDAR: dict[str, Callable[[Any, Any], Any]] = {
     "password": _password,
     "configurar": _configurar,
     "elegir_curso": _elegir_curso,
+    "elegir_reales": _elegir_reales,
     "cursos": _si_o_no,
     "autoprueba": _si_o_no,
     "sin_pruebas": _si_o_no,
@@ -275,6 +311,18 @@ class PresenciaVentana:
             },
         )
 
+    def elegir_cursos_reales(self, cursos: list[dict], excluir: int | None) -> list[int] | None:
+        opciones = [curso for curso in cursos if curso["id"] != excluir]
+        return self._ventana.preguntar(
+            {
+                "tipo": "elegir_reales",
+                "para_que": _PARA_QUE.get("real", ""),
+                "maximo": MAX_REALES,
+                "opciones": [texto_seguro(curso["nombre"], 80) for curso in opciones],
+            },
+            opciones={"ids": [curso["id"] for curso in opciones], "excluir": excluir},
+        )
+
     def confirmar_cursos(self, cursos: list[CursoSesion]) -> bool:
         filas = [
             {
@@ -313,6 +361,8 @@ class PresenciaVentana:
         pantalla = {
             "tipo": "real",
             "curso": describir_curso(resumen.curso, resumen.nombre_curso),
+            "posicion": resumen.posicion,
+            "total": resumen.total,
             "solo_fechas": solo,
             "aviso_calendario": (
                 ayuda.explicar(resumen.aviso_calendario) or ""
@@ -345,6 +395,8 @@ class PresenciaVentana:
         pantalla = {
             "tipo": "real_sin_pruebas",
             "curso": describir_curso(resumen.curso, resumen.nombre_curso),
+            "posicion": resumen.posicion,
+            "total": resumen.total,
             "documentos": [
                 {
                     "fichero": _texto(doc.fichero),

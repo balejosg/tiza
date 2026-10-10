@@ -164,6 +164,48 @@ def test_elegir_curso_sin_lista_pide_id(monkeypatch):
     assert terminal.elegir_curso("pruebas", []) == 4321
 
 
+def test_elegir_cursos_reales_con_numeros_separados_por_comas(monkeypatch, capsys):
+    responder(monkeypatch, ["2, 1"])
+    assert terminal.elegir_cursos_reales(CURSOS) == [1234, 5678]
+    salida = capsys.readouterr().out
+    assert "1. Matemáticas 2ºB" in salida and "2. Pruebas de Mates" in salida
+
+
+def test_elegir_cursos_reales_excluye_el_de_pruebas(monkeypatch, capsys):
+    responder(monkeypatch, ["1"])
+    assert terminal.elegir_cursos_reales(CURSOS, excluir=1234) == [5678]
+    assert "Pruebas de Mates" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("mala", ["3", "0,1", "1,1", "a", "1,,2", "1;2", "9" * 5000])
+def test_elegir_cursos_reales_rechaza_y_reintenta(monkeypatch, mala):
+    responder(monkeypatch, [mala, "1"])
+    assert terminal.elegir_cursos_reales(CURSOS) == [5678]
+
+
+def test_elegir_cursos_reales_no_pasa_del_maximo(monkeypatch):
+    cursos = [{"id": n, "nombre": f"Curso {n}"} for n in range(1, 9)]
+    responder(monkeypatch, ["1,2,3,4,5,6,7", "1,2,3,4,5,6"])
+    assert terminal.elegir_cursos_reales(cursos) == [1, 2, 3, 4, 5, 6]
+
+
+def test_elegir_cursos_reales_pide_ids_a_mano(monkeypatch):
+    responder(monkeypatch, ["0", "7, 1234, x", "1234", "7,8"])
+    assert terminal.elegir_cursos_reales(CURSOS, excluir=1234) == [7, 8]
+
+
+def test_elegir_cursos_reales_sin_lista_pide_ids(monkeypatch):
+    responder(monkeypatch, ["4321,4322"])
+    assert terminal.elegir_cursos_reales([]) == [4321, 4322]
+
+
+def test_elegir_cursos_reales_cancela_con_enter_y_con_eof(monkeypatch):
+    responder(monkeypatch, [""])
+    assert terminal.elegir_cursos_reales(CURSOS) is None
+    responder(monkeypatch, ["0", ""])
+    assert terminal.elegir_cursos_reales(CURSOS) is None
+
+
 def eof(monkeypatch):
     def _input(_prompt=""):
         raise EOFError
@@ -174,6 +216,12 @@ def eof(monkeypatch):
 def test_confirmar_eof_devuelve_false(monkeypatch):
     eof(monkeypatch)
     assert terminal.confirmar("¿Seguir?") is False
+
+
+def test_elegir_cursos_reales_eof_devuelve_none(monkeypatch):
+    eof(monkeypatch)
+    assert terminal.elegir_cursos_reales(CURSOS) is None
+    assert terminal.elegir_cursos_reales([]) is None
 
 
 def test_elegir_curso_eof_devuelve_none(monkeypatch):
@@ -558,3 +606,32 @@ class TestCambiosDeFecha:
         terminal.PresenciaTerminal().confirmar_real(resumen)
         salida = capsys.readouterr().out
         assert "AVISO: calendario.toml no se puede usar." in salida
+
+
+def test_con_varios_cursos_cada_confirmacion_lleva_su_cabecera(monkeypatch, capsys):
+    monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
+    resumen = sesion.ResumenPublicacion(
+        curso=102,
+        nombre_curso="1º B",
+        documentos=(),
+        secciones_nuevas=(),
+        visible=None,
+        posicion=2,
+        total=3,
+    )
+    assert terminal.PresenciaTerminal().confirmar_real(resumen) is True
+    assert "Curso 2 de 3: «1º B» (id 102)" in capsys.readouterr().out
+    corto = sesion.ResumenSinPruebas(
+        curso=103, nombre_curso=None, documentos=(), secciones_nuevas=(), posicion=3, total=3
+    )
+    assert terminal.PresenciaTerminal().confirmar_real_sin_pruebas(corto) is True
+    assert "Curso 3 de 3: id 103" in capsys.readouterr().out
+
+
+def test_con_un_solo_curso_no_hay_cabecera(monkeypatch, capsys):
+    monkeypatch.setattr(terminal, "confirmar_destino", lambda *a, **k: True)
+    resumen = sesion.ResumenPublicacion(
+        curso=5678, nombre_curso=None, documentos=(), secciones_nuevas=(), visible=None
+    )
+    terminal.PresenciaTerminal().confirmar_real(resumen)
+    assert "Curso 1 de" not in capsys.readouterr().out
