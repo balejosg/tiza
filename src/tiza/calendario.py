@@ -20,7 +20,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from . import rutas
+from . import rutas, tipos
 from .ficheros import FicheroNoSeguro, leer_bytes_acotado
 
 if TYPE_CHECKING:  # solo para el tipo; contenido no importa este módulo
@@ -175,24 +175,13 @@ def fechas_del_documento(doc: Documento) -> tuple[tuple[str, date, bool], ...]:
     """(campo, día, es_día_de_clase) de las fechas que el calendario revisa.
 
     La entrega y el cierre son los días en que el alumnado trabaja; la apertura y
-    el límite no se exigen en día de clase.
+    el límite no se exigen en día de clase. Cada tipo lo declara en su adapter.
     """
-    if doc.fechas is not None:
-        salida = [
-            ("apertura", doc.fechas.apertura.date(), False),
-            ("entrega", doc.fechas.entrega.date(), True),
-        ]
-        if doc.fechas.limite is not None:
-            salida.append(("límite", doc.fechas.limite.date(), False))
-        return tuple(salida)
-    if doc.cuestionario is not None:
-        salida = []
-        if doc.cuestionario.apertura is not None:
-            salida.append(("apertura", doc.cuestionario.apertura.date(), False))
-        if doc.cuestionario.cierre is not None:
-            salida.append(("cierre", doc.cuestionario.cierre.date(), True))
-        return tuple(salida)
-    return ()
+    return tuple(
+        (fecha.campo, fecha.momento.date(), fecha.exige_clase)
+        for fecha in tipos.obtener(doc.tipo).fechas(doc)
+        if fecha.momento is not None
+    )
 
 
 def avisos(calendario: Calendario | None, dia: date, *, clase: bool) -> tuple[str, ...]:

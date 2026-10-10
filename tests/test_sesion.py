@@ -42,7 +42,7 @@ def test_resumen_de_un_documento(tmp_path):
     resumen = publicacion.DocumentoResumen.de(doc, tmp_path.resolve())
     assert resumen.fichero == "tarea.md"
     assert (resumen.tipo, resumen.nombre, resumen.seccion) == ("tarea", "Problemas", "Fracciones")
-    assert resumen.fechas is not None
+    assert [fecha.campo for fecha in resumen.fechas] == ["apertura", "entrega"]
     assert resumen.recursos == ("img/foto.png",)
     assert resumen.enlaces_externos == ("https://ejemplo.org/x",)
     assert resumen.vista_previa is None

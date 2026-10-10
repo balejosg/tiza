@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from . import ayuda
+from . import ayuda, tipos
 from .ficheros import asegurar_directorio, escribir_json
 
 __all__ = ["ErrorInforme", "crear", "escribir", "leer", "resumen", "validar", "validar_estructura"]
@@ -28,7 +28,8 @@ MAX_CURSOS_REALES = 6  # igual que config.MAX_REALES (este módulo no importa co
 RESULTADOS = {"ok", "error", "abortado"}
 RESULTADOS_PASO = {"ok", "fallo"}
 ACCIONES = {"creada", "actualizada", "borrada", "verificada"}
-TIPOS = {"pagina", "tarea", "cuestionario", "etiqueta", "h5p"}
+# El registro de tipos (tipos/) es el dueño de qué tipos existen.
+TIPOS = set(tipos.TIPOS)
 
 _CAMPOS_RAIZ = {
     "version",

@@ -22,14 +22,18 @@ import yaml
 from bs4 import BeautifulSoup, Tag
 from markdown_it import MarkdownIt
 
-from . import filtro, rutas
+from . import filtro, rutas, tipos
 from .ficheros import FicheroNoSeguro, asegurar_directorio, escribir_texto, leer_bytes_acotado
 from .filtro import CONTROL as _CONTROL
+from .tipos.cuestionario import CAMPOS_CUESTIONARIO
+from .tipos.h5p import CAMPOS_H5P
 
 __all__ = [
     "EXTENSIONES",
     "MAX_DOCUMENTO_BYTES",
     "MAX_RECURSO_BYTES",
+    "CAMPOS_CUESTIONARIO",
+    "CAMPOS_H5P",
     "ErrorContenido",
     "ActividadH5P",
     "Cuestionario",
@@ -55,29 +59,12 @@ __all__ = [
 
 EXTENSIONES = (".md", ".html", ".htm")  # en minúsculas; el resto de ficheros no es contenido
 _EXTENSIONES_HTML = frozenset({".html", ".htm"})
-TTIPOS = ("pagina", "tarea", "cuestionario", "etiqueta", "h5p")
+# El orden canónico de los tipos y sus campos propios lo fija el registro (tipos/).
+TTIPOS = tipos.TIPOS
 CAMPOS_ITINERARIO = {"finalizacion", "fecha_esperada", "restricciones"}
 CAMPOS_COMUNES = {"tipo", "nombre", "seccion"} | CAMPOS_ITINERARIO
-# Cómo cuenta una actividad como completada, según su tipo (confirmado en Moodle 4.5).
-# «aprobar» queda fuera: necesita una nota para aprobar (fase B).
-FINALIZACIONES = {
-    "pagina": ("ninguna", "manual", "ver"),
-    "etiqueta": ("ninguna", "manual"),
-    "tarea": ("ninguna", "manual", "ver", "entregar", "calificar"),
-    "cuestionario": ("ninguna", "manual", "ver", "calificar"),
-    "h5p": ("ninguna", "manual", "ver", "calificar"),
-}
 CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
 MAX_DEPENDENCIAS = 10
-CAMPOS_TAREA = {"apertura", "entrega", "limite"}
-CAMPOS_CUESTIONARIO = {
-    "apertura",
-    "cierre",
-    "tiempo_limite",
-    "intentos",
-    "mezclar_respuestas",
-    "preguntas",
-}
 
 # Actividades H5P generadas. Las etiquetas que admite cada campo de las
 # librerías (semantics) limitan el Markdown en línea que se conserva.
@@ -87,22 +74,6 @@ NOMBRES_H5P = {
     "arrastrar_palabras": "Arrastrar palabras",
     "marcar_palabras": "Marcar palabras",
     "tarjetas": "Tarjetas",
-}
-CAMPOS_H5P = {
-    "actividad",
-    "paquete",
-    "tipo",
-    "textos",
-    "texto",
-    "enunciado",
-    "distractores",
-    "tarjetas",
-    "anverso",
-    "reverso",
-    "mayusculas",
-    "calificacion",
-    "reintentar",
-    "ver_solucion",
 }
 _CAMPOS_TARJETA = {"anverso", "reverso"}
 _CAMPOS_H5P_POR_TIPO = {
@@ -439,15 +410,9 @@ def _validar(
         raise ErrorContenido(
             "TIPO_INVALIDO", "tipo debe ser pagina, tarea, cuestionario, etiqueta o h5p"
         )
+    adapter = tipos.obtener(tipo)
 
-    if tipo == "tarea":
-        permitidos = CAMPOS_COMUNES | CAMPOS_TAREA
-    elif tipo == "cuestionario":
-        permitidos = CAMPOS_COMUNES | CAMPOS_CUESTIONARIO
-    elif tipo == "h5p":
-        permitidos = CAMPOS_COMUNES | {"actividad", "paquete"}
-    else:
-        permitidos = CAMPOS_COMUNES
+    permitidos = CAMPOS_COMUNES | adapter.campos
     for campo in datos:
         if campo not in permitidos:
             raise ErrorContenido("CAMPO_DESCONOCIDO", f"campo «{campo}» no permitido")
@@ -479,7 +444,7 @@ def _validar(
             "SECCION_INVALIDA", "la sección debe ser un número entero >= 0 o un nombre"
         )
 
-    finalizacion = _validar_finalizacion(datos, tipo, zona)
+    finalizacion = _validar_finalizacion(datos, adapter, zona)
     restricciones = _validar_restricciones(datos, ruta, zona, raiz)
     fechas = None
     cuestionario = None
@@ -527,7 +492,9 @@ def _validar(
 # --------------------------------------------------------------------------- #
 
 
-def _validar_finalizacion(datos: dict[str, Any], tipo: str, zona: ZoneInfo) -> Finalizacion | None:
+def _validar_finalizacion(
+    datos: dict[str, Any], adapter: tipos.Tipo, zona: ZoneInfo
+) -> Finalizacion | None:
     if "finalizacion" not in datos:
         if "fecha_esperada" in datos:
             raise ErrorContenido(
@@ -535,11 +502,11 @@ def _validar_finalizacion(datos: dict[str, Any], tipo: str, zona: ZoneInfo) -> F
             )
         return None
     modo = datos["finalizacion"]
-    admitidos = FINALIZACIONES[tipo]
+    admitidos = adapter.finalizaciones
     if not isinstance(modo, str) or modo not in admitidos:
         raise ErrorContenido(
             "FINALIZACION_NO_ADMITIDA",
-            f"en {tipo}, finalizacion debe ser " + ", ".join(admitidos),
+            f"en {adapter.nombre}, finalizacion debe ser " + ", ".join(admitidos),
         )
     esperada = None
     if "fecha_esperada" in datos:

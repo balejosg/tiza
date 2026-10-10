@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from tiza import informe, publicacion, sesion, terminal
+from tiza.tipos import FechaActividad
 
 
 class TerminalFalsa:
@@ -525,17 +526,25 @@ class TestCambiosDeFecha:
         assert terminal.describir_cambios(self.doc()) == []
 
     def test_con_cambios_la_descripcion_no_repite_las_fechas(self):
-        from tiza.contenido import Fechas
-
-        fechas = Fechas(
-            apertura=datetime(2026, 10, 1, 0, 0),
-            entrega=datetime(2026, 10, 12, 23, 59),
-            limite=None,
+        fechas = (
+            FechaActividad("apertura", datetime(2026, 10, 1, 0, 0), "allowsubmissionsfromdate"),
+            FechaActividad("entrega", datetime(2026, 10, 12, 23, 59), "duedate"),
         )
         sin_cambios = publicacion.DocumentoResumen("t.md", "tarea", "P", 3, fechas)
         con_cambios = publicacion.DocumentoResumen("t.md", "tarea", "P", 3, fechas, cambios=())
         assert "entrega 12/10/2026 23:59" in terminal.describir_documento(sin_cambios)
         assert "entrega" not in terminal.describir_documento(con_cambios)
+
+    def test_la_descripcion_enseña_las_fechas_del_cuestionario(self):
+        # Regresión del issue #4: las fechas del cuestionario no las enseñaba nadie.
+        fechas = (
+            FechaActividad("apertura", datetime(2026, 10, 20, 8, 0), "timeopen"),
+            FechaActividad("cierre", datetime(2026, 10, 27, 23, 59), "timeclose", True),
+        )
+        doc = publicacion.DocumentoResumen("c.md", "cuestionario", "C", 3, fechas)
+        texto = terminal.describir_documento(doc)
+        assert "apertura 20/10/2026 08:00" in texto
+        assert "cierre 27/10/2026 23:59" in texto
 
     def test_solo_fechas_no_lista_el_contenido_y_avisa_de_las_excepciones(
         self, monkeypatch, capsys

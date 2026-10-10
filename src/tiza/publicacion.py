@@ -29,10 +29,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from . import calendario, contenido, informe, publicar, rutas
+from . import calendario, contenido, informe, publicar, rutas, tipos
 from .config import Config
-from .contenido import NOMBRES_H5P, Documento, ErrorContenido, Fechas, hash_documento
+from .contenido import NOMBRES_H5P, Documento, ErrorContenido, hash_documento
 from .publicar import AulaVirtual, ErrorPublicacion
+from .tipos import CAMPO_RECORDATORIO, FechaActividad
 
 if TYPE_CHECKING:  # solo para el tipo; la sesión importa este módulo
     from .sesion import CursoSesion
@@ -128,7 +129,9 @@ class DocumentoResumen:
     tipo: str
     nombre: str
     seccion: int | str
-    fechas: Fechas | None
+    # Las fechas que declara el documento, ya sin mirar de qué tipo es (las de una
+    # tarea y las de un cuestionario se ven igual): campo llano y momento.
+    fechas: tuple[FechaActividad, ...]
     vista_previa: Path | None = None
     enlaces_externos: tuple[str, ...] = ()
     incrustados: tuple[str, ...] = ()  # URL de los iframes, tal como se publicarán
@@ -154,7 +157,9 @@ class DocumentoResumen:
             tipo=doc.tipo,
             nombre=doc.nombre,
             seccion=doc.seccion,
-            fechas=doc.fechas,
+            fechas=tuple(
+                fecha for fecha in tipos.obtener(doc.tipo).fechas(doc) if fecha.momento is not None
+            ),
             vista_previa=vista_previa,
             enlaces_externos=tuple(doc.enlaces_externos),
             incrustados=tuple(doc.incrustados),
@@ -341,21 +346,8 @@ def cargar_calendario(carpeta: Path) -> tuple[calendario.Calendario | None, str 
         return None, exc.codigo
 
 
-# «Recordarme calificar antes de»: tiza nunca lo pone y toda publicación de una tarea lo
-# desactiva (Moodle rechaza una entrega posterior a ese recordatorio), así que si el aula lo
-# tiene puesto, la confirmación tiene que enseñar que se quita.
-CAMPO_RECORDATORIO = "recordatorio de calificación"
-
-# Campo que ve el docente → campo del formulario de Moodle, por tipo de actividad.
-_FECHAS_LLANAS = {
-    "tarea": (
-        ("apertura", "allowsubmissionsfromdate"),
-        ("entrega", "duedate"),
-        ("límite", "cutoffdate"),
-        (CAMPO_RECORDATORIO, "gradingduedate"),
-    ),
-    "cuestionario": (("apertura", "timeopen"), ("cierre", "timeclose")),
-}
+# El «recordatorio de calificación» de una tarea se reexporta aquí porque la
+# confirmación de real lo nombra (ver ``tipos.base.CAMPO_RECORDATORIO``).
 
 
 def cambios_de_fechas(
@@ -372,8 +364,8 @@ def cambios_de_fechas(
     fechas de cada alumno (excepciones de cuestionario, prórrogas de tarea) no se
     leen nunca.
     """
-    campos = _FECHAS_LLANAS.get(doc.tipo)
-    if campos is None:
+    declaradas = tipos.obtener(doc.tipo).fechas(doc)
+    if not declaradas:
         return ()
     esperadas = publicar.fechas_esperadas(doc)
     avisos_de = calendario.avisos_por_campo(cal, doc)
@@ -385,20 +377,20 @@ def cambios_de_fechas(
         except ErrorPublicacion as exc:
             depurar(exc, debug)  # no aborta: se dice al docente que no se pudo leer
     cambios: list[CambioFecha] = []
-    for campo, clave in campos:
-        despues = esperadas.get(clave)
-        avisos = avisos_de.get(campo, ())
+    for fecha in declaradas:
+        despues = esperadas.get(fecha.campo_moodle)
+        avisos = avisos_de.get(fecha.campo, ())
         if existente is None or actuales is None:
             if despues is None:
                 continue
             estado = "nueva" if existente is None else "desconocida"
-            cambios.append(CambioFecha(campo, None, despues, estado, avisos))
+            cambios.append(CambioFecha(fecha.campo, None, despues, estado, avisos))
             continue
-        antes = actuales.get(clave)
+        antes = actuales.get(fecha.campo_moodle)
         if antes is None and despues is None:
             continue
         estado = "igual" if antes == despues else "cambia"
-        cambios.append(CambioFecha(campo, antes, despues, estado, avisos))
+        cambios.append(CambioFecha(fecha.campo, antes, despues, estado, avisos))
     return tuple(cambios)
 
 
@@ -453,7 +445,7 @@ def _resolver_dependencias(
 def codigo_solo_fechas(secciones: list[dict], documentos: list[Documento]) -> str | None:
     """Por qué «--solo-fechas» no se puede aplicar a estos documentos, o None si sí."""
     for doc in documentos:
-        if doc.tipo not in _FECHAS_LLANAS:
+        if tipos.obtener(doc.tipo).payload_solo_fechas(doc) is None:
             return "SOLO_FECHAS_NO_APLICA"
         if publicar.modulo_de(secciones, doc) is None:
             return "MODULO_AUSENTE"

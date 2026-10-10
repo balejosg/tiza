@@ -36,13 +36,15 @@ from py_moodle.module import MoodleModuleError
 from py_moodle.section import MoodleSectionError
 from py_moodle.session import MoodleSessionError
 
-from . import __version__
+from . import __version__, tipos
 from .config import AdaptadorAula, DestinoNoPermitido
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
 from .cuestionario import preguntas_xml
 from .ficheros import asegurar_directorio, escribir_json
 from .h5p import LIBRERIAS as H5P_LIBRERIAS
 from .h5p import paquete_h5p, reempaquetar
+from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
+from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
 __all__ = [
     "AulaVirtual",
@@ -80,28 +82,9 @@ __all__ = [
 PAUSA_POR_DEFECTO = 0.4
 TIEMPO_ESPERA = 30  # segundos por petición: un aula que no responde no cuelga la sesión
 
-MODULO_MOODLE = {
-    "pagina": "page",
-    "tarea": "assign",
-    "cuestionario": "quiz",
-    "etiqueta": "label",
-    "h5p": "h5pactivity",
-}
-TIPO_DOCUMENTO = {
-    "page": "pagina",
-    "assign": "tarea",
-    "quiz": "cuestionario",
-    "label": "etiqueta",
-    "h5pactivity": "h5p",
-}
-
-# Fechas del formulario de una tarea. En el Moodle en español: «Permitir entregas
-# desde», «Fecha de entrega», «Fecha límite» (después ya no se admiten entregas)
-# y «Recordarme calificar en».
-CAMPOS_FECHA_TAREA = ("allowsubmissionsfromdate", "duedate", "cutoffdate", "gradingduedate")
-# Fechas del formulario de un cuestionario: «Abrir el cuestionario» y «Cerrar el
-# cuestionario».
-CAMPOS_FECHA_CUESTIONARIO = ("timeopen", "timeclose")
+# Fechas del formulario de las actividades con fechas, para releerlas: los campos
+# de una tarea y los de un cuestionario (nombres del Moodle en español, arriba).
+_CAMPOS_FECHA_LEIDOS = CAMPOS_FECHA_TAREA + CAMPOS_FECHA_CUESTIONARIO
 
 # Detalle de CUESTIONARIO_CON_INTENTOS: es un texto de tiza, nunca de Moodle.
 DETALLE_INTENTOS = (
@@ -358,7 +341,7 @@ class Moodle:
                     {
                         "cmid": cmid,
                         "nombre": (modulo.get("name") or "").strip(),
-                        "tipo": TIPO_DOCUMENTO.get(modname, modname),
+                        "tipo": tipos.de_modulo(modname) or modname,
                     }
                 )
             try:
@@ -407,9 +390,10 @@ class Moodle:
         )
 
     def crear(self, curso_id: int, seccion_id: int, tipo: str, payload: dict) -> int:
-        nombre_modulo = MODULO_MOODLE.get(tipo)
-        if nombre_modulo is None:
-            raise ErrorPublicacion("TIPO_DESCONOCIDO")
+        try:
+            nombre_modulo = tipos.obtener(tipo).modulo
+        except KeyError:
+            raise ErrorPublicacion("TIPO_DESCONOCIDO") from None
         self._esperar()
         return self._reducir(
             "ERROR_CREACION",
@@ -452,10 +436,7 @@ class Moodle:
             "instance": int(instancia) if instancia and instancia.isdigit() else None,
             "visible": _campo(formulario, "visible"),
             "contexto": int(coincidencia.group(1)) if coincidencia else None,
-            "fechas": {
-                campo: _fecha_leida(formulario, campo)
-                for campo in CAMPOS_FECHA_TAREA + CAMPOS_FECHA_CUESTIONARIO
-            },
+            "fechas": {campo: _fecha_leida(formulario, campo) for campo in _CAMPOS_FECHA_LEIDOS},
             # Solo para uso interno de la sesión: nunca llega a .tiza ni al agente.
             "itinerario": {
                 "campos": {
@@ -1093,7 +1074,7 @@ def payload_tarea(doc: Documento, html: str, itemid: int, visible: bool | None) 
         "introattachments": str(itemid),
         "submitbutton": "Save and display",
     }
-    payload.update(_fechas_tarea(doc))
+    payload.update(tipos.fechas_payload(tipos.obtener("tarea"), doc))
     payload.update(_campo_visible(visible))
     return payload
 
@@ -1109,7 +1090,7 @@ def payload_cuestionario(doc: Documento, html: str, itemid: int, visible: bool |
         "introeditor[itemid]": str(itemid),
         "submitbutton2": "Save and return to course",
     }
-    payload.update(_fechas_cuestionario(doc))
+    payload.update(tipos.fechas_payload(tipos.obtener("cuestionario"), doc))
     if cuestionario.tiempo_limite is not None:
         payload["timelimit[enabled]"] = "1"
         payload["timelimit[number]"] = str(cuestionario.tiempo_limite)
@@ -1159,94 +1140,21 @@ def payload_h5p(
     return payload
 
 
-def _fechas_tarea(doc: Documento) -> dict:
-    """Apertura, entrega y, si lo hay, el límite de entregas de una tarea."""
-    payload: dict[str, Any] = {}
-    if doc.fechas is not None:
-        payload.update(_fechas_payload("allowsubmissionsfromdate", doc.fechas.apertura))
-        payload.update(_fechas_payload("duedate", doc.fechas.entrega))
-        # «limite» es la fecha límite de Moodle: después ya no se admiten entregas.
-        if doc.fechas.limite is not None:
-            payload.update(_fechas_payload("cutoffdate", doc.fechas.limite))
-        else:
-            payload["cutoffdate[enabled]"] = "0"
-        payload["gradingduedate[enabled]"] = "0"
-    return payload
-
-
-def _fechas_cuestionario(doc: Documento) -> dict:
-    """Apertura y cierre de un cuestionario; sin fecha, se desactiva en el aula."""
-    cuestionario = doc.cuestionario
-    assert cuestionario is not None
-    payload: dict[str, Any] = {}
-    if cuestionario.apertura is not None:
-        payload.update(_fechas_payload("timeopen", cuestionario.apertura))
-    else:
-        payload["timeopen[enabled]"] = "0"
-    if cuestionario.cierre is not None:
-        payload.update(_fechas_payload("timeclose", cuestionario.cierre))
-    else:
-        payload["timeclose[enabled]"] = "0"
-    return payload
-
-
 def payload_solo_fechas(doc: Documento) -> dict:
     """Formulario mínimo para cambiar solo las fechas de una actividad ya publicada.
 
     No lleva nombre, texto, preguntas, intentos ni visibilidad: python-moodle fusiona
     el formulario con lo que ya tiene el módulo, así que esos campos no cambian.
     """
-    if doc.tipo == "tarea":
-        return {
-            "_qf__mod_assign_mod_form": "1",
-            "submitbutton": "Save and display",
-            **_fechas_tarea(doc),
-        }
-    if doc.tipo == "cuestionario":
-        return {
-            "_qf__mod_quiz_mod_form": "1",
-            "submitbutton2": "Save and return to course",
-            **_fechas_cuestionario(doc),
-        }
-    raise ErrorPublicacion("SOLO_FECHAS_NO_APLICA", doc.ruta.name)
-
-
-def _fechas_payload(campo: str, momento: datetime) -> dict:
-    return {
-        f"{campo}[enabled]": "1",
-        f"{campo}[day]": str(momento.day),
-        f"{campo}[month]": str(momento.month),
-        f"{campo}[year]": str(momento.year),
-        f"{campo}[hour]": str(momento.hour),
-        f"{campo}[minute]": str(momento.minute),
-    }
+    payload = tipos.obtener(doc.tipo).payload_solo_fechas(doc)
+    if payload is None:
+        raise ErrorPublicacion("SOLO_FECHAS_NO_APLICA", doc.ruta.name)
+    return payload
 
 
 def fechas_esperadas(doc: Documento) -> dict[str, tuple[int, int, int, int, int] | None]:
     """Lo que debe mostrar el formulario de la actividad tras publicarla."""
-    if doc.tipo == "cuestionario":
-        cuestionario = doc.cuestionario
-        esperadas: dict[str, tuple[int, int, int, int, int] | None] = {
-            "timeopen": None,
-            "timeclose": None,
-        }
-        if cuestionario is not None:
-            if cuestionario.apertura is not None:
-                esperadas["timeopen"] = _partes(cuestionario.apertura)
-            if cuestionario.cierre is not None:
-                esperadas["timeclose"] = _partes(cuestionario.cierre)
-        return esperadas
-    esperadas = dict.fromkeys(CAMPOS_FECHA_TAREA)
-    if doc.fechas is not None:
-        esperadas["allowsubmissionsfromdate"] = _partes(doc.fechas.apertura)
-        esperadas["duedate"] = _partes(doc.fechas.entrega)
-        if doc.fechas.limite is not None:
-            esperadas["cutoffdate"] = _partes(doc.fechas.limite)
-    return esperadas
-
-
-def _partes(momento: datetime) -> tuple[int, int, int, int, int]:
-    return (momento.year, momento.month, momento.day, momento.hour, momento.minute)
+    return tipos.fechas_esperadas(tipos.obtener(doc.tipo), doc)
 
 
 # --------------------------------------------------------------------------- #
@@ -1565,19 +1473,6 @@ CAMPOS_FINALIZACION_LEIDOS = (
     "completionusegrade",
     "completionunlocked",
 )
-# Campos de «cuándo se completa» que tiene cada tipo (confirmado en Moodle 4.5).
-_BANDERAS_POR_TIPO = {
-    "pagina": ("completionview",),
-    "etiqueta": (),
-    "tarea": ("completionview", "completionsubmit", "completionusegrade"),
-    "cuestionario": ("completionview", "completionusegrade"),
-    "h5p": ("completionview", "completionusegrade"),
-}
-_BANDERA_DE_MODO = {
-    "ver": "completionview",
-    "entregar": "completionsubmit",
-    "calificar": "completionusegrade",
-}
 # Lista blanca de las condiciones de acceso que tiza escribe y reconoce como suyas.
 _TIPOS_DE_TIZA = frozenset({"date", "completion"})
 
@@ -1585,48 +1480,17 @@ _TIPOS_DE_TIZA = frozenset({"date", "completion"})
 def payload_finalizacion(doc: Documento, *, solo_fecha_esperada: bool = False) -> dict:
     """Campos de finalización del formulario, o ``{}`` si el documento no la declara.
 
-    Se envían todos los de su tipo (los no usados a 0): la fusión conserva lo que no se
+    Se envían todos los del tipo (los no usados a 0): la fusión conserva lo que no se
     envía, y un modo anterior dejaría su casilla marcada.
     """
-    finalizacion = doc.finalizacion
-    if finalizacion is None:
-        return {}
-    payload: dict[str, str] = {}
-    esperada = finalizacion.esperada
-    if esperada is None:
-        payload["completionexpected[enabled]"] = "0"
-    else:
-        payload["completionexpected[enabled]"] = "1"
-        for parte, valor in zip(
-            ("year", "month", "day", "hour", "minute"), _partes(esperada), strict=True
-        ):
-            payload[f"completionexpected[{parte}]"] = str(valor)
-    if solo_fecha_esperada:
-        return payload
-    modo = finalizacion.modo
-    payload["completion"] = {"ninguna": "0", "manual": "1"}.get(modo, "2")
-    if modo in _BANDERA_DE_MODO:
-        elegida = _BANDERA_DE_MODO[modo]
-        for bandera in _BANDERAS_POR_TIPO[doc.tipo]:
-            payload[bandera] = "1" if bandera == elegida else "0"
-    return payload
+    return tipos.payload_finalizacion(
+        tipos.obtener(doc.tipo), doc, solo_fecha_esperada=solo_fecha_esperada
+    )
 
 
 def modo_leido(tipo: str, campos: dict) -> str | None:
     """El modo de finalización que dice el formulario; None si no es uno de los de tiza."""
-    completion = campos.get("completion")
-    if completion == "0":
-        return "ninguna"
-    if completion == "1":
-        return "manual"
-    if completion != "2":
-        return None
-    marcadas = [
-        modo
-        for modo, bandera in _BANDERA_DE_MODO.items()
-        if bandera in _BANDERAS_POR_TIPO[tipo] and campos.get(bandera) == "1"
-    ]
-    return marcadas[0] if len(marcadas) == 1 else None
+    return tipos.modo_leido(tipos.obtener(tipo), campos)
 
 
 def _condiciones_de(restricciones, dependencias: dict[str, int]) -> tuple[list[dict], list[bool]]:
@@ -1822,7 +1686,7 @@ def _verificar_itinerario(doc: Documento, leido: dict, envio: EnvioItinerario) -
         if modo_leido(doc.tipo, campos) != doc.finalizacion.modo:
             raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
         esperada = doc.finalizacion.esperada
-        if leido.get("esperada") != (None if esperada is None else _partes(esperada)):
+        if leido.get("esperada") != (None if esperada is None else tipos.partes_fecha(esperada)):
             raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
     if envio.disponibilidad is not None and not _misma_disponibilidad(
         leido.get("disponibilidad", ""), envio.disponibilidad
@@ -1995,7 +1859,7 @@ def _oculto(visible: bool | None, info: dict) -> bool | None:
 
 
 def urls_pluginfile(base_url: str, contexto, tipo: str, instance, nombre: str) -> list[str]:
-    raiz = f"{base_url}/pluginfile.php/{contexto}/mod_{MODULO_MOODLE[tipo]}"
+    raiz = f"{base_url}/pluginfile.php/{contexto}/mod_{tipos.obtener(tipo).modulo}"
     if tipo == "pagina":
         return [f"{raiz}/content/{instance}/{nombre}"]
     if tipo == "cuestionario":
@@ -2018,7 +1882,7 @@ def urls_paquete_h5p(base_url: str, contexto, instance, nombre: str) -> list[str
 
 
 def url_modulo(base_url: str, tipo: str, cmid: int) -> str:
-    return f"{base_url}/mod/{MODULO_MOODLE[tipo]}/view.php?id={cmid}"
+    return f"{base_url}/mod/{tipos.obtener(tipo).modulo}/view.php?id={cmid}"
 
 
 # --------------------------------------------------------------------------- #
@@ -2099,13 +1963,7 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
         with tempfile.TemporaryDirectory(prefix="tiza-autoprueba-") as temporal:
             documentos = _ejemplos(Path(temporal), seccion)
             for doc in documentos:
-                codigo_actual = {
-                    "pagina": "PUBLICAR_PAGINA",
-                    "tarea": "PUBLICAR_TAREA",
-                    "cuestionario": "PUBLICAR_CUESTIONARIO",
-                    "etiqueta": "PUBLICAR_ETIQUETA",
-                    "h5p": "PUBLICAR_H5P",
-                }[doc.tipo]
+                codigo_actual = f"PUBLICAR_{doc.tipo.upper()}"
                 resultado = publicar_documento(moodle, curso_id, secciones, doc, visible=False)
                 cmids.append(resultado["cmid"])
                 paso(codigo_actual, "ok", f"cmid {resultado['cmid']}")

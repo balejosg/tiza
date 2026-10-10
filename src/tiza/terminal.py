@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import ayuda, informe
+from . import ayuda, informe, tipos
 from .config import MAX_REALES
 from .informe import ErrorInforme
 from .publicacion import (
@@ -298,13 +298,9 @@ def imprimir_error(codigo: str, detalle: str = "") -> None:
         print(f"Qué hacer: {texto}", file=sys.stderr)
 
 
-_TIPOS = {
-    "pagina": "Página",
-    "tarea": "Tarea",
-    "cuestionario": "Cuestionario",
-    "etiqueta": "Área de texto y medios",
-    "h5p": "Contenido interactivo (H5P)",
-}
+# El nombre llano de cada tipo lo fija su módulo; si el tipo es ajeno (un módulo del
+# aula que no es de tiza), se enseña su nombre crudo.
+_TIPOS = {tipo.nombre: tipo.llano for tipo in tipos.TODOS}
 
 
 def _fecha_llana(momento: datetime) -> str:
@@ -373,13 +369,12 @@ def describir_documento(doc: DocumentoResumen) -> str:
     else:
         seccion = f"sección {doc.seccion}"
     texto = f"{_TIPOS.get(doc.tipo, doc.tipo)} «{texto_seguro(doc.nombre)}» → {seccion}"
-    if doc.fechas is not None and doc.cambios is None:
-        texto += (
-            f"; apertura {_fecha_llana(doc.fechas.apertura)}, "
-            f"entrega {_fecha_llana(doc.fechas.entrega)}"
+    if doc.fechas and doc.cambios is None:
+        texto += "; " + ", ".join(
+            f"{fecha.campo} {_fecha_llana(fecha.momento)}"
+            for fecha in doc.fechas
+            if fecha.momento is not None
         )
-        if doc.fechas.limite is not None:
-            texto += f", límite {_fecha_llana(doc.fechas.limite)}"
     return texto
 
 
