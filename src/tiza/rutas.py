@@ -1,8 +1,9 @@
-"""Nombre de la carpeta de trabajo y del fichero de asignatura.
+"""Nombre de la carpeta de trabajo y de los ficheros de la raíz de la asignatura.
 
 Están centralizados aquí para que un cambio de nombre del producto no se escape
-de ningún módulo: los literales ``.tiza`` y ``tiza.toml`` solo viven en este
-fichero.
+de ningún módulo: los literales ``.tiza``, ``tiza.toml`` y ``calendario.toml``
+solo viven en este fichero. Los nombres de los ficheros que hay dentro de
+``.tiza`` son de :mod:`tiza.estado`, el módulo del estado de trabajo.
 """
 
 from __future__ import annotations

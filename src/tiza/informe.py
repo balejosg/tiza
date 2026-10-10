@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from . import ayuda, tipos
+from .estado import FICHERO_INFORME
 from .ficheros import asegurar_directorio, escribir_json
 
 __all__ = ["ErrorInforme", "crear", "escribir", "leer", "resumen", "validar", "validar_estructura"]
@@ -250,7 +251,7 @@ def escribir(documento: dict, dir_tiza: str | Path) -> Path:
     """
     validar(documento)
     asegurar_directorio(Path(dir_tiza))
-    return escribir_json(Path(dir_tiza) / "informe.json", documento)
+    return escribir_json(Path(dir_tiza) / FICHERO_INFORME, documento)
 
 
 def leer(ruta: str | Path) -> dict:

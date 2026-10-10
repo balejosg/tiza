@@ -17,7 +17,6 @@ import re
 import shutil
 import tempfile
 import time
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urljoin
@@ -39,7 +38,7 @@ from py_moodle.session import MoodleSessionError
 from . import __version__, tipos
 from .config import AdaptadorAula, DestinoNoPermitido
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
-from .ficheros import asegurar_directorio, escribir_json
+from .estado import buscar_seccion, nombre_de_seccion
 from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
 from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
@@ -50,14 +49,8 @@ __all__ = [
     "autenticar",
     "asegurar_secciones",
     "autoprueba",
-    "buscar_seccion",
     "aplicar_itinerario",
-    "cargar_estructura",
-    "cargar_verificados",
-    "comprobar_puerta_real",
-    "escribir_estructura",
     "fechas_esperadas",
-    "guardar_verificado",
     "es_disponibilidad_de_tiza",
     "modulo_de",
     "payload_disponibilidad",
@@ -188,17 +181,6 @@ class ErrorPublicacion(Exception):
         self.codigo = codigo
         self.detalle = detalle
         self.cmid: int | None = None  # módulo ya creado cuando falla la verificación
-
-
-# Misma clase de caracteres que terminal.texto_seguro, contenido._CONTROL e
-# informe._TEXTO_PROHIBIDO (sin < y >); mantén las cuatro sincronizadas.
-_NO_IMPRIMIBLE = re.compile(r"[\x00-\x1f\x7f-\x9f\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
-
-
-def nombre_de_seccion(texto: str) -> str:
-    """Nombre de sección apto para el esquema cerrado: sin < > ni controles."""
-    limpio = _NO_IMPRIMIBLE.sub(" ", texto).replace("<", "‹").replace(">", "›")
-    return " ".join(limpio.split())[:255]
 
 
 # --------------------------------------------------------------------------- #
@@ -1420,24 +1402,6 @@ def _verificar_itinerario(doc: Documento, leido: dict, envio: EnvioItinerario) -
         raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
 
 
-def buscar_seccion(secciones: list[dict], clave: int | str) -> dict | None:
-    """Sección por número (entero) o por nombre (texto, sin distinguir mayúsculas)."""
-    for seccion in secciones:
-        if not isinstance(seccion, dict):
-            continue
-        if isinstance(clave, int):
-            if seccion.get("numero") == clave:
-                return seccion
-        # El nombre ya se saneó al construir la estructura (nombre_de_seccion);
-        # aquí se aplica la misma normalización para que la comparación coincida.
-        elif (
-            nombre_de_seccion(seccion.get("nombre") or "").casefold()
-            == nombre_de_seccion(clave).casefold()
-        ):
-            return seccion
-    return None
-
-
 def modulo_de(secciones: list[dict], doc: Documento) -> dict | None:
     """El módulo del aula que actualizaría ``doc``: misma sección, tipo y nombre.
 
@@ -1561,55 +1525,6 @@ def urls_paquete_h5p(base_url: str, contexto, instance, nombre: str) -> list[str
 
 def url_modulo(base_url: str, tipo: str, cmid: int) -> str:
     return f"{base_url}/mod/{tipos.obtener(tipo).modulo}/view.php?id={cmid}"
-
-
-# --------------------------------------------------------------------------- #
-# Estado en .tiza
-# --------------------------------------------------------------------------- #
-
-
-def escribir_estructura(dir_tiza: str | Path, datos: dict) -> Path:
-    asegurar_directorio(Path(dir_tiza))
-    return escribir_json(Path(dir_tiza) / "estructura.json", datos)
-
-
-def cargar_estructura(dir_tiza: str | Path) -> dict:
-    ruta = Path(dir_tiza) / "estructura.json"
-    if not ruta.is_file():
-        raise ErrorPublicacion("ESTRUCTURA_AUSENTE")
-    try:
-        return json.loads(ruta.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ErrorPublicacion("ESTRUCTURA_ILEGIBLE") from exc
-
-
-def cargar_verificados(dir_tiza: str | Path) -> dict:
-    """Devuelve el mapa de hashes verificados; un fichero corrupto es un mapa vacío."""
-    ruta = Path(dir_tiza) / "verificados.json"
-    if not ruta.is_file():
-        return {}
-    try:
-        datos = json.loads(ruta.read_text(encoding="utf-8"))
-        ficheros = datos.get("ficheros")
-        return ficheros if isinstance(ficheros, dict) else {}
-    except (OSError, json.JSONDecodeError, AttributeError):
-        return {}
-
-
-def guardar_verificado(dir_tiza: str | Path, hash_doc: str, nombre: str, cmid: int) -> Path:
-    directorio = asegurar_directorio(Path(dir_tiza))
-    registro: dict[str, dict] = cargar_verificados(directorio)
-    registro[hash_doc] = {
-        "nombre": nombre,
-        "cmid": cmid,
-        "fecha": datetime.now(UTC).isoformat(timespec="seconds"),
-    }
-    return escribir_json(directorio / "verificados.json", {"version": 1, "ficheros": registro})
-
-
-def comprobar_puerta_real(verificados: dict, pares: list[tuple[str, str]]) -> list[str]:
-    """Devuelve los nombres de los ficheros sin verificación previa en pruebas."""
-    return [nombre for nombre, hash_doc in pares if hash_doc not in verificados]
 
 
 # --------------------------------------------------------------------------- #

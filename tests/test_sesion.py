@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from dobles import MoodleFalso, PresenciaFalsa, configurar_aula, enlace_simbolico
-from tiza import buzon, calendario, config, contenido, publicacion, publicar, sesion
+from tiza import buzon, calendario, config, contenido, estado, publicacion, publicar, sesion
 
 TAREA = (
     '---\ntipo: tarea\nnombre: Problemas\nseccion: "Fracciones"\n'
@@ -129,7 +129,7 @@ def peticion(entorno="pruebas", visible=None) -> dict:
 
 def verificar_en_pruebas(carpeta: Path, nombre: str = "pagina.md") -> None:
     doc = contenido.cargar(carpeta / nombre)
-    publicar.guardar_verificado(carpeta / ".tiza", contenido.hash_documento(doc), nombre, 100)
+    estado.guardar_verificado(carpeta / ".tiza", contenido.hash_documento(doc), nombre, 100)
 
 
 def dejar_peticion(carpeta: Path, datos: dict) -> None:
@@ -170,7 +170,7 @@ class TestProcesarPeticion:
         categoria = moodle.categorias[100]
         assert len(moodle.bancos[categoria]) == 2
         # Queda verificado para la puerta de real.
-        assert publicar.cargar_verificados(carpeta / ".tiza")
+        assert estado.cargar_verificados(carpeta / ".tiza")
 
     def test_pruebas_avisa_y_publica_sin_preguntar(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)
@@ -896,7 +896,7 @@ class TestSoloFechasEnProcesarPeticion:
         assert (fichero["accion"], fichero["cmid"]) == ("actualizada", 55)
         assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)
         assert presencia.resumenes == []
-        assert publicar.cargar_verificados(carpeta / ".tiza") == {}  # no es un contenido verificado
+        assert estado.cargar_verificados(carpeta / ".tiza") == {}  # no es un contenido verificado
         assert not any(llamada[0] in ("crear", "subir") for llamada in moodle.llamadas)
 
     def test_en_real_ensena_antes_y_despues_y_publica_si_confirma(self, tmp_path):

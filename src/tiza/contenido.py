@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup, Tag
 from markdown_it import MarkdownIt
 
 from . import filtro, rutas
+from .estado import CARPETA_PREVIEW
 from .ficheros import FicheroNoSeguro, asegurar_directorio, escribir_texto, leer_bytes_acotado
 from .filtro import CONTROL as _CONTROL
 
@@ -822,11 +823,11 @@ def previsualizar(doc: Documento, dir_tiza: str | Path, *, nombre: str | None = 
     raiz = Path(dir_tiza)
     try:
         asegurar_directorio(raiz)
-        dir_preview = asegurar_directorio(raiz / "preview")
+        dir_preview = asegurar_directorio(raiz / CARPETA_PREVIEW)
     except FicheroNoSeguro:
         raise ErrorContenido(
             "DIRECTORIO_NO_SEGURO",
-            f"«{rutas.CARPETA_TRABAJO}» o «{rutas.CARPETA_TRABAJO}/preview» es un enlace, no una carpeta",
+            f"«{rutas.CARPETA_TRABAJO}» o «{rutas.CARPETA_TRABAJO}/{CARPETA_PREVIEW}» es un enlace, no una carpeta",
         ) from None
     destino = dir_preview / f"{nombre or doc.ruta.stem}.html"
     escribir_texto(destino, _plantilla(doc, dir_preview))

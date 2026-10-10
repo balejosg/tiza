@@ -31,6 +31,7 @@ from . import (
     buzon,
     config,
     contenido,
+    estado,
     ficheros,
     informe,
     publicacion,
@@ -124,19 +125,11 @@ def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool
         pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
         depurar(exc, debug)
         return informe.crear(comando, "error", pasos, [], [exc.codigo])
-    datos = {
-        "version": 2,
-        "generado": datetime.now(UTC).isoformat(timespec="seconds"),
-        "cursos": cursos,
-    }
     try:
-        informe.validar_estructura(datos)
-    except ErrorInforme:
-        pasos.append(
-            {"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": "ESTRUCTURA_INVALIDA"}
-        )
-        return informe.crear(comando, "error", pasos, [], ["ESTRUCTURA_INVALIDA"])
-    publicar.escribir_estructura(Path(carpeta) / rutas.CARPETA_TRABAJO, datos)
+        estado.escribir_estructura(Path(carpeta) / rutas.CARPETA_TRABAJO, cursos)
+    except estado.ErrorEstado as exc:
+        pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
+        return informe.crear(comando, "error", pasos, [], [exc.codigo])
     return informe.crear(comando, "ok", pasos, [], [])
 
 
@@ -211,7 +204,7 @@ def procesar_peticion(
     carpeta: Path,
     presencia: Presencia,
     *,
-    verificados: dict | None = None,
+    verificados: dict[str, estado.Verificado] | None = None,
     cupo: dict | None = None,
     nombres: dict[int, str] | None = None,
     dir_vistas: Path | None = None,
@@ -296,7 +289,9 @@ def procesar_peticion(
     )
     if verificados is not None and documento["resultado"] == "ok":
         for fichero in documento["ficheros"]:
-            verificados[fichero["hash"]] = {"nombre": fichero["nombre"], "cmid": fichero["cmid"]}
+            estado.anotar_verificado(
+                verificados, fichero["hash"], fichero["nombre"], fichero["cmid"]
+            )
     return registrar(documento, base, presencia)
 
 
@@ -600,7 +595,7 @@ def _servir(
     apertura = datetime.now(UTC)
     caduca = apertura + timedelta(minutes=minutos)
     cupo = {"pruebas": 0}
-    verificados: dict = {}  # solo lo publicado en pruebas durante esta sesión
+    verificados: dict[str, estado.Verificado] = {}  # solo lo publicado en pruebas en esta sesión
 
     def procesar(peticion: dict) -> dict:
         return procesar_peticion(

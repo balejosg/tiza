@@ -21,7 +21,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from .. import ayuda, informe, rutas
+from .. import ayuda, estado, informe, rutas
 from ..config import MAX_REALES
 from ..informe import ErrorInforme
 from ..publicacion import Aviso, ResumenPublicacion, ResumenSinPruebas
@@ -267,7 +267,7 @@ class Ventana:
         raiz = (
             self.dir_vistas if self.dir_vistas is not None else self.carpeta / rutas.CARPETA_TRABAJO
         )
-        if not vista.is_relative_to(raiz / "preview") or not vista.is_file():
+        if not vista.is_relative_to(raiz / estado.CARPETA_PREVIEW) or not vista.is_file():
             return False
         self._abrir_url(vista.as_uri())
         return True

@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from . import calendario, contenido, informe, publicar, rutas, tipos
+from . import calendario, contenido, estado, informe, publicar, rutas, tipos
 from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
 from .publicar import AulaVirtual, ErrorPublicacion
@@ -301,7 +301,9 @@ def depurar(exc: BaseException, debug: bool) -> None:
 
 
 def puerta_real(
-    carpeta: Path, documentos: list[Documento], verificados: dict | None = None
+    carpeta: Path,
+    documentos: list[Documento],
+    verificados: Mapping[str, estado.Verificado] | None = None,
 ) -> list[str]:
     """Nombres de los documentos sin verificación previa en pruebas.
 
@@ -309,9 +311,9 @@ def puerta_real(
     ``verificados.json``, que el agente puede escribir.
     """
     if verificados is None:
-        verificados = publicar.cargar_verificados(Path(carpeta) / rutas.CARPETA_TRABAJO)
+        verificados = estado.cargar_verificados(Path(carpeta) / rutas.CARPETA_TRABAJO)
     pares = [(doc.ruta.name, hash_documento(doc)) for doc in documentos]
-    return publicar.comprobar_puerta_real(verificados, pares)
+    return estado.comprobar_puerta_real(verificados, pares)
 
 
 def exige_oculto_sin_pruebas(cfg: Config, visible: bool | None, *, solo_fechas: bool) -> bool:
@@ -565,7 +567,7 @@ def publicar_con(
             depurar(exc, debug)
             return informe.crear(comando, "error", pasos, ficheros, [exc.codigo], entorno, curso)
         if entorno == "pruebas" and not solo_fechas:
-            publicar.guardar_verificado(
+            estado.guardar_verificado(
                 Path(carpeta) / rutas.CARPETA_TRABAJO,
                 resultado["hash"],
                 resultado["nombre"],
@@ -605,7 +607,7 @@ def publicar_en_cursos(
     entorno: str,
     visible: bool | None = None,
     solo_fechas: bool = False,
-    verificados: dict | None = None,
+    verificados: Mapping[str, estado.Verificado] | None = None,
     vigente: Callable[[], bool] | None = None,
     cupo: dict | None = None,
     avisar_en_pruebas: bool = False,
@@ -713,7 +715,7 @@ def _en_real(
     *,
     visible: bool | None,
     solo_fechas: bool,
-    verificados: dict | None,
+    verificados: Mapping[str, estado.Verificado] | None,
     vigente: Callable[[], bool] | None,
     omitidos: Collection[int],
     nombres: Mapping[int, str],

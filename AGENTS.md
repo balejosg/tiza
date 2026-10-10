@@ -52,6 +52,14 @@ en español.
   hash (`hash_fechas`/`hash_contenido`/`hash_extra`) reproduce el formato de
   siempre: cambiarlo invalida `verificados.json`. El test de contrato es
   `tests/test_tipos.py`.
+- `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
+  nombres de los ficheros (`informe.json`, `estructura.json`, `verificados.json`
+  y `preview/`), sus formatos y su validación al leer. `cargar_estructura`
+  devuelve un `Estructura` con v1 y v2 ya unificados (el agente no reinterpreta
+  versiones); un fichero fuera del esquema es `ESTRUCTURA_INVALIDA`, no se
+  interpreta a medias. Los verificados usan una sola dataclass (`Verificado`)
+  en disco y en memoria. `buscar_seccion` y `nombre_de_seccion` viven aquí. No
+  importa python-moodle: `agente` lo usa sin cargar el aula.
 - `src/tiza/publicar.py`: **único módulo que habla con el aula**
   (python-moodle). Reduce toda excepción a códigos propios y nunca deja pasar
   texto de Moodle. Al importar parchea APIs privadas de python-moodle (sin token
@@ -100,9 +108,10 @@ en español.
 - `src/tiza/agente.py`: API pública del lado del agente para interfaces
   propias (`comprobar`, `estructura`, `publicar`, `estado_sesion`,
   `formato_documento`). Sin consola: todo lo que devuelve pasa por
-  `informe.py` o son textos de tiza. El formato de los `.md` vive solo en la
-  skill, entre los marcadores `formato:inicio` y `formato:fin`. Cambiar una
-  firma obliga a subir la versión menor.
+  `informe.py` o son textos de tiza. No importa `publicar`: el estado vive en
+  `estado.py`, así que `tiza comprobar` no carga python-moodle. El formato de
+  los `.md` vive solo en la skill, entre los marcadores `formato:inicio` y
+  `formato:fin`. Cambiar una firma obliga a subir la versión menor.
 - `src/tiza/cli.py`, `config.py` y `terminal.py`: despacho, configuración sin
   contraseña (la global solo guarda URL y usuario; los cursos viven solo en el
   `tiza.toml` de cada carpeta) y presencia humana en la terminal (`terminal.PresenciaTerminal`:
@@ -114,7 +123,8 @@ en español.
   también los atributos públicos que sean objetos). La página
   (`sesion.html`) no usa `innerHTML` ni nada remoto y lleva CSP con nonce.
 - Estado de trabajo en `.tiza/` (`informe.json`, `estructura.json`,
-  `verificados.json`, `preview/`, `buzon/`). `.tiza/`, `planes/` y `dist/` están
+  `verificados.json`, `preview/`, `buzon/`): los nombres y formatos de lo que
+  no es buzón viven en `estado.py`. `.tiza/`, `planes/` y `dist/` están
   en `.gitignore`: no los commitees (`dist/` contiene artefactos obsoletos).
 
 ## Convenciones

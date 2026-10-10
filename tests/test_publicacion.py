@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from dobles import MoodleFalso, PresenciaFalsa
-from tiza import config, contenido, publicacion, publicar
+from tiza import config, contenido, estado, publicacion
 
 PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
 
@@ -37,13 +37,15 @@ def _documentos(carpeta: Path) -> list:
 
 def _verificados(carpeta: Path) -> dict:
     doc = contenido.cargar(carpeta / "pagina.md")
-    return {contenido.hash_documento(doc): {"nombre": "pagina.md", "cmid": 100}}
+    registro: dict = {}
+    estado.anotar_verificado(registro, contenido.hash_documento(doc), "pagina.md", 100)
+    return registro
 
 
 def test_puerta_real_con_registro_en_memoria_ignora_el_disco(tmp_path):
     carpeta = _carpeta(tmp_path)
     doc = _documentos(carpeta)[0]
-    publicar.guardar_verificado(tmp_path / ".tiza", contenido.hash_documento(doc), "pagina.md", 7)
+    estado.guardar_verificado(tmp_path / ".tiza", contenido.hash_documento(doc), "pagina.md", 7)
     # Sin registro en memoria (la terminal directa) se fía de verificados.json.
     assert publicacion.puerta_real(carpeta, [doc]) == []
     # Con el registro vacío en memoria (la sesión), el disco no cuenta.

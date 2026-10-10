@@ -211,39 +211,6 @@ class TestPublicarDocumento:
         assert exc.value.codigo == "VERIFICACION_FICHERO"
 
 
-class TestVerificados:
-    def test_guarda_y_carga(self, tmp_path):
-        publicar.guardar_verificado(tmp_path, "a" * 64, "pagina.md", 100)
-        datos = publicar.cargar_verificados(tmp_path)
-        assert datos["a" * 64]["nombre"] == "pagina.md"
-        assert datos["a" * 64]["cmid"] == 100
-
-    def test_fichero_corrupto_se_ignora(self, tmp_path):
-        (tmp_path / "verificados.json").write_text("{esto no es json", encoding="utf-8")
-        assert publicar.cargar_verificados(tmp_path) == {}
-
-    def test_puerta_real(self):
-        verificados = {"a" * 64: {"nombre": "pagina.md", "cmid": 1}}
-        assert publicar.comprobar_puerta_real(verificados, [("pagina.md", "a" * 64)]) == []
-        assert publicar.comprobar_puerta_real(verificados, [("tarea.md", "b" * 64)]) == ["tarea.md"]
-
-
-class TestEstructuraFichero:
-    def test_roundtrip(self, tmp_path):
-        datos = {
-            "version": 1,
-            "cursos": {"pruebas": {"id": 1, "secciones": [{"numero": 0, "nombre": "General"}]}},
-        }
-        ruta = publicar.escribir_estructura(tmp_path, datos)
-        assert ruta == tmp_path / "estructura.json"
-        assert publicar.cargar_estructura(tmp_path)["cursos"]["pruebas"]["id"] == 1
-
-    def test_ausente_falla(self, tmp_path):
-        with pytest.raises(ErrorPublicacion) as exc:
-            publicar.cargar_estructura(tmp_path)
-        assert exc.value.codigo == "ESTRUCTURA_AUSENTE"
-
-
 class TestAutoprueba:
     def test_autoprueba_completa(self):
         moodle = MoodleFalso()
@@ -613,12 +580,6 @@ def _doc_en(tmp_path, seccion, nombre="pagina.md"):
 
 
 class TestSeccionesPorNombre:
-    def test_buscar_por_numero_y_por_nombre(self):
-        secciones = [{"numero": 1, "nombre": "Proyecto", "id": 9}]
-        assert publicar.buscar_seccion(secciones, 1)["id"] == 9
-        assert publicar.buscar_seccion(secciones, "proyecto ".strip())["id"] == 9
-        assert publicar.buscar_seccion(secciones, "Otra") is None
-
     def test_crea_una_vez_la_seccion_que_falta_y_publica_en_ella(self, tmp_path):
         moodle = MoodleFalso()
         docs = [_doc_en(tmp_path, "Fracciones", "a.md"), _doc_en(tmp_path, "fracciones", "b.md")]
@@ -1115,17 +1076,6 @@ def test_lecturas_del_aula_con_plazo_y_sin_descargar_ficheros():
     assert all(kwargs.get("timeout") == publicar.TIEMPO_ESPERA for _url, kwargs in sesion.llamadas)
     assert sesion.llamadas[-1][1].get("stream") is True
     assert sesion.ultima.cerrada is True
-
-
-def test_buscar_seccion_normaliza_los_espacios_como_la_estructura():
-    # La estructura guarda los nombres ya saneados (nombre_de_seccion colapsa
-    # los espacios); la búsqueda debe normalizar igual para encontrarlos.
-    saneada = [{"numero": 3, "nombre": "Tema 1", "id": 30}]
-    assert publicar.buscar_seccion(saneada, "Tema  1")["id"] == 30
-    # Simétrico: también si el nombre guardado llevara espacios de más.
-    bruta = [{"numero": 3, "nombre": "Tema  1", "id": 30}]
-    assert publicar.buscar_seccion(bruta, "Tema 1")["id"] == 30
-    assert publicar.buscar_seccion(saneada, "Tema 2") is None
 
 
 class TestYaExiste:

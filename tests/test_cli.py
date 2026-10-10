@@ -16,6 +16,7 @@ from tiza import (
     cli,
     config,
     contenido,
+    estado,
     informe,
     publicar,
     sesion,
@@ -158,7 +159,7 @@ class TestPublicar:
         assert informe["resultado"] == "ok"
         assert informe["ficheros"][0]["cmid"] == 100
         assert informe["ficheros"][0]["oculto"] is True
-        verificados = publicar.cargar_verificados(tmp_path / ".tiza")
+        verificados = estado.cargar_verificados(tmp_path / ".tiza")
         assert contenido.hash_documento(contenido.cargar(tmp_path / "pagina.md")) in verificados
         assert "Curso de destino: id 1234" in salida.contenido()
 
@@ -201,7 +202,7 @@ class TestPublicar:
         escribir_pagina(tmp_path)
         configurar(tmp_path, monkeypatch)
         doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(
+        estado.guardar_verificado(
             tmp_path / ".tiza", contenido.hash_documento(doc), "pagina.md", 100
         )
         salida = simular_terminal(monkeypatch)
@@ -250,16 +251,13 @@ class TestComprobar:
     def test_comprobar_ok(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         escribir_pagina(tmp_path)
-        publicar.escribir_estructura(
+        estado.escribir_estructura(
             tmp_path / ".tiza",
             {
-                "version": 1,
-                "cursos": {
-                    "pruebas": {
-                        "id": 1234,
-                        "secciones": [{"numero": 3, "nombre": "Tema 3"}],
-                    }
-                },
+                "pruebas": {
+                    "id": 1234,
+                    "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}],
+                }
             },
         )
         assert cli.main(["comprobar", "pagina.md"]) == 0
@@ -277,16 +275,13 @@ class TestComprobar:
     def test_comprobar_seccion_ausente_falla(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         escribir_pagina(tmp_path)
-        publicar.escribir_estructura(
+        estado.escribir_estructura(
             tmp_path / ".tiza",
             {
-                "version": 1,
-                "cursos": {
-                    "pruebas": {
-                        "id": 1234,
-                        "secciones": [{"numero": 1, "nombre": "General"}],
-                    }
-                },
+                "pruebas": {
+                    "id": 1234,
+                    "secciones": [{"numero": 1, "nombre": "General", "id": 10}],
+                }
             },
         )
         assert cli.main(["comprobar", "pagina.md"]) == 1
@@ -295,16 +290,13 @@ class TestComprobar:
     def test_comprobar_id_de_seccion_indica_el_numero(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)
         escribir_pagina(tmp_path, PAGINA.replace("seccion: 3", "seccion: 12858"))
-        publicar.escribir_estructura(
+        estado.escribir_estructura(
             tmp_path / ".tiza",
             {
-                "version": 1,
-                "cursos": {
-                    "pruebas": {
-                        "id": 1234,
-                        "secciones": [{"numero": 1, "nombre": "Proyecto", "id": 12858}],
-                    }
-                },
+                "pruebas": {
+                    "id": 1234,
+                    "secciones": [{"numero": 1, "nombre": "Proyecto", "id": 12858}],
+                }
             },
         )
         assert cli.main(["comprobar", "pagina.md"]) == 1
@@ -316,16 +308,13 @@ class TestComprobar:
     ):
         monkeypatch.chdir(tmp_path)
         escribir_pagina(tmp_path, PAGINA.replace("seccion: 3", 'seccion: "Fracciones"'))
-        publicar.escribir_estructura(
+        estado.escribir_estructura(
             tmp_path / ".tiza",
             {
-                "version": 1,
-                "cursos": {
-                    "pruebas": {
-                        "id": 1,
-                        "secciones": [{"numero": 1, "nombre": "Proyecto", "id": 9}],
-                    }
-                },
+                "pruebas": {
+                    "id": 1,
+                    "secciones": [{"numero": 1, "nombre": "Proyecto", "id": 9}],
+                }
             },
         )
         assert cli.main(["comprobar", "pagina.md"]) == 0
@@ -366,12 +355,9 @@ class TestComprobar:
     def test_comprobar_explica_la_seccion_ausente(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)
         escribir_pagina(tmp_path)
-        publicar.escribir_estructura(
+        estado.escribir_estructura(
             tmp_path / ".tiza",
-            {
-                "version": 1,
-                "cursos": {"pruebas": {"id": 1, "secciones": [{"numero": 1, "nombre": "General"}]}},
-            },
+            {"pruebas": {"id": 1, "secciones": [{"numero": 1, "nombre": "General", "id": 10}]}},
         )
         assert cli.main(["comprobar", "pagina.md"]) == 1
         assert "pagina.md: SECCION_AUSENTE: no existe la sección 3" in capsys.readouterr().err
@@ -625,7 +611,7 @@ class TestProcesarPeticion:
         dir_tiza = base / ".tiza"
         (tmp_path / "tiza.toml").write_text("[cursos]\nreal = 2222\n", encoding="utf-8")
         doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
+        estado.guardar_verificado(dir_tiza, contenido.hash_documento(doc), "pagina.md", 100)
         llamadas: list = []
         monkeypatch.setattr(
             terminal,
@@ -1685,7 +1671,7 @@ class TestVariosCursosRealesCli:
         escribir_pagina(tmp_path)
         configurar(tmp_path, monkeypatch, cursos or self.CURSOS)
         doc = contenido.cargar(tmp_path / "pagina.md")
-        publicar.guardar_verificado(
+        estado.guardar_verificado(
             tmp_path / ".tiza", contenido.hash_documento(doc), "pagina.md", 100
         )
         simular_terminal(monkeypatch)

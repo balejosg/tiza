@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import sys
 import threading
 from datetime import UTC, datetime, timedelta
 
 from dobles import enlace_simbolico
-from tiza import agente, buzon, contenido, informe, publicar
+from tiza import agente, buzon, contenido, estado, informe
 
 PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
 CUESTIONARIO = (
@@ -19,12 +21,11 @@ CUESTIONARIO = (
     "    respuesta: verdadero\n"
     "---\n\nDescripción.\n"
 )
-ESTRUCTURA = {
-    "version": 1,
-    "generado": "2026-10-03T10:00:00+00:00",
-    "cursos": {
-        "pruebas": {"id": 1234, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}]},
-    },
+CURSOS = {
+    "pruebas": {"id": 1234, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}]},
+}
+CURSOS_REAL = {
+    "real": {"id": 5678, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}]},
 }
 
 
@@ -35,7 +36,7 @@ def escribir(carpeta, nombre, texto):
 class TestComprobar:
     def test_pasa_sin_red_y_devuelve_la_vista_previa(self, tmp_path, capsys):
         escribir(tmp_path, "p.md", PAGINA)
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         resultado = agente.comprobar(tmp_path, ["p.md"])
         assert resultado.informe["resultado"] == "ok"
         informe.validar(resultado.informe)
@@ -48,7 +49,7 @@ class TestComprobar:
         escribir(tmp_path, "roto.md", "---\ntipo: pagina\nnombre: P\n---\n\nx\n")
         escribir(tmp_path, "id.md", PAGINA.replace("seccion: 3", "seccion: 30"))
         escribir(tmp_path, "bien.md", PAGINA)
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         resultado = agente.comprobar(tmp_path, ["roto.md", "id.md", "bien.md"])
         roto, por_id, bien = resultado.ficheros
         assert (roto.fichero, roto.codigo) == ("roto.md", "CAMPO_FALTANTE")
@@ -61,14 +62,14 @@ class TestComprobar:
 
     def test_seccion_por_nombre_que_falta_se_creara(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", 'seccion: "Fracciones"'))
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         [fichero] = agente.comprobar(tmp_path, ["p.md"]).ficheros
         assert fichero.codigo is None
         assert fichero.seccion_nueva == "Fracciones"
 
     def test_una_carpeta_preview_enlazada_da_codigo_y_no_escribe_fuera(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA)
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         fuera = tmp_path / "fuera"
         fuera.mkdir()
         enlace_simbolico(tmp_path / ".tiza" / "preview", fuera)
@@ -85,7 +86,7 @@ class TestComprobar:
         (tmp_path / "secreto.xlsx").write_bytes(b"x")
         escribir(carpeta, "oculto.md", PAGINA + "\n[c](.git/config)\n")
         escribir(carpeta, "fuera.md", PAGINA + "\n[s](../secreto.xlsx)\n")
-        publicar.escribir_estructura(carpeta / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(carpeta / ".tiza", CURSOS)
         resultado = agente.comprobar(carpeta, ["oculto.md", "fuera.md"])
         assert [fichero.codigo for fichero in resultado.ficheros] == [
             "RECURSO_NO_PERMITIDO",
@@ -94,7 +95,7 @@ class TestComprobar:
 
     def test_comprobar_un_cuestionario_genera_su_vista_previa(self, tmp_path):
         escribir(tmp_path, "q.md", CUESTIONARIO)
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         resultado = agente.comprobar(tmp_path, ["q.md"])
         assert resultado.informe["resultado"] == "ok"
         [fichero] = resultado.ficheros
@@ -105,26 +106,14 @@ class TestComprobar:
 
     def test_seccion_ausente_lo_dice(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", "seccion: 7"))
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         [fichero] = agente.comprobar(tmp_path, ["p.md"]).ficheros
         assert fichero.codigo == "SECCION_AUSENTE"
         assert "no existe la sección 7" in fichero.detalle
 
     def test_sin_curso_de_pruebas_no_asume_que_existe(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", 'seccion: "Fracciones"'))
-        publicar.escribir_estructura(
-            tmp_path / ".tiza",
-            {
-                "version": 1,
-                "generado": "2026-10-03T10:00:00+00:00",
-                "cursos": {
-                    "real": {
-                        "id": 5678,
-                        "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}],
-                    }
-                },
-            },
-        )
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS_REAL)
         resultado = agente.comprobar(tmp_path, ["p.md"])
         assert resultado.informe["resultado"] == "ok"
         [fichero] = resultado.ficheros
@@ -133,38 +122,14 @@ class TestComprobar:
 
     def test_sin_curso_de_pruebas_la_pista_de_id_mira_en_real(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", "seccion: 30"))
-        publicar.escribir_estructura(
-            tmp_path / ".tiza",
-            {
-                "version": 1,
-                "generado": "2026-10-03T10:00:00+00:00",
-                "cursos": {
-                    "real": {
-                        "id": 5678,
-                        "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}],
-                    }
-                },
-            },
-        )
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS_REAL)
         [fichero] = agente.comprobar(tmp_path, ["p.md"]).ficheros
         assert fichero.codigo == "SECCION_ES_ID"
         assert "escribe «seccion: 3»" in fichero.detalle
 
     def _solo_real(self, tmp_path, seccion):
         escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", f"seccion: {seccion}"))
-        publicar.escribir_estructura(
-            tmp_path / ".tiza",
-            {
-                "version": 1,
-                "generado": "2026-10-03T10:00:00+00:00",
-                "cursos": {
-                    "real": {
-                        "id": 5678,
-                        "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}],
-                    }
-                },
-            },
-        )
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS_REAL)
         return agente.comprobar(tmp_path, ["p.md"])
 
     def test_sin_curso_de_pruebas_el_numero_se_comprueba_en_real(self, tmp_path):
@@ -184,6 +149,16 @@ class TestComprobar:
         [fichero] = self._solo_real(tmp_path, 9).ficheros
         assert fichero.codigo == "SECCION_AUSENTE"
         assert "curso de real" in fichero.detalle
+
+
+def test_importar_el_lado_del_agente_no_carga_python_moodle():
+    codigo = (
+        "import sys\n"
+        "import tiza.agente\n"
+        "assert 'py_moodle' not in sys.modules, 'python-moodle cargado'\n"
+        "assert 'tiza.publicar' not in sys.modules, 'publicar cargado'\n"
+    )
+    subprocess.run([sys.executable, "-c", codigo], check=True)
 
 
 class TestBuzon:
@@ -325,7 +300,7 @@ class TestCalendarioEnComprobar:
     def test_un_festivo_avisa_y_el_fichero_pasa(self, tmp_path):
         escribir(tmp_path, "t.md", self.TAREA)
         escribir(tmp_path, "calendario.toml", "festivos = [2026-10-12]\n")
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         resultado = agente.comprobar(tmp_path, ["t.md"])
         assert resultado.informe["resultado"] == "ok"
         informe.validar(resultado.informe)
@@ -340,7 +315,7 @@ class TestCalendarioEnComprobar:
     def test_un_calendario_invalido_es_un_error_pero_los_documentos_se_comprueban(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA)
         escribir(tmp_path, "calendario.toml", "color = 'rojo'\n")
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         resultado = agente.comprobar(tmp_path, ["p.md"])
         assert resultado.informe["resultado"] == "error"
         assert resultado.informe["errores"] == ["CALENDARIO_INVALIDO"]
@@ -352,7 +327,7 @@ class TestCalendarioEnComprobar:
     def test_un_calendario_con_marcas_no_rompe_comprobar(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA)
         escribir(tmp_path, "calendario.toml", 'dias_de_clase = ["<b>"]\n')
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         resultado = agente.comprobar(tmp_path, ["p.md"])
         assert resultado.informe["errores"] == ["CALENDARIO_INVALIDO"]
         informe.validar(resultado.informe)
@@ -362,7 +337,7 @@ class TestCalendarioEnComprobar:
     def test_un_calendario_hostil_no_rompe_comprobar(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA)
         escribir(tmp_path, "calendario.toml", "festivos = " + "[" * 5000 + "]" * 5000 + "\n")
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         resultado = agente.comprobar(tmp_path, ["p.md"])
         assert resultado.informe["errores"] == ["CALENDARIO_INVALIDO"]
         informe.validar(resultado.informe)
@@ -371,7 +346,7 @@ class TestCalendarioEnComprobar:
 
     def test_sin_calendario_no_hay_avisos(self, tmp_path):
         escribir(tmp_path, "t.md", self.TAREA)
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         [fichero] = agente.comprobar(tmp_path, ["t.md"]).ficheros
         assert fichero.avisos == ()
 
@@ -385,20 +360,16 @@ def test_peticion_con_solo_fechas_viaja_en_el_buzon():
 
 class TestVariosCursosReales:
     def estructura(self, tmp_path, nombres):
-        publicar.escribir_estructura(
+        estado.escribir_estructura(
             tmp_path / ".tiza",
             {
-                "version": 2,
-                "generado": "2026-10-03T10:00:00+00:00",
-                "cursos": {
-                    "real": [
-                        {
-                            "id": 100 + n,
-                            "secciones": [{"numero": 3, "nombre": nombre, "id": 30 + n}],
-                        }
-                        for n, nombre in enumerate(nombres)
-                    ]
-                },
+                "real": [
+                    {
+                        "id": 100 + n,
+                        "secciones": [{"numero": 3, "nombre": nombre, "id": 30 + n}],
+                    }
+                    for n, nombre in enumerate(nombres)
+                ]
             },
         )
 
@@ -432,17 +403,13 @@ class TestVariosCursosReales:
     def test_un_curso_donde_falta_el_numero_cuenta_como_distinto(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA)
         self.estructura(tmp_path, ["Tema 3"])
-        publicar.escribir_estructura(
+        estado.escribir_estructura(
             tmp_path / ".tiza",
             {
-                "version": 2,
-                "generado": "2026-10-03T10:00:00+00:00",
-                "cursos": {
-                    "real": [
-                        {"id": 101, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 33}]},
-                        {"id": 102, "secciones": [{"numero": 0, "nombre": "General", "id": 1}]},
-                    ]
-                },
+                "real": [
+                    {"id": 101, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 33}]},
+                    {"id": 102, "secciones": [{"numero": 0, "nombre": "General", "id": 1}]},
+                ]
             },
         )
         informe_ = agente.comprobar(tmp_path, ["p.md"]).informe
@@ -455,26 +422,32 @@ class TestVariosCursosReales:
         assert fichero.codigo == "SECCION_ES_ID"
         assert "escribe «seccion: 3»" in fichero.detalle
 
-    def test_una_estructura_manipulada_no_rompe_comprobar(self, tmp_path):
+    def test_una_estructura_fuera_del_esquema_da_error_sin_romper(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA)
-        publicar.escribir_estructura(
-            tmp_path / ".tiza",
-            {
-                "version": 2,
-                "generado": "x",
-                "cursos": {
-                    "real": [
-                        {"id": 1, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 1}]},
-                        {"id": 2, "secciones": [{"numero": 3, "nombre": {"a": 1}, "id": 2}]},
-                        "basura",
-                        {"id": 3, "secciones": "no"},
-                    ]
-                },
+        (tmp_path / ".tiza").mkdir()
+        datos = {
+            "version": 2,
+            "generado": "x",
+            "cursos": {
+                "real": [
+                    {"id": 1, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 1}]},
+                    {"id": 2, "secciones": [{"numero": 3, "nombre": {"a": 1}, "id": 2}]},
+                    "basura",
+                    {"id": 3, "secciones": "no"},
+                ]
             },
-        )
-        informe_ = agente.comprobar(tmp_path, ["p.md"]).informe
-        assert informe_["resultado"] == "ok"
-        assert any(p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in informe_["pasos"])
+        }
+        (tmp_path / ".tiza" / "estructura.json").write_text(json.dumps(datos), encoding="utf-8")
+        resultado = agente.comprobar(tmp_path, ["p.md"])
+        informe_ = resultado.informe
+        assert informe_["resultado"] == "error"
+        assert informe_["errores"] == ["ESTRUCTURA_INVALIDA"]
+        assert [p for p in informe_["pasos"] if p["codigo"] == "ESTRUCTURA"] == [
+            {"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": "ESTRUCTURA_INVALIDA"}
+        ]
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None  # el documento se comprueba igual
+        assert not any(p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in informe_["pasos"])
 
 
 class TestDependencias:
@@ -487,7 +460,7 @@ class TestDependencias:
         )
 
     def comprobar(self, tmp_path, ficheros):
-        publicar.escribir_estructura(tmp_path / ".tiza", ESTRUCTURA)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
         return agente.comprobar(tmp_path, ficheros)
 
     def test_dependencias_validas(self, tmp_path):

@@ -17,10 +17,10 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
-from . import buzon, calendario, contenido, informe, rutas
+from . import buzon, calendario, contenido, estado, informe, rutas
 from .calendario import ErrorCalendario
 from .contenido import Documento, ErrorContenido, hash_documento
-from .publicar import ErrorPublicacion, buscar_seccion, cargar_estructura
+from .estado import ErrorEstado, Estructura, buscar_seccion, cargar_estructura
 
 __all__ = [
     "Comprobacion",
@@ -70,7 +70,7 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
     resultados: list[FicheroComprobado] = []
     try:
         estructura = cargar_estructura(dir_tiza)
-    except ErrorPublicacion as exc:
+    except ErrorEstado as exc:
         estructura = None
         errores.append(exc.codigo)
         pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
@@ -146,7 +146,7 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             pasos.append(_paso_fallido(ruta.name, "SECCION_AUSENTE"))
             detalle = (
                 f"no existe la sección {doc.seccion} en el curso de {curso[0]} "
-                f"({rutas.CARPETA_TRABAJO}/estructura.json)"
+                f"({rutas.CARPETA_TRABAJO}/{estado.FICHERO_ESTRUCTURA})"
             )
             resultados.append(
                 FicheroComprobado(ruta.name, "SECCION_AUSENTE", detalle, avisos=avisos)
@@ -224,36 +224,25 @@ def _fichero(doc: Documento, seccion: str | None) -> dict:
     }
 
 
-def _cursos_de(estructura: dict | None, entorno: str) -> list[list]:
-    """Las secciones de cada curso de ``entorno`` en ``estructura.json`` (v1: uno; v2: varios)."""
-    try:
-        cursos = estructura["cursos"][entorno]  # type: ignore[index]
-    except (KeyError, TypeError):
+def _cursos_de(estructura: Estructura | None, entorno: str) -> list[list]:
+    """Las secciones de cada curso de ``entorno`` (estado ya unifica v1 y v2)."""
+    if estructura is None:
         return []
-    if isinstance(cursos, dict):
-        cursos = [cursos]
-    if not isinstance(cursos, list):
-        return []
-    salida = []
-    for curso in cursos:
-        secciones = curso.get("secciones") if isinstance(curso, dict) else None
-        if isinstance(secciones, list):
-            salida.append(secciones)
-    return salida
+    return [curso["secciones"] for curso in estructura.cursos(entorno)]
 
 
-def _curso_a_comprobar(estructura: dict | None) -> tuple[str, list] | None:
+def _curso_a_comprobar(estructura: Estructura | None) -> tuple[str, list] | None:
     """El curso donde se publicará: el de pruebas o, si no hay, el primer real."""
-    if not estructura:
+    if estructura is None:
         return None
     for entorno in ("pruebas", "real"):
-        cursos = _cursos_de(estructura, entorno)
+        cursos = estructura.cursos(entorno)
         if cursos:
-            return entorno, cursos[0]
+            return entorno, cursos[0]["secciones"]
     return None
 
 
-def _seccion_distinta_entre_cursos(estructura: dict | None, doc: Documento) -> bool:
+def _seccion_distinta_entre_cursos(estructura: Estructura | None, doc: Documento) -> bool:
     """¿El número de sección de ``doc`` tiene nombres distintos en los cursos reales?"""
     if not isinstance(doc.seccion, int) or isinstance(doc.seccion, bool):
         return False
@@ -267,7 +256,7 @@ def _seccion_distinta_entre_cursos(estructura: dict | None, doc: Documento) -> b
     return len(nombres) > 1
 
 
-def _pista_de_id(estructura: dict, doc: Documento) -> str | None:
+def _pista_de_id(estructura: Estructura, doc: Documento) -> str | None:
     """Si ``seccion`` es el id de la URL del aula, el texto que dice qué número poner."""
     for entorno in ("pruebas", "real"):
         for secciones in _cursos_de(estructura, entorno):

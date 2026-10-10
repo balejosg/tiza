@@ -11,7 +11,7 @@ from datetime import date
 import pytest
 
 from dobles import enlace_simbolico
-from tiza import config, ficheros, informe, publicar
+from tiza import config, estado, ficheros, informe
 
 
 def test_escribe_json_legible_sin_temporales(tmp_path):
@@ -63,17 +63,19 @@ def _informe(curso: int) -> dict:
     }
 
 
-@pytest.mark.parametrize("estado", ["informe", "estructura", "verificados", "config", "autoprueba"])
-def test_un_fallo_al_escribir_conserva_el_fichero_anterior(tmp_path, monkeypatch, estado):
+@pytest.mark.parametrize("cual", ["informe", "estructura", "verificados", "config", "autoprueba"])
+def test_un_fallo_al_escribir_conserva_el_fichero_anterior(tmp_path, monkeypatch, cual):
     monkeypatch.setattr(config, "directorio_global", lambda: tmp_path)
     escritores = {
         "informe": lambda n: informe.escribir(_informe(n), tmp_path),
-        "estructura": lambda n: publicar.escribir_estructura(tmp_path, {"version": n}),
-        "verificados": lambda n: publicar.guardar_verificado(tmp_path, "a" * 64, f"v{n}.md", n),
+        "estructura": lambda n: estado.escribir_estructura(
+            tmp_path, {"pruebas": {"id": n, "secciones": []}}
+        ),
+        "verificados": lambda n: estado.guardar_verificado(tmp_path, "a" * 64, f"v{n}.md", n),
         "config": lambda n: config.guardar_global("https://aula.ejemplo.org/centro", f"profe{n}"),
         "autoprueba": lambda n: config.registrar_autoprueba(1234, date(2026, 10, 3), f"v{n}"),
     }
-    ruta = escritores[estado](1)
+    ruta = escritores[cual](1)
     antes = ruta.read_text(encoding="utf-8")
 
     def falla(*_args):
@@ -81,24 +83,26 @@ def test_un_fallo_al_escribir_conserva_el_fichero_anterior(tmp_path, monkeypatch
 
     monkeypatch.setattr(ficheros.os, "replace", falla)
     with pytest.raises(OSError):
-        escritores[estado](2)
+        escritores[cual](2)
     assert ruta.read_text(encoding="utf-8") == antes
     assert not list(tmp_path.glob("*.tmp"))
 
 
-@pytest.mark.parametrize("estado", ["informe", "estructura", "verificados"])
-def test_no_se_escribe_en_un_tiza_que_es_un_enlace(tmp_path, estado):
+@pytest.mark.parametrize("cual", ["informe", "estructura", "verificados"])
+def test_no_se_escribe_en_un_tiza_que_es_un_enlace(tmp_path, cual):
     fuera = tmp_path / "fuera"
     fuera.mkdir()
     tiza = tmp_path / ".tiza"
     enlace_simbolico(tiza, fuera)
     escritores = {
         "informe": lambda: informe.escribir(_informe(1), tiza),
-        "estructura": lambda: publicar.escribir_estructura(tiza, {"version": 1}),
-        "verificados": lambda: publicar.guardar_verificado(tiza, "a" * 64, "v.md", 1),
+        "estructura": lambda: estado.escribir_estructura(
+            tiza, {"pruebas": {"id": 1, "secciones": []}}
+        ),
+        "verificados": lambda: estado.guardar_verificado(tiza, "a" * 64, "v.md", 1),
     }
     with pytest.raises(ficheros.FicheroNoSeguro):
-        escritores[estado]()
+        escritores[cual]()
     assert list(fuera.iterdir()) == []
 
 
