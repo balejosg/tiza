@@ -221,6 +221,7 @@ carpeta. La marca de confianza de Codex está en
 | `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados |
 | `tiza publicar <md>… --en pruebas` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): crea (oculto) o actualiza (conserva la visibilidad), verifica y registra el hash |
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
+| `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas y cuestionarios ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
 | `tiza-ventana --carpeta <carpeta>` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.13.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
 | `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
@@ -462,6 +463,39 @@ sin_pruebas = true
 ```
 
 Para recuperar el curso de pruebas, cambia esa línea por `pruebas = 1234`.
+
+### Calendario y cambio de fechas
+
+Si tienes el calendario escolar, puedes dejarlo en `calendario.toml` de la
+carpeta de la asignatura. Todos los campos son opcionales, y no hace falta
+ponerlo:
+
+```toml
+inicio = 2026-09-08
+fin = 2027-06-22
+dias_de_clase = ["lunes", "miércoles", "viernes"]
+festivos = [
+  2026-10-12,
+  {desde = 2026-12-21, hasta = 2027-01-07, motivo = "Navidad"},
+]
+```
+
+Con él, `tiza comprobar` y la confirmación de real avisan cuando una fecha cae en
+festivo, en fin de semana, fuera del curso o en un día sin clase. Solo avisan:
+un festivo puede ser intencionado. Un calendario que no se puede leer da
+`CALENDARIO_INVALIDO` y los documentos se comprueban igual.
+
+Para cambiar solo las fechas de tareas y cuestionarios que ya están en el aula,
+usa `--solo-fechas` (con `--en pruebas` o `--en real`). No toca el contenido, las
+preguntas, los intentos ni la visibilidad; por eso también sirve para un
+cuestionario que ya tiene intentos. En real, la confirmación enseña cada fecha
+antes y después. No admite `--visible` ni `--oculto`. Las fechas de un alumno
+concreto (prórrogas, excepciones) no las toca tiza.
+
+En una tarea, tiza desactiva siempre «Recordarme calificar antes de» (Moodle
+rechaza una entrega posterior a ese recordatorio, y esto también ocurre al
+publicar la tarea sin `--solo-fechas`). Si lo tenías puesto, la confirmación de
+real lo enseña antes de aplicarlo.
 
 ## Prueba de contrato
 

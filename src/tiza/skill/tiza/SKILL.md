@@ -213,6 +213,26 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
    Lanza ese comando con el mayor tiempo de espera que permita tu herramienta (en Claude Code, `timeout: 600000`): espera hasta 10 minutos a que el docente confirme. Si tu herramienta lo corta antes, la petición se retira sola en unos 20 segundos y un «s» tardío ya no publica: avisa al docente y vuelve a lanzarlo.
 
+## Fechas, calendario y cambios de fecha
+
+- **Calendario escolar (opcional)**: si el docente te da el calendario oficial, escribe `calendario.toml` en la carpeta de la asignatura. No inventes festivos: si no lo tienes, pídelo o no lo escribas. Todos los campos son opcionales:
+
+  ```toml
+  inicio = 2026-09-08                                  # primer día del curso
+  fin = 2027-06-22                                     # último día del curso
+  dias_de_clase = ["lunes", "miércoles", "viernes"]    # opcional: solo afecta a entregas y cierres
+  festivos = [
+    2026-10-12,                                                    # un día
+    {desde = 2026-12-21, hasta = 2027-01-07, motivo = "Navidad"},  # un rango
+  ]
+  ```
+
+  El `motivo` se acepta pero no se muestra. Un calendario que tiza no puede leer da `CALENDARIO_INVALIDO`: los documentos se comprueban igual, sin avisos.
+- **Avisos**: `tiza comprobar` y la confirmación del docente avisan, sin bloquear, cuando una fecha cae en festivo (`FECHA_FESTIVA`), en fin de semana (`FECHA_FIN_DE_SEMANA`), fuera del curso (`FECHA_FUERA_DE_CURSO`) o en un día sin clase (`FECHA_SIN_CLASE`). Un festivo puede ser intencionado: no cambies una fecha sin preguntar al docente.
+- **Cambiar solo las fechas**: `tiza publicar <md>… --en pruebas --solo-fechas` (y `--en real --solo-fechas`) cambia las fechas de tareas y cuestionarios que ya existen en el aula. No toca el contenido, las preguntas, los intentos ni la visibilidad, así que también sirve para un cuestionario con intentos. No admite `--visible` ni `--oculto`, y si la actividad no existe responde `MODULO_AUSENTE`. Para mover fechas en bloque: edita los `.md`, ejecuta `tiza comprobar`, y después `--solo-fechas` en pruebas y en real. En real, el docente ve cada fecha antes y después. En una tarea, tiza desactiva siempre «Recordarme calificar antes de» (también al publicarla sin `--solo-fechas`); si el docente lo tenía puesto, la confirmación se lo enseña.
+- tiza **no toca las fechas de un alumno concreto** (prórrogas, excepciones de un cuestionario). Si el docente las pide, dile que las ponga en el aula a mano.
+- Ni el calendario ni los `.md` llevan datos del alumnado: no escribas en ellos nombres ni grupos.
+
 ## Si la sesión se cae
 
 Cuando un comando falla, la salida incluye una o varias líneas `Qué hacer`; en el informe llevan el código (`Qué hacer (CODIGO): …`). Síguelas. Si el texto habla de la terminal del docente o de la sesión que se abre con «tiza empezar», díselo al docente con esas mismas palabras y espera.
@@ -230,6 +250,7 @@ Si responden `SESION_INCOMPATIBLE`, la sesión abierta usa otra versión de tiza
 | `tiza comprobar <md>…` | Offline: valida, genera la vista previa y comprueba la sección |
 | `tiza publicar <md>… --en pruebas` | Con sesión: publica y registra el hash verificado (si hay curso de pruebas) |
 | `tiza publicar <md>… --en real` | Con sesión: solo lo verificado; el docente confirma `[s/N]` en su terminal. Sin curso de pruebas, exige `--oculto` |
+| `tiza publicar <md>… --en pruebas\|real --solo-fechas` | Con sesión: cambia solo las fechas de tareas y cuestionarios ya publicados; en real, el docente confirma las fechas antes y después |
 | `tiza estructura` | Con sesión: actualiza `.tiza/estructura.json` |
 | `tiza revisar` | Solo lectura: comprueba que estás aislado del aula; si algo falta, pide al docente `tiza aislar` |
 | `tiza --help` | Ayuda |
