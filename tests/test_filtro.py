@@ -325,8 +325,8 @@ SERVIDORES_INCRUSTABLES = [
     "https://view.genial.ly/65495004effe9800116a9afa",
     "https://www.canva.com/design/DAF/view?embed",
     "https://wordwall.net/embed/abc123?themeId=1",
-    "https://www.tizaplay.com/game/123-juego.html",
-    "https://es.tizaplay.com/juego/123-juego.html",
+    "https://www.educaplay.com/game/123-juego.html",
+    "https://es.educaplay.com/juego/123-juego.html",
     "https://learningapps.org/watch?v=pabc123",
     "https://www.geogebra.org/material/iframe/id/abc/width/800",
     "https://phet.colorado.edu/sims/html/balloons/latest/balloons_es.html",
@@ -339,6 +339,44 @@ def iframe(src: str, extra: str = "") -> str:
 
 def etiqueta_iframe(resultado: filtro.Analisis):
     return resultado.cuerpo.find("iframe")
+
+
+class TestCoherenciaConLaSkill:
+    """La lista blanca y los servicios que promete la skill no pueden separarse."""
+
+    SERVICIOS = {
+        "YouTube": "youtube",
+        "Vimeo": "vimeo",
+        "Genially": "genial",
+        "Canva": "canva",
+        "Wordwall": "wordwall",
+        "Educaplay": "educaplay",
+        "LearningApps": "learningapps",
+        "GeoGebra": "geogebra",
+        "PhET": "phet",
+    }
+
+    def _linea_de_iframes(self) -> str:
+        from pathlib import Path
+
+        skill = Path(filtro.__file__).parent / "skill" / "tiza" / "SKILL.md"
+        (linea,) = [
+            fila
+            for fila in skill.read_text(encoding="utf-8").splitlines()
+            if "**`<iframe>`**" in fila
+        ]
+        return linea
+
+    def test_cada_servicio_de_la_skill_tiene_servidor(self):
+        linea = self._linea_de_iframes()
+        for nombre, huella in self.SERVICIOS.items():
+            assert nombre in linea
+            assert any(huella in s for s in filtro._SERVIDORES_INCRUSTABLES), nombre
+
+    def test_cada_servidor_pertenece_a_un_servicio_de_la_skill(self):
+        huellas = self.SERVICIOS.values()
+        for servidor in filtro._SERVIDORES_INCRUSTABLES:
+            assert any(h in servidor for h in huellas), servidor
 
 
 class TestIframes:

@@ -544,8 +544,8 @@ _SERVIDORES_INCRUSTABLES: dict[str, str] = {
     "www.canva.com": "",
     # Actividades
     "wordwall.net": "",
-    "www.tizaplay.com": "",
-    "es.tizaplay.com": "",
+    "www.educaplay.com": "",
+    "es.educaplay.com": "",
     "learningapps.org": "",
     # Ciencias y mates
     "www.geogebra.org": "",
