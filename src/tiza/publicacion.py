@@ -25,7 +25,7 @@ from __future__ import annotations
 import sys
 import traceback
 from collections.abc import Callable, Collection, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -289,9 +289,6 @@ class Presencia(Protocol):
         ...
 
 
-_CAMPOS_FICHERO = ("nombre", "tipo", "cmid", "accion", "oculto", "url", "seccion", "hash")
-
-
 def depurar(exc: BaseException, debug: bool) -> None:
     """Traza para quien desarrolla, solo con --debug; nunca llega al agente."""
     if not debug:
@@ -503,50 +500,50 @@ def publicar_con(
     Con ``solo_fechas`` solo cambia las fechas de lo que ya existe: no crea secciones,
     no sube recursos y no registra nada como verificado en pruebas.
     """
-    comando = "publicar"
-    pasos: list[dict] = [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}]
+    borrador = informe.Borrador("publicar", entorno=entorno, curso=curso)
+    borrador.paso("LOGIN")
     base = Path(carpeta).resolve()
     if not solo_fechas:
         ordenados = ordenar_por_dependencias(documentos, base)
         if ordenados is None:
-            pasos.append(
-                {"codigo": "DEPENDENCIAS", "resultado": "fallo", "detalle": "DEPENDENCIA_CIRCULAR"}
-            )
-            return informe.crear(
-                comando, "error", pasos, [], ["DEPENDENCIA_CIRCULAR"], entorno, curso
-            )
+            borrador.fallo("DEPENDENCIAS", "DEPENDENCIA_CIRCULAR")
+            borrador.error("DEPENDENCIA_CIRCULAR")
+            return borrador.documento("error")
         documentos = ordenados
     try:
         secciones = aula.estructura(curso)
     except ErrorPublicacion as exc:
-        pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
+        borrador.fallo("ESTRUCTURA", exc.codigo)
+        borrador.error(exc.codigo)
         depurar(exc, debug)
-        return informe.crear(comando, "error", pasos, [], [exc.codigo], entorno, curso)
+        return borrador.documento("error")
     existentes: dict[str, int] = {}
     if not solo_fechas:
         faltante = _resolver_dependencias(base, secciones, documentos, existentes)
         if faltante is not None:
-            pasos.append({"codigo": "DEPENDENCIAS", "resultado": "fallo", "detalle": faltante[1]})
-            return informe.crear(comando, "error", pasos, [], [faltante[0]], entorno, curso)
+            borrador.fallo("DEPENDENCIAS", faltante[1])
+            borrador.error(faltante[0])
+            return borrador.documento("error")
     if solo_fechas:
         # Todo o nada: si alguno de los documentos no se puede cambiar, no se cambia ninguno.
         codigo = codigo_solo_fechas(secciones, documentos)
         if codigo is not None:
-            pasos.append({"codigo": "SOLO_FECHAS", "resultado": "fallo", "detalle": codigo})
-            return informe.crear(comando, "error", pasos, [], [codigo], entorno, curso)
+            borrador.fallo("SOLO_FECHAS", codigo)
+            borrador.error(codigo)
+            return borrador.documento("error")
     else:
         for nombre in publicar.secciones_que_faltan(secciones, documentos):
             presencia.informar(Aviso("CREANDO_SECCION", {"nombre": nombre}))
         try:
             secciones, creadas = publicar.asegurar_secciones(aula, curso, secciones, documentos)
         except ErrorPublicacion as exc:
-            pasos.append({"codigo": "CREAR_SECCION", "resultado": "fallo", "detalle": exc.codigo})
+            borrador.fallo("CREAR_SECCION", exc.codigo)
+            borrador.error(exc.codigo)
             depurar(exc, debug)
-            return informe.crear(comando, "error", pasos, [], [exc.codigo], entorno, curso)
+            return borrador.documento("error")
         for nombre in creadas:
-            pasos.append({"codigo": "CREAR_SECCION", "resultado": "ok", "detalle": nombre})
+            borrador.paso("CREAR_SECCION", detalle=nombre)
     paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
-    ficheros: list[dict] = []
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
     for doc in documentos:
         try:
@@ -561,28 +558,29 @@ def publicar_con(
                 resultado = publicar.publicar_documento(
                     aula, curso, secciones, doc, visible=visible, dependencias=dependencias
                 )
-                cmids[_relativa(doc.ruta, base)] = resultado["cmid"]
+                assert resultado.cmid is not None  # acaba de crearla o actualizarla
+                cmids[_relativa(doc.ruta, base)] = resultado.cmid
         except ErrorPublicacion as exc:
-            pasos.append({"codigo": paso, "resultado": "fallo", "detalle": doc.ruta.name})
+            borrador.fallo(paso, doc.ruta.name)
             depurar(exc, debug)
-            return informe.crear(comando, "error", pasos, ficheros, [exc.codigo], entorno, curso)
+            borrador.error(exc.codigo)
+            return borrador.documento("error")
         if entorno == "pruebas" and not solo_fechas:
+            assert resultado.cmid is not None and resultado.hash is not None
             estado.guardar_verificado(
                 Path(carpeta) / rutas.CARPETA_TRABAJO,
-                resultado["hash"],
-                resultado["nombre"],
-                resultado["cmid"],
+                resultado.hash,
+                resultado.nombre,
+                resultado.cmid,
             )
-        ficheros.append({**{clave: resultado[clave] for clave in _CAMPOS_FICHERO}, "curso": curso})
+        borrador.fichero(replace(resultado, curso=curso))
         detalle = doc.ruta.name
         if not solo_fechas:
             extra = tipos.obtener(doc.tipo).detalle(doc)
             if extra:
                 detalle = f"{detalle}: {extra}"
-        pasos.append({"codigo": paso, "resultado": "ok", "detalle": detalle})
-        for extra in resultado.get("pasos", []):
-            pasos.append(extra)
-    return informe.crear(comando, "ok", pasos, ficheros, [], entorno, curso)
+        borrador.paso(paso, detalle=detalle)
+    return borrador.documento()
 
 
 def _nombres_de_vista(documentos: list[Documento]) -> list[str | None]:
@@ -866,9 +864,7 @@ def informe_de_cursos(
         if informe_unico is None:
             return informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, unico)
         return informe_unico
-    pasos: list[dict] = []
-    ficheros: list[dict] = []
-    errores: list[str] = []
+    borrador = informe.Borrador(comando, entorno=entorno)
     login = any(
         paso["codigo"] == "LOGIN"
         for _, _, doc in registro
@@ -876,30 +872,21 @@ def informe_de_cursos(
         for paso in doc["pasos"]
     )
     if login:
-        pasos.append({"codigo": "LOGIN", "resultado": "ok", "detalle": None})
+        borrador.paso("LOGIN")
     publicados = 0
     for posicion, curso, doc in registro:
         if doc is None:
-            pasos.append({"codigo": "CURSO_OMITIDO", "resultado": "ok", "detalle": str(curso)})
+            borrador.paso("CURSO_OMITIDO", detalle=str(curso))
             continue
         fallido = doc["resultado"] != "ok"
-        pasos.append(
-            {
-                "codigo": "CURSO",
-                "resultado": "fallo" if fallido else "ok",
-                "detalle": f"{posicion} de {total}: {curso}",
-            }
-        )
-        pasos.extend(paso for paso in doc["pasos"] if paso["codigo"] != "LOGIN")
-        ficheros.extend(doc["ficheros"])
+        borrador.paso("CURSO", "fallo" if fallido else "ok", f"{posicion} de {total}: {curso}")
+        borrador.agregar(doc, excluir={"LOGIN"})
         if fallido:
-            errores.extend(doc["errores"])
-        else:
-            publicados += 1
-    if errores:
-        resultado = "error"
-    elif publicados == 0:
-        resultado, errores = "abortado", ["ABORTADO"]
-    else:
-        resultado = "ok"
-    return informe.crear(comando, resultado, pasos, ficheros, errores, entorno, None)
+            continue
+        publicados += 1
+    if borrador.errores:
+        return borrador.documento("error")
+    if publicados == 0:
+        borrador.error("ABORTADO")
+        return borrador.documento("abortado")
+    return borrador.documento()

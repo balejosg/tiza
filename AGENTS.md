@@ -65,7 +65,8 @@ en español.
   texto de Moodle. Al importar parchea APIs privadas de python-moodle (sin token
   móvil, sin `list_courses`, User-Agent): es intencionado, no lo quites sin
   tests. `python-moodle` está fijado a `1.0.2`; subirlo obliga a revisar esos
-  parches.
+  parches. `publicar_documento` y `publicar_fechas` devuelven el
+  `informe.Fichero` ya construido (nada de dicts con claves sueltas).
 - `src/tiza/filtro.py`: **única fuente de la política de HTML** (etiquetas,
   atributos, CSS, clases y servidores de iframe) sobre el árbol de html5lib.
   Lo que se publica es ese árbol validado, serializado con `filtro.serializar`
@@ -90,8 +91,12 @@ en español.
   cualquier `*.py` del paquete (también los subpaquetes) hace que la sesión
   abierta responda `SESION_DESACTUALIZADA` a la siguiente petición y se cierre:
   hay que reabrirla.
-- `src/tiza/informe.py`: esquema cerrado. Cualquier campo nuevo de la salida
-  debe añadirse aquí y a sus tests.
+- `src/tiza/informe.py`: esquema cerrado **y construcción del informe**:
+  `Paso`, `Fichero` y `Borrador` (la acumulación de pasos, ficheros y errores),
+  y el registro `PASOS`. Ningún otro módulo arma pasos ni ficheros a mano (un
+  test lo vigila); cualquier campo nuevo de la salida se añade aquí y a sus
+  tests. `validar` sigue corriendo en las salidas hacia el agente: `escribir`
+  (informe.json) y la respuesta del buzón al escribirla y al leerla.
 - `src/tiza/publicacion.py`: **la publicación como proceso**, común a la terminal
   directa y a la sesión: puertas (`puerta_real`, `SOLO_OCULTO_SIN_PRUEBAS`),
   resúmenes y confirmación por curso, flujo de solo-fechas, `publicar_con` e

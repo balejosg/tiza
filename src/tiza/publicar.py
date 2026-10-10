@@ -35,7 +35,7 @@ from py_moodle.module import MoodleModuleError
 from py_moodle.section import MoodleSectionError
 from py_moodle.session import MoodleSessionError
 
-from . import __version__, tipos
+from . import __version__, informe, tipos
 from .config import AdaptadorAula, DestinoNoPermitido
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
 from .estado import buscar_seccion, nombre_de_seccion
@@ -1070,7 +1070,7 @@ def publicar_documento(
     *,
     visible: bool | None,
     dependencias: dict[str, int] | None = None,
-) -> dict:
+) -> informe.Fichero:
     """Crea o actualiza un documento y lo verifica releyendo el módulo.
 
     ``visible=None`` conserva la visibilidad de lo que ya existe; lo nuevo se crea oculto.
@@ -1115,7 +1115,7 @@ def _publicar_congelado(
     visible: bool | None,
     original: Documento,
     dependencias: dict[str, int],
-) -> dict:
+) -> informe.Fichero:
     seccion = buscar_seccion(secciones, doc.seccion)
     if seccion is None:
         raise ErrorPublicacion("SECCION_AUSENTE", doc.ruta.name)
@@ -1140,7 +1140,6 @@ def _publicar_congelado(
                     f"@@PLUGINFILE@@/{recurso.nombre}",
                     f"@@PLUGINFILE@@/{nombre_final}",
                 )
-    pasos: list[dict] = []
     tipo = tipos.obtener(doc.tipo)
     cmid, accion, info = tipo.publicar(
         tipos.ContextoPublicacion(
@@ -1155,18 +1154,16 @@ def _publicar_congelado(
         )
     )
     aplicar_itinerario(moodle, doc, cmid, envio)
-    return {
-        "nombre": original.ruta.name,
-        "tipo": doc.tipo,
-        "cmid": cmid,
-        "accion": accion,
-        "oculto": _oculto(visible, info),
-        "url": url_modulo(moodle.base_url, doc.tipo, cmid),
-        "seccion": seccion["nombre"],
-        "hash": hash_documento(doc),
-        "verificado": True,
-        "pasos": pasos,
-    }
+    return informe.Fichero(
+        nombre=original.ruta.name,
+        tipo=doc.tipo,
+        cmid=cmid,
+        accion=accion,
+        oculto=_oculto(visible, info),
+        url=url_modulo(moodle.base_url, doc.tipo, cmid),
+        seccion=seccion["nombre"],
+        hash=hash_documento(doc),
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -1468,7 +1465,7 @@ def asegurar_secciones(
     return secciones, creadas
 
 
-def publicar_fechas(moodle: AulaVirtual, secciones: list[dict], doc: Documento) -> dict:
+def publicar_fechas(moodle: AulaVirtual, secciones: list[dict], doc: Documento) -> informe.Fichero:
     """Cambia solo las fechas de una tarea o un cuestionario que ya está en el aula.
 
     No toca el contenido, los recursos, las preguntas, los intentos ni la
@@ -1482,19 +1479,17 @@ def publicar_fechas(moodle: AulaVirtual, secciones: list[dict], doc: Documento) 
     moodle.actualizar(cmid, payload_solo_fechas(doc))
     info = _verificar_fechas(moodle, doc, cmid)
     seccion = buscar_seccion(secciones, doc.seccion) or {}
-    return {
-        "nombre": doc.ruta.name,
-        "tipo": doc.tipo,
-        "cmid": cmid,
-        "accion": "actualizada",
-        "oculto": _oculto(None, info),
-        "url": url_modulo(moodle.base_url, doc.tipo, cmid),
-        "seccion": seccion.get("nombre") or str(doc.seccion),
+    return informe.Fichero(
+        nombre=doc.ruta.name,
+        tipo=doc.tipo,
+        cmid=cmid,
+        accion="actualizada",
+        oculto=_oculto(None, info),
+        url=url_modulo(moodle.base_url, doc.tipo, cmid),
+        seccion=seccion.get("nombre") or str(doc.seccion),
         # El contenido no cambia: el hash es el que el docente ya vio al confirmar.
-        "hash": doc.hash_cargado or None,
-        "verificado": True,
-        "pasos": [],
-    }
+        hash=doc.hash_cargado or None,
+    )
 
 
 def _verificar_fechas(moodle: AulaVirtual, doc: Documento, cmid: int) -> dict:
@@ -1538,14 +1533,14 @@ _PNG_1X1 = base64.b64decode(
 
 def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
     """Publica, republica, verifica y borra en el curso de pruebas."""
-    pasos: list[dict] = []
+    pasos: list[informe.Paso] = []
     errores: list[str] = []
     causas: list[BaseException] = []  # solo para --debug en pantalla; nunca al informe
     cmids: list[int] = []
     codigo_actual = "PREPARAR"
 
     def paso(codigo: str, resultado: str, detalle: str | None = None) -> None:
-        pasos.append({"codigo": codigo, "resultado": resultado, "detalle": detalle})
+        pasos.append(informe.Paso(codigo, resultado, detalle))
 
     try:
         secciones = moodle.estructura(curso_id)
@@ -1558,8 +1553,9 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
             for doc in documentos:
                 codigo_actual = f"PUBLICAR_{doc.tipo.upper()}"
                 resultado = publicar_documento(moodle, curso_id, secciones, doc, visible=False)
-                cmids.append(resultado["cmid"])
-                paso(codigo_actual, "ok", f"cmid {resultado['cmid']}")
+                assert resultado.cmid is not None  # acaba de crearla o actualizarla
+                cmids.append(resultado.cmid)
+                paso(codigo_actual, "ok", f"cmid {resultado.cmid}")
             codigo_actual = "VERIFICAR_FECHAS"
             tarea = documentos[1]
             leidas = moodle.leer_modulo(cmids[1]).get("fechas") or {}
@@ -1569,35 +1565,35 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
             codigo_actual = "REPUBLICAR_PAGINA"
             secciones = moodle.estructura(curso_id)
             repetido = publicar_documento(moodle, curso_id, secciones, documentos[0], visible=None)
-            if cmids and repetido["cmid"] != cmids[0]:
+            if cmids and repetido.cmid != cmids[0]:
                 raise ErrorPublicacion("REPUBLICAR_CMID_DISTINTO")
-            if repetido["oculto"] is not True:
+            if repetido.oculto is not True:
                 raise ErrorPublicacion("VISIBILIDAD_NO_CONSERVADA")
-            paso("REPUBLICAR_PAGINA", "ok", f"cmid {repetido['cmid']}")
+            paso("REPUBLICAR_PAGINA", "ok", f"cmid {repetido.cmid}")
             codigo_actual = "REPUBLICAR_CUESTIONARIO"
             secciones = moodle.estructura(curso_id)
             repetido = publicar_documento(moodle, curso_id, secciones, documentos[2], visible=None)
-            if repetido["cmid"] != cmids[2]:
+            if repetido.cmid != cmids[2]:
                 raise ErrorPublicacion("REPUBLICAR_CMID_DISTINTO")
-            if repetido["oculto"] is not True:
+            if repetido.oculto is not True:
                 raise ErrorPublicacion("VISIBILIDAD_NO_CONSERVADA")
-            paso("REPUBLICAR_CUESTIONARIO", "ok", f"cmid {repetido['cmid']}")
+            paso("REPUBLICAR_CUESTIONARIO", "ok", f"cmid {repetido.cmid}")
             codigo_actual = "REPUBLICAR_ETIQUETA"
             secciones = moodle.estructura(curso_id)
             repetido = publicar_documento(moodle, curso_id, secciones, documentos[3], visible=None)
-            if repetido["cmid"] != cmids[3]:
+            if repetido.cmid != cmids[3]:
                 raise ErrorPublicacion("REPUBLICAR_CMID_DISTINTO")
-            if repetido["oculto"] is not True:
+            if repetido.oculto is not True:
                 raise ErrorPublicacion("VISIBILIDAD_NO_CONSERVADA")
-            paso("REPUBLICAR_ETIQUETA", "ok", f"cmid {repetido['cmid']}")
+            paso("REPUBLICAR_ETIQUETA", "ok", f"cmid {repetido.cmid}")
             codigo_actual = "REPUBLICAR_H5P"
             secciones = moodle.estructura(curso_id)
             repetido = publicar_documento(moodle, curso_id, secciones, documentos[4], visible=None)
-            if repetido["cmid"] != cmids[4]:
+            if repetido.cmid != cmids[4]:
                 raise ErrorPublicacion("REPUBLICAR_CMID_DISTINTO")
-            if repetido["oculto"] is not True:
+            if repetido.oculto is not True:
                 raise ErrorPublicacion("VISIBILIDAD_NO_CONSERVADA")
-            paso("REPUBLICAR_H5P", "ok", f"cmid {repetido['cmid']}")
+            paso("REPUBLICAR_H5P", "ok", f"cmid {repetido.cmid}")
             codigo_actual = "VERIFICAR_CATEGORIA"
             cmid_quiz = cmids[2]
             categoria = moodle.categoria_cuestionario(cmid_quiz)

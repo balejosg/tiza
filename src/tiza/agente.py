@@ -64,18 +64,16 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
     base = Path(carpeta)
     raiz = base.resolve()
     dir_tiza = base / rutas.CARPETA_TRABAJO
-    errores: list[str] = []
-    pasos: list[dict] = []
-    datos: list[dict] = []
+    borrador = informe.Borrador("comprobar")
     resultados: list[FicheroComprobado] = []
     try:
         estructura = cargar_estructura(dir_tiza)
     except ErrorEstado as exc:
         estructura = None
-        errores.append(exc.codigo)
-        pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
+        borrador.error(exc.codigo)
+        borrador.fallo("ESTRUCTURA", exc.codigo)
     else:
-        pasos.append({"codigo": "ESTRUCTURA", "resultado": "ok", "detalle": None})
+        borrador.paso("ESTRUCTURA")
 
     # El calendario es una ayuda: si no se puede leer, el error se cuenta pero los
     # documentos se comprueban igual.
@@ -83,8 +81,8 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
         cal = calendario.cargar(base)
     except ErrorCalendario as exc:
         cal = None
-        errores.append(exc.codigo)
-        pasos.append({"codigo": "CALENDARIO", "resultado": "fallo", "detalle": exc.detalle})
+        borrador.error(exc.codigo)
+        borrador.fallo("CALENDARIO", exc.detalle)
 
     for nombre in ficheros:
         ruta = base / nombre
@@ -92,8 +90,8 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             doc = contenido.cargar(ruta, raiz=raiz)
             vista = contenido.previsualizar(doc, dir_tiza)
         except ErrorContenido as exc:
-            errores.append(exc.codigo)
-            pasos.append(_paso_fallido(ruta.name, exc.codigo))
+            borrador.error(exc.codigo)
+            borrador.fallo("COMPROBAR", f"{ruta.name}: {exc.codigo}")
             resultados.append(FicheroComprobado(ruta.name, exc.codigo, exc.detalle))
             continue
         avisos_doc: list[str] = []
@@ -101,12 +99,12 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             for codigo in calendario.avisos(cal, dia, clase=clase):
                 avisos_doc.append(codigo)
                 detalle = f"{ruta.name}: {campo} {dia.isoformat()}"
-                pasos.append({"codigo": codigo, "resultado": "ok", "detalle": detalle})
+                borrador.paso(codigo, detalle=detalle)
         avisos = tuple(avisos_doc)
         problema = revisar_dependencias(doc, raiz)
         if problema is not None:
-            errores.append(problema[0])
-            pasos.append(_paso_fallido(ruta.name, problema[0]))
+            borrador.error(problema[0])
+            borrador.fallo("COMPROBAR", f"{ruta.name}: {problema[0]}")
             resultados.append(FicheroComprobado(ruta.name, problema[0], problema[1], avisos=avisos))
             continue
         for relativa in doc.restricciones.completar if doc.restricciones else ():
@@ -114,18 +112,12 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             if dependencia.finalizacion is None or dependencia.finalizacion.modo == "ninguna":
                 # Sin finalización no hay nada que completar: se avisa, no se bloquea (el aula
                 # puede tenerla puesta a mano y tiza no lee el aula al comprobar).
-                pasos.append(
-                    {
-                        "codigo": "DEPENDENCIA_SIN_FINALIZACION",
-                        "resultado": "ok",
-                        "detalle": f"{ruta.name}: {relativa}",
-                    }
-                )
+                borrador.paso("DEPENDENCIA_SIN_FINALIZACION", detalle=f"{ruta.name}: {relativa}")
         curso = _curso_a_comprobar(estructura)
         seccion = buscar_seccion(curso[1], doc.seccion) if curso is not None else None
         if curso is not None and seccion is None and isinstance(doc.seccion, str):
-            pasos.append({"codigo": "COMPROBAR", "resultado": "ok", "detalle": ruta.name})
-            datos.append(_fichero(doc, doc.seccion))
+            borrador.paso("COMPROBAR", detalle=ruta.name)
+            borrador.fichero(_fichero(doc, doc.seccion))
             resultados.append(
                 FicheroComprobado(
                     ruta.name, vista_previa=vista, seccion_nueva=doc.seccion, avisos=avisos
@@ -138,12 +130,12 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             else None
         )
         if pista is not None:
-            errores.append("SECCION_ES_ID")
-            pasos.append(_paso_fallido(ruta.name, "SECCION_ES_ID"))
+            borrador.error("SECCION_ES_ID")
+            borrador.fallo("COMPROBAR", f"{ruta.name}: SECCION_ES_ID")
             resultados.append(FicheroComprobado(ruta.name, "SECCION_ES_ID", pista, avisos=avisos))
         elif curso is not None and seccion is None:
-            errores.append("SECCION_AUSENTE")
-            pasos.append(_paso_fallido(ruta.name, "SECCION_AUSENTE"))
+            borrador.error("SECCION_AUSENTE")
+            borrador.fallo("COMPROBAR", f"{ruta.name}: SECCION_AUSENTE")
             detalle = (
                 f"no existe la sección {doc.seccion} en el curso de {curso[0]} "
                 f"({rutas.CARPETA_TRABAJO}/{estado.FICHERO_ESTRUCTURA})"
@@ -152,22 +144,16 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
                 FicheroComprobado(ruta.name, "SECCION_AUSENTE", detalle, avisos=avisos)
             )
         else:
-            pasos.append({"codigo": "COMPROBAR", "resultado": "ok", "detalle": ruta.name})
+            borrador.paso("COMPROBAR", detalle=ruta.name)
             if _seccion_distinta_entre_cursos(estructura, doc):
                 # Texto fijo: el fichero y el número, nunca los nombres de las secciones.
-                pasos.append(
-                    {
-                        "codigo": "SECCION_DISTINTA_ENTRE_CURSOS",
-                        "resultado": "ok",
-                        "detalle": f"{ruta.name}: sección {doc.seccion}",
-                    }
+                borrador.paso(
+                    "SECCION_DISTINTA_ENTRE_CURSOS", detalle=f"{ruta.name}: sección {doc.seccion}"
                 )
             resultados.append(FicheroComprobado(ruta.name, vista_previa=vista, avisos=avisos))
-        datos.append(_fichero(doc, seccion["nombre"] if seccion else None))
+        borrador.fichero(_fichero(doc, seccion["nombre"] if seccion else None))
 
-    documento = informe.crear("comprobar", "error" if errores else "ok", pasos, datos, errores)
-    informe.validar(documento)
-    return Comprobacion(documento, tuple(resultados))
+    return Comprobacion(borrador.documento(), tuple(resultados))
 
 
 MAX_PROFUNDIDAD_DEPENDENCIAS = 20
@@ -206,22 +192,13 @@ def revisar_dependencias(doc: Documento, raiz: Path) -> tuple[str, str] | None:
     return visitar(doc, (doc.ruta.resolve(),))
 
 
-def _paso_fallido(fichero: str, codigo: str) -> dict:
-    return {"codigo": "COMPROBAR", "resultado": "fallo", "detalle": f"{fichero}: {codigo}"}
-
-
-def _fichero(doc: Documento, seccion: str | None) -> dict:
-    return {
-        "nombre": doc.ruta.name,
-        "tipo": doc.tipo,
-        "cmid": None,
-        "accion": None,
-        "oculto": None,
-        "url": None,
-        "seccion": seccion,
-        "hash": hash_documento(doc),
-        "curso": None,
-    }
+def _fichero(doc: Documento, seccion: str | None) -> informe.Fichero:
+    return informe.Fichero(
+        nombre=doc.ruta.name,
+        tipo=doc.tipo,
+        seccion=seccion,
+        hash=hash_documento(doc),
+    )
 
 
 def _cursos_de(estructura: Estructura | None, entorno: str) -> list[list]:
@@ -364,12 +341,13 @@ def _enviar(
     comando, entorno = peticion["comando"], peticion["entorno"]
     if not buzon.sesion_activa(dir_tiza):
         codigo = "SESION_INCOMPATIBLE" if buzon.sesion_incompatible(dir_tiza) else "SIN_SESION"
-        pasos: list[dict] = []
+        borrador = informe.Borrador(comando, entorno=entorno)
+        borrador.error(codigo)
         if codigo == "SIN_SESION":
             pista = pista_worktree(carpeta)
             if pista is not None:
-                pasos.append({"codigo": "SIN_SESION", "resultado": "fallo", "detalle": pista})
-        return informe.crear(comando, "error", pasos, [], [codigo], entorno)
+                borrador.fallo("SIN_SESION", pista)
+        return borrador.documento("error")
 
     def dormir(segundos: float) -> None:
         if cancelar is None:

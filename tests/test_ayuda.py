@@ -19,6 +19,9 @@ _PATRONES = (
     re.compile(r"ERROR \[([A-Z][A-Z0-9_]+)\]"),
     re.compile(r'_imprimir_error\(\s*"([A-Z][A-Z0-9_]+)"'),
     re.compile(r'errores\.append\(\s*"([A-Z][A-Z0-9_]+)"'),
+    # El borrador del informe acumula los códigos de error (no los pasos: esos
+    # no son códigos de error y tienen su propio registro, informe.PASOS).
+    re.compile(r'borrador\.error\(\s*"([A-Z][A-Z0-9_]+)"'),
 )
 # informe.py valida el esquema; sus códigos nunca llegan al usuario como código
 # de error (se descartan o se convierten en ERROR_INTERNO).

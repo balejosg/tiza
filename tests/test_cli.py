@@ -457,16 +457,7 @@ class TestInstalarSkill:
 
 
 def informe_ok(*, comando="publicar", entorno="pruebas", curso=1234) -> dict:
-    return {
-        "version": 1,
-        "comando": comando,
-        "entorno": entorno,
-        "curso": curso,
-        "resultado": "ok",
-        "pasos": [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}],
-        "ficheros": [],
-        "errores": [],
-    }
+    return informe.crear(comando, "ok", [informe.Paso("LOGIN")], entorno=entorno, curso=curso)
 
 
 def peticion_publicar(ficheros=("pagina.md",), entorno="pruebas", **cambios) -> dict:

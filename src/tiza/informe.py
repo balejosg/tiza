@@ -1,22 +1,38 @@
 """Informe de resultados con un esquema cerrado.
 
-Todo lo que se escribe en ``.tiza/informe.json`` pasa por :func:`validar`, que
-solo admite claves, tipos y textos conocidos. Así, ningún dato devuelto por
-Moodle puede colarse en el informe que lee el agente.
+Todo lo que se escribe en ``.tiza/informe.json`` o viaja en una respuesta del
+buzón se construye con :func:`crear`, :class:`Paso`, :class:`Fichero` y
+:class:`Borrador`, y pasa por :func:`validar` en la salida: solo admite claves,
+tipos y textos conocidos. Así, ningún dato devuelto por Moodle puede colarse en
+el informe que lee el agente.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from collections.abc import Collection, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from . import ayuda, tipos
+from . import ayuda, calendario, tipos
 from .estado import FICHERO_INFORME
 from .ficheros import asegurar_directorio, escribir_json
 
-__all__ = ["ErrorInforme", "crear", "escribir", "leer", "resumen", "validar", "validar_estructura"]
+__all__ = [
+    "Borrador",
+    "ErrorInforme",
+    "Fichero",
+    "PASOS",
+    "Paso",
+    "crear",
+    "escribir",
+    "leer",
+    "resumen",
+    "validar",
+    "validar_estructura",
+]
 
 COMANDOS = {
     "comprobar",
@@ -31,6 +47,35 @@ RESULTADOS_PASO = {"ok", "fallo"}
 ACCIONES = {"creada", "actualizada", "borrada", "verificada"}
 # El registro de tipos (tipos/) es el dueño de qué tipos existen.
 TIPOS = set(tipos.TIPOS)
+# El registro de los códigos de paso: solo estos salen en un informe. Los del
+# calendario y los de la autoprueba (por tipo) salen de sus propios registros.
+PASOS = (
+    frozenset(
+        {
+            "BORRAR_SECCION",
+            "CALENDARIO",
+            "COMPROBAR",
+            "CREAR_SECCION",
+            "CURSO",
+            "CURSO_OMITIDO",
+            "DEPENDENCIA_SIN_FINALIZACION",
+            "DEPENDENCIAS",
+            "ESTRUCTURA",
+            "LIMPIAR",
+            "LOGIN",
+            "PREPARAR",
+            "PUBLICAR",
+            "SECCION_DISTINTA_ENTRE_CURSOS",
+            "SIN_SESION",
+            "SOLO_FECHAS",
+            "VERIFICAR_CATEGORIA",
+            "VERIFICAR_FECHAS",
+        }
+    )
+    | set(calendario.AVISOS)
+    | {f"PUBLICAR_{tipo.upper()}" for tipo in TIPOS}
+    | {f"REPUBLICAR_{tipo.upper()}" for tipo in TIPOS}
+)
 
 _CAMPOS_RAIZ = {
     "version",
@@ -74,26 +119,160 @@ class ErrorInforme(Exception):
         self.detalle = detalle
 
 
+@dataclass(frozen=True)
+class Paso:
+    """Un paso del informe, validado al construirse con el esquema cerrado."""
+
+    codigo: str
+    resultado: str = "ok"
+    detalle: str | None = None
+
+    def __post_init__(self) -> None:
+        _validar_paso(self.como_dict())
+
+    def como_dict(self) -> dict:
+        return {"codigo": self.codigo, "resultado": self.resultado, "detalle": self.detalle}
+
+
+@dataclass(frozen=True)
+class Fichero:
+    """Un fichero del informe; los campos que no apliquen quedan nulos."""
+
+    nombre: str
+    tipo: str
+    cmid: int | None = None
+    accion: str | None = None
+    oculto: bool | None = None
+    url: str | None = None
+    seccion: str | None = None
+    hash: str | None = None
+    curso: int | None = None
+
+    def __post_init__(self) -> None:
+        _validar_fichero(self.como_dict())
+
+    def como_dict(self) -> dict:
+        return {
+            "nombre": self.nombre,
+            "tipo": self.tipo,
+            "cmid": self.cmid,
+            "accion": self.accion,
+            "oculto": self.oculto,
+            "url": self.url,
+            "seccion": self.seccion,
+            "hash": self.hash,
+            "curso": self.curso,
+        }
+
+
 def crear(
     comando: str,
     resultado: str,
-    pasos: list[dict],
-    ficheros: list[dict] | None = None,
-    errores: list[str] | None = None,
+    pasos: Sequence[Paso | dict],
+    ficheros: Sequence[Fichero | dict] | None = None,
+    errores: Iterable[str] | None = None,
     entorno: str | None = None,
     curso: int | None = None,
 ) -> dict:
-    """Documento del informe con el esquema cerrado (lo valida ``escribir``)."""
+    """Documento del informe con el esquema cerrado, válido por construcción.
+
+    ``Paso``/``Fichero`` son lo normal; un dict ya construido (p. ej. el informe
+    de un curso que se agrega) se valida aquí. La salida hacia el agente se
+    valida entera, otra vez, en :func:`escribir` y en el buzón.
+    """
+    _exigir_opcion(comando, COMANDOS, "comando")
+    _exigir_opcion(resultado, RESULTADOS, "resultado")
+    _exigir_entorno(entorno)
+    _exigir_entero_o_nulo(curso, "curso")
     return {
         "version": 1,
         "comando": comando,
         "entorno": entorno,
         "curso": curso,
         "resultado": resultado,
-        "pasos": pasos,
-        "ficheros": ficheros or [],
-        "errores": errores or [],
+        "pasos": [_paso_a_dict(paso) for paso in pasos],
+        "ficheros": [_fichero_a_dict(fichero) for fichero in ficheros or ()],
+        "errores": _errores_validos(errores or ()),
     }
+
+
+def _paso_a_dict(paso: Paso | dict) -> dict:
+    if isinstance(paso, Paso):
+        return paso.como_dict()
+    _validar_paso(paso)
+    return paso
+
+
+def _fichero_a_dict(fichero: Fichero | dict) -> dict:
+    if isinstance(fichero, Fichero):
+        return fichero.como_dict()
+    _validar_fichero(fichero)
+    return fichero
+
+
+def _errores_validos(errores: Iterable[str]) -> list[str]:
+    salida = list(errores)
+    for error in salida:
+        if not isinstance(error, str) or not _CODIGO.match(error):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "los errores deben ser códigos")
+    return salida
+
+
+class Borrador:
+    """Acumula pasos, ficheros y errores y construye el informe del esquema cerrado.
+
+    Quien informa no maneja listas paralelas: se las presta al borrador y al final
+    pide :meth:`documento`.
+    """
+
+    def __init__(
+        self, comando: str, *, entorno: str | None = None, curso: int | None = None
+    ) -> None:
+        _exigir_opcion(comando, COMANDOS, "comando")
+        _exigir_entorno(entorno)
+        _exigir_entero_o_nulo(curso, "curso")
+        self.comando = comando
+        self.entorno = entorno
+        self.curso = curso
+        self._pasos: list[Paso | dict] = []
+        self._ficheros: list[Fichero | dict] = []
+        self._errores: list[str] = []
+
+    @property
+    def errores(self) -> tuple[str, ...]:
+        return tuple(self._errores)
+
+    def paso(self, codigo: str, resultado: str = "ok", detalle: str | None = None) -> None:
+        self._pasos.append(Paso(codigo, resultado, detalle))
+
+    def fallo(self, codigo: str, detalle: str | None = None) -> None:
+        self.paso(codigo, "fallo", detalle)
+
+    def error(self, codigo: str) -> None:
+        self._errores.append(codigo)
+
+    def fichero(self, fichero: Fichero | dict) -> None:
+        self._ficheros.append(fichero)
+
+    def agregar(self, documento: Mapping[str, Any], *, excluir: Collection[str] = ()) -> None:
+        """Acumula pasos, ficheros y errores de otro informe ya construido (un curso)."""
+        self._pasos.extend(paso for paso in documento["pasos"] if paso["codigo"] not in excluir)
+        self._ficheros.extend(documento["ficheros"])
+        self._errores.extend(documento["errores"])
+
+    def documento(self, resultado: str | None = None) -> dict:
+        """El documento del esquema cerrado; sin ``resultado``, error si hubo errores."""
+        if resultado is None:
+            resultado = "error" if self._errores else "ok"
+        return crear(
+            self.comando,
+            resultado,
+            self._pasos,
+            self._ficheros,
+            self._errores,
+            self.entorno,
+            self.curso,
+        )
 
 
 def validar(documento: Any) -> None:
@@ -122,6 +301,8 @@ def _validar_paso(paso: Any) -> None:
     _exigir_campos(paso, _CAMPOS_PASO, "paso")
     if not isinstance(paso["codigo"], str) or not _CODIGO.match(paso["codigo"]):
         raise ErrorInforme("VALOR_NO_PERMITIDO", "el código del paso no es válido")
+    if paso["codigo"] not in PASOS:
+        raise ErrorInforme("VALOR_NO_PERMITIDO", "el código del paso no está registrado")
     _exigir_opcion(paso["resultado"], RESULTADOS_PASO, "resultado del paso")
     _exigir_texto(paso["detalle"], "detalle del paso")
 
@@ -260,8 +441,11 @@ def leer(ruta: str | Path) -> dict:
 
 
 def resumen(documento: dict) -> list[str]:
-    """Resumen de pantalla: campos del esquema y textos fijos de :mod:`tiza.ayuda`."""
-    validar(documento)
+    """Resumen de pantalla: campos del esquema y textos fijos de :mod:`tiza.ayuda`.
+
+    No valida: solo pinta. La validación del esquema es de las salidas hacia el
+    agente (``escribir`` y el buzón), y la construcción ya comprueba cada campo.
+    """
     lineas = [f"Informe: {documento['resultado']} ({documento['comando']})"]
     if documento["entorno"] is not None:
         lineas.append(f"Entorno: {documento['entorno']}")

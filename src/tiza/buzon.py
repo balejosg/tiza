@@ -603,16 +603,7 @@ def _atender_una(
 
 
 def _informe_error(peticion: dict, codigo: str) -> dict:
-    return {
-        "version": 1,
-        "comando": peticion["comando"],
-        "entorno": peticion["entorno"],
-        "curso": None,
-        "resultado": "error",
-        "pasos": [],
-        "ficheros": [],
-        "errores": [codigo],
-    }
+    return informe.crear(peticion["comando"], "error", [], [], [codigo], peticion["entorno"])
 
 
 def _limpiar(carpeta: Path) -> None:

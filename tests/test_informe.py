@@ -1,40 +1,52 @@
-"""Tests del esquema cerrado del informe."""
+"""Tests del esquema cerrado del informe y de su construcción."""
 
 from __future__ import annotations
 
 import json
+import re
+from pathlib import Path
 
 import pytest
 
-from tiza.informe import ErrorInforme, escribir, leer, resumen, validar, validar_estructura
+from tiza import calendario, informe, tipos
+from tiza.informe import (
+    Borrador,
+    ErrorInforme,
+    Fichero,
+    Paso,
+    crear,
+    escribir,
+    leer,
+    resumen,
+    validar,
+    validar_estructura,
+)
 
 
 def informe_valido() -> dict:
-    return {
-        "version": 1,
-        "comando": "publicar",
-        "entorno": "pruebas",
-        "curso": 1234,
-        "resultado": "ok",
-        "pasos": [
-            {"codigo": "LOGIN", "resultado": "ok", "detalle": None},
-            {"codigo": "PUBLICAR", "resultado": "ok", "detalle": "pagina.md"},
+    return crear(
+        "publicar",
+        "ok",
+        [
+            Paso("LOGIN"),
+            Paso("PUBLICAR", detalle="pagina.md"),
         ],
-        "ficheros": [
-            {
-                "nombre": "pagina.md",
-                "tipo": "pagina",
-                "cmid": 456,
-                "accion": "creada",
-                "oculto": True,
-                "url": "https://aula.example.org/mod/page/view.php?id=456",
-                "seccion": "Tema 3",
-                "hash": "a" * 64,
-                "curso": 5678,
-            }
+        [
+            Fichero(
+                nombre="pagina.md",
+                tipo="pagina",
+                cmid=456,
+                accion="creada",
+                oculto=True,
+                url="https://aula.example.org/mod/page/view.php?id=456",
+                seccion="Tema 3",
+                hash="a" * 64,
+                curso=5678,
+            )
         ],
-        "errores": [],
-    }
+        entorno="pruebas",
+        curso=1234,
+    )
 
 
 def test_informe_valido_se_escribe_y_se_lee(tmp_path):
@@ -313,3 +325,132 @@ def test_el_resumen_dice_el_curso_de_cada_fichero_solo_con_varios():
     documento["curso"] = None
     linea = next(linea for linea in resumen(documento) if linea.startswith("Fichero"))
     assert "curso 5678" in linea
+
+
+def test_paso_valida_al_construir():
+    with pytest.raises(ErrorInforme) as exc:
+        Paso("CODIGO_QUE_NO_EXISTE")
+    assert exc.value.codigo == "VALOR_NO_PERMITIDO"
+    with pytest.raises(ErrorInforme):
+        Paso("LOGIN", "regular")
+    with pytest.raises(ErrorInforme) as exc:
+        Paso("LOGIN", detalle="<b>esto viene de Moodle</b>")
+    assert exc.value.codigo == "TEXTO_NO_PERMITIDO"
+
+
+def test_paso_como_dict():
+    assert Paso("LOGIN").como_dict() == {"codigo": "LOGIN", "resultado": "ok", "detalle": None}
+    assert Paso("COMPROBAR", "fallo", "a.md: SECCION_AUSENTE").resultado == "fallo"
+
+
+def test_fichero_valida_al_construir():
+    with pytest.raises(ErrorInforme):
+        Fichero(nombre="", tipo="pagina")
+    with pytest.raises(ErrorInforme) as exc:
+        Fichero(nombre="a.md", tipo="encuesta")
+    assert exc.value.codigo == "VALOR_NO_PERMITIDO"
+    with pytest.raises(ErrorInforme):
+        Fichero(nombre="a.md", tipo="pagina", url="moodle://x")
+    with pytest.raises(ErrorInforme):
+        Fichero(nombre="a.md", tipo="pagina", hash="no-es-un-sha256")
+    Fichero(nombre="a.md", tipo="pagina")  # los demás campos, nulos
+
+
+def test_fichero_como_dict():
+    fichero = Fichero(nombre="a.md", tipo="pagina", cmid=7, curso=101)
+    assert fichero.como_dict() == {
+        "nombre": "a.md",
+        "tipo": "pagina",
+        "cmid": 7,
+        "accion": None,
+        "oculto": None,
+        "url": None,
+        "seccion": None,
+        "hash": None,
+        "curso": 101,
+    }
+
+
+def test_crear_acepta_los_tipos():
+    documento = crear("publicar", "ok", [Paso("LOGIN")], [Fichero(nombre="a.md", tipo="pagina")])
+    validar(documento)
+    assert documento["pasos"] == [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}]
+    assert documento["ficheros"][0]["nombre"] == "a.md"
+
+
+def test_crear_rechaza_la_raiz_mala_desde_el_principio():
+    with pytest.raises(ErrorInforme):
+        crear("borrar", "ok", [])
+    with pytest.raises(ErrorInforme):
+        crear("publicar", "regular", [])
+    with pytest.raises(ErrorInforme):
+        crear("publicar", "ok", [], entorno="otro")
+
+
+def test_borrador_deriva_el_resultado():
+    borrador = Borrador("comprobar")
+    borrador.paso("ESTRUCTURA")
+    assert borrador.errores == ()
+    assert borrador.documento()["resultado"] == "ok"
+    borrador.error("SIN_SESION")
+    assert borrador.errores == ("SIN_SESION",)
+    assert borrador.documento()["resultado"] == "error"
+    assert borrador.documento("abortado")["resultado"] == "abortado"
+
+
+def test_borrador_fallo_y_fichero():
+    borrador = Borrador("publicar", entorno="real", curso=101)
+    borrador.fallo("ESTRUCTURA", "ERROR_ESTRUCTURA")
+    borrador.fichero(Fichero(nombre="a.md", tipo="pagina", curso=101))
+    documento = borrador.documento()
+    validar(documento)
+    assert (documento["entorno"], documento["curso"]) == ("real", 101)
+    assert documento["pasos"] == [
+        {"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": "ERROR_ESTRUCTURA"}
+    ]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["a.md"]
+
+
+def test_borrador_agrega_otro_informe():
+    previo = crear(
+        "publicar",
+        "ok",
+        [Paso("LOGIN"), Paso("PUBLICAR", detalle="a.md")],
+        [Fichero(nombre="a.md", tipo="pagina")],
+    )
+    borrador = Borrador("publicar", entorno="real")
+    borrador.paso("CURSO", detalle="1 de 1: 101")
+    borrador.agregar(previo, excluir={"LOGIN"})
+    documento = borrador.documento()
+    validar(documento)
+    assert [p["codigo"] for p in documento["pasos"]] == ["CURSO", "PUBLICAR"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["a.md"]
+
+
+def test_el_esquema_rechaza_un_codigo_de_paso_desconocido():
+    documento = informe_valido()
+    documento["pasos"].append({"codigo": "PASO_FUTURO", "resultado": "ok", "detalle": None})
+    with pytest.raises(ErrorInforme) as exc:
+        validar(documento)
+    assert exc.value.codigo == "VALOR_NO_PERMITIDO"
+
+
+def test_el_registro_de_pasos_cubre_tipos_y_calendario():
+    assert set(calendario.AVISOS) <= informe.PASOS
+    for tipo in tipos.TIPOS:
+        assert f"PUBLICAR_{tipo.upper()}" in informe.PASOS
+        assert f"REPUBLICAR_{tipo.upper()}" in informe.PASOS
+
+
+SRC = Path(__file__).resolve().parents[1] / "src" / "tiza"
+_LITERAL_PASO = re.compile(r'\{\s*"codigo":\s*"')
+
+
+def test_no_quedan_literales_de_paso_fuera_de_informe():
+    """Los pasos se construyen con `Paso`/`Borrador`; el dict literal vive solo en el esquema."""
+    culpables = [
+        ruta.relative_to(SRC).as_posix()
+        for ruta in SRC.rglob("*.py")
+        if ruta.name != "informe.py" and _LITERAL_PASO.search(ruta.read_text(encoding="utf-8"))
+    ]
+    assert culpables == []

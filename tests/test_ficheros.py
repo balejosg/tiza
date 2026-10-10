@@ -51,16 +51,7 @@ def test_dos_escrituras_no_comparten_temporal(tmp_path, monkeypatch):
 
 
 def _informe(curso: int) -> dict:
-    return {
-        "version": 1,
-        "comando": "comprobar",
-        "entorno": None,
-        "curso": curso,
-        "resultado": "ok",
-        "pasos": [],
-        "ficheros": [],
-        "errores": [],
-    }
+    return informe.crear("comprobar", "ok", [], curso=curso)
 
 
 @pytest.mark.parametrize("cual", ["informe", "estructura", "verificados", "config", "autoprueba"])

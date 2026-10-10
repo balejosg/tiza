@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import traceback
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -235,7 +236,7 @@ def _fallo(
     codigo: str,
     detalle: str = "",
     *,
-    pasos: list[dict] | None = None,
+    pasos: Sequence[informe.Paso | dict] | None = None,
     ficheros: list[dict] | None = None,
     entorno: str | None = None,
     curso: int | None = None,
@@ -674,11 +675,11 @@ def _configuracion_inicial(
     except ErrorTerminal as exc:
         if sin_sesion:
             detalle = "pide al docente que ejecute «tiza empezar» en su terminal, en esta carpeta"
-            pasos: list[dict] = []
+            pasos: list[informe.Paso] = []
             pista = agente.pista_worktree(Path.cwd())
             if pista is not None:
                 detalle = pista
-                pasos.append({"codigo": "SIN_SESION", "resultado": "fallo", "detalle": pista})
+                pasos.append(informe.Paso("SIN_SESION", "fallo", pista))
             return None, _fallo(
                 comando,
                 "SIN_SESION",

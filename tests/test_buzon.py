@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from dobles import enlace_simbolico
-from tiza import buzon
+from tiza import buzon, informe
 
 
 def ahora() -> datetime:
@@ -34,17 +34,8 @@ def peticion_valida(**cambios) -> dict:
 
 
 def informe_ok(peticion: dict) -> dict:
-    publicar = peticion["comando"] == "publicar"
-    return {
-        "version": 1,
-        "comando": peticion["comando"],
-        "entorno": peticion["entorno"],
-        "curso": 1234 if publicar else None,
-        "resultado": "ok",
-        "pasos": [],
-        "ficheros": [],
-        "errores": [],
-    }
+    curso = 1234 if peticion["comando"] == "publicar" else None
+    return informe.crear(peticion["comando"], "ok", [], entorno=peticion["entorno"], curso=curso)
 
 
 def crear_peticion(carpeta: Path, peticion: dict) -> Path:

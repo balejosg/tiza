@@ -59,13 +59,12 @@ class TestEtiqueta:
         resultado = publicar.publicar_documento(
             moodle, 1234, moodle.secciones, etiqueta(tmp_path), visible=None
         )
-        assert (resultado["tipo"], resultado["accion"], resultado["oculto"]) == (
+        assert (resultado.tipo, resultado.accion, resultado.oculto) == (
             "etiqueta",
             "creada",
             True,
         )
-        assert resultado["url"].endswith("/mod/label/view.php?id=100")
-        assert resultado["verificado"] is True
+        assert resultado.url.endswith("/mod/label/view.php?id=100")
         crear = next(llamada for llamada in moodle.llamadas if llamada[0] == "crear")
         assert crear[3] == "etiqueta"
 
@@ -74,7 +73,7 @@ class TestEtiqueta:
         doc = etiqueta(tmp_path)
         publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
         repetido = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
-        assert (repetido["accion"], repetido["cmid"]) == ("actualizada", 100)
+        assert (repetido.accion, repetido.cmid) == ("actualizada", 100)
 
     def test_etiqueta_con_imagen_comprueba_mod_label(self, tmp_path):
         (tmp_path / "img").mkdir()
@@ -143,13 +142,12 @@ class TestPublicarDocumento:
         doc = documento_con_imagen(tmp_path)
         moodle = MoodleFalso()
         resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
-        assert resultado["accion"] == "creada"
-        assert resultado["cmid"] == 100
-        assert resultado["oculto"] is True
-        assert resultado["verificado"] is True
-        assert resultado["seccion"] == "Tema 3"
-        assert resultado["url"].endswith("/mod/page/view.php?id=100")
-        assert resultado["hash"] == contenido.hash_documento(doc)
+        assert resultado.accion == "creada"
+        assert resultado.cmid == 100
+        assert resultado.oculto is True
+        assert resultado.seccion == "Tema 3"
+        assert resultado.url.endswith("/mod/page/view.php?id=100")
+        assert resultado.hash == contenido.hash_documento(doc)
         operaciones = [llamada[0] for llamada in moodle.llamadas]
         assert operaciones[:4] == [
             "contexto",
@@ -174,9 +172,9 @@ class TestPublicarDocumento:
         ]
         moodle = MoodleFalso(secciones=secciones)
         resultado = publicar.publicar_documento(moodle, 1234, secciones, doc, visible=True)
-        assert resultado["accion"] == "actualizada"
-        assert resultado["cmid"] == 55
-        assert resultado["oculto"] is False
+        assert resultado.accion == "actualizada"
+        assert resultado.cmid == 55
+        assert resultado.oculto is False
         operaciones = [llamada[0] for llamada in moodle.llamadas]
         assert "actualizar" in operaciones
         assert "crear" not in operaciones
@@ -216,7 +214,7 @@ class TestAutoprueba:
         moodle = MoodleFalso()
         resultado = publicar.autoprueba(moodle, 1234)
         assert resultado["resultado"] == "ok"
-        codigos = [paso["codigo"] for paso in resultado["pasos"]]
+        codigos = [paso.codigo for paso in resultado["pasos"]]
         assert "PUBLICAR_PAGINA" in codigos
         assert "PUBLICAR_TAREA" in codigos
         assert "VERIFICAR_FECHAS" in codigos
@@ -244,7 +242,7 @@ class TestAutoprueba:
         moodle = MoodleConOtroContexto()
         resultado = publicar.autoprueba(moodle, 1234)
         assert "VERIFICACION_PREGUNTAS" in resultado["errores"]
-        assert [paso["codigo"] for paso in resultado["pasos"]][-2] == "VERIFICAR_CATEGORIA"
+        assert [paso.codigo for paso in resultado["pasos"]][-2] == "VERIFICAR_CATEGORIA"
         assert moodle.secciones[0]["modulos"] == []  # limpió los cinco módulos
 
     def test_la_autoprueba_detecta_que_el_banco_no_tiene_las_preguntas(self):
@@ -591,7 +589,7 @@ class TestSeccionesPorNombre:
             ("crear_seccion", 1234, "Fracciones")
         ]
         resultado = publicar.publicar_documento(moodle, 1234, secciones, docs[0], visible=False)
-        assert resultado["seccion"] == "Fracciones"
+        assert resultado.seccion == "Fracciones"
 
     def test_existente_no_se_crea(self, tmp_path):
         moodle = MoodleFalso()
@@ -616,7 +614,7 @@ class TestSeccionesPorNombre:
         moodle = MoodleFalso()
         resultado = publicar.autoprueba(moodle, 1234)
         assert resultado["errores"] == []
-        codigos = [paso["codigo"] for paso in resultado["pasos"]]
+        codigos = [paso.codigo for paso in resultado["pasos"]]
         assert "CREAR_SECCION" in codigos and "BORRAR_SECCION" in codigos
         assert [s["nombre"] for s in moodle.secciones] == ["Tema 3"]
 
@@ -1016,7 +1014,7 @@ class TestVisibilidad:
         resultado = publicar.publicar_documento(moodle, 1234, secciones, doc, visible=None)
         payload = next(llamada[2] for llamada in moodle.llamadas if llamada[0] == "actualizar")
         assert "visible" not in payload
-        assert resultado["oculto"] is False
+        assert resultado.oculto is False
 
     def test_crear_sin_indicar_lo_crea_oculto(self, tmp_path):
         doc = documento(tmp_path)
@@ -1024,14 +1022,14 @@ class TestVisibilidad:
         resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
         payload = next(llamada[4] for llamada in moodle.llamadas if llamada[0] == "crear")
         assert payload["visible"] == "0"
-        assert resultado["oculto"] is True
+        assert resultado.oculto is True
 
     def test_oculto_explicito_oculta_lo_existente(self, tmp_path):
         doc = documento(tmp_path)
         secciones = _seccion_con_repaso()
         moodle = MoodleFalso(secciones=secciones)
         resultado = publicar.publicar_documento(moodle, 1234, secciones, doc, visible=False)
-        assert resultado["oculto"] is True
+        assert resultado.oculto is True
 
     def test_autoprueba_detecta_que_no_se_conserva(self):
         class MoodleQueMuestra(MoodleFalso):
@@ -1543,11 +1541,11 @@ class TestPublicarCuestionario:
         doc = documento_cuestionario(tmp_path)
         moodle = MoodleFalso()
         resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
-        assert resultado["accion"] == "creada"
-        assert resultado["oculto"] is True
-        assert resultado["url"].endswith("/mod/quiz/view.php?id=100")
-        assert resultado["seccion"] == "Tema 3"
-        cmid = resultado["cmid"]
+        assert resultado.accion == "creada"
+        assert resultado.oculto is True
+        assert resultado.url.endswith("/mod/quiz/view.php?id=100")
+        assert resultado.seccion == "Tema 3"
+        cmid = resultado.cmid
         assert moodle.importados == [preguntas_xml(doc)]
         assert len(moodle.bancos[moodle.categorias[cmid]]) == 2
         assert [pregunta for _hueco, pregunta in moodle.huecos(cmid)] == sorted(
@@ -1652,7 +1650,7 @@ class TestPublicarCuestionario:
         resultado = publicar.publicar_documento(
             moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=None
         )
-        assert resultado["oculto"] is True
+        assert resultado.oculto is True
 
 
 PREGUNTAS_V2 = (
@@ -1680,12 +1678,12 @@ class TestRepublicarCuestionario:
         primero = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), original, visible=False
         )
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         viejas = set(moodle.bancos[moodle.categorias[cmid]])
         segundo = self._publicar_v2(moodle, tmp_path)
-        assert segundo["cmid"] == cmid
-        assert segundo["accion"] == "actualizada"
-        assert segundo["oculto"] is True  # conserva la visibilidad sin indicarla
+        assert segundo.cmid == cmid
+        assert segundo.accion == "actualizada"
+        assert segundo.oculto is True  # conserva la visibilidad sin indicarla
         categoria = moodle.categorias[cmid]
         nuevas = set(moodle.bancos[categoria])
         assert len(nuevas) == 3
@@ -1705,7 +1703,7 @@ class TestRepublicarCuestionario:
         resultado = self._publicar_v2(
             moodle, tmp_path, tiempo_limite="30", intentos="3", mezclar_respuestas="false"
         )
-        formulario = moodle.formularios[resultado["cmid"]]
+        formulario = moodle.formularios[resultado.cmid]
         assert formulario["attempts"] == "3"
         assert formulario["timelimit[enabled]"] == "1"
         assert formulario["timelimit[number]"] == "30"
@@ -1720,15 +1718,15 @@ class TestRepublicarCuestionario:
         resultado = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), doc, visible=True
         )
-        assert resultado["oculto"] is False
-        assert moodle.formularios[resultado["cmid"]]["visible"] == "1"
+        assert resultado.oculto is False
+        assert moodle.formularios[resultado.cmid]["visible"] == "1"
 
     def test_con_intentos_no_toca_nada(self, tmp_path):
         moodle = MoodleFalso()
         primero = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), documento_cuestionario(tmp_path), visible=False
         )
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         moodle.intentos[cmid] = True
         antes_bancos = {clave: dict(banco) for clave, banco in moodle.bancos.items()}
         antes_huecos = list(moodle.huecos(cmid))
@@ -1762,7 +1760,7 @@ class TestRepublicarCuestionario:
         primero = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), documento_cuestionario(tmp_path), visible=False
         )
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         antes_bancos = {clave: dict(banco) for clave, banco in moodle.bancos.items()}
         antes_huecos = list(moodle.huecos(cmid))
         with pytest.raises(ErrorPublicacion) as exc:
@@ -1788,7 +1786,7 @@ class TestRepublicarCuestionario:
         primero = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), documento_cuestionario(tmp_path), visible=False
         )
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         categoria = moodle.categorias[cmid]
         viejas = set(moodle.bancos[categoria])
         with pytest.raises(ErrorPublicacion) as exc:
@@ -1813,7 +1811,7 @@ class TestRepublicarCuestionario:
         primero = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), documento_cuestionario(tmp_path), visible=False
         )
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         categoria = moodle.categorias[cmid]
         with pytest.raises(ErrorPublicacion) as exc:
             self._publicar_v2(moodle, tmp_path)
@@ -1828,7 +1826,7 @@ class TestRepublicarCuestionario:
         primero = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), documento_cuestionario(tmp_path), visible=False
         )
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         # La profesora añadió a mano una pregunta del banco del curso al cuestionario.
         moodle.bancos["1,999"] = {777: "Del curso"}
         moodle.huecos_quiz[cmid].append((999, 777))
@@ -1927,12 +1925,12 @@ class TestPublicarH5P:
         doc = documento_h5p(tmp_path)
         moodle = MoodleFalso()
         resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
-        assert (resultado["tipo"], resultado["accion"], resultado["oculto"]) == (
+        assert (resultado.tipo, resultado.accion, resultado.oculto) == (
             "h5p",
             "creada",
             True,
         )
-        assert resultado["url"].endswith("/mod/h5pactivity/view.php?id=100")
+        assert resultado.url.endswith("/mod/h5pactivity/view.php?id=100")
         subida = next(llamada for llamada in moodle.llamadas if llamada[0] == "subir")
         assert subida[1] == "actividad-h5p.h5p"
         assert moodle.subidas[-1][1] == paquete_h5p(doc)
@@ -2047,10 +2045,10 @@ class TestRepublicarH5P:
     def test_republicar_reutiliza_el_cmid(self, tmp_path):
         moodle = MoodleFalso()
         primero = self._publicar(moodle, tmp_path)
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         segundo = self._publicar(moodle, tmp_path, calificacion="5")
-        assert (segundo["cmid"], segundo["accion"]) == (cmid, "actualizada")
-        assert segundo["oculto"] is True  # conserva la visibilidad
+        assert (segundo.cmid, segundo.accion) == (cmid, "actualizada")
+        assert segundo.oculto is True  # conserva la visibilidad
         assert moodle.formularios[cmid]["grade[modgrade_point]"] == "5"
         assert len([llamada for llamada in moodle.llamadas if llamada[0] == "subir"]) == 2
 
@@ -2061,13 +2059,13 @@ class TestRepublicarH5P:
         resultado = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), doc, visible=True
         )
-        assert resultado["oculto"] is False
-        assert moodle.formularios[resultado["cmid"]]["visible"] == "1"
+        assert resultado.oculto is False
+        assert moodle.formularios[resultado.cmid]["visible"] == "1"
 
     def test_con_intentos_no_toca_nada(self, tmp_path):
         moodle = MoodleFalso()
         primero = self._publicar(moodle, tmp_path)
-        cmid = primero["cmid"]
+        cmid = primero.cmid
         moodle.intentos_h5p[cmid] = True
         antes_formulario = dict(moodle.formularios[cmid])
         antes_subidas = len(moodle.subidas)
@@ -2092,7 +2090,7 @@ class TestRepublicarH5P:
         segundo = publicar.publicar_documento(
             moodle, 1234, moodle.estructura(1234), doc, visible=None
         )
-        assert (segundo["cmid"], segundo["accion"]) == (primero["cmid"], "actualizada")
+        assert (segundo.cmid, segundo.accion) == (primero.cmid, "actualizada")
         assert len(moodle.subidas) == 2
 
 
@@ -2266,7 +2264,7 @@ class TestSoloFechas:
         antiguas = {"duedate": (2026, 10, 10, 23, 59)}
         moodle = self.aula_con(doc, antiguas)
         resultado = publicar.publicar_fechas(moodle, moodle.secciones, doc)
-        assert (resultado["accion"], resultado["cmid"]) == ("actualizada", 55)
+        assert (resultado.accion, resultado.cmid) == ("actualizada", 55)
         assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)
         formulario = moodle.formularios[55]
         assert (formulario["name"], formulario["introeditor[text]"]) == (
@@ -2274,7 +2272,7 @@ class TestSoloFechas:
             "<p>antes</p>",
         )
         assert formulario["attempts"] == "2"
-        assert resultado["hash"] == doc.hash_cargado
+        assert resultado.hash == doc.hash_cargado
         escrituras = {llamada[0] for llamada in moodle.llamadas} & _ESCRITURAS_DE_CONTENIDO
         assert escrituras == set()
 
@@ -2518,8 +2516,8 @@ class TestPublicarConItinerario:
         doc = doc_itinerario(tmp_path, "finalizacion: ver\nrestricciones:\n  desde: 2026-10-12\n")
         moodle = aula_con()
         resultado = publicar_itinerario(moodle, doc)
-        assert resultado["accion"] == "creada"
-        formulario = moodle.formularios[resultado["cmid"]]
+        assert resultado.accion == "creada"
+        formulario = moodle.formularios[resultado.cmid]
         assert formulario["completion"] == "2" and formulario["completionview"] == "1"
         assert json.loads(formulario["availabilityconditionsjson"])["c"][0]["type"] == "date"
 
@@ -2619,7 +2617,7 @@ class TestPublicarConItinerario:
         resultado = publicar_itinerario(
             moodle, doc_itinerario(tmp_path, "restricciones:\n  desde: 2026-10-12\n")
         )
-        assert json.loads(moodle.formularios[resultado["cmid"]]["availabilityconditionsjson"])
+        assert json.loads(moodle.formularios[resultado.cmid]["availabilityconditionsjson"])
 
     def test_verificacion_si_el_aula_no_guarda_la_restriccion(self, tmp_path):
         class AulaQueIgnora(MoodleFalso):
@@ -2646,7 +2644,7 @@ class TestPublicarConItinerario:
         doc = doc_itinerario(tmp_path, "restricciones:\n  completar: [test1.md]\n")
         moodle = aula_con()
         resultado = publicar_itinerario(moodle, doc, {"test1.md": 64})
-        texto = moodle.formularios[resultado["cmid"]]["availabilityconditionsjson"]
+        texto = moodle.formularios[resultado.cmid]["availabilityconditionsjson"]
         assert json.loads(texto)["c"] == [{"type": "completion", "cm": 64, "e": 1}]
 
     def test_lo_leido_del_aula_no_sale_en_el_resultado(self, tmp_path):

@@ -89,8 +89,8 @@ def registrar(documento: dict, carpeta: Path, presencia: Presencia) -> dict:
 
 def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool = False) -> dict:
     """Con el aula ya abierta: lee y guarda la estructura de los cursos configurados."""
-    comando = "estructura"
-    pasos: list[dict] = [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}]
+    borrador = informe.Borrador("estructura")
+    borrador.paso("LOGIN")
     cursos: dict[str, Any] = {}
     try:
         destinos: list[tuple[str, int]] = []
@@ -114,23 +114,19 @@ def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool
                 cursos.setdefault("real", []).append(curso)
             else:
                 cursos[nombre] = curso
-            pasos.append(
-                {
-                    "codigo": "ESTRUCTURA",
-                    "resultado": "ok",
-                    "detalle": f"{nombre}: {len(secciones)} secciones",
-                }
-            )
+            borrador.paso("ESTRUCTURA", detalle=f"{nombre}: {len(secciones)} secciones")
     except ErrorPublicacion as exc:
-        pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
+        borrador.fallo("ESTRUCTURA", exc.codigo)
+        borrador.error(exc.codigo)
         depurar(exc, debug)
-        return informe.crear(comando, "error", pasos, [], [exc.codigo])
+        return borrador.documento("error")
     try:
         estado.escribir_estructura(Path(carpeta) / rutas.CARPETA_TRABAJO, cursos)
     except estado.ErrorEstado as exc:
-        pasos.append({"codigo": "ESTRUCTURA", "resultado": "fallo", "detalle": exc.codigo})
-        return informe.crear(comando, "error", pasos, [], [exc.codigo])
-    return informe.crear(comando, "ok", pasos, [], [])
+        borrador.fallo("ESTRUCTURA", exc.codigo)
+        borrador.error(exc.codigo)
+        return borrador.documento("error")
+    return borrador.documento()
 
 
 def crear_dir_vistas(carpeta: str | Path | None = None) -> Path:
@@ -394,7 +390,7 @@ def autoprueba_con(
     resultado = publicar.autoprueba(aula, curso)
     for causa in resultado.get("causas", []):
         depurar(causa, debug)
-    pasos = [{"codigo": "LOGIN", "resultado": "ok", "detalle": None}] + resultado["pasos"]
+    pasos: list[informe.Paso] = [informe.Paso("LOGIN"), *resultado["pasos"]]
     registrar(
         informe.crear(
             "autoprueba", resultado["resultado"], pasos, [], resultado["errores"], "pruebas", curso
