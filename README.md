@@ -212,17 +212,17 @@ carpeta. La marca de confianza de Codex está en
 
 | Comando | Quién | Qué hace |
 |---|---|---|
-| `tiza empezar [--minutos 60]` | docente | Todo en uno: configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
+| `tiza empezar [--minutos 60] [--elegir-cursos]` | docente | Todo en uno: configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
 | `tiza configurar` | docente | Guarda la URL y el usuario (nada más); los cursos se eligen por nombre al abrir la sesión en cada carpeta y se guardan en su `tiza.toml` |
 | `tiza instalar-skill` | docente | Instala la skill portable en los agentes |
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |
 | `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json` |
-| `tiza sesion [--minutos 60]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
+| `tiza sesion [--minutos 60] [--elegir-cursos]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
 | `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados |
 | `tiza publicar <md>… --en pruebas` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): crea (oculto) o actualiza (conserva la visibilidad), verifica y registra el hash |
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
 | `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas y cuestionarios ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
-| `tiza-ventana --carpeta <carpeta>` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.14.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
+| `tiza-ventana --carpeta <carpeta> [--elegir-cursos]` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.14.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
 | `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
 | `tiza revisar` | agente o docente | Solo lectura: comprueba el aislamiento de esta carpeta y avisa si es global |
@@ -463,6 +463,29 @@ sin_pruebas = true
 ```
 
 Para recuperar el curso de pruebas, cambia esa línea por `pruebas = 1234`.
+
+### Varios cursos reales
+
+Si das la misma asignatura en varios cursos de Moodle (1º A, 1º B, 1º C),
+`real` admite una lista de 1 a 6 ids, todos distintos y distintos del de
+pruebas:
+
+```toml
+[cursos]
+pruebas = 1234
+real = [101, 102, 103]
+```
+
+`tiza empezar` y `tiza sesion` te dejan elegirlos de la lista con números
+separados por comas (`1,3`), y `--elegir-cursos` (también en `tiza-ventana`)
+vuelve a preguntar los cursos aunque ya estén guardados. Una petición de
+`publicar --en real` llega a **todos**, en el orden de `tiza.toml`, y te pide una
+confirmación **por curso** («Curso 2 de 3: «1º B»»): si dices que no a uno, se
+omite y se sigue con el siguiente; si uno falla, se para y el informe dice
+cuáles quedaron hechos. Los nombres de los cursos solo los ves tú: el agente
+recibe ids, y en `.tiza/estructura.json` (versión 2) una lista con las secciones
+de cada curso real. Un `real = 5678` con un solo id funciona como siempre.
+Un `.md` puede quedar con un `cmid` distinto en cada curso.
 
 ### Calendario y cambio de fechas
 

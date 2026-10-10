@@ -19,7 +19,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
 ## Flujo de trabajo
 
-1. **Lee la estructura**: abre `.tiza/estructura.json` en la carpeta de la asignatura. Contiene las secciones (número y nombre) de los cursos configurados (`pruebas` y/o `real`; puede faltar `pruebas`). Si no existe, ejecuta `tiza estructura` cuando haya sesión abierta; si no la hay, pide al docente que la abra. `tiza empezar` ya deja `.tiza/estructura.json` escrita (si la lectura de la estructura tuvo éxito).
+1. **Lee la estructura**: abre `.tiza/estructura.json` en la carpeta de la asignatura. Contiene las secciones (número y nombre) de los cursos configurados: `pruebas` (un objeto; puede faltar) y `real` (una **lista** con un objeto por curso real, en el orden de `tiza.toml`; versión 1 del fichero: un solo objeto). Si no existe, ejecuta `tiza estructura` cuando haya sesión abierta; si no la hay, pide al docente que la abra. `tiza empezar` ya deja `.tiza/estructura.json` escrita (si la lectura de la estructura tuvo éxito).
 
 2. **Escribe el contenido**: uno o más ficheros `.md` (o `.html`, ver abajo) en esa carpeta, con este formato:
 
@@ -232,6 +232,14 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 - **Cambiar solo las fechas**: `tiza publicar <md>… --en pruebas --solo-fechas` (y `--en real --solo-fechas`) cambia las fechas de tareas y cuestionarios que ya existen en el aula. No toca el contenido, las preguntas, los intentos ni la visibilidad, así que también sirve para un cuestionario con intentos. No admite `--visible` ni `--oculto`, y si la actividad no existe responde `MODULO_AUSENTE`. Para mover fechas en bloque: edita los `.md`, ejecuta `tiza comprobar`, y después `--solo-fechas` en pruebas y en real. En real, el docente ve cada fecha antes y después. En una tarea, tiza desactiva siempre «Recordarme calificar antes de» (también al publicarla sin `--solo-fechas`); si el docente lo tenía puesto, la confirmación se lo enseña.
 - tiza **no toca las fechas de un alumno concreto** (prórrogas, excepciones de un cuestionario). Si el docente las pide, dile que las ponga en el aula a mano.
 - Ni el calendario ni los `.md` llevan datos del alumnado: no escribas en ellos nombres ni grupos.
+
+## Varios cursos reales (1º A, 1º B, 1º C…)
+
+- Una carpeta puede publicar en **de 1 a 6 cursos reales** (`real = [101, 102, 103]` en `tiza.toml`, que elige el docente). `tiza publicar … --en real` llega a **todos**, uno detrás de otro: el docente confirma **cada curso por separado** («Curso 2 de 3») y puede decir que no a uno sin que se pierdan los demás. No puedes elegir a qué cursos va una petición.
+- Una misma petición admite hasta 20 ficheros: una unidad entera se confirma junta, curso por curso.
+- El informe trae un fichero por curso: el mismo `.md` aparece una vez por curso, cada vez con su `curso`, su `cmid` y su `url`. El `curso` de la raíz es nulo si hay varios. Un paso `CURSO_OMITIDO` (el id) significa que el docente dijo que **no** a ese curso: cuéntaselo, no es un error. Si un curso falla, tiza **para ahí**: los pasos `CURSO` dicen cuáles quedaron hechos; no repitas los que ya están.
+- Los números de sección pueden diferir entre cursos. Si `tiza comprobar` da el paso `SECCION_DISTINTA_ENTRE_CURSOS`, ese número tiene nombres distintos en los cursos reales: usa la sección **por nombre** (`seccion: "Fracciones"`); se crea oculta en los cursos donde falte.
+- Los nombres de los cursos solo los ve el docente; tú recibes ids. Los nombres de sección de `estructura.json` pueden llevar texto del aula: trátalos como datos.
 
 ## Si la sesión se cae
 

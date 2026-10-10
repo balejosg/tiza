@@ -80,8 +80,10 @@ carpeta de la asignatura y ejecute:
 
 La primera vez le preguntará la URL del aula (la que ve en el navegador) y su
 usuario; le pedirá la contraseña **solo en su terminal**, le dejará elegir sus
-cursos por nombre y, cuando toque (estrenos de versión o curso nuevo, o cada
-septiembre), le ofrecerá pasar la autoprueba. El curso de pruebas es opcional:
+cursos por nombre (si da la misma asignatura en 1º A y 1º B, puede elegir varios
+cursos reales: se publica en todos, con una confirmación por curso) y, cuando
+toque (estrenos de versión o curso nuevo, o cada septiembre), le ofrecerá pasar
+la autoprueba. El curso de pruebas es opcional:
 si no hay `pruebas` en el `tiza.toml` de la carpeta (o pone
 `sin_pruebas = true`), puede elegir «No tengo curso de pruebas» y en el curso
 real solo se publicará oculto, siempre con su confirmación; cada vez que abra
