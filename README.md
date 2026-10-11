@@ -476,6 +476,17 @@ dos páginas, práctica H5P, cuestionario y tarea). tiza comprueba el formato y 
 seguridad y la publica en una petición; el contenido y los criterios curriculares los
 revisas tú en la vista previa y en el curso de pruebas.
 
+### Fórmulas
+
+En un `.md` las fórmulas se escriben en LaTeX con `\( … \)` (en la línea) y `\[ … \]` o
+`$$ … $$` (en bloque): tiza las publica tal cual (sin que `*`, `_` o `\\` se lean como
+Markdown) y el aula las dibuja con su motor de fórmulas. Si el aula no lo carga, el informe
+trae el paso `FORMULAS_NO_DIBUJADAS` (y la autoprueba lo dice). El `$x$`
+simple no vale (`tiza comprobar` avisa con `FORMULA_DOLAR_SIMPLE`). Valen en páginas,
+etiquetas, tareas y cuestionarios, no en las actividades H5P (`FORMULA_EN_H5P`). La vista
+previa enseña la fuente LaTeX; el dibujo se revisa en el curso de pruebas. Mira
+[`ejemplos/formulas.md`](ejemplos/formulas.md).
+
 ### `tiza.toml` por asignatura
 
 Los cursos son de cada asignatura y solo se guardan en el `tiza.toml` de su

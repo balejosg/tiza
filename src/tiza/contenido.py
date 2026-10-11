@@ -663,6 +663,23 @@ _TEXTO_O_FORMULA = re.compile(
 )
 
 
+_DOLAR_SIMPLE = re.compile(r"(?<![\\$\w])\$(?=\S)[^$\n]+?(?<=\S)\$(?![\w$])")
+
+
+def contiene_formula(texto: str) -> bool:
+    """¿Hay alguna fórmula reconocida (fuera del código)?"""
+    return any(m.group("formula") is not None for m in _TEXTO_O_FORMULA.finditer(texto))
+
+
+def hay_dolar_simple(texto: str) -> bool:
+    """¿Hay un ``$ … $`` simple fuera del código y de las fórmulas reconocidas?
+
+    Moodle no lo dibuja: se avisa al docente, no se interpreta.
+    """
+    resto = _TEXTO_O_FORMULA.sub(lambda m: "" if m.group("abierta") is None else m.group(0), texto)
+    return _DOLAR_SIMPLE.search(resto) is not None
+
+
 def _apartar_formulas(cuerpo: str) -> tuple[str, list[str]]:
     formulas: list[str] = []
 
@@ -834,6 +851,17 @@ def previsualizar(doc: Documento, dir_tiza: str | Path, *, nombre: str | None = 
     return destino
 
 
+def tiene_formulas(doc: Documento) -> bool:
+    """¿El documento lleva alguna fórmula LaTeX (cuerpo o cuestionario)?"""
+    fuentes = [doc.cuerpo]
+    if doc.cuestionario is not None:
+        for pregunta in doc.cuestionario.preguntas:
+            fuentes.extend([pregunta.enunciado, pregunta.retro or ""])
+            for opcion in pregunta.opciones:
+                fuentes.extend([opcion.texto, opcion.retro or ""])
+    return any(contiene_formula(fuente) for fuente in fuentes)
+
+
 def _plantilla(doc: Documento, dir_preview: Path) -> str:
     from . import tipos  # diferido: el registro importa este módulo
 
@@ -844,6 +872,10 @@ def _plantilla(doc: Documento, dir_preview: Path) -> str:
         ("Sección", str(doc.seccion)),
     ]
     metadatos.extend(tipo.metadatos_preview(doc))
+    if tiene_formulas(doc):
+        metadatos.append(
+            ("Fórmulas", "Las fórmulas se dibujan en el aula; aquí se ve su fuente LaTeX")
+        )
     for linea in describir_itinerario(doc):
         clave, _, resto = linea.partition(": ")
         metadatos.append((clave, resto) if resto else ("Itinerario", linea))

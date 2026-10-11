@@ -615,6 +615,7 @@ def publicar_con(
             borrador.paso("CREAR_SECCION", detalle=nombre)
     paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
+    motor: bool | None = None  # ¿dibuja el aula las fórmulas? Se mira una vez por curso
     for doc in documentos:
         try:
             if solo_fechas:
@@ -650,6 +651,11 @@ def publicar_con(
             if extra:
                 detalle = f"{detalle}: {extra}"
         borrador.paso(paso, detalle=detalle)
+        if not solo_fechas and contenido.tiene_formulas(doc):
+            if motor is None:
+                motor = publicar.aula_dibuja_formulas(aula, curso)
+            if not motor:
+                borrador.paso("FORMULAS_NO_DIBUJADAS", detalle=doc.ruta.name)
     return borrador.documento()
 
 

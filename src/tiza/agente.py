@@ -101,6 +101,8 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
                 detalle = f"{ruta.name}: {campo} {dia.isoformat()}"
                 borrador.paso(codigo, detalle=detalle)
         avisos = tuple(avisos_doc)
+        if _con_dolar_simple(doc):
+            borrador.paso("FORMULA_DOLAR_SIMPLE", detalle=ruta.name)
         problema = revisar_dependencias(doc, raiz)
         if problema is not None:
             borrador.error(problema[0])
@@ -154,6 +156,19 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
         borrador.fichero(_fichero(doc, seccion["nombre"] if seccion else None))
 
     return Comprobacion(borrador.documento(), tuple(resultados))
+
+
+def _con_dolar_simple(doc: Documento) -> bool:
+    """Un ``$x$`` en un .md: Moodle no lo dibuja (valen ``\\(…\\)``, ``\\[…\\]`` y ``$$…$$``)."""
+    if doc.ruta.suffix.lower() in (".html", ".htm"):
+        return False
+    fuentes = [doc.cuerpo]
+    if doc.cuestionario is not None:
+        for pregunta in doc.cuestionario.preguntas:
+            fuentes.extend([pregunta.enunciado, pregunta.retro or ""])
+            for opcion in pregunta.opciones:
+                fuentes.extend([opcion.texto, opcion.retro or ""])
+    return any(contenido.hay_dolar_simple(fuente) for fuente in fuentes)
 
 
 MAX_PROFUNDIDAD_DEPENDENCIAS = 20

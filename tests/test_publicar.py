@@ -232,6 +232,13 @@ class TestAutoprueba:
         assert len(borrados) == 5
         assert moodle.secciones[0]["modulos"] == []
 
+    def test_la_autoprueba_avisa_si_el_aula_no_dibuja_formulas(self):
+        resultado = publicar.autoprueba(MoodleFalso(motor_formulas=False), 1234)
+        assert resultado["resultado"] == "ok"
+        assert "FORMULAS_NO_DIBUJADAS" in [paso.codigo for paso in resultado["pasos"]]
+        sin_aviso = publicar.autoprueba(MoodleFalso(), 1234)
+        assert "FORMULAS_NO_DIBUJADAS" not in [paso.codigo for paso in sin_aviso["pasos"]]
+
     def test_la_autoprueba_detecta_una_categoria_que_no_es_la_del_modulo(self):
         class MoodleConOtroContexto(MoodleFalso):
             def leer_modulo(self, cmid):
@@ -1074,6 +1081,19 @@ def test_lecturas_del_aula_con_plazo_y_sin_descargar_ficheros():
     assert all(kwargs.get("timeout") == publicar.TIEMPO_ESPERA for _url, kwargs in sesion.llamadas)
     assert sesion.llamadas[-1][1].get("stream") is True
     assert sesion.ultima.cerrada is True
+
+
+def test_motor_de_formulas_es_una_regla_estructural_con_plazo():
+    con = publicar.Moodle(
+        "https://aula",
+        _SesionQueAnota("<script>filter_mathjaxloader/loader</script>"),
+        "c",
+        pausa=0,
+    )
+    sin = publicar.Moodle("https://aula", _SesionQueAnota("<p>nada</p>"), "c", pausa=0)
+    assert con.motor_de_formulas(2) is True
+    assert sin.motor_de_formulas(2) is False
+    assert con.sesion.llamadas[-1][1]["timeout"] == publicar.TIEMPO_ESPERA
 
 
 class TestYaExiste:

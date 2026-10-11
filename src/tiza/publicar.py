@@ -211,6 +211,8 @@ class AulaVirtual(Protocol):
 
     def leer_modulo(self, cmid: int) -> dict: ...
 
+    def motor_de_formulas(self, curso_id: int) -> bool: ...
+
     def comprobar_pluginfile(self, url: str) -> bool: ...
 
     def borrar(self, curso_id: int, cmid: int) -> None: ...
@@ -425,6 +427,24 @@ class Moodle:
                 "disponibilidad": _campo(formulario, "availabilityconditionsjson") or "",
             },
         }
+
+    def motor_de_formulas(self, curso_id: int) -> bool:
+        """¿Carga el aula su motor de fórmulas en la página del curso?
+
+        Regla estructural medida en la espiga: el cargador del filtro MathJax aparece en el
+        código de la página. Solo devuelve sí o no; el texto de Moodle no sale de aquí.
+        """
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_MOTOR_FORMULAS",
+            self.sesion.get,
+            f"{self.base_url}/course/view.php",
+            params={"id": curso_id},
+            timeout=TIEMPO_ESPERA,
+        )
+        return getattr(respuesta, "status_code", 0) == 200 and (
+            "filter_mathjaxloader" in getattr(respuesta, "text", "")
+        )
 
     def comprobar_pluginfile(self, url: str) -> bool:
         """Solo mira la respuesta: con ``stream`` no se descarga el fichero entero."""
@@ -1531,6 +1551,14 @@ _PNG_1X1 = base64.b64decode(
 )
 
 
+def aula_dibuja_formulas(moodle: AulaVirtual, curso_id: int) -> bool:
+    """Falso solo si el aula respondió y no carga el motor; si no se puede mirar, no se avisa."""
+    try:
+        return moodle.motor_de_formulas(curso_id)
+    except ErrorPublicacion:
+        return True
+
+
 def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
     """Publica, republica, verifica y borra en el curso de pruebas."""
     pasos: list[informe.Paso] = []
@@ -1547,6 +1575,8 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
         if not secciones:
             raise ErrorPublicacion("ESTRUCTURA_VACIA")
         paso("ESTRUCTURA", "ok", f"{len(secciones)} secciones")
+        if not aula_dibuja_formulas(moodle, curso_id):
+            paso("FORMULAS_NO_DIBUJADAS", "ok", "el aula no carga el motor de fórmulas")
         seccion = secciones[0]["numero"]
         with tempfile.TemporaryDirectory(prefix="tiza-autoprueba-") as temporal:
             documentos = _ejemplos(Path(temporal), seccion)

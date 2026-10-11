@@ -61,6 +61,8 @@ PASOS = (
             "DEPENDENCIA_SIN_FINALIZACION",
             "DEPENDENCIAS",
             "ESTRUCTURA",
+            "FORMULA_DOLAR_SIMPLE",
+            "FORMULAS_NO_DIBUJADAS",
             "LIMPIAR",
             "LOGIN",
             "PREPARAR",

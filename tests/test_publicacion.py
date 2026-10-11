@@ -224,3 +224,49 @@ class TestCambiosDeFechas:
         }
         assert cambios["entrega"].avisos == ("FECHA_FESTIVA",)
         assert cambios["apertura"].avisos == ()
+
+
+CON_FORMULA = (
+    "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\nLa media es \\(\\frac{a}{b}\\).\n"
+)
+
+
+def _publicar_pruebas(tmp_path, texto, moodle):
+    (tmp_path / "pagina.md").write_text(texto, encoding="utf-8")
+    carpeta = tmp_path.resolve()
+    return publicacion.publicar_en_cursos(
+        moodle, CFG, _documentos(carpeta), carpeta, PresenciaFalsa(), entorno="pruebas"
+    )
+
+
+def _avisos_formulas(documento) -> list:
+    return [p for p in documento["pasos"] if p["codigo"] == "FORMULAS_NO_DIBUJADAS"]
+
+
+def test_avisa_si_el_aula_no_dibuja_formulas(tmp_path):
+    moodle = MoodleFalso(motor_formulas=False)
+    documento = _publicar_pruebas(tmp_path, CON_FORMULA, moodle)
+    assert documento["errores"] == []
+    assert _avisos_formulas(documento) == [
+        {"codigo": "FORMULAS_NO_DIBUJADAS", "resultado": "ok", "detalle": "pagina.md"}
+    ]
+
+
+def test_no_avisa_si_el_aula_dibuja_formulas(tmp_path):
+    documento = _publicar_pruebas(tmp_path, CON_FORMULA, MoodleFalso(motor_formulas=True))
+    assert _avisos_formulas(documento) == []
+
+
+def test_sin_formulas_ni_se_consulta_el_aula(tmp_path):
+    moodle = MoodleFalso(motor_formulas=False)
+    documento = _publicar_pruebas(tmp_path, PAGINA, moodle)
+    assert _avisos_formulas(documento) == []
+    assert not any(llamada[0] == "motor_de_formulas" for llamada in moodle.llamadas)
+
+
+def test_se_consulta_una_sola_vez_por_curso(tmp_path):
+    moodle = MoodleFalso(motor_formulas=False)
+    _publicar_pruebas(tmp_path, CON_FORMULA, moodle)
+    assert [llamada for llamada in moodle.llamadas if llamada[0] == "motor_de_formulas"] == [
+        ("motor_de_formulas", 1234)
+    ]

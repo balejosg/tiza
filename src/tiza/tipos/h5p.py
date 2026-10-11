@@ -18,6 +18,7 @@ from ..contenido import (
     PaqueteH5P,
     TarjetaH5P,
     TextoH5P,
+    contiene_formula,
 )
 from ..filtro import CONTROL as _CONTROL
 from ..h5p import LIBRERIAS, paquete_h5p, reempaquetar
@@ -272,7 +273,22 @@ def _validar_h5p(
         if not paquete.strip().lower().endswith(".h5p"):
             raise ErrorContenido("PAQUETE_H5P_INVALIDO", "«paquete» debe apuntar a un fichero .h5p")
         return None, ctx.paquete_h5p(paquete.strip())
+    if _con_formula(actividad):
+        raise ErrorContenido(
+            "FORMULA_EN_H5P",
+            "las actividades H5P no admiten fórmulas: ponla en la descripción o en una página",
+        )
     return _leer_actividad_h5p(actividad, ctx), None
+
+
+def _con_formula(valor: Any) -> bool:
+    if isinstance(valor, str):
+        return contiene_formula(valor)
+    if isinstance(valor, dict):
+        return any(_con_formula(v) for v in valor.values())
+    if isinstance(valor, list):
+        return any(_con_formula(v) for v in valor)
+    return False
 
 
 def _leer_actividad_h5p(valor: Any, ctx: Contexto) -> ActividadH5P:

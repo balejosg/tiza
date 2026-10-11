@@ -404,6 +404,13 @@ class TestEjemplosDelRepo:
         texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
         assert "<iframe" not in texto
 
+    def test_el_ejemplo_de_formulas_las_conserva(self):
+        raiz = Path(__file__).resolve().parent.parent / "ejemplos"
+        doc = cargar(raiz / "formulas.md")
+        for formula in (r"\(A = \pi r^2\)", r"$$\sum_{i=1}^{n} x_i = \frac{a_1}{b_1}$$"):
+            assert formula in doc.html
+        assert not contenido.hay_dolar_simple(doc.cuerpo)
+
     def test_los_ejemplos_de_h5p_cargan(self):
         raiz = Path(__file__).resolve().parent.parent / "ejemplos"
         huecos = cargar(raiz / "h5p-huecos.md")
@@ -1856,3 +1863,44 @@ class TestFormulas:
         texto = filtro.serializar(analisis.cuerpo)
         assert "<script" not in texto and "<img" not in texto
         assert analisis.cuerpo.find("script") is None
+
+
+class TestFormulasAvisosYH5P:
+    @pytest.mark.parametrize(
+        ("texto", "esperado"),
+        [
+            (r"Sea $x^2$ una variable", True),
+            (r"El área es $\pi r^2$.", True),
+            ("Cuesta 5 $ y 10 $, no es fórmula", False),
+            ("Cuesta $5 y $10", False),
+            (r"Fórmula buena \(x_1\) y $$y$$", False),
+            ("En código `$x$` y\n\n```\n$y$\n```\n", False),
+        ],
+    )
+    def test_dolar_simple(self, texto, esperado):
+        assert contenido.hay_dolar_simple(texto) is esperado
+
+    def test_contiene_formula(self):
+        assert contenido.contiene_formula(r"a \(x\) b")
+        assert contenido.contiene_formula("$$x$$")
+        assert not contenido.contiene_formula("$x$ y `\\(x\\)`")
+
+    def test_h5p_rechaza_formulas_en_cualquier_campo(self, tmp_path):
+        actividad = RELLENAR_HUECOS.replace("grados", "grados $$x_1$$")
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+        assert exc.value.codigo == "FORMULA_EN_H5P"
+
+    def test_h5p_rechaza_formulas_en_tarjetas(self, tmp_path):
+        actividad = "tipo: tarjetas\ntarjetas:\n  - {anverso: 'a', reverso: '$$x$$'}\n"
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, h5p(actividad), "actividad.md"))
+        assert exc.value.codigo == "FORMULA_EN_H5P"
+
+    def test_la_vista_previa_dice_que_las_formulas_se_dibujan_en_el_aula(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina(r"Mira \(x_1\) y $$y$$")))
+        texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
+        assert "Las fórmulas se dibujan en el aula" in texto
+        assert r"\(x_1\)" in texto
+        sin = cargar(escribir(tmp_path, pagina("nada"), "otra.md"))
+        assert "fórmulas" not in previsualizar(sin, tmp_path / ".tiza").read_text(encoding="utf-8")

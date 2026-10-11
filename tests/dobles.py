@@ -97,6 +97,7 @@ class MoodleFalso:
         cursos=None,
         secciones_por_curso=None,
         sin_finalizacion=False,
+        motor_formulas=True,
     ):
         self.base_url = "https://aula.example.org/centro"
         self.secciones = (
@@ -120,6 +121,7 @@ class MoodleFalso:
         self.bloqueadas: set[int] = set()
         self.cmid_nuevo = cmid_nuevo
         self.pluginfiles_ok = pluginfiles_ok
+        self.motor_formulas = motor_formulas
         self.llamadas: list[tuple] = []
         self.subidas: list[tuple[str, bytes]] = []
         # Formulario de cada módulo: como python-moodle, cada payload se fusiona
@@ -231,6 +233,10 @@ class MoodleFalso:
                 "disponibilidad": formulario.get("availabilityconditionsjson", ""),
             },
         }
+
+    def motor_de_formulas(self, curso_id):
+        self.llamadas.append(("motor_de_formulas", curso_id))
+        return self.motor_formulas
 
     def comprobar_pluginfile(self, url):
         self.llamadas.append(("pluginfile", url))

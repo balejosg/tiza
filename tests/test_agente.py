@@ -450,6 +450,27 @@ class TestVariosCursosReales:
         assert not any(p["codigo"] == "SECCION_DISTINTA_ENTRE_CURSOS" for p in informe_["pasos"])
 
 
+class TestFormulaDolarSimple:
+    def test_avisa_sin_bloquear(self, tmp_path):
+        escribir(
+            tmp_path, "a.md", "---\ntipo: pagina\nnombre: A\nseccion: 3\n---\n\nSea $x^2$ aquí.\n"
+        )
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
+        informe_ = agente.comprobar(tmp_path, ["a.md"]).informe
+        assert informe_["errores"] == []
+        assert {"codigo": "FORMULA_DOLAR_SIMPLE", "resultado": "ok", "detalle": "a.md"} in informe_[
+            "pasos"
+        ]
+
+    def test_no_avisa_con_formula_bien_escrita(self, tmp_path):
+        escribir(
+            tmp_path, "a.md", "---\ntipo: pagina\nnombre: A\nseccion: 3\n---\n\nSea \\(x^2\\).\n"
+        )
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
+        pasos = agente.comprobar(tmp_path, ["a.md"]).informe["pasos"]
+        assert not any(p["codigo"] == "FORMULA_DOLAR_SIMPLE" for p in pasos)
+
+
 class TestDependencias:
     def md(self, tmp_path, nombre, completar=()):
         lista = "[" + ", ".join(completar) + "]"
