@@ -1,0 +1,33 @@
+name: Compatibilidad con mi aula
+description: Cuéntanos si tiza funciona (o no) en tu aula virtual
+labels: [compatibilidad]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nos ayuda a completar la tabla de aulas probadas. No hace falta la dirección del aula: basta la versión de Moodle. **No adjuntes capturas.**
+  - type: input
+    id: version
+    attributes:
+      label: Versión de tiza
+    validations:
+      required: true
+  - type: input
+    id: moodle
+    attributes:
+      label: Versión de Moodle del aula
+  - type: dropdown
+    id: acceso
+    attributes:
+      label: ¿Cómo entras al aula?
+      options: [Usuario y contraseña del aula, Con Google/Microsoft u otro proveedor (SSO), No lo sé]
+  - type: dropdown
+    id: autoprueba
+    attributes:
+      label: Resultado de `tiza autoprueba`
+      options: [Pasa entera, Falla (pega el código abajo), No tengo curso de pruebas]
+  - type: textarea
+    id: notas
+    attributes:
+      label: Notas
+      description: Códigos de error, tipos de actividad que fallan…

@@ -38,7 +38,7 @@ en español.
 - `uv run pytest tests/test_informe.py::test_rechaza_campo_no_permitido_en_la_raiz`
   — un solo test.
 - `uv run tiza --help` — CLI desde el repo.
-- `uvx ruff@0.18.00 check src tests && uvx ruff@0.16.10 format --check src tests` — lint y formato.
+- `uvx ruff@0.16.10 check src tests && uvx ruff@0.16.10 format --check src tests` — lint y formato.
 - `uv run --with mypy==2.4.0 --with types-PyYAML --with types-requests mypy` — tipos.
 - CI (`.github/workflows/ci.yml`): `uv run pytest` en Ubuntu, Windows y macOS,
   más prueba de `install.sh`/`install.ps1`. Mantén el código portable (pathlib,
@@ -175,5 +175,6 @@ en español.
   paquete.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con
   `educa` antes de commitear en el público (el dominio de Educaplay): no lo «arregles».
+- Al cambiar algo visible para el docente, añade una línea a `CHANGELOG.md`.
 - Commits en `main`, estilo Conventional Commits en español (`feat:`, `fix:`,
   `docs:`, `test:`).

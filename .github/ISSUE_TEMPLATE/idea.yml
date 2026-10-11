@@ -1,0 +1,18 @@
+name: Idea o mejora
+description: Algo que te gustaría poder hacer con tiza
+labels: [mejora]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No incluyas datos del alumnado. tiza no lee notas, entregas ni informes del alumnado: no es una carencia, es una decisión de diseño.
+  - type: textarea
+    id: necesidad
+    attributes:
+      label: ¿Qué quieres conseguir en tu aula?
+    validations:
+      required: true
+  - type: textarea
+    id: ahora
+    attributes:
+      label: ¿Cómo lo haces hoy?

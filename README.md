@@ -41,7 +41,9 @@ edita actividades con la misma sesión web que usas en el navegador.
 
 ## Medidas de diseño
 
-Son medidas para reducir riesgos, no garantías absolutas.
+Son medidas para reducir riesgos, no garantías absolutas. Si tu centro o tu
+Delegación de Protección de Datos te pide un resumen, pásale
+[docs/proteccion-de-datos.md](docs/proteccion-de-datos.md).
 
 - **Sin secretos persistentes**: la contraseña se pide con `getpass` una vez por
   sesión. No hay variable de entorno, opción ni fichero que la acepte, y la
@@ -626,7 +628,7 @@ propia (por ejemplo, una app con un asistente embebido):
 
 La contraseña solo la pide la presencia y solo la usa `tiza.sesion`. Cambiar
 la firma de una de estas funciones obliga a subir la versión menor y a contarlo
-en las notas de la versión.
+en el [CHANGELOG](CHANGELOG.md).
 
 ## Desarrollo
 
@@ -638,8 +640,8 @@ uv run pytest        # tests 100 % offline, nunca contactan con un aula real
 uv run tiza --help
 ```
 
-Antes de subir cambios: `uvx ruff@0.19.00 check src tests`,
-`uvx ruff@0.19.00 format --check src tests` y
+Antes de subir cambios: `uvx ruff@0.16.10 check src tests`,
+`uvx ruff@0.16.10 format --check src tests` y
 `uv run --with mypy==2.4.0 --with types-PyYAML --with types-requests mypy`.
 
 La integración real con el aula la comprueba el docente con `tiza autoprueba`.
@@ -652,4 +654,6 @@ Proyecto independiente y no oficial: no está afiliado a Moodle ni a ninguna
 administración educativa; úsalo bajo tu responsabilidad y respetando las normas
 de tu centro y del aula virtual que uses. No compartas tu contraseña y no
 incluyas datos del alumnado en lo que publicas ni en lo que ve el agente.
-Licencia [MIT](LICENSE).
+Licencia [MIT](LICENSE). Cambios en el [CHANGELOG](CHANGELOG.md); para
+colaborar, [CONTRIBUTING.md](CONTRIBUTING.md); vulnerabilidades,
+[SECURITY.md](SECURITY.md).

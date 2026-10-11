@@ -1,0 +1,51 @@
+name: Algo falla
+description: Una orden de tiza da error o hace algo inesperado
+labels: [error]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **No adjuntes capturas del aula** (pueden salir alumnos) **ni tu contraseña.**
+  - type: input
+    id: version
+    attributes:
+      label: Versión de tiza
+      description: Lo que dice `tiza --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema
+      options: [Windows, macOS, Linux]
+    validations:
+      required: true
+  - type: input
+    id: moodle
+    attributes:
+      label: Versión de Moodle del aula (si la sabes)
+      description: Suele verse abajo de la página de inicio del aula o la conoce quien la administra.
+  - type: dropdown
+    id: acceso
+    attributes:
+      label: ¿Cómo entras al aula?
+      options: [Usuario y contraseña del aula, Con Google/Microsoft u otro proveedor (SSO), No lo sé]
+  - type: input
+    id: agente
+    attributes:
+      label: Agente que usas
+      description: Claude Code, Codex, opencode, GitHub Copilot…
+  - type: textarea
+    id: orden
+    attributes:
+      label: Orden que ejecutaste
+    validations:
+      required: true
+  - type: textarea
+    id: salida
+    attributes:
+      label: Código de error y línea «Qué hacer»
+      description: Cópialos tal cual.
+      render: text
+    validations:
+      required: true
