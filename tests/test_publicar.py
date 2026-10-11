@@ -2773,3 +2773,16 @@ class TestPublicarConItinerario:
         moodle.formularios[55] = {"name": "Repaso", "availabilityconditionsjson": ""}
         resultado = publicar_itinerario(moodle, doc_itinerario(tmp_path, "finalizacion: ver\n"))
         assert "itinerario" not in str(resultado) and "completion" not in str(resultado)
+
+
+def test_campo_de_un_grupo_de_botones_de_opcion_es_el_marcado():
+    from bs4 import BeautifulSoup
+
+    html = (
+        '<input type="radio" name="completion" value="0">'
+        '<input type="radio" name="completion" value="1">'
+        '<input type="radio" name="completion" value="2" checked>'
+    )
+    assert publicar._campo(BeautifulSoup(html, "html.parser"), "completion") == "2"
+    sin_marcar = html.replace(" checked", "")
+    assert publicar._campo(BeautifulSoup(sin_marcar, "html.parser"), "completion") is None

@@ -1046,6 +1046,10 @@ def _campo(contenedor, nombre: str) -> str | None:
     for campo in campos:
         if campo.name == "input" and (campo.get("type") or "").lower() == "checkbox":
             return (campo.get("value") or "1") if campo.has_attr("checked") else None
+    # Un grupo de botones de opción (la finalización) vale lo que marca el elegido, no el primero.
+    if all(c.name == "input" and (c.get("type") or "").lower() == "radio" for c in campos):
+        marcado = next((c for c in campos if c.has_attr("checked")), None)
+        return marcado.get("value") if marcado is not None else None
     campo = campos[0]
     if campo.name == "textarea":
         return campo.text
