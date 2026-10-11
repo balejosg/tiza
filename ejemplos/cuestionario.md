@@ -21,6 +21,17 @@ preguntas:
     enunciado: Escribe 3/4 como número decimal.
     valor: 0.75
     tolerancia: 0.001
+  - tipo: emparejamiento
+    enunciado: Une cada fracción con su valor decimal.
+    parejas:
+      - {pregunta: "1/2", respuesta: "0,5"}
+      - {pregunta: "1/4", respuesta: "0,25"}
+      - {pregunta: "3/4", respuesta: "0,75"}
+    distractores: ["0,3"]
+    retro: Divide el numerador entre el denominador.
+  - tipo: verdadero_falso
+    enunciado: "La figura es un punto: ![Un punto negro sobre fondo blanco](img/punto.png)"
+    respuesta: verdadero
 ---
 
 Repaso de fracciones. Puedes intentarlo tantas veces como quieras.

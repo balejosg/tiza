@@ -34,10 +34,10 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    | Que el alumnado entregue algo, o preguntas de desarrollo | `tarea` (el cuestionario no tiene preguntas de desarrollo) |
    | Un test o examen que se corrija solo | `cuestionario` |
    | Un repaso sin nota | `cuestionario` con `intentos: ilimitados` y `retro` en cada pregunta |
-   | Emparejar o unir con flechas | `cuestionario` con una `opcion_multiple` por elemento |
+   | Emparejar o unir con flechas | `cuestionario` con una pregunta `emparejamiento` |
    | Rellenar huecos | `h5p` con `rellenar_huecos` |
    | Arrastrar palabras, marcar palabras o tarjetas | `h5p` (`arrastrar_palabras`, `marcar_palabras` o `tarjetas`) |
-   | Preguntas sobre una imagen, gráfica o texto | `cuestionario` con la imagen o el texto en la descripción (el cuerpo) y enunciados que remitan a ella |
+   | Preguntas sobre una imagen, gráfica o mapa | `cuestionario` con la imagen **dentro de la propia pregunta** (`![descripción](img/figura.png)`); la descripción (el cuerpo) se reserva para un texto o una figura común a varias preguntas |
 
    ```markdown
    ---
@@ -158,14 +158,24 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    - **Etiqueta**: mismo Markdown/HTML y mismo filtro que una página, pero el contenido se muestra directamente en la página del curso. Úsala para un texto breve, una imagen o un vídeo, sin actividad ni entrega.
    - **Cuestionario**:
      - Ajustes, todos opcionales: `apertura` y `cierre` (`apertura` < `cierre`), `tiempo_limite` (minutos, de 1 a 600), `intentos` (de 1 a 10 o `ilimitados`; por defecto 1) y `mezclar_respuestas` (`true` o `false`; por defecto `true`).
-     - De 1 a 100 preguntas, que se publican en el orden escrito. Cada una lleva `tipo`, `enunciado` y, opcionalmente, `retro` (retroalimentación general). Solo hay cuatro tipos:
+     - De 1 a 100 preguntas, que se publican en el orden escrito. Cada una lleva `tipo`, `enunciado` y, opcionalmente, `retro` (retroalimentación general). Solo hay cinco tipos:
        - `opcion_multiple`: `opciones` (de 2 a 10), cada una con `texto`, `correcta: true` si lo es y `retro` opcional. Al menos una correcta.
        - `verdadero_falso`: `respuesta: verdadero` o `respuesta: falso`.
        - `respuesta_corta`: `aceptadas` (lista de respuestas válidas; incluye variantes razonables) y `mayusculas: true` si deben distinguirse.
        - `numerica`: `valor` y `tolerancia` (margen admitido, mayor o igual que 0; por defecto 0).
-     - No hay ensayo, emparejamiento, huecos múltiples (cloze), calculadas ni preguntas aleatorias: adapta la petición con la tabla de arriba o díselo al docente.
+       - `emparejamiento`: `parejas` (de 2 a 10, cada una con `pregunta` y `respuesta`) y `distractores` opcionales (respuestas que no son de nadie). Hacen falta al menos 3 respuestas distintas contando los distractores (`PAREJAS_INVALIDAS`). La `pregunta` es Markdown y admite una imagen; la `respuesta` y los distractores son **texto plano** de hasta 255 caracteres (ni HTML, ni imágenes, ni fórmulas). Dos parejas pueden compartir respuesta. Siempre se muestran mezcladas, y la pregunta vale 1 punto repartido a partes iguales entre las parejas. Ejemplo:
+
+         ```yaml
+         - tipo: emparejamiento
+           enunciado: Une cada país con su capital.
+           parejas:
+             - {pregunta: Francia, respuesta: París}
+             - {pregunta: Italia, respuesta: Roma}
+           distractores: [Madrid]
+         ```
+     - No hay ensayo, huecos múltiples (cloze), calculadas ni preguntas aleatorias: adapta la petición con la tabla de arriba o díselo al docente.
      - No escribas puntuaciones: las calcula tiza. Cada pregunta vale 1. Con varias opciones correctas, cada correcta suma su parte y cada incorrecta marcada la resta; si el docente no quiere penalizar, usa una sola correcta.
-     - `enunciado`, `texto` y `retro` son Markdown con el mismo filtro HTML que el cuerpo (los iframes permitidos valen en el enunciado), pero **no admiten imágenes ni ficheros locales** (`RECURSO_EN_PREGUNTA`): ponlos en la descripción y remite a ellos («Observa la figura 1 de la descripción»).
+     - `enunciado`, `texto` y `retro` son Markdown con el mismo filtro HTML que el cuerpo (los iframes permitidos valen en el enunciado), pero admiten **imágenes locales** (PNG, JPEG, GIF o WebP) con texto alternativo obligatorio (`![El circuito de la figura 1](img/circuito.png)`; sin él, `IMAGEN_SIN_ALT`), de hasta 1 MB cada una y 10 MB en todo el cuestionario (`IMAGEN_DEMASIADO_GRANDE`; cada uso cuenta). Valen en el enunciado, las opciones, las parejas y la retroalimentación. Cualquier otro fichero local o enlace a un fichero (un PDF) da `RECURSO_EN_PREGUNTA`: ponlo en la descripción. Nunca uses fotos con alumnado. Antes de dar por bueno el cuestionario, tiza comprueba que el aula guardó y sirve cada imagen (`VERIFICACION_IMAGENES` si no).
      - Cuando un alumno empieza un intento, el cuestionario queda congelado: tiza no cambia nada, ni preguntas ni ajustes, y responde `CUESTIONARIO_CON_INTENTOS`. Para corregirlo, crea otro con un `nombre` distinto.
    - Si el nombre contiene `: `, escríbelo entre comillas (`nombre: "Repaso: fracciones"`); YAML lo necesita.
    - **Fórmulas (Matemáticas, Física, Química…)**: en un `.md`, escríbelas en LaTeX con `\( … \)` (en la línea), `\[ … \]` o `$$ … $$` (en bloque). tiza las publica tal cual, sin tocar `*`, `_` ni `\\`, y el aula las dibuja con su motor de fórmulas. Si tras publicar el informe trae el paso `FORMULAS_NO_DIBUJADAS` (también lo da la autoprueba), el contenido está bien publicado pero el aula no carga ese motor y el alumnado vería LaTeX sin dibujar: díselo al docente, tiza no cambia los filtros del aula. El `$x$` simple **no** vale: Moodle no lo dibuja, y `tiza comprobar` avisa con el paso `FORMULA_DOLAR_SIMPLE`. Una fórmula sin cerrar es un error (`FORMULA_SIN_CERRAR`); el límite es de 2000 caracteres por fórmula y 500 por documento (`FORMULA_INVALIDA`). Valen en el cuerpo, en el enunciado, las opciones y la retroalimentación de un cuestionario; **no en las actividades H5P** (`FORMULA_EN_H5P`). Dentro de un bloque de código (``` o comillas inversas) no se tocan. En un `.html` se escriben igual. La vista previa enseña la fuente LaTeX, no la fórmula dibujada.

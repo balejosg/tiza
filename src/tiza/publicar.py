@@ -211,6 +211,8 @@ class AulaVirtual(Protocol):
 
     def leer_modulo(self, cmid: int) -> dict: ...
 
+    def imagenes_de_pregunta(self, cmid: int, pregunta_id: int) -> tuple[int, int]: ...
+
     def motor_de_formulas(self, curso_id: int) -> bool: ...
 
     def comprobar_pluginfile(self, url: str) -> bool: ...
@@ -427,6 +429,29 @@ class Moodle:
                 "disponibilidad": _campo(formulario, "availabilityconditionsjson") or "",
             },
         }
+
+    def imagenes_de_pregunta(self, cmid: int, pregunta_id: int) -> tuple[int, int]:
+        """(imágenes que enseña la vista previa de la pregunta, las que se sirven con HTTP 200).
+
+        Es la vista previa del banco de preguntas, que no crea ningún intento del cuestionario
+        (medido en la espiga). Solo salen números; el texto de Moodle no sale de aquí.
+        """
+        self._esperar()
+        pagina = self._reducir(
+            "ERROR_VERIFICACION_IMAGENES",
+            self.sesion.get,
+            f"{self.base_url}/question/bank/previewquestion/preview.php",
+            params={"id": pregunta_id, "cmid": cmid},
+            timeout=TIEMPO_ESPERA,
+        )
+        sopa = BeautifulSoup(getattr(pagina, "text", ""), "html.parser")
+        urls = [
+            urljoin(f"{self.base_url}/", str(img.get("src")))
+            for img in sopa.select(".que img")
+            if "pluginfile.php" in str(img.get("src") or "")
+        ]
+        servidas = sum(1 for url in urls if self.comprobar_pluginfile(url))
+        return len(urls), servidas
 
     def motor_de_formulas(self, curso_id: int) -> bool:
         """¿Carga el aula su motor de fórmulas en la página del curso?
@@ -1631,7 +1656,9 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
             if not categoria.endswith(f",{contexto}"):
                 raise ErrorPublicacion("VERIFICACION_PREGUNTAS")
             en_banco = moodle.preguntas_en_categoria(cmid_quiz, categoria)
-            if len(en_banco) != 2:
+            esperadas = documentos[2].cuestionario
+            assert esperadas is not None
+            if len(en_banco) != len(esperadas.preguntas):
                 raise ErrorPublicacion("VERIFICACION_PREGUNTAS")
             paso("VERIFICAR_CATEGORIA", "ok", f"{len(en_banco)} preguntas")
             codigo_actual = "CREAR_SECCION"
@@ -1719,6 +1746,14 @@ def _ejemplos(carpeta: Path, seccion: int) -> list[Documento]:
         "  - tipo: verdadero_falso\n"
         "    enunciado: El agua hierve a 100 °C a nivel del mar.\n"
         "    respuesta: verdadero\n"
+        # Un emparejamiento con una imagen dentro de una pregunta: la autoprueba comprueba que
+        # el aula las importa y sirve (un cuestionario de verdad lleva ambas cosas).
+        "  - tipo: emparejamiento\n"
+        "    enunciado: Une cada elemento con su pareja.\n"
+        "    parejas:\n"
+        '      - {pregunta: "![Un punto](img/punto.png)", respuesta: A}\n'
+        "      - {pregunta: B, respuesta: C}\n"
+        "    distractores: [D]\n"
         "---\n\n"
         "Cuestionario temporal de la autoprueba.\n\n"
         "![punto](img/punto.png)\n",

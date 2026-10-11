@@ -209,6 +209,7 @@ class DocumentoResumen:
     h5p: str | None = None  # actividad H5P generada («Rellenar huecos»)
     h5p_libreria: str | None = None  # librería principal de un paquete subido
     h5p_descartadas: tuple[str, ...] = ()  # librerías que tiza no sube nunca
+    imagenes_preguntas: int = 0  # imágenes locales dentro de las preguntas de un cuestionario
     # None: no se ha comparado con el aula (pruebas, la confirmación corta…).
     cambios: tuple[CambioFecha, ...] | None = None
     # Finalización y restricciones que declara el .md, en lenguaje llano (solo del .md).

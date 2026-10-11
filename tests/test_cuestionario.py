@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import xml.etree.ElementTree as ET
 
 import pytest
@@ -241,3 +242,94 @@ def test_un_documento_que_no_es_cuestionario_falla(tmp_path):
     ruta.write_text("---\ntipo: pagina\nnombre: P\nseccion: 1\n---\n\nx\n", encoding="utf-8")
     with pytest.raises(ValueError):
         preguntas_xml(cargar(ruta))
+
+
+EMPAREJAMIENTO_YAML = """- tipo: emparejamiento
+  enunciado: Une cada país con su capital.
+  parejas:
+    - {pregunta: Francia, respuesta: París}
+    - {pregunta: "**Italia**", respuesta: Roma}
+    - {pregunta: Portugal, respuesta: "Lisboa & Oporto"}
+  distractores: [Madrid]
+  retro: Repasa.
+"""
+
+
+def test_emparejamiento_en_el_xml(tmp_path):
+    [pregunta] = arbol(tmp_path, EMPAREJAMIENTO_YAML).findall("question")
+    assert pregunta.get("type") == "matching"
+    assert pregunta.findtext("shuffleanswers") == "true"
+    assert pregunta.findtext("defaultgrade") == "1"
+    assert pregunta.findtext("generalfeedback/text") == "<p>Repasa.</p>\n"
+    subs = pregunta.findall("subquestion")
+    assert [s.findtext("answer/text") for s in subs] == [
+        "París",
+        "Roma",
+        "Lisboa & Oporto",
+        "Madrid",
+    ]
+    assert [s.get("format") for s in subs] == ["html"] * 4
+    assert subs[0].findtext("text") == "<p>Francia</p>\n"
+    assert "<strong>Italia</strong>" in subs[1].findtext("text")
+    assert subs[3].findtext("text") == ""  # el distractor no tiene pregunta
+
+
+def test_el_xml_del_emparejamiento_es_determinista_y_escapa(tmp_path):
+    doc = documento(tmp_path, EMPAREJAMIENTO_YAML)
+    assert preguntas_xml(doc) == preguntas_xml(doc)
+    assert b"Lisboa &amp; Oporto" in preguntas_xml(doc)
+
+
+_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00"
+    b"\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x9a\xa0\xa0"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+CON_IMAGENES = """- tipo: opcion_multiple
+  enunciado: "Enunciado ![fig](img/f.png)"
+  retro: "Retro ![fig](img/f.png)"
+  opciones:
+    - {texto: "A ![fig](img/f.png)", correcta: true, retro: "Bien ![fig](img/f.png)"}
+    - {texto: B}
+- tipo: emparejamiento
+  enunciado: Une.
+  parejas:
+    - {pregunta: "![fig](img/f.png)", respuesta: X}
+    - {pregunta: Q, respuesta: Y}
+  distractores: [Z]
+"""
+
+
+def test_las_imagenes_viajan_adjuntas_a_cada_campo(tmp_path):
+    (tmp_path / "img").mkdir()
+    (tmp_path / "img" / "f.png").write_bytes(_PNG)
+    doc = documento(tmp_path, CON_IMAGENES)
+    nombre = doc.cuestionario.imagenes[0].nombre
+    multiple, matching = ET.fromstring(preguntas_xml(doc)).findall("question")
+    esperado = base64.b64encode(_PNG).decode("ascii")
+
+    def adjuntos(nodo):
+        return [
+            (f.get("name"), f.get("path"), f.get("encoding"), f.text) for f in nodo.findall("file")
+        ]
+
+    entero = (nombre, "/", "base64", esperado)
+    for campo in ("questiontext", "generalfeedback"):
+        assert adjuntos(multiple.find(campo)) == [entero]
+        assert f"@@PLUGINFILE@@/{nombre}" in multiple.findtext(f"{campo}/text")
+    primera = multiple.findall("answer")[0]
+    assert adjuntos(primera) == [entero] and adjuntos(primera.find("feedback")) == [entero]
+    assert multiple.findall("answer")[1].findall("file") == []
+    sub = matching.findall("subquestion")
+    assert adjuntos(sub[0]) == [entero]
+    assert sub[1].findall("file") == [] and sub[2].findall("file") == []
+    assert "tiza-imagen:" not in preguntas_xml(doc).decode()
+
+
+def test_el_xml_con_imagenes_es_determinista(tmp_path):
+    (tmp_path / "img").mkdir()
+    (tmp_path / "img" / "f.png").write_bytes(_PNG)
+    assert preguntas_xml(documento(tmp_path, CON_IMAGENES)) == preguntas_xml(
+        documento(tmp_path, CON_IMAGENES)
+    )

@@ -381,13 +381,14 @@ class TestEjemplosDelRepo:
             assert doc.nombre
             assert doc.recursos, f"{nombre} debería tener recursos locales"
 
-    def test_el_ejemplo_de_cuestionario_carga_con_sus_cuatro_tipos(self):
+    def test_el_ejemplo_de_cuestionario_carga_con_todos_sus_tipos(self):
         raiz = Path(__file__).resolve().parent.parent / "ejemplos"
         doc = cargar(raiz / "cuestionario.md")
         assert doc.tipo == "cuestionario"
         from tiza.tipos.cuestionario import TIPOS_PREGUNTA
 
-        assert [p.tipo for p in doc.cuestionario.preguntas] == list(TIPOS_PREGUNTA)
+        assert [p.tipo for p in doc.cuestionario.preguntas[:5]] == list(TIPOS_PREGUNTA)
+        assert len(doc.cuestionario.imagenes) == 1  # la imagen va dentro de una pregunta
         assert [recurso.nombre for recurso in doc.recursos] == ["punto.png"]
 
     def test_el_ejemplo_de_maquetado_pasa_el_filtro_y_tiene_un_iframe_de_cada_grupo(self, tmp_path):
@@ -1904,3 +1905,231 @@ class TestFormulasAvisosYH5P:
         assert r"\(x_1\)" in texto
         sin = cargar(escribir(tmp_path, pagina("nada"), "otra.md"))
         assert "fórmulas" not in previsualizar(sin, tmp_path / ".tiza").read_text(encoding="utf-8")
+
+
+EMPAREJAMIENTO = """
+- tipo: emparejamiento
+  enunciado: Une cada país con su capital.
+  parejas:
+    - {pregunta: Francia, respuesta: París}
+    - {pregunta: Italia, respuesta: Roma}
+    - {pregunta: "**Portugal**", respuesta: Lisboa}
+  distractores: [Madrid]
+  retro: Repasa el mapa del tema 2.
+"""
+
+
+class TestEmparejamiento:
+    def test_se_carga_con_parejas_y_distractores(self, tmp_path):
+        doc = cargar(escribir(tmp_path, cuestionario(EMPAREJAMIENTO), "cuestionario.md"))
+        [pregunta] = doc.cuestionario.preguntas
+        assert pregunta.tipo == "emparejamiento"
+        assert [(p.pregunta, p.respuesta) for p in pregunta.parejas] == [
+            ("Francia", "París"),
+            ("Italia", "Roma"),
+            ("**Portugal**", "Lisboa"),
+        ]
+        assert "<strong>Portugal</strong>" in pregunta.parejas[2].html
+        assert pregunta.distractores == ("Madrid",)
+        assert pregunta.retro_html is not None
+
+    def test_el_hash_cubre_parejas_y_distractores(self, tmp_path):
+        base = cargar(escribir(tmp_path, cuestionario(EMPAREJAMIENTO), "a.md"))
+        otro = cargar(
+            escribir(tmp_path, cuestionario(EMPAREJAMIENTO.replace("Madrid", "Berlín")), "b.md")
+        )
+        assert contenido.hash_documento(base) != contenido.hash_documento(otro)
+
+    @pytest.mark.parametrize(
+        "cambio",
+        [
+            lambda t: t.replace("    - {pregunta: Italia, respuesta: Roma}\n", "").replace(
+                '    - {pregunta: "**Portugal**", respuesta: Lisboa}\n', ""
+            ),  # una sola pareja
+            lambda t: (
+                t.replace("[Madrid]", "[]").replace("Roma", "París").replace("Lisboa", "París")
+            ),  # una sola respuesta distinta
+            lambda t: t.replace("respuesta: Roma", "respuesta: ''"),
+            lambda t: t.replace("respuesta: Roma", "respuesta: '<b>Roma</b>'"),
+            lambda t: t.replace("respuesta: Roma", "respuesta: " + "x" * 300),
+            lambda t: t.replace("[Madrid]", "[1, 2]"),
+            lambda t: t.replace("[Madrid]", "'Madrid'"),
+        ],
+    )
+    def test_parejas_invalidas(self, tmp_path, cambio):
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, cuestionario(cambio(EMPAREJAMIENTO)), "cuestionario.md"))
+        assert exc.value.codigo == "PAREJAS_INVALIDAS"
+        assert "pregunta 1" in exc.value.detalle
+
+    def test_mas_de_diez_parejas(self, tmp_path):
+        filas = "\n".join(f"    - {{pregunta: P{n}, respuesta: R{n}}}" for n in range(11))
+        texto = "- tipo: emparejamiento\n  enunciado: x\n  parejas:\n" + filas + "\n"
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, cuestionario(texto), "cuestionario.md"))
+        assert exc.value.codigo == "PAREJAS_INVALIDAS"
+
+    def test_campo_desconocido_en_una_pareja(self, tmp_path):
+        malo = EMPAREJAMIENTO.replace(
+            "{pregunta: Francia, respuesta: París}", "{pregunta: F, respuesta: P, extra: 1}"
+        )
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, cuestionario(malo), "cuestionario.md"))
+        assert exc.value.codigo == "CAMPO_DESCONOCIDO"
+
+    def test_los_campos_de_otro_tipo_no_valen(self, tmp_path):
+        malo = EMPAREJAMIENTO + "  respuesta: verdadero\n"
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, cuestionario(malo), "cuestionario.md"))
+        assert exc.value.codigo == "CAMPO_DESCONOCIDO"
+
+    def test_la_vista_previa_enseña_parejas_y_distractores(self, tmp_path):
+        doc = cargar(escribir(tmp_path, cuestionario(EMPAREJAMIENTO), "cuestionario.md"))
+        texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
+        assert "Emparejamiento" in texto
+        for esperado in ("Francia", "París", "Lisboa", "Madrid"):
+            assert esperado in texto
+        assert "Distractores" in texto
+
+
+_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00"
+    b"\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x9a\xa0\xa0"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
+def _con_imagen(tmp_path, nombre="figura.png", datos=_PNG):
+    (tmp_path / "img").mkdir(exist_ok=True)
+    (tmp_path / "img" / nombre).write_bytes(datos)
+
+
+def _quiz_imagen(texto: str) -> str:
+    return cuestionario(
+        f"- tipo: verdadero_falso\n  enunciado: '{texto}'\n  respuesta: verdadero\n"
+    )
+
+
+class TestImagenesEnPreguntas:
+    def test_una_imagen_en_el_enunciado(self, tmp_path):
+        _con_imagen(tmp_path)
+        doc = cargar(
+            escribir(tmp_path, _quiz_imagen("Mira ![El circuito](img/figura.png)"), "q.md"),
+            raiz=tmp_path.resolve(),
+        )
+        [imagen] = doc.cuestionario.imagenes
+        assert imagen.nombre.startswith("img-") and imagen.nombre.endswith(".png")
+        assert imagen.mime == "image/png" and imagen.datos == _PNG
+        assert f"tiza-imagen:{imagen.nombre}" in doc.cuestionario.preguntas[0].html
+        assert "figura.png" not in doc.cuestionario.preguntas[0].html  # el nombre no viaja
+        assert doc.recursos == []  # las imágenes de las preguntas no son recursos del cuerpo
+
+    def test_el_mismo_contenido_con_otro_nombre_es_la_misma_imagen(self, tmp_path):
+        _con_imagen(tmp_path, "a.png")
+        _con_imagen(tmp_path, "b.png")
+        doc = cargar(
+            escribir(tmp_path, _quiz_imagen("![uno](img/a.png) ![dos](img/b.png)"), "q.md")
+        )
+        assert len(doc.cuestionario.imagenes) == 1
+
+    def test_el_hash_cubre_los_bytes_de_la_imagen(self, tmp_path):
+        _con_imagen(tmp_path)
+        md = escribir(tmp_path, _quiz_imagen("![f](img/figura.png)"), "q.md")
+        antes = contenido.hash_documento(cargar(md))
+        _con_imagen(tmp_path, datos=_PNG + b"\x00")
+        assert contenido.hash_documento(cargar(md)) != antes
+
+    def test_en_opciones_retro_y_parejas(self, tmp_path):
+        _con_imagen(tmp_path)
+        cuerpo = (
+            "- tipo: opcion_multiple\n  enunciado: x\n  retro: '![r](img/figura.png)'\n"
+            "  opciones:\n    - {texto: '![o](img/figura.png)', correcta: true}\n    - {texto: B}\n"
+            "- tipo: emparejamiento\n  enunciado: y\n  parejas:\n"
+            "    - {pregunta: '![p](img/figura.png)', respuesta: A}\n"
+            "    - {pregunta: Q, respuesta: B}\n  distractores: [C]\n"
+        )
+        doc = cargar(escribir(tmp_path, cuestionario(cuerpo), "q.md"))
+        assert len(doc.cuestionario.imagenes) == 1
+
+    def test_sin_texto_alternativo(self, tmp_path):
+        _con_imagen(tmp_path)
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, _quiz_imagen("![](img/figura.png)"), "q.md"))
+        assert exc.value.codigo == "IMAGEN_SIN_ALT"
+        assert "pregunta 1" in exc.value.detalle
+
+    @pytest.mark.parametrize(
+        "datos",
+        [b"<svg xmlns='http://www.w3.org/2000/svg'></svg>", b"texto", b"%PDF-1.4"],
+    )
+    def test_solo_png_jpeg_gif_y_webp_por_la_cabecera(self, tmp_path, datos):
+        _con_imagen(tmp_path, datos=datos)  # con extensión .png pero no lo es
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, _quiz_imagen("![f](img/figura.png)"), "q.md"))
+        assert exc.value.codigo == "RECURSO_EN_PREGUNTA"
+
+    @pytest.mark.parametrize(
+        ("datos", "extension"),
+        [
+            (b"\xff\xd8\xff\xe0" + b"0" * 20, "jpg"),
+            (b"GIF89a" + b"0" * 20, "gif"),
+            (b"RIFF\x00\x00\x00\x00WEBPVP8 ", "webp"),
+        ],
+    )
+    def test_los_demas_formatos_admitidos(self, tmp_path, datos, extension):
+        _con_imagen(tmp_path, datos=datos)
+        doc = cargar(escribir(tmp_path, _quiz_imagen("![f](img/figura.png)"), "q.md"))
+        assert doc.cuestionario.imagenes[0].nombre.endswith(f".{extension}")
+
+    def test_imagen_de_mas_de_un_megabyte(self, tmp_path):
+        _con_imagen(tmp_path, datos=_PNG + b"\x00" * (1024 * 1024))
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, _quiz_imagen("![f](img/figura.png)"), "q.md"))
+        assert exc.value.codigo == "IMAGEN_DEMASIADO_GRANDE"
+
+    def test_mas_de_diez_megabytes_en_todo_el_cuestionario(self, tmp_path):
+        for n in range(11):
+            _con_imagen(tmp_path, f"f{n}.png", _PNG + bytes([n]) * (1024 * 1024 - len(_PNG)))
+        texto = " ".join(f"![f{n}](img/f{n}.png)" for n in range(11))
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, _quiz_imagen(texto), "q.md"))
+        assert exc.value.codigo == "IMAGEN_DEMASIADO_GRANDE"
+
+    def test_fuera_de_la_carpeta_y_ocultas_y_ausentes(self, tmp_path):
+        carpeta = tmp_path / "asig"
+        carpeta.mkdir()
+        _con_imagen(tmp_path)  # fuera de la carpeta de la asignatura
+        (carpeta / ".oculta.png").write_bytes(_PNG)
+        casos = {
+            "../img/figura.png": "RUTA_FUERA_DE_CARPETA",
+            ".oculta.png": "RECURSO_NO_PERMITIDO",
+            "no_existe.png": "RECURSO_AUSENTE",
+        }
+        for ruta, codigo in casos.items():
+            md = escribir(carpeta, _quiz_imagen(f"![f]({ruta})"), "q.md")
+            with pytest.raises(ErrorContenido) as exc:
+                cargar(md, raiz=carpeta.resolve())
+            assert exc.value.codigo == codigo, ruta
+
+    def test_un_enlace_simbolico_que_sale_de_la_carpeta(self, tmp_path):
+        carpeta = tmp_path / "asig"
+        carpeta.mkdir()
+        _con_imagen(tmp_path)
+        enlace_simbolico(carpeta / "enlace.png", tmp_path / "img" / "figura.png")
+        md = escribir(carpeta, _quiz_imagen("![f](enlace.png)"), "q.md")
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(md, raiz=carpeta.resolve())
+        assert exc.value.codigo == "RUTA_FUERA_DE_CARPETA"
+
+    def test_un_enlace_a_un_fichero_local_sigue_prohibido(self, tmp_path):
+        (tmp_path / "apuntes.pdf").write_bytes(b"%PDF")
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, _quiz_imagen("[apuntes](apuntes.pdf)"), "q.md"))
+        assert exc.value.codigo == "RECURSO_EN_PREGUNTA"
+
+    def test_la_vista_previa_lleva_la_imagen_incrustada(self, tmp_path):
+        _con_imagen(tmp_path)
+        doc = cargar(escribir(tmp_path, _quiz_imagen("![f](img/figura.png)"), "q.md"))
+        texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
+        assert "data:image/png;base64," in texto
+        assert "tiza-imagen:" not in texto

@@ -66,6 +66,9 @@ CAMPOS_COMUNES = {"tipo", "nombre", "seccion"} | CAMPOS_ITINERARIO
 CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
 MAX_DEPENDENCIAS = 10
 MAX_PAQUETE_H5P_BYTES = 64 * 1024 * 1024  # el .h5p subido
+PREFIJO_IMAGEN = "tiza-imagen:"  # lo que lleva el src de una imagen de pregunta en el HTML
+MAX_IMAGEN_PREGUNTA_BYTES = 1024 * 1024  # cada imagen de una pregunta
+MAX_IMAGENES_CUESTIONARIO_BYTES = 10 * 1024 * 1024  # suma de usos en todo el cuestionario
 MAX_DOCUMENTO_BYTES = 2 * 1024 * 1024  # el .md o .html; los recursos se miden aparte
 MAX_RECURSO_BYTES = 200 * 1024 * 1024
 _TROZO_HASH = 1024 * 1024
@@ -148,6 +151,28 @@ class Opcion:
 
 
 @dataclass(frozen=True)
+class Imagen:
+    """Imagen local de una pregunta: viaja dentro del XML de preguntas, no como recurso.
+
+    El nombre se deriva del contenido (así dos ``figura.png`` distintos no chocan, el nombre
+    original no llega al aula y el hash del documento cubre los bytes).
+    """
+
+    nombre: str  # «img-<16 hex>.<ext>»
+    mime: str
+    datos: bytes = field(repr=False)
+
+
+@dataclass(frozen=True)
+class Pareja:
+    """Una pareja de un emparejamiento: la pregunta (Markdown) y su respuesta (texto plano)."""
+
+    pregunta: str  # lo que se escribió (Markdown)
+    html: str  # la pregunta renderizada, tal como se publica
+    respuesta: str
+
+
+@dataclass(frozen=True)
 class Pregunta:
     """Pregunta de un cuestionario, ya validada."""
 
@@ -162,6 +187,8 @@ class Pregunta:
     tolerancia: float = 0.0  # margen de la pregunta numérica, >= 0
     retro: str | None = None  # retroalimentación general (Markdown)
     retro_html: str | None = None
+    parejas: tuple[Pareja, ...] = ()  # emparejamiento: de 2 a 10
+    distractores: tuple[str, ...] = ()  # emparejamiento: respuestas que no son de nadie
 
 
 @dataclass(frozen=True)
@@ -176,6 +203,7 @@ class Cuestionario:
     mezclar_respuestas: bool = True
     externos: tuple[str, ...] = ()  # enlaces externos de las preguntas
     incrustados: tuple[str, ...] = ()  # iframes de las preguntas, ya normalizados
+    imagenes: tuple[Imagen, ...] = ()  # imágenes locales de las preguntas, sin repetir
 
 
 @dataclass(frozen=True)
@@ -716,6 +744,60 @@ _BLANCO = re.compile(r"^[ \t]*$", re.MULTILINE)
 def _resolver_local(base: Path, valor: str) -> Path:
     limpio = urlsplit(valor).path
     return (base / unquote(limpio)).resolve()
+
+
+_FORMATOS_IMAGEN = (
+    (b"\x89PNG\r\n\x1a\n", "png", "image/png"),
+    (b"\xff\xd8\xff", "jpg", "image/jpeg"),
+    (b"GIF87a", "gif", "image/gif"),
+    (b"GIF89a", "gif", "image/gif"),
+)
+
+
+def _formato_imagen(datos: bytes) -> tuple[str, str] | None:
+    """(extensión, MIME) según la cabecera del fichero, nunca según su extensión."""
+    for cabecera, extension, mime in _FORMATOS_IMAGEN:
+        if datos.startswith(cabecera):
+            return extension, mime
+    if datos[:4] == b"RIFF" and datos[8:12] == b"WEBP":
+        return "webp", "image/webp"
+    return None
+
+
+def leer_imagen(valor: str, base: Path, raiz: Path | None) -> Imagen:
+    """Lee una imagen local de una pregunta (PNG, JPEG, GIF o WebP de hasta 1 MB).
+
+    Las mismas reglas que un recurso del cuerpo: dentro de la carpeta de la asignatura, sin
+    ficheros ocultos ni enlaces. Cualquier otro tipo de fichero es ``RECURSO_EN_PREGUNTA``.
+    """
+    ruta = _resolver_local(base, valor)
+    if raiz is not None:
+        _exigir_permitido(ruta, raiz)  # antes de mirar si existe
+    nombre = Path(unquote(valor)).name
+    try:
+        datos = leer_bytes_acotado(ruta, MAX_IMAGEN_PREGUNTA_BYTES)
+    except FicheroNoSeguro as exc:
+        if exc.motivo == "grande":
+            raise ErrorContenido(
+                "IMAGEN_DEMASIADO_GRANDE",
+                f"«{nombre}» pesa más de {MAX_IMAGEN_PREGUNTA_BYTES // 2**10} KB",
+            ) from None
+        raise ErrorContenido(
+            "RECURSO_NO_PERMITIDO", f"«{nombre}» no es un fichero normal"
+        ) from None
+    except FileNotFoundError:
+        raise ErrorContenido("RECURSO_AUSENTE", f"no existe el recurso «{nombre}»") from None
+    except OSError:
+        raise ErrorContenido("RECURSO_AUSENTE", f"no se pudo leer «{nombre}»") from None
+    formato = _formato_imagen(datos)
+    if formato is None:
+        raise ErrorContenido(
+            "RECURSO_EN_PREGUNTA",
+            f"«{nombre}» no es una imagen PNG, JPEG, GIF ni WebP: una pregunta solo admite esas",
+        )
+    extension, mime = formato
+    huella = hashlib.sha256(datos).hexdigest()[:16]
+    return Imagen(nombre=f"img-{huella}.{extension}", mime=mime, datos=datos)
 
 
 def _exigir_permitido(ruta: Path, raiz: Path) -> None:

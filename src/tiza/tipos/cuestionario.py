@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import base64
 import html as _html
 import math
+import re
 from datetime import time
 from pathlib import Path
 from typing import Any
@@ -34,12 +36,19 @@ CAMPOS_CUESTIONARIO = frozenset(
 )
 CAMPOS_FECHA = ("timeopen", "timeclose")
 
-TIPOS_PREGUNTA = ("opcion_multiple", "verdadero_falso", "respuesta_corta", "numerica")
+TIPOS_PREGUNTA = (
+    "opcion_multiple",
+    "verdadero_falso",
+    "respuesta_corta",
+    "numerica",
+    "emparejamiento",
+)
 NOMBRES_PREGUNTA = {
     "opcion_multiple": "Opción múltiple",
     "verdadero_falso": "Verdadero o falso",
     "respuesta_corta": "Respuesta corta",
     "numerica": "Numérica",
+    "emparejamiento": "Emparejamiento",
 }
 _CAMPOS_PREGUNTA_BASE = {"tipo", "enunciado", "retro"}
 _CAMPOS_PREGUNTA = {
@@ -47,7 +56,12 @@ _CAMPOS_PREGUNTA = {
     "verdadero_falso": _CAMPOS_PREGUNTA_BASE | {"respuesta"},
     "respuesta_corta": _CAMPOS_PREGUNTA_BASE | {"aceptadas", "mayusculas"},
     "numerica": _CAMPOS_PREGUNTA_BASE | {"valor", "tolerancia"},
+    "emparejamiento": _CAMPOS_PREGUNTA_BASE | {"parejas", "distractores"},
 }
+_CAMPOS_PAREJA = {"pregunta", "respuesta"}
+MIN_PAREJAS, MAX_PAREJAS, MAX_DISTRACTORES = 2, 10, 10
+MIN_RESPUESTAS_DISTINTAS = 3  # lo que exige el formulario de Moodle al editar
+MAX_RESPUESTA = 255
 _CAMPOS_OPCION = {"texto", "correcta", "retro"}
 MAX_PREGUNTAS = 100
 MAX_ENUNCIADO = 5000
@@ -165,6 +179,7 @@ class Cuestionario(Tipo):
 
         try:
             info = verificar(p.moodle, self, doc, cmid, preguntas=nuevas)
+            _verificar_imagenes(p.moodle, doc, cmid, nuevas)
         except ErrorPublicacion as exc:
             if p.existente is None:
                 deshacer_modulo(p.moodle, p.curso_id, cmid, exc)
@@ -199,19 +214,36 @@ class Cuestionario(Tipo):
         """Las preguntas, numeradas y con las correctas marcadas."""
         if doc.cuestionario is None:
             return ""
+        imagenes = {imagen.nombre: imagen for imagen in doc.cuestionario.imagenes}
+
+        def c(html: str | None) -> str | None:
+            return _imagenes_en_linea(html, imagenes)
+
         partes = ["<hr>", "<h2>Preguntas del cuestionario</h2>", "<ol>"]
         for pregunta in doc.cuestionario.preguntas:
             tipo = NOMBRES_PREGUNTA.get(pregunta.tipo, pregunta.tipo)
             partes.append(f"<li><p><strong>{_html.escape(tipo)}</strong></p>")
-            partes.append(f"<div>{pregunta.html}</div>")
+            partes.append(f"<div>{c(pregunta.html)}</div>")
             if pregunta.opciones:
                 partes.append("<ul>")
                 for opcion in pregunta.opciones:
                     marca = " <strong>(correcta)</strong>" if opcion.correcta else ""
                     partes.append(
-                        f"<li>{opcion.html}{marca}{_retro_preview(opcion.retro_html)}</li>"
+                        f"<li>{c(opcion.html)}{marca}{_retro_preview(c(opcion.retro_html))}</li>"
                     )
                 partes.append("</ul>")
+            elif pregunta.tipo == "emparejamiento":
+                partes.append("<table><tr><th>Pregunta</th><th>Respuesta correcta</th></tr>")
+                for pareja in pregunta.parejas:
+                    partes.append(
+                        f"<tr><td>{c(pareja.html)}</td><td>{_html.escape(pareja.respuesta)}</td></tr>"
+                    )
+                partes.append("</table>")
+                if pregunta.distractores:
+                    sobrantes = ", ".join(_html.escape(d) for d in pregunta.distractores)
+                    partes.append(
+                        f"<p>Distractores (no son de nadie): <strong>{sobrantes}</strong></p>"
+                    )
             elif pregunta.tipo == "verdadero_falso":
                 respuesta = "Verdadero" if pregunta.respuesta == "verdadero" else "Falso"
                 partes.append(f"<p>Respuesta correcta: <strong>{respuesta}</strong></p>")
@@ -227,7 +259,7 @@ class Cuestionario(Tipo):
                         f" (tolerancia ±{_html.escape(numero_texto(pregunta.tolerancia))})"
                     )
                 partes[-1] += "</p>"
-            partes.append(_retro_preview(pregunta.retro_html))
+            partes.append(_retro_preview(c(pregunta.retro_html)))
             partes.append("</li>")
         partes.append("</ol>")
         return "\n".join(partes)
@@ -238,10 +270,52 @@ class Cuestionario(Tipo):
         resumen.update(b"\n--cuestionario--\n")
         resumen.update(repr(doc.cuestionario).encode("utf-8"))
 
+    def extras_resumen(self, doc) -> dict:
+        if doc.cuestionario is None or not doc.cuestionario.imagenes:
+            return {}
+        return {"imagenes_preguntas": len(doc.cuestionario.imagenes)}
+
     def detalle(self, doc) -> str | None:
         if doc.cuestionario is None:
             return None
         return f"{len(doc.cuestionario.preguntas)} preguntas"
+
+
+def _imagenes_en_linea(html: str | None, imagenes: dict[str, contenido.Imagen]) -> str | None:
+    """Las imágenes de las preguntas como ``data:`` en la vista previa (que no carga nada de fuera)."""
+    if html is None:
+        return None
+
+    def reemplazo(m: re.Match[str]) -> str:
+        imagen = imagenes[m.group(1)]
+        return f"data:{imagen.mime};base64,{base64.b64encode(imagen.datos).decode('ascii')}"
+
+    return _REF_IMAGEN.sub(reemplazo, html)
+
+
+_REF_IMAGEN = re.compile(re.escape(contenido.PREFIJO_IMAGEN) + r"(img-[0-9a-f]{16}\.[a-z]+)")
+
+
+def imagenes_visibles(pregunta) -> int:
+    """Imágenes que enseña la vista previa de la pregunta: enunciado, opciones y parejas."""
+    marca = contenido.PREFIJO_IMAGEN
+    total = pregunta.html.count(marca)
+    total += sum(opcion.html.count(marca) for opcion in pregunta.opciones)
+    total += sum(pareja.html.count(marca) for pareja in pregunta.parejas)
+    return total
+
+
+def _verificar_imagenes(moodle, doc, cmid: int, nuevas: list[int]) -> None:
+    """Que el aula guardó y sirve las imágenes de cada pregunta (sin crear un intento)."""
+    from ..publicar import ErrorPublicacion
+
+    for pregunta, identificador in zip(doc.cuestionario.preguntas, nuevas, strict=True):
+        esperadas = imagenes_visibles(pregunta)
+        if not esperadas:
+            continue
+        encontradas, servidas = moodle.imagenes_de_pregunta(cmid, identificador)
+        if encontradas != esperadas or servidas != encontradas:
+            raise ErrorPublicacion("VERIFICACION_IMAGENES", doc.ruta.name)
 
 
 def _retro_preview(retro_html: str | None) -> str:
@@ -249,6 +323,40 @@ def _retro_preview(retro_html: str | None) -> str:
     if retro_html is None:
         return ""
     return f"<div><p><em>Retroalimentación:</em></p>{retro_html}</div>"
+
+
+def _tomar_imagenes(ctx: Contexto, analisis, donde: str, imagenes: _Imagenes) -> None:
+    locales = set(analisis.locales)
+    for enlace in analisis.cuerpo.find_all("a"):
+        if enlace.get("href") in locales:
+            nombre = Path(unquote(urlsplit(str(enlace.get("href"))).path)).name
+            raise ErrorContenido(
+                "RECURSO_EN_PREGUNTA",
+                f"{donde}: un enlace a un fichero local («{nombre}») no se admite en una pregunta",
+            )
+    for etiqueta in analisis.cuerpo.find_all("img"):
+        valor = etiqueta.get("src")
+        if valor not in locales:
+            continue
+        if not str(etiqueta.get("alt") or "").strip():
+            raise ErrorContenido(
+                "IMAGEN_SIN_ALT", f"{donde}: la imagen «{valor}» necesita texto alternativo"
+            )
+        if ctx.ruta is None:
+            raise ErrorContenido("RECURSO_EN_PREGUNTA", f"{donde}: imagen local sin documento")
+        try:
+            imagen = contenido.leer_imagen(str(valor), ctx.ruta.parent, ctx.raiz)
+        except ErrorContenido as exc:
+            raise ErrorContenido(exc.codigo, f"{donde}: {exc.detalle}") from None
+        imagenes.por_nombre.setdefault(imagen.nombre, imagen)
+        imagenes.bytes_usados += len(imagen.datos)
+        if imagenes.bytes_usados > contenido.MAX_IMAGENES_CUESTIONARIO_BYTES:
+            raise ErrorContenido(
+                "IMAGEN_DEMASIADO_GRANDE",
+                f"{donde}: las imágenes del cuestionario pasan de "
+                f"{contenido.MAX_IMAGENES_CUESTIONARIO_BYTES // 2**20} MB en total",
+            )
+        etiqueta["src"] = f"{contenido.PREFIJO_IMAGEN}{imagen.nombre}"
 
 
 # --------------------------------------------------------------------------- #
@@ -290,8 +398,9 @@ def _validar_cuestionario(datos: dict[str, Any], ctx: Contexto) -> contenido.Cue
 
     externos: list[str] = []
     incrustados: list[str] = []
+    imagenes = _Imagenes()
     preguntas = tuple(
-        _validar_pregunta(pregunta, numero, ctx, externos, incrustados)
+        _validar_pregunta(pregunta, numero, ctx, externos, incrustados, imagenes)
         for numero, pregunta in enumerate(valor_preguntas, 1)
     )
     return contenido.Cuestionario(
@@ -303,6 +412,7 @@ def _validar_cuestionario(datos: dict[str, Any], ctx: Contexto) -> contenido.Cue
         mezclar_respuestas=mezclar,
         externos=tuple(externos),
         incrustados=tuple(incrustados),
+        imagenes=tuple(imagenes.por_nombre.values()),
     )
 
 
@@ -319,7 +429,12 @@ def _leer_intentos(valor: Any) -> int:
 
 
 def _validar_pregunta(
-    valor: Any, numero: int, ctx: Contexto, externos: list[str], incrustados: list[str]
+    valor: Any,
+    numero: int,
+    ctx: Contexto,
+    externos: list[str],
+    incrustados: list[str],
+    imagenes: _Imagenes,
 ) -> contenido.Pregunta:
     donde = f"pregunta {numero}"
     if not isinstance(valor, dict):
@@ -343,15 +458,19 @@ def _validar_pregunta(
             "ENUNCIADO_INVALIDO",
             f"{donde}: el enunciado debe ser texto de 1 a {MAX_ENUNCIADO} caracteres",
         )
-    html = _html_de_campo(ctx, enunciado, donde, externos, incrustados)
+    html = _html_de_campo(ctx, enunciado, donde, externos, incrustados, imagenes)
 
     retro = _texto_opcional(valor.get("retro"), donde, "retro")
     retro_html = (
-        _html_de_campo(ctx, retro, donde, externos, incrustados) if retro is not None else None
+        _html_de_campo(ctx, retro, donde, externos, incrustados, imagenes)
+        if retro is not None
+        else None
     )
 
     if tipo == "opcion_multiple":
-        opciones = _validar_opciones(valor.get("opciones"), donde, ctx, externos, incrustados)
+        opciones = _validar_opciones(
+            valor.get("opciones"), donde, ctx, externos, incrustados, imagenes
+        )
         return contenido.Pregunta(
             tipo=tipo,
             enunciado=enunciado,
@@ -399,6 +518,26 @@ def _validar_pregunta(
             retro=retro,
             retro_html=retro_html,
         )
+    if tipo == "emparejamiento":
+        parejas = _validar_parejas(
+            valor.get("parejas"), donde, ctx, externos, incrustados, imagenes
+        )
+        distractores = _validar_distractores(valor.get("distractores"), donde)
+        if len({p.respuesta for p in parejas} | set(distractores)) < MIN_RESPUESTAS_DISTINTAS:
+            raise ErrorContenido(
+                "PAREJAS_INVALIDAS",
+                f"{donde}: hacen falta al menos {MIN_RESPUESTAS_DISTINTAS} respuestas distintas "
+                "(añade «distractores»)",
+            )
+        return contenido.Pregunta(
+            tipo=tipo,
+            enunciado=enunciado,
+            html=html,
+            retro=retro,
+            retro_html=retro_html,
+            parejas=parejas,
+            distractores=distractores,
+        )
     # numerica
     valor_num = valor.get("valor")
     if (
@@ -431,8 +570,76 @@ def _validar_pregunta(
     )
 
 
+def _respuesta_plana(valor: Any, donde: str) -> str:
+    """Una respuesta de emparejamiento: texto plano, que el aula muestra en un desplegable."""
+    if not isinstance(valor, str) or not valor.strip():
+        raise ErrorContenido("PAREJAS_INVALIDAS", f"{donde}: la respuesta debe ser texto no vacío")
+    limpio = valor.strip()
+    if len(limpio) > MAX_RESPUESTA:
+        raise ErrorContenido(
+            "PAREJAS_INVALIDAS", f"{donde}: la respuesta pasa de {MAX_RESPUESTA} caracteres"
+        )
+    if re.search(r"[<>]", limpio) or filtro.CONTROL.search(limpio):
+        raise ErrorContenido(
+            "PAREJAS_INVALIDAS", f"{donde}: la respuesta es texto plano, sin HTML ni símbolos < >"
+        )
+    return limpio
+
+
+def _validar_parejas(
+    valor: Any,
+    donde: str,
+    ctx: Contexto,
+    externos: list[str],
+    incrustados: list[str],
+    imagenes: _Imagenes,
+) -> tuple[contenido.Pareja, ...]:
+    if not isinstance(valor, list) or not MIN_PAREJAS <= len(valor) <= MAX_PAREJAS:
+        raise ErrorContenido(
+            "PAREJAS_INVALIDAS",
+            f"{donde}: «parejas» debe ser una lista de {MIN_PAREJAS} a {MAX_PAREJAS}",
+        )
+    parejas: list[contenido.Pareja] = []
+    for numero, pareja in enumerate(valor, 1):
+        donde_pareja = f"{donde}, pareja {numero}"
+        if not isinstance(pareja, dict):
+            raise ErrorContenido("PAREJAS_INVALIDAS", f"{donde_pareja}: debe ser un mapa")
+        for campo in pareja:
+            if campo not in _CAMPOS_PAREJA:
+                raise ErrorContenido(
+                    "CAMPO_DESCONOCIDO", f"{donde_pareja}: campo «{campo}» no permitido"
+                )
+        pregunta = pareja.get("pregunta")
+        if not isinstance(pregunta, str) or not pregunta.strip() or len(pregunta) > MAX_ENUNCIADO:
+            raise ErrorContenido("PAREJAS_INVALIDAS", f"{donde_pareja}: falta «pregunta»")
+        parejas.append(
+            contenido.Pareja(
+                pregunta=pregunta,
+                html=_html_de_campo(ctx, pregunta, donde_pareja, externos, incrustados, imagenes),
+                respuesta=_respuesta_plana(pareja.get("respuesta"), donde_pareja),
+            )
+        )
+    return tuple(parejas)
+
+
+def _validar_distractores(valor: Any, donde: str) -> tuple[str, ...]:
+    if valor is None:
+        return ()
+    if not isinstance(valor, list) or len(valor) > MAX_DISTRACTORES:
+        raise ErrorContenido(
+            "PAREJAS_INVALIDAS",
+            f"{donde}: «distractores» debe ser una lista de hasta {MAX_DISTRACTORES} textos",
+        )
+    return tuple(_respuesta_plana(d, f"{donde}, distractor {n}") for n, d in enumerate(valor, 1))
+
+
 def _validar_opciones(
-    valor: Any, donde: str, ctx: Contexto, externos: list[str], incrustados: list[str]
+    valor: Any,
+    donde: str,
+    ctx: Contexto,
+    externos: list[str],
+    incrustados: list[str],
+    imagenes: _Imagenes,
 ) -> tuple[contenido.Opcion, ...]:
     if not isinstance(valor, list) or not 2 <= len(valor) <= 10:
         raise ErrorContenido(
@@ -460,11 +667,11 @@ def _validar_opciones(
         opciones.append(
             contenido.Opcion(
                 texto=texto,
-                html=_html_de_campo(ctx, texto, donde_opcion, externos, incrustados),
+                html=_html_de_campo(ctx, texto, donde_opcion, externos, incrustados, imagenes),
                 correcta=bool(correcta),
                 retro=retro,
                 retro_html=(
-                    _html_de_campo(ctx, retro, donde_opcion, externos, incrustados)
+                    _html_de_campo(ctx, retro, donde_opcion, externos, incrustados, imagenes)
                     if retro is not None
                     else None
                 ),
@@ -485,20 +692,33 @@ def _texto_opcional(valor: Any, donde: str, campo: str) -> str | None:
     return valor
 
 
+class _Imagenes:
+    """Las imágenes de las preguntas, sin repetir, y los bytes que ocuparán en el XML."""
+
+    def __init__(self) -> None:
+        self.por_nombre: dict[str, contenido.Imagen] = {}
+        self.bytes_usados = 0
+
+
 def _html_de_campo(
-    ctx: Contexto, texto: str, donde: str, externos: list[str], incrustados: list[str]
+    ctx: Contexto,
+    texto: str,
+    donde: str,
+    externos: list[str],
+    incrustados: list[str],
+    imagenes: _Imagenes,
 ) -> str:
-    """Renderiza un campo Markdown de una pregunta y lo pasa por el filtro."""
+    """Renderiza un campo Markdown de una pregunta y lo pasa por el filtro.
+
+    Las imágenes locales (con texto alternativo) se sustituyen por ``tiza-imagen:<nombre>``;
+    cualquier otro fichero local es un error.
+    """
     try:
         analisis = filtro.analizar(ctx.render(texto))
     except filtro.HtmlPeligroso as exc:
         raise ErrorContenido("HTML_PELIGROSO", f"{donde}: {exc.detalle}") from None
     if analisis.locales:
-        nombre = Path(unquote(urlsplit(analisis.locales[0]).path)).name
-        detalle = f"«{nombre}»" if nombre else "una imagen o un enlace a fichero"
-        raise ErrorContenido(
-            "RECURSO_EN_PREGUNTA", f"{donde}: no se admiten recursos locales ({detalle})"
-        )
+        _tomar_imagenes(ctx, analisis, donde, imagenes)
     for url in analisis.externos:
         if url not in externos:
             externos.append(url)

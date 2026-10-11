@@ -293,6 +293,18 @@ class TestDetalleReal:
         assert documento.vista_previa is None
         assert detalle.finales == (mensajes.EXCEPCIONES_TEXTO, mensajes.VISIBILIDAD[None])
 
+    @pytest.mark.parametrize(
+        ("imagenes", "linea"),
+        [(1, "1 imagen dentro de las preguntas"), (3, "3 imágenes dentro de las preguntas")],
+    )
+    def test_dice_cuantas_imagenes_llevan_las_preguntas(self, imagenes, linea):
+        detalle = mensajes.detalle_real(_resumen(_doc(imagenes_preguntas=imagenes)))
+        assert linea in detalle.documentos[0].lineas
+
+    def test_sin_imagenes_en_las_preguntas_no_dice_nada(self):
+        lineas = mensajes.detalle_real(_resumen(_doc())).documentos[0].lineas
+        assert not any("dentro de las preguntas" in linea for linea in lineas)
+
     def test_con_solo_fechas_oculta_el_contenido(self):
         cambio = publicacion.CambioFecha(
             "entrega", (2026, 10, 10, 23, 59), (2026, 10, 12, 23, 59), "cambia"

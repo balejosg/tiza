@@ -412,12 +412,19 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   retraso. `limite` es la «Fecha límite»: a partir de ella ya no se admiten
   entregas. Es opcional; sin ella, se admiten entregas con retraso sin fin.
 - Un cuestionario admite además `apertura`, `cierre` y `mezclar_respuestas`, y
-  de 1 a 100 preguntas de cuatro tipos: `opcion_multiple` (de 2 a 10 opciones),
-  `verdadero_falso`, `respuesta_corta` y `numerica`. Cada pregunta puede llevar
-  `retro` (retroalimentación) y vale 1 punto; tiza calcula las puntuaciones.
-  No hay preguntas de ensayo ni de emparejamiento: para respuestas abiertas,
-  usa una tarea. Las preguntas no admiten imágenes ni ficheros locales
-  (`RECURSO_EN_PREGUNTA`); ponlos en la descripción.
+  de 1 a 100 preguntas de cinco tipos: `opcion_multiple` (de 2 a 10 opciones),
+  `verdadero_falso`, `respuesta_corta`, `numerica` y `emparejamiento` (de 2 a 10
+  parejas y `distractores` opcionales; la respuesta es texto plano y hacen falta al
+  menos 3 respuestas distintas). Cada pregunta puede llevar `retro`
+  (retroalimentación) y vale 1 punto (el emparejamiento lo reparte a partes iguales);
+  tiza calcula las puntuaciones. No hay preguntas de ensayo: para respuestas abiertas,
+  usa una tarea.
+- Las preguntas admiten **imágenes locales** (PNG, JPEG, GIF o WebP, hasta 1 MB cada
+  una y 10 MB por cuestionario) en el enunciado, las opciones, las parejas y la
+  retroalimentación, con **texto alternativo obligatorio** (`IMAGEN_SIN_ALT`). tiza las
+  envía dentro de las preguntas y comprueba en el aula que las guardó y las sirve
+  (`VERIFICACION_IMAGENES`). Cualquier otro fichero local da `RECURSO_EN_PREGUNTA`.
+  Mira [`ejemplos/cuestionario.md`](ejemplos/cuestionario.md).
 - Cuando un alumno empieza un intento, tiza ya no cambia ese cuestionario
   (`CUESTIONARIO_CON_INTENTOS`): revisa bien las respuestas correctas antes de
   publicarlo en el curso real y, para corregirlo después, crea otro con un

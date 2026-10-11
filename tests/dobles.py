@@ -98,6 +98,7 @@ class MoodleFalso:
         secciones_por_curso=None,
         sin_finalizacion=False,
         motor_formulas=True,
+        imagenes_servidas=True,
     ):
         self.base_url = "https://aula.example.org/centro"
         self.secciones = (
@@ -122,6 +123,8 @@ class MoodleFalso:
         self.cmid_nuevo = cmid_nuevo
         self.pluginfiles_ok = pluginfiles_ok
         self.motor_formulas = motor_formulas
+        self.imagenes_servidas = imagenes_servidas
+        self.imagenes_esperadas: dict[int, int] = {}
         self.llamadas: list[tuple] = []
         self.subidas: list[tuple[str, bytes]] = []
         # Formulario de cada módulo: como python-moodle, cada payload se fusiona
@@ -234,6 +237,11 @@ class MoodleFalso:
             },
         }
 
+    def imagenes_de_pregunta(self, cmid, pregunta_id):
+        self.llamadas.append(("imagenes_de_pregunta", cmid, pregunta_id))
+        encontradas = self.imagenes_esperadas.get(pregunta_id, 0)
+        return encontradas, (encontradas if self.imagenes_servidas else 0)
+
     def motor_de_formulas(self, curso_id):
         self.llamadas.append(("motor_de_formulas", curso_id))
         return self.motor_formulas
@@ -285,6 +293,12 @@ class MoodleFalso:
         for pregunta in ET.fromstring(xml).findall("question"):
             self._siguiente_pregunta += 1
             banco[self._siguiente_pregunta] = pregunta.findtext("name/text") or ""
+            # Lo que la vista previa de la pregunta enseña: enunciado, opciones y parejas.
+            self.imagenes_esperadas[self._siguiente_pregunta] = (
+                len(pregunta.findall("questiontext/file"))
+                + len(pregunta.findall("answer/file"))
+                + len(pregunta.findall("subquestion/file"))
+            )
             nuevas.append(self._siguiente_pregunta)
         return nuevas
 

@@ -1083,6 +1083,26 @@ def test_lecturas_del_aula_con_plazo_y_sin_descargar_ficheros():
     assert sesion.ultima.cerrada is True
 
 
+def test_imagenes_de_pregunta_cuenta_las_servidas_con_plazo():
+    class Sesion(_SesionQueAnota):
+        def get(self, url, **kwargs):
+            self.llamadas.append((url, kwargs))
+            if "preview.php" in url:
+                return _RespuestaQueSeCierra(
+                    '<div class="que"><img src="/pluginfile.php/5/question/a.png">'
+                    '<img src="/pluginfile.php/5/question/b.png"><img src="/theme/icono.png"></div>'
+                )
+            respuesta = _RespuestaQueSeCierra("")
+            respuesta.status_code = 404 if url.endswith("b.png") else 200
+            return respuesta
+
+    sesion = Sesion("")
+    moodle = publicar.Moodle("https://aula", sesion, "c", pausa=0)
+    assert moodle.imagenes_de_pregunta(7, 99) == (2, 1)
+    assert all(kwargs.get("timeout") == publicar.TIEMPO_ESPERA for _u, kwargs in sesion.llamadas)
+    assert "preview.php" in sesion.llamadas[0][0]
+
+
 def test_motor_de_formulas_es_una_regla_estructural_con_plazo():
     con = publicar.Moodle(
         "https://aula",
@@ -1628,6 +1648,60 @@ class TestPublicarCuestionario:
             )
         assert exc.value.codigo == "ERROR_IMPORTACION"
         assert exc.value.cmid == 100  # que la autoprueba lo limpie
+
+    def _con_imagen(self, tmp_path):
+        (tmp_path / "img").mkdir()
+        (tmp_path / "img" / "f.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 30)
+        return documento_cuestionario(
+            tmp_path,
+            preguntas=(
+                "  - tipo: verdadero_falso\n"
+                "    enunciado: 'Mira ![El circuito](img/f.png)'\n"
+                "    respuesta: verdadero\n"
+                "    retro: 'Retro ![El circuito](img/f.png)'\n"
+                "  - tipo: verdadero_falso\n"
+                "    enunciado: Sin imagen.\n"
+                "    respuesta: falso\n"
+            ),
+        )
+
+    def test_las_imagenes_de_las_preguntas_se_verifican_en_el_aula(self, tmp_path):
+        moodle = MoodleFalso()
+        publicar.publicar_documento(
+            moodle, 1234, moodle.secciones, self._con_imagen(tmp_path), visible=False
+        )
+        consultas = [llamada for llamada in moodle.llamadas if llamada[0] == "imagenes_de_pregunta"]
+        assert len(consultas) == 1  # solo la pregunta que lleva imagen
+        [xml] = moodle.importados
+        assert b"@@PLUGINFILE@@/img-" in xml
+
+    def test_sin_imagenes_no_se_pregunta_por_ellas(self, tmp_path):
+        moodle = MoodleFalso()
+        publicar.publicar_documento(
+            moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=False
+        )
+        assert not [ll for ll in moodle.llamadas if ll[0] == "imagenes_de_pregunta"]
+
+    def test_si_el_aula_no_sirve_la_imagen_se_borra_el_cuestionario(self, tmp_path):
+        moodle = MoodleFalso(imagenes_servidas=False)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle, 1234, moodle.secciones, self._con_imagen(tmp_path), visible=False
+            )
+        assert exc.value.codigo == "VERIFICACION_IMAGENES"
+        assert moodle.secciones[0]["modulos"] == []
+
+    def test_si_el_aula_no_guarda_todas_las_imagenes_tambien_falla(self, tmp_path):
+        class MoodleQuePierde(MoodleFalso):
+            def imagenes_de_pregunta(self, cmid, pregunta_id):
+                return 0, 0
+
+        moodle = MoodleQuePierde()
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle, 1234, moodle.secciones, self._con_imagen(tmp_path), visible=False
+            )
+        assert exc.value.codigo == "VERIFICACION_IMAGENES"
 
     def test_si_la_verificacion_desordena_se_borra_el_cuestionario(self, tmp_path):
         class MoodleQueDesordena(MoodleFalso):

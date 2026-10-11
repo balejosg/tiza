@@ -276,6 +276,9 @@ def _documento_real(doc: DocumentoResumen, solo: bool) -> DocumentoReal:
             lineas.append(f"actividad H5P: {texto_seguro(doc.h5p)}")
         if doc.h5p_libreria:
             lineas.append(f"paquete H5P: {texto_seguro(doc.h5p_libreria)}")
+        if doc.imagenes_preguntas:
+            plural = "imagen" if doc.imagenes_preguntas == 1 else "imágenes"
+            lineas.append(f"{doc.imagenes_preguntas} {plural} dentro de las preguntas")
         for libreria in doc.h5p_descartadas:
             lineas.append(f"no se sube la librería {texto_seguro(libreria)}")
         for url in doc.enlaces_externos:
