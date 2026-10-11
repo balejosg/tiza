@@ -220,6 +220,31 @@ class TestBuzon:
             True,
         )
 
+    def test_ordenar_envia_la_peticion_de_ordenar_sin_visibilidad(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        enviadas: list = []
+
+        def enviar(dir_tiza, peticion, espera, **_opciones):
+            enviadas.append(peticion)
+            return informe.crear("ordenar", "ok", [], [], [], "real", 5678)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        documento = agente.ordenar(tmp_path, ["a.md", "b.md"], "real")
+        assert documento["comando"] == "ordenar"
+        [peticion] = enviadas
+        buzon.validar_peticion(peticion)
+        assert (peticion["comando"], peticion["ficheros"], peticion["entorno"]) == (
+            "ordenar",
+            ["a.md", "b.md"],
+            "real",
+        )
+        assert (peticion["visible"], peticion["solo_fechas"]) == (None, False)
+
+    def test_ordenar_sin_sesion(self, tmp_path):
+        documento = agente.ordenar(tmp_path, ["a.md"], "pruebas")
+        assert documento["errores"] == ["SIN_SESION"]
+        informe.validar(documento)
+
     def test_cancelar_retira_la_peticion(self, tmp_path):
         dir_tiza = tmp_path / ".tiza"
         buzon.crear_sesion(dir_tiza, datetime.now(UTC) + timedelta(minutes=5))

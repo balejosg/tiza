@@ -107,6 +107,19 @@ def _parser() -> argparse.ArgumentParser:
     )
     publicar_parser.add_argument("--debug", action="store_true")
 
+    ordenar = sub.add_parser(
+        "ordenar",
+        help="deja las actividades de esos ficheros en ese orden dentro de su sección (autenticado)",
+        description="Las actividades nombradas se reparten los huecos que ya ocupaban; lo que no "
+        "se nombra no se mueve. Para cambiar una actividad de sección, edita «seccion:» y "
+        "publica.",
+    )
+    ordenar.add_argument("ficheros", nargs="+")
+    ordenar.add_argument(
+        "--en", choices=("pruebas", "real"), required=True, help="curso de destino"
+    )
+    ordenar.add_argument("--debug", action="store_true")
+
     autoprueba = sub.add_parser(
         "autoprueba", help="prueba de contrato en el curso de pruebas (autenticado)"
     )
@@ -200,6 +213,8 @@ def _despachar(args) -> int:
         return _estructura(args)
     if args.comando == "publicar":
         return _publicar(args)
+    if args.comando == "ordenar":
+        return _ordenar(args)
     if args.comando == "autoprueba":
         return _autoprueba(args)
     if args.comando == "sesion":
@@ -865,6 +880,81 @@ def _publicar(args) -> int:
             entorno=args.en,
         )
     return _publicar_directa(args)
+
+
+def _ordenar_directa(args) -> int:
+    comando = "ordenar"
+    entorno = args.en
+    cfg, salida = _configuracion_inicial(args, comando, entorno, sin_sesion=True)
+    if cfg is None:
+        return salida
+    cursos = list(cfg.reales) if entorno == "real" else [cfg.cursos["pruebas"]]
+    unico = cursos[0] if len(cursos) == 1 else None
+    base = Path.cwd().resolve()
+    documentos = []
+    for nombre in args.ficheros:
+        try:
+            documentos.append(contenido.cargar(nombre, raiz=base))
+        except ErrorContenido as exc:
+            return _fallo(
+                comando,
+                exc.codigo,
+                mensajes.texto_seguro(f"{Path(nombre).name}: {exc.detalle}", 300),
+                entorno=entorno,
+                curso=unico,
+                exc=exc,
+                debug=args.debug,
+            )
+    # En pruebas se confirma el destino; en real lo confirma cada curso, con el orden a la vista.
+    if entorno == "pruebas" and not terminal.confirmar_destino(entorno, cursos[0]):
+        return _abortado(comando, entorno, unico)
+    _mostrar_servidor(cfg)
+    password = terminal.pedir_password()
+    try:
+        moodle = publicar.autenticar(cfg.url, cfg.usuario, password)
+    except ErrorPublicacion as exc:
+        return _fallo(
+            comando,
+            exc.codigo,
+            exc.detalle,
+            entorno=entorno,
+            curso=unico,
+            exc=exc,
+            debug=args.debug,
+        )
+    presencia = terminal.PresenciaTerminal()
+    nombres = (
+        publicacion.nombres_de_cursos(moodle, presencia, args.debug) if entorno == "real" else {}
+    )
+    documento = publicacion.ordenar_en_cursos(
+        moodle,
+        cfg,
+        documentos,
+        base,
+        presencia,
+        entorno=entorno,
+        nombres=nombres,
+        debug=args.debug,
+    )
+    _escribir(documento)
+    return 0 if documento["resultado"] == "ok" else 1
+
+
+def _ordenar(args) -> int:
+    dir_tiza = _dir_tiza()
+    if buzon.sesion_activa(dir_tiza):
+        return _responder_buzon(
+            "ordenar", agente.peticion_ordenar(args.ficheros, args.en), dir_tiza, debug=args.debug
+        )
+    version = buzon.sesion_incompatible(dir_tiza)
+    if version is not None:
+        return _fallo(
+            "ordenar",
+            "SESION_INCOMPATIBLE",
+            f"la sesión abierta usa tiza {version}; esta terminal, tiza {__version__}",
+            entorno=args.en,
+        )
+    return _ordenar_directa(args)
 
 
 # --------------------------------------------------------------------------- #

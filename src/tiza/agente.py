@@ -29,7 +29,9 @@ __all__ = [
     "estado_sesion",
     "estructura",
     "formato_documento",
+    "ordenar",
     "peticion_estructura",
+    "peticion_ordenar",
     "peticion_publicar",
     "pista_worktree",
     "publicar",
@@ -284,6 +286,22 @@ def peticion_publicar(
     }
 
 
+def peticion_ordenar(ficheros: Sequence[str], entorno: str) -> dict:
+    """Petición de ordenar para el buzón: deja las actividades de esos ficheros en ese orden.
+
+    No admite visibilidad ni fechas: ordenar solo cambia el orden dentro de cada sección.
+    """
+    return {
+        "version": buzon.VERSION_PROTOCOLO,
+        "id": uuid.uuid4().hex,
+        "comando": "ordenar",
+        "ficheros": list(ficheros),
+        "entorno": entorno,
+        "visible": None,
+        "solo_fechas": False,
+    }
+
+
 def peticion_estructura() -> dict:
     return {
         "version": buzon.VERSION_PROTOCOLO,
@@ -309,6 +327,18 @@ def publicar(
     """Pide a la sesión del docente que publique; en real, el docente confirma."""
     peticion = peticion_publicar(ficheros, entorno, visible, solo_fechas=solo_fechas)
     return _enviar(carpeta, peticion, espera, cancelar)
+
+
+def ordenar(
+    carpeta: str | Path,
+    ficheros: Sequence[str],
+    entorno: str,
+    *,
+    espera: float = buzon.ESPERA_POR_DEFECTO,
+    cancelar: threading.Event | None = None,
+) -> dict:
+    """Pide a la sesión del docente que ordene las actividades de ``ficheros``; en real, confirma."""
+    return _enviar(carpeta, peticion_ordenar(ficheros, entorno), espera, cancelar)
 
 
 def estructura(

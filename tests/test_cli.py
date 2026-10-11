@@ -1756,3 +1756,105 @@ class TestElegirCursosCli:
         )
         assert codigo == 0
         assert config.cargar_carpeta(tmp_path)["cursos"] == {"pruebas": 1, "real": [102, 101]}
+
+
+class TestOrdenarEnCli:
+    def dos_paginas(self, tmp_path):
+        for nombre in ("Uno", "Dos"):
+            (tmp_path / f"{nombre.lower()}.md").write_text(
+                f"---\ntipo: pagina\nnombre: {nombre}\nseccion: 3\n---\n\nTexto\n", encoding="utf-8"
+            )
+
+    def aula(self):
+        return MoodleFalso(
+            secciones=[
+                {
+                    "numero": 3,
+                    "nombre": "Tema 3",
+                    "id": 30,
+                    "modulos": [
+                        {"cmid": 1, "nombre": "Dos", "tipo": "pagina"},
+                        {"cmid": 2, "nombre": "Uno", "tipo": "pagina"},
+                    ],
+                }
+            ]
+        )
+
+    def test_sin_tty_ni_sesion_pide_empezar_y_no_pide_password(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        self.dos_paginas(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
+        assert cli.main(["ordenar", "uno.md", "dos.md", "--en", "pruebas"]) == 1
+        assert leer_informe(tmp_path)["errores"] == ["SIN_SESION"]
+
+    def test_con_sesion_usa_el_buzon_con_el_comando_ordenar(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        self.dos_paginas(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
+        capturado: dict = {}
+
+        def enviar(dir_tiza, peticion, *a, **k):
+            capturado["peticion"] = peticion
+            return informe_ok(comando="ordenar")
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        assert cli.main(["ordenar", "uno.md", "dos.md", "--en", "real"]) == 0
+        enviada = capturado["peticion"]
+        assert (enviada["comando"], enviada["entorno"], enviada["ficheros"]) == (
+            "ordenar",
+            "real",
+            ["uno.md", "dos.md"],
+        )
+        assert enviada["visible"] is None and enviada["solo_fechas"] is False
+        buzon.validar_peticion(enviada)
+
+    def test_sesion_incompatible_lo_explica(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        self.dos_paginas(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: False)
+        monkeypatch.setattr(buzon, "sesion_incompatible", lambda *a, **k: "9.0.0")
+        assert cli.main(["ordenar", "uno.md", "--en", "pruebas"]) == 1
+        assert "SESION_INCOMPATIBLE" in leer_informe(tmp_path)["errores"]
+
+    def test_directo_en_pruebas_ordena(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        configurar(tmp_path, monkeypatch)
+        self.dos_paginas(tmp_path)
+        simular_terminal(monkeypatch)
+        responder(monkeypatch, ["s"])  # destino
+        moodle = self.aula()
+        monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: moodle)
+        assert cli.main(["ordenar", "uno.md", "dos.md", "--en", "pruebas"]) == 0
+        informe_ = leer_informe(tmp_path)
+        assert informe_["comando"] == "ordenar"
+        assert [f["accion"] for f in informe_["ficheros"]] == ["ordenada", "ordenada"]
+        assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [2, 1]
+
+    def test_directo_en_real_ensena_el_orden_y_si_se_dice_que_no_no_mueve(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        configurar(tmp_path, monkeypatch)
+        self.dos_paginas(tmp_path)
+        salida = simular_terminal(monkeypatch)
+        responder(monkeypatch, ["n"])  # el resumen de orden
+        moodle = self.aula()
+        monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: moodle)
+        assert cli.main(["ordenar", "uno.md", "dos.md", "--en", "real"]) == 1
+        assert leer_informe(tmp_path)["errores"] == ["ABORTADO"]
+        assert "Se va a reordenar en el curso REAL" in salida.contenido()
+        assert not any(ll[0] == "mover" for ll in moodle.llamadas)
+
+    def test_directo_con_un_fichero_que_no_vale_falla_antes_de_pedir_nada(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        configurar(tmp_path, monkeypatch)
+        simular_terminal(monkeypatch)
+        monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
+        assert cli.main(["ordenar", "no-existe.md", "--en", "pruebas"]) == 1
+        assert leer_informe(tmp_path)["comando"] == "ordenar"
