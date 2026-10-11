@@ -6,10 +6,16 @@ en español.
 
 ## Reglas que no se rompen
 
-- **Ningún agente se conecta al aula virtual ni maneja la contraseña**: nada de
+- **Ningún agente se conecta a un aula virtual real ni maneja su contraseña**: nada de
   `curl`, `fetch`, navegador ni MCP hacia el servidor del aula; no leas perfiles
   de navegador ni carpetas de descargas (salvo la carpeta de la asignatura, si
-  está allí); no pidas ni manejes la contraseña.
+  está allí); no pidas ni manejes la contraseña. **Única excepción, para desarrollar
+  tiza:** el agente que trabaja en este repositorio puede lanzar las espigas y pruebas
+  contra el Moodle de pruebas propio del desarrollador (el CT de `192.168.1.43`, solo
+  su curso de pruebas) con el lanzador `en_moodle_pruebas.py`, que lee las credenciales
+  de pruebas en su propio proceso; nunca las leas ni las imprimas. En el aula real
+  (cualquier otro servidor, y el curso real de ese mismo) no entra ningún agente. Esta
+  excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar`, `tiza actualizar` y `tiza-ventana` son del docente**: no los ejecutes. El agente puede usar
   `tiza comprobar` (offline) y, mientras el docente mantenga abierta
