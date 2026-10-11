@@ -18,7 +18,7 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, NamedTuple, Protocol
 from urllib.parse import urljoin
 
 import requests
@@ -52,7 +52,13 @@ __all__ = [
     "aplicar_itinerario",
     "fechas_esperadas",
     "es_disponibilidad_de_tiza",
+    "Movimiento",
     "modulo_de",
+    "modulos_de",
+    "modulos_fuera",
+    "ordenar_documentos",
+    "origen_de_movimiento",
+    "plan_de_orden",
     "payload_disponibilidad",
     "payload_finalizacion",
     "preparar_itinerario",
@@ -218,6 +224,8 @@ class AulaVirtual(Protocol):
     def comprobar_pluginfile(self, url: str) -> bool: ...
 
     def borrar(self, curso_id: int, cmid: int) -> None: ...
+
+    def mover(self, curso_id: int, cmid: int, seccion_id: int, antes_de: int | None) -> None: ...
 
     def crear_seccion(self, curso_id: int, nombre: str) -> int: ...
 
@@ -500,6 +508,26 @@ class Moodle:
             curso_id,
             "cm_delete",
             [cmid],
+        )
+
+    def mover(self, curso_id: int, cmid: int, seccion_id: int, antes_de: int | None) -> None:
+        """Mueve un módulo a ``seccion_id``: antes de ``antes_de`` o, sin él, al final.
+
+        La misma llamada AJAX que la página del curso (``cm_move``); conserva cmid,
+        visibilidad, restricciones e intentos.
+        """
+        self._esperar()
+        self._reducir(
+            "ERROR_MOVER",
+            _actualizar_curso,
+            self.sesion,
+            self.base_url,
+            self.sesskey,
+            curso_id,
+            "cm_move",
+            [cmid],
+            seccion_destino=seccion_id,
+            antes_de=antes_de,
         )
 
     def crear_seccion(self, curso_id: int, nombre: str) -> int:
@@ -937,21 +965,31 @@ def _renombrar_seccion(
 
 
 def _actualizar_curso(
-    sesion, base_url: str, sesskey: str, curso_id: int, accion: str, ids: list[int]
+    sesion,
+    base_url: str,
+    sesskey: str,
+    curso_id: int,
+    accion: str,
+    ids: list[int],
+    *,
+    seccion_destino: int | None = None,
+    antes_de: int | None = None,
 ) -> None:
-    """Acción de edición del curso (la misma llamada AJAX que usa su página)."""
+    """Acción de edición del curso (la misma llamada AJAX que usa su página).
+
+    ``seccion_destino`` y ``antes_de`` solo los usa ``cm_move``.
+    """
     url = f"{base_url}/lib/ajax/service.php?sesskey={sesskey}&info=core_courseformat_update_course"
-    payload = [
-        {
-            "index": 0,
-            "methodname": "core_courseformat_update_course",
-            "args": {
-                "action": accion,
-                "courseid": str(curso_id),
-                "ids": [str(item) for item in ids],
-            },
-        }
-    ]
+    args = {
+        "action": accion,
+        "courseid": str(curso_id),
+        "ids": [str(item) for item in ids],
+    }
+    if seccion_destino is not None:
+        args["targetsectionid"] = str(seccion_destino)
+    if antes_de is not None:
+        args["targetcmid"] = str(antes_de)
+    payload = [{"index": 0, "methodname": "core_courseformat_update_course", "args": args}]
     respuesta = sesion.post(url, json=payload, timeout=TIEMPO_ESPERA)
     respuesta.raise_for_status()
     datos = respuesta.json()
@@ -1165,8 +1203,18 @@ def _publicar_congelado(
     if seccion is None:
         raise ErrorPublicacion("SECCION_AUSENTE", doc.ruta.name)
     existente = modulo_de(secciones, doc)
+    movido = False
+    if existente is None:
+        # Sin actividad en su sección, la de otra sección es la misma: cambió ``seccion:``.
+        fuera = modulos_fuera(secciones, doc)
+        if len(fuera) > 1:
+            raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
+        if fuera:
+            existente, movido = fuera[0][1], True
     # Antes de escribir nada: una restricción ajena o una finalización bloqueada paran todo.
     envio = preparar_itinerario(moodle, doc, existente, dependencias)
+    if movido and existente is not None:
+        moodle.mover(curso_id, existente["cmid"], seccion["id"], None)
 
     # Sin indicación: lo nuevo nace oculto y lo que ya existe conserva su visibilidad.
     if visible is None and existente is None:
@@ -1203,7 +1251,7 @@ def _publicar_congelado(
         nombre=original.ruta.name,
         tipo=doc.tipo,
         cmid=cmid,
-        accion=accion,
+        accion="movida" if movido else accion,
         oculto=_oculto(visible, info),
         url=url_modulo(moodle.base_url, doc.tipo, cmid),
         seccion=seccion["nombre"],
@@ -1444,26 +1492,68 @@ def _verificar_itinerario(doc: Documento, leido: dict, envio: EnvioItinerario) -
         raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
 
 
+def modulos_de(secciones: list[dict], doc: Documento) -> list[dict]:
+    """Los módulos de la sección de ``doc`` con su tipo y su nombre (casi siempre uno o ninguno)."""
+    try:
+        seccion = buscar_seccion(secciones, doc.seccion)
+    except (TypeError, ValueError):
+        return []
+    modulos = seccion.get("modulos") if seccion is not None else None
+    if not isinstance(modulos, list):
+        return []
+    return [
+        modulo
+        for modulo in modulos
+        if isinstance(modulo, dict)
+        and modulo.get("tipo") == doc.tipo
+        and modulo.get("nombre") == doc.nombre
+    ]
+
+
 def modulo_de(secciones: list[dict], doc: Documento) -> dict | None:
     """El módulo del aula que actualizaría ``doc``: misma sección, tipo y nombre.
 
     Mismo criterio que usa ``publicar_documento``; ``None`` si no existe (o si
     la estructura no permite comprobarlo).
     """
+    encontrados = modulos_de(secciones, doc)
+    return encontrados[0] if encontrados else None
+
+
+def modulos_fuera(secciones: list[dict], doc: Documento) -> list[tuple[dict, dict]]:
+    """(sección, módulo) con el tipo y nombre de ``doc`` en las demás secciones del curso.
+
+    Con ``doc`` publicado en otra sección, ahí es donde habría que buscarlo para moverlo.
+    """
     try:
-        seccion = buscar_seccion(secciones, doc.seccion)
+        propia = buscar_seccion(secciones, doc.seccion)
     except (TypeError, ValueError):
+        propia = None
+    salida: list[tuple[dict, dict]] = []
+    for seccion in secciones:
+        if seccion is propia or not isinstance(seccion.get("modulos"), list):
+            continue
+        salida += [
+            (seccion, modulo)
+            for modulo in seccion["modulos"]
+            if isinstance(modulo, dict)
+            and modulo.get("tipo") == doc.tipo
+            and modulo.get("nombre") == doc.nombre
+        ]
+    return salida
+
+
+def origen_de_movimiento(secciones: list[dict], doc: Documento) -> str | None:
+    """Nombre de la sección de la que se movería ``doc`` al publicarlo, o None si no se mueve.
+
+    Solo se mueve si no existe en su sección y hay exactamente uno en otra; solo lectura.
+    """
+    if modulos_de(secciones, doc):
         return None
-    if seccion is None:
+    fuera = modulos_fuera(secciones, doc)
+    if len(fuera) != 1:
         return None
-    modulos = seccion.get("modulos")
-    if not isinstance(modulos, list):
-        return None
-    for modulo in modulos:
-        if isinstance(modulo, dict) and modulo.get("tipo") == doc.tipo:
-            if modulo.get("nombre") == doc.nombre:
-                return modulo
-    return None
+    return str(fuera[0][0].get("nombre") or "")
 
 
 def ya_existe(secciones: list[dict], doc: Documento) -> bool | None:
@@ -1535,6 +1625,124 @@ def publicar_fechas(moodle: AulaVirtual, secciones: list[dict], doc: Documento) 
         # El contenido no cambia: el hash es el que el docente ya vio al confirmar.
         hash=doc.hash_cargado or None,
     )
+
+
+class Movimiento(NamedTuple):
+    """Poner ``cmid`` en ``seccion_id`` antes de ``antes_de`` (o al final si es ``None``)."""
+
+    cmid: int
+    seccion_id: int
+    antes_de: int | None
+
+
+def orden_final(actual: list[int], deseado: list[int]) -> list[int]:
+    """La sección tras repartir los huecos que ocupaban los nombrados, en el orden de ``deseado``."""
+    nombrados = set(deseado)
+    huecos = [indice for indice, cmid in enumerate(actual) if cmid in nombrados]
+    final = list(actual)
+    for indice, cmid in zip(huecos, deseado, strict=True):
+        final[indice] = cmid
+    return final
+
+
+def plan_de_orden(secciones: list[dict], deseados: list[tuple[int, list[int]]]) -> list[Movimiento]:
+    """Los movimientos que dejan, en cada sección, los módulos nombrados en el orden pedido.
+
+    Pura. ``deseados``: por sección, su id y los cmids en el orden deseado (todos de esa
+    sección, sin repetir). Lo no nombrado no se mueve nunca: los nombrados se reparten los
+    huecos que ya ocupaban. Se recorre el orden final de atrás hacia delante y solo se mueve
+    el módulo que no está ya justo delante del que le sigue; ya ordenado, devuelve ``[]``.
+    """
+    movimientos: list[Movimiento] = []
+    for seccion_id, cmids in deseados:
+        seccion = next(s for s in secciones if s["id"] == seccion_id)
+        actual = [modulo["cmid"] for modulo in seccion["modulos"]]
+        final = orden_final(actual, cmids)
+        nombrados = set(cmids)
+        for indice in range(len(final) - 1, -1, -1):
+            cmid = final[indice]
+            if cmid not in nombrados:
+                continue
+            siguiente = final[indice + 1] if indice + 1 < len(final) else None
+            posicion = actual.index(cmid)
+            delante = actual[posicion + 1] if posicion + 1 < len(actual) else None
+            if delante == siguiente:
+                continue
+            actual.pop(posicion)
+            actual.insert(len(actual) if siguiente is None else actual.index(siguiente), cmid)
+            movimientos.append(Movimiento(cmid, seccion_id, siguiente))
+    return movimientos
+
+
+def resolver_orden(
+    secciones: list[dict], docs: list[Documento]
+) -> list[tuple[dict, list[tuple[Documento, dict]]]]:
+    """Cada sección con sus documentos en el orden pedido y el módulo del aula de cada uno.
+
+    ``FICHERO_REPETIDO``, ``ACTIVIDAD_AUSENTE`` y ``ACTIVIDAD_AMBIGUA`` se dan antes de mover nada.
+    """
+    vistos: set[Path] = set()
+    cmids: set[int] = set()
+    grupos: dict[int, tuple[dict, list[tuple[Documento, dict]]]] = {}
+    for doc in docs:
+        ruta = doc.ruta.resolve()
+        if ruta in vistos:
+            raise ErrorPublicacion("FICHERO_REPETIDO", doc.ruta.name)
+        vistos.add(ruta)
+        encontrados = modulos_de(secciones, doc)
+        if not encontrados:
+            raise ErrorPublicacion("ACTIVIDAD_AUSENTE", doc.ruta.name)
+        modulo = encontrados[0]
+        # Dos ficheros que apuntan a la misma actividad: no hay orden entre ellos.
+        if len(encontrados) > 1 or modulo["cmid"] in cmids:
+            raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
+        cmids.add(modulo["cmid"])
+        seccion = buscar_seccion(secciones, doc.seccion)
+        assert seccion is not None  # ``modulos_de`` la encontró
+        grupos.setdefault(seccion["id"], (seccion, []))[1].append((doc, modulo))
+    return list(grupos.values())
+
+
+def ordenar_documentos(
+    moodle: AulaVirtual, curso_id: int, secciones: list[dict], docs: list[Documento]
+) -> list[informe.Fichero]:
+    """Deja las actividades de ``docs`` en el orden dado dentro de su sección y lo comprueba.
+
+    Sin cambios no llama al aula. Si falla a medias no se deshace nada: mover no destruye y
+    repetir converge.
+    """
+    grupos = resolver_orden(secciones, docs)
+    deseados = [(seccion["id"], [modulo["cmid"] for _, modulo in par]) for seccion, par in grupos]
+    movimientos = plan_de_orden(secciones, deseados)
+    if movimientos:
+        esperados = {
+            seccion["id"]: orden_final(
+                [modulo["cmid"] for modulo in seccion["modulos"]],
+                [modulo["cmid"] for _, modulo in par],
+            )
+            for seccion, par in grupos
+        }
+        for movimiento in movimientos:
+            moodle.mover(curso_id, *movimiento)
+        releida = moodle.estructura(curso_id)
+        for seccion_id, esperado in esperados.items():
+            nueva = next((s for s in releida if s["id"] == seccion_id), None)
+            if nueva is None or [m["cmid"] for m in nueva["modulos"]] != esperado:
+                raise ErrorPublicacion("ORDEN_NO_APLICADO")
+    cambiadas = {movimiento.seccion_id for movimiento in movimientos}
+    return [
+        informe.Fichero(
+            nombre=doc.ruta.name,
+            tipo=doc.tipo,
+            cmid=modulo["cmid"],
+            accion="ordenada" if seccion["id"] in cambiadas else "sin_cambios",
+            url=url_modulo(moodle.base_url, doc.tipo, modulo["cmid"]),
+            seccion=seccion["nombre"],
+            hash=hash_documento(doc),
+        )
+        for seccion, par in grupos
+        for doc, modulo in par
+    ]
 
 
 def _verificar_fechas(moodle: AulaVirtual, doc: Documento, cmid: int) -> dict:

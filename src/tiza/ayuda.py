@@ -19,7 +19,7 @@ MENSAJES: dict[str, str] = {
     "SESION_DESACTUALIZADA": "tiza ha cambiado después de abrir la sesión y la sesión se ha cerrado sola para no publicar con el código viejo. Vuelve a abrirla con «tiza empezar».",
     "SIN_RESPUESTA": "La sesión no respondió a tiempo. Mira la terminal de la sesión: puede estar esperando tu confirmación.",
     "RESPUESTA_INVALIDA": "La respuesta de la sesión no es válida. Cierra la sesión con Ctrl+C y vuelve a abrirla con «tiza empezar».",
-    "PETICION_INVALIDA": "La petición no es válida. Usa solo «tiza publicar» y «tiza estructura», con rutas dentro de la carpeta; «--solo-fechas» no admite «--visible» ni «--oculto».",
+    "PETICION_INVALIDA": "La petición no es válida. Usa solo «tiza publicar», «tiza ordenar» y «tiza estructura», con rutas dentro de la carpeta; «--solo-fechas» no admite «--visible» ni «--oculto».",
     "PETICION_RETIRADA": "Confirmaste cuando el agente ya había dejado de esperar. No se ha publicado nada; pide al agente que lo repita.",
     "LIMITE_PUBLICACIONES": "Se ha llegado al máximo de publicaciones en pruebas de esta sesión. Revisa qué está haciendo el agente y abre una sesión nueva.",
     "ABORTADO": "Has respondido que no. No se ha publicado nada.",
@@ -114,6 +114,12 @@ MENSAJES: dict[str, str] = {
     "ERROR_PLUGINFILE": "No se pudo comprobar un fichero subido. Vuelve a intentarlo más tarde.",
     "ERROR_BORRADO": "No se pudo borrar contenido temporal de la autoprueba. Bórralo a mano en el curso de pruebas.",
     "TIPO_DESCONOCIDO": "Tipo de actividad desconocido. Usa pagina, tarea, cuestionario o etiqueta.",
+    # Orden y cambio de sección
+    "ACTIVIDAD_AUSENTE": "Ese fichero aún no está publicado en su sección, así que no se puede ordenar. Publícalo primero; si cambiaste «seccion:», publícalo para que se mueva. No se ha movido nada.",
+    "ACTIVIDAD_AMBIGUA": "Hay más de una actividad con el mismo tipo y nombre (o dos ficheros apuntan a la misma). tiza no adivina cuál es: borra o renombra una en el aula. No se ha tocado nada.",
+    "FICHERO_REPETIDO": "Un fichero aparece dos veces en la lista. Quita el repetido y vuelve a intentarlo.",
+    "ORDEN_NO_APLICADO": "Se pidieron los movimientos, pero al releer el curso el orden no es el pedido. Repite «tiza ordenar»; si sigue igual, revisa el curso a mano.",
+    "ERROR_MOVER": "El aula no movió la actividad. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba». Lo ya movido se queda donde está y repetir converge.",
     # Cuestionarios
     "ERROR_IMPORTACION": "No se pudieron importar las preguntas en el banco del cuestionario. Comprueba que eres profesor del curso y que el aula no ha cambiado; si se repite, pasa «tiza autoprueba».",
     "ERROR_ANADIR_PREGUNTAS": "Las preguntas se importaron, pero no se pudieron añadir al cuestionario. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba».",

@@ -123,6 +123,8 @@ class MoodleFalso:
         self.cmid_nuevo = cmid_nuevo
         self.pluginfiles_ok = pluginfiles_ok
         self.motor_formulas = motor_formulas
+        self.mover_falla = False
+        self.mover_sin_efecto = False
         self.imagenes_servidas = imagenes_servidas
         self.imagenes_esperadas: dict[int, int] = {}
         self.llamadas: list[tuple] = []
@@ -250,6 +252,29 @@ class MoodleFalso:
         self.llamadas.append(("pluginfile", url))
         self.pluginfiles.append(url)
         return self.pluginfiles_ok
+
+    def mover(self, curso_id, cmid, seccion_id, antes_de):
+        """Imita ``cm_move``: antes de ``antes_de`` o al final de la sección; conserva el cmid."""
+        self.llamadas.append(("mover", curso_id, cmid, seccion_id, antes_de))
+        if self.mover_falla:
+            raise ErrorPublicacion("ERROR_MOVER")
+        if self.mover_sin_efecto:  # un aula que responde bien y no cambia nada
+            return
+        secciones = self._de(curso_id)
+        origen = next((s for s in secciones for m in s["modulos"] if m["cmid"] == cmid), None)
+        destino = next((s for s in secciones if s["id"] == seccion_id), None)
+        if origen is None or destino is None:
+            raise ErrorPublicacion("ERROR_MOVER")
+        modulo = next(m for m in origen["modulos"] if m["cmid"] == cmid)
+        origen["modulos"] = [m for m in origen["modulos"] if m["cmid"] != cmid]
+        posicion = len(destino["modulos"])
+        if antes_de is not None:
+            posicion = next(
+                (i for i, m in enumerate(destino["modulos"]) if m["cmid"] == antes_de), None
+            )
+            if posicion is None:
+                raise ErrorPublicacion("ERROR_MOVER")
+        destino["modulos"].insert(posicion, modulo)
 
     def borrar(self, curso_id, cmid):
         self.llamadas.append(("borrar", cmid))

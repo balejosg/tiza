@@ -38,13 +38,14 @@ COMANDOS = {
     "comprobar",
     "estructura",
     "publicar",
+    "ordenar",
     "autoprueba",
     "sesion",
 }
 MAX_CURSOS_REALES = 6  # igual que config.MAX_REALES (este módulo no importa config)
 RESULTADOS = {"ok", "error", "abortado"}
 RESULTADOS_PASO = {"ok", "fallo"}
-ACCIONES = {"creada", "actualizada", "borrada", "verificada"}
+ACCIONES = {"creada", "actualizada", "borrada", "verificada", "movida", "ordenada", "sin_cambios"}
 # El registro de tipos (tipos/) es el dueño de qué tipos existen.
 TIPOS = set(tipos.TIPOS)
 # El registro de los códigos de paso: solo estos salen en un informe. Los del
