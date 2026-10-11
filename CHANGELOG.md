@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.19.1 — 2026-10-11
+
+### Añadido
+- Documentación de lanzamiento: `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`,
+  plantillas de issue y `docs/proteccion-de-datos.md` (para coordinadores TIC y DPD).
+
+### Corregido
+- `primeros-pasos.md` menciona las actividades H5P; la versión de ruff coincide
+  con la del CI.
+
 ## 0.19.0 — 2026-10-11
 
 ### Añadido
