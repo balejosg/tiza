@@ -5,7 +5,7 @@
 # (por ejemplo TIZA_REF=main para la última versión).
 set -eu
 
-REF="${TIZA_REF:-v0.18.0}"
+REF="${TIZA_REF:-v0.19.0}"
 # Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
 # barra) siguen necesitando git.
 case "$REF" in

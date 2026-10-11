@@ -174,7 +174,7 @@ La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
 `~/.agents/skills`). Si prefieres leer antes lo que ejecutas, abre
 `install.sh` o `install.ps1` en este repositorio; son unas pocas líneas.
 
-Los instaladores instalan la versión etiquetada `v0.18.0`; con `TIZA_REF=main`
+Los instaladores instalan la versión etiquetada `v0.19.0`; con `TIZA_REF=main`
 (o con otra etiqueta) antes de ejecutarlos eliges cuál. Para actualizar,
 `tiza actualizar` instala la última versión publicada (o la de `TIZA_REF`, si
 la defines) y reinstala la skill; para ello necesita `git`. Hasta la
@@ -218,11 +218,12 @@ carpeta. La marca de confianza de Codex está en
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |
 | `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json` |
 | `tiza sesion [--minutos 60] [--elegir-cursos]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
+| `tiza ordenar <md>… --en pruebas\|real` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): deja las actividades de esos ficheros en ese orden dentro de su sección, sin mover nada más; en real, el docente confirma el orden curso a curso. Cambiar `seccion:` y publicar mueve la actividad en vez de duplicarla |
 | `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados |
 | `tiza publicar <md>… --en pruebas` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): crea (oculto) o actualiza (conserva la visibilidad), verifica y registra el hash |
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
 | `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas y cuestionarios ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
-| `tiza-ventana --carpeta <carpeta> [--elegir-cursos]` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.18.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
+| `tiza-ventana --carpeta <carpeta> [--elegir-cursos]` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.19.0"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
 | `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
 | `tiza revisar` | agente o docente | Solo lectura: comprueba el aislamiento de esta carpeta y avisa si es global |
@@ -254,7 +255,7 @@ No adjuntes capturas del aula (pueden salir alumnos) ni tu contraseña.
    pruebas, pídele que lo publique «oculto» (`tiza publicar … --en real
    --oculto`): verás un resumen corto y quedará oculto para el alumnado.
 
-`tiza sesion`, `tiza configurar`, `tiza autoprueba` y `tiza estructura`
+`tiza sesion`, `tiza configurar`, `tiza autoprueba`, `tiza ordenar` y `tiza estructura`
 siguen disponibles para hacer cada paso por separado.
 
 Mientras la sesión esté abierta, no entres al aula con el mismo usuario desde el
@@ -575,12 +576,30 @@ rechaza una entrega posterior a ese recordatorio, y esto también ocurre al
 publicar la tarea sin `--solo-fechas`). Si lo tenías puesto, la confirmación de
 real lo enseña antes de aplicarlo.
 
+## Ordenar y mover actividades
+
+Lo nuevo se crea al final de su sección. `tiza ordenar <md>… --en pruebas|real` coloca las
+actividades de esos ficheros en ese orden: se reparten **los huecos que ya ocupaban**
+y lo que no nombras (foros, archivos subidos a mano) no se mueve. Con la sección
+`[Foro, test, Archivo, intro, tarea]`, `tiza ordenar intro.md tarea.md test.md` la deja en
+`[Foro, intro, Archivo, tarea, test]`. No cambia contenido, visibilidad ni intentos, así
+que no exige pasar por pruebas; repetirlo no hace nada. Con varios cursos reales se confirma
+curso a curso, enseñando la sección entera; si una actividad falta en un curso, ese curso
+falla con `ACTIVIDAD_AUSENTE` antes de mover nada.
+
+Para pasar una actividad a otra sección, cambia `seccion:` en el `.md` y publica: tiza la
+**mueve** (mismo cmid, visibilidad, intentos y restricciones) en vez de duplicarla, y la
+confirmación de real dice de qué sección a cuál. Si hay dos actividades con el mismo tipo
+y nombre, tiza no adivina (`ACTIVIDAD_AMBIGUA`). La confirmación avisa si el orden deja una
+actividad encima de otra que debe completarse antes; el orden en pantalla no cambia las
+restricciones.
+
 ## Prueba de contrato
 
 `tiza autoprueba` publica una página, una tarea, un cuestionario, una
 etiqueta y una actividad H5P (de rellenar huecos) temporales en el curso de
 pruebas, comprueba que se crean, que H5P arranca, que republicar reutiliza el
-mismo cmid y que las imágenes responden, y que las
+mismo cmid, que ordenar y mover entre secciones funcionan y que las imágenes responden, y que las
 preguntas del cuestionario quedan en el banco de su propia categoría; después
 lo borra todo (también si algo falla). Así se detecta si el aula pierde alguna
 librería H5P. Conviene ejecutarla:
@@ -595,7 +614,8 @@ propia (por ejemplo, una app con un asistente embebido):
 
 - `tiza.agente`, el lado del agente, sin consola ni conexión con el aula:
   - `comprobar(carpeta, ficheros)` valida sin red;
-  - `estructura(carpeta)` y `publicar(carpeta, ficheros, entorno)` piden por el
+  - `estructura(carpeta)`, `publicar(carpeta, ficheros, entorno)` y
+    `ordenar(carpeta, ficheros, entorno)` piden por el
     buzón a la sesión del docente y devuelven el informe del esquema cerrado;
     aceptan `cancelar`, un `threading.Event`;
   - `estado_sesion(carpeta)` dice si hay sesión y hasta cuándo;
@@ -618,8 +638,8 @@ uv run pytest        # tests 100 % offline, nunca contactan con un aula real
 uv run tiza --help
 ```
 
-Antes de subir cambios: `uvx ruff@0.18.00 check src tests`,
-`uvx ruff@0.18.00 format --check src tests` y
+Antes de subir cambios: `uvx ruff@0.19.00 check src tests`,
+`uvx ruff@0.19.00 format --check src tests` y
 `uv run --with mypy==2.4.0 --with types-PyYAML --with types-requests mypy`.
 
 La integración real con el aula la comprueba el docente con `tiza autoprueba`.
