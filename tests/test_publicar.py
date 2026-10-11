@@ -226,11 +226,38 @@ class TestAutoprueba:
         assert "PUBLICAR_H5P" in codigos
         assert "REPUBLICAR_H5P" in codigos
         assert "VERIFICAR_CATEGORIA" in codigos
-        assert "LIMPIAR" in codigos
+        assert codigos[-4:] == ["ORDENAR", "MOVER_SECCION", "BORRAR_SECCION", "LIMPIAR"]
         assert resultado["errores"] == []
         borrados = [llamada for llamada in moodle.llamadas if llamada[0] == "borrar"]
         assert len(borrados) == 5
         assert moodle.secciones[0]["modulos"] == []
+
+    def test_la_autoprueba_ordena_y_mueve_de_seccion_sin_duplicar_ni_dejar_nada(self):
+        moodle = MoodleFalso()
+        resultado = publicar.autoprueba(moodle, 1234)
+        assert resultado["resultado"] == "ok"
+        movimientos = [ll for ll in moodle.llamadas if ll[0] == "mover"]
+        assert len(movimientos) >= 3  # intercambio, ida a la sección temporal y vuelta
+        # La página no se duplicó: se crearon exactamente los cinco módulos de los ejemplos.
+        assert len([ll for ll in moodle.llamadas if ll[0] == "crear"]) == 5
+        assert [s["numero"] for s in moodle.secciones] == [3]  # la temporal se borró
+
+    def test_si_mover_falla_la_autoprueba_lo_dice_y_no_deja_nada(self):
+        moodle = MoodleFalso()
+        moodle.mover_falla = True
+        resultado = publicar.autoprueba(moodle, 1234)
+        assert resultado["resultado"] == "error"
+        assert resultado["errores"] == ["ERROR_MOVER"]
+        codigos = [(p.codigo, p.resultado) for p in resultado["pasos"]]
+        assert ("ORDENAR", "fallo") in codigos
+        assert moodle.secciones[0]["modulos"] == []
+        assert [s["numero"] for s in moodle.secciones] == [3]  # tampoco la sección temporal
+
+    def test_un_aula_que_no_ordena_se_detecta(self):
+        moodle = MoodleFalso()
+        moodle.mover_sin_efecto = True
+        resultado = publicar.autoprueba(moodle, 1234)
+        assert resultado["errores"] == ["ORDEN_NO_APLICADO"]
 
     def test_la_autoprueba_avisa_si_el_aula_no_dibuja_formulas(self):
         resultado = publicar.autoprueba(MoodleFalso(motor_formulas=False), 1234)

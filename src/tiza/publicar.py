@@ -1798,6 +1798,7 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
     errores: list[str] = []
     causas: list[BaseException] = []  # solo para --debug en pantalla; nunca al informe
     cmids: list[int] = []
+    seccion_temporal: int | None = None  # la de la autoprueba, mientras exista
     codigo_actual = "PREPARAR"
 
     def paso(codigo: str, resultado: str, detalle: str | None = None) -> None:
@@ -1876,12 +1877,39 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
                 seccion_id = existente["id"]
             else:
                 seccion_id = moodle.crear_seccion(curso_id, nombre_seccion)
+            seccion_temporal = seccion_id
             secciones = moodle.estructura(curso_id)
             if buscar_seccion(secciones, nombre_seccion) is None:
                 raise ErrorPublicacion("SECCION_NO_CREADA")
             paso("CREAR_SECCION", "ok", None)
+            codigo_actual = "ORDENAR"
+            # La tarea y la página, que acaban de crearse en este orden, se intercambian.
+            pagina, tarea = documentos[0], documentos[1]
+            ficheros = ordenar_documentos(moodle, curso_id, secciones, [tarea, pagina])
+            if {fichero.accion for fichero in ficheros} != {"ordenada"}:
+                raise ErrorPublicacion("ORDEN_NO_APLICADO")
+            paso("ORDENAR", "ok", None)
+            codigo_actual = "MOVER_SECCION"
+            # La página pasa a la sección temporal (mismo cmid, sin duplicar) y vuelve: borrar
+            # la sección temporal se la llevaría y la limpieza final fallaría.
+            secciones = moodle.estructura(curso_id)
+            movida = publicar_documento(
+                moodle,
+                curso_id,
+                secciones,
+                dataclasses.replace(pagina, seccion=nombre_seccion, hash_cargado=""),
+                visible=None,
+            )
+            if movida.accion != "movida" or movida.cmid != cmids[0]:
+                raise ErrorPublicacion("ERROR_MOVER")
+            secciones = moodle.estructura(curso_id)
+            devuelta = publicar_documento(moodle, curso_id, secciones, pagina, visible=None)
+            if devuelta.accion != "movida" or devuelta.cmid != cmids[0]:
+                raise ErrorPublicacion("ERROR_MOVER")
+            paso("MOVER_SECCION", "ok", f"cmid {devuelta.cmid}")
             codigo_actual = "BORRAR_SECCION"
             moodle.borrar_seccion(curso_id, seccion_id)
+            seccion_temporal = None
             paso("BORRAR_SECCION", "ok", None)
     except ErrorPublicacion as exc:
         errores.append(exc.codigo)
@@ -1894,6 +1922,14 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
         for cmid in cmids:
             try:
                 moodle.borrar(curso_id, cmid)
+            except ErrorPublicacion as exc:
+                limpieza_ok = False
+                errores.append(exc.codigo)
+                causas.append(exc)
+        if seccion_temporal is not None:
+            # Tras un fallo a medias, que la sección temporal no se quede en el curso de pruebas.
+            try:
+                moodle.borrar_seccion(curso_id, seccion_temporal)
             except ErrorPublicacion as exc:
                 limpieza_ok = False
                 errores.append(exc.codigo)
