@@ -31,7 +31,7 @@ en español.
 - `uv run pytest tests/test_informe.py::test_rechaza_campo_no_permitido_en_la_raiz`
   — un solo test.
 - `uv run tiza --help` — CLI desde el repo.
-- `uvx ruff@0.16.10 check src tests && uvx ruff@0.16.10 format --check src tests` — lint y formato.
+- `uvx ruff@0.17.00 check src tests && uvx ruff@0.16.10 format --check src tests` — lint y formato.
 - `uv run --with mypy==2.4.0 --with types-PyYAML --with types-requests mypy` — tipos.
 - CI (`.github/workflows/ci.yml`): `uv run pytest` en Ubuntu, Windows y macOS,
   más prueba de `install.sh`/`install.ps1`. Mantén el código portable (pathlib,
@@ -158,7 +158,7 @@ en español.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.
-- La versión (`0.16.1`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.17.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con
