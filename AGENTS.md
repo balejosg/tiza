@@ -18,7 +18,7 @@ en español.
   ningún agente. Esta
   excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
-  `tiza aislar`, `tiza actualizar` y `tiza-ventana` son del docente**: no los ejecutes. El agente puede usar
+  `tiza aislar` y `tiza actualizar` son del docente** (tampoco lances `python -m tiza.ventana`): no los ejecutes. El agente puede usar
   `tiza comprobar` (offline) y, mientras el docente mantenga abierta
   `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar` y `tiza estructura` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
@@ -141,7 +141,7 @@ en español.
   (`PARA_QUE`, `VISIBILIDAD`, `CIERRE`), los avisos (una conversión por código,
   registrada) y los resúmenes de confirmación (`detalle_real`/`detalle_corto`).
   Las presencias solo adaptan: `terminal.py` imprime (stdout lo normal, stderr
-  las líneas de error) y `ventana/estado.py` pinta pantalla y registro. Las
+  las líneas de error). Las
   claves de `Aviso.datos` las fija cada constructor tipado de `publicacion.Aviso`
   y solo se leen aquí.
 - `src/tiza/cli.py`, `config.py` y `terminal.py`: despacho, configuración sin
@@ -149,12 +149,16 @@ en español.
   `tiza.toml` de cada carpeta) y presencia humana en la terminal (`terminal.PresenciaTerminal`:
   TTY, `getpass`, confirmación `[s/N]`, con el texto de `mensajes`); `cli.instalar_skill`
   copia la skill a Claude Code, Codex, opencode y `~/.agents/skills`.
-- `src/tiza/ventana/`: la ventana de sesión (extra `[ventana]`, pywebview).
-  `estado.py` no importa pywebview y es lo que se prueba; `Puente` es lo único
-  que ve JavaScript (todo lo interno empieza por `_`, porque pywebview expone
-  también los atributos públicos que sean objetos). La página (`sesion.html`)
-  pinta las líneas que da `mensajes`, no usa `innerHTML` ni nada remoto y lleva
-  CSP con nonce.
+- `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
+  Windows y macOS). **Solo enseña la página de login del aula y devuelve las cookies de
+  sesión del servidor del aula**: nada más pasa por ella (cursos, aislamiento y
+  confirmaciones siguen en la terminal). `entrada.py` no importa pywebview y es lo que se
+  prueba (cuándo se está dentro, qué cookies se aceptan, esquema y límites de la tubería);
+  `__init__.py` lanza `python -m tiza.ventana <url>` como proceso hijo (`entrar`), que es
+  el único que importa `webview`, no tiene `js_api` y exige una terminal delante. Las
+  cookies viajan por la salida estándar del hijo: nunca por disco, argumentos ni entorno.
+  La acreditación (`publicar.Contrasena` o `publicar.Cookies`) entra por
+  `Presencia.acreditar`, y `publicar.autenticar_con` elige el login.
 - Estado de trabajo en `.tiza/` (`informe.json`, `estructura.json`,
   `verificados.json`, `preview/`, `buzon/`): los nombres y formatos de lo que
   no es buzón viven en `estado.py`. `.tiza/`, `planes/` y `dist/` están
@@ -170,7 +174,7 @@ en español.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.
-- La versión (`0.19.1`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.20.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con

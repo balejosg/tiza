@@ -1,9 +1,8 @@
-"""Todo el texto llano que ve el docente, venga de la terminal o de la ventana.
+"""Todo el texto llano que ve el docente en la terminal.
 
 Convierte los avisos y los resúmenes de :mod:`tiza.publicacion` en líneas y
-piezas ya saneadas; las presencias (``terminal.PresenciaTerminal`` y
-``ventana.PresenciaVentana``) solo adaptan ese texto a su medio: stdout/stderr
-en la terminal, pantalla y registro en la ventana. Nada aquí pregunta ni
+piezas ya saneadas; la presencia (``terminal.PresenciaTerminal``) solo adapta ese texto a su medio:
+stdout/stderr en la terminal. Nada aquí pregunta ni
 escribe en la consola.
 
 Las claves de ``Aviso.datos`` las fija cada constructor de ``publicacion.Aviso``

@@ -45,9 +45,14 @@ Son medidas para reducir riesgos, no garantías absolutas. Si tu centro o tu
 Delegación de Protección de Datos te pide un resumen, pásale
 [docs/proteccion-de-datos.md](docs/proteccion-de-datos.md).
 
-- **Sin secretos persistentes**: la contraseña se pide con `getpass` una vez por
-  sesión. No hay variable de entorno, opción ni fichero que la acepte, y la
-  sesión vive en memoria y se descarta al cerrar `tiza sesion`.
+- **Sin secretos persistentes**: en Windows y macOS, `tiza` abre una ventana con la
+  página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
+  solo recoge las cookies de sesión del servidor del aula (las de cualquier otro
+  dominio, como un proveedor de identidad, se descartan). Sin ventana (Linux, sin
+  WebView2 o con `--sin-ventana`), la contraseña se pide con `getpass` una vez. En
+  ningún caso hay variable de entorno, opción ni fichero que la acepte, y la sesión
+  vive en memoria y se descarta al cerrar `tiza sesion`. La ventana solo la abre
+  `tiza` con una terminal delante: un agente sin terminal no puede lanzarla.
 - **Presencia humana**: el agente solo publica mientras el docente mantiene
   abierta `tiza sesion` en esa carpeta; la sesión caduca sola (se puede ampliar
   respondiendo en la terminal, hasta 8 horas) y puede cerrarse
@@ -57,8 +62,8 @@ Delegación de Protección de Datos te pide un resumen, pásale
 - **Contraseña solo hacia tu aula**: escribes la URL al configurar (por ejemplo
   `https://aula.ejemplo.org/<centro>`) y queda fijada: se rechazan las URLs que
   `urlsplit` y `requests` leen distinto, y una redirección a otro servidor o
-  puerto falla con `URL_REDIRIGE_FUERA`. Se muestra el servidor antes de pedir
-  la contraseña, se envía una sola vez (sin token móvil) y cada petición de la
+  puerto falla con `URL_REDIRIGE_FUERA`. Se muestra el servidor antes de entrar,
+  la contraseña (si se pide en la terminal) se envía una sola vez (sin token móvil) y cada petición de la
   sesión del aula, redirecciones incluidas, se comprueba antes de salir: nada va
   a otro servidor. Los cursos de pruebas y real no pueden coincidir.
 - **Puerta de real**: dentro de `tiza sesion`, solo se publica en real lo que
@@ -157,7 +162,8 @@ tiza empezar
 ```
 
 La primera vez te pregunta la URL del aula y tu usuario (no pide contraseña);
-después comprueba el aislamiento, te pide la contraseña una vez, te deja elegir
+después comprueba el aislamiento, te abre la página de entrada de tu aula (o, sin
+ventana, te pide la contraseña una vez), te deja elegir
 tus cursos por nombre (se guardan en `tiza.toml`) y lee las secciones. Si
 prefieres hacerlo por pasos, `tiza configurar` guarda la URL y el usuario, y
 `tiza sesion` abre la sesión.
@@ -176,7 +182,7 @@ La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
 `~/.agents/skills`). Si prefieres leer antes lo que ejecutas, abre
 `install.sh` o `install.ps1` en este repositorio; son unas pocas líneas.
 
-Los instaladores instalan la versión etiquetada `v0.19.1`; con `TIZA_REF=main`
+Los instaladores instalan la versión etiquetada `v0.20.0`; con `TIZA_REF=main`
 (o con otra etiqueta) antes de ejecutarlos eliges cuál. Para actualizar,
 `tiza actualizar` instala la última versión publicada (o la de `TIZA_REF`, si
 la defines) y reinstala la skill; para ello necesita `git`. Hasta la
@@ -214,18 +220,17 @@ carpeta. La marca de confianza de Codex está en
 
 | Comando | Quién | Qué hace |
 |---|---|---|
-| `tiza empezar [--minutos 60] [--elegir-cursos]` | docente | Todo en uno: configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
+| `tiza empezar [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Todo en uno: configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
 | `tiza configurar` | docente | Guarda la URL y el usuario (nada más); los cursos se eligen por nombre al abrir la sesión en cada carpeta y se guardan en su `tiza.toml` |
 | `tiza instalar-skill` | docente | Instala la skill portable en los agentes |
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |
 | `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json` |
-| `tiza sesion [--minutos 60] [--elegir-cursos]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
+| `tiza sesion [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
 | `tiza ordenar <md>… --en pruebas\|real` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): deja las actividades de esos ficheros en ese orden dentro de su sección, sin mover nada más; en real, el docente confirma el orden curso a curso. Cambiar `seccion:` y publicar mueve la actividad en vez de duplicarla |
 | `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados |
 | `tiza publicar <md>… --en pruebas` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): crea (oculto) o actualiza (conserva la visibilidad), verifica y registra el hash |
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
 | `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas y cuestionarios ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
-| `tiza-ventana --carpeta <carpeta> [--elegir-cursos]` | docente | Abre la sesión en una ventana en lugar de en la terminal (extra `ventana`: `uv tool install --force "tiza[ventana] @ git+https://github.com/balejosg/tiza@v0.19.1"`; `tiza actualizar` lo conserva). La contraseña solo se escribe ahí; cada publicación en real se confirma con un botón |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
 | `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
 | `tiza revisar` | agente o docente | Solo lectura: comprueba el aislamiento de esta carpeta y avisa si es global |
@@ -246,7 +251,8 @@ No adjuntes capturas del aula (pueden salir alumnos) ni tu contraseña.
 
    La primera vez te pregunta la URL del aula y tu usuario. Después comprueba
    que el agente está aislado; si falta, te ofrece aplicar el aislamiento a esta
-   carpeta ahí mismo. Luego te pide la contraseña (una vez), te deja elegir tus
+   carpeta ahí mismo. Luego se abre la página de entrada de tu aula (entra como
+   siempre; sin ventana, te pide la contraseña una vez), te deja elegir tus
    cursos de pruebas y real por su nombre, pasa la autoprueba cuando toca (al
    estrenar versión o cada septiembre) y lee las secciones. Déjala abierta.
 2. En la terminal del agente, pídele el contenido. El agente lo escribe, lo
@@ -535,7 +541,7 @@ real = [101, 102, 103]
 ```
 
 `tiza empezar` y `tiza sesion` te dejan elegirlos de la lista con números
-separados por comas (`1,3`), y `--elegir-cursos` (también en `tiza-ventana`)
+separados por comas (`1,3`), y `--elegir-cursos` (`tiza empezar` y `tiza sesion`)
 vuelve a preguntar los cursos aunque ya estén guardados. Una petición de
 `publicar --en real` llega a **todos**, en el orden de `tiza.toml`, y te pide una
 confirmación **por curso** («Curso 2 de 3: «1º B»»): si dices que no a uno, se
@@ -626,7 +632,7 @@ propia (por ejemplo, una app con un asistente embebido):
   abre la sesión y atiende el buzón. `presencia` es cualquier objeto que cumpla
   `tiza.sesion.Presencia`; la CLI usa `tiza.terminal.PresenciaTerminal`.
 
-La contraseña solo la pide la presencia y solo la usa `tiza.sesion`. Cambiar
+La acreditación (contraseña o cookies de la ventana de entrada) solo la pide la presencia (`acreditar`) y solo la usa `tiza.sesion`. Cambiar
 la firma de una de estas funciones obliga a subir la versión menor y a contarlo
 en el [CHANGELOG](CHANGELOG.md).
 

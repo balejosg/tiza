@@ -364,13 +364,14 @@ def _relativa(ruta: Path, base: Path) -> str:
 
 
 class Presencia(Protocol):
-    """Quien está delante: la terminal de «tiza sesion» o una ventana.
+    """Quien está delante: la terminal de «tiza sesion» (la entrada al aula puede ir en una ventana).
 
     Cada implementación sanea los textos ajenos al mostrarlos.
     """
 
-    def pedir_password(self, servidor: str, usuario: str) -> str | None:
-        """Contraseña del aula, tras enseñar a qué servidor va; None si cancela."""
+    def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
+        """Cómo entra el docente al aula ``url``: contraseña (terminal) o la sesión de la
+        ventana de entrada, tras enseñar a qué servidor va; None si cancela."""
         ...
 
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:

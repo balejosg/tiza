@@ -58,7 +58,9 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
      Copilot, `tiza aislar` no puede escribir su configuración: te dirá qué
      activar en Ajustes › Proyectos › Sandbox y en qué carpeta debe quedar la
      sesión del agente;
-   - tu contraseña (solo aquí, nunca en el chat del agente);
+   - **entrar en tu aula**: se abre una ventana con la página de entrada de tu aula
+     (en Windows y macOS). Entra como siempre; tiza no ve tu contraseña. Si no hay
+     ventana, te la pide en la terminal (solo aquí, nunca en el chat del agente);
    - cuál es tu curso real y, si lo tienes, el de pruebas, por su nombre (puedes
      elegir «No tengo curso de pruebas»: entonces en real solo se publicará
      oculto y la sesión te lo recordará y pedirá confirmarlo cada vez que la
@@ -81,7 +83,7 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
    corto y quedará oculto para el alumnado.
 
 Los días siguientes solo tienes que repetir los pasos 2 a 5. `tiza empezar` ya
-no te preguntará la dirección ni el usuario: solo la contraseña y que confirmes
+no te preguntará la dirección ni el usuario: solo entrar en el aula y que confirmes
 los cursos.
 
 ## Tres avisos importantes

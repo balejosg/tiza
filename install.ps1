@@ -4,13 +4,13 @@
 # (por ejemplo "main" para la última versión).
 $ErrorActionPreference = "Stop"
 
-$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.19.1" }
+$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.20.0" }
 # Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
 # barra) siguen necesitando git.
-$paquete = if ($ref -match "/") {
+$origen = if ($ref -match "/") {
     "git+https://github.com/balejosg/tiza@$ref"
 } else {
-    "tiza @ https://github.com/balejosg/tiza/archive/$ref.zip"
+    "https://github.com/balejosg/tiza/archive/$ref.zip"
 }
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
@@ -33,13 +33,19 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     }
 }
 
-uv tool install --force "$paquete"
-if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar tiza." }
+# Se instala también la ventana de entrada al aula (pywebview); si falla, tiza se instala
+# sin ella y el docente entra con la contraseña en la terminal.
+uv tool install --force "tiza[ventana] @ $origen"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
+    uv tool install --force "tiza @ $origen"
+    if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar tiza." }
+}
 $env:Path = "$(uv tool dir --bin);$env:Path"
 
 tiza instalar-skill
 if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar la skill." }
 
 Write-Host ""
-Write-Host "Listo. Siguiente paso: tiza configurar"
+Write-Host "Listo. Siguiente paso: tiza empezar"
 Write-Host "Si 'tiza' no se encuentra, abre una terminal nueva (o ejecuta: uv tool update-shell)."

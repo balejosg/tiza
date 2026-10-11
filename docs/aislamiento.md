@@ -8,8 +8,8 @@ al agente:
 - `tiza empezar`, `tiza sesion`, `tiza autoprueba`, `tiza configurar`,
   `tiza aislar` y `tiza actualizar` se niegan si no hay terminal interactiva
   (y `actualizar` pide confirmación con la versión que va a instalar);
-  `tiza-ventana` es otro proceso con su propia ventana, que el agente no puede
-  pulsar;
+  la ventana de entrada (`python -m tiza.ventana`) exige además una terminal delante y
+  es otro proceso con su propia ventana, que el agente no puede pulsar;
 - el agente publica solo a través del buzón `.tiza/buzon/` mientras tengas
   `tiza sesion` abierta; el proceso del agente no usa red ni sockets;
 - la contraseña y las cookies solo salen hacia el servidor del aula que
@@ -330,7 +330,7 @@ Si tu agente no está en la lista:
    del proyecto.
 5. No le permitas ejecutar `tiza empezar`, `tiza sesion`, `tiza autoprueba`,
    `tiza configurar`, `tiza aislar`, `tiza actualizar`
-   ni `tiza-ventana`. El agente solo necesita `tiza comprobar` (offline),
+   ni `python -m tiza.ventana`. El agente solo necesita `tiza comprobar` (offline),
    `tiza publicar`, `tiza ordenar` y `tiza estructura` (con la sesión
    abierta no salen de `.tiza/`; sin sesión fallan con `SIN_SESION`) y
    `tiza revisar` (solo lectura).

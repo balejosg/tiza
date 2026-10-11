@@ -703,6 +703,34 @@ class TestActualizar:
             f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0",
         ]
 
+    @pytest.mark.parametrize("sistema", ["win32", "darwin"])
+    def test_en_windows_y_macos_lleva_la_ventana_aunque_no_estuviera(
+        self, ejecutadas, monkeypatch, sistema
+    ):
+        monkeypatch.setattr(cli.sys, "platform", sistema)
+        assert cli.main(["actualizar"]) == 0
+        assert ejecutadas[1][-1] == f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0"
+
+    def test_si_la_ventana_no_se_instala_sigue_sin_ella(self, ejecutadas, monkeypatch, capsys):
+        monkeypatch.setattr(cli.sys, "platform", "darwin")
+        intentos = []
+
+        def run(cmd, **_k):
+            ejecutadas.append(cmd)
+            if cmd[1] == "ls-remote":
+                return type("R", (), {"returncode": 0, "stdout": self.etiquetas})()
+            intentos.append(cmd[-1])
+            codigo = 1 if cmd[-1].startswith("tiza[ventana]") else 0
+            return type("R", (), {"returncode": codigo, "stdout": ""})()
+
+        monkeypatch.setattr(cli.subprocess, "run", run)
+        assert cli.main(["actualizar"]) == 0
+        assert intentos[:2] == [
+            f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0",
+            f"git+{cli.REPO_GIT}@v0.10.0",
+        ]
+        assert "No se pudo instalar la ventana de entrada" in capsys.readouterr().out
+
     def test_sin_terminal_no_hace_nada(self, monkeypatch, capsys):
         monkeypatch.delenv("TIZA_REF", raising=False)
         ordenes: list = []

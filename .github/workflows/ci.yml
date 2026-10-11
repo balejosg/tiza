@@ -47,6 +47,15 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$USERPROFILE/.local/bin:$PATH"
           tiza --help
+      - name: Comprobar la ventana de entrada (Windows y macOS)
+        if: runner.os != 'Linux'
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$USERPROFILE/.local/bin:$PATH"
+          for py in "$(uv tool dir)/tiza/bin/python" "$(uv tool dir)/tiza/Scripts/python.exe"; do
+            if [ -x "$py" ]; then "$py" -c "import webview; import tiza.ventana as v; print('ventana importable')" && exit 0; fi
+          done
+          echo "no se encontró el intérprete de tiza" && exit 1
 
   calidad:
     # Lint, tipos y cobertura mínima. Herramientas efímeras (uvx / --with): no son

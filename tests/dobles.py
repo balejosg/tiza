@@ -6,6 +6,7 @@ import json
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -15,6 +16,7 @@ from tiza.publicar import (
     CAMPOS_FECHA_TAREA,
     CAMPOS_FINALIZACION_LEIDOS,
     DETALLE_INTENTOS_REPUBLICAR,
+    Contrasena,
     ErrorPublicacion,
 )
 
@@ -417,9 +419,9 @@ class PresenciaFalsa:
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
 
-    def pedir_password(self, servidor, usuario):
-        self.passwords_pedidas.append((servidor, usuario))
-        return self.password
+    def acreditar(self, url, usuario):
+        self.passwords_pedidas.append((urlsplit(url).hostname, usuario))
+        return None if self.password is None else Contrasena(self.password)
 
     def elegir_curso(self, entorno, cursos, excluir):
         return self._cursos.pop(0) if self._cursos else None

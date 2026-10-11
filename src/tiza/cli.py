@@ -16,7 +16,6 @@ import traceback
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlsplit
 
 from . import (
     __version__,
@@ -137,6 +136,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     sesion.add_argument("--debug", action="store_true")
     sesion.add_argument(
+        "--sin-ventana",
+        action="store_true",
+        help="escribe la contraseña en la terminal en vez de entrar en la ventana del aula",
+    )
+    sesion.add_argument(
         "--elegir-cursos",
         action="store_true",
         help="vuelve a preguntar el curso de pruebas y los reales y los guarda",
@@ -153,6 +157,11 @@ def _parser() -> argparse.ArgumentParser:
         help="minutos que dura la sesión (por defecto, 60; se puede ampliar)",
     )
     empezar.add_argument("--debug", action="store_true")
+    empezar.add_argument(
+        "--sin-ventana",
+        action="store_true",
+        help="escribe la contraseña en la terminal en vez de entrar en la ventana del aula",
+    )
     empezar.add_argument(
         "--elegir-cursos",
         action="store_true",
@@ -389,9 +398,17 @@ def _actualizar() -> int:
         print("No se ha cambiado nada.", file=sys.stderr)
         return 1
     origen = f"git+{REPO_GIT}@{ref}"
-    if _tiene_ventana():  # sin el extra, la actualización dejaría sin tiza-ventana
-        origen = f"tiza[ventana] @ {origen}"
-    if subprocess.run([uv, "tool", "install", "--force", origen]).returncode != 0:
+    instalado = False
+    if _quiere_ventana():  # sin el extra, la actualización dejaría sin ventana de entrada
+        instalado = (
+            subprocess.run(
+                [uv, "tool", "install", "--force", f"tiza[ventana] @ {origen}"]
+            ).returncode
+            == 0
+        )
+        if not instalado:
+            print("No se pudo instalar la ventana de entrada: se entrará con la contraseña.")
+    if not instalado and subprocess.run([uv, "tool", "install", "--force", origen]).returncode != 0:
         _imprimir_error("ACTUALIZACION_FALLIDA", "no se pudo actualizar tiza.")
         return 1
     # La skill se reinstala con la versión nueva (este proceso aún es la antigua).
@@ -401,6 +418,11 @@ def _actualizar() -> int:
         return 1
     print("Si tienes «tiza sesion» abierta, ciérrala (Ctrl+C) y vuelve a abrirla.")
     return 0
+
+
+def _quiere_ventana() -> bool:
+    """Windows y macOS llevan la ventana de entrada; en Linux solo si ya la tenían."""
+    return sys.platform in ("win32", "darwin") or _tiene_ventana()
 
 
 def _tiene_ventana() -> bool:
@@ -716,14 +738,6 @@ def _configuracion_inicial(
     return cfg, None
 
 
-def _mostrar_servidor(cfg) -> None:
-    """El docente ve a qué servidor irá la contraseña antes de teclearla."""
-    print(
-        f"Vas a escribir la contraseña del aula de {urlsplit(cfg.url).hostname} "
-        f"(usuario: {cfg.usuario})."
-    )
-
-
 def _estructura_directa(args) -> int:
     comando = "estructura"
     cfg, salida = _configuracion_inicial(args, comando, sin_sesion=True)
@@ -736,10 +750,11 @@ def _estructura_directa(args) -> int:
     for nombre, curso in destinos:
         if not terminal.confirmar_destino(nombre, curso):
             return _abortado(comando, nombre, curso)
-    _mostrar_servidor(cfg)
-    password = terminal.pedir_password()
+    acreditacion = terminal.acreditar(cfg.url, cfg.usuario)
+    if acreditacion is None:
+        return _abortado(comando)
     try:
-        moodle = publicar.autenticar(cfg.url, cfg.usuario, password)
+        moodle = publicar.autenticar_con(cfg.url, cfg.usuario, acreditacion)
     except ErrorPublicacion as exc:
         return _fallo(comando, exc.codigo, exc.detalle, exc=exc, debug=args.debug)
     documento = sesion_abierta.estructura_con(moodle, cfg, Path.cwd(), debug=args.debug)
@@ -818,10 +833,11 @@ def _publicar_directa(args) -> int:
             omitidos.add(curso)
     if len(omitidos) == total:
         return _abortado(comando, entorno, unico)
-    _mostrar_servidor(cfg)
-    password = terminal.pedir_password()
+    acreditacion = terminal.acreditar(cfg.url, cfg.usuario)
+    if acreditacion is None:
+        return _abortado(comando, entorno, unico)
     try:
-        moodle = publicar.autenticar(cfg.url, cfg.usuario, password)
+        moodle = publicar.autenticar_con(cfg.url, cfg.usuario, acreditacion)
     except ErrorPublicacion as exc:
         return _fallo(
             comando,
@@ -908,10 +924,11 @@ def _ordenar_directa(args) -> int:
     # En pruebas se confirma el destino; en real lo confirma cada curso, con el orden a la vista.
     if entorno == "pruebas" and not terminal.confirmar_destino(entorno, cursos[0]):
         return _abortado(comando, entorno, unico)
-    _mostrar_servidor(cfg)
-    password = terminal.pedir_password()
+    acreditacion = terminal.acreditar(cfg.url, cfg.usuario)
+    if acreditacion is None:
+        return _abortado(comando, entorno, unico)
     try:
-        moodle = publicar.autenticar(cfg.url, cfg.usuario, password)
+        moodle = publicar.autenticar_con(cfg.url, cfg.usuario, acreditacion)
     except ErrorPublicacion as exc:
         return _fallo(
             comando,
@@ -1005,7 +1022,7 @@ def _sesion(args) -> int:
         return _fallo("sesion", exc.codigo, exc.detalle, exc=exc, debug=args.debug)
     return sesion.abrir(
         Path.cwd(),
-        terminal.PresenciaTerminal(),
+        terminal.PresenciaTerminal(usar_ventana=not args.sin_ventana),
         minutos=args.minutos,
         preparar=False,
         debug=args.debug,
@@ -1066,7 +1083,7 @@ def _empezar(args) -> int:
             return _abortado(comando)
     return sesion.abrir(
         carpeta,
-        terminal.PresenciaTerminal(),
+        terminal.PresenciaTerminal(usar_ventana=not args.sin_ventana),
         minutos=args.minutos,
         preparar=True,
         debug=args.debug,
@@ -1083,10 +1100,11 @@ def _autoprueba(args) -> int:
     curso = cfg.cursos["pruebas"]
     if not terminal.confirmar_destino("pruebas", curso):
         return _abortado(comando, "pruebas", curso)
-    _mostrar_servidor(cfg)
-    password = terminal.pedir_password()
+    acreditacion = terminal.acreditar(cfg.url, cfg.usuario)
+    if acreditacion is None:
+        return _abortado(comando, "pruebas", curso)
     try:
-        moodle = publicar.autenticar(cfg.url, cfg.usuario, password)
+        moodle = publicar.autenticar_con(cfg.url, cfg.usuario, acreditacion)
     except ErrorPublicacion as exc:
         return _fallo(
             comando,

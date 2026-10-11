@@ -9,10 +9,9 @@ de 0.0.0.0.
 from __future__ import annotations
 
 import importlib
-import sys
 from typing import Any
 
-__all__ = ["DESCARGA", "avisar_que_falta", "instalado"]
+__all__ = ["DESCARGA", "instalado", "texto_que_falta"]
 
 DESCARGA = "https://developer.microsoft.com/microsoft-edge/webview2/"
 _CLIENTE = r"Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
@@ -36,11 +35,8 @@ def instalado() -> bool:
     return False
 
 
-def avisar_que_falta() -> None:  # pragma: no cover - solo Windows con escritorio
-    texto = (
-        "Para abrir la ventana de sesión hace falta Microsoft Edge WebView2. "
-        f"Descárgalo de {DESCARGA}, instálalo y vuelve a intentarlo."
+def texto_que_falta() -> str:
+    return (
+        "Para abrir la ventana de entrada hace falta Microsoft Edge WebView2. "
+        f"Descárgalo de {DESCARGA} para usarla; mientras, entrarás con la contraseña en la terminal."
     )
-    print(texto, file=sys.stderr)
-    ctypes: Any = importlib.import_module("ctypes")
-    ctypes.windll.user32.MessageBoxW(None, texto, "Conexión con el aula", 0x10)

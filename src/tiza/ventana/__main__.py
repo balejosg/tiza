@@ -1,5 +1,5 @@
 import sys
 
-from . import main
+from . import principal
 
-sys.exit(main())
+sys.exit(principal())

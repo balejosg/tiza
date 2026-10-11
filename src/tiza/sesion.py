@@ -1,7 +1,7 @@
 """La sesión del docente, sin terminal: login, cursos y ciclo de la sesión.
 
 Es el lado de confianza de tiza. Habla con el docente solo a través de una
-``Presencia`` (la terminal de ``tiza sesion`` o una ventana) y con el aula solo
+``Presencia`` (la terminal de ``tiza sesion``) y con el aula solo
 a través de :mod:`tiza.publicar`. El estado que existe tras el login y la
 atención de las peticiones del buzón viven en :mod:`tiza.sesion_abierta`; la
 publicación en sí (puertas, resúmenes y confirmaciones), en
@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
 import platformdirs
 
@@ -289,11 +288,11 @@ def _iniciar(
             base,
             presencia,
         )
-    password = presencia.pedir_password(urlsplit(cfg.url).hostname or cfg.url, cfg.usuario)
-    if password is None:
+    acreditacion = presencia.acreditar(cfg.url, cfg.usuario)
+    if acreditacion is None:
         return _abortado(comando, base, presencia)
     try:
-        aula = publicar.autenticar(cfg.url, cfg.usuario, password)
+        aula = publicar.autenticar_con(cfg.url, cfg.usuario, acreditacion)
     except ErrorPublicacion as exc:
         entorno, curso = _entorno_del_informe(cfg)
         return _fallo(

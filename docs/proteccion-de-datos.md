@@ -18,7 +18,8 @@ servicio que no sea el aula configurada (y, para actualizarse, GitHub).
 
 | Dato | Dónde está | Quién lo ve |
 |---|---|---|
-| Contraseña del aula | Solo en memoria durante la sesión, se pide con `getpass` o en la ventana de `tiza-ventana`. No hay variable, opción ni fichero que la acepte | Solo el aula. Nunca el agente, ni el proveedor de IA, ni el disco |
+| Contraseña del aula | En Windows y macOS se escribe en la página de entrada de tu aula, dentro de una ventana: tiza no la ve. Sin ventana, se pide con `getpass` y solo vive en memoria. No hay variable, opción ni fichero que la acepte | Solo el aula. Nunca el agente, ni el proveedor de IA, ni el disco |
+| Sesión del aula (cookies) | En memoria mientras dura la sesión; el hijo de la ventana las devuelve por una tubería y solo se aceptan las del servidor del aula. Nunca se escriben en disco | Solo tiza y el aula. Nunca el agente |
 | URL del aula y usuario | Configuración local del docente | El docente. El agente no los necesita |
 | Contenido docente (`.md`, `.html`, imágenes) | Carpeta de la asignatura | El agente y, por tanto, el proveedor de IA; después, el aula |
 | Informe de publicación (`.tiza/informe.json`) | Carpeta de la asignatura | El agente: nombres de ficheros del docente, identificadores de actividad, códigos de resultado, fechas, URLs montadas por `tiza` y nombres de sección. Nunca HTML ni otros textos de Moodle |
@@ -38,7 +39,7 @@ carpetas que vea el agente**.
 
 - El agente no se conecta al aula: solo deja peticiones en un buzón de ficheros
   que atiende la sesión que el docente abre y mantiene abierta.
-- Cada publicación en el curso real se confirma en la terminal o ventana del
+- Cada publicación en el curso real se confirma en la terminal del
   docente, con un resumen de qué, dónde, con qué fechas y qué enlaces externos
   lleva.
 - Solo se publica en real lo verificado antes en el curso de pruebas; sin curso

@@ -42,7 +42,7 @@ MENSAJES: dict[str, str] = {
     "URL_INVALIDA": "La URL del aula no responde bien. Copia la dirección del aula tal como la ves en el navegador.",
     # Login
     "LOGIN_FALLIDO": "Usuario o contraseña incorrectos. Comprueba el usuario con «tiza configurar» y vuelve a intentarlo una sola vez.",
-    "SESION_NO_INICIADA": "El aula no abrió la sesión. Espera unos minutos y vuelve a intentarlo.",
+    "SESION_NO_INICIADA": "El aula no abrió la sesión o ya no reconoce la entrada. Vuelve a ejecutar «tiza empezar»; si sigue igual, espera unos minutos.",
     "ERROR_LOGIN": "No se pudo entrar al aula. Comprueba la conexión y vuelve a intentarlo más tarde.",
     "SESION_SIN_SESSKEY": "El aula no entregó una sesión utilizable. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba».",
     # Contenido (.md o .html)

@@ -4,6 +4,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.20.0 — 2026-10-11
+
+### Cambia
+- La entrada al aula pasa a ser una ventana con la página de login del aula (Windows y
+  macOS): el docente escribe la contraseña allí, tiza no la ve y solo recoge las cookies
+  de sesión del servidor del aula. Sin ventana (Linux, sin WebView2, `--sin-ventana` o si
+  falla), se pide la contraseña en la terminal como hasta ahora.
+- `tiza.sesion.Presencia.pedir_password` se sustituye por `acreditar(url, usuario)`, que
+  devuelve `publicar.Contrasena`, `publicar.Cookies` o `None`.
+- Se retira `tiza-ventana` (la ventana de sesión con cursos y confirmaciones): esas
+  preguntas siguen en la terminal.
+- Los instaladores y `tiza actualizar` instalan el extra `ventana` en Windows y macOS
+  (con caída a la instalación sin él).
+
+### Añadido
+- `--sin-ventana` en `tiza empezar` y `tiza sesion`.
+- `publicar.autenticar_con_cookies` y `publicar.autenticar_con`.
+
 ## 0.19.1 — 2026-10-11
 
 ### Añadido

@@ -17,9 +17,10 @@ import re
 import shutil
 import tempfile
 import time
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import requests
 from bs4 import BeautifulSoup
@@ -29,6 +30,7 @@ from py_moodle import draftfile as py_draftfile
 from py_moodle import module as py_module
 from py_moodle import section as py_section
 from py_moodle.auth import LoginError
+from py_moodle.compat import detect_moodle_compatibility
 from py_moodle.course import MoodleCourseError
 from py_moodle.draftfile import MoodleDraftFileError
 from py_moodle.module import MoodleModuleError
@@ -1090,6 +1092,61 @@ def autenticar(base_url: str, usuario: str, password: str) -> Moodle:
         raise ErrorPublicacion("SESION_SIN_SESSKEY")
     # La publicación usa la sesión web: se descarta cualquier token.
     sesion.webservice_token = None  # type: ignore[attr-defined]
+    return Moodle(base_url, sesion, sesskey)
+
+
+@dataclasses.dataclass(frozen=True)
+class Contrasena:
+    """Acreditación por contraseña (terminal): se envía una sola vez al aula."""
+
+    valor: str = dataclasses.field(repr=False)
+
+
+@dataclasses.dataclass(frozen=True)
+class Cookies:
+    """Acreditación por sesión ya iniciada en la ventana de entrada: nombre → valor."""
+
+    valores: Mapping[str, str] = dataclasses.field(repr=False)
+
+
+Acreditacion = Contrasena | Cookies
+
+
+def autenticar_con(base_url: str, usuario: str, acreditacion: Acreditacion) -> Moodle:
+    """Entra al aula con lo que haya aportado el docente (contraseña o cookies)."""
+    if isinstance(acreditacion, Cookies):
+        return autenticar_con_cookies(base_url, acreditacion.valores)
+    return autenticar(base_url, usuario, acreditacion.valor)
+
+
+def autenticar_con_cookies(base_url: str, cookies: Mapping[str, str]) -> Moodle:
+    """Sesión web a partir de las cookies de un login hecho en la ventana de entrada.
+
+    Usa la misma sesión que ``autenticar`` (guardia de destino y User-Agent de tiza),
+    sin enviar ninguna contraseña. Si el aula ya no reconoce la sesión, falla con
+    ``SESION_NO_INICIADA``.
+    """
+    auth = py_auth.MoodleAuth(base_url, "", "")
+    sesion = auth.session
+    servidor = urlsplit(auth.base_url).hostname or ""
+    for nombre, valor in cookies.items():
+        sesion.cookies.set(nombre, valor, domain=servidor, path="/", secure=True)
+    try:
+        respuesta = sesion.get(f"{auth.base_url}/my/", timeout=TIEMPO_ESPERA)
+        if "/login/" in str(getattr(respuesta, "url", "")):
+            raise ErrorPublicacion("SESION_NO_INICIADA")
+        sesskey = auth.compatibility.extract_sesskey(respuesta.text)
+        if not sesskey:
+            raise ErrorPublicacion("SESION_SIN_SESSKEY")
+        contexto = detect_moodle_compatibility(sesion, auth.base_url, token=None)
+    except ERRORES_MOODLE as exc:
+        if _bloqueo_de_destino(exc):
+            raise ErrorPublicacion("DESTINO_NO_PERMITIDO") from exc
+        raise ErrorPublicacion("SESION_NO_INICIADA") from exc
+    sesion.sesskey = sesskey  # type: ignore[attr-defined]
+    sesion.webservice_token = None  # type: ignore[attr-defined]
+    sesion.moodle_version = contexto.version  # type: ignore[attr-defined]
+    sesion.moodle_compat = contexto.strategy  # type: ignore[attr-defined]
     return Moodle(base_url, sesion, sesskey)
 
 

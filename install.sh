@@ -5,13 +5,17 @@
 # (por ejemplo TIZA_REF=main para la última versión).
 set -eu
 
-REF="${TIZA_REF:-v0.19.1}"
+REF="${TIZA_REF:-v0.20.0}"
 # Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
 # barra) siguen necesitando git.
 case "$REF" in
-    */*) PAQUETE="git+https://github.com/balejosg/tiza@$REF" ;;
-    *) PAQUETE="tiza @ https://github.com/balejosg/tiza/archive/$REF.zip" ;;
+    */*) ORIGEN="git+https://github.com/balejosg/tiza@$REF" ;;
+    *) ORIGEN="https://github.com/balejosg/tiza/archive/$REF.zip" ;;
 esac
+PAQUETE="tiza @ $ORIGEN"
+# En macOS se instala también la ventana de entrada al aula (pywebview); en Linux no hay.
+VENTANA=0
+[ "$(uname -s)" = "Darwin" ] && VENTANA=1
 
 if ! command -v uv >/dev/null 2>&1; then
     echo "Instalando uv (gestor de Python)..."
@@ -20,12 +24,17 @@ if ! command -v uv >/dev/null 2>&1; then
     export PATH
 fi
 
-uv tool install --force "$PAQUETE"
+if [ "$VENTANA" = 1 ] && uv tool install --force "tiza[ventana] @ $ORIGEN"; then
+    :
+else
+    [ "$VENTANA" = 1 ] && echo "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
+    uv tool install --force "$PAQUETE"
+fi
 PATH="$(uv tool dir --bin 2>/dev/null || echo "$HOME/.local/bin"):$PATH"
 export PATH
 
 tiza instalar-skill
 
 echo
-echo "Listo. Siguiente paso: tiza configurar"
+echo "Listo. Siguiente paso: tiza empezar"
 echo "Si 'tiza' no se encuentra, abre una terminal nueva (o ejecuta: uv tool update-shell)."

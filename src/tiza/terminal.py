@@ -1,8 +1,9 @@
-"""Presencia humana: comprobación de terminal, confirmación y contraseña.
+"""Presencia humana: comprobación de terminal, confirmación y entrada al aula.
 
-La contraseña solo puede llegar por ``getpass`` desde una terminal
-interactiva. No existe ninguna opción, variable de entorno ni fichero que la
-acepte.
+Tiza no recibe la contraseña más que por ``getpass`` desde una terminal
+interactiva (si no hay ventana de entrada). No existe ninguna opción, variable de
+entorno ni fichero que la acepte. Con la ventana de entrada, el docente la escribe en
+la página de su aula y tiza solo recibe la sesión.
 
 El texto que ve el docente lo decide :mod:`tiza.mensajes`; aquí solo se
 pregunta, se imprime (stdout lo normal, stderr las líneas de error) y se
@@ -17,8 +18,9 @@ import sys
 import threading
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
-from . import mensajes
+from . import mensajes, publicar, ventana
 from .config import MAX_REALES
 from .publicacion import Aviso, ResumenOrden, ResumenPublicacion, ResumenSinPruebas
 from .sesion import SIN_PRUEBAS, CursoSesion
@@ -26,6 +28,7 @@ from .sesion import SIN_PRUEBAS, CursoSesion
 __all__ = [
     "ErrorTerminal",
     "PresenciaTerminal",
+    "acreditar",
     "confirmar",
     "confirmar_destino",
     "elegir_curso",
@@ -241,6 +244,29 @@ def pedir_password() -> str:
     return getpass.getpass("Contraseña del aula virtual: ")
 
 
+def acreditar(url: str, usuario: str, *, usar_ventana: bool = True) -> publicar.Acreditacion | None:
+    """Cómo entra el docente: la ventana de entrada del aula o, si no se puede, la contraseña.
+
+    Cerrar la ventana sin entrar es cancelar (no se pasa a pedir la contraseña).
+    """
+    servidor = urlsplit(url).hostname or url
+    if usar_ventana and ventana.disponible():
+        print(
+            f"Se abre una ventana con la página de entrada de {servidor}. Entra como siempre: "
+            "tiza no verá tu contraseña."
+        )
+        try:
+            cookies = ventana.entrar(url)
+        except ventana.ErrorVentana:
+            print("No se pudo abrir la ventana; entrarás con la contraseña en la terminal.")
+        else:
+            return None if cookies is None else publicar.Cookies(cookies)
+    elif usar_ventana and sys.platform == "win32" and not ventana.webview2.instalado():
+        print(ventana.webview2.texto_que_falta())
+    print(f"Vas a escribir la contraseña del aula de {servidor} (usuario: {usuario}).")
+    return publicar.Contrasena(pedir_password())
+
+
 def enlace(ruta: Path) -> str:
     """URI file:// que las terminales permiten pulsar (también en Windows)."""
     return Path(ruta).resolve().as_uri()
@@ -255,9 +281,11 @@ def imprimir_error(codigo: str, detalle: str = "") -> None:
 class PresenciaTerminal:
     """La presencia de ``tiza sesion`` y ``tiza empezar``: la terminal del docente."""
 
-    def pedir_password(self, servidor: str, usuario: str) -> str | None:
-        print(f"Vas a escribir la contraseña del aula de {servidor} (usuario: {usuario}).")
-        return pedir_password()
+    def __init__(self, *, usar_ventana: bool = True) -> None:
+        self._usar_ventana = usar_ventana
+
+    def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
+        return acreditar(url, usuario, usar_ventana=self._usar_ventana)
 
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:
         return elegir_curso(entorno, cursos, excluir=excluir)

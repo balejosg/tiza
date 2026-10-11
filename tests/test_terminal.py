@@ -13,6 +13,7 @@ import pytest
 
 from dobles import avisos_de_ejemplo
 from tiza import mensajes, publicacion, sesion, terminal
+from tiza.publicar import Contrasena
 
 
 class TerminalFalsa:
@@ -385,7 +386,7 @@ def test_confirmar_real_muestra_el_tipo_y_el_paquete_h5p(monkeypatch, capsys):
 def test_pedir_password_ensena_el_servidor(monkeypatch, capsys):
     monkeypatch.setattr(terminal.getpass, "getpass", lambda _prompt="": "secreta")
     presencia = terminal.PresenciaTerminal()
-    assert presencia.pedir_password("aula.ejemplo.org", "profe") == "secreta"
+    assert presencia.acreditar("https://aula.ejemplo.org/centro", "profe") == Contrasena("secreta")
     assert "contraseña del aula de aula.ejemplo.org (usuario: profe)" in capsys.readouterr().out
 
 

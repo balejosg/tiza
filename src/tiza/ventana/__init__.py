@@ -1,180 +1,128 @@
-"""Ventana de sesión de tiza: la conexión con el aula sin terminal.
+"""Ventana de entrada de tiza: el docente entra en la página de su aula y tiza recoge la sesión.
 
-Es del docente, como «tiza sesion»: ningún agente la ejecuta. La contraseña
-solo se escribe aquí y solo vive en la memoria de este proceso.
+La contraseña se escribe en la página del aula, no en tiza: tiza solo ve las cookies de
+sesión del servidor del aula, que el hijo devuelve por su salida estándar. Es del docente,
+como ``tiza sesion``: ningún agente la ejecuta (el hijo exige una terminal delante).
+
+El padre (``entrar``) lanza ``python -m tiza.ventana <url>``; solo el hijo importa pywebview.
 """
 
 from __future__ import annotations
 
-import argparse
-import shutil
+import importlib.util
+import subprocess
 import sys
-import threading
-from pathlib import Path
-from typing import Any
+from collections.abc import Callable
+from urllib.parse import urlsplit
 
-from .. import ayuda, config, mensajes, sesion
-from ..config import ErrorConfig
-from . import pagina, webview2
-from .estado import PresenciaVentana, Puente, Ventana
+from . import entrada, webview2
 
-__all__ = ["ejecutar", "main"]
+__all__ = ["ErrorVentana", "disponible", "ejecutar_hijo", "entrar", "principal"]
+
+TIEMPO_MAXIMO = 900  # segundos que se espera a que el docente entre
+SALIDA_USO = 2
+SALIDA_SIN_MOTOR = 3
 
 
-def _configurado() -> bool:
-    try:
-        return config.cargar_global() is not None
-    except ErrorConfig:
+class ErrorVentana(Exception):
+    """La ventana no se pudo abrir o no devolvió una sesión válida."""
+
+    def __init__(self, detalle: str = "") -> None:
+        super().__init__(detalle)
+        self.detalle = detalle
+
+
+def disponible() -> bool:
+    """¿Hay ventana en este sistema? Windows (con WebView2) y macOS, con el extra instalado."""
+    if sys.platform not in ("win32", "darwin"):
         return False
+    if importlib.util.find_spec("webview") is None:
+        return False
+    return sys.platform != "win32" or webview2.instalado()
 
 
-def _configurar(ventana: Ventana) -> bool:
-    """Primera vez: URL del aula y usuario (nunca la contraseña)."""
-    error = ""
-    while True:
-        respuesta = ventana.preguntar({"tipo": "configurar", "error": error})
-        if respuesta is None:
-            return False
-        try:
-            base = config.preparar_url(respuesta["url"])
-            config.guardar_global(base, respuesta["usuario"])
-            return True
-        except ErrorConfig as exc:
-            error = ayuda.explicar(exc.codigo) or exc.codigo
+def entrar(
+    url: str, *, ejecutar: Callable[..., subprocess.CompletedProcess] = subprocess.run
+) -> dict[str, str] | None:
+    """Abre la ventana de entrada del aula ``url``.
 
-
-def _flujo(
-    ventana: Ventana,
-    presencia: PresenciaVentana,
-    *,
-    minutos: int,
-    debug: bool,
-    elegir_cursos: bool = False,
-) -> int:
-    """Configura si hace falta, abre la sesión y ofrece reconectar al cerrarse."""
-    codigo = 1
-    while not ventana.cerrar.is_set():
-        if not _configurado() and not _configurar(ventana):
-            return 1
-        ventana.motivo = ""
-        codigo = sesion.abrir(
-            ventana.carpeta,
-            presencia,
-            minutos=minutos,
-            preparar=True,
-            debug=debug,
-            cerrar=ventana.cerrar,
-            dir_vistas=ventana.dir_vistas,
-            elegir_cursos=elegir_cursos,
+    Devuelve las cookies de sesión del aula, ``None`` si el docente cierra la ventana sin
+    entrar, o lanza ``ErrorVentana`` si no se pudo abrir.
+    """
+    try:
+        proceso = ejecutar(
+            [sys.executable, "-m", "tiza.ventana", url],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=TIEMPO_MAXIMO,
         )
-        elegir_cursos = False  # solo la primera vez: al reconectar se usan los guardados
-        if ventana.cerrar.is_set():
-            return codigo
-        texto = ventana.motivo or mensajes.texto_cierre("docente")
-        if ventana.preguntar({"tipo": "cerrada", "texto": texto}) is not True:
-            return codigo
-    return codigo
+    except subprocess.TimeoutExpired:
+        return None
+    except OSError as exc:
+        raise ErrorVentana("no se pudo lanzar la ventana") from exc
+    if proceso.returncode != 0:
+        raise ErrorVentana(f"la ventana terminó con el código {proceso.returncode}")
+    cookies = entrada.decodificar(proceso.stdout or "")
+    if cookies is None:
+        raise ErrorVentana("la ventana devolvió algo que no es una sesión")
+    return cookies or None
 
 
-def ejecutar(
-    carpeta: str | Path, *, minutos: int = 60, debug: bool = False, elegir_cursos: bool = False
-) -> int:
-    """Abre la ventana de sesión para ``carpeta``; devuelve 0 o 1 como «tiza sesion»."""
+def ejecutar_hijo(url: str) -> int:
+    """El proceso de la ventana: abre ``<aula>/my/`` y escribe las cookies en la salida."""
+    from .. import config
+
+    try:
+        base = config.validar_url(url).rstrip("/")
+    except config.ErrorConfig:
+        return SALIDA_USO
     if sys.platform == "win32" and not webview2.instalado():
-        webview2.avisar_que_falta()
-        return 1
+        return SALIDA_SIN_MOTOR
     import webview  # solo aquí: los tests y la CLI no necesitan pywebview
 
-    dir_vistas = sesion.crear_dir_vistas()
-    try:
-        return _abrir_ventana(
-            webview,
-            Path(carpeta),
-            dir_vistas,
-            minutos=minutos,
-            debug=debug,
-            elegir_cursos=elegir_cursos,
-        )
-    finally:
-        shutil.rmtree(dir_vistas, ignore_errors=True)
-
-
-def _abrir_ventana(
-    webview: Any,
-    carpeta: Path,
-    dir_vistas: Path,
-    *,
-    minutos: int,
-    debug: bool,
-    elegir_cursos: bool = False,
-) -> int:
-    ventana = Ventana(carpeta, dir_vistas=dir_vistas)
-    presencia = PresenciaVentana(ventana)
-    resultado = {"codigo": 1}
-    hilos: list[threading.Thread] = []
-
-    def cerrar() -> None:
-        ventana.cerrar_todo()
-        web.destroy()
-
-    puente = Puente(ventana, al_cerrar=cerrar)
+    servidor = urlsplit(base).hostname or ""
+    cookies: dict[str, str] = {}
     web = webview.create_window(
-        "Conexión con el aula",
-        html=pagina.html(),
-        js_api=puente,
-        width=560,
-        height=760,
-        min_size=(420, 560),
+        f"Entrar en {servidor}",
+        f"{base}/my/",
+        width=900,
+        height=720,
+        min_size=(480, 560),
         text_select=True,
-        zoomable=True,
-        background_color="#F6F3EE",
-    )
-    puente._enlazar(web.get_current_url)
-    web.events.closed += ventana.cerrar_todo
+    )  # sin js_api: la página del aula no puede llamar a nada de tiza
 
-    def trabajar() -> None:
-        if sys.platform == "win32" and webview.renderer != "edgechromium":
-            web.destroy()  # MSHTML: sin WebView2 no se sigue
+    def cargada() -> None:
+        if not entrada.es_panel(web.get_current_url(), base):
             return
-        resultado["codigo"] = _flujo(
-            ventana, presencia, minutos=minutos, debug=debug, elegir_cursos=elegir_cursos
-        )
+        galletas = [
+            {"name": nombre, "value": morsel.value, "domain": morsel["domain"] or servidor}
+            for jar in web.get_cookies()
+            for nombre, morsel in jar.items()
+        ]
+        cookies.update(entrada.cookies_del_aula(galletas, servidor))
         web.destroy()
 
-    def arrancar() -> None:
-        hilo = threading.Thread(target=trabajar, name="tiza-ventana", daemon=True)
-        hilos.append(hilo)
-        hilo.start()
-
-    webview.start(arrancar, private_mode=True, debug=debug)
-    ventana.cerrar_todo()
-    for hilo in hilos:
-        hilo.join(timeout=15)  # deja que la sesión borre sesion.json y la reserva
-    return resultado["codigo"]
+    web.events.loaded += cargada
+    webview.start(private_mode=True)
+    if sys.platform == "win32" and webview.renderer != "edgechromium":
+        return SALIDA_SIN_MOTOR
+    sys.stdout.write(entrada.codificar(cookies))
+    sys.stdout.flush()
+    return 0
 
 
-def _minutos(valor: str) -> int:
-    if not valor.isdigit() or not 0 < int(valor) <= sesion.MAX_MINUTOS:
-        raise argparse.ArgumentTypeError(
-            f"los minutos deben ser un número entero entre 1 y {sesion.MAX_MINUTOS}"
+def principal(argv: list[str] | None = None) -> int:
+    """Punto de entrada de ``python -m tiza.ventana <url>``: solo con una terminal delante."""
+    argumentos = sys.argv[1:] if argv is None else argv
+    if len(argumentos) != 1:
+        print(
+            "Uso: python -m tiza.ventana <url-del-aula> (lo lanza tiza, no se ejecuta a mano)",
+            file=sys.stderr,
         )
-    return int(valor)
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="tiza-ventana",
-        description="Conexión con el aula en una ventana (del docente, nunca del agente).",
-    )
-    parser.add_argument("--carpeta", required=True, help="carpeta de la asignatura")
-    parser.add_argument("--minutos", type=_minutos, default=60, help="minutos de conexión")
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument(
-        "--elegir-cursos",
-        action="store_true",
-        help="vuelve a preguntar el curso de pruebas y los reales",
-    )
-    args = parser.parse_args(argv)
-    return ejecutar(
-        args.carpeta, minutos=args.minutos, debug=args.debug, elegir_cursos=args.elegir_cursos
-    )
+        return SALIDA_USO
+    # Del docente: stdin y stderr son su terminal; stdout es la tubería hacia tiza.
+    if not (sys.stdin.isatty() and sys.stderr.isatty()) or sys.stdout.isatty():
+        print("Esta ventana la abre tiza en la terminal del docente.", file=sys.stderr)
+        return SALIDA_USO
+    return ejecutar_hijo(argumentos[0])

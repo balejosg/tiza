@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import types
+
 import pytest
 import requests
 from py_moodle.auth import LoginError
@@ -2786,3 +2788,114 @@ def test_campo_de_un_grupo_de_botones_de_opcion_es_el_marcado():
     assert publicar._campo(BeautifulSoup(html, "html.parser"), "completion") == "2"
     sin_marcar = html.replace(" checked", "")
     assert publicar._campo(BeautifulSoup(sin_marcar, "html.parser"), "completion") is None
+
+
+class _RespuestaFalsa:
+    def __init__(self, url, texto="", estado=200):
+        self.url = url
+        self.text = texto
+        self.status_code = estado
+        self.headers = {}
+
+
+class _SesionDeCookies:
+    def __init__(self, url_final, texto):
+        self.cookies = requests.cookies.RequestsCookieJar()
+        self.pedidas = []
+        self._url_final = url_final
+        self._texto = texto
+
+    def get(self, url, **opciones):
+        self.pedidas.append(url)
+        return _RespuestaFalsa(self._url_final or url, self._texto)
+
+
+def _auth_con_sesion(monkeypatch, sesion):
+    class Compat:
+        def extract_sesskey(self, texto):
+            return "clave" if "sesskey" in texto else None
+
+    class AuthFalsa:
+        def __init__(self, base_url, usuario, password, **_):
+            self.base_url = base_url.rstrip("/")
+            self.session = sesion
+            self.compatibility = Compat()
+            self.visto = (usuario, password)
+
+    monkeypatch.setattr(publicar.py_auth, "MoodleAuth", AuthFalsa)
+    monkeypatch.setattr(
+        publicar,
+        "detect_moodle_compatibility",
+        lambda *a, **k: types.SimpleNamespace(version="4.5", strategy="estrategia"),
+    )
+
+
+class TestAutenticacionConCookies:
+    URL = "https://aula.example.org/centro"
+
+    def test_entra_con_las_cookies_y_sin_contrasena(self, monkeypatch):
+        sesion = _SesionDeCookies(None, "sesskey")
+        _auth_con_sesion(monkeypatch, sesion)
+        aula = publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "abc"})
+        assert aula.sesskey == "clave"
+        assert sesion.pedidas == [f"{self.URL}/my/"]
+        galleta = next(iter(sesion.cookies))
+        assert (galleta.name, galleta.domain, galleta.secure) == (
+            "MoodleSession",
+            "aula.example.org",
+            True,
+        )
+        assert sesion.webservice_token is None and sesion.sesskey == "clave"
+
+    def test_si_el_aula_redirige_al_login_no_hay_sesion(self, monkeypatch):
+        sesion = _SesionDeCookies(f"{self.URL}/login/index.php", "sesskey")
+        _auth_con_sesion(monkeypatch, sesion)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "caducada"})
+        assert exc.value.codigo == "SESION_NO_INICIADA"
+
+    def test_sin_sesskey(self, monkeypatch):
+        _auth_con_sesion(monkeypatch, _SesionDeCookies(None, "nada"))
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "abc"})
+        assert exc.value.codigo == "SESION_SIN_SESSKEY"
+
+    def test_la_guardia_de_destino_sigue_montada(self, monkeypatch):
+        # Sin parchear MoodleAuth: la sesión real lleva el adaptador que fija el servidor.
+        sesion = publicar.py_auth.MoodleAuth(self.URL, "", "").session
+        adaptador = sesion.get_adapter("https://aula.example.org/")
+        assert isinstance(adaptador, publicar.AdaptadorAula)
+        assert sesion.headers["User-Agent"] == publicar.USER_AGENT
+
+    def test_destino_no_permitido(self, monkeypatch):
+        class Sesion(_SesionDeCookies):
+            def get(self, url, **opciones):
+                raise publicar.DestinoNoPermitido("otro servidor")
+
+        _auth_con_sesion(monkeypatch, Sesion(None, ""))
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "abc"})
+        assert exc.value.codigo == "DESTINO_NO_PERMITIDO"
+
+
+class TestAutenticarCon:
+    def test_contrasena_va_por_el_login_normal(self, monkeypatch):
+        vistas = []
+        monkeypatch.setattr(
+            publicar, "autenticar", lambda url, usuario, password: vistas.append(password) or "m"
+        )
+        monkeypatch.setattr(
+            publicar, "autenticar_con_cookies", lambda *a: pytest.fail("no son cookies")
+        )
+        assert publicar.autenticar_con("https://a", "u", publicar.Contrasena("secreta")) == "m"
+        assert vistas == ["secreta"]
+
+    def test_cookies_van_por_la_sesion_ya_iniciada(self, monkeypatch):
+        monkeypatch.setattr(publicar, "autenticar", lambda *a: pytest.fail("no es contraseña"))
+        monkeypatch.setattr(publicar, "autenticar_con_cookies", lambda url, c: ("m", dict(c)))
+        resultado = publicar.autenticar_con("https://a", "u", publicar.Cookies({"S": "x"}))
+        assert resultado == ("m", {"S": "x"})
+
+    def test_las_acreditaciones_no_se_ven_en_el_repr(self):
+        assert "secreta" not in repr(publicar.Contrasena("secreta"))
+        assert "valor" not in repr(publicar.Cookies({"MoodleSession": "valor"}))
