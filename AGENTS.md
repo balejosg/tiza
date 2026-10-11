@@ -19,7 +19,7 @@ en español.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar`, `tiza actualizar` y `tiza-ventana` son del docente**: no los ejecutes. El agente puede usar
   `tiza comprobar` (offline) y, mientras el docente mantenga abierta
-  `tiza sesion` en esa carpeta, `tiza publicar` y `tiza estructura` dejan la
+  `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar` y `tiza estructura` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
   en su terminal.
@@ -72,7 +72,10 @@ en español.
   móvil, sin `list_courses`, User-Agent): es intencionado, no lo quites sin
   tests. `python-moodle` está fijado a `1.0.2`; subirlo obliga a revisar esos
   parches. `publicar_documento` y `publicar_fechas` devuelven el
-  `informe.Fichero` ya construido (nada de dicts con claves sueltas).
+  `informe.Fichero` ya construido (nada de dicts con claves sueltas). También
+  mueve y ordena: `Moodle.mover` (`cm_move`), `modulos_de`/`modulos_fuera`,
+  `plan_de_orden` (pura), `resolver_orden` y `ordenar_documentos`; cambiar
+  `seccion:` mueve la actividad existente (`movida`) en vez de duplicarla.
 - `src/tiza/filtro.py`: **única fuente de la política de HTML** (etiquetas,
   atributos, CSS, clases y servidores de iframe) sobre el árbol de html5lib.
   Lo que se publica es ese árbol validado, serializado con `filtro.serializar`
@@ -106,7 +109,9 @@ en español.
 - `src/tiza/publicacion.py`: **la publicación como proceso**, común a la terminal
   directa y a la sesión: puertas (`puerta_real`, `SOLO_OCULTO_SIN_PRUEBAS`),
   resúmenes y confirmación por curso, flujo de solo-fechas, `publicar_con` e
-  `informe_de_cursos`, y los tipos que ve la `Presencia` (`Aviso` —con un
+  `informe_de_cursos`, y `tiza ordenar` (`ordenar_en_cursos`, `ordenar_con`,
+  `resumen_orden`, `ResumenOrden`: una confirmación por curso real, sin puerta de
+  pruebas), y los tipos que ve la `Presencia` (`Aviso` —con un
   constructor tipado por aviso—, resúmenes, vistas previas). Lo que distingue a
   cada llamador entra como decisión explícita
   y documentada (`verificados` en memoria o disco, `vigente` solo en la sesión,
@@ -164,7 +169,7 @@ en español.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.
-- La versión (`0.18.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.19.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con

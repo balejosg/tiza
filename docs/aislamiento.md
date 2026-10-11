@@ -331,7 +331,7 @@ Si tu agente no está en la lista:
 5. No le permitas ejecutar `tiza empezar`, `tiza sesion`, `tiza autoprueba`,
    `tiza configurar`, `tiza aislar`, `tiza actualizar`
    ni `tiza-ventana`. El agente solo necesita `tiza comprobar` (offline),
-   `tiza publicar` y `tiza estructura` (con la sesión
+   `tiza publicar`, `tiza ordenar` y `tiza estructura` (con la sesión
    abierta no salen de `.tiza/`; sin sesión fallan con `SIN_SESION`) y
    `tiza revisar` (solo lectura).
 
