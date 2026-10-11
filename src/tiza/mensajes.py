@@ -24,8 +24,10 @@ from .informe import ErrorInforme
 from .publicacion import (
     CAMPO_RECORDATORIO,
     Aviso,
+    CambioSeccion,
     DocumentoBreve,
     DocumentoResumen,
+    ResumenOrden,
     ResumenPublicacion,
     ResumenSinPruebas,
 )
@@ -34,6 +36,7 @@ __all__ = [
     "AUTOPRUEBA_TEXTO",
     "AVISO_AJENO",
     "DetalleCorto",
+    "DetalleOrden",
     "DetalleReal",
     "DocumentoCorto",
     "DocumentoReal",
@@ -48,6 +51,7 @@ __all__ = [
     "describir_curso",
     "describir_documento",
     "detalle_corto",
+    "detalle_orden",
     "detalle_real",
     "lineas_de_aviso",
     "lineas_de_error",
@@ -249,6 +253,7 @@ def detalle_real(resumen: ResumenPublicacion) -> DetalleReal:
         f"Se creará la sección «{texto_seguro(nombre)}» (oculta)."
         for nombre in resumen.secciones_nuevas
     ]
+    finales += _lineas_de_movimientos(resumen.movimientos)
     finales.append(SOLO_FECHAS_TEXTO if solo else VISIBILIDAD[resumen.visible])
     aviso = None
     if resumen.aviso_calendario is not None:
@@ -325,8 +330,18 @@ def detalle_corto(resumen: ResumenSinPruebas) -> DetalleCorto:
         finales=tuple(
             f"Se creará la sección «{texto_seguro(nombre)}» (oculta)."
             for nombre in resumen.secciones_nuevas
-        ),
+        )
+        + tuple(_lineas_de_movimientos(resumen.movimientos)),
     )
+
+
+def _lineas_de_movimientos(movimientos: tuple[CambioSeccion, ...]) -> list[str]:
+    """Una línea por actividad que cambia de sección: se mueve, no se duplica."""
+    return [
+        f"«{texto_seguro(cambio.fichero)}»: se moverá de la sección «{texto_seguro(cambio.origen)}» "
+        f"a «{texto_seguro(cambio.destino)}» (no se duplica)."
+        for cambio in movimientos
+    ]
 
 
 def _documento_corto(doc: DocumentoBreve) -> DocumentoCorto:
@@ -342,6 +357,53 @@ def _documento_corto(doc: DocumentoBreve) -> DocumentoCorto:
             f"(fichero {texto_seguro(doc.fichero)})"
         ),
         lineas=tuple(lineas),
+    )
+
+
+@dataclass(frozen=True)
+class DetalleOrden:
+    """La confirmación de real de ``tiza ordenar``: cada sección con su orden nuevo."""
+
+    curso: str
+    posicion: int
+    total: int
+    encabezado: str
+    secciones: tuple[tuple[str, tuple[str, ...]], ...]  # (título, una línea por actividad)
+    finales: tuple[str, ...]
+
+
+def detalle_orden(resumen: ResumenOrden) -> DetalleOrden:
+    """El orden nuevo de cada sección, con los nombres que tienen las actividades en el aula.
+
+    Es la pantalla del docente: las que no son de tiza salen por su nombre, saneado. Esos
+    nombres no se escriben en ``.tiza``.
+    """
+    secciones = []
+    for seccion in resumen.secciones:
+        lineas = []
+        for numero, actividad in enumerate(seccion.actividades, 1):
+            marca = (
+                f" (fichero {texto_seguro(actividad.fichero)})"
+                if actividad.fichero is not None
+                else ""
+            )
+            lineas.append(
+                f"{numero}. {nombre_llano(actividad.tipo)} «{texto_seguro(actividad.nombre)}»{marca}"
+            )
+        secciones.append((f"Sección «{texto_seguro(seccion.nombre)}»:", tuple(lineas)))
+    finales = [
+        f"AVISO: «{texto_seguro(fichero)}» quedará por encima de «{texto_seguro(dependencia)}», "
+        "que debe completarse antes. El orden en pantalla no cambia las restricciones."
+        for fichero, dependencia in resumen.dependencias
+    ]
+    finales.append("Solo cambia el orden: el contenido, la visibilidad y los intentos no cambian.")
+    return DetalleOrden(
+        curso=describir_curso(resumen.curso, resumen.nombre_curso),
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado=f"Se va a reordenar en el curso REAL {describir_curso(resumen.curso, resumen.nombre_curso)}:",
+        secciones=tuple(secciones),
+        finales=tuple(finales),
     )
 
 
@@ -412,6 +474,17 @@ def _nombres_no_disponibles(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("No se pudo leer la lista de tus cursos; se mostrarán solo los ids."),)
 
 
+def _ordenando_en_pruebas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    lineas = [Linea("El agente pide ordenar en pruebas:")]
+    lineas += [
+        Linea(
+            f"- {nombre_llano(doc.tipo)} «{texto_seguro(doc.nombre)}» (fichero {texto_seguro(doc.fichero)})"
+        )
+        for doc in datos["documentos"]
+    ]
+    return tuple(lineas)
+
+
 def _peticion_retirada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("El agente ya no espera esta petición; no se publica."),)
 
@@ -464,6 +537,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "INFORME_NO_ESCRITO": _informe_no_escrito,
     "MAXIMO_ALCANZADO": _maximo_alcanzado,
     "NOMBRES_NO_DISPONIBLES": _nombres_no_disponibles,
+    "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
     "PETICION_RETIRADA": _peticion_retirada,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,
     "QUEDAN_MINUTOS": _quedan_minutos,

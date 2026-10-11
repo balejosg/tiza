@@ -551,3 +551,40 @@ def test_el_itinerario_se_sanea_al_enseñarse(monkeypatch, capsys):
     )
     terminal.PresenciaTerminal().confirmar_real_sin_pruebas(resumen)
     assert "\x1b" not in capsys.readouterr().out
+
+
+def _resumen_de_orden():
+    return publicacion.ResumenOrden(
+        curso=5678,
+        nombre_curso="Matemáticas 2ºB",
+        secciones=(
+            publicacion.SeccionOrden(
+                "Tema 1\x1b[31m",
+                (
+                    publicacion.ActividadOrden("Foro\x1b[2J de dudas", "foro", None),
+                    publicacion.ActividadOrden("Repaso", "pagina", "repaso.md"),
+                ),
+            ),
+        ),
+        dependencias=(("tarea.md", "repaso.md"),),
+        posicion=1,
+        total=2,
+    )
+
+
+def test_confirmar_orden_ensena_el_orden_saneado_y_pide_confirmar(monkeypatch, capsys):
+    vistos: list = []
+    monkeypatch.setattr(
+        terminal,
+        "confirmar_destino",
+        lambda entorno, curso, nombre=None: vistos.append((entorno, curso, nombre)) or True,
+    )
+    assert terminal.PresenciaTerminal().confirmar_orden(_resumen_de_orden()) is True
+    salida = capsys.readouterr().out
+    assert "Se va a reordenar en el curso REAL" in salida
+    assert "Curso 1 de 2" in salida
+    assert "1. foro «Foro[2J de dudas»" in salida
+    assert "2. Página «Repaso» (fichero repaso.md)" in salida
+    assert "\x1b" not in salida
+    assert "«tarea.md» quedará por encima de «repaso.md»" in salida
+    assert vistos == [("real", 5678, "Matemáticas 2ºB")]

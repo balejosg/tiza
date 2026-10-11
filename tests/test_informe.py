@@ -454,3 +454,26 @@ def test_no_quedan_literales_de_paso_fuera_de_informe():
         if ruta.name != "informe.py" and _LITERAL_PASO.search(ruta.read_text(encoding="utf-8"))
     ]
     assert culpables == []
+
+
+class TestOrdenar:
+    """El informe de ``tiza ordenar``: comando y acciones propias, sin visibilidad."""
+
+    @pytest.mark.parametrize("accion", ["movida", "ordenada", "sin_cambios"])
+    def test_las_acciones_nuevas_valen(self, accion):
+        documento = crear(
+            "ordenar",
+            "ok",
+            [Paso("LOGIN")],
+            [Fichero(nombre="a.md", tipo="pagina", cmid=7, accion=accion, seccion="Tema 1")],
+            [],
+            "pruebas",
+            2,
+        )
+        validar(documento)
+        assert documento["comando"] == "ordenar"
+        assert documento["ficheros"][0]["oculto"] is None
+
+    def test_una_accion_desconocida_no_vale(self):
+        with pytest.raises(ErrorInforme):
+            Fichero(nombre="a.md", tipo="pagina", accion="reordenada")

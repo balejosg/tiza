@@ -20,7 +20,7 @@ from pathlib import Path
 
 from . import mensajes
 from .config import MAX_REALES
-from .publicacion import Aviso, ResumenPublicacion, ResumenSinPruebas
+from .publicacion import Aviso, ResumenOrden, ResumenPublicacion, ResumenSinPruebas
 from .sesion import SIN_PRUEBAS, CursoSesion
 
 __all__ = [
@@ -310,6 +310,18 @@ class PresenciaTerminal:
         for doc in detalle.documentos:
             print(f"  - {doc.titulo}")
             for linea in doc.lineas:
+                print(f"      {linea}")
+        for linea in detalle.finales:
+            print(f"  {linea}")
+        return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
+
+    def confirmar_orden(self, resumen: ResumenOrden) -> bool:
+        detalle = mensajes.detalle_orden(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        print(detalle.encabezado)
+        for titulo, lineas in detalle.secciones:
+            print(f"  {titulo}")
+            for linea in lineas:
                 print(f"      {linea}")
         for linea in detalle.finales:
             print(f"  {linea}")

@@ -624,3 +624,40 @@ def test_la_confirmacion_de_real_lleva_el_itinerario(tmp_path):
     assert pantalla["documentos"][0]["lineas"] == ["fichero t.md"]
     puente.responder(pantalla["numero"], False)
     hilo.join(5)
+
+
+def test_confirmar_orden_pantalla_saneada(tmp_path):
+    ventana, presencia, puente = preparar(tmp_path)
+    resumen = publicacion.ResumenOrden(
+        curso=5678,
+        nombre_curso="Mates",
+        secciones=(
+            publicacion.SeccionOrden(
+                "Tema 1",
+                (
+                    publicacion.ActividadOrden("Foro\x1b", "foro", None),
+                    publicacion.ActividadOrden("Repaso", "pagina", "repaso.md"),
+                ),
+            ),
+        ),
+        posicion=2,
+        total=3,
+    )
+    hilo, resultado = en_hilo(lambda: presencia.confirmar_orden(resumen))
+    pantalla = esperar_pantalla(ventana, "orden")
+    assert (pantalla["posicion"], pantalla["total"]) == (2, 3)
+    [seccion] = pantalla["secciones"]
+    assert seccion["titulo"] == "Sección «Tema 1»:"
+    assert seccion["lineas"][1] == "2. Página «Repaso» (fichero repaso.md)"
+    assert "\x1b" not in "".join(seccion["lineas"])
+    assert puente.responder(pantalla["numero"], True) is True
+    hilo.join(5)
+    assert resultado["valor"] is True
+
+
+def test_la_pagina_sabe_pintar_la_pantalla_de_orden():
+    from tiza.ventana import pagina
+
+    texto = pagina.html()
+    assert "orden: function" in texto
+    assert "innerHTML" not in texto

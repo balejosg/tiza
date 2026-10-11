@@ -23,7 +23,7 @@ from typing import Any
 
 from .. import estado, mensajes, rutas
 from ..config import MAX_REALES
-from ..publicacion import Aviso, ResumenPublicacion, ResumenSinPruebas
+from ..publicacion import Aviso, ResumenOrden, ResumenPublicacion, ResumenSinPruebas
 from ..sesion import SIN_PRUEBAS, CursoSesion
 
 __all__ = ["PresenciaVentana", "Puente", "Ventana"]
@@ -131,6 +131,7 @@ _VALIDAR: dict[str, Callable[[Any, Any], Any]] = {
     "sin_pruebas": _si_o_no,
     "real": _si_o_no,
     "real_sin_pruebas": _si_o_no,
+    "orden": _si_o_no,
     "ampliar": _si_o_no,
     "cerrada": _si_o_no,
 }
@@ -371,6 +372,20 @@ class PresenciaVentana:
             "aviso": detalle.aviso,
             "documentos": [
                 {"titulo": doc.titulo, "lineas": list(doc.lineas)} for doc in detalle.documentos
+            ],
+            "finales": list(detalle.finales),
+        }
+        return self._ventana.preguntar(pantalla) is True
+
+    def confirmar_orden(self, resumen: ResumenOrden) -> bool:
+        detalle = mensajes.detalle_orden(resumen)
+        pantalla = {
+            "tipo": "orden",
+            "curso": detalle.curso,
+            "posicion": detalle.posicion,
+            "total": detalle.total,
+            "secciones": [
+                {"titulo": titulo, "lineas": list(lineas)} for titulo, lineas in detalle.secciones
             ],
             "finales": list(detalle.finales),
         }

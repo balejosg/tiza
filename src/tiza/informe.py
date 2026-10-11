@@ -66,6 +66,8 @@ PASOS = (
             "FORMULAS_NO_DIBUJADAS",
             "LIMPIAR",
             "LOGIN",
+            "MOVER_SECCION",
+            "ORDENAR",
             "PREPARAR",
             "PUBLICAR",
             "SECCION_DISTINTA_ENTRE_CURSOS",

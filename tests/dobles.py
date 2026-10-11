@@ -413,6 +413,7 @@ class PresenciaFalsa:
         self.cursos_vistos: list[list] = []
         self.resumenes: list = []
         self.resumenes_cortos: list = []
+        self.resumenes_orden: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
 
@@ -447,6 +448,10 @@ class PresenciaFalsa:
 
     def confirmar_real_sin_pruebas(self, resumen):
         self.resumenes_cortos.append(resumen)
+        return self._respuesta_real()
+
+    def confirmar_orden(self, resumen):
+        self.resumenes_orden.append(resumen)
         return self._respuesta_real()
 
     def confirmar_sin_pruebas(self):
@@ -495,6 +500,9 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "INFORME_NO_ESCRITO": publicacion.Aviso.informe_no_escrito(),
         "MAXIMO_ALCANZADO": publicacion.Aviso.maximo_alcanzado(8),
         "NOMBRES_NO_DISPONIBLES": publicacion.Aviso.nombres_no_disponibles(),
+        "ORDENANDO_EN_PRUEBAS": publicacion.Aviso.ordenando_en_pruebas(
+            (publicacion.DocumentoBreve("t.md", "pagina", "T"),)
+        ),
         "PETICION_RETIRADA": publicacion.Aviso.peticion_retirada(),
         "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),
         "QUEDAN_MINUTOS": publicacion.Aviso.quedan_minutos(5),

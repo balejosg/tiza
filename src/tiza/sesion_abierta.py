@@ -161,6 +161,21 @@ class SesionAbierta:
                 )
             documentos.append(doc)
         dir_tiza = base / rutas.CARPETA_TRABAJO
+        if comando == "ordenar":
+            documento = publicacion.ordenar_en_cursos(
+                self.aula,
+                self.cfg,
+                documentos,
+                base,
+                self.presencia,
+                entorno=entorno,
+                vigente=lambda: buzon.peticion_pendiente(dir_tiza, peticion["id"]),
+                cupo=self.cupo,
+                avisar_en_pruebas=True,
+                nombres=self.nombres,
+                debug=self.debug,
+            )
+            return registrar(documento, base, self.presencia)
         if entorno == "real":
             documento = publicacion.publicar_en_cursos(
                 self.aula,

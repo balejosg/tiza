@@ -306,3 +306,446 @@ class TestMoverAlCambiarDeSeccion:
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
         moodle2 = self._aula([], [{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
         assert publicar.origen_de_movimiento(moodle2.secciones, doc) is None
+
+
+# --------------------------------------------------------------------------- #
+# La sesión: ordenar en pruebas y en real
+# --------------------------------------------------------------------------- #
+
+from dobles import PresenciaFalsa, dejar_peticion, peticion  # noqa: E402
+from tiza import buzon, config, mensajes, publicacion, sesion_abierta  # noqa: E402
+
+URL = "https://aula.ejemplo.org/centro"
+CFG = config.Config(url=URL, usuario="profe", cursos={"pruebas": 1234}, reales=(5678,))
+CFG_SIN_PRUEBAS = config.Config(
+    url=URL, usuario="profe", cursos={}, reales=(5678,), sin_pruebas=True
+)
+CFG_DOS = config.Config(url=URL, usuario="profe", cursos={"pruebas": 1234}, reales=(101, 102))
+
+
+def carpeta_con(tmp_path, *nombres, restricciones=None):
+    """Una carpeta con una página por nombre (P1.md…), todas en la sección 3."""
+    carpeta = tmp_path / "asignatura"
+    carpeta.mkdir(exist_ok=True)
+    for nombre in nombres:
+        extra = ""
+        if restricciones and nombre in restricciones:
+            extra = f"restricciones: {{completar: [{restricciones[nombre]}.md]}}\n"
+        (carpeta / f"{nombre}.md").write_text(
+            f"---\ntipo: pagina\nnombre: {nombre}\nseccion: 3\n{extra}---\n\nTexto\n",
+            encoding="utf-8",
+        )
+    return carpeta.resolve()
+
+
+def seccion_de(*modulos, id_=30):
+    return [
+        {
+            "numero": 3,
+            "nombre": "Tema 3",
+            "id": id_,
+            "modulos": [
+                {"cmid": cmid, "nombre": nombre, "tipo": tipo} for cmid, nombre, tipo in modulos
+            ],
+        }
+    ]
+
+
+def aula_de_la_sesion(*modulos):
+    """P1, P2 y P3 con un foro entre ellos que no es de tiza."""
+    return MoodleFalso(secciones=seccion_de(*modulos))
+
+
+MODULOS = (
+    (1, "P2", "pagina"),
+    (2, "Foro de dudas", "foro"),
+    (3, "P1", "pagina"),
+    (4, "P3", "pagina"),
+)
+
+
+def pedir(carpeta, entorno, ficheros, **cambios):
+    datos = peticion(entorno, None, comando="ordenar", ficheros=list(ficheros), **cambios)
+    if entorno == "real":
+        dejar_peticion(carpeta, datos)
+    return datos
+
+
+def atender(datos, moodle, cfg, carpeta, presencia, **opciones):
+    return sesion_abierta.SesionAbierta(moodle, cfg, carpeta, presencia, **opciones).atender(datos)
+
+
+def orden_en(moodle, curso=None):
+    secciones = moodle._de(curso)
+    return [[m["cmid"] for m in s["modulos"]] for s in secciones]
+
+
+class TestOrdenarEnLaSesion:
+    def test_pruebas_ordena_avisa_y_gasta_un_cupo(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        moodle = aula_de_la_sesion(*MODULOS)
+        presencia = PresenciaFalsa()
+        sesion = sesion_abierta.SesionAbierta(moodle, CFG, carpeta, presencia)
+        documento = sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md", "P3.md"]))
+        assert documento["comando"] == "ordenar"
+        assert documento["resultado"] == "ok"
+        assert [f["accion"] for f in documento["ficheros"]] == ["ordenada"] * 3
+        assert [f["oculto"] for f in documento["ficheros"]] == [None] * 3
+        assert orden_en(moodle) == [[3, 2, 1, 4]]  # los huecos de P2, P1, P3: 1.º, 3.º y 4.º
+        assert sesion.cupo == {"pruebas": 1}
+        assert presencia.codigos()[0] == "ORDENANDO_EN_PRUEBAS"
+        assert presencia.resumenes_orden == []  # en pruebas no se pregunta
+
+    def test_repetirlo_no_llama_al_aula_y_todo_es_sin_cambios(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        moodle = aula_de_la_sesion(*MODULOS)
+        sesion = sesion_abierta.SesionAbierta(moodle, CFG, carpeta, PresenciaFalsa())
+        sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md", "P3.md"]))
+        moodle.llamadas.clear()
+        documento = sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md", "P3.md"]))
+        assert {f["accion"] for f in documento["ficheros"]} == {"sin_cambios"}
+        assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+    def test_no_exige_verificacion_ni_marca_nada_como_verificado(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        sesion = sesion_abierta.SesionAbierta(
+            aula_de_la_sesion(*MODULOS), CFG, carpeta, PresenciaFalsa()
+        )
+        sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md"]))
+        assert sesion.verificados == {}
+
+    def test_sin_curso_de_pruebas(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        documento = atender(
+            pedir(carpeta, "pruebas", ["P1.md", "P2.md"]),
+            aula_de_la_sesion(*MODULOS),
+            CFG_SIN_PRUEBAS,
+            carpeta,
+            PresenciaFalsa(),
+        )
+        assert documento["errores"] == ["SIN_CURSO_PRUEBAS"]
+
+    def test_el_cupo_se_agota(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        sesion = sesion_abierta.SesionAbierta(
+            aula_de_la_sesion(*MODULOS), CFG, carpeta, PresenciaFalsa()
+        )
+        sesion.cupo["pruebas"] = publicacion.MAX_PUBLICACIONES_PRUEBAS
+        documento = sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md"]))
+        assert documento["errores"] == ["LIMITE_PUBLICACIONES"]
+
+    def test_actividad_ausente_no_mueve_nada(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "Otra")
+        moodle = aula_de_la_sesion(*MODULOS)
+        documento = atender(
+            pedir(carpeta, "pruebas", ["P1.md", "Otra.md"]), moodle, CFG, carpeta, PresenciaFalsa()
+        )
+        assert documento["errores"] == ["ACTIVIDAD_AUSENTE"]
+        assert [p["detalle"] for p in documento["pasos"] if p["codigo"] == "ORDENAR"] == ["Otra.md"]
+        assert orden_en(moodle) == [[1, 2, 3, 4]]
+
+    def test_el_informe_no_lleva_nombres_del_aula(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        atender(
+            pedir(carpeta, "pruebas", ["P1.md", "P2.md"]),
+            aula_de_la_sesion(*MODULOS),
+            CFG,
+            carpeta,
+            PresenciaFalsa(),
+        )
+        assert "Foro de dudas" not in (carpeta / ".tiza" / "informe.json").read_text("utf-8")
+
+
+class TestOrdenarEnReal:
+    def test_ensena_el_orden_nuevo_con_lo_que_no_es_de_tiza_y_ordena_si_confirma(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        moodle = aula_de_la_sesion(*MODULOS)
+        presencia = PresenciaFalsa(real=True)
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md", "P3.md"]),
+            moodle,
+            CFG,
+            carpeta,
+            presencia,
+            nombres={5678: "Mates"},
+        )
+        assert documento["resultado"] == "ok"
+        assert orden_en(moodle) == [[3, 2, 1, 4]]
+        [resumen] = presencia.resumenes_orden
+        assert resumen.nombre_curso == "Mates"
+        [seccion] = resumen.secciones
+        assert [(a.nombre, a.fichero) for a in seccion.actividades] == [
+            ("P1", "P1.md"),
+            ("Foro de dudas", None),
+            ("P2", "P2.md"),
+            ("P3", "P3.md"),
+        ]
+        detalle = mensajes.detalle_orden(resumen)
+        assert any("Foro de dudas" in linea for _, lineas in detalle.secciones for linea in lineas)
+        assert [f["accion"] for f in documento["ficheros"]] == ["ordenada"] * 3
+
+    def test_si_el_docente_dice_que_no_no_se_mueve_nada(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        moodle = aula_de_la_sesion(*MODULOS)
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md"]),
+            moodle,
+            CFG,
+            carpeta,
+            PresenciaFalsa(real=False),
+        )
+        assert documento["resultado"] == "abortado"
+        assert documento["errores"] == ["ABORTADO"]
+        assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+    def test_sin_cambios_no_pregunta(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P2", "P1")
+        presencia = PresenciaFalsa(real=False)
+        documento = atender(
+            pedir(carpeta, "real", ["P2.md", "P1.md"]),
+            aula_de_la_sesion(*MODULOS),
+            CFG,
+            carpeta,
+            presencia,
+        )
+        assert presencia.resumenes_orden == []
+        assert documento["resultado"] == "ok"
+        assert {f["accion"] for f in documento["ficheros"]} == {"sin_cambios"}
+
+    def test_peticion_retirada_tras_confirmar(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        datos = pedir(carpeta, "real", ["P1.md", "P2.md"])
+        ruta = buzon.carpeta_buzon(carpeta / ".tiza") / f"{datos['id']}{buzon.SUFIJO_PETICION}"
+
+        class Retira(PresenciaFalsa):
+            def confirmar_orden(self, resumen):
+                ruta.unlink()
+                return super().confirmar_orden(resumen)
+
+        moodle = aula_de_la_sesion(*MODULOS)
+        documento = atender(datos, moodle, CFG, carpeta, Retira(real=True))
+        assert documento["errores"] == ["PETICION_RETIRADA"]
+        assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+    def test_no_exige_oculto_ni_verificacion_sin_curso_de_pruebas(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        moodle = aula_de_la_sesion(*MODULOS)
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md"]),
+            moodle,
+            CFG_SIN_PRUEBAS,
+            carpeta,
+            PresenciaFalsa(real=True),
+        )
+        assert documento["resultado"] == "ok"
+        assert orden_en(moodle) == [[3, 2, 1, 4]]
+
+    def test_avisa_si_una_actividad_queda_encima_de_la_que_debe_completarse_antes(self, tmp_path):
+        # P2 exige completar P1; ordenar «P2 P1» deja P2 encima de P1.
+        carpeta = carpeta_con(tmp_path, "P1", "P2", restricciones={"P2": "P1"})
+        moodle = aula_de_la_sesion((1, "P1", "pagina"), (2, "P2", "pagina"))
+        presencia = PresenciaFalsa(real=True)
+        atender(pedir(carpeta, "real", ["P2.md", "P1.md"]), moodle, CFG, carpeta, presencia)
+        [resumen] = presencia.resumenes_orden
+        assert resumen.dependencias == (("P2.md", "P1.md"),)
+        assert any("P2.md" in linea for linea in mensajes.detalle_orden(resumen).finales)
+        assert orden_en(moodle) == [[2, 1]]  # el aviso no impide ordenar
+
+    def test_sin_dependencias_invertidas_no_hay_aviso(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", restricciones={"P2": "P1"})
+        moodle = aula_de_la_sesion((2, "P2", "pagina"), (1, "P1", "pagina"))
+        presencia = PresenciaFalsa(real=True)
+        atender(pedir(carpeta, "real", ["P1.md", "P2.md"]), moodle, CFG, carpeta, presencia)
+        assert presencia.resumenes_orden[0].dependencias == ()
+
+
+def aula_con_dos_cursos(segundo=None):
+    primero = seccion_de((1, "P2", "pagina"), (2, "P1", "pagina"))
+    segundo = (
+        segundo if segundo is not None else seccion_de((1, "P2", "pagina"), (2, "P1", "pagina"))
+    )
+    return MoodleFalso(secciones_por_curso={101: primero, 102: segundo})
+
+
+class TestOrdenarEnVariosCursosReales:
+    def test_una_confirmacion_por_curso_y_cada_curso_con_sus_huecos(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        moodle = aula_con_dos_cursos(
+            seccion_de((9, "Foro", "foro"), (1, "P2", "pagina"), (2, "P1", "pagina"))
+        )
+        presencia = PresenciaFalsa(real=(True, True))
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md"]),
+            moodle,
+            CFG_DOS,
+            carpeta,
+            presencia,
+            nombres={101: "1º A", 102: "1º B"},
+        )
+        assert documento["resultado"] == "ok"
+        assert [(r.curso, r.posicion, r.total) for r in presencia.resumenes_orden] == [
+            (101, 1, 2),
+            (102, 2, 2),
+        ]
+        assert orden_en(moodle, 101) == [[2, 1]]
+        assert orden_en(moodle, 102) == [[9, 2, 1]]
+        assert [(f["curso"], f["accion"]) for f in documento["ficheros"]] == [
+            (101, "ordenada")
+        ] * 2 + [(102, "ordenada")] * 2
+        assert documento["curso"] is None
+
+    def test_un_no_omite_ese_curso_y_sigue(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        moodle = aula_con_dos_cursos()
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md"]),
+            moodle,
+            CFG_DOS,
+            carpeta,
+            PresenciaFalsa(real=(False, True)),
+        )
+        assert documento["resultado"] == "ok"
+        assert orden_en(moodle, 101) == [[1, 2]]
+        assert orden_en(moodle, 102) == [[2, 1]]
+        assert ("CURSO_OMITIDO", "101") in [(p["codigo"], p["detalle"]) for p in documento["pasos"]]
+
+    def test_ausente_en_un_curso_falla_antes_de_mover_en_el_y_se_para(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        # En el segundo curso falta P2: el primero ya está hecho, el segundo no se toca.
+        moodle = aula_con_dos_cursos(seccion_de((2, "P1", "pagina")))
+        presencia = PresenciaFalsa(real=(True, True))
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md"]), moodle, CFG_DOS, carpeta, presencia
+        )
+        assert documento["resultado"] == "error"
+        assert documento["errores"] == ["ACTIVIDAD_AUSENTE"]
+        assert orden_en(moodle, 101) == [[2, 1]]
+        assert orden_en(moodle, 102) == [[2]]
+        assert len(presencia.resumenes_orden) == 1  # al segundo ni se le pregunta
+        assert [f["curso"] for f in documento["ficheros"]] == [101, 101]
+
+    def test_ausente_en_el_primero_no_sigue_con_el_segundo(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2")
+        moodle = aula_con_dos_cursos()
+        moodle.secciones_por_curso[101] = seccion_de((2, "P1", "pagina"))
+        presencia = PresenciaFalsa(real=(True, True))
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md"]), moodle, CFG_DOS, carpeta, presencia
+        )
+        assert documento["errores"] == ["ACTIVIDAD_AUSENTE"]
+        assert presencia.resumenes_orden == []
+        assert orden_en(moodle, 102) == [[1, 2]]
+
+
+class TestPublicarMueveDeSeccion:
+    """Lo que el docente ve y lo que ocurre al publicar con ``seccion:`` cambiada."""
+
+    def _aula(self):
+        return MoodleFalso(
+            secciones=[
+                {
+                    "numero": 2,
+                    "nombre": "Tema 2",
+                    "id": 20,
+                    "modulos": [{"cmid": 55, "nombre": "P1", "tipo": "pagina"}],
+                },
+                {"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []},
+            ]
+        )
+
+    def _publicar(self, tmp_path, entorno, cfg, presencia, **cambios):
+        carpeta = carpeta_con(tmp_path, "P1")  # seccion: 3; en el aula está en la 2
+        datos = peticion(entorno, cambios.pop("visible", None), **cambios)
+        datos["ficheros"] = ["P1.md"]
+        if entorno == "real":
+            dejar_peticion(carpeta, datos)
+        moodle = self._aula()
+        verificados = {}
+        if entorno == "real" and "pruebas" in cfg.cursos:
+            from tiza import contenido, estado
+
+            doc = contenido.cargar(carpeta / "P1.md", raiz=carpeta)
+            estado.guardar_verificado(carpeta / ".tiza", contenido.hash_documento(doc), "P1.md", 55)
+            verificados = estado.cargar_verificados(carpeta / ".tiza")
+        documento = atender(datos, moodle, cfg, carpeta, presencia, verificados=verificados)
+        return moodle, documento
+
+    def test_pruebas_mueve_y_dice_movida(self, tmp_path):
+        moodle, documento = self._publicar(
+            tmp_path, "pruebas", CFG, PresenciaFalsa(), visible=False
+        )
+        assert [(f["accion"], f["cmid"]) for f in documento["ficheros"]] == [("movida", 55)]
+        assert orden_en(moodle) == [[], [55]]
+
+    def test_la_confirmacion_de_real_dice_de_donde_a_donde(self, tmp_path):
+        presencia = PresenciaFalsa(real=True)
+        moodle, documento = self._publicar(tmp_path, "real", CFG, presencia)
+        assert documento["resultado"] == "ok"
+        [resumen] = presencia.resumenes
+        assert resumen.movimientos == (publicacion.CambioSeccion("P1.md", "Tema 2", "Tema 3"),)
+        assert any(
+            "de la sección «Tema 2» a «Tema 3»" in f for f in mensajes.detalle_real(resumen).finales
+        )
+        assert orden_en(moodle) == [[], [55]]
+
+    def test_sin_pruebas_la_confirmacion_corta_lo_dice_y_va_oculto(self, tmp_path):
+        presencia = PresenciaFalsa(real=True)
+        moodle, documento = self._publicar(
+            tmp_path, "real", CFG_SIN_PRUEBAS, presencia, visible=False
+        )
+        assert documento["resultado"] == "ok"
+        [corto] = presencia.resumenes_cortos
+        assert corto.movimientos == (publicacion.CambioSeccion("P1.md", "Tema 2", "Tema 3"),)
+        assert any("Tema 2" in f for f in mensajes.detalle_corto(corto).finales)
+        assert moodle.formularios[55]["visible"] == "0"
+
+    def test_sin_pruebas_sigue_exigiendo_oculto(self, tmp_path):
+        _, documento = self._publicar(tmp_path, "real", CFG_SIN_PRUEBAS, PresenciaFalsa(real=True))
+        assert documento["errores"] == ["SOLO_OCULTO_SIN_PRUEBAS"]
+
+    def test_solo_fechas_no_mueve(self, tmp_path):
+        carpeta = tmp_path / "asignatura"
+        carpeta.mkdir()
+        (carpeta / "T.md").write_text(
+            "---\ntipo: tarea\nnombre: T\nseccion: 3\napertura: 2049-01-01\nentrega: 2049-01-02\n---\n\nX\n",
+            encoding="utf-8",
+        )
+        moodle = MoodleFalso(
+            secciones=[
+                {
+                    "numero": 2,
+                    "nombre": "Tema 2",
+                    "id": 20,
+                    "modulos": [{"cmid": 9, "nombre": "T", "tipo": "tarea"}],
+                },
+                {"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []},
+            ]
+        )
+        datos = peticion("pruebas", None, solo_fechas=True, ficheros=["T.md"])
+        documento = atender(datos, moodle, CFG, carpeta.resolve(), PresenciaFalsa())
+        assert documento["errores"] == ["MODULO_AUSENTE"]
+        assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+    def test_varios_candidatos_no_mueve_ni_crea(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1")
+        moodle = MoodleFalso(
+            secciones=[
+                {
+                    "numero": 1,
+                    "nombre": "T1",
+                    "id": 10,
+                    "modulos": [{"cmid": 5, "nombre": "P1", "tipo": "pagina"}],
+                },
+                {
+                    "numero": 2,
+                    "nombre": "T2",
+                    "id": 20,
+                    "modulos": [{"cmid": 6, "nombre": "P1", "tipo": "pagina"}],
+                },
+                {"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []},
+            ]
+        )
+        datos = peticion("pruebas", False, ficheros=["P1.md"])
+        documento = atender(datos, moodle, CFG, carpeta, PresenciaFalsa())
+        assert documento["errores"] == ["ACTIVIDAD_AMBIGUA"]
+        assert not [x for x in moodle.llamadas if x[0] in ("mover", "crear")]

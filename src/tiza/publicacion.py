@@ -44,14 +44,19 @@ __all__ = [
     "AVISOS",
     "Aviso",
     "CAMPO_RECORDATORIO",
+    "ActividadOrden",
     "CambioFecha",
+    "CambioSeccion",
     "DocumentoBreve",
     "DocumentoResumen",
     "MAX_PUBLICACIONES_PRUEBAS",
     "Presencia",
+    "ResumenOrden",
     "ResumenPublicacion",
     "ResumenSinPruebas",
+    "SeccionOrden",
     "cambios_de_fechas",
+    "cambios_de_seccion",
     "cargar_calendario",
     "codigo_solo_fechas",
     "depurar",
@@ -59,10 +64,13 @@ __all__ = [
     "informe_de_cursos",
     "itinerario_de",
     "nombres_de_cursos",
+    "ordenar_con",
+    "ordenar_en_cursos",
     "ordenar_por_dependencias",
     "publicar_con",
     "publicar_en_cursos",
     "puerta_real",
+    "resumen_orden",
     "resumen_solo_fechas",
 ]
 
@@ -84,6 +92,7 @@ AVISOS = frozenset(
         "INFORME_NO_ESCRITO",
         "MAXIMO_ALCANZADO",
         "NOMBRES_NO_DISPONIBLES",
+        "ORDENANDO_EN_PRUEBAS",
         "PETICION_RETIRADA",
         "PUBLICANDO_EN_PRUEBAS",
         "QUEDAN_MINUTOS",
@@ -148,6 +157,10 @@ class Aviso:
     @classmethod
     def nombres_no_disponibles(cls) -> Aviso:
         return cls("NOMBRES_NO_DISPONIBLES")
+
+    @classmethod
+    def ordenando_en_pruebas(cls, documentos: tuple[DocumentoBreve, ...]) -> Aviso:
+        return cls("ORDENANDO_EN_PRUEBAS", {"documentos": documentos})
 
     @classmethod
     def peticion_retirada(cls) -> Aviso:
@@ -254,6 +267,17 @@ class ResumenPublicacion:
     aviso_calendario: str | None = None  # código si calendario.toml no se pudo usar
     posicion: int = 1  # «Curso k de n»: con varios cursos reales, una confirmación por curso
     total: int = 1
+    # Actividades que cambian de sección al cambiar su ``seccion:`` (se mueven, no se duplican).
+    movimientos: tuple[CambioSeccion, ...] = ()
+
+
+@dataclass(frozen=True)
+class CambioSeccion:
+    """Una actividad que ya está en el aula y cambia de sección al publicar."""
+
+    fichero: str
+    origen: str  # nombre de la sección de la que sale (la ve solo el docente)
+    destino: str
 
 
 @dataclass(frozen=True)
@@ -280,6 +304,37 @@ class ResumenSinPruebas:
     nombre_curso: str | None
     documentos: tuple[DocumentoBreve, ...]
     secciones_nuevas: tuple[str, ...]
+    posicion: int = 1
+    total: int = 1
+    movimientos: tuple[CambioSeccion, ...] = ()
+
+
+@dataclass(frozen=True)
+class ActividadOrden:
+    """Una actividad de una sección en su orden nuevo; ``fichero`` es None si no es de tiza."""
+
+    nombre: str
+    tipo: str
+    fichero: str | None = None
+
+
+@dataclass(frozen=True)
+class SeccionOrden:
+    """Una sección cuyo orden cambia, con todas sus actividades como quedarán."""
+
+    nombre: str
+    actividades: tuple[ActividadOrden, ...]
+
+
+@dataclass(frozen=True)
+class ResumenOrden:
+    """Lo que se va a reordenar en real: la presencia lo enseña y el docente decide."""
+
+    curso: int
+    nombre_curso: str | None
+    secciones: tuple[SeccionOrden, ...]
+    # (fichero que queda encima, fichero que debe completarse antes): solo un aviso.
+    dependencias: tuple[tuple[str, str], ...] = ()
     posicion: int = 1
     total: int = 1
 
@@ -345,6 +400,10 @@ class Presencia(Protocol):
 
     def confirmar_real_sin_pruebas(self, resumen: ResumenSinPruebas) -> bool:
         """¿Publicar oculto en real sin curso de pruebas? Una respuesta por petición."""
+        ...
+
+    def confirmar_orden(self, resumen: ResumenOrden) -> bool:
+        """¿Reordenar en real como enseña ``resumen``? Una respuesta por curso."""
         ...
 
     def confirmar_sin_pruebas(self) -> bool:
@@ -879,6 +938,7 @@ def _en_real(
                 secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
                 posicion=posicion,
                 total=total,
+                movimientos=cambios_de_seccion(secciones, documentos),
             )
             confirmado = presencia.confirmar_real_sin_pruebas(corto)
         else:
@@ -899,6 +959,7 @@ def _en_real(
                 aviso_calendario=aviso_calendario,
                 posicion=posicion,
                 total=total,
+                movimientos=cambios_de_seccion(secciones, documentos),
             )
             confirmado = presencia.confirmar_real(resumen)
         if not confirmado:
@@ -919,6 +980,230 @@ def _en_real(
             debug=debug,
             solo_fechas=solo_fechas,
         )
+        registro.append((posicion, curso, documento))
+        if documento["resultado"] != "ok":
+            break
+    return informe_de_cursos(comando, entorno, total, unico, registro)
+
+
+def cambios_de_seccion(
+    secciones: list[dict], documentos: list[Documento]
+) -> tuple[CambioSeccion, ...]:
+    """Las actividades que ``publicar`` movería de sección por haber cambiado su ``seccion:``."""
+    cambios: list[CambioSeccion] = []
+    for doc in documentos:
+        origen = publicar.origen_de_movimiento(secciones, doc)
+        if origen is None:
+            continue
+        destino = estado.buscar_seccion(secciones, doc.seccion)
+        nombre_destino = destino["nombre"] if destino is not None else str(doc.seccion)
+        cambios.append(CambioSeccion(doc.ruta.name, origen, str(nombre_destino)))
+    return tuple(cambios)
+
+
+def _dependencias_invertidas(
+    secciones: list[dict],
+    documentos: list[Documento],
+    base: Path,
+    pedidos: dict[str, int],
+    finales: dict[int, list[int]],
+) -> tuple[tuple[str, str], ...]:
+    """Pares (fichero, dependencia) donde la actividad queda por encima de la que debe completarse antes."""
+    posicion: dict[int, tuple[int, int]] = {}
+    for seccion in secciones:
+        orden = finales.get(seccion["id"]) or [modulo["cmid"] for modulo in seccion["modulos"]]
+        for indice, cmid in enumerate(orden):
+            posicion[cmid] = (seccion["numero"], indice)
+    invertidas: list[tuple[str, str]] = []
+    for doc in documentos:
+        propio = pedidos.get(_relativa(doc.ruta, base))
+        for fichero in doc.restricciones.completar if doc.restricciones else ():
+            dependencia = pedidos.get(fichero)
+            if dependencia is None:
+                try:
+                    modulo = publicar.modulo_de(
+                        secciones, contenido.cargar(base / fichero, raiz=base)
+                    )
+                except ErrorContenido:
+                    continue
+                dependencia = modulo["cmid"] if modulo is not None else None
+            if propio in posicion and dependencia in posicion:
+                assert propio is not None and dependencia is not None
+                if posicion[propio] < posicion[dependencia]:
+                    invertidas.append((doc.ruta.name, fichero))
+    return tuple(invertidas)
+
+
+def resumen_orden(
+    curso: int,
+    nombre_curso: str | None,
+    secciones: list[dict],
+    documentos: list[Documento],
+    base: Path,
+    *,
+    posicion: int = 1,
+    total: int = 1,
+) -> ResumenOrden | None:
+    """Lo que cambiaría ``ordenar`` en este curso, o ``None`` si ya está en el orden pedido.
+
+    Solo lectura. Las actividades que no son de tiza salen con su nombre del aula: es la pantalla
+    del docente y necesita ver dónde queda cada cosa. ``ErrorPublicacion`` si algo no se resuelve
+    (``ACTIVIDAD_AUSENTE``…): se mira antes de mover nada.
+    """
+    grupos = publicar.resolver_orden(secciones, documentos)
+    deseados = [(seccion["id"], [modulo["cmid"] for _, modulo in par]) for seccion, par in grupos]
+    cambiadas = {mov.seccion_id for mov in publicar.plan_de_orden(secciones, deseados)}
+    if not cambiadas:
+        return None
+    pedidos = {
+        _relativa(doc.ruta, base): modulo["cmid"] for _, par in grupos for doc, modulo in par
+    }
+    ficheros_de = {modulo["cmid"]: doc.ruta.name for _, par in grupos for doc, modulo in par}
+    finales: dict[int, list[int]] = {}
+    vistas: list[SeccionOrden] = []
+    for seccion, par in grupos:
+        if seccion["id"] not in cambiadas:
+            continue
+        actual = [modulo["cmid"] for modulo in seccion["modulos"]]
+        final = publicar.orden_final(actual, [modulo["cmid"] for _, modulo in par])
+        finales[seccion["id"]] = final
+        por_cmid = {modulo["cmid"]: modulo for modulo in seccion["modulos"]}
+        vistas.append(
+            SeccionOrden(
+                nombre=str(seccion["nombre"]),
+                actividades=tuple(
+                    ActividadOrden(
+                        nombre=str(por_cmid[cmid].get("nombre") or ""),
+                        tipo=str(por_cmid[cmid].get("tipo") or ""),
+                        fichero=ficheros_de.get(cmid),
+                    )
+                    for cmid in final
+                ),
+            )
+        )
+    return ResumenOrden(
+        curso=curso,
+        nombre_curso=nombre_curso,
+        secciones=tuple(vistas),
+        dependencias=_dependencias_invertidas(secciones, documentos, base, pedidos, finales),
+        posicion=posicion,
+        total=total,
+    )
+
+
+def ordenar_con(
+    aula: AulaVirtual,
+    entorno: str,
+    curso: int,
+    documentos: list[Documento],
+    *,
+    debug: bool = False,
+) -> dict:
+    """Con el aula ya abierta: deja las actividades de ``documentos`` en ese orden y lo verifica."""
+    borrador = informe.Borrador("ordenar", entorno=entorno, curso=curso)
+    borrador.paso("LOGIN")
+    try:
+        secciones = aula.estructura(curso)
+    except ErrorPublicacion as exc:
+        borrador.fallo("ESTRUCTURA", exc.codigo)
+        borrador.error(exc.codigo)
+        depurar(exc, debug)
+        return borrador.documento("error")
+    try:
+        ficheros = publicar.ordenar_documentos(aula, curso, secciones, documentos)
+    except ErrorPublicacion as exc:
+        borrador.fallo("ORDENAR", exc.detalle or None)
+        borrador.error(exc.codigo)
+        depurar(exc, debug)
+        return borrador.documento("error")
+    for fichero in ficheros:
+        borrador.fichero(replace(fichero, curso=curso))
+    borrador.paso("ORDENAR", detalle=f"{len(ficheros)} ficheros")
+    return borrador.documento()
+
+
+def ordenar_en_cursos(
+    aula: AulaVirtual,
+    cfg: Config,
+    documentos: list[Documento],
+    base: Path,
+    presencia: Presencia,
+    *,
+    entorno: str,
+    vigente: Callable[[], bool] | None = None,
+    cupo: dict | None = None,
+    avisar_en_pruebas: bool = False,
+    omitidos: Collection[int] = (),
+    nombres: Mapping[int, str] | None = None,
+    debug: bool = False,
+) -> dict:
+    """Ordena en ``entorno``; mismo reparto de papeles que :func:`publicar_en_cursos`.
+
+    En pruebas gasta 1 del cupo. En real va a todos los cursos reales, con una confirmación por
+    curso y parada en el primer fallo; ordenar no cambia contenido ni visibilidad, así que no
+    pasa por la puerta de pruebas ni exige «oculto» sin curso de pruebas.
+    """
+    comando = "ordenar"
+    if entorno == "pruebas":
+        curso = cfg.cursos.get("pruebas")
+        if curso is None:
+            return informe.crear(comando, "error", [], [], ["SIN_CURSO_PRUEBAS"], entorno)
+        if cupo is not None:
+            if cupo["pruebas"] + 1 > MAX_PUBLICACIONES_PRUEBAS:
+                return informe.crear(
+                    comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso
+                )
+            cupo["pruebas"] += 1
+        if avisar_en_pruebas:
+            presencia.informar(
+                Aviso.ordenando_en_pruebas(
+                    tuple(DocumentoBreve(doc.ruta.name, doc.tipo, doc.nombre) for doc in documentos)
+                )
+            )
+        return ordenar_con(aula, entorno, curso, documentos, debug=debug)
+
+    reales = cfg.reales
+    total = len(reales)
+    unico = reales[0] if total == 1 else None
+    nombres = nombres or {}
+
+    def fallo(codigo: str, curso: int | None = unico) -> dict:
+        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+
+    registro: list[tuple[int, int, dict | None]] = []
+    for posicion, curso in enumerate(reales, 1):
+        if curso in omitidos:
+            registro.append((posicion, curso, None))
+            continue
+        if vigente is not None and posicion > 1 and not vigente():
+            presencia.informar(Aviso.peticion_retirada())
+            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+            break
+        try:
+            secciones = aula.estructura(curso)
+            resumen = resumen_orden(
+                curso,
+                nombres.get(curso),
+                secciones,
+                documentos,
+                base,
+                posicion=posicion,
+                total=total,
+            )
+        except ErrorPublicacion as exc:
+            # Cada curso resuelve lo suyo antes de mover nada en él (ACTIVIDAD_AUSENTE…).
+            registro.append((posicion, curso, fallo(exc.codigo, curso)))
+            break
+        if resumen is not None:
+            if not presencia.confirmar_orden(resumen):
+                registro.append((posicion, curso, None))
+                continue
+            if vigente is not None and not vigente():
+                presencia.informar(Aviso.peticion_retirada())
+                registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+                break
+        # Sin cambios no hay nada que confirmar: se informa de ``sin_cambios`` sin tocar el aula.
+        documento = ordenar_con(aula, entorno, curso, documentos, debug=debug)
         registro.append((posicion, curso, documento))
         if documento["resultado"] != "ok":
             break

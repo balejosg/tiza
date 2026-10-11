@@ -56,6 +56,32 @@ class TestValidarPeticion:
     def test_publicar_valida(self):
         buzon.validar_peticion(peticion_valida())
 
+    def test_ordenar_valida(self):
+        buzon.validar_peticion(peticion_valida(comando="ordenar", visible=None))
+
+    def test_ordenar_exige_entorno_y_ficheros(self):
+        for cambio in ({"entorno": None}, {"ficheros": []}):
+            with pytest.raises(buzon.ErrorBuzon):
+                buzon.validar_peticion(peticion_valida(comando="ordenar", visible=None, **cambio))
+
+    @pytest.mark.parametrize(
+        "cambio", [{"visible": True}, {"visible": False}, {"solo_fechas": True}]
+    )
+    def test_ordenar_no_admite_visible_ni_solo_fechas(self, cambio):
+        datos = peticion_valida(comando="ordenar", visible=None)
+        datos.update(cambio)
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(datos)
+        assert exc.value.codigo == "PETICION_INVALIDA"
+
+    def test_ordenar_admite_hasta_el_maximo_de_ficheros(self):
+        ficheros = [f"p{n}.md" for n in range(buzon.MAX_FICHEROS)]
+        buzon.validar_peticion(peticion_valida(comando="ordenar", visible=None, ficheros=ficheros))
+        with pytest.raises(buzon.ErrorBuzon):
+            buzon.validar_peticion(
+                peticion_valida(comando="ordenar", visible=None, ficheros=[*ficheros, "x.md"])
+            )
+
     def test_estructura_valida(self):
         buzon.validar_peticion(peticion_valida(comando="estructura", ficheros=[], entorno=None))
 
@@ -892,4 +918,4 @@ class TestSoloFechasEnLaPeticion:
         assert exc.value.codigo == "PETICION_INVALIDA"
 
     def test_el_protocolo_sube_con_el_campo(self):
-        assert buzon.VERSION_PROTOCOLO == 4
+        assert buzon.VERSION_PROTOCOLO == 5

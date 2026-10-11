@@ -72,13 +72,13 @@ INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
-VERSION_PROTOCOLO = 4  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
+VERSION_PROTOCOLO = 5  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
 
 _CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible", "solo_fechas"}
 _ID = re.compile(r"\A[0-9a-f]{32}\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _ABSOLUTA = re.compile(r"\A(?:[/\\]|[A-Za-z]:)")
-_COMANDOS = {"publicar", "estructura"}
+_COMANDOS = {"publicar", "estructura", "ordenar"}
 _ENTORNOS = {"pruebas", "real"}
 
 
@@ -236,9 +236,18 @@ def validar_peticion(peticion: Any) -> None:
             raise ErrorBuzon("PETICION_INVALIDA", "estructura no admite solo_fechas")
     else:
         if entorno is None:
-            raise ErrorBuzon("PETICION_INVALIDA", "publicar exige entorno")
+            raise ErrorBuzon("PETICION_INVALIDA", f"{peticion['comando']} exige entorno")
         if not ficheros:
-            raise ErrorBuzon("PETICION_INVALIDA", "publicar exige al menos un fichero")
+            raise ErrorBuzon(
+                "PETICION_INVALIDA", f"{peticion['comando']} exige al menos un fichero"
+            )
+        if peticion["comando"] == "ordenar" and (
+            peticion["visible"] is not None or peticion["solo_fechas"]
+        ):
+            raise ErrorBuzon(
+                "PETICION_INVALIDA",
+                "ordenar no cambia visibilidad ni fechas: sin visible ni solo_fechas",
+            )
         if peticion["solo_fechas"] and peticion["visible"] is not None:
             raise ErrorBuzon(
                 "PETICION_INVALIDA",

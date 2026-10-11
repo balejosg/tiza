@@ -270,6 +270,24 @@ ul { margin: 6px 0; padding-left: 20px; }
       nodos.push(siNo(p, "Publicar oculto", "No publicar", "peligro"));
       return nodos;
     },
+    orden: function (p) {
+      var nodos = [
+        el("h2", null, "¿Reordenar en el curso REAL?"),
+        el("p", null, cabeceraCurso(p))];
+      p.secciones.forEach(function (seccion) {
+        var caja = el("div", "documento");
+        caja.appendChild(el("p", null, seccion.titulo));
+        seccion.lineas.forEach(function (linea) {
+          caja.appendChild(el("p", null, linea));
+        });
+        nodos.push(caja);
+      });
+      (p.finales || []).forEach(function (linea) {
+        nodos.push(el("p", "aviso", linea));
+      });
+      nodos.push(siNo(p, "Reordenar en real", "No reordenar", "peligro"));
+      return nodos;
+    },
     ampliar: function (p) {
       return [
         el("h2", null, "Se ha acabado el tiempo"),
