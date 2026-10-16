@@ -4,6 +4,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Cambia
+- **README más corto y pensado para docentes**: qué puedes pedir, cómo funciona y
+  cómo empezar. El detalle pasa a `docs/guia.md` (comandos y opciones),
+  `docs/formato.md` (formato de los ficheros) y `docs/seguridad.md` (medidas de
+  diseño); la API de biblioteca, a `CONTRIBUTING.md`.
+
 ## 0.22.0 — 2026-10-16
 
 ### Cambia

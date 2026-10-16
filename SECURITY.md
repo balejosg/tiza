@@ -24,7 +24,7 @@ alumnado.
 - Que el agente lea o escriba fuera de la carpeta de la asignatura a través de
   tiza.
 
-El modelo de seguridad y sus límites están en el [README](README.md#medidas-de-diseño)
+El modelo de seguridad y sus límites están en [docs/seguridad.md](docs/seguridad.md)
 y en [docs/proteccion-de-datos.md](docs/proteccion-de-datos.md). Son medidas para
 reducir riesgos, no garantías absolutas.
 

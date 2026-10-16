@@ -84,7 +84,7 @@ en español.
   Lo que se publica es ese árbol validado, serializado con `filtro.serializar`
   (nunca con `str()` de un nodo de texto). Ampliar una lista exige un test que
   cubra el caso hostil en `tests/test_filtro.py` (incluido el de invariante) y
-  cambiar `SKILL.md` y el README. Depende de `html5lib` y `tinycss2`.
+  cambiar `SKILL.md` y `docs/seguridad.md`. Depende de `html5lib` y `tinycss2`.
 - `src/tiza/contenido.py`: Markdown o HTML + frontmatter, recursos locales,
   vista previa y hash del documento; todo offline. Valida lo común (nombre,
   sección, finalización, restricciones) y le pide los campos propios y los
@@ -169,13 +169,16 @@ en español.
 ## Convenciones
 
 - Errores con `ErrorX(codigo, detalle)` y códigos `MAYUSCULAS_CON_GUION`
-  estables: los usan la skill y el README, no los renombres a la ligera.
+  estables: los usan la skill y `docs/`, no los renombres a la ligera.
 - Los tests usan los dobles `MoodleFalso` y `PresenciaFalsa` de `tests/dobles.py` (con
   `peticion`, `dejar_peticion`, `tarea_en`, `aula_con_tarea` y `enlace_simbolico`) y los
   helpers `simular_terminal`, `responder` y `configurar` de `tests/test_cli.py`.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.
+- El README es la portada para docentes: corto y sin detalle técnico. Los
+  comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
+  y las medidas de seguridad en `docs/seguridad.md`.
 - La versión (`0.22.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.

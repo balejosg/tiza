@@ -51,7 +51,7 @@ MENSAJES: dict[str, str] = {
     "FRONTMATTER_INVALIDO": "La cabecera del fichero (entre las líneas ---) tiene un error. Si el nombre lleva dos puntos, ponlo entre comillas.",
     "TIPO_INVALIDO": "En la cabecera, tipo debe ser pagina, tarea, cuestionario, etiqueta o h5p.",
     "CAMPO_FALTANTE": "Falta un campo obligatorio de la cabecera del fichero. Añade el campo que indica el mensaje.",
-    "CAMPO_DESCONOCIDO": "La cabecera lleva un campo que tiza no conoce. Usa solo los campos del tipo de fichero; mira el formato en la skill o el README.",
+    "CAMPO_DESCONOCIDO": "La cabecera lleva un campo que tiza no conoce. Usa solo los campos del tipo de fichero; mira el formato en la skill o en docs/formato.md.",
     "NOMBRE_INVALIDO": "El nombre debe tener entre 1 y 255 caracteres.",
     "SECCION_INVALIDA": "La sección debe ser su nombre (recomendado) o su número en .tiza/estructura.json.",
     "FECHA_INVALIDA": "Escribe las fechas como AAAA-MM-DD o AAAA-MM-DD HH:MM.",
@@ -128,7 +128,7 @@ MENSAJES: dict[str, str] = {
     "CUESTIONARIO_CON_INTENTOS": "El cuestionario ya tiene intentos o empezó uno durante la publicación y no se puede editar. Si necesita cambios, crea otro cuestionario con otro nombre.",
     "VERIFICACION_PREGUNTAS": "El cuestionario se publicó, pero el aula muestra otras preguntas u otro orden. Revísalo en el curso de pruebas y avisa a quien mantiene tiza.",
     # Actividades H5P
-    "ACTIVIDAD_H5P_INVALIDA": "La actividad H5P del fichero no es válida. Revisa el campo que indica el mensaje: las respuestas van entre [[...]], sin «*», «/» ni «:», y los ajustes y las tarjetas deben ser los del formato. Mira el formato en la skill o el README.",
+    "ACTIVIDAD_H5P_INVALIDA": "La actividad H5P del fichero no es válida. Revisa el campo que indica el mensaje: las respuestas van entre [[...]], sin «*», «/» ni «:», y los ajustes y las tarjetas deben ser los del formato. Mira el formato en la skill o en docs/formato.md.",
     "CAMPOS_INCOMPATIBLES": "El fichero lleva campos que no pueden ir juntos. En una actividad H5P usa «actividad» (generada por tiza) o «paquete» (un .h5p de la carpeta), pero no los dos.",
     "PAQUETE_H5P_INVALIDO": "El campo «paquete» debe ser la ruta de un fichero .h5p que esté dentro de la carpeta de la asignatura. Revisa la ruta.",
     "PAQUETE_H5P_DEMASIADO_GRANDE": "El paquete .h5p pesa más de 64 MB. Reduce su tamaño o vuelve a exportarlo desde la herramienta con la que lo hiciste.",

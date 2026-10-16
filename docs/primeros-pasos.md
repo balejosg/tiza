@@ -4,7 +4,7 @@
 actividades H5P y los publique en tu aula virtual. Tú mantienes el control: el
 agente nunca ve tu contraseña y nada llega al curso real sin que lo confirmes.
 
-Esta guía es la versión corta. Los detalles están en el [README](../README.md). Si
+Esta guía es la versión corta. Los detalles están en la [guía de uso](guia.md). Si
 tu centro te pide saber qué hace `tiza` con los datos, pásale
 [proteccion-de-datos.md](proteccion-de-datos.md).
 

@@ -65,6 +65,6 @@ carpetas que vea el agente**.
 
 ## Documentos que enlazan con esto
 
-- [README: medidas de diseño](../README.md#medidas-de-diseño)
+- [Cómo protege tiza tu aula: medidas de diseño](seguridad.md)
 - [Aislamiento del agente](aislamiento.md)
 - [SECURITY.md](../SECURITY.md): cómo avisar de una vulnerabilidad
