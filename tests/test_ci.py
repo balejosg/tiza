@@ -28,3 +28,13 @@ def test_dependabot_vigila_las_acciones_y_las_dependencias():
     for cambio in datos["updates"]:
         assert cambio["directory"] == "/"
         assert cambio["schedule"]["interval"] == "weekly"
+
+
+def test_el_flujo_del_wheel_solo_escribe_en_las_releases():
+    # Solo se dispara al publicar una release y solo su trabajo puede escribir (subir el wheel).
+    flujo = _yaml(".github/workflows/wheel.yml")
+    assert flujo[True] == {"release": {"types": ["published"]}}  # «on» en YAML 1.1 es True
+    assert flujo["permissions"] == {"contents": "read"}
+    assert {n: t.get("permissions") for n, t in flujo["jobs"].items()} == {
+        "wheel": {"contents": "write"}
+    }

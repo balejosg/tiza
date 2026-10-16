@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tiza"
-version = "0.21.0"
+version = "0.22.0"
 license = "MIT"
 license-files = ["LICENSE"]
 description = "CLI y skill para publicar contenidos en tu aula virtual Moodle sin exponer datos del alumnado"
@@ -19,7 +19,7 @@ dependencies = [
     "html5lib>=1.1",  # el filtro valida el árbol que construye un navegador
     "tinycss2>=1.3",  # análisis de los atributos style
     "pyyaml>=6.0",
-    "tzdata>=2024.1",
+    "tzdata>=2024.1; sys_platform == 'win32'",  # zoneinfo: Windows no trae la base de zonas
 ]
 
 [project.scripts]

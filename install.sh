@@ -5,19 +5,21 @@
 # (por ejemplo TIZA_REF=main para la última versión).
 set -eu
 
-REF="${TIZA_REF:-v0.21.0}"
-# Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
-# barra) siguen necesitando git.
+REF="${TIZA_REF:-v0.22.0}"
+# Sin git. Una versión publicada (vX.Y.Z) se instala desde el wheel de su release, que no
+# hay que construir; si aún no está subido, desde el .zip. Una rama o un commit, desde el
+# .zip. Las referencias con «/» (ramas con barra, solo para desarrollo) necesitan git.
+REPO="https://github.com/balejosg/tiza"
 case "$REF" in
-    */*) ORIGEN="git+https://github.com/balejosg/tiza@$REF" ;;
-    *) ORIGEN="https://github.com/balejosg/tiza/archive/$REF.zip" ;;
+    */*) ORIGENES="git+$REPO@$REF" ;;
+    v[0-9]*.[0-9]*.[0-9]*) ORIGENES="$REPO/releases/download/$REF/tiza-${REF#v}-py3-none-any.whl $REPO/archive/$REF.zip" ;;
+    *) ORIGENES="$REPO/archive/$REF.zip" ;;
 esac
-PAQUETE="tiza @ $ORIGEN"
-# En macOS, y en Linux con escritorio, se instala también la ventana de entrada al aula
-# (pywebview; en Linux con Qt). Sin escritorio (un servidor por SSH) no hace falta.
+# En macOS se instala también la ventana de entrada al aula (pywebview). En Linux trae Qt
+# (cientos de MB): solo con TIZA_VENTANA=1; sin ella, la contraseña se pide en la terminal.
 VENTANA=0
 [ "$(uname -s)" = "Darwin" ] && VENTANA=1
-[ "$(uname -s)" = "Linux" ] && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && VENTANA=1
+[ "${TIZA_VENTANA:-0}" = 1 ] && VENTANA=1
 
 if ! command -v uv >/dev/null 2>&1; then
     echo "Instalando uv (gestor de Python)..."
@@ -26,11 +28,21 @@ if ! command -v uv >/dev/null 2>&1; then
     export PATH
 fi
 
-if [ "$VENTANA" = 1 ] && uv tool install --force "tiza[ventana] @ $ORIGEN"; then
-    :
-else
-    [ "$VENTANA" = 1 ] && echo "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
-    uv tool install --force "$PAQUETE"
+INSTALADO=0
+for ORIGEN in $ORIGENES; do
+    if [ "$VENTANA" = 1 ] && uv tool install --force "tiza[ventana] @ $ORIGEN"; then
+        INSTALADO=1
+        break
+    fi
+    if uv tool install --force "tiza @ $ORIGEN"; then
+        [ "$VENTANA" = 1 ] && echo "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
+        INSTALADO=1
+        break
+    fi
+done
+if [ "$INSTALADO" != 1 ]; then
+    echo "No se pudo instalar tiza." >&2
+    exit 1
 fi
 PATH="$(uv tool dir --bin 2>/dev/null || echo "$HOME/.local/bin"):$PATH"
 export PATH

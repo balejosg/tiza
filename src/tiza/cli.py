@@ -34,7 +34,6 @@ from . import (
     sesion,
     sesion_abierta,
     terminal,
-    ventana,
 )
 from .config import ErrorConfig
 from .contenido import ErrorContenido
@@ -398,18 +397,18 @@ def _actualizar() -> int:
 
 def _instalar_version(uv: str, ref: str) -> bool:
     """Instala tiza ``ref`` con uv y reinstala la skill; False (con el error impreso) si falla."""
-    origen = _origen(ref)
+    con_ventana = _quiere_ventana()  # sin el extra, la actualización dejaría sin ventana
     instalado = False
-    if _quiere_ventana():  # sin el extra, la actualización dejaría sin ventana de entrada
-        instalado = (
-            subprocess.run(
-                [uv, "tool", "install", "--force", f"tiza[ventana] @ {origen}"]
-            ).returncode
-            == 0
-        )
-        if not instalado:
-            print("No se pudo instalar la ventana de entrada: se entrará con la contraseña.")
-    if not instalado and subprocess.run([uv, "tool", "install", "--force", origen]).returncode != 0:
+    for origen in _origenes(ref):
+        if con_ventana and _uv_instala(uv, f"tiza[ventana] @ {origen}"):
+            instalado = True
+            break
+        if _uv_instala(uv, f"tiza @ {origen}"):
+            if con_ventana:
+                print("No se pudo instalar la ventana de entrada: se entrará con la contraseña.")
+            instalado = True
+            break
+    if not instalado:
         _imprimir_error("ACTUALIZACION_FALLIDA", "no se pudo actualizar tiza.")
         return False
     # La skill se reinstala con la versión nueva (este proceso aún es la antigua).
@@ -421,12 +420,24 @@ def _instalar_version(uv: str, ref: str) -> bool:
     return True
 
 
-def _origen(ref: str) -> str:
-    """De dónde instala uv ``ref``: el .zip de GitHub, sin git, como los instaladores.
+def _uv_instala(uv: str, paquete: str) -> bool:
+    return subprocess.run([uv, "tool", "install", "--force", paquete]).returncode == 0
 
-    Las referencias con «/» (ramas con barra) no tienen .zip y siguen necesitando git.
+
+def _origenes(ref: str) -> list[str]:
+    """De dónde instala uv ``ref``, en orden, sin git (como los instaladores).
+
+    Una versión publicada (vX.Y.Z) se instala desde el wheel de su release, que no hay que
+    construir; si aún no está subido, desde el .zip. Una rama o un commit, desde el .zip.
+    Las referencias con «/» (ramas con barra, solo para desarrollo) no tienen .zip y
+    necesitan git.
     """
-    return f"git+{REPO_GIT}@{ref}" if "/" in ref else f"{REPO_GIT}/archive/{ref}.zip"
+    if "/" in ref:
+        return [f"git+{REPO_GIT}@{ref}"]
+    zip_ = f"{REPO_GIT}/archive/{ref}.zip"
+    if re.fullmatch(r"v\d+\.\d+\.\d+", ref):
+        return [f"{REPO_GIT}/releases/download/{ref}/tiza-{ref[1:]}-py3-none-any.whl", zip_]
+    return [zip_]
 
 
 def _version_nueva() -> str | None:
@@ -461,12 +472,12 @@ def _ofrecer_actualizacion() -> bool:
 
 
 def _quiere_ventana() -> bool:
-    """Windows y macOS llevan la ventana de entrada; Linux, con escritorio o si ya la tenía."""
-    return (
-        sys.platform in ("win32", "darwin")
-        or _tiene_ventana()
-        or (sys.platform.startswith("linux") and ventana.hay_pantalla())
-    )
+    """Windows y macOS llevan la ventana de entrada; Linux, solo si ya la tenía.
+
+    En Linux la ventana trae Qt (cientos de MB): se instala a propósito, con
+    ``TIZA_VENTANA=1`` en el instalador, y la actualización la conserva.
+    """
+    return sys.platform in ("win32", "darwin") or _tiene_ventana()
 
 
 def _tiene_ventana() -> bool:
@@ -474,48 +485,22 @@ def _tiene_ventana() -> bool:
     return importlib.util.find_spec("webview") is not None
 
 
-_API_ETIQUETAS = "https://api.github.com/repos/balejosg/tiza/tags?per_page=100"
+_ULTIMA_RELEASE = f"{REPO_GIT}/releases/latest"
 
 
 def _ultima_etiqueta() -> str | None:
-    """La etiqueta vX.Y.Z más alta publicada, o None si no se puede saber.
+    """La versión publicada más reciente (vX.Y.Z), o None si no se puede saber.
 
-    Con git, si está; sin él (el instalador de Windows no lo necesita), con la API de GitHub.
+    Sin git ni la API de GitHub (que limita las consultas por IP, y en un centro muchos
+    docentes salen por la misma): la página de la última release redirige a su etiqueta.
     """
-    git = shutil.which("git")
-    if git is not None:
-        try:
-            salida = subprocess.run(
-                [git, "ls-remote", "--tags", "--refs", REPO_GIT],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            return None
-        if salida.returncode != 0:
-            return None
-        nombres: list[object] = [
-            linea.rpartition("refs/tags/")[2] for linea in salida.stdout.splitlines()
-        ]
-    else:
-        try:
-            respuesta = requests.get(_API_ETIQUETAS, timeout=10)
-            respuesta.raise_for_status()
-            datos = respuesta.json()
-        except (requests.RequestException, ValueError):
-            return None
-        if not isinstance(datos, list):
-            return None
-        nombres = [e.get("name") for e in datos if isinstance(e, dict)]
-    versiones = [
-        _numeros(nombre)
-        for nombre in nombres
-        if isinstance(nombre, str) and re.fullmatch(r"v\d+\.\d+\.\d+", nombre)
-    ]
-    if not versiones:
+    try:
+        respuesta = requests.head(_ULTIMA_RELEASE, allow_redirects=False, timeout=10)
+    except requests.RequestException:
         return None
-    return "v" + ".".join(str(n) for n in max(versiones))
+    destino = respuesta.headers.get("Location", "")
+    encontrada = re.search(r"/releases/tag/(v\d+\.\d+\.\d+)\Z", destino)
+    return encontrada.group(1) if encontrada else None
 
 
 def _numeros(etiqueta: str) -> tuple[int, ...]:

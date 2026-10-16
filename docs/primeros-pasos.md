@@ -61,7 +61,7 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
      activar en Ajustes › Proyectos › Sandbox y en qué carpeta debe quedar la
      sesión del agente;
    - **entrar en tu aula**: se abre una ventana con la página de entrada de tu aula
-     (en Windows, macOS y Linux con escritorio). Entra como siempre; tiza no ve tu contraseña. Si no hay
+     (en Windows y macOS; en Linux, si la instalaste con `TIZA_VENTANA=1`). Entra como siempre; tiza no ve tu contraseña. Si no hay
      ventana, te la pide en la terminal (solo aquí, nunca en el chat del agente).
      Si tu aula usa un proveedor de identidad o un segundo factor, entras igual en esa
      ventana; al terminar la sesión, `tiza` cierra tu entrada en el aula;

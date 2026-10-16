@@ -4,6 +4,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.22.0 — 2026-10-16
+
+### Cambia
+- **Instalar y actualizar ya no necesitan `git` ni construir nada.** Cada release lleva su
+  wheel y los instaladores y `tiza actualizar` lo instalan directamente (si aún no está
+  subido, usan el `.zip` de la etiqueta). La última versión se averigua con la redirección
+  de la última release de GitHub, sin `git` ni la API (que limita las consultas por IP).
+- **En Linux la ventana de entrada ya no se instala por defecto**: trae Qt, que ocupa
+  cientos de MB. Para tenerla, ejecuta el instalador con `TIZA_VENTANA=1`; sin ella, la
+  contraseña se pide en la terminal. `tiza actualizar` la conserva si ya la tenías.
+- `tzdata` solo se instala en Windows (macOS y Linux traen la base de zonas horarias).
+
 ## 0.21.0 — 2026-10-16
 
 ### Añadido

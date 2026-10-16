@@ -45,7 +45,7 @@ Son medidas para reducir riesgos, no garantías absolutas. Si tu centro o tu
 Delegación de Protección de Datos te pide un resumen, pásale
 [docs/proteccion-de-datos.md](docs/proteccion-de-datos.md).
 
-- **Sin secretos persistentes**: en Windows, macOS y Linux con escritorio, `tiza` abre una ventana con la
+- **Sin secretos persistentes**: en Windows y macOS (y en Linux, si la instalas), `tiza` abre una ventana con la
   página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
   solo recoge las cookies de sesión del servidor del aula (las de cualquier otro
   dominio, como un proveedor de identidad, se descartan). Sin ventana (sin escritorio,
@@ -195,10 +195,19 @@ La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
 `~/.agents/skills`). Si prefieres leer antes lo que ejecutas, abre
 `install.sh` o `install.ps1` en este repositorio; son unas pocas líneas.
 
-Los instaladores instalan la versión etiquetada `v0.21.0`; con `TIZA_REF=main`
-(o con otra etiqueta) antes de ejecutarlos eliges cuál. Para actualizar,
-`tiza actualizar` instala la última versión publicada (o la de `TIZA_REF`, si
-la defines) y reinstala la skill, sin necesitar `git`. Además, `tiza empezar` te
+Los instaladores instalan la versión etiquetada `v0.22.0`; con `TIZA_REF=main`
+(o con otra etiqueta) antes de ejecutarlos eliges cuál. No necesitan `git`: una
+versión publicada se instala desde el wheel de su release (sin construir nada) y
+una rama o un commit, desde el `.zip` de GitHub. Lo único que se instala aparte es
+[uv](https://docs.astral.sh/uv/), que trae Python si tu equipo no lo tiene.
+
+En Linux la ventana de entrada trae Qt (cientos de MB), así que no se instala por
+defecto: si la quieres, ejecuta el instalador con `TIZA_VENTANA=1` delante
+(`curl … | TIZA_VENTANA=1 sh`). Sin ella, `tiza` te pide la contraseña en la
+terminal.
+
+Para actualizar, `tiza actualizar` instala la última versión publicada (o la de
+`TIZA_REF`, si la defines) y reinstala la skill; conserva la ventana si la tenías. Además, `tiza empezar` te
 avisa cuando hay una versión nueva y te ofrece instalarla. Hasta la
 0.5.1, `tiza actualizar` no salía de la etiqueta instalada: desde esas
 versiones, vuelve a ejecutar el instalador una vez.

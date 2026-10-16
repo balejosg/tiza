@@ -4,13 +4,17 @@
 # (por ejemplo "main" para la última versión).
 $ErrorActionPreference = "Stop"
 
-$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.21.0" }
-# Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
-# barra) siguen necesitando git.
-$origen = if ($ref -match "/") {
-    "git+https://github.com/balejosg/tiza@$ref"
+$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.22.0" }
+# Sin git. Una versión publicada (vX.Y.Z) se instala desde el wheel de su release, que no
+# hay que construir; si aún no está subido, desde el .zip. Una rama o un commit, desde el
+# .zip. Las referencias con «/» (ramas con barra, solo para desarrollo) necesitan git.
+$repo = "https://github.com/balejosg/tiza"
+$origenes = if ($ref -match "/") {
+    @("git+$repo@$ref")
+} elseif ($ref -match "^v\d+\.\d+\.\d+$") {
+    @("$repo/releases/download/$ref/tiza-$($ref.Substring(1))-py3-none-any.whl", "$repo/archive/$ref.zip")
 } else {
-    "https://github.com/balejosg/tiza/archive/$ref.zip"
+    @("$repo/archive/$ref.zip")
 }
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
@@ -33,14 +37,20 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     }
 }
 
-# Se instala también la ventana de entrada al aula (pywebview); si falla, tiza se instala
-# sin ella y el docente entra con la contraseña en la terminal.
-uv tool install --force "tiza[ventana] @ $origen"
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
+# Se instala también la ventana de entrada al aula (pywebview, sobre el WebView2 de
+# Windows); si falla, tiza se instala sin ella y el docente entra con la contraseña en la terminal.
+$instalado = $false
+foreach ($origen in $origenes) {
+    uv tool install --force "tiza[ventana] @ $origen"
+    if ($LASTEXITCODE -eq 0) { $instalado = $true; break }
     uv tool install --force "tiza @ $origen"
-    if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar tiza." }
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
+        $instalado = $true
+        break
+    }
 }
+if (-not $instalado) { throw "No se pudo instalar tiza." }
 $env:Path = "$(uv tool dir --bin);$env:Path"
 
 tiza instalar-skill

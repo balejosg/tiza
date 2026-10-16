@@ -44,6 +44,8 @@ en español.
   más prueba de `install.sh`/`install.ps1`. Mantén el código portable (pathlib,
   sin señales POSIX) y sin red en los tests. El job `calidad` del CI pasa además
   ruff, mypy y una cobertura mínima del 80 %.
+  Al publicar una release, `.github/workflows/wheel.yml` le sube su wheel, que es
+  lo que instalan los instaladores y `tiza actualizar` (con el `.zip` de respaldo).
 
 ## Dónde tocar
 
@@ -174,7 +176,7 @@ en español.
 - Las reglas están duplicadas en `src/tiza/skill/tiza/SKILL.md` (la skill
   que se instala en los agentes), `INSTALAR_CON_AGENTE.md` y
   `docs/aislamiento.md`: si cambias una, cambia las demás.
-- La versión (`0.21.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.22.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con
