@@ -60,7 +60,9 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
      sesión del agente;
    - **entrar en tu aula**: se abre una ventana con la página de entrada de tu aula
      (en Windows y macOS). Entra como siempre; tiza no ve tu contraseña. Si no hay
-     ventana, te la pide en la terminal (solo aquí, nunca en el chat del agente);
+     ventana, te la pide en la terminal (solo aquí, nunca en el chat del agente).
+     Si tu aula usa un proveedor de identidad o un segundo factor, entras igual en esa
+     ventana; al terminar la sesión, `tiza` cierra tu entrada en el aula;
    - cuál es tu curso real y, si lo tienes, el de pruebas, por su nombre (puedes
      elegir «No tengo curso de pruebas»: entonces en real solo se publicará
      oculto y la sesión te lo recordará y pedirá confirmarlo cada vez que la

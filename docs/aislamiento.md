@@ -9,7 +9,9 @@ al agente:
   `tiza aislar` y `tiza actualizar` se niegan si no hay terminal interactiva
   (y `actualizar` pide confirmación con la versión que va a instalar);
   la ventana de entrada (`python -m tiza.ventana`) exige además una terminal delante y
-  es otro proceso con su propia ventana, que el agente no puede pulsar;
+  es otro proceso con su propia ventana, que el agente no puede pulsar. La cookie de
+  sesión solo viaja del hijo a `tiza` por una tubería en memoria (nunca a un fichero) y,
+  al terminar, `tiza` cierra la sesión en el aula;
 - el agente publica solo a través del buzón `.tiza/buzon/` mientras tengas
   `tiza sesion` abierta; el proceso del agente no usa red ni sockets;
 - la contraseña y las cookies solo salen hacia el servidor del aula que

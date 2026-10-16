@@ -51,8 +51,17 @@ Delegación de Protección de Datos te pide un resumen, pásale
   dominio, como un proveedor de identidad, se descartan). Sin ventana (Linux, sin
   WebView2 o con `--sin-ventana`), la contraseña se pide con `getpass` una vez. En
   ningún caso hay variable de entorno, opción ni fichero que la acepte, y la sesión
-  vive en memoria y se descarta al cerrar `tiza sesion`. La ventana solo la abre
+  vive en memoria y se descarta al cerrar `tiza sesion`; además, al terminar `tiza`
+  cierra la sesión en el aula, así que la cookie deja de valer. La ventana solo la abre
   `tiza` con una terminal delante: un agente sin terminal no puede lanzarla.
+- **Aulas con SSO o doble factor**: como el login ocurre en la página real de tu aula,
+  sirve cualquier forma de entrar que tu aula admita en el navegador (proveedor de
+  identidad, código de una app…). Medido con contraseña y con el código TOTP de Moodle
+  en Windows; un SSO real y macOS no se han probado todavía. Si tu aula te pide registrar
+  el segundo factor, hazlo antes en tu navegador de siempre: la ventana de `tiza` solo
+  cubre la entrada con el factor ya registrado. La ventana se da por terminada al llegar
+  a «Área personal» o «Mis cursos»; si tu aula te lleva antes a una página obligatoria
+  (política de uso, completar el perfil), acéptala en el navegador una vez.
 - **Presencia humana**: el agente solo publica mientras el docente mantiene
   abierta `tiza sesion` en esa carpeta; la sesión caduca sola (se puede ampliar
   respondiendo en la terminal, hasta 8 horas) y puede cerrarse
@@ -182,7 +191,7 @@ La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
 `~/.agents/skills`). Si prefieres leer antes lo que ejecutas, abre
 `install.sh` o `install.ps1` en este repositorio; son unas pocas líneas.
 
-Los instaladores instalan la versión etiquetada `v0.20.0`; con `TIZA_REF=main`
+Los instaladores instalan la versión etiquetada `v0.20.1`; con `TIZA_REF=main`
 (o con otra etiqueta) antes de ejecutarlos eliges cuál. Para actualizar,
 `tiza actualizar` instala la última versión publicada (o la de `TIZA_REF`, si
 la defines) y reinstala la skill; para ello necesita `git`. Hasta la

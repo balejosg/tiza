@@ -4,6 +4,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.20.1 — 2026-10-16
+
+### Corregido
+- La ventana de entrada ahora se abre: el hijo exigía una terminal en stderr y `tiza` se la
+  quitaba al capturarla, así que siempre caía a pedir la contraseña.
+- La ventana se da por terminada en `/my` y todo lo que cuelga de él (con el panel
+  desactivado, Moodle vuelve a `/my/courses.php`) en vez de esperar hasta el límite.
+- Se aceptan las cookies del dominio padre del aula (`sessioncookiedomain`), por
+  coincidencia de dominio; la tubería lleva el dominio de cada cookie.
+- El resultado de la ventana va por un canal propio: lo que escriban pywebview o el motor ya
+  no lo estropea. El título de la ventana enseña el servidor que se está viendo.
+
+### Añadido
+- Al terminar, `tiza` cierra la sesión del aula (`Moodle.cerrar`, `publicar.cerrar_aula`,
+  `publicar.sesion_del_aula`): la cookie deja de valer. Vale con contraseña y con ventana,
+  en `tiza sesion` y en `estructura`, `publicar`, `ordenar` y `autoprueba` directos.
+
 ## 0.20.0 — 2026-10-11
 
 ### Cambia
