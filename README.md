@@ -52,7 +52,9 @@ Delegación de Protección de Datos te pide un resumen, pásale
   WebView2 o con `--sin-ventana`), la contraseña se pide con `getpass` una vez. En
   ningún caso hay variable de entorno, opción ni fichero que la acepte, y la sesión
   vive en memoria y se descarta al cerrar `tiza sesion`; además, al terminar `tiza`
-  cierra la sesión en el aula, así que la cookie deja de valer. La ventana solo la abre
+  cierra la sesión en el aula, así que la cookie deja de valer (cierra la sesión con Ctrl+C: si cierras
+  la consola con la X, `tiza` no llega a limpiar y la sesión del aula sigue abierta hasta que
+  caduque). La ventana solo la abre
   `tiza` con una terminal delante: un agente sin terminal no puede lanzarla.
 - **Aulas con SSO o doble factor**: como el login ocurre en la página real de tu aula,
   sirve cualquier forma de entrar que tu aula admita en el navegador (proveedor de
