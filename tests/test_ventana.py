@@ -355,7 +355,8 @@ class TestEjecutarHijo:
         assert falsa.destruida and falsa.cookies_borradas
         assert "secreto" not in salida
 
-    def test_ventana_privada_sin_js_api_y_en_el_panel(self):
+    def test_ventana_privada_sin_js_api_y_en_el_panel(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "darwin")
         _, webview, _, _ = self._ejecutar([f"{AULA}/my/"], [])
         titulo, url, opciones = webview.creada
         assert url == f"{AULA}/my/" and "aula.example.org" in titulo
@@ -371,6 +372,31 @@ class TestEjecutarHijo:
             "Entrar en idp.example.org",
             "Entrar en aula.example.org",
         ]
+
+    def test_en_linux_sin_gtk_va_directo_a_qt(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(
+            ventana.importlib.util, "find_spec", lambda nombre: None if nombre == "gi" else object()
+        )
+        _, webview, _, _ = self._ejecutar([f"{AULA}/my/"], [])
+        assert webview.arrancado == {"private_mode": True, "gui": "qt"}
+
+    def test_en_linux_con_gtk_deja_elegir_a_pywebview(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(ventana.importlib.util, "find_spec", lambda nombre: object())
+        _, webview, _, _ = self._ejecutar([f"{AULA}/my/"], [])
+        assert webview.arrancado == {"private_mode": True}
+
+    def test_si_el_motor_falla_la_terminal_pide_la_contrasena(self, capsys):
+        class SinMotor(_WebviewFalso):
+            def start(self, **opciones):
+                raise RuntimeError("GTK cannot be loaded")
+
+        webview = SinMotor(_VentanaFalsa([], []))
+        canal = io.StringIO()
+        assert ventana.ejecutar_hijo(AULA, webview=webview, canal=canal) == ventana.SALIDA_SIN_MOTOR
+        assert canal.getvalue() == ""
+        assert "No se pudo abrir la ventana (RuntimeError)" in capsys.readouterr().err
 
     def test_cerrada_sin_entrar_no_devuelve_cookies(self):
         codigo, _, falsa, salida = self._ejecutar([f"{AULA}/login/index.php"], [])
@@ -409,10 +435,6 @@ class TestCanalPropio:
 
 
 class TestDisponible:
-    def test_nunca_en_linux(self, monkeypatch):
-        monkeypatch.setattr(sys, "platform", "linux")
-        assert disponible_de_verdad() is False
-
     def test_hace_falta_el_extra(self, monkeypatch):
         monkeypatch.setattr(sys, "platform", "darwin")
         monkeypatch.setattr(ventana.importlib.util, "find_spec", lambda nombre: None)
@@ -427,6 +449,53 @@ class TestDisponible:
         assert disponible_de_verdad() is False
         monkeypatch.setattr(ventana.webview2, "instalado", lambda: True)
         assert disponible_de_verdad() is True
+
+    def test_otros_sistemas_no(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "freebsd14")
+        monkeypatch.setattr(ventana.importlib.util, "find_spec", lambda nombre: object())
+        assert disponible_de_verdad() is False
+
+
+class TestDisponibleEnLinux:
+    @pytest.fixture
+    def linux(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.delenv("DISPLAY", raising=False)
+        monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+
+        def instalados(*nombres):
+            monkeypatch.setattr(
+                ventana.importlib.util,
+                "find_spec",
+                lambda nombre: object() if nombre in nombres else None,
+            )
+
+        return instalados
+
+    def test_con_escritorio_y_qt(self, linux, monkeypatch):
+        linux("webview", "qtpy")
+        monkeypatch.setenv("DISPLAY", ":0")
+        assert disponible_de_verdad() is True
+
+    def test_con_wayland_y_gtk(self, linux, monkeypatch):
+        linux("webview", "gi")
+        monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-0")
+        assert disponible_de_verdad() is True
+
+    def test_sin_escritorio_no_hay_ventana(self, linux):
+        linux("webview", "qtpy", "gi")  # p. ej. una sesión por SSH
+        assert disponible_de_verdad() is False
+        assert ventana.hay_pantalla() is False
+
+    def test_sin_motor_no_hay_ventana(self, linux, monkeypatch):
+        linux("webview")
+        monkeypatch.setenv("DISPLAY", ":0")
+        assert disponible_de_verdad() is False
+
+    def test_sin_el_extra_no_hay_ventana(self, linux, monkeypatch):
+        linux("qtpy")
+        monkeypatch.setenv("DISPLAY", ":0")
+        assert disponible_de_verdad() is False
 
 
 class TestAcreditarEnLaTerminal:

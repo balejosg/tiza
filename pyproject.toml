@@ -27,7 +27,10 @@ tiza = "tiza.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
-ventana = ["pywebview>=6.2,<7"]  # ventana de entrada al aula (Windows y macOS); en Windows usa WebView2
+ventana = [
+    "pywebview>=6.2,<7",
+    "pywebview[qt]>=6.2,<7; sys_platform == 'linux'",
+]  # ventana de entrada al aula; en Windows usa WebView2 y en Linux, Qt
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tiza"]

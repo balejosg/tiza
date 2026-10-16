@@ -32,6 +32,7 @@ from . import (
     sesion,
     sesion_abierta,
     terminal,
+    ventana,
 )
 from .config import ErrorConfig
 from .contenido import ErrorContenido
@@ -421,8 +422,12 @@ def _actualizar() -> int:
 
 
 def _quiere_ventana() -> bool:
-    """Windows y macOS llevan la ventana de entrada; en Linux solo si ya la tenían."""
-    return sys.platform in ("win32", "darwin") or _tiene_ventana()
+    """Windows y macOS llevan la ventana de entrada; Linux, con escritorio o si ya la tenía."""
+    return (
+        sys.platform in ("win32", "darwin")
+        or _tiene_ventana()
+        or (sys.platform.startswith("linux") and ventana.hay_pantalla())
+    )
 
 
 def _tiene_ventana() -> bool:

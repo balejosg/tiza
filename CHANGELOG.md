@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.20.2 — 2026-10-16
+
+### Cambia
+- En **Linux con escritorio** la entrada al aula también es una ventana (Qt, o GTK si ya
+  está), no solo en Windows y macOS. Si no hay escritorio (una sesión por SSH), no hay
+  motor o la ventana falla, `tiza` sigue pidiendo la contraseña en la terminal.
+- El extra `ventana` trae `pywebview[qt]` en Linux. Los instaladores y `tiza actualizar`
+  lo instalan en Linux solo si hay escritorio (`DISPLAY` o `WAYLAND_DISPLAY`); en un
+  servidor sin pantalla no se descarga Qt.
+
+### Medido
+- Con Qt sin pantalla (`QT_QPA_PLATFORM=offscreen`) contra un Moodle 4.5 de pruebas:
+  `get_cookies()` devuelve `MoodleSession` con `HttpOnly`, la cookie abre `/my/` y el cierre
+  de sesión la mata. Sin probar: una pantalla real y GTK.
+
 ## 0.20.1 — 2026-10-16
 
 ### Corregido

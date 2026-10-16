@@ -4,6 +4,9 @@ La contraseña se escribe en la página del aula, no en tiza: tiza solo ve las c
 sesión del servidor del aula, que el hijo devuelve por su salida estándar. Es del docente,
 como ``tiza sesion``: ningún agente la ejecuta (el hijo exige una terminal delante).
 
+Funciona en Windows (WebView2), macOS y Linux con escritorio (Qt o GTK); si no hay ventana
+posible, ``tiza`` pide la contraseña en la terminal.
+
 El padre (``entrar``) lanza ``python -m tiza.ventana <url>``; solo el hijo importa pywebview.
 """
 
@@ -34,13 +37,31 @@ class ErrorVentana(Exception):
         self.detalle = detalle
 
 
+def hay_pantalla() -> bool:
+    """¿Hay un escritorio gráfico en Linux? (X11 o Wayland; una sesión por SSH no lo tiene)."""
+    return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+
+
+def _motor_linux() -> bool:
+    """¿Hay un motor de ventanas para pywebview en Linux? Qt (extra ``ventana``) o GTK."""
+    return any(importlib.util.find_spec(modulo) is not None for modulo in ("qtpy", "gi"))
+
+
 def disponible() -> bool:
-    """¿Hay ventana en este sistema? Windows (con WebView2) y macOS, con el extra instalado."""
-    if sys.platform not in ("win32", "darwin"):
-        return False
+    """¿Hay ventana en este sistema?
+
+    Windows (con WebView2), macOS y Linux con escritorio y un motor (Qt o GTK), con el extra
+    instalado. Si algo de esto falla al abrirla, ``tiza`` entra con la contraseña en la terminal.
+    """
     if importlib.util.find_spec("webview") is None:
         return False
-    return sys.platform != "win32" or webview2.instalado()
+    if sys.platform == "win32":
+        return webview2.instalado()
+    if sys.platform == "darwin":
+        return True
+    if sys.platform.startswith("linux"):
+        return hay_pantalla() and _motor_linux()
+    return False
 
 
 def entrar(
@@ -116,7 +137,16 @@ def ejecutar_hijo(url: str, *, webview: Any = None, canal: TextIO | None = None)
         web.destroy()
 
     web.events.loaded += cargada
-    webview.start(private_mode=True)
+    opciones: dict[str, Any] = {"private_mode": True}
+    if sys.platform.startswith("linux") and importlib.util.find_spec("gi") is None:
+        opciones["gui"] = (
+            "qt"  # sin GTK, directo a Qt: pywebview no ensucia la terminal probando GTK
+        )
+    try:
+        webview.start(**opciones)
+    except Exception as exc:  # noqa: BLE001 - sin motor o sin pantalla: tiza pide la contraseña
+        print(f"No se pudo abrir la ventana ({type(exc).__name__}).", file=sys.stderr)
+        return SALIDA_SIN_MOTOR
     if sys.platform == "win32" and webview.renderer != "edgechromium":
         return SALIDA_SIN_MOTOR
     salida = canal if canal is not None else sys.stdout

@@ -684,6 +684,7 @@ class TestActualizar:
         # Sin ventana, como en Linux: en Windows y macOS «actualizar» instala también el extra
         # (lo prueban los tests de win32 y darwin, que fijan su propia plataforma).
         monkeypatch.setattr(cli.sys, "platform", "linux")
+        monkeypatch.setattr(cli.ventana, "hay_pantalla", lambda: False)
         # «actualizar» es del docente: hace falta terminal y se confirma. No se sustituye
         # sys.stdout, para que capsys siga viendo la salida.
         monkeypatch.setattr(cli.terminal, "exigir_tty", lambda: None)
@@ -716,6 +717,17 @@ class TestActualizar:
             "--force",
             f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0",
         ]
+
+    def test_en_linux_con_escritorio_lleva_la_ventana_aunque_no_estuviera(
+        self, ejecutadas, monkeypatch
+    ):
+        monkeypatch.setattr(cli.ventana, "hay_pantalla", lambda: True)
+        assert cli.main(["actualizar"]) == 0
+        assert ejecutadas[1][-1] == f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0"
+
+    def test_en_linux_sin_escritorio_no_instala_la_ventana(self, ejecutadas):
+        assert cli.main(["actualizar"]) == 0
+        assert ejecutadas[1][-1] == f"git+{cli.REPO_GIT}@v0.10.0"
 
     @pytest.mark.parametrize("sistema", ["win32", "darwin"])
     def test_en_windows_y_macos_lleva_la_ventana_aunque_no_estuviera(

@@ -13,9 +13,11 @@ case "$REF" in
     *) ORIGEN="https://github.com/balejosg/tiza/archive/$REF.zip" ;;
 esac
 PAQUETE="tiza @ $ORIGEN"
-# En macOS se instala también la ventana de entrada al aula (pywebview); en Linux no hay.
+# En macOS, y en Linux con escritorio, se instala también la ventana de entrada al aula
+# (pywebview; en Linux con Qt). Sin escritorio (un servidor por SSH) no hace falta.
 VENTANA=0
 [ "$(uname -s)" = "Darwin" ] && VENTANA=1
+[ "$(uname -s)" = "Linux" ] && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && VENTANA=1
 
 if ! command -v uv >/dev/null 2>&1; then
     echo "Instalando uv (gestor de Python)..."

@@ -45,11 +45,12 @@ Son medidas para reducir riesgos, no garantías absolutas. Si tu centro o tu
 Delegación de Protección de Datos te pide un resumen, pásale
 [docs/proteccion-de-datos.md](docs/proteccion-de-datos.md).
 
-- **Sin secretos persistentes**: en Windows y macOS, `tiza` abre una ventana con la
+- **Sin secretos persistentes**: en Windows, macOS y Linux con escritorio, `tiza` abre una ventana con la
   página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
   solo recoge las cookies de sesión del servidor del aula (las de cualquier otro
-  dominio, como un proveedor de identidad, se descartan). Sin ventana (Linux, sin
-  WebView2 o con `--sin-ventana`), la contraseña se pide con `getpass` una vez. En
+  dominio, como un proveedor de identidad, se descartan). Sin ventana (sin escritorio,
+  como en una sesión por SSH; sin WebView2 en Windows; sin motor en Linux; con
+  `--sin-ventana`; o si la ventana falla), la contraseña se pide con `getpass` una vez. En
   ningún caso hay variable de entorno, opción ni fichero que la acepte, y la sesión
   vive en memoria y se descarta al cerrar `tiza sesion`; además, al terminar `tiza`
   cierra la sesión en el aula, así que la cookie deja de valer (cierra la sesión con Ctrl+C: si cierras
@@ -59,7 +60,8 @@ Delegación de Protección de Datos te pide un resumen, pásale
 - **Aulas con SSO o doble factor**: como el login ocurre en la página real de tu aula,
   sirve cualquier forma de entrar que tu aula admita en el navegador (proveedor de
   identidad, código de una app…). Medido con contraseña y con el código TOTP de Moodle
-  en Windows; un SSO real y macOS no se han probado todavía. Si tu aula te pide registrar
+  en Windows, y con contraseña en Linux (Qt, sin pantalla); un SSO real, macOS y Linux con
+  GTK o con pantalla real no se han probado todavía. Si tu aula te pide registrar
   el segundo factor, hazlo antes en tu navegador de siempre: la ventana de `tiza` solo
   cubre la entrada con el factor ya registrado. La ventana se da por terminada al llegar
   a «Área personal» o «Mis cursos»; si tu aula te lleva antes a una página obligatoria

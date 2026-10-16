@@ -150,7 +150,7 @@ en español.
   TTY, `getpass`, confirmación `[s/N]`, con el texto de `mensajes`); `cli.instalar_skill`
   copia la skill a Claude Code, Codex, opencode y `~/.agents/skills`.
 - `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
-  Windows y macOS). **Solo enseña la página de login del aula y devuelve las cookies de
+  Windows, macOS y Linux con escritorio, con Qt o GTK). **Solo enseña la página de login del aula y devuelve las cookies de
   sesión del servidor del aula**: nada más pasa por ella (cursos, aislamiento y
   confirmaciones siguen en la terminal). `entrada.py` no importa pywebview y es lo que se
   prueba (cuándo se está dentro, qué cookies se aceptan, esquema y límites de la tubería);
