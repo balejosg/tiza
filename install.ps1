@@ -4,7 +4,7 @@
 # (por ejemplo "main" para la última versión).
 $ErrorActionPreference = "Stop"
 
-$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.20.1" }
+$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.20.2" }
 # Sin git: se descarga el .zip de GitHub. Las referencias con «/» (ramas con
 # barra) siguen necesitando git.
 $origen = if ($ref -match "/") {
