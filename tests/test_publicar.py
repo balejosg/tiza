@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import types
+import urllib.request
 
 import pytest
 import requests
@@ -2836,7 +2837,9 @@ class TestAutenticacionConCookies:
     def test_entra_con_las_cookies_y_sin_contrasena(self, monkeypatch):
         sesion = _SesionDeCookies(None, "sesskey")
         _auth_con_sesion(monkeypatch, sesion)
-        aula = publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "abc"})
+        aula = publicar.autenticar_con_cookies(
+            self.URL, [("MoodleSession", "abc", "aula.example.org")]
+        )
         assert aula.sesskey == "clave"
         assert sesion.pedidas == [f"{self.URL}/my/"]
         galleta = next(iter(sesion.cookies))
@@ -2847,17 +2850,45 @@ class TestAutenticacionConCookies:
         )
         assert sesion.webservice_token is None and sesion.sesskey == "clave"
 
+    def test_la_cookie_del_dominio_padre_llega_al_aula_y_a_nadie_mas(self, monkeypatch):
+        sesion = _SesionDeCookies(None, "sesskey")
+        _auth_con_sesion(monkeypatch, sesion)
+        publicar.autenticar_con_cookies(
+            self.URL,
+            [
+                ("MoodleSession", "abc", "example.org"),
+                ("afinidad", "x", "aula.example.org"),
+                ("idp", "y", "idp.example.org"),
+                ("ajena", "z", "malexample.org"),
+            ],
+        )
+        enviadas = {}
+        for destino in ("https://aula.example.org/centro/", "https://otra.example.org/"):
+            peticion = urllib.request.Request(destino)
+            sesion.cookies.add_cookie_header(peticion)
+            enviadas[destino] = peticion.get_header("Cookie", "")
+        assert sorted(enviadas["https://aula.example.org/centro/"].split("; ")) == [
+            "MoodleSession=abc",
+            "afinidad=x",
+        ]
+        assert enviadas["https://otra.example.org/"] == "MoodleSession=abc"  # el dominio padre
+        assert "idp" not in str(enviadas) and "ajena" not in str(enviadas)
+
     def test_si_el_aula_redirige_al_login_no_hay_sesion(self, monkeypatch):
         sesion = _SesionDeCookies(f"{self.URL}/login/index.php", "sesskey")
         _auth_con_sesion(monkeypatch, sesion)
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "caducada"})
+            publicar.autenticar_con_cookies(
+                self.URL, [("MoodleSession", "caducada", "aula.example.org")]
+            )
         assert exc.value.codigo == "SESION_NO_INICIADA"
 
     def test_sin_sesskey(self, monkeypatch):
         _auth_con_sesion(monkeypatch, _SesionDeCookies(None, "nada"))
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "abc"})
+            publicar.autenticar_con_cookies(
+                self.URL, [("MoodleSession", "abc", "aula.example.org")]
+            )
         assert exc.value.codigo == "SESION_SIN_SESSKEY"
 
     def test_la_guardia_de_destino_sigue_montada(self, monkeypatch):
@@ -2874,7 +2905,9 @@ class TestAutenticacionConCookies:
 
         _auth_con_sesion(monkeypatch, Sesion(None, ""))
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.autenticar_con_cookies(self.URL, {"MoodleSession": "abc"})
+            publicar.autenticar_con_cookies(
+                self.URL, [("MoodleSession", "abc", "aula.example.org")]
+            )
         assert exc.value.codigo == "DESTINO_NO_PERMITIDO"
 
 
@@ -2892,10 +2925,10 @@ class TestAutenticarCon:
 
     def test_cookies_van_por_la_sesion_ya_iniciada(self, monkeypatch):
         monkeypatch.setattr(publicar, "autenticar", lambda *a: pytest.fail("no es contraseña"))
-        monkeypatch.setattr(publicar, "autenticar_con_cookies", lambda url, c: ("m", dict(c)))
-        resultado = publicar.autenticar_con("https://a", "u", publicar.Cookies({"S": "x"}))
-        assert resultado == ("m", {"S": "x"})
+        monkeypatch.setattr(publicar, "autenticar_con_cookies", lambda url, c: ("m", list(c)))
+        resultado = publicar.autenticar_con("https://a", "u", publicar.Cookies([("S", "x", "a")]))
+        assert resultado == ("m", [("S", "x", "a")])
 
     def test_las_acreditaciones_no_se_ven_en_el_repr(self):
         assert "secreta" not in repr(publicar.Contrasena("secreta"))
-        assert "valor" not in repr(publicar.Cookies({"MoodleSession": "valor"}))
+        assert "valor" not in repr(publicar.Cookies([("MoodleSession", "valor", "a")]))

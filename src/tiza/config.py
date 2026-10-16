@@ -7,6 +7,7 @@ curso con un ``tiza.toml``.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
 import tomllib
@@ -24,6 +25,7 @@ from .ficheros import escribir_json, escribir_texto
 
 __all__ = [
     "AdaptadorAula",
+    "coincide_dominio",
     "Config",
     "DestinoNoPermitido",
     "ErrorConfig",
@@ -158,6 +160,24 @@ def _mismo_servidor(url: str, servidor: tuple[str, str, int]) -> bool:
         return _servidor_de(url) == servidor
     except ValueError:
         return False
+
+
+def coincide_dominio(servidor: str, dominio: str) -> bool:
+    """¿Se envía una cookie de ``dominio`` a ``servidor``? (RFC 6265, 5.1.3).
+
+    Es el servidor mismo o un dominio padre suyo (``$CFG->sessioncookiedomain``). Nunca un
+    sufijo de una dirección IP ni un dominio de un solo nivel (``com``, ``es``).
+    """
+    host, dom = servidor.lower(), dominio.lstrip(".").lower()
+    if not dom:
+        return False
+    if host == dom:
+        return True
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return "." in dom and host.endswith(f".{dom}")
+    return False
 
 
 class AdaptadorAula(requests.adapters.HTTPAdapter):

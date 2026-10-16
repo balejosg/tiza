@@ -12,30 +12,51 @@ import json
 from collections.abc import Iterable, Mapping
 from urllib.parse import urlsplit
 
-__all__ = ["MAX_COOKIES", "MAX_TUBERIA", "codificar", "cookies_del_aula", "decodificar", "es_panel"]
+from ..config import coincide_dominio
+
+__all__ = [
+    "MAX_COOKIES",
+    "MAX_TUBERIA",
+    "Galleta",
+    "codificar",
+    "coincide_dominio",
+    "cookies_del_aula",
+    "decodificar",
+    "es_panel",
+]
 
 MAX_COOKIES = 50
+MAX_NOMBRE = 100
 MAX_VALOR = 4096
+MAX_DOMINIO = 255
 MAX_TUBERIA = 64 * 1024
+
+Galleta = tuple[str, str, str]  # nombre, valor, dominio
 
 
 def es_panel(url: str | None, base: str) -> bool:
-    """¿Es ``url`` el panel ``/my/`` del aula ``base``? El aula solo lo sirve con sesión."""
+    """¿Está ``url`` dentro de ``/my`` del aula ``base``? El aula solo lo sirve con sesión.
+
+    La ventana se abre en ``/my/``, así que al acabar el login Moodle vuelve ahí: al panel o,
+    con el panel desactivado, a ``/my/courses.php``. Otras páginas del aula que enlaza la
+    página de login (política de cookies, portada) no cuentan: se puede ver sin haber entrado.
+    """
     if not url:
         return False
     actual, aula = urlsplit(url), urlsplit(base)
     if actual.scheme != "https" or (actual.hostname, actual.port) != (aula.hostname, aula.port):
         return False
-    return actual.path.rstrip("/") == f"{aula.path.rstrip('/')}/my"
+    panel = f"{aula.path.rstrip('/')}/my"
+    return actual.path == panel or actual.path.startswith(f"{panel}/")
 
 
-def cookies_del_aula(galletas: Iterable[Mapping[str, object]], servidor: str) -> dict[str, str]:
-    """Nombre → valor de las cookies cuyo dominio es exactamente el servidor del aula.
+def cookies_del_aula(galletas: Iterable[Mapping[str, object]], servidor: str) -> list[Galleta]:
+    """(nombre, valor, dominio) de las cookies que el navegador enviaría al aula ``servidor``.
 
-    ``galletas``: diccionarios con ``name``, ``value`` y ``domain``. Las de otros
-    dominios (un proveedor de identidad, por ejemplo) se descartan.
+    ``galletas``: diccionarios con ``name``, ``value`` y ``domain``. Las de otros dominios
+    (un proveedor de identidad, por ejemplo) se descartan.
     """
-    resultado: dict[str, str] = {}
+    resultado: dict[tuple[str, str], Galleta] = {}
     for galleta in galletas:
         nombre, valor, dominio = galleta.get("name"), galleta.get("value"), galleta.get("domain")
         if (
@@ -44,21 +65,28 @@ def cookies_del_aula(galletas: Iterable[Mapping[str, object]], servidor: str) ->
             or not isinstance(dominio, str)
         ):
             continue
-        if dominio.lstrip(".").lower() != servidor.lower():
+        if not nombre or len(nombre) > MAX_NOMBRE or len(valor) > MAX_VALOR:
             continue
-        if not nombre or len(nombre) > 100 or len(valor) > MAX_VALOR:
+        if len(dominio) > MAX_DOMINIO or not coincide_dominio(servidor, dominio):
             continue
-        resultado[nombre] = valor
+        resultado[(nombre, dominio.lstrip(".").lower())] = (
+            nombre,
+            valor,
+            dominio.lstrip(".").lower(),
+        )
         if len(resultado) >= MAX_COOKIES:
             break
-    return resultado
+    return list(resultado.values())
 
 
-def codificar(cookies: Mapping[str, str]) -> str:
-    return json.dumps({"cookies": dict(cookies)}, ensure_ascii=True)
+def codificar(cookies: Iterable[Galleta]) -> str:
+    return json.dumps(
+        {"cookies": [{"nombre": n, "valor": v, "dominio": d} for n, v, d in cookies]},
+        ensure_ascii=True,
+    )
 
 
-def decodificar(texto: str) -> dict[str, str] | None:
+def decodificar(texto: str) -> list[Galleta] | None:
     """Las cookies de lo que escribió el hijo; None si no cumple el esquema o los límites."""
     if len(texto) > MAX_TUBERIA:
         return None
@@ -69,11 +97,18 @@ def decodificar(texto: str) -> dict[str, str] | None:
     if not isinstance(datos, dict) or set(datos) != {"cookies"}:
         return None
     cookies = datos["cookies"]
-    if not isinstance(cookies, dict) or len(cookies) > MAX_COOKIES:
+    if not isinstance(cookies, list) or len(cookies) > MAX_COOKIES:
         return None
-    for nombre, valor in cookies.items():
-        if not isinstance(nombre, str) or not isinstance(valor, str):
+    resultado: list[Galleta] = []
+    for galleta in cookies:
+        if not isinstance(galleta, dict) or set(galleta) != {"nombre", "valor", "dominio"}:
             return None
-        if not 0 < len(nombre) <= 100 or len(valor) > MAX_VALOR:
+        nombre, valor, dominio = galleta["nombre"], galleta["valor"], galleta["dominio"]
+        if not all(isinstance(campo, str) for campo in (nombre, valor, dominio)):
             return None
-    return dict(cookies)
+        if not 0 < len(nombre) <= MAX_NOMBRE or len(valor) > MAX_VALOR:
+            return None
+        if not 0 < len(dominio) <= MAX_DOMINIO:
+            return None
+        resultado.append((nombre, valor, dominio))
+    return resultado

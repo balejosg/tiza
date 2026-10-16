@@ -17,7 +17,7 @@ import re
 import shutil
 import tempfile
 import time
-from collections.abc import Mapping
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import urljoin, urlsplit
@@ -38,7 +38,7 @@ from py_moodle.section import MoodleSectionError
 from py_moodle.session import MoodleSessionError
 
 from . import __version__, informe, tipos
-from .config import AdaptadorAula, DestinoNoPermitido
+from .config import AdaptadorAula, DestinoNoPermitido, coincide_dominio
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
 from .estado import buscar_seccion, nombre_de_seccion
 from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
@@ -1104,9 +1104,9 @@ class Contrasena:
 
 @dataclasses.dataclass(frozen=True)
 class Cookies:
-    """Acreditación por sesión ya iniciada en la ventana de entrada: nombre → valor."""
+    """Acreditación por sesión ya iniciada en la ventana de entrada: (nombre, valor, dominio)."""
 
-    valores: Mapping[str, str] = dataclasses.field(repr=False)
+    valores: Sequence[tuple[str, str, str]] = dataclasses.field(repr=False)
 
 
 Acreditacion = Contrasena | Cookies
@@ -1119,7 +1119,7 @@ def autenticar_con(base_url: str, usuario: str, acreditacion: Acreditacion) -> M
     return autenticar(base_url, usuario, acreditacion.valor)
 
 
-def autenticar_con_cookies(base_url: str, cookies: Mapping[str, str]) -> Moodle:
+def autenticar_con_cookies(base_url: str, cookies: Sequence[tuple[str, str, str]]) -> Moodle:
     """Sesión web a partir de las cookies de un login hecho en la ventana de entrada.
 
     Usa la misma sesión que ``autenticar`` (guardia de destino y User-Agent de tiza),
@@ -1129,8 +1129,15 @@ def autenticar_con_cookies(base_url: str, cookies: Mapping[str, str]) -> Moodle:
     auth = py_auth.MoodleAuth(base_url, "", "")
     sesion = auth.session
     servidor = urlsplit(auth.base_url).hostname or ""
-    for nombre, valor in cookies.items():
-        sesion.cookies.set(nombre, valor, domain=servidor, path="/", secure=True)
+    for nombre, valor, dominio in cookies:
+        # Solo las que el navegador enviaría al aula; una cookie del dominio padre
+        # (``sessioncookiedomain``) conserva su dominio. Siguen viajando solo al aula:
+        # el adaptador de la sesión bloquea cualquier otro servidor.
+        dominio = dominio.lstrip(".").lower()
+        if not coincide_dominio(servidor, dominio):
+            continue
+        propio = servidor if dominio == servidor.lower() else f".{dominio}"
+        sesion.cookies.set(nombre, valor, domain=propio, path="/", secure=True)
     try:
         respuesta = sesion.get(f"{auth.base_url}/my/", timeout=TIEMPO_ESPERA)
         if "/login/" in str(getattr(respuesta, "url", "")):

@@ -43,7 +43,7 @@ def disponible() -> bool:
 
 def entrar(
     url: str, *, ejecutar: Callable[..., subprocess.CompletedProcess] = subprocess.run
-) -> dict[str, str] | None:
+) -> list[entrada.Galleta] | None:
     """Abre la ventana de entrada del aula ``url``.
 
     Devuelve las cookies de sesión del aula, ``None`` si el docente cierra la ventana sin
@@ -81,7 +81,7 @@ def ejecutar_hijo(url: str) -> int:
     import webview  # solo aquí: los tests y la CLI no necesitan pywebview
 
     servidor = urlsplit(base).hostname or ""
-    cookies: dict[str, str] = {}
+    cookies: list[entrada.Galleta] = []
     web = webview.create_window(
         f"Entrar en {servidor}",
         f"{base}/my/",
@@ -99,7 +99,7 @@ def ejecutar_hijo(url: str) -> int:
             for jar in web.get_cookies()
             for nombre, morsel in jar.items()
         ]
-        cookies.update(entrada.cookies_del_aula(galletas, servidor))
+        cookies.extend(entrada.cookies_del_aula(galletas, servidor))
         web.destroy()
 
     web.events.loaded += cargada

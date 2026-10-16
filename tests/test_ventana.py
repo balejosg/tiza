@@ -22,17 +22,28 @@ class TestEsPanel:
         assert entrada.es_panel(f"{AULA}/my", AULA)
         assert entrada.es_panel(f"{AULA}/my/?lang=es#x", AULA)
 
+    def test_sin_el_panel_vuelve_a_mis_cursos(self):
+        # Con el panel desactivado, Moodle manda /my/ a /my/courses.php.
+        assert entrada.es_panel(f"{AULA}/my/courses.php", AULA)
+        assert entrada.es_panel(f"{AULA}/my/index.php?lang=es", AULA)
+
     @pytest.mark.parametrize(
         "url",
         [
             None,
             "",
             f"{AULA}/login/index.php",
-            f"{AULA}/my/courses.php",
+            f"{AULA}/admin/tool/mfa/auth.php",
+            f"{AULA}/auth/oauth2/login.php",
+            f"{AULA}/user/policy.php",  # se ve sin haber entrado: no vale como «dentro»
+            f"{AULA}/",
+            f"{AULA}/myself/",
+            f"{AULA}/mycourses.php",
             "https://otro.example.org/centro/my/",
             "http://aula.example.org/centro/my/",
             "https://aula.example.org:8443/centro/my/",
             "https://aula.example.org/otro/my/",
+            "https://aula.example.org.evil.example/centro/my/",
             "https://idp.example.org/login?service=https://aula.example.org/centro/my/",
         ],
     )
@@ -40,19 +51,57 @@ class TestEsPanel:
         assert not entrada.es_panel(url, AULA)
 
 
+class TestCoincideDominio:
+    @pytest.mark.parametrize(
+        "dominio",
+        [
+            "aula.example.org",
+            ".aula.example.org",
+            "AULA.example.org",
+            "example.org",
+            ".example.org",
+        ],
+    )
+    def test_el_servidor_o_un_padre(self, dominio):
+        assert entrada.coincide_dominio("aula.example.org", dominio)
+
+    @pytest.mark.parametrize(
+        "dominio",
+        ["", ".", "org", ".org", "xample.org", "malexample.org", "otra.example.org", "idp.org"],
+    )
+    def test_lo_demas_no(self, dominio):
+        assert not entrada.coincide_dominio("aula.example.org", dominio)
+
+    def test_una_ip_solo_coincide_consigo_misma(self):
+        assert entrada.coincide_dominio("192.168.1.43", "192.168.1.43")
+        assert not entrada.coincide_dominio("192.168.1.43", "1.43")
+        assert not entrada.coincide_dominio("192.168.1.43", ".168.1.43")
+
+
 class TestCookiesDelAula:
-    def test_solo_el_dominio_del_aula(self):
+    def test_solo_lo_que_enviaria_el_navegador(self):
         galletas = [
             {"name": "MoodleSession", "value": "a", "domain": "aula.example.org"},
             {"name": "MOODLEID1_", "value": "b", "domain": ".aula.example.org"},
             {"name": "idp", "value": "c", "domain": "idp.example.org"},
-            {"name": "padre", "value": "d", "domain": "example.org"},
+            {"name": "padre", "value": "d", "domain": ".example.org"},
             {"name": "rota", "value": 3, "domain": "aula.example.org"},
+            {"name": "ajena", "value": "e", "domain": "malexample.org"},
         ]
-        assert entrada.cookies_del_aula(galletas, "aula.example.org") == {
-            "MoodleSession": "a",
-            "MOODLEID1_": "b",
-        }
+        assert entrada.cookies_del_aula(galletas, "aula.example.org") == [
+            ("MoodleSession", "a", "aula.example.org"),
+            ("MOODLEID1_", "b", "aula.example.org"),
+            ("padre", "d", "example.org"),
+        ]
+
+    def test_una_cookie_repetida_se_queda_con_la_ultima(self):
+        galletas = [
+            {"name": "S", "value": "vieja", "domain": "aula.example.org"},
+            {"name": "S", "value": "nueva", "domain": ".aula.example.org"},
+        ]
+        assert entrada.cookies_del_aula(galletas, "aula.example.org") == [
+            ("S", "nueva", "aula.example.org")
+        ]
 
     def test_limites(self):
         galletas = [
@@ -62,12 +111,13 @@ class TestCookiesDelAula:
         assert len(entrada.cookies_del_aula(galletas, "aula.example.org")) == entrada.MAX_COOKIES
 
 
+GALLETA = ("MoodleSession", "a", "aula.example.org")
+
+
 class TestTuberia:
     def test_ida_y_vuelta(self):
-        assert entrada.decodificar(entrada.codificar({"MoodleSession": "a"})) == {
-            "MoodleSession": "a"
-        }
-        assert entrada.decodificar(entrada.codificar({})) == {}
+        assert entrada.decodificar(entrada.codificar([GALLETA])) == [GALLETA]
+        assert entrada.decodificar(entrada.codificar([])) == []
 
     @pytest.mark.parametrize(
         "texto",
@@ -75,12 +125,18 @@ class TestTuberia:
             "",
             "no es json",
             "[]",
-            '{"cookies": []}',
-            '{"cookies": {"a": 1}}',
-            '{"cookies": {"a": "b"}, "extra": 1}',
-            '{"cookies": {"": "b"}}',
-            json.dumps({"cookies": {f"c{i}": "x" for i in range(60)}}),
-            json.dumps({"cookies": {"a": "x" * 5000}}),
+            '{"cookies": {}}',
+            '{"cookies": [1]}',
+            '{"cookies": [{"nombre": "a", "valor": "b"}]}',
+            '{"cookies": [{"nombre": "a", "valor": "b", "dominio": "d", "extra": 1}]}',
+            '{"cookies": [{"nombre": "a", "valor": 1, "dominio": "d"}]}',
+            '{"cookies": [{"nombre": "", "valor": "b", "dominio": "d"}]}',
+            '{"cookies": [{"nombre": "a", "valor": "b", "dominio": ""}]}',
+            '{"cookies": [], "extra": 1}',
+            json.dumps(
+                {"cookies": [{"nombre": f"c{i}", "valor": "x", "dominio": "d"} for i in range(60)]}
+            ),
+            json.dumps({"cookies": [{"nombre": "a", "valor": "x" * 5000, "dominio": "d"}]}),
             "x" * (entrada.MAX_TUBERIA + 1),
             "[" * 100000,
         ],
@@ -95,11 +151,11 @@ def proceso(codigo=0, salida=""):
 
 class TestEntrar:
     def test_devuelve_las_cookies(self):
-        salida = entrada.codificar({"MoodleSession": "a"})
-        assert ventana.entrar(AULA, ejecutar=proceso(0, salida)) == {"MoodleSession": "a"}
+        salida = entrada.codificar([GALLETA])
+        assert ventana.entrar(AULA, ejecutar=proceso(0, salida)) == [GALLETA]
 
     def test_cerrada_sin_entrar_es_none(self):
-        assert ventana.entrar(AULA, ejecutar=proceso(0, entrada.codificar({}))) is None
+        assert ventana.entrar(AULA, ejecutar=proceso(0, entrada.codificar([]))) is None
 
     def test_tiempo_agotado_es_none(self):
         def lenta(*a, **k):
@@ -112,7 +168,7 @@ class TestEntrar:
 
         def ejecutar(orden, **opciones):
             vistas.append((orden, opciones))
-            return types.SimpleNamespace(returncode=0, stdout=entrada.codificar({}), stderr="")
+            return types.SimpleNamespace(returncode=0, stdout=entrada.codificar([]), stderr="")
 
         ventana.entrar(AULA, ejecutar=ejecutar)
         orden, opciones = vistas[0]
@@ -221,8 +277,8 @@ class TestAcreditarEnLaTerminal:
         )
 
     def test_con_ventana_recoge_las_cookies(self, con_ventana, monkeypatch, capsys):
-        monkeypatch.setattr(ventana, "entrar", lambda url: {"MoodleSession": "a"})
-        assert terminal.acreditar(AULA, "profe") == publicar.Cookies({"MoodleSession": "a"})
+        monkeypatch.setattr(ventana, "entrar", lambda url: [GALLETA])
+        assert terminal.acreditar(AULA, "profe") == publicar.Cookies([GALLETA])
         assert "tiza no verá tu contraseña" in capsys.readouterr().out
 
     def test_cerrar_la_ventana_cancela_sin_pedir_la_contrasena(self, con_ventana, monkeypatch):
