@@ -139,8 +139,10 @@ class TestTuberia:
                 {"cookies": [{"nombre": f"c{i}", "valor": "x", "dominio": "d"} for i in range(60)]}
             ),
             json.dumps({"cookies": [{"nombre": "a", "valor": "x" * 5000, "dominio": "d"}]}),
-            "x" * (entrada.MAX_TUBERIA + 1),
-            "[" * 100000,
+            # Con id explícito: pytest mete el id en una variable de entorno y Windows no admite
+            # más de 32767 caracteres en ellas.
+            pytest.param("x" * (entrada.MAX_TUBERIA + 1), id="mas-de-lo-permitido"),
+            pytest.param("[" * 100000, id="anidado-sin-fin"),
         ],
     )
     def test_rechaza_lo_que_no_cumple(self, texto):

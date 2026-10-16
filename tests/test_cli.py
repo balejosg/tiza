@@ -681,6 +681,9 @@ class TestActualizar:
         monkeypatch.setattr(cli, "__version__", "0.5.1")
         monkeypatch.setattr(cli.shutil, "which", lambda nombre: f"/bin/{nombre}")
         monkeypatch.setattr(cli, "_tiene_ventana", lambda: False)
+        # Sin ventana, como en Linux: en Windows y macOS «actualizar» instala también el extra
+        # (lo prueban los tests de win32 y darwin, que fijan su propia plataforma).
+        monkeypatch.setattr(cli.sys, "platform", "linux")
         # «actualizar» es del docente: hace falta terminal y se confirma. No se sustituye
         # sys.stdout, para que capsys siga viendo la salida.
         monkeypatch.setattr(cli.terminal, "exigir_tty", lambda: None)
