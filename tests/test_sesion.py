@@ -375,6 +375,63 @@ class TestAbrir:
         assert [(c.entorno, c.id) for c in cursos] == [("real", 5678)]
 
 
+class TestCierreDeLaSesionDelAula:
+    """La cookie deja de valer en cuanto se acaba la sesión, sea cual sea la salida."""
+
+    def test_al_cerrarse_normalmente(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso()
+        carpeta, _ = preparar_abrir(tmp_path, monkeypatch, moodle=moodle)
+        assert sesion.abrir(carpeta, PresenciaFalsa(), minutos=60, preparar=False) == 0
+        assert moodle.cerradas == 1
+
+    def test_si_falla_la_preparacion(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso()
+        carpeta, _ = preparar_abrir(tmp_path, monkeypatch, moodle=moodle)
+        monkeypatch.setattr(
+            publicar,
+            "autoprueba",
+            lambda m, c: {"resultado": "error", "pasos": [], "errores": ["ERROR_CREACION"]},
+        )
+        assert sesion.abrir(carpeta, PresenciaFalsa(autoprueba=True), minutos=60) == 1
+        assert moodle.cerradas == 1
+
+    def test_si_el_docente_abandona_tras_entrar(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso()
+        carpeta, atendidas = preparar_abrir(tmp_path, monkeypatch, moodle=moodle)
+        presencia = PresenciaFalsa(confirmar_cursos=False)
+        assert sesion.abrir(carpeta, presencia, minutos=60) == 1
+        assert moodle.cerradas == 1 and atendidas == []
+
+    def test_con_ctrl_c(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso()
+        carpeta, _ = preparar_abrir(tmp_path, monkeypatch, moodle=moodle)
+
+        def interrumpir(*a, **k):
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(buzon, "atender", interrumpir)
+        assert sesion.abrir(carpeta, PresenciaFalsa(), minutos=60, preparar=False) == 0
+        assert moodle.cerradas == 1
+
+    def test_si_algo_inesperado_rompe_la_sesion(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso()
+        carpeta, _ = preparar_abrir(tmp_path, monkeypatch, moodle=moodle)
+
+        def rompe(*a, **k):
+            raise RuntimeError("fallo interno")
+
+        monkeypatch.setattr(sesion.publicacion, "nombres_de_cursos", rompe)
+        with pytest.raises(RuntimeError):
+            sesion.abrir(carpeta, PresenciaFalsa(), minutos=60)
+        assert moodle.cerradas == 1
+
+    def test_sin_entrar_no_hay_nada_que_cerrar(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso()
+        carpeta, _ = preparar_abrir(tmp_path, monkeypatch, moodle=moodle)
+        assert sesion.abrir(carpeta, PresenciaFalsa(password=None), minutos=60) == 1
+        assert moodle.cerradas == 0
+
+
 def test_la_sesion_se_cierra_si_su_codigo_cambia(tmp_path, monkeypatch):
     carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
     monkeypatch.setattr(

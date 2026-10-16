@@ -2932,3 +2932,54 @@ class TestAutenticarCon:
     def test_las_acreditaciones_no_se_ven_en_el_repr(self):
         assert "secreta" not in repr(publicar.Contrasena("secreta"))
         assert "valor" not in repr(publicar.Cookies([("MoodleSession", "valor", "a")]))
+
+
+class _SesionQueAnotaElCierre:
+    def __init__(self, falla=False):
+        self.peticiones = []
+        self._falla = falla
+
+    def get(self, url, **opciones):
+        self.peticiones.append((url, opciones))
+        if self._falla:
+            raise requests.ConnectionError("sin red")
+        return _Respuesta(303, "https://idp.example.org/logout")
+
+
+class TestCerrarLaSesionDelAula:
+    def test_pide_el_cierre_con_la_sesskey_y_sin_seguir_redirecciones(self):
+        sesion = _SesionQueAnotaElCierre()
+        publicar.Moodle("https://aula.example.org/centro", sesion, "clave", pausa=0).cerrar()
+        [(url, opciones)] = sesion.peticiones
+        assert url == "https://aula.example.org/centro/login/logout.php"
+        assert opciones["params"] == {"sesskey": "clave"}
+        assert opciones["allow_redirects"] is False  # con SAML/CAS no se sale del aula
+
+    def test_nunca_lanza(self):
+        sesion = _SesionQueAnotaElCierre(falla=True)
+        publicar.Moodle("https://aula.example.org", sesion, "clave", pausa=0).cerrar()
+        assert len(sesion.peticiones) == 1
+
+    def test_cerrar_aula_tolera_un_adaptador_sin_cierre_o_que_falla(self):
+        publicar.cerrar_aula(object())
+
+        class Rompe:
+            def cerrar(self):
+                raise RuntimeError("no")
+
+        publicar.cerrar_aula(Rompe())
+
+    def test_sesion_del_aula_cierra_al_salir_y_con_error(self):
+        class Aula:
+            cerradas = 0
+
+            def cerrar(self):
+                self.cerradas += 1
+
+        aula = Aula()
+        with publicar.sesion_del_aula(aula) as dentro:
+            assert dentro is aula
+        assert aula.cerradas == 1
+        with pytest.raises(ValueError), publicar.sesion_del_aula(aula):
+            raise ValueError("fallo")
+        assert aula.cerradas == 2

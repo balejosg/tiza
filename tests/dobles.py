@@ -91,6 +91,9 @@ def enlace_simbolico(enlace: Path, destino: Path) -> None:
 class MoodleFalso:
     """Doble del adaptador del aula: registra llamadas y no toca la red."""
 
+    def cerrar(self):
+        self.cerradas += 1
+
     def __init__(
         self,
         secciones=None,
@@ -130,6 +133,7 @@ class MoodleFalso:
         self.imagenes_servidas = imagenes_servidas
         self.imagenes_esperadas: dict[int, int] = {}
         self.llamadas: list[tuple] = []
+        self.cerradas = 0  # veces que se cerró la sesión del aula
         self.subidas: list[tuple[str, bytes]] = []
         # Formulario de cada módulo: como python-moodle, cada payload se fusiona
         # sobre lo que ya había y lo que no se envía se conserva.

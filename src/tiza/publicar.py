@@ -9,6 +9,7 @@ aquí convertidas en texto.
 from __future__ import annotations
 
 import base64
+import contextlib
 import dataclasses
 import hashlib
 import html
@@ -17,7 +18,7 @@ import re
 import shutil
 import tempfile
 import time
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import urljoin, urlsplit
@@ -205,6 +206,10 @@ class AulaVirtual(Protocol):
 
     base_url: str
 
+    def cerrar(self) -> None:
+        """Cierra la sesión del aula; nunca lanza."""
+        ...
+
     def estructura(self, curso_id: int) -> list[dict]: ...
 
     def mis_cursos(self) -> list[dict]: ...
@@ -289,6 +294,22 @@ class Moodle:
             if not self.sesion_viva():
                 raise ErrorPublicacion("SESION_CADUCADA") from exc
             raise ErrorPublicacion(codigo) from exc
+
+    def cerrar(self) -> None:
+        """Cierra la sesión en el aula, para que la cookie deje de valer (nunca lanza).
+
+        Sin seguir redirecciones: con SAML o CAS el cierre de Moodle manda al proveedor de
+        acceso, y tiza no sale del servidor del aula.
+        """
+        try:
+            self.sesion.get(
+                f"{self.base_url}/login/logout.php",
+                params={"sesskey": self.sesskey},
+                allow_redirects=False,
+                timeout=15,
+            )
+        except Exception:  # noqa: BLE001 - cerrar es un último favor: nunca debe romper nada
+            return
 
     def sesion_viva(self) -> bool:
         """Falso solo si el aula redirige al login (sesión caducada o cerrada).
@@ -1093,6 +1114,25 @@ def autenticar(base_url: str, usuario: str, password: str) -> Moodle:
     # La publicación usa la sesión web: se descarta cualquier token.
     sesion.webservice_token = None  # type: ignore[attr-defined]
     return Moodle(base_url, sesion, sesskey)
+
+
+def cerrar_aula(aula: Any) -> None:
+    """Cierra la sesión del aula si el adaptador sabe hacerlo; nunca lanza."""
+    cerrar = getattr(aula, "cerrar", None)
+    if callable(cerrar):
+        try:
+            cerrar()
+        except Exception:  # noqa: BLE001 - igual que ``Moodle.cerrar``
+            return
+
+
+@contextlib.contextmanager
+def sesion_del_aula(aula: Any) -> Iterator[Any]:
+    """Mantiene el aula abierta mientras dura el bloque y cierra su sesión al salir."""
+    try:
+        yield aula
+    finally:
+        cerrar_aula(aula)
 
 
 @dataclasses.dataclass(frozen=True)

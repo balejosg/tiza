@@ -757,9 +757,10 @@ def _estructura_directa(args) -> int:
         moodle = publicar.autenticar_con(cfg.url, cfg.usuario, acreditacion)
     except ErrorPublicacion as exc:
         return _fallo(comando, exc.codigo, exc.detalle, exc=exc, debug=args.debug)
-    documento = sesion_abierta.estructura_con(moodle, cfg, Path.cwd(), debug=args.debug)
-    _escribir(documento)
-    return 0 if documento["resultado"] == "ok" else 1
+    with publicar.sesion_del_aula(moodle):
+        documento = sesion_abierta.estructura_con(moodle, cfg, Path.cwd(), debug=args.debug)
+        _escribir(documento)
+        return 0 if documento["resultado"] == "ok" else 1
 
 
 def _estructura(args) -> int:
@@ -848,32 +849,35 @@ def _publicar_directa(args) -> int:
             exc=exc,
             debug=args.debug,
         )
-    presencia = terminal.PresenciaTerminal()
-    nombres = (
-        publicacion.nombres_de_cursos(moodle, presencia, args.debug) if entorno == "real" else {}
-    )
-    necesita_vistas = entorno == "real" and not solo_fechas and not sin_pruebas
-    dir_vistas = sesion.crear_dir_vistas() if necesita_vistas else None
-    try:
-        documento = publicacion.publicar_en_cursos(
-            moodle,
-            cfg,
-            documentos,
-            base,
-            presencia,
-            entorno=entorno,
-            visible=visible,
-            solo_fechas=solo_fechas,
-            omitidos=omitidos,
-            nombres=nombres,
-            dir_vistas=dir_vistas,
-            debug=args.debug,
+    with publicar.sesion_del_aula(moodle):
+        presencia = terminal.PresenciaTerminal()
+        nombres = (
+            publicacion.nombres_de_cursos(moodle, presencia, args.debug)
+            if entorno == "real"
+            else {}
         )
-    finally:
-        if dir_vistas is not None:
-            shutil.rmtree(dir_vistas, ignore_errors=True)
-    _escribir(documento)
-    return 0 if documento["resultado"] == "ok" else 1
+        necesita_vistas = entorno == "real" and not solo_fechas and not sin_pruebas
+        dir_vistas = sesion.crear_dir_vistas() if necesita_vistas else None
+        try:
+            documento = publicacion.publicar_en_cursos(
+                moodle,
+                cfg,
+                documentos,
+                base,
+                presencia,
+                entorno=entorno,
+                visible=visible,
+                solo_fechas=solo_fechas,
+                omitidos=omitidos,
+                nombres=nombres,
+                dir_vistas=dir_vistas,
+                debug=args.debug,
+            )
+        finally:
+            if dir_vistas is not None:
+                shutil.rmtree(dir_vistas, ignore_errors=True)
+        _escribir(documento)
+        return 0 if documento["resultado"] == "ok" else 1
 
 
 def _publicar(args) -> int:
@@ -939,22 +943,25 @@ def _ordenar_directa(args) -> int:
             exc=exc,
             debug=args.debug,
         )
-    presencia = terminal.PresenciaTerminal()
-    nombres = (
-        publicacion.nombres_de_cursos(moodle, presencia, args.debug) if entorno == "real" else {}
-    )
-    documento = publicacion.ordenar_en_cursos(
-        moodle,
-        cfg,
-        documentos,
-        base,
-        presencia,
-        entorno=entorno,
-        nombres=nombres,
-        debug=args.debug,
-    )
-    _escribir(documento)
-    return 0 if documento["resultado"] == "ok" else 1
+    with publicar.sesion_del_aula(moodle):
+        presencia = terminal.PresenciaTerminal()
+        nombres = (
+            publicacion.nombres_de_cursos(moodle, presencia, args.debug)
+            if entorno == "real"
+            else {}
+        )
+        documento = publicacion.ordenar_en_cursos(
+            moodle,
+            cfg,
+            documentos,
+            base,
+            presencia,
+            entorno=entorno,
+            nombres=nombres,
+            debug=args.debug,
+        )
+        _escribir(documento)
+        return 0 if documento["resultado"] == "ok" else 1
 
 
 def _ordenar(args) -> int:
@@ -1115,5 +1122,6 @@ def _autoprueba(args) -> int:
             exc=exc,
             debug=debug,
         )
-    presencia = terminal.PresenciaTerminal()
-    return 0 if sesion.autoprueba_con(moodle, curso, Path.cwd(), presencia, debug=debug) else 1
+    with publicar.sesion_del_aula(moodle):
+        presencia = terminal.PresenciaTerminal()
+        return 0 if sesion.autoprueba_con(moodle, curso, Path.cwd(), presencia, debug=debug) else 1

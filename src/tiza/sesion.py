@@ -201,21 +201,24 @@ def _abrir(
     if isinstance(abierta, int):
         return abierta
     cfg, aula, nombres = abierta
-    if preparar:
-        salida = _preparar(aula, cfg, base, presencia, debug)
-        if salida is not None:
-            return salida
-    return _servir(
-        aula,
-        cfg,
-        nombres,
-        base,
-        presencia,
-        minutos=minutos,
-        debug=debug,
-        cerrar=cerrar,
-        dir_vistas=dir_vistas,
-    )
+    try:
+        if preparar:
+            salida = _preparar(aula, cfg, base, presencia, debug)
+            if salida is not None:
+                return salida
+        return _servir(
+            aula,
+            cfg,
+            nombres,
+            base,
+            presencia,
+            minutos=minutos,
+            debug=debug,
+            cerrar=cerrar,
+            dir_vistas=dir_vistas,
+        )
+    finally:
+        publicar.cerrar_aula(aula)  # la cookie deja de valer en cuanto se acaba la sesión
 
 
 def autoprueba_con(
@@ -306,6 +309,27 @@ def _iniciar(
             exc=exc,
             debug=debug,
         )
+    try:
+        salida = _cursos_de_la_sesion(cfg, aula, base, presencia, debug, elegir_cursos)
+    except BaseException:
+        publicar.cerrar_aula(aula)
+        raise
+    if isinstance(salida, int):
+        publicar.cerrar_aula(aula)  # se abandona tras entrar: la sesión del aula no se deja viva
+        return salida
+    return salida[0], aula, salida[1]
+
+
+def _cursos_de_la_sesion(
+    cfg: Config,
+    aula: AulaVirtual,
+    base: Path,
+    presencia: Presencia,
+    debug: bool,
+    elegir_cursos: bool,
+) -> tuple[Config, dict[int, str]] | int:
+    """Nombres de los cursos, elección y confirmaciones; el código de salida si se abandona."""
+    comando = "sesion"
     nombres = publicacion.nombres_de_cursos(aula, presencia, debug)
     try:
         completa = _completar_cursos(cfg, nombres, base, presencia, elegir=elegir_cursos)
@@ -324,7 +348,7 @@ def _iniciar(
             "real",
             completa.reales[0] if len(completa.reales) == 1 else None,
         )
-    return completa, aula, nombres
+    return completa, nombres
 
 
 def _entorno_del_informe(cfg: Config) -> tuple[str, int | None]:

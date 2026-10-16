@@ -217,6 +217,17 @@ class TestPublicar:
         # La vista va al directorio privado, no a la carpeta que escribe el agente.
         assert not (tmp_path / ".tiza" / "preview").exists()
 
+    def test_la_publicacion_directa_cierra_la_sesion_del_aula(self, tmp_path, monkeypatch):
+        moodle = MoodleFalso()
+        monkeypatch.chdir(tmp_path)
+        escribir_pagina(tmp_path)
+        configurar(tmp_path, monkeypatch)
+        simular_terminal(monkeypatch)
+        responder(monkeypatch, ["s"])
+        monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: moodle)
+        assert cli.main(["publicar", "pagina.md", "--en", "pruebas"]) == 0
+        assert moodle.cerradas == 1
+
     def test_error_de_moodle_no_se_filtra(self, tmp_path, monkeypatch):
         class MoodleQueFalla(MoodleFalso):
             def crear(self, curso_id, seccion_id, tipo, payload):
