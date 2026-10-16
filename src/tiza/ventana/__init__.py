@@ -10,9 +10,11 @@ El padre (``entrar``) lanza ``python -m tiza.ventana <url>``; solo el hijo impor
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 from collections.abc import Callable
+from typing import Any, TextIO
 from urllib.parse import urlsplit
 
 from . import entrada, webview2
@@ -68,8 +70,13 @@ def entrar(
     return cookies or None
 
 
-def ejecutar_hijo(url: str) -> int:
-    """El proceso de la ventana: abre ``<aula>/my/`` y escribe las cookies en la salida."""
+def ejecutar_hijo(url: str, *, webview: Any = None, canal: TextIO | None = None) -> int:
+    """El proceso de la ventana: abre ``<aula>/my/`` y escribe las cookies en ``canal``.
+
+    ``webview`` y ``canal`` se inyectan en los tests; por defecto, pywebview y la salida
+    estándar. El título de la ventana enseña el servidor de la página que se está viendo (la
+    ventana no tiene barra de direcciones): así se nota cuándo salta al proveedor de acceso.
+    """
     from .. import config
 
     try:
@@ -78,7 +85,8 @@ def ejecutar_hijo(url: str) -> int:
         return SALIDA_USO
     if sys.platform == "win32" and not webview2.instalado():
         return SALIDA_SIN_MOTOR
-    import webview  # solo aquí: los tests y la CLI no necesitan pywebview
+    if webview is None:
+        import webview  # solo aquí: los tests y la CLI no necesitan pywebview
 
     servidor = urlsplit(base).hostname or ""
     cookies: list[entrada.Galleta] = []
@@ -92,7 +100,9 @@ def ejecutar_hijo(url: str) -> int:
     )  # sin js_api: la página del aula no puede llamar a nada de tiza
 
     def cargada() -> None:
-        if not entrada.es_panel(web.get_current_url(), base):
+        actual = web.get_current_url()
+        web.set_title(f"Entrar en {urlsplit(actual or '').hostname or servidor}")
+        if not entrada.es_panel(actual, base):
             return
         galletas = [
             {"name": nombre, "value": morsel.value, "domain": morsel["domain"] or servidor}
@@ -100,15 +110,33 @@ def ejecutar_hijo(url: str) -> int:
             for nombre, morsel in jar.items()
         ]
         cookies.extend(entrada.cookies_del_aula(galletas, servidor))
+        web.clear_cookies()  # ya no hacen falta en el motor
         web.destroy()
 
     web.events.loaded += cargada
     webview.start(private_mode=True)
     if sys.platform == "win32" and webview.renderer != "edgechromium":
         return SALIDA_SIN_MOTOR
-    sys.stdout.write(entrada.codificar(cookies))
-    sys.stdout.flush()
+    salida = canal if canal is not None else sys.stdout
+    salida.write(entrada.codificar(cookies) + "\n")
+    salida.flush()
     return 0
+
+
+def _canal_propio() -> TextIO | None:
+    """Un canal solo para el resultado: lo demás que escriba el proceso va a la terminal.
+
+    pywebview, GTK o WebView2 pueden escribir en la salida estándar; si se mezclara con el
+    JSON, tiza no lo entendería después de que el docente ya hubiera entrado. Se duplica el
+    descriptor 1 (la tubería hacia tiza) y el 1 pasa a apuntar al 2 (la terminal).
+    """
+    try:
+        sys.stdout.flush()
+        canal = os.fdopen(os.dup(1), "w", encoding="utf-8")
+        os.dup2(2, 1)
+    except (OSError, ValueError):
+        return None
+    return canal
 
 
 def principal(argv: list[str] | None = None) -> int:
@@ -124,4 +152,4 @@ def principal(argv: list[str] | None = None) -> int:
     if not (sys.stdin.isatty() and sys.stderr.isatty()) or sys.stdout.isatty():
         print("Esta ventana la abre tiza en la terminal del docente.", file=sys.stderr)
         return SALIDA_USO
-    return ejecutar_hijo(argumentos[0])
+    return ejecutar_hijo(argumentos[0], canal=_canal_propio())

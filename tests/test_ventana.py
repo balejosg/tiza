@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import http.cookies
+import io
 import json
 import subprocess
 import sys
@@ -228,7 +230,8 @@ class TestHijo:
                 return self._tty
 
         abiertas = []
-        monkeypatch.setattr(ventana, "ejecutar_hijo", lambda url: abiertas.append(url) or 0)
+        monkeypatch.setattr(ventana, "_canal_propio", lambda: None)  # no tocar los descriptores
+        monkeypatch.setattr(ventana, "ejecutar_hijo", lambda url, **_: abiertas.append(url) or 0)
         monkeypatch.setattr(sys, "stdin", Flujo(True))
         monkeypatch.setattr(sys, "stderr", Flujo(True))
         monkeypatch.setattr(sys, "stdout", Flujo(False))
@@ -245,6 +248,162 @@ class TestHijo:
 
     def test_importar_el_paquete_no_carga_pywebview(self):
         assert "webview" not in sys.modules
+
+
+class _Evento:
+    def __init__(self):
+        self.funciones = []
+
+    def __iadd__(self, funcion):
+        self.funciones.append(funcion)
+        return self
+
+
+class _Eventos:
+    def __init__(self):
+        self.loaded = _Evento()
+
+
+class _VentanaFalsa:
+    """Doble de la ventana de pywebview: recorre las URLs que se le dan, una carga por URL."""
+
+    def __init__(self, urls, galletas):
+        self.events = _Eventos()
+        self.titulos = []
+        self.destruida = False
+        self.cookies_borradas = False
+        self._urls = list(urls)
+        self._galletas = galletas
+        self._actual = None
+
+    def recorrer(self):
+        for url in self._urls:
+            if self.destruida:
+                break
+            self._actual = url
+            for funcion in self.events.loaded.funciones:
+                funcion()
+
+    def get_current_url(self):
+        return self._actual
+
+    def set_title(self, titulo):
+        self.titulos.append(titulo)
+
+    def get_cookies(self):
+        return self._galletas
+
+    def clear_cookies(self):
+        self.cookies_borradas = True
+
+    def destroy(self):
+        self.destruida = True
+
+
+class _WebviewFalso:
+    renderer = "edgechromium"
+
+    def __init__(self, ventana):
+        self.ventana = ventana
+        self.creada = None
+        self.arrancado = None
+
+    def create_window(self, titulo, url, **opciones):
+        self.creada = (titulo, url, opciones)
+        return self.ventana
+
+    def start(self, **opciones):
+        self.arrancado = opciones
+        self.ventana.recorrer()
+
+
+def _jar(**valores):
+    jar = http.cookies.SimpleCookie()
+    for nombre, (valor, dominio) in valores.items():
+        jar[nombre] = valor
+        jar[nombre]["domain"] = dominio
+    return jar
+
+
+class TestEjecutarHijo:
+    def _ejecutar(self, urls, galletas):
+        ventana_falsa = _VentanaFalsa(urls, galletas)
+        webview = _WebviewFalso(ventana_falsa)
+        canal = io.StringIO()
+        codigo = ventana.ejecutar_hijo(AULA, webview=webview, canal=canal)
+        return codigo, webview, ventana_falsa, canal.getvalue()
+
+    def test_recoge_las_cookies_del_aula_al_llegar_al_panel(self):
+        galletas = [
+            _jar(MoodleSession=("abc", "aula.example.org")),
+            _jar(idp=("secreto", "idp.example.org")),
+        ]
+        codigo, webview, falsa, salida = self._ejecutar(
+            [
+                f"{AULA}/login/index.php",
+                "https://idp.example.org/acceso",
+                f"{AULA}/login/index.php",
+                f"{AULA}/my/courses.php",
+            ],
+            galletas,
+        )
+        assert codigo == 0
+        assert entrada.decodificar(salida) == [("MoodleSession", "abc", "aula.example.org")]
+        assert salida.endswith("\n") and salida.count("\n") == 1
+        assert falsa.destruida and falsa.cookies_borradas
+        assert "secreto" not in salida
+
+    def test_ventana_privada_sin_js_api_y_en_el_panel(self):
+        _, webview, _, _ = self._ejecutar([f"{AULA}/my/"], [])
+        titulo, url, opciones = webview.creada
+        assert url == f"{AULA}/my/" and "aula.example.org" in titulo
+        assert "js_api" not in opciones
+        assert webview.arrancado == {"private_mode": True}
+
+    def test_el_titulo_enseña_el_servidor_que_se_esta_viendo(self):
+        _, _, falsa, _ = self._ejecutar(
+            [f"{AULA}/login/index.php", "https://idp.example.org/acceso", f"{AULA}/my/"], []
+        )
+        assert falsa.titulos == [
+            "Entrar en aula.example.org",
+            "Entrar en idp.example.org",
+            "Entrar en aula.example.org",
+        ]
+
+    def test_cerrada_sin_entrar_no_devuelve_cookies(self):
+        codigo, _, falsa, salida = self._ejecutar([f"{AULA}/login/index.php"], [])
+        assert codigo == 0 and entrada.decodificar(salida) == []
+        assert not falsa.destruida
+
+    def test_sin_webview2_en_windows(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(ventana.webview2, "instalado", lambda: False)
+        assert ventana.ejecutar_hijo(AULA, webview=object()) == ventana.SALIDA_SIN_MOTOR
+
+    def test_en_windows_exige_edge(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(ventana.webview2, "instalado", lambda: True)
+        falso = _WebviewFalso(_VentanaFalsa([f"{AULA}/login/index.php"], []))
+        falso.renderer = "mshtml"
+        assert ventana.ejecutar_hijo(AULA, webview=falso, canal=io.StringIO()) == (
+            ventana.SALIDA_SIN_MOTOR
+        )
+
+
+class TestCanalPropio:
+    def test_lo_que_escriba_el_motor_no_se_mezcla_con_el_resultado(self):
+        """Prueba real en un proceso aparte: el descriptor 1 apunta a la terminal (el 2)."""
+        codigo = (
+            "import sys; from tiza import ventana; "
+            "canal = ventana._canal_propio(); "
+            "print('ruido del motor'); sys.stdout.flush(); "
+            "canal.write('RESULTADO'); canal.flush()"
+        )
+        proceso = subprocess.run(
+            [sys.executable, "-c", codigo], capture_output=True, text=True, timeout=60
+        )
+        assert proceso.stdout == "RESULTADO"
+        assert "ruido del motor" in proceso.stderr
 
 
 class TestDisponible:
