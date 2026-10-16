@@ -52,8 +52,7 @@ def entrar(
     try:
         proceso = ejecutar(
             [sys.executable, "-m", "tiza.ventana", url],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,  # stdin y stderr se heredan: son la terminal del docente
             text=True,
             timeout=TIEMPO_MAXIMO,
         )

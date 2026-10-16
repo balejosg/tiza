@@ -119,6 +119,8 @@ class TestEntrar:
         assert orden == [sys.executable, "-m", "tiza.ventana", AULA]
         assert "env" not in opciones and "input" not in opciones
         assert opciones["stdout"] == subprocess.PIPE
+        # stdin y stderr se heredan: el hijo exige la terminal del docente (stdin y stderr).
+        assert "stdin" not in opciones and "stderr" not in opciones
 
     @pytest.mark.parametrize("codigo,salida", [(3, ""), (2, ""), (0, "basura")])
     def test_fallos_son_error_de_ventana(self, codigo, salida):
@@ -158,6 +160,24 @@ class TestHijo:
             monkeypatch.setattr(sys, "stderr", Flujo(stderr))
             monkeypatch.setattr(sys, "stdout", Flujo(stdout))
             assert ventana.principal([AULA]) == ventana.SALIDA_USO
+
+    def test_con_lo_que_le_da_el_padre_abre_la_ventana(self, monkeypatch):
+        """Contrato con ``entrar``: stdin y stderr son la terminal y stdout la tubería."""
+
+        class Flujo:
+            def __init__(self, tty):
+                self._tty = tty
+
+            def isatty(self):
+                return self._tty
+
+        abiertas = []
+        monkeypatch.setattr(ventana, "ejecutar_hijo", lambda url: abiertas.append(url) or 0)
+        monkeypatch.setattr(sys, "stdin", Flujo(True))
+        monkeypatch.setattr(sys, "stderr", Flujo(True))
+        monkeypatch.setattr(sys, "stdout", Flujo(False))
+        assert ventana.principal([AULA]) == 0
+        assert abiertas == [AULA]
 
     def test_pide_exactamente_una_url(self):
         assert ventana.principal([]) == ventana.SALIDA_USO
