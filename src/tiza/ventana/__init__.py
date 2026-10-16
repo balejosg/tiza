@@ -83,19 +83,29 @@ def entrar(
         return None
     except OSError as exc:
         raise ErrorVentana("no se pudo lanzar la ventana") from exc
+    # Una respuesta completa y válida vale aunque el motor se estrelle al cerrarse (QtWebEngine
+    # lo hace a veces en Linux): lo que cuenta es lo que el hijo entregó antes.
+    cookies = entrada.decodificar(proceso.stdout or "")
+    if cookies is not None:
+        return cookies or None
     if proceso.returncode != 0:
         raise ErrorVentana(f"la ventana terminó con el código {proceso.returncode}")
-    cookies = entrada.decodificar(proceso.stdout or "")
-    if cookies is None:
-        raise ErrorVentana("la ventana devolvió algo que no es una sesión")
-    return cookies or None
+    raise ErrorVentana("la ventana devolvió algo que no es una sesión")
 
 
-def ejecutar_hijo(url: str, *, webview: Any = None, canal: TextIO | None = None) -> int:
+def ejecutar_hijo(
+    url: str,
+    *,
+    webview: Any = None,
+    canal: TextIO | None = None,
+    salir: Callable[[int], Any] | None = None,
+) -> int:
     """El proceso de la ventana: abre ``<aula>/my/`` y escribe las cookies en ``canal``.
 
     ``webview`` y ``canal`` se inyectan en los tests; por defecto, pywebview y la salida
-    estándar. El título de la ventana enseña el servidor de la página que se está viendo (la
+    estándar. El resultado se entrega en cuanto se tiene, antes de cerrar la ventana; con
+    ``salir`` el proceso termina entonces mismo sin esperar a que el motor se desmonte (en
+    Linux, QtWebEngine puede estrellarse en ese desmontaje). El título de la ventana enseña el servidor de la página que se está viendo (la
     ventana no tiene barra de direcciones): así se nota cuándo salta al proveedor de acceso.
     """
     from .. import config
@@ -113,6 +123,16 @@ def ejecutar_hijo(url: str, *, webview: Any = None, canal: TextIO | None = None)
 
     servidor = urlsplit(base).hostname or ""
     cookies: list[entrada.Galleta] = []
+    salida = canal if canal is not None else sys.stdout
+    entregado: list[bool] = []
+
+    def entregar() -> None:
+        if entregado:
+            return
+        entregado.append(True)
+        salida.write(entrada.codificar(cookies) + "\n")
+        salida.flush()
+
     web = webview.create_window(
         f"Entrar en {servidor}",
         f"{base}/my/",
@@ -133,7 +153,11 @@ def ejecutar_hijo(url: str, *, webview: Any = None, canal: TextIO | None = None)
             for nombre, morsel in jar.items()
         ]
         cookies.extend(entrada.cookies_del_aula(galletas, servidor))
-        web.clear_cookies()  # ya no hacen falta en el motor
+        # Sin clear_cookies(): en QtWebEngine (Linux) cuelga el proceso con SIGTRAP. No hace
+        # falta: la ventana es privada (las cookies solo viven en memoria) y el proceso termina.
+        entregar()
+        if salir is not None:
+            salir(0)
         web.destroy()
 
     web.events.loaded += cargada
@@ -149,9 +173,7 @@ def ejecutar_hijo(url: str, *, webview: Any = None, canal: TextIO | None = None)
         return SALIDA_SIN_MOTOR
     if sys.platform == "win32" and webview.renderer != "edgechromium":
         return SALIDA_SIN_MOTOR
-    salida = canal if canal is not None else sys.stdout
-    salida.write(entrada.codificar(cookies) + "\n")
-    salida.flush()
+    entregar()
     return 0
 
 
@@ -184,4 +206,6 @@ def principal(argv: list[str] | None = None) -> int:
     if not (sys.stdin.isatty() and sys.stderr.isatty()) or sys.stdout.isatty():
         print("Esta ventana la abre tiza en la terminal del docente.", file=sys.stderr)
         return SALIDA_USO
-    return ejecutar_hijo(argumentos[0], canal=_canal_propio())
+    # En Linux el proceso sale al entregar la sesión: QtWebEngine puede estrellarse al desmontarse.
+    salir = os._exit if sys.platform.startswith("linux") else None
+    return ejecutar_hijo(argumentos[0], canal=_canal_propio(), salir=salir)

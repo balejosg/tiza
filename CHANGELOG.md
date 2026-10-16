@@ -4,6 +4,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.20.3 — 2026-10-16
+
+### Corregido
+- **La ventana de entrada en Linux (Qt) ya no cuelga.** `clear_cookies()` mataba el proceso de
+  la ventana con SIGTRAP en QtWebEngine y `tiza` caía siempre a la contraseña; se quita (la
+  ventana es privada y el proceso termina justo después). Desde 0.20.1; en Windows no se notaba.
+- La ventana entrega la sesión antes de cerrarse y, en Linux, el proceso sale entonces mismo
+  sin esperar al desmontaje del motor. `tiza` acepta una respuesta válida aunque el proceso
+  termine mal.
+- Cuando no se puede abrir la ventana, el mensaje dice el motivo (por ejemplo, «la ventana
+  terminó con el código -5»).
+
+### Medido
+- De principio a fin con el padre y el hijo reales, Qt sin pantalla y un Moodle 4.5 de pruebas:
+  el hijo termina con 0 y `tiza` recibe `MoodleSession`. Sin probar: pantalla real y GTK.
+
 ## 0.20.2 — 2026-10-16
 
 ### Cambia

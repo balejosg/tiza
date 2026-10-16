@@ -5,6 +5,7 @@ from __future__ import annotations
 import http.cookies
 import io
 import json
+import os
 import subprocess
 import sys
 import types
@@ -187,6 +188,19 @@ class TestEntrar:
         with pytest.raises(ventana.ErrorVentana):
             ventana.entrar(AULA, ejecutar=proceso(codigo, salida))
 
+    @pytest.mark.parametrize("codigo", [-5, 133, 139, 1])
+    def test_una_respuesta_valida_vale_aunque_el_motor_se_estrelle_al_cerrar(self, codigo):
+        salida = entrada.codificar([GALLETA])
+        assert ventana.entrar(AULA, ejecutar=proceso(codigo, salida)) == [GALLETA]
+
+    @pytest.mark.parametrize(
+        "codigo,salida,motivo",
+        [(133, "", "código 133"), (-5, "", "código -5"), (0, "basura", "no es una sesión")],
+    )
+    def test_el_motivo_del_fallo_va_en_el_error(self, codigo, salida, motivo):
+        with pytest.raises(ventana.ErrorVentana, match=motivo):
+            ventana.entrar(AULA, ejecutar=proceso(codigo, salida))
+
     def test_no_se_puede_lanzar(self):
         def falla(*a, **k):
             raise FileNotFoundError("python")
@@ -220,6 +234,27 @@ class TestHijo:
             monkeypatch.setattr(sys, "stderr", Flujo(stderr))
             monkeypatch.setattr(sys, "stdout", Flujo(stdout))
             assert ventana.principal([AULA]) == ventana.SALIDA_USO
+
+    @pytest.mark.parametrize("sistema,sale_al_entregar", [("linux", True), ("darwin", False)])
+    def test_solo_en_linux_sale_sin_esperar_al_motor(self, monkeypatch, sistema, sale_al_entregar):
+        class Flujo:
+            def __init__(self, tty):
+                self._tty = tty
+
+            def isatty(self):
+                return self._tty
+
+        vistos: list = []
+        monkeypatch.setattr(sys, "platform", sistema)
+        monkeypatch.setattr(ventana, "_canal_propio", lambda: None)
+        monkeypatch.setattr(
+            ventana, "ejecutar_hijo", lambda url, **opciones: vistos.append(opciones) or 0
+        )
+        monkeypatch.setattr(sys, "stdin", Flujo(True))
+        monkeypatch.setattr(sys, "stderr", Flujo(True))
+        monkeypatch.setattr(sys, "stdout", Flujo(False))
+        assert ventana.principal([AULA]) == 0
+        assert (vistos[0]["salir"] is os._exit) == sale_al_entregar
 
     def test_con_lo_que_le_da_el_padre_abre_la_ventana(self, monkeypatch):
         """Contrato con ``entrar``: stdin y stderr son la terminal y stdout la tubería."""
@@ -352,7 +387,8 @@ class TestEjecutarHijo:
         assert codigo == 0
         assert entrada.decodificar(salida) == [("MoodleSession", "abc", "aula.example.org")]
         assert salida.endswith("\n") and salida.count("\n") == 1
-        assert falsa.destruida and falsa.cookies_borradas
+        assert falsa.destruida
+        assert not falsa.cookies_borradas  # clear_cookies() cuelga QtWebEngine: no se llama
         assert "secreto" not in salida
 
     def test_ventana_privada_sin_js_api_y_en_el_panel(self, monkeypatch):
@@ -372,6 +408,40 @@ class TestEjecutarHijo:
             "Entrar en idp.example.org",
             "Entrar en aula.example.org",
         ]
+
+    def test_entrega_la_sesion_antes_de_cerrar_la_ventana_y_sale_sin_esperar_al_motor(self):
+        vistas: list = []
+
+        class Ventana(_VentanaFalsa):
+            def destroy(self):
+                vistas.append(("destroy", canal.getvalue()))
+                super().destroy()
+
+        falsa = Ventana([f"{AULA}/my/"], [_jar(MoodleSession=("abc", "aula.example.org"))])
+        canal = io.StringIO()
+
+        def salir(codigo):
+            vistas.append(("salir", codigo, canal.getvalue()))
+
+        assert (
+            ventana.ejecutar_hijo(AULA, webview=_WebviewFalso(falsa), canal=canal, salir=salir) == 0
+        )
+        # Primero se escribe el resultado; solo entonces se sale, y es lo único que se escribe.
+        assert vistas[0][0] == "salir" and vistas[0][1] == 0
+        assert entrada.decodificar(vistas[0][2]) == [("MoodleSession", "abc", "aula.example.org")]
+        assert canal.getvalue().count("\n") == 1
+
+    def test_si_el_docente_cierra_la_ventana_sin_entrar_se_entrega_una_lista_vacia(self):
+        canal = io.StringIO()
+        falsa = _VentanaFalsa([f"{AULA}/login/index.php"], [])
+        salidas: list = []
+        assert (
+            ventana.ejecutar_hijo(
+                AULA, webview=_WebviewFalso(falsa), canal=canal, salir=salidas.append
+            )
+            == 0
+        )
+        assert entrada.decodificar(canal.getvalue()) == [] and salidas == []
 
     def test_en_linux_sin_gtk_va_directo_a_qt(self, monkeypatch):
         monkeypatch.setattr(sys, "platform", "linux")
@@ -519,13 +589,13 @@ class TestAcreditarEnLaTerminal:
         monkeypatch.setattr(ventana, "disponible", lambda: True)
 
         def falla(url):
-            raise ventana.ErrorVentana("x")
+            raise ventana.ErrorVentana("la ventana terminó con el código 133")
 
         monkeypatch.setattr(ventana, "entrar", falla)
         monkeypatch.setattr(terminal, "pedir_password", lambda: "secreta")
         assert terminal.acreditar(AULA, "profe") == publicar.Contrasena("secreta")
         salida = capsys.readouterr().out
-        assert "No se pudo abrir la ventana" in salida
+        assert "No se pudo abrir la ventana (la ventana terminó con el código 133)" in salida
         assert "contraseña del aula de aula.example.org (usuario: profe)" in salida
 
     def test_sin_ventana_pide_la_contrasena(self, con_ventana, monkeypatch):

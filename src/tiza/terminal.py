@@ -257,8 +257,11 @@ def acreditar(url: str, usuario: str, *, usar_ventana: bool = True) -> publicar.
         )
         try:
             cookies = ventana.entrar(url)
-        except ventana.ErrorVentana:
-            print("No se pudo abrir la ventana; entrarás con la contraseña en la terminal.")
+        except ventana.ErrorVentana as exc:
+            motivo = f" ({exc.detalle})" if exc.detalle else ""
+            print(
+                f"No se pudo abrir la ventana{motivo}; entrarás con la contraseña en la terminal."
+            )
         else:
             return None if cookies is None else publicar.Cookies(cookies)
     elif usar_ventana and sys.platform == "win32" and not ventana.webview2.instalado():
