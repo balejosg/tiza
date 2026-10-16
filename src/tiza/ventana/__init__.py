@@ -86,7 +86,9 @@ def ejecutar_hijo(url: str, *, webview: Any = None, canal: TextIO | None = None)
     if sys.platform == "win32" and not webview2.instalado():
         return SALIDA_SIN_MOTOR
     if webview is None:
-        import webview  # solo aquí: los tests y la CLI no necesitan pywebview
+        import webview as pywebview  # solo aquí: los tests y la CLI no necesitan pywebview
+
+        webview = pywebview
 
     servidor = urlsplit(base).hostname or ""
     cookies: list[entrada.Galleta] = []
