@@ -149,7 +149,6 @@ MENSAJES: dict[str, str] = {
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
     "UV_NO_ENCONTRADO": "No se encuentra uv. Vuelve a ejecutar el instalador del README.",
-    "GIT_NO_ENCONTRADO": "No se encuentra git, que hace falta para saber cuál es la última versión. Vuelve a ejecutar el instalador del README.",
     "ACTUALIZACION_FALLIDA": "No se pudo actualizar tiza. Comprueba la conexión y vuelve a ejecutar el instalador del README.",
     "SKILL_NO_INSTALADA": "No se pudo copiar la skill a los agentes. Ejecuta «tiza instalar-skill».",
     # Aislamiento

@@ -16,3 +16,9 @@ def _cache_del_usuario_aislada(tmp_path_factory, monkeypatch):
 def _sin_ventana_de_entrada(monkeypatch):
     """Los tests no abren ventanas: la entrada es siempre la contraseña de la terminal."""
     monkeypatch.setattr("tiza.ventana.disponible", lambda: False)
+
+
+@pytest.fixture(autouse=True)
+def _sin_consultar_versiones(monkeypatch):
+    """«tiza empezar» no pregunta a GitHub por la última versión: los tests no salen a la red."""
+    monkeypatch.setattr("tiza.cli._version_nueva", lambda: None)

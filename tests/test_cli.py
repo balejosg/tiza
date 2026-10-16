@@ -665,6 +665,8 @@ def test_minutos_tiene_limite():
     assert cli._parser().parse_args(["sesion", "--minutos", "480"]).minutos == 480
 
 
+_VERSION_NUEVA = cli._version_nueva
+
 ETIQUETAS = (
     "a1\trefs/tags/v0.4.0\nb2\trefs/tags/v0.10.0\nc3\trefs/tags/v0.5.1\nd4\trefs/tags/prueba\n"
 )
@@ -702,7 +704,7 @@ class TestActualizar:
     def test_instala_la_ultima_etiqueta_y_reinstala_la_skill(self, ejecutadas):
         assert cli.main(["actualizar"]) == 0
         assert ejecutadas[1:] == [
-            ["/bin/uv", "tool", "install", "--force", f"git+{cli.REPO_GIT}@v0.10.0"],
+            ["/bin/uv", "tool", "install", "--force", f"{cli.REPO_GIT}/archive/v0.10.0.zip"],
             ["/bin/tiza", "instalar-skill"],
         ]
         assert ejecutadas[0][:2] == ["/bin/git", "ls-remote"]
@@ -715,7 +717,7 @@ class TestActualizar:
             "tool",
             "install",
             "--force",
-            f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0",
+            f"tiza[ventana] @ {cli.REPO_GIT}/archive/v0.10.0.zip",
         ]
 
     def test_en_linux_con_escritorio_lleva_la_ventana_aunque_no_estuviera(
@@ -723,11 +725,11 @@ class TestActualizar:
     ):
         monkeypatch.setattr(cli.ventana, "hay_pantalla", lambda: True)
         assert cli.main(["actualizar"]) == 0
-        assert ejecutadas[1][-1] == f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0"
+        assert ejecutadas[1][-1] == f"tiza[ventana] @ {cli.REPO_GIT}/archive/v0.10.0.zip"
 
     def test_en_linux_sin_escritorio_no_instala_la_ventana(self, ejecutadas):
         assert cli.main(["actualizar"]) == 0
-        assert ejecutadas[1][-1] == f"git+{cli.REPO_GIT}@v0.10.0"
+        assert ejecutadas[1][-1] == f"{cli.REPO_GIT}/archive/v0.10.0.zip"
 
     @pytest.mark.parametrize("sistema", ["win32", "darwin"])
     def test_en_windows_y_macos_lleva_la_ventana_aunque_no_estuviera(
@@ -735,7 +737,7 @@ class TestActualizar:
     ):
         monkeypatch.setattr(cli.sys, "platform", sistema)
         assert cli.main(["actualizar"]) == 0
-        assert ejecutadas[1][-1] == f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0"
+        assert ejecutadas[1][-1] == f"tiza[ventana] @ {cli.REPO_GIT}/archive/v0.10.0.zip"
 
     def test_si_la_ventana_no_se_instala_sigue_sin_ella(self, ejecutadas, monkeypatch, capsys):
         monkeypatch.setattr(cli.sys, "platform", "darwin")
@@ -752,8 +754,8 @@ class TestActualizar:
         monkeypatch.setattr(cli.subprocess, "run", run)
         assert cli.main(["actualizar"]) == 0
         assert intentos[:2] == [
-            f"tiza[ventana] @ git+{cli.REPO_GIT}@v0.10.0",
-            f"git+{cli.REPO_GIT}@v0.10.0",
+            f"tiza[ventana] @ {cli.REPO_GIT}/archive/v0.10.0.zip",
+            f"{cli.REPO_GIT}/archive/v0.10.0.zip",
         ]
         assert "No se pudo instalar la ventana de entrada" in capsys.readouterr().out
 
@@ -784,11 +786,17 @@ class TestActualizar:
         assert ejecutadas == []
         assert "REF_NO_VALIDA" in capsys.readouterr().err
 
-    @pytest.mark.parametrize("ref", ["main", "v0.7.1", "feature/x-1.2", "a" * 100])
+    @pytest.mark.parametrize("ref", ["main", "v0.7.1", "a" * 100])
     def test_tiza_ref_valido_se_acepta(self, ejecutadas, monkeypatch, ref):
         monkeypatch.setenv("TIZA_REF", ref)
         assert cli.main(["actualizar"]) == 0
-        assert ejecutadas[0][-1] == f"git+{cli.REPO_GIT}@{ref}"
+        assert ejecutadas[0][-1] == f"{cli.REPO_GIT}/archive/{ref}.zip"
+
+    def test_rama_con_barra_se_instala_con_git(self, ejecutadas, monkeypatch):
+        # Las ramas con «/» no tienen .zip en GitHub, como en los instaladores.
+        monkeypatch.setenv("TIZA_REF", "feature/x-1.2")
+        assert cli.main(["actualizar"]) == 0
+        assert ejecutadas[0][-1] == f"git+{cli.REPO_GIT}@feature/x-1.2"
 
     def test_con_la_ultima_version_no_reinstala_nada(self, ejecutadas, capsys):
         self.etiquetas = "a1\trefs/tags/v0.5.1\n"
@@ -804,7 +812,7 @@ class TestActualizar:
             "tool",
             "install",
             "--force",
-            f"git+{cli.REPO_GIT}@main",
+            f"{cli.REPO_GIT}/archive/main.zip",
         ]
 
     @pytest.mark.parametrize("etiquetas", ["", "d4\trefs/tags/prueba\n"])
@@ -820,11 +828,35 @@ class TestActualizar:
         assert len(ejecutadas) == 1
         assert "ACTUALIZACION_FALLIDA" in capsys.readouterr().err
 
-    def test_sin_git_falla_con_codigo_claro(self, ejecutadas, monkeypatch, capsys):
+    def test_sin_git_consulta_la_api_de_github(self, ejecutadas, monkeypatch):
+        # El instalador de Windows no necesita git: la última versión se pregunta a GitHub.
         monkeypatch.setattr(cli.shutil, "which", lambda nombre: None if nombre == "git" else "/x")
+        pedidas: list[str] = []
+
+        class Respuesta:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return [{"name": "v0.4.0"}, {"name": "v0.10.0"}, {"name": "prueba"}, "raro"]
+
+        monkeypatch.setattr(
+            cli.requests, "get", lambda url, **_k: pedidas.append(url) or Respuesta()
+        )
+        assert cli.main(["actualizar"]) == 0
+        assert pedidas == [cli._API_ETIQUETAS]
+        assert ejecutadas[0][-1] == f"{cli.REPO_GIT}/archive/v0.10.0.zip"
+
+    def test_sin_git_ni_conexion_falla_sin_instalar(self, ejecutadas, monkeypatch, capsys):
+        monkeypatch.setattr(cli.shutil, "which", lambda nombre: None if nombre == "git" else "/x")
+
+        def sin_red(*_a, **_k):
+            raise cli.requests.ConnectionError("sin red")
+
+        monkeypatch.setattr(cli.requests, "get", sin_red)
         assert cli.main(["actualizar"]) == 1
         assert ejecutadas == []
-        assert "GIT_NO_ENCONTRADO" in capsys.readouterr().err
+        assert "ACTUALIZACION_FALLIDA" in capsys.readouterr().err
 
     def test_sin_uv_falla_con_codigo_claro(self, monkeypatch, capsys):
         monkeypatch.setattr(cli.terminal, "exigir_tty", lambda: None)
@@ -837,6 +869,54 @@ class TestActualizar:
         assert cli.main(["actualizar"]) == 1
         assert len(ejecutadas) == 2
         assert "ACTUALIZACION_FALLIDA" in capsys.readouterr().err
+
+
+class TestVersionNueva:
+    """La consulta de «tiza empezar»: nunca falla ni pregunta si no hay nada nuevo."""
+
+    @pytest.fixture(autouse=True)
+    def _real(self, monkeypatch):
+        monkeypatch.setattr(cli, "_version_nueva", _VERSION_NUEVA)
+        monkeypatch.delenv("TIZA_REF", raising=False)
+        monkeypatch.setattr(cli, "__version__", "0.5.1")
+        monkeypatch.setattr(cli.shutil, "which", lambda nombre: f"/bin/{nombre}")
+
+    def _etiquetas(self, monkeypatch, salida, codigo=0):
+        def run(cmd, **_k):
+            assert cmd[1] == "ls-remote"
+            return type("R", (), {"returncode": codigo, "stdout": salida})()
+
+        monkeypatch.setattr(cli.subprocess, "run", run)
+
+    def test_hay_una_posterior(self, monkeypatch):
+        self._etiquetas(monkeypatch, ETIQUETAS)
+        assert cli._version_nueva() == "v0.10.0"  # numérica: 0.10 > 0.5
+
+    @pytest.mark.parametrize("etiquetas", ["a1\trefs/tags/v0.5.1\n", "a1\trefs/tags/v0.4.9\n", ""])
+    def test_igual_anterior_o_ninguna(self, monkeypatch, etiquetas):
+        self._etiquetas(monkeypatch, etiquetas)
+        assert cli._version_nueva() is None
+
+    def test_si_git_falla_no_pasa_nada(self, monkeypatch):
+        self._etiquetas(monkeypatch, ETIQUETAS, codigo=128)
+        assert cli._version_nueva() is None
+
+    def test_si_git_tarda_no_pasa_nada(self, monkeypatch):
+        def run(cmd, **_k):
+            raise cli.subprocess.TimeoutExpired(cmd, 30)
+
+        monkeypatch.setattr(cli.subprocess, "run", run)
+        assert cli._version_nueva() is None
+
+    def test_con_tiza_ref_no_consulta(self, monkeypatch):
+        monkeypatch.setenv("TIZA_REF", "main")
+        monkeypatch.setattr(cli, "_ultima_etiqueta", lambda: pytest.fail("no debe consultar"))
+        assert cli._version_nueva() is None
+
+    def test_sin_uv_no_consulta(self, monkeypatch):
+        monkeypatch.setattr(cli.shutil, "which", lambda nombre: None)
+        monkeypatch.setattr(cli, "_ultima_etiqueta", lambda: pytest.fail("no debe consultar"))
+        assert cli._version_nueva() is None
 
 
 def test_error_interno_explica_que_hacer(monkeypatch, capsys):
@@ -1485,6 +1565,44 @@ class TestEmpezar:
         )
         assert codigo == 1 and atendidas == []
         assert "[FALTA]" in salida and "no está aislada" in salida
+
+    def test_con_version_nueva_ofrece_actualizar_y_si_dice_no_sigue(self, tmp_path, monkeypatch):
+        escribir_pagina(tmp_path)
+        monkeypatch.setattr(cli, "_version_nueva", lambda: "v9.0.0")
+        instaladas: list = []
+        monkeypatch.setattr(cli, "_instalar_version", lambda *a: instaladas.append(a) or True)
+        # actualizar: "n"; cursos: "s"; autoprueba: "n"
+        codigo, salida, atendidas = abrir_sesion_falsa(
+            tmp_path, monkeypatch, ["n", "s", "n"], comando="empezar"
+        )
+        assert codigo == 0 and len(atendidas) == 1
+        assert instaladas == []
+        assert "Hay una versión nueva de tiza: 9.0.0" in salida
+
+    def test_con_version_nueva_actualiza_y_pide_volver_a_abrir(self, tmp_path, monkeypatch):
+        escribir_pagina(tmp_path)
+        monkeypatch.setattr(cli, "_version_nueva", lambda: "v9.0.0")
+        monkeypatch.setattr(cli.shutil, "which", lambda nombre: f"/bin/{nombre}")
+        instaladas: list = []
+        monkeypatch.setattr(cli, "_instalar_version", lambda *a: instaladas.append(a) or True)
+        codigo, salida, atendidas = abrir_sesion_falsa(
+            tmp_path, monkeypatch, ["s"], comando="empezar"
+        )
+        # La sesión no se abre con el código viejo: se responde SESION_DESACTUALIZADA si no.
+        assert codigo == 0 and atendidas == []
+        assert instaladas == [("/bin/uv", "v9.0.0")]
+        assert "Vuelve a abrir la sesión" in salida
+
+    def test_si_la_actualizacion_falla_sigue_con_la_que_tiene(self, tmp_path, monkeypatch):
+        escribir_pagina(tmp_path)
+        monkeypatch.setattr(cli, "_version_nueva", lambda: "v9.0.0")
+        monkeypatch.setattr(cli.shutil, "which", lambda nombre: f"/bin/{nombre}")
+        monkeypatch.setattr(cli, "_instalar_version", lambda *a: False)
+        codigo, salida, atendidas = abrir_sesion_falsa(
+            tmp_path, monkeypatch, ["s", "s", "n"], comando="empezar"
+        )
+        assert codigo == 0 and len(atendidas) == 1
+        assert "Se sigue con la versión que tienes" in salida
 
     def test_empezar_ofrece_aislar_y_lo_aplica(self, tmp_path, monkeypatch):
         escribir_pagina(tmp_path)

@@ -4,6 +4,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.21.0 — 2026-10-16
+
+### Añadido
+- **`tiza empezar` ofrece la versión nueva.** Si hay una versión publicada posterior a la
+  tuya, lo dice y pregunta si instalarla (`[s/N]`); al terminar, vuelve a abrir la sesión.
+  Sin conexión, o si no se puede saber, sigue como siempre. Así, para el día a día basta
+  con `tiza empezar` (el aislamiento ya lo ofrecía).
+
+### Cambia
+- `tiza actualizar` ya no necesita `git`: instala desde el `.zip` de GitHub, como los
+  instaladores, y sin `git` consulta la última versión a la API de GitHub. Desaparece el
+  código `GIT_NO_ENCONTRADO`.
+
 ## 0.20.3 — 2026-10-16
 
 ### Corregido

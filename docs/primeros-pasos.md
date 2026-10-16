@@ -52,6 +52,8 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
    ```
 
    Te irá preguntando, por este orden:
+   - si hay una versión nueva de `tiza`, si quieres instalarla: responde `s` y,
+     cuando termine, vuelve a escribir `tiza empezar`;
    - la dirección de tu aula virtual y tu usuario;
    - si quieres **aislar** al agente en esta carpeta: responde `s`. Así no
      puede entrar en el aula ni leer tu navegador. Con la app de GitHub
@@ -86,7 +88,8 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
 
 Los días siguientes solo tienes que repetir los pasos 2 a 5. `tiza empezar` ya
 no te preguntará la dirección ni el usuario: solo entrar en el aula y que confirmes
-los cursos.
+los cursos. Tampoco necesitas `tiza actualizar`: `tiza empezar` te avisa cuando
+hay una versión nueva.
 
 ## Tres avisos importantes
 

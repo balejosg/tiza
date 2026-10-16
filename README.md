@@ -195,10 +195,11 @@ La skill se copia a `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills` y
 `~/.agents/skills`). Si prefieres leer antes lo que ejecutas, abre
 `install.sh` o `install.ps1` en este repositorio; son unas pocas líneas.
 
-Los instaladores instalan la versión etiquetada `v0.20.3`; con `TIZA_REF=main`
+Los instaladores instalan la versión etiquetada `v0.21.0`; con `TIZA_REF=main`
 (o con otra etiqueta) antes de ejecutarlos eliges cuál. Para actualizar,
 `tiza actualizar` instala la última versión publicada (o la de `TIZA_REF`, si
-la defines) y reinstala la skill; para ello necesita `git`. Hasta la
+la defines) y reinstala la skill, sin necesitar `git`. Además, `tiza empezar` te
+avisa cuando hay una versión nueva y te ofrece instalarla. Hasta la
 0.5.1, `tiza actualizar` no salía de la etiqueta instalada: desde esas
 versiones, vuelve a ejecutar el instalador una vez.
 
@@ -233,7 +234,7 @@ carpeta. La marca de confianza de Codex está en
 
 | Comando | Quién | Qué hace |
 |---|---|---|
-| `tiza empezar [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Todo en uno: configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
+| `tiza empezar [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Todo en uno: ofrece la versión nueva si la hay, configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
 | `tiza configurar` | docente | Guarda la URL y el usuario (nada más); los cursos se eligen por nombre al abrir la sesión en cada carpeta y se guardan en su `tiza.toml` |
 | `tiza instalar-skill` | docente | Instala la skill portable en los agentes |
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |

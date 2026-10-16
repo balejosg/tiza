@@ -17,6 +17,8 @@ from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
+import requests
+
 from . import (
     __version__,
     agente,
@@ -379,14 +381,7 @@ def _actualizar() -> int:
     # Los instaladores fijan una etiqueta y «uv tool upgrade» nunca sale de ella: se
     # reinstala la última etiqueta publicada (o la de TIZA_REF, como en el instalador).
     if not ref:
-        git = shutil.which("git")
-        if git is None:
-            _imprimir_error(
-                "GIT_NO_ENCONTRADO",
-                "no se encuentra git; vuelve a ejecutar el instalador del README.",
-            )
-            return 1
-        ref = _ultima_etiqueta(git)
+        ref = _ultima_etiqueta()
         if ref is None:
             _imprimir_error(
                 "ACTUALIZACION_FALLIDA", "no se pudo consultar la última versión publicada."
@@ -398,7 +393,12 @@ def _actualizar() -> int:
     if not terminal.confirmar(f"Se va a instalar tiza «{ref}» desde {REPO_GIT}. ¿Continuar?"):
         print("No se ha cambiado nada.", file=sys.stderr)
         return 1
-    origen = f"git+{REPO_GIT}@{ref}"
+    return 0 if _instalar_version(uv, ref) else 1
+
+
+def _instalar_version(uv: str, ref: str) -> bool:
+    """Instala tiza ``ref`` con uv y reinstala la skill; False (con el error impreso) si falla."""
+    origen = _origen(ref)
     instalado = False
     if _quiere_ventana():  # sin el extra, la actualización dejaría sin ventana de entrada
         instalado = (
@@ -411,14 +411,53 @@ def _actualizar() -> int:
             print("No se pudo instalar la ventana de entrada: se entrará con la contraseña.")
     if not instalado and subprocess.run([uv, "tool", "install", "--force", origen]).returncode != 0:
         _imprimir_error("ACTUALIZACION_FALLIDA", "no se pudo actualizar tiza.")
-        return 1
+        return False
     # La skill se reinstala con la versión nueva (este proceso aún es la antigua).
     nuevo = shutil.which("tiza") or sys.argv[0]
     if subprocess.run([nuevo, "instalar-skill"]).returncode != 0:
         _imprimir_error("SKILL_NO_INSTALADA", "no se pudo reinstalar la skill.")
-        return 1
+        return False
     print("Si tienes «tiza sesion» abierta, ciérrala (Ctrl+C) y vuelve a abrirla.")
-    return 0
+    return True
+
+
+def _origen(ref: str) -> str:
+    """De dónde instala uv ``ref``: el .zip de GitHub, sin git, como los instaladores.
+
+    Las referencias con «/» (ramas con barra) no tienen .zip y siguen necesitando git.
+    """
+    return f"git+{REPO_GIT}@{ref}" if "/" in ref else f"{REPO_GIT}/archive/{ref}.zip"
+
+
+def _version_nueva() -> str | None:
+    """La etiqueta publicada más alta si es posterior a esta tiza; None si no, o si no se sabe.
+
+    No falla nunca: sin conexión (o sin uv) ``tiza empezar`` sigue como siempre.
+    """
+    if os.environ.get("TIZA_REF") or shutil.which("uv") is None:
+        return None  # quien fija TIZA_REF elige la versión a mano
+    ultima = _ultima_etiqueta()
+    if ultima is None:
+        return None
+    if _numeros(ultima) <= _numeros(f"v{__version__}"):
+        return None
+    return ultima
+
+
+def _ofrecer_actualizacion() -> bool:
+    """En «tiza empezar»: ofrece la versión nueva. True si se instaló (hay que volver a abrir)."""
+    nueva = _version_nueva()
+    if nueva is None:
+        return False
+    print(f"Hay una versión nueva de tiza: {nueva[1:]} (tienes la {__version__}).")
+    if not terminal.confirmar("¿Actualizar ahora? Después tendrás que volver a abrir la sesión."):
+        return False
+    uv = shutil.which("uv")
+    if uv is None or not _instalar_version(uv, nueva):
+        print("Se sigue con la versión que tienes.")
+        return False
+    print("tiza está actualizada. Vuelve a abrir la sesión para usar la versión nueva.")
+    return True
 
 
 def _quiere_ventana() -> bool:
@@ -435,21 +474,53 @@ def _tiene_ventana() -> bool:
     return importlib.util.find_spec("webview") is not None
 
 
-def _ultima_etiqueta(git: str) -> str | None:
-    """La etiqueta vX.Y.Z más alta del repositorio, o None si no se puede saber."""
-    salida = subprocess.run(
-        [git, "ls-remote", "--tags", "--refs", REPO_GIT], capture_output=True, text=True
-    )
-    if salida.returncode != 0:
-        return None
-    versiones = []
-    for linea in salida.stdout.splitlines():
-        etiqueta = linea.rpartition("refs/tags/")[2]
-        if re.fullmatch(r"v\d+\.\d+\.\d+", etiqueta):
-            versiones.append(tuple(int(n) for n in etiqueta[1:].split(".")))
+_API_ETIQUETAS = "https://api.github.com/repos/balejosg/tiza/tags?per_page=100"
+
+
+def _ultima_etiqueta() -> str | None:
+    """La etiqueta vX.Y.Z más alta publicada, o None si no se puede saber.
+
+    Con git, si está; sin él (el instalador de Windows no lo necesita), con la API de GitHub.
+    """
+    git = shutil.which("git")
+    if git is not None:
+        try:
+            salida = subprocess.run(
+                [git, "ls-remote", "--tags", "--refs", REPO_GIT],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        if salida.returncode != 0:
+            return None
+        nombres: list[object] = [
+            linea.rpartition("refs/tags/")[2] for linea in salida.stdout.splitlines()
+        ]
+    else:
+        try:
+            respuesta = requests.get(_API_ETIQUETAS, timeout=10)
+            respuesta.raise_for_status()
+            datos = respuesta.json()
+        except (requests.RequestException, ValueError):
+            return None
+        if not isinstance(datos, list):
+            return None
+        nombres = [e.get("name") for e in datos if isinstance(e, dict)]
+    versiones = [
+        _numeros(nombre)
+        for nombre in nombres
+        if isinstance(nombre, str) and re.fullmatch(r"v\d+\.\d+\.\d+", nombre)
+    ]
     if not versiones:
         return None
     return "v" + ".".join(str(n) for n in max(versiones))
+
+
+def _numeros(etiqueta: str) -> tuple[int, ...]:
+    """«v0.20.3» → (0, 20, 3); lo que no sean números cuenta como 0."""
+    return tuple(int(n) if n.isdigit() else 0 for n in etiqueta.lstrip("v").split("."))
 
 
 def instalar_skill(home: Path) -> list[Path]:
@@ -1063,6 +1134,8 @@ def _empezar(args) -> int:
         terminal.exigir_tty()
     except ErrorTerminal as exc:
         return _fallo(comando, exc.codigo, exc.detalle, exc=exc, debug=args.debug)
+    if _ofrecer_actualizacion():
+        return 0
     try:
         configurado = config.cargar_global() is not None
     except ErrorConfig:
