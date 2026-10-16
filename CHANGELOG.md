@@ -11,6 +11,8 @@ se avisa aquí con **Cambia**.
   cómo empezar. El detalle pasa a `docs/guia.md` (comandos y opciones),
   `docs/formato.md` (formato de los ficheros) y `docs/seguridad.md` (medidas de
   diseño); la API de biblioteca, a `CONTRIBUTING.md`.
+- El README y el nuevo `docs/del-curriculo-al-aula.md` explican cómo usar el agente
+  para pasar del decreto y la programación didáctica al aula virtual.
 
 ## 0.22.0 — 2026-10-16
 

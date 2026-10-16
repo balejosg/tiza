@@ -28,6 +28,40 @@ llega a tu alumnado. Funciona en Windows, macOS y Linux.
 Si das la misma asignatura en varios grupos, una sola petición llega a todos tus
 cursos.
 
+## Del currículo a tu aula virtual
+
+El decreto de tu materia, tu programación didáctica y tu aula virtual suelen ser
+tres mundos aparte. Con el agente puedes conectarlos en una conversación. Solo
+tienes que dejar en la carpeta de la asignatura los documentos que ya tienes: el
+decreto de tu comunidad o el real decreto de enseñanzas mínimas, y tu
+programación, sin datos del alumnado.
+
+- *«Lee la programación y el decreto y prepárame la situación de aprendizaje del
+  segundo trimestre.»* El agente te propone la secuencia de actividades e indica
+  de qué competencias específicas, criterios de evaluación y saberes básicos sale
+  cada una, citando el documento y el apartado. Antes de escribir nada, te
+  pregunta lo que le falta: sesiones, fechas o producto final.
+- *«En la tarea final, pon los criterios que evalúa y una rúbrica con cuatro
+  niveles.»* Tu alumnado ve en el aula qué se le pide y cómo se valora, con el
+  lenguaje del currículo traducido a su edad.
+- *«¿Qué criterios de mi programación del primer trimestre aún no tienen ninguna
+  actividad en esta carpeta?»* El agente cruza tu programación con lo que ya ha
+  preparado y te señala los huecos.
+- *«Haz una versión de refuerzo y otra de ampliación de la práctica.»* Son
+  actividades distintas, descritas por su contenido y nunca por alumnos
+  concretos. Encajan con las medidas de atención a la diversidad de tu
+  programación.
+- *«Ajusta las fechas de la unidad al calendario escolar.»* Si dejas el
+  calendario en la carpeta, `tiza` avisa cuando una fecha cae en festivo o en un
+  día sin clase.
+
+El agente trabaja con tus documentos y no se inventa criterios. Aun así, la
+última palabra es tuya: revisa que lo citado coincide con el decreto y con tu
+programación antes de publicarlo en el curso real. `tiza` comprueba el formato y
+la seguridad de lo que se publica, pero no comprueba el currículo. Tienes una
+conversación de ejemplo, de principio a fin, en
+[Del currículo al aula](docs/del-curriculo-al-aula.md).
+
 ## Cómo funciona
 
 1. **Abres tu aula.** En la carpeta de la asignatura escribes `tiza empezar` y
@@ -100,6 +134,8 @@ actualización y la desinstalación están en la [guía de uso](docs/guia.md#ins
   escolar, cambio de fechas y orden de las actividades.
 - [Formato de los ficheros](docs/formato.md): lo que escribe el agente, por si
   quieres revisarlo o escribirlo tú.
+- [Del currículo al aula](docs/del-curriculo-al-aula.md): una conversación de
+  ejemplo, del decreto y la programación a la unidad publicada.
 - [Ejemplos](ejemplos/): una unidad completa y un ejemplo de cada tipo.
 - [Cómo protege tiza tu aula](docs/seguridad.md) y [cómo aislar a tu
   agente](docs/aislamiento.md).
