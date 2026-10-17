@@ -1,0 +1,26 @@
+{
+  "codigo": "MAD.DAM.0485",
+  "nombre": "Módulo de juguete",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": ["2026-27"],
+  "normas": ["cm-resolucion-3-2025"],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0485",
+      "tipo": "modulo",
+      "texto": "Módulo de juguete",
+      "procedencia": {"norma": "cm-resolucion-3-2025", "ubicacion": "anexo I", "pagina": 1},
+      "orden": 1,
+      "datos": {"horas": 160, "curso": "1"}
+    },
+    {
+      "codigo": "MAD.DAM.0485.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Reconoce los elementos de un sistema de ejemplo.",
+      "procedencia": {"norma": "cm-resolucion-3-2025", "ubicacion": "anexo I", "pagina": 2},
+      "padre": "MAD.DAM.0485",
+      "orden": 2
+    }
+  ]
+}

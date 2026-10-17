@@ -1,0 +1,13 @@
+{
+  "id": "bocm-20250201-2",
+  "rango": "orden",
+  "numero": "5/2025",
+  "fecha": "2025-02-01",
+  "titulo": "Orden de juguete que modifica el decreto de ejemplo",
+  "boletin": "BOCM",
+  "url_pdf": "https://www.bocm.es/boletin/ejemplo-orden-5-2025.pdf",
+  "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "modifica": ["bocm-20250101-1"],
+  "estado": "vigente",
+  "revisada": "2025-02-10"
+}

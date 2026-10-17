@@ -1,0 +1,58 @@
+{
+  "codigo": "MAD.ESO.CCOMP.1",
+  "nombre": "Materia de juguete, primer curso",
+  "etapa": "eso",
+  "curso": "1",
+  "cursos_academicos": ["2025-26", "2026-27"],
+  "desde": "2026-09-01",
+  "normas": ["bocm-20250101-1", "bocm-20250201-2"],
+  "elementos": [
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CE.2",
+      "tipo": "competencia_especifica",
+      "texto": "Diseña una solución sencilla a un problema dado.",
+      "procedencia": {"norma": "bocm-20250101-1", "ubicacion": "anexo II", "pagina": 12},
+      "padre": null,
+      "relaciones": {},
+      "orden": 4,
+      "datos": {}
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CE.1",
+      "tipo": "competencia_especifica",
+      "texto": "Reconoce las partes de un sistema de ejemplo.",
+      "procedencia": {"norma": "bocm-20250101-1", "ubicacion": "anexo II", "pagina": 12},
+      "relaciones": {"descriptores": ["EST.ESO.DESC.CD1"]},
+      "orden": 1
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.1.1",
+      "tipo": "criterio",
+      "texto": "Nombra los componentes de un sistema de ejemplo.",
+      "procedencia": {"norma": "bocm-20250101-1", "ubicacion": "anexo II", "pagina": 12},
+      "padre": "MAD.ESO.CCOMP.1.CE.1",
+      "orden": 2
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.1.2",
+      "tipo": "criterio",
+      "texto": "Describe cómo se conectan los componentes de un sistema de ejemplo.",
+      "procedencia": {
+        "norma": "bocm-20250201-2",
+        "ubicacion": "art. 1",
+        "pagina": null,
+        "via": [{"norma": "bocm-20250101-1", "ubicacion": "anexo II", "pagina": 13}]
+      },
+      "padre": "MAD.ESO.CCOMP.1.CE.1",
+      "orden": 3
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.2.1",
+      "tipo": "criterio",
+      "texto": "Propone un esquema para resolver un problema dado.",
+      "procedencia": {"norma": "bocm-20250101-1", "ubicacion": "anexo II", "pagina": 13},
+      "padre": "MAD.ESO.CCOMP.1.CE.2",
+      "orden": 5
+    }
+  ]
+}

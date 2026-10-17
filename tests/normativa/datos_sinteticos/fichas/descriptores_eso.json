@@ -1,0 +1,17 @@
+{
+  "codigo": "EST.ESO.DESC",
+  "nombre": "Descriptores de ejemplo de la etapa",
+  "etapa": "eso",
+  "curso": null,
+  "cursos_academicos": ["2025-26", "2026-27"],
+  "normas": ["boe-a-2024-100"],
+  "elementos": [
+    {
+      "codigo": "EST.ESO.DESC.CD1",
+      "tipo": "descriptor",
+      "texto": "Usa herramientas digitales de forma segura.",
+      "procedencia": {"norma": "boe-a-2024-100", "ubicacion": "anexo I", "pagina": 3},
+      "orden": 1
+    }
+  ]
+}

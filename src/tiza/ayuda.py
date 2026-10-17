@@ -102,6 +102,7 @@ MENSAJES: dict[str, str] = {
     "SECCION_SIN_NOMBRE": "No se pudo poner nombre a la sección nueva. Pasa «tiza autoprueba» para comprobar el formato del curso.",
     "SECCION_NO_CREADA": "No se pudo crear la sección. Créala a mano en el aula o usa una que ya exista.",
     "ESTRUCTURA_INVALIDA": "El fichero .tiza/estructura.json no cumple el formato de tiza: puede llevar nombres de sección que no se pueden guardar o estar cambiado a mano. Con la sesión abierta, ejecuta «tiza estructura».",
+    "DATOS_INVALIDOS": "Los datos de normativa que trae tiza no cumplen su formato: el detalle nombra el fichero y el campo. Es un fallo de la instalación o de una edición a mano: reinstala o actualiza tiza.",
     # Publicación (respuestas del aula reducidas a códigos)
     "VERIFICACION_PENDIENTE": "Solo se publica en real lo que esta sesión ya publicó en pruebas sin cambios. Publícalo antes en pruebas.",
     "ERROR_ESTRUCTURA": "No se pudieron leer las secciones del curso. Comprueba que eres profesor de ese curso y vuelve a intentarlo.",
