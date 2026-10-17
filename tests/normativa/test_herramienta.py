@@ -274,6 +274,21 @@ def test_comprobar_no_da_texto_en_filas_de_tabla():
     ]
 
 
+def test_comprobar_detecta_nombres_truncados_en_filas_de_tabla():
+    comprobar = herramienta("comprobar")
+    fila = "0484     Bases de datos avanzadas     205     12     6"
+    assert not comprobar.aparece("Bases de datos", fila, completo=True, tabla=True)
+    assert comprobar.aparece("Bases de datos avanzadas", fila, completo=True, tabla=True)
+    # cifras entre palabras de una misma línea: no es el nombre
+    assert not comprobar.aparece("Bases de datos", "0484 Bases 2 de datos 205 6", tabla=True)
+    # el recorte justo en el salto de línea de un nombre partido no se puede detectar
+    partido = "0492 Proyecto intermodular de aplicaciones   50   5\nmultiplataforma"
+    assert comprobar.aparece("Proyecto intermodular de aplicaciones", partido, tabla=True)
+    assert comprobar.aparece(
+        "Proyecto intermodular de aplicaciones multiplataforma", partido, tabla=True
+    )
+
+
 def test_comprobar_viñeta_en_minuscula_es_otra_unidad():
     comprobar = herramienta("comprobar")
     pagina = (

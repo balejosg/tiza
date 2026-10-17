@@ -102,10 +102,15 @@ def _variantes(crudo: str) -> tuple[str, str]:
 
 
 def _patron(texto: str, tabla: bool = False) -> str:
-    fichas = unicodedata.normalize("NFC", texto).replace("\xa0", " ").split()
-    union = (_CIFRAS_DE_TABLA if tabla else "") + f"[\\s{_MARCA}]+"
-    cuerpo = union.join(re.escape(f) for f in fichas)
-    return rf"(?<!\S){cuerpo}(?!\S)" if tabla else cuerpo
+    palabras = unicodedata.normalize("NFC", texto).replace("\xa0", " ").split()
+    if not tabla:
+        return rf"[\s{_MARCA}]+".join(re.escape(p) for p in palabras)
+    # Fila de tabla: entre palabras, un espacio; las cifras de las otras columnas solo
+    # pueden quedar en medio si el nombre salta de línea; y tras la última palabra solo
+    # cifras hasta el fin de la línea.
+    union = rf"(?:[ ]+|(?:[ ]+(?:\d+|-))*[ ]*\n{_MARCA}?)"
+    cuerpo = union.join(re.escape(p) for p in palabras)
+    return rf"(?<!\S){cuerpo}(?=(?:[ ]+(?:\d+|-))*[ ]*(?:\n|$))"
 
 
 def aparece(
@@ -123,8 +128,14 @@ def aparece(
     otra. ``sustituciones`` son pares (incorrecto, correcto) de una corrección de errores
     declarada: se aplican a la página antes de comparar. Con ``completo``, además, lo
     guardado debe acabar donde acaba la unidad de la página (no ser un trozo). Con ``tabla``,
-    el texto es una celda de una fila de tabla: pueden intercalarse cifras y guiones (las
-    otras columnas, aunque el nombre ocupe dos líneas) y no hay borde de unidad que exigir.
+    el texto es una celda de una fila de tabla: tras ella solo pueden seguir las cifras de
+    las otras columnas hasta el fin de la línea, y si el nombre ocupa dos líneas pueden
+    quedar cifras entre ellas. Una regex no distingue un nombre cortado justo donde salta
+    de línea de uno completo (la primera línea ya acaba en cifras): ese recorte no se detecta.
+
+    Límite conocido del borde de ``completo``: una línea que empieza por un glifo de
+    viñeta cuenta como principio de otra unidad, también si en el PDF era el salto de
+    línea de una frase que seguía.
     """
     if not texto.strip():
         return False
