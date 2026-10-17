@@ -59,6 +59,7 @@ CODIGOS_ERROR = frozenset(
         "ETAPA_DESCONOCIDA",
         "NORMA_DESCONOCIDA",
         "NORMATIVA_SIN_DATOS",
+        "SALIDA_INVALIDA",
         "TEXTO_VACIO",
     }
 )

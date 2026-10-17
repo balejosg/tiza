@@ -109,6 +109,7 @@ MENSAJES: dict[str, str] = {
     "NORMA_DESCONOCIDA": "tiza no tiene esa norma. Prueba con otra forma de citarla (por ejemplo «Decreto 27/2025» o «RD 405/2023») o consulta el boletín.",
     "ETAPA_DESCONOCIDA": "La etapa debe ser eso, bachillerato o fp.",
     "TEXTO_VACIO": "Falta el texto que buscar: escribe al menos una palabra.",
+    "SALIDA_INVALIDA": "La respuesta de la consulta de normativa no cumple el formato de tiza: no la uses. Es un fallo de tiza; avisa a quien la mantiene con este código.",
     # Publicación (respuestas del aula reducidas a códigos)
     "VERIFICACION_PENDIENTE": "Solo se publica en real lo que esta sesión ya publicó en pruebas sin cambios. Publícalo antes en pruebas.",
     "ERROR_ESTRUCTURA": "No se pudieron leer las secciones del curso. Comprueba que eres profesor de ese curso y vuelve a intentarlo.",
