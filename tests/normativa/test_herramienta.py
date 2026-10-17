@@ -233,6 +233,74 @@ def test_comprobar_acepta_sustitucion_declarada():
     assert [d.tipo for d in otra] == ["TEXTO"]
 
 
+def _tipos(informe) -> list[str]:
+    return [d.tipo for d in informe]
+
+
+def test_comprobar_no_da_texto_en_filas_de_tabla():
+    comprobar = herramienta("comprobar")
+    tabla = (
+        "0484     Bases de datos                                  205     12     6\n"
+        "0492     Proyecto intermodular de desarrollo de aplicaciones     50     5\n"
+        "         multiplataforma\n"
+        "         HORAS TOTALES      2000"
+    )
+    documentos = {"boe-a-2022-1": comprobar.Documento(paginas={1: tabla})}
+
+    def modulo(texto: str) -> Elemento:
+        return Elemento(
+            codigo="MAD.FPGS.DAM.0484.MOD",
+            tipo="modulo",
+            texto=texto,
+            procedencia=Procedencia(norma="boe-a-2022-1", ubicacion="anexo II", pagina=1),
+            padre=None,
+            datos={"horas": 205, "curso": "1"},
+        )
+
+    assert comprobar.comprobar_elemento(modulo("Bases de datos"), documentos, {}) == []
+    # el nombre que ocupa dos líneas de la tabla, con las cifras de en medio
+    largo = "Proyecto intermodular de desarrollo de aplicaciones multiplataforma"
+    assert comprobar.comprobar_elemento(modulo(largo), documentos, {}) == []
+    # lo que no está en la tabla sigue siendo TEXTO
+    assert _tipos(comprobar.comprobar_elemento(modulo("Bases de dato"), documentos, {})) == [
+        "TEXTO"
+    ]
+    assert _tipos(comprobar.comprobar_elemento(modulo("Bases de otros datos"), documentos, {})) == [
+        "TEXTO"
+    ]
+    # y el borde de unidad sigue valiendo para un texto que no sale de una tabla
+    assert _tipos(comprobar.comprobar_elemento(elemento("Bases de datos"), documentos, {})) == [
+        "TEXTO"
+    ]
+
+
+def test_comprobar_viñeta_en_minuscula_es_otra_unidad():
+    comprobar = herramienta("comprobar")
+    pagina = (
+        "    - La válvula de vacío.\n"
+        "    - el transistor y el chip.\n"
+        "    x la inteligencia artificial.\n"
+        "    x Los sensores.\n"
+        "    continuación de una frase\n"
+        "    en minúscula."
+    )
+    documentos = {"boe-a-2022-1": comprobar.Documento(paginas={1: pagina})}
+    for texto in (
+        "La válvula de vacío.",
+        "el transistor y el chip.",
+        "la inteligencia artificial.",
+    ):
+        assert comprobar.comprobar_elemento(elemento(texto), documentos, {}) == [], texto
+    # una línea que sigue sin viñeta y en minúscula continúa la frase: falta parte
+    assert _tipos(comprobar.comprobar_elemento(elemento("Los sensores."), documentos, {})) == [
+        "TEXTO"
+    ]
+    # y un trozo de una viñeta sigue sin valer
+    assert _tipos(comprobar.comprobar_elemento(elemento("el transistor"), documentos, {})) == [
+        "TEXTO"
+    ]
+
+
 def test_comprobar_pagina_y_fuentes_que_faltan():
     comprobar = herramienta("comprobar")
     documentos = {"boe-a-2022-1": comprobar.Documento(paginas={1: "Texto de la página uno."})}

@@ -48,9 +48,16 @@ TIPOS_DE_DISCREPANCIA = (
 
 _VINETA = re.compile(r"^(?:[-–—•·▪●]|x)\s+")
 _PARTICION = re.compile(r"(?<=\w)-\n(?=\w)")
+# Marca que deja el lugar de una viñeta del PDF: una línea que empieza por viñeta es
+# siempre el principio de otra unidad, aunque su texto empiece en minúscula.
+_MARCA = "\x01"
 # Tras el final de lo guardado, la unidad debe acabar: fin de línea y que la línea
 # siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)»).
 _BORDE = r"[ ]*(?:\n(?!(?![a-z]\))[a-záéíóúüñ])|$)"
+# Los elementos que salen de una fila de tabla (el nombre del módulo, seguido de horas y
+# créditos en la misma línea) no acaban donde acaba una línea: se buscan salteando cifras.
+TIPOS_DE_TABLA = frozenset({"modulo"})
+_CIFRAS_DE_TABLA = r"(?:\s+(?:\d+|-))*"
 
 
 @dataclass(frozen=True)
@@ -86,16 +93,19 @@ def _variantes(crudo: str) -> tuple[str, str]:
     """
     lineas = []
     for linea in unicodedata.normalize("NFC", crudo).replace("\xa0", " ").split("\n"):
-        linea = _VINETA.sub("", " ".join(linea.split()))
+        linea = " ".join(linea.split())
+        linea = _MARCA + _VINETA.sub("", linea) if _VINETA.match(linea) else linea
         if linea:
             lineas.append(linea)
     unido = "\n".join(lineas)
     return _PARTICION.sub("", unido), _PARTICION.sub("-", unido)
 
 
-def _patron(texto: str) -> str:
+def _patron(texto: str, tabla: bool = False) -> str:
     fichas = unicodedata.normalize("NFC", texto).replace("\xa0", " ").split()
-    return r"\s+".join(re.escape(f) for f in fichas)
+    union = (_CIFRAS_DE_TABLA if tabla else "") + f"[\\s{_MARCA}]+"
+    cuerpo = union.join(re.escape(f) for f in fichas)
+    return rf"(?<!\S){cuerpo}(?!\S)" if tabla else cuerpo
 
 
 def aparece(
@@ -105,17 +115,20 @@ def aparece(
     sustituciones: tuple[tuple[str, str], ...] = (),
     *,
     completo: bool = False,
+    tabla: bool = False,
 ) -> bool:
     """¿Está ``texto`` literal en la página (normalizando espacios, particiones y viñetas)?
 
     ``siguiente`` es la página que sigue: un texto puede empezar en una y acabar en la
     otra. ``sustituciones`` son pares (incorrecto, correcto) de una corrección de errores
     declarada: se aplican a la página antes de comparar. Con ``completo``, además, lo
-    guardado debe acabar donde acaba la unidad de la página (no ser un trozo).
+    guardado debe acabar donde acaba la unidad de la página (no ser un trozo). Con ``tabla``,
+    el texto es una celda de una fila de tabla: pueden intercalarse cifras y guiones (las
+    otras columnas, aunque el nombre ocupe dos líneas) y no hay borde de unidad que exigir.
     """
     if not texto.strip():
         return False
-    patron = re.compile(_patron(texto) + (_BORDE if completo else ""))
+    patron = re.compile(_patron(texto, tabla) + (_BORDE if completo and not tabla else ""))
     solo = _variantes(pagina)
     con_siguiente = _variantes(pagina + "\n" + siguiente) if siguiente else solo
     for propia, ampliada in zip(solo, con_siguiente, strict=True):
@@ -168,10 +181,16 @@ def comprobar_elemento(
             )
         ]
 
+    tabla = elemento.tipo in TIPOS_DE_TABLA
+
     def en_pdf() -> bool:
         if pagina is None:
             return aparece(
-                elemento.texto, _texto_total(documento), sustituciones=sustituciones, completo=True
+                elemento.texto,
+                _texto_total(documento),
+                sustituciones=sustituciones,
+                completo=True,
+                tabla=tabla,
             )
         return aparece(
             elemento.texto,
@@ -179,6 +198,7 @@ def comprobar_elemento(
             documento.paginas.get(pagina + 1, ""),
             sustituciones,
             completo=True,
+            tabla=tabla,
         )
 
     def en_xml() -> bool:
