@@ -110,6 +110,34 @@ def test_lomloe_vinetas_x_son_subcontenidos():
     assert bloques[0]["texto"] == "Ciencias de la computación. Evolución histórica."
 
 
+def test_lomloe_subviñeta_tras_la_cabecera_de_un_bloque_no_cuelga_del_bloque_anterior():
+    texto = FRAGMENTO.read_text(encoding="utf-8")
+    cabecera = "               B. Los sistemas informáticos.\n"
+    assert cabecera in texto
+    huerfana = "                    x Subcontenido sin viñeta previa.\n"
+    ficha = herramienta("extraer_lomloe").extraer_materia(
+        texto.replace(cabecera, cabecera + huerfana),
+        norma=BOCM,
+        nombre="Ciencias de la Computación",
+        sigla="CCOMP",
+        etapa="bachillerato",
+        curso="1",
+        cursos_academicos=["2023-24", "2024-25"],
+    )
+    por_codigo = elementos(ficha)
+    huerfano = next(
+        e for e in por_codigo.values() if e["texto"] == "Subcontenido sin viñeta previa."
+    )
+    assert huerfano["codigo"] == f"{MATERIA}.CO.B.1"
+    assert huerfano["padre"] == f"{MATERIA}.CO.B"
+    # y el primer contenido real del bloque pasa a ser el segundo
+    primero = next(
+        e for e in por_codigo.values() if e["texto"].startswith("Elementos de un sistema")
+    )
+    assert primero["codigo"] == f"{MATERIA}.CO.B.2"
+    assert primero["padre"] == f"{MATERIA}.CO.B"
+
+
 def escribir_datos(raiz: Path, ficha: dict) -> None:
     """Normas y descriptores mínimos más la ficha del extractor, con la disposición del paquete."""
     (raiz / "normas").mkdir()
@@ -249,7 +277,7 @@ def test_comprobar_no_da_texto_en_filas_de_tabla():
 
     def modulo(texto: str) -> Elemento:
         return Elemento(
-            codigo="MAD.FPGS.DAM.0484.MOD",
+            codigo="MAD.DAM.0484",
             tipo="modulo",
             texto=texto,
             procedencia=Procedencia(norma="boe-a-2022-1", ubicacion="anexo II", pagina=1),
@@ -579,18 +607,114 @@ def test_fp_resultados_criterios_y_orientaciones_del_boe():
     )
     elementos_fp = fp.elementos_del_boe(
         modulo,
-        ficha="MAD.FPGS.DAM.0484",
+        ficha="MAD.DAM.0484",
         norma="boe-a-2010-6954",
         ubicacion="anexo I",
         orden_inicial=2,
     )
     assert [e["codigo"] for e in elementos_fp] == [
-        "MAD.FPGS.DAM.0484.RA.1",
-        "MAD.FPGS.DAM.0484.RA.1.CE.a",
-        "MAD.FPGS.DAM.0484.RA.1.CE.b",
-        "MAD.FPGS.DAM.0484.RA.2",
-        "MAD.FPGS.DAM.0484.RA.2.CE.a",
-        "MAD.FPGS.DAM.0484.ORI",
+        "MAD.DAM.0484.RA.1",
+        "MAD.DAM.0484.RA.1.a",
+        "MAD.DAM.0484.RA.1.b",
+        "MAD.DAM.0484.RA.2",
+        "MAD.DAM.0484.RA.2.a",
+        "MAD.DAM.0484.ORI",
     ]
-    assert elementos_fp[1]["padre"] == "MAD.FPGS.DAM.0484.RA.1"
+    assert elementos_fp[1]["padre"] == "MAD.DAM.0484.RA.1"
+    assert elementos_fp[0]["padre"] == "MAD.DAM.0484"  # la raíz es el módulo
     assert elementos_fp[0]["orden"] == 2
+
+
+def _normas_fp(raiz: Path) -> None:
+    (raiz / "normas").mkdir()
+    (raiz / "fichas").mkdir()
+    for id_, numero, boletin, url in (
+        ("boe-a-2010-6954", "450/2010", "BOE", "https://www.boe.es/ejemplo.pdf"),
+        ("bocm-20110113-3", "3/2011", "BOCM", "https://www.bocm.es/ejemplo.pdf"),
+        ("bocm-20240904-103", "103/2024", "BOCM", "https://www.bocm.es/otro.pdf"),
+    ):
+        norma = {
+            "id": id_,
+            "rango": "real_decreto" if boletin == "BOE" else "decreto",
+            "numero": numero,
+            "fecha": "2011-01-13",
+            "titulo": f"Norma de prueba {numero}",
+            "boletin": boletin,
+            "url_pdf": url,
+            "sha256": "0" * 64,
+            "estado": "vigente",
+            "revisada": "2026-10-17",
+        }
+        (raiz / "normas" / f"{id_}.json").write_text(json.dumps(norma), encoding="utf-8")
+
+
+def test_fp_codigos_segun_el_plan_y_el_cargador_los_acepta(tmp_path):
+    fp = herramienta("extraer_fp")
+    comun = herramienta("comun")
+    ficha = "MAD.DAM.0484"
+    modulo = fp.analizar_modulo_boe(PARRAFOS_BOE, "0484")
+    contenidos = fp.analizar_contenidos_madrid(comun.lineas_de(TEXTO_MADRID), "0484")
+    elementos_ficha = [
+        fp.elemento_modulo(
+            "Bases de datos",
+            205,
+            "1",
+            ficha=ficha,
+            norma="bocm-20240904-103",
+            ubicacion="anexo II",
+            pagina=3,
+        )
+    ]
+    elementos_ficha += fp.elementos_del_boe(
+        modulo,
+        ficha=ficha,
+        norma="boe-a-2010-6954",
+        ubicacion="anexo I",
+        orden_inicial=2,
+    )
+    elementos_ficha += fp.elementos_de_contenidos(
+        contenidos,
+        ficha=ficha,
+        norma="bocm-20110113-3",
+        ubicacion="anexo I",
+        orden_inicial=len(elementos_ficha) + 1,
+    )
+    assert elementos_ficha[0]["codigo"] == ficha and elementos_ficha[0]["tipo"] == "modulo"
+    contenidos_madrid = [e for e in elementos_ficha if e["tipo"] == "contenido"]
+    assert [e["codigo"] for e in contenidos_madrid][:4] == [
+        f"{ficha}.CO.1",
+        f"{ficha}.CO.1.1",
+        f"{ficha}.CO.1.2",
+        f"{ficha}.CO.1.3",
+    ]
+    assert contenidos_madrid[0]["padre"] == ficha
+    assert contenidos_madrid[1]["padre"] == f"{ficha}.CO.1"
+    assert not any(e["tipo"] == "contenido_basico" for e in elementos_ficha)
+    assert [e["tipo"] for e in elementos_ficha if e["codigo"].endswith(".RA.1.a")] == [
+        "criterio_fp"
+    ]
+
+    _normas_fp(tmp_path)
+    fichero = {
+        "codigo": ficha,
+        "nombre": "Bases de datos",
+        "etapa": "fp_gs",
+        "curso": None,
+        "cursos_academicos": ["2026-27"],
+        "normas": ["boe-a-2010-6954", "bocm-20110113-3", "bocm-20240904-103"],
+        "elementos": elementos_ficha,
+    }
+    herramienta("extraer_lomloe").escribir_ficha(fichero, tmp_path)
+    limpiar_cache()
+    cargada = cargar(raiz=tmp_path).fichas[ficha]
+    assert len(cargada.elementos) == len(elementos_ficha)
+
+    # los contenidos de Madrid y los básicos estatales se cuentan por separado
+    comprobar = herramienta("comprobar")
+    hay = len(contenidos_madrid)
+    esperado = {
+        "bocm-20110113-3": {"recuentos": {ficha: {"contenidos": hay, "contenidos_basicos": 0}}}
+    }
+    assert comprobar.comprobar_recuentos(cargada, esperado) == []
+    esperado = {"bocm-20110113-3": {"recuentos": {ficha: {"contenidos_basicos": hay}}}}
+    assert _tipos(comprobar.comprobar_recuentos(cargada, esperado)) == ["FALTA"]

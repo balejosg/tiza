@@ -123,7 +123,7 @@ def test_cli_sin_datos_da_error_json(tmp_path, monkeypatch, capsys):
 
 def test_cli_detalle_sin_caracteres_de_control(monkeypatch, capsys):
     def con_basura(*_args, **_kwargs):
-        raise ErrorNormativa("CODIGO_DESCONOCIDO", "malo\x07 con​ ruido\n", ("x\x00y",))
+        raise ErrorNormativa("CODIGO_DESCONOCIDO", "malo\x07 con\u200b ruido\n", ("x\x00y",))
 
     monkeypatch.setattr(consulta, "elemento", con_basura)
     codigo, documento = ejecutar(capsys, ["normativa", "elemento", "X"])

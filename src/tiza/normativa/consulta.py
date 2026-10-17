@@ -150,6 +150,8 @@ def norma(
     es una errata publicada de la norma, ``cita_pedida`` y ``cita_correcta`` lo dicen.
     """
     datos = indice or cargar()
+    if not datos.normas:
+        raise ErrorNormativa("NORMATIVA_SIN_DATOS", "La fuente de normativa no trae normas.")
     clave = normalizar_cita(cita)
     id_ = datos.alias.get(clave)
     if id_ is None:
@@ -163,7 +165,8 @@ def norma(
     correcta = None
     if clave not in canonicas:
         pedida = next(c for c in n.citas if normalizar_cita(c) == clave)
-        correcta = nombre[0].upper() + nombre[1:]
+        # el estilo oficial: «Decreto 27/2025», «Orden 5/2025», «Real Decreto 1/2024»
+        correcta = f"{NOMBRE_DEL_RANGO[n.rango].title()} {n.numero}"
     vigente = curso_de(hoy or hoy_en_madrid())
     return salida.NormaSalida(
         **_cabecera(datos, vigente, True),
@@ -251,13 +254,19 @@ def programacion(
         )
     f = _ficha_de(datos, _FICHA_DE_PROGRAMACION[clave])
     curso, vigente = _curso(curso_academico, hoy, f.cursos_academicos)
+    requisitos = tuple(
+        _fragmento(datos, e) for e in f.elementos if e.tipo == "requisito_programacion"
+    )
+    if not requisitos:
+        raise ErrorNormativa(
+            "NORMATIVA_SIN_DATOS",
+            f"La ficha {_eco(f.codigo)} no trae ningún requisito de la programación.",
+        )
     return salida.Requisitos(
         **_cabecera(datos, curso, vigente),
         etapa=clave,
         ficha=f.codigo,
-        requisitos=tuple(
-            _fragmento(datos, e) for e in f.elementos if e.tipo == "requisito_programacion"
-        ),
+        requisitos=requisitos,
     )
 
 

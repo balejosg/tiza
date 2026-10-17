@@ -227,6 +227,20 @@ def test_norma_por_cita_canonica_no_es_errata(indice, cita, numero):
     assert (r.cita_pedida, r.cita_correcta) == (None, None)
 
 
+def test_norma_con_errata_de_real_decreto_usa_el_estilo_oficial(tmp_path):
+    raiz = tmp_path / "datos"
+    shutil.copytree(SINTETICOS, raiz)
+    ruta = raiz / "normas" / "boe-a-2024-100.json"
+    datos = json.loads(ruta.read_text(encoding="utf-8"))
+    datos["citas"] = ["Real Decreto 2/2024"]
+    ruta.write_text(json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+    limpiar_cache()
+    r = consulta.norma("Real Decreto 2/2024", hoy=HOY, indice=cargar(raiz))
+    assert r.numero == "1/2024"
+    assert r.cita_pedida == "Real Decreto 2/2024"
+    assert r.cita_correcta == "Real Decreto 1/2024"
+
+
 def test_norma_desconocida(indice):
     error = fallo(lambda: consulta.norma("Decreto 1/1999", hoy=HOY, indice=indice))
     assert error.codigo == "NORMA_DESCONOCIDA"
@@ -299,6 +313,7 @@ def test_sin_datos_no_inventa_nada(tmp_path):
         lambda: consulta.ficha(MATERIA, "2026-27", hoy=HOY, indice=sin),
         lambda: consulta.buscar("x", None, "2026-27", hoy=HOY, indice=sin),
         lambda: consulta.programacion("eso", "2026-27", hoy=HOY, indice=sin),
+        lambda: consulta.norma("Decreto 27/2025", hoy=HOY, indice=sin),
     ):
         error = fallo(llamada)
         assert error.codigo == "NORMATIVA_SIN_DATOS"
@@ -385,6 +400,19 @@ def test_programacion_de_eso(indice):
         "Cuando ninguna norma fija el índice de la programación, lo fija la plantilla del centro."
     )
     assert consulta.programacion(" ESO ", None, hoy=HOY, indice=indice).etapa == "eso"
+
+
+def test_programacion_sin_requisitos_no_responde_vacio(tmp_path):
+    raiz = tmp_path / "datos"
+    shutil.copytree(SINTETICOS, raiz)
+    ruta = raiz / "fichas" / "programacion_eso.json"
+    datos = json.loads(ruta.read_text(encoding="utf-8"))
+    datos["elementos"] = []
+    ruta.write_text(json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+    limpiar_cache()
+    error = fallo(lambda: consulta.programacion("eso", "2026-27", hoy=HOY, indice=cargar(raiz)))
+    assert error.codigo == "NORMATIVA_SIN_DATOS"
+    salida.error_a_dict(error)
 
 
 def test_programacion_etapas(indice):

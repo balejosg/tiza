@@ -275,6 +275,7 @@ def extraer_materia(
         if item["nivel"] == 0:
             bloque = f"{ficha_codigo}.CO.{item['letra']}"
             n_contenido = 0
+            contenido = ""  # una «x» sin «-» antes se promueve a contenido de este bloque
             anadir(
                 bloque,
                 "bloque_contenidos",

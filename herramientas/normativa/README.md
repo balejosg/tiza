@@ -7,7 +7,7 @@ ni los docentes ni sus agentes la usan.** Necesita `pdftotext` (poppler) para lo
 
 Se ejecuta desde la raíz del repositorio, con `uv run python -m herramientas.normativa.<módulo>`.
 La lista de normas (`fuentes.toml`: id, URL, `sha256`, correcciones, `recuentos` y
-`sustituciones`) está en esta carpeta.
+`sustituciones`) vivirá en esta carpeta; todavía no existe, la entrega otra tarea del plan.
 
 ## Orden de trabajo: descargar, extraer, comprobar
 
@@ -17,11 +17,16 @@ La lista de normas (`fuentes.toml`: id, URL, `sha256`, correcciones, `recuentos`
    y **nunca se commitean los PDF**.
 2. **Extraer**, según la fuente (escriben `fichas/<código>.json` en `src/tiza/normativa/datos`,
    o donde diga `--salida`):
+   - `extraer_descriptores --norma <id> --etapa <…> --cursos-academicos … --cache <dir>`:
+     **primero**, antes de cualquier materia. Las relaciones entre fichas (los descriptores
+     que cita cada competencia) se validan entre fichas al cargar, y una materia sin la
+     ficha de descriptores de su etapa no carga.
    - `extraer_lomloe --norma <id> --materia <sigla> --curso <n> --nombre <título> --etapa
      <eso|bachillerato> --cursos-academicos 2023-24,2024-25 --cache <dir>`
-   - `extraer_descriptores --norma <id> --etapa <…> --cursos-academicos … --cache <dir>`
    - `extraer_fp --ficha <código> --modulo <código> --ciclo <nombre> --boe <id> --madrid <id>
-     --horas <id> --cursos-academicos … --cache <dir>`
+     --horas <id> --cursos-academicos … --cache <dir>` (la ficha es el módulo, p. ej.
+     `MAD.DAM.0485`). Quedan pendientes los módulos transversales y los optativos de FP:
+     la Orden 3537/2025 sale cifrada de `pdftotext` y hay que resolver antes cómo se lee.
 3. **Comprobar**: `comprobar --cache <dir>` revisa todas las fichas. Sale con código distinto
    de 0 y una línea por discrepancia: `TEXTO`, `PROCEDENCIA`, `RELACION`, `CODIGO`,
    `VIGENCIA`, `FALTA`, `SOBRA` o `SIN_FUENTE`.
@@ -33,5 +38,6 @@ corrección de errores que lo enmienda), no se arregla en el JSON.
 ## Los fragmentos de `fuentes/`
 
 `fuentes/*.txt` son trozos de texto de boletín ya extraído, con sus cabeceras de página,
-para los tests (`tests/normativa/test_herramienta.py`). Es el único sitio del repositorio
-donde puede aparecer texto de boletín literal.
+para los tests (`tests/normativa/test_herramienta.py`). Junto con los
+datos de `src/tiza/normativa/datos/`, es el único sitio del repositorio donde puede aparecer
+texto de boletín literal.

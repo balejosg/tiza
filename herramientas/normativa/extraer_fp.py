@@ -102,7 +102,11 @@ def elementos_de_contenidos(
     ubicacion: str,
     orden_inicial: int = 1,
 ) -> list[dict[str, Any]]:
-    """Elementos ``contenido_basico`` (``CB.1``, ``CB.1.2``, ``CB.1.2.1``) con sus padres."""
+    """Elementos ``contenido`` de Madrid (``CO.1``, ``CO.1.2``, ``CO.1.2.1``) con sus padres.
+
+    Los ``contenido_basico`` (``CB.n``) son los estatales del real decreto del título: no se
+    mezclan con estos.
+    """
     elementos: list[dict[str, Any]] = []
     contadores = [0, 0, 0]
     codigos = ["", "", ""]
@@ -111,17 +115,16 @@ def elementos_de_contenidos(
         contadores[nivel - 1] += 1
         for i in range(nivel, 3):
             contadores[i] = 0
-        codigo = f"{ficha}.CB." + ".".join(str(c) for c in contadores[:nivel])
+        codigo = f"{ficha}.CO." + ".".join(str(c) for c in contadores[:nivel])
         codigos[nivel - 1] = codigo
         elemento: dict[str, Any] = {
             "codigo": codigo,
-            "tipo": "contenido_basico",
+            "tipo": "contenido",
             "texto": item["texto"],
             "procedencia": {"norma": norma, "ubicacion": ubicacion, "pagina": item["pagina"]},
             "orden": orden_inicial + len(elementos),
         }
-        if nivel > 1:
-            elemento["padre"] = codigos[nivel - 2]
+        elemento["padre"] = codigos[nivel - 2] if nivel > 1 else ficha
         elementos.append(elemento)
     return elementos
 
@@ -176,7 +179,7 @@ def elemento_modulo(
     orden: int = 1,
 ) -> dict[str, Any]:
     return {
-        "codigo": f"{ficha}.MOD",
+        "codigo": ficha,
         "tipo": "modulo",
         "texto": nombre,
         "procedencia": {"norma": norma, "ubicacion": ubicacion, "pagina": pagina},
@@ -237,7 +240,7 @@ def elementos_del_boe(
     orden_inicial: int = 1,
     modificados: Mapping[str, tuple[str, str]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Elementos ``RA.n``, ``RA.n.CE.a`` y ``ORI`` del módulo.
+    """Elementos ``RA.n``, ``RA.n.a`` (criterio) y ``ORI``, hijos del módulo (``ficha``).
 
     ``modificados`` da, por código de elemento, la norma que lo modifica y su ubicación:
     la procedencia pasa a ser esa y el lugar del original queda en ``via``.
@@ -245,7 +248,7 @@ def elementos_del_boe(
     modificados = modificados or {}
     elementos: list[dict[str, Any]] = []
 
-    def anadir(codigo: str, tipo: str, texto: str, lugar: str, padre: str | None = None) -> None:
+    def anadir(codigo: str, tipo: str, texto: str, lugar: str, padre: str) -> None:
         original = {"norma": norma, "ubicacion": lugar, "pagina": None}
         if codigo in modificados:
             otra, donde = modificados[codigo]
@@ -257,16 +260,16 @@ def elementos_del_boe(
             }
         else:
             procedencia = original
-        elemento: dict[str, Any] = {
-            "codigo": codigo,
-            "tipo": tipo,
-            "texto": comun.unir([texto]),
-            "procedencia": procedencia,
-            "orden": orden_inicial + len(elementos),
-        }
-        if padre is not None:
-            elemento["padre"] = padre
-        elementos.append(elemento)
+        elementos.append(
+            {
+                "codigo": codigo,
+                "tipo": tipo,
+                "texto": comun.unir([texto]),
+                "procedencia": procedencia,
+                "orden": orden_inicial + len(elementos),
+                "padre": padre,
+            }
+        )
 
     base = f"{ubicacion}, módulo {modulo['codigo']}"
     for resultado in modulo["resultados"]:
@@ -276,10 +279,11 @@ def elementos_del_boe(
             "resultado_aprendizaje",
             resultado["texto"],
             f"{base}, resultado de aprendizaje {resultado['numero']}",
+            padre=ficha,
         )
         for criterio in resultado["criterios"]:
             anadir(
-                f"{codigo}.CE.{criterio['letra']}",
+                f"{codigo}.{criterio['letra']}",
                 "criterio_fp",
                 criterio["texto"],
                 f"{base}, resultado de aprendizaje {resultado['numero']}, criterio {criterio['letra']}",
@@ -291,6 +295,7 @@ def elementos_del_boe(
             "orientaciones",
             modulo["orientaciones"],
             f"{base}, orientaciones pedagógicas",
+            padre=ficha,
         )
     return elementos
 
@@ -299,7 +304,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Extrae un módulo de FP de grado superior a una ficha."
     )
-    ap.add_argument("--ficha", required=True, help="código de la ficha, p. ej. MAD.FPGS.DAM.0485")
+    ap.add_argument(
+        "--ficha", required=True, help="código de la ficha (el módulo), p. ej. MAD.DAM.0485"
+    )
     ap.add_argument("--modulo", required=True, help="código del módulo, p. ej. 0485")
     ap.add_argument(
         "--ciclo", required=True, help="nombre del ciclo en la tabla de horas, en mayúsculas"
