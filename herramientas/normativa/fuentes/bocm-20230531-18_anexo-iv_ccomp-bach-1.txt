@@ -1,0 +1,253 @@
+     BOCM                                 BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 114                                    MIÉRCOLES 31 DE MAYO DE 2023                                          B.O.C.M. Núm. 128
+
+
+                                                         ANEXO IV
+
+                                               Ciencias de la Computación
+
+     BOCM                                    BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 128                              MIÉRCOLES 31 DE MAYO DE 2023                                              Pág. 115
+
+
+               impartidos en el curso (arquitectura del ordenador, historia de las ciencias de la computación,
+               fundamentos de programación, etc.) para ello deberá presentarse un proyecto previo con una
+               organización y planificación para la elaboración de los contenidos web utilizando las herramientas
+               de ofimática y aplicaciones específicas necesarias. Una vez abordado el diseño del sitio web
+               deberán utilizar las aplicaciones de uso más frecuente para la elaboración de los contenidos y utilizar
+               las herramientas ofimáticas para la gestión del proyecto que mejor se ajusten a las necesidades del
+               grupo de trabajo.
+               Competencias específicas.
+               1.   Reconocer y analizar los elementos físicos que componen un sistema informático,
+                    estudiando su evolución histórica y las ventajas que ha supuesto la implementación de
+                    los avances tecnológicos en estos sistemas, para identificar las posibilidades y
+                    funcionalidades de la informática y su presencia en la actividad cotidiana.
+                    Los sistemas informáticos se han incorporado a nuestro entorno, ningún alumno ha
+               permanecido ajeno al uso de los mismos. El conocer su estructura, los componentes que lo
+               constituyen y la función que cada uno de ellos realiza en el conjunto de estos sistemas ofrece al
+               alumnado una visión completa para mejorar el uso y el manejo de estos dispositivos.
+                     Por otro lado, los avances tecnológicos han ido permitiendo que se implementen nuevas
+               funcionalidades, así como la extensión de los sistemas informáticos a campos muy diversos como
+               la automoción, la domótica, la industria, etc. Esta competencia permite que el alumnado pueda hacer
+               un análisis crítico y reflexivo de los impactos que estos avances han provocado en la sociedad,
+               ocasionando cambios de paradigma sociales, económicos y culturales, así como favorece que
+               adquiera el grado de madurez que le corresponde al finalizar esta etapa educativa, incorporando el
+               contexto histórico como factor determinante en sus conclusiones.
+                     Esta competencia específica se conecta con los siguientes descriptores recogidos en el anexo
+               I del Real Decreto 243/2022, de 5 de abril: CCL3, STEM4, CD1, CD2, CD3, CC1 y CE1.
+               2.   Identificar las características y funciones de los diferentes componentes de un sistema
+                    informático y la interrelación entre los mismos, así como los sistemas de comunicación
+                    para la conexión entre diferentes dispositivos y las redes de comunicación
+                    estableciendo configuraciones seguras, analizando el impacto social, económico y
+                    cultural que han tenido los sistemas de comunicación y trasmisión de la información en
+                    la historia reciente.
+                    La transmisión de la información y los datos entre diferentes dispositivos y equipos informáticos
+               supone la base de la sociedad de la información y el conocimiento, al generar un acceso inmediato
+               y globalizado a través Internet. No obstante, este cambio de paradigma en las posibilidades de
+               aprendizaje no ha sido uniforme en todas las sociedades y estamentos sociales y ha generado
+               nuevos conceptos como la denominada brecha digital.
+                     Por otro lado, la implementación de los circuitos electrónicos (hardware) programables o
+               robotizados (software) en multitud de máquinas y herramientas de uso cotidiano, incorporando la
+               capacidad de que estas puedan comunicarse entre ellas y tomar decisiones en su funcionamiento,
+               de forma más o menos autónoma, mediante el tratamiento de la información recabada desde
+               diferentes sensores y dispositivos, o incluso, controlar su funcionamiento desde un teléfono móvil.
+               Estos cambios han revolucionado la forma en la que nos relacionamos con las máquinas. Un análisis
+               de la evolución que han tenido en este ámbito las redes informáticas a lo largo de la historia reciente
+               y como ha impactado en la sociedad le otorga al alumno un visión más global para comprender y
+               afrontar los cambios que están por llegar.
+                   Desde un punto de vista técnico, el alumno, que estudiará y trabajará utilizando redes de
+               comunicación, debe conocer las bases de su funcionamiento para acceder a la configuración de las
+               conexiones y resolver los problemas más frecuentes en estos sistemas.
+                     Esta competencia específica se conecta con los siguientes descriptores recogidos en el anexo
+               I del Real Decreto 243/2022, de 5 de abril: CCL3, STEM4, CD1, CD2, CD3, CC1 y CE1.
+               3.   Conocer y utilizar a nivel de usuario las aplicaciones informáticas de uso más frecuente;
+                    ofimáticas, de edición de imagen, sonido y vídeo, valorando las posibilidades que
+                                                                                                                                    BOCM-20230531-18
+
+
+
+
+                    ofrecen estas herramientas en la difusión del conocimiento y la promoción profesional,
+                    para integrar el uso de las aplicaciones informáticas en las diferentes actividades
+                    académicas, profesionales, personales y sociales.
+                    El alumnado ya utiliza herramientas ofimáticas y aplicaciones para el tratamiento digital del
+               vídeo y la imagen, sin embargo, el continuo avance en este campo hace imprescindible que en esta
+     BOCM                                BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 116                                   MIÉRCOLES 31 DE MAYO DE 2023                                        B.O.C.M. Núm. 128
+
+
+           etapa educativa se alcance una mayor especialización, de tal forma que consiga un manejo
+           adecuado de funciones más específicas.
+                 Para el alumnado Internet no es únicamente un lugar de consulta y vía de acceso a la
+           información, es un lugar de participación y una herramienta en la que almacena y comparte
+           información. Resulta necesaria una formación adecuada para la creación y edición de contenidos
+           web, en la que se aborden, además de las cuestiones técnicas y posibilidades que se ofrecen para
+           ello, cuestiones relacionadas con la estructura y la presentación de los contenidos e información,
+           incluyendo el uso intencionado y adecuado de los elementos del lenguaje visual. Asimismo, las
+           formas de participación más directas, a través de las diferentes redes sociales, deben ser también
+           objeto de análisis, para la prevención de los riesgos que podrían derivarse de un uso inadecuado de
+           las mismas.
+                 Esta competencia específica se conecta con los siguientes descriptores recogidos en el anexo
+           I del Real Decreto 243/2022, de 5 de abril: CCL1, CCL3, STEM1, STEM4, CD1, CD2, CD3, CPSAA4,
+           CPSAA5, CC1, CCEC4.1 y CCEC4.2
+           4.   Diseñar y crear aplicaciones y programas informáticos con diversas finalidades para dar
+                respuesta a problemas y situaciones que puedan producirse en el ámbito académico y
+                profesional, estructurando y aplicando los algoritmos necesarios, así como realizando
+                las operaciones de compilación y depuración necesarias, valorando la incidencia de la
+                programación y su impacto en la sociedad actual.
+                La programación se ha convertido en la principal expresión del pensamiento computacional.
+           Los lenguajes de programación facilitan el diseño y ejecución de los algoritmos que permiten la
+           simplificación y resolución de múltiples problemas y situaciones que el alumno encontrará a lo largo
+           de su vida tanto académica como profesional.
+                 Estamos viviendo una plena revolución digital con avances tecnológicos vertiginosos en varios
+           campos: Internet de las cosas, Inteligencia Artificial, ciberseguridad, Big Data, computación y
+           almacenamiento en la nube, redes sociales, robótica, entre otros. Estas tecnologías impactan
+           significativamente en la globalización de la economía y diferentes ámbitos de la sociedad, tales
+           como: educación, salud, transporte, industria, ambiente, negocios, comunicación, seguridad,
+           entretenimiento, etc. Conocer los fundamentos que subyacen en la creación de los algoritmos y la
+           creación de programas informáticos para resolver diferentes problemas facilita el uso y comprensión
+           de estos avances.
+                 Esta competencia específica se conecta con los siguientes descriptores recogidos en el anexo
+           I del Real Decreto 243/2022, de 5 de abril: CCL1, CCL3, STEM3, CD3, CD4, CD5 y CE3.
+           1º BACHILLERATO
+           Criterios de evaluación.
+           Competencia específica 1.
+           1.1 Conocer la evolución histórica de los avances tecnológicos así como los principios físicos y
+               técnicos de su funcionamiento, para analizar la revolución digital y el desarrollo de las ciencias
+               de la computación así como los impactos que en cada caso han originado en la sociedad.
+           1.2 Identificar los subsistemas y elementos de un sistema informático, valorando la influencia de
+               los avances tecnológicos en los cambios que se implementan en estos sistemas.
+           1.3 Reconocer la arquitectura los sistemas informáticos, analizando los cambios que se han ido
+               produciendo en su estructura en la historia reciente y han facilitado el desarrollo tecnológico.
+           Competencia específica 2.
+           2.1 Identificar y conocer las características de cada componente de un sistema informático, así
+               como las conexiones entre ellos, valorando las funciones que realizan en el conjunto del
+               sistema.
+           Competencia específica 3.
+           3.1 Manejar de forma adecuada las herramientas de ofimática para la elaboración de
+               documentación y el tratamiento de la información, incorporando estas herramientas como un
+                                                                                                                                   BOCM-20230531-18
+
+
+
+
+               elemento instrumental en su vida académica.
+           3.2 Conocer las funciones avanzadas de la ofimática y las herramientas de gestión de proyectos,
+               utilizando estas aplicaciones en situaciones prácticas de su vida académica.
+           3.3 Elaborar y difundir contenidos e información contrastada en Internet, desarrollando proyectos
+               para la elaboración de contenidos web en equipos de trabajo, utilizando las herramientas y
+               aplicaciones ofimáticas más adecuadas para la gestión de las tareas en cada caso.
+     BOCM                                    BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 128                              MIÉRCOLES 31 DE MAYO DE 2023                                              Pág. 117
+
+
+               Competencia específica 4.
+               4.1 Detectar problemas y situaciones en las que puedan aplicarse algoritmos para su resolución,
+                   valorando el papel del pensamiento computacional y la programación para su resolución.
+               4.2 Diseñar la estructura de un programa informático basándose en los fundamentos de la
+                   programación, seleccionando el lenguaje más idóneo para materializarlo.
+               4.3 Conocer las principales sentencias e instrucciones de uno o varios lenguajes de programación,
+                   considerando la importancia de la corrección en la sintaxis para su depuración y compilación.
+               Contenidos.
+               A. Ciencias de la computación. Evolución histórica.
+                -   Los inicios de las ciencias de la computación (Alan Turing, Ada Lovelace, John von Neumann).
+                    Teoría de algoritmos. Máquina de Turing. Álgebra de Boole.
+                -   Computación y computabilidad. Problemas de decisión y problemas indecibles.
+                -   El comienzo de la revolución digital. La era de la información y el internet.
+                -   Avances tecnológicos en la computación a lo largo de la historia:
+                    x Las primeras máquinas matemáticas: el ábaco, los logaritmos de Napier, la regla deslizante
+                        (William Oughtred, 1621), la rueda de pascal o pascalina (Blaise Pascal, 1642).
+                    x La máquina diferencial de Charles Babbage (1822).
+                    x La válvula de vacío. El primer ordenador electrónico (ENIAC 1943-1946).
+                    x El transistor.
+                    x El circuito integrado. El chip.
+                    x Los sensores. La robótica.
+                    x La inteligencia artificial.
+                -   Las tarjetas perforadas. Los lenguajes de programación. La computación gráfica. Los
+                    simuladores.
+                -   Computación y sociedad. Impacto en el desarrollo social y económico. Beneficios y efectos
+                    negativos.
+               B. Los sistemas informáticos.
+                -   Elementos de un sistema informático: subsistema físico (hardware), subsistema lógico
+                    (software) y el usuario (analistas, programadores, operarios, etc.)
+                -   Ordenadores personales, sistemas departamentales y grandes ordenadores.
+                -   Estructura del hardware.
+                    x Arquitectura de Neumann: procesador, memoria, interfaces de entrada y salida, buses.
+                    x Dispositivos de cómputo: unidad central de proceso (CPU), memoria (RAM, ROM, caché),
+                        bus de datos.
+                    x Dispositivos de almacenamiento.
+                    x Dispositivos de comunicación.
+                    x Dispositivos de entrada.
+                    x Dispositivos de salida.
+                -   La placa base (mainboard):
+                    x Conectores de alimentación.
+                    x Zócalo de CPU.
+                    x Ranuras de RAM.
+                    x Chipset: puente norte (interconexiones CPU, RAM, procesador gráfico) y puente sur
+                        (interconexiones periféricos y dispositivos de almacenamiento).
+                    x Reloj.
+                    x Semiconductor complementario de óxido metálico (CMOS), memoria de configuración del
+                        equipo.
+                    x Firmware: sistema básico de entrada y salida (BIOS), interfaz unificada de firmware
+                        extensible (UEFI).
+                    x Buses y conectores. Puertos más frecuentes en los equipos.
+                -   Subsistemas integrantes de equipos informáticos. Alimentación. Sistemas de protección ante fallos.
+                -   Secuencia de arranque de un equipo informático, el gestor de arranque (bootloader).
+               C. Software de sistema y de utilidad.
+                                                                                                                                    BOCM-20230531-18
+
+
+
+
+                -   Software de sistema: sistemas operativos, lenguajes de programación.
+                -   Sistemas operativos:
+                    x Funciones del sistema operativo.
+                    x Interfaz: de línea de comandos, gráfica de usuario (GUI).
+                    x Tipos de sistemas.
+                    x Componentes: sistema de archivos, interpretación de comandos, núcleo.
+     BOCM                                 BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 118                                    MIÉRCOLES 31 DE MAYO DE 2023                                          B.O.C.M. Núm. 128
+
+
+            -   Lenguajes de programación: de bajo y alto nivel.
+            -   Tipos de programación: declarativa, imperativa, estructurada, modular, orientada a objetos,
+                orientada a eventos.
+            -   Software de utilidad.
+                x Software libre y propietario.
+                x Tipos de aplicaciones.
+                x Instalación y prueba de aplicaciones.
+                x Requerimientos de las aplicaciones.
+           D. Elaboración y difusión de la información.
+            -   Ofimática y documentación electrónica.
+            -   Utilización académica y profesional de procesadores de texto, hojas de cálculo, bases de datos,
+                presentaciones y organización de proyectos.
+            -   Software de comunicación: desde el correo electrónico y los gestores de agenda hasta las
+                redes sociales y los entornos virtuales para la comunicación en tiempo real.
+            -   Herramientas de gestión de archivos y almacenamiento en la nube. Contenidos compartidos.
+            -   Diseño y edición de páginas web. Aplicaciones y lenguajes. Publicación de páginas web.
+                Estándares de accesibilidad de la información.
+            -   La evolución de Internet y su impacto social.
+                x La revolución de la web 1.0, el acceso instantáneo a la información. El nacimiento de la
+                     sociedad de la información y la comunicación.
+                x La web 2.0, la interoperabilidad y la creación colaborativa de contenidos, la web social.
+                     Usos y riesgos de las redes sociales y sus aplicaciones.
+                x La web 3.0 el internet de las cosas y la incorporación de la inteligencia artificial a la red, el
+                     BigData.
+           E. Programación.
+            -   Elementos de programación.
+            -   Conceptos básicos: ingeniería de software, lenguajes de programación, evolución de la
+                programación.
+            -   Algoritmos: estáticos, probabilísticos y adaptativos.
+            -   Diagramas de flujo: símbolos gráficos, elaboración de diagramas.
+            -   Pseudocódigo: instrucciones primitivas, de proceso, de control, compuestas, de descripción.
+            -   Resolución de problemas mediante programación. Descomposición de problemas mayores en
+                otros más pequeños.
+            -   Estructuras básicas de la programación. Programación estructurada.
+            -   Entornos de programación.
+            -   Metodología de desarrollo de programas:
+                x Sentencias de programación: simples y estructuradas.
+                x Sintaxis y codificación: variables y vectores, expresiones condicionales, selección y bucles,
+                    funciones.
+                x Ensamblaje o compilación del programa.
+                x Prueba y depuración del programa.
+
