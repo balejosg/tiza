@@ -1,0 +1,24 @@
+{
+  "codigo": "MAD.ESO.PROG",
+  "nombre": "Requisitos de ejemplo de la programación",
+  "etapa": "eso",
+  "curso": null,
+  "cursos_academicos": ["2026-27"],
+  "normas": ["bocm-20250101-1"],
+  "elementos": [
+    {
+      "codigo": "MAD.ESO.PROG.REQ.1",
+      "tipo": "requisito_programacion",
+      "texto": "Incluye la concreción de los criterios de evaluación de ejemplo.",
+      "procedencia": {"norma": "bocm-20250101-1", "ubicacion": "art. 4.1", "pagina": 5},
+      "orden": 1
+    },
+    {
+      "codigo": "MAD.ESO.PROG.REQ.2",
+      "tipo": "requisito_programacion",
+      "texto": "Describe las medidas de atención a la diversidad de ejemplo.",
+      "procedencia": {"norma": "bocm-20250101-1", "ubicacion": "art. 4.2", "pagina": 5},
+      "orden": 2
+    }
+  ]
+}

@@ -23,9 +23,9 @@ _PATRONES = (
     # no son códigos de error y tienen su propio registro, informe.PASOS).
     re.compile(r'borrador\.error\(\s*"([A-Z][A-Z0-9_]+)"'),
 )
-# informe.py valida el esquema; sus códigos nunca llegan al usuario como código
-# de error (se descartan o se convierten en ERROR_INTERNO).
-_EXCLUIDOS = {"informe.py"}
+# informe.py y normativa/salida.py validan un esquema; sus códigos nunca llegan al
+# usuario como código de error (se descartan o se convierten en ERROR_INTERNO).
+_EXCLUIDOS = {"informe.py", "salida.py"}
 
 
 def codigos_del_codigo_fuente() -> set[str]:

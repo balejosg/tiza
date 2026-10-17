@@ -20,11 +20,18 @@ __all__ = [
     "Ficha",
     "Norma",
     "Procedencia",
+    "NOMBRE_DEL_RANGO",
     "RANGOS",
     "TIPOS_ELEMENTO",
 ]
 
 RANGOS = ("real_decreto", "decreto", "orden", "resolucion")
+NOMBRE_DEL_RANGO = {
+    "real_decreto": "real decreto",
+    "decreto": "decreto",
+    "orden": "orden",
+    "resolucion": "resolución",
+}
 BOLETINES = ("BOE", "BOCM", "CM")  # CM: el portal de la comunidad, no un boletín
 ESTADOS = ("vigente", "derogada")
 ETAPAS = ("eso", "bachillerato", "fp_gs")

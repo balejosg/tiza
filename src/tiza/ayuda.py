@@ -103,6 +103,12 @@ MENSAJES: dict[str, str] = {
     "SECCION_NO_CREADA": "No se pudo crear la sección. Créala a mano en el aula o usa una que ya exista.",
     "ESTRUCTURA_INVALIDA": "El fichero .tiza/estructura.json no cumple el formato de tiza: puede llevar nombres de sección que no se pueden guardar o estar cambiado a mano. Con la sesión abierta, ejecuta «tiza estructura».",
     "DATOS_INVALIDOS": "Los datos de normativa que trae tiza no cumplen su formato: el detalle nombra el fichero y el campo. Es un fallo de la instalación o de una edición a mano: reinstala o actualiza tiza.",
+    "NORMATIVA_SIN_DATOS": "tiza no trae esa materia o ese módulo en su fuente de normativa. La lista de «disponibles» dice cuáles sí trae; para lo demás, consulta la norma en el boletín.",
+    "CURSO_SIN_DATOS": "tiza no trae datos de ese curso académico. La lista de «disponibles» dice de cuáles sí; no los sustituyas por los de otro curso sin avisar al docente.",
+    "CODIGO_DESCONOCIDO": "No hay ningún elemento con ese código en la fuente de normativa. Busca el código exacto con la consulta de la ficha o con una búsqueda de texto.",
+    "NORMA_DESCONOCIDA": "tiza no tiene esa norma. Prueba con otra forma de citarla (por ejemplo «Decreto 27/2025» o «RD 405/2023») o consulta el boletín.",
+    "ETAPA_DESCONOCIDA": "La etapa debe ser eso, bachillerato o fp.",
+    "TEXTO_VACIO": "Falta el texto que buscar: escribe al menos una palabra.",
     # Publicación (respuestas del aula reducidas a códigos)
     "VERIFICACION_PENDIENTE": "Solo se publica en real lo que esta sesión ya publicó en pruebas sin cambios. Publícalo antes en pruebas.",
     "ERROR_ESTRUCTURA": "No se pudieron leer las secciones del curso. Comprueba que eres profesor de ese curso y vuelve a intentarlo.",

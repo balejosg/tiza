@@ -27,6 +27,7 @@ from .modelo import (
     DATOS_POR_TIPO,
     ESTADOS,
     ETAPAS,
+    NOMBRE_DEL_RANGO,
     RANGOS,
     TIPOS_ELEMENTO,
     Elemento,
@@ -47,12 +48,6 @@ _CACHE: dict[Traversable | None, Indice] = {}  # por raíz; solo guarda cargas c
 
 _DOMINIOS = frozenset({"www.boe.es", "www.bocm.es"})
 _DOMINIO_COMUNIDAD = "www.comunidad.madrid"  # solo para las normas con boletín CM
-_NOMBRE_DEL_RANGO = {
-    "real_decreto": "real decreto",
-    "decreto": "decreto",
-    "orden": "orden",
-    "resolucion": "resolución",
-}
 _ID_NORMA = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _FRAGMENTO = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _CODIGO = re.compile(r"[A-Z][A-Z0-9]*(?:\.[A-Za-z0-9]+)*")
@@ -103,12 +98,17 @@ _PROCEDENCIA_OPCIONALES = ("pagina", "via")
 
 
 class ErrorNormativa(Exception):
-    """Error de los datos de normativa con un código estable (``DATOS_INVALIDOS``)."""
+    """Error de la fuente de normativa con un código estable (``DATOS_INVALIDOS``…).
 
-    def __init__(self, codigo: str, detalle: str = "") -> None:
+    ``disponibles`` lista lo que sí hay (códigos de ficha o cursos académicos) cuando
+    el error es que lo pedido no está.
+    """
+
+    def __init__(self, codigo: str, detalle: str = "", disponibles: tuple[str, ...] = ()) -> None:
         super().__init__(codigo)
         self.codigo = codigo
         self.detalle = detalle
+        self.disponibles = tuple(disponibles)
 
 
 @dataclass(frozen=True)
@@ -530,7 +530,7 @@ class _Cargador:
     def _alias(self) -> dict[str, str]:
         alias: dict[str, str] = {}
         for norma in self.normas.values():
-            nombres = [f"{_NOMBRE_DEL_RANGO[norma.rango]} {norma.numero}"]
+            nombres = [f"{NOMBRE_DEL_RANGO[norma.rango]} {norma.numero}"]
             if norma.rango == "real_decreto":
                 nombres.append(f"rd {norma.numero}")
             nombres.extend(norma.citas)

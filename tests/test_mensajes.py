@@ -248,8 +248,8 @@ class TestAvisos:
         assert lineas[0].texto == "Informe: ok (publicar)"
 
     def test_lineas_de_error_sin_texto_de_ayuda_es_solo_el_codigo(self):
-        lineas = mensajes.lineas_de_error("CODIGO_DESCONOCIDO")
-        assert [linea.texto for linea in lineas] == ["ERROR [CODIGO_DESCONOCIDO]"]
+        lineas = mensajes.lineas_de_error("CODIGO_SIN_AYUDA")
+        assert [linea.texto for linea in lineas] == ["ERROR [CODIGO_SIN_AYUDA]"]
 
 
 class TestDetalleReal:
