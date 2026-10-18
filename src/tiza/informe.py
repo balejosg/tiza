@@ -402,6 +402,39 @@ def validar_lectura(datos: Any) -> None:
         raise ErrorInforme("VALOR_NO_PERMITIDO", "sha256 no es un hash válido")
 
 
+_CAMPOS_DOCUMENTO = {"fuente", "documento", "bloques"}
+
+
+@dataclass(frozen=True)
+class Documento:
+    """El resumen que imprime ``tiza documento``: de qué ``.md`` sale qué ``.docx``.
+
+    Las rutas son relativas a la carpeta de la asignatura. Se valida al construirlo.
+    """
+
+    fuente: str
+    documento: str
+    bloques: int
+
+    def __post_init__(self) -> None:
+        validar_documento(self.a_dict())
+
+    def a_dict(self) -> dict:
+        return {"fuente": self.fuente, "documento": self.documento, "bloques": self.bloques}
+
+
+def validar_documento(datos: Any) -> None:
+    """Esquema cerrado del resumen de ``tiza documento``."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "el documento debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_DOCUMENTO, "documento")
+    for campo in ("fuente", "documento"):
+        if not isinstance(datos[campo], str) or not datos[campo]:
+            raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
+        _exigir_texto(datos[campo], campo)
+    _exigir_entero(datos["bloques"], "bloques")
+
+
 _CAMPOS_ESTRUCTURA = {"version", "generado", "cursos"}
 _CAMPOS_CURSO = {"id", "secciones"}
 _CAMPOS_SECCION = {"numero", "nombre", "id"}

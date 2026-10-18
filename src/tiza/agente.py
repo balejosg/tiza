@@ -20,14 +20,16 @@ from pathlib import Path
 from . import buzon, calendario, contenido, estado, informe, rutas
 from .calendario import ErrorCalendario
 from .contenido import Documento, ErrorContenido, hash_documento
+from .escritura import ErrorEscritura
 from .estado import ErrorEstado, Estructura, buscar_seccion, cargar_estructura
-from .ficheros import asegurar_directorio, escribir_texto
+from .ficheros import FicheroNoSeguro, asegurar_directorio, escribir_texto, leer_bytes_acotado
 from .lectura.modelo import ErrorLectura
 
 __all__ = [
     "Comprobacion",
     "FicheroComprobado",
     "comprobar",
+    "documento",
     "estado_sesion",
     "estructura",
     "formato_documento",
@@ -505,3 +507,44 @@ def leer(ruta: str | Path, carpeta: str | Path) -> informe.Lectura:
             "LECTURA_NO_ESCRIBIBLE", f"No se pudo guardar en {rutas.CARPETA_TRABAJO}/lecturas."
         ) from None
     return resumen
+
+
+def documento(
+    fuente: str | Path, carpeta: str | Path, salida: str | Path | None = None
+) -> informe.Documento:
+    """Convierte un ``.md`` de la asignatura en un Word sencillo (``.docx``) en la misma carpeta.
+
+    Offline. Sin ``salida`` usa el nombre de la fuente con ``.docx``. Nunca sobrescribe un
+    Word (``DOCUMENTO_EXISTE``) y solo escribe dentro de la carpeta. Lanza ``ErrorEscritura``
+    con un código estable; las librerías del Word se importan aquí.
+    """
+    from .escritura.word import escribir_docx
+
+    base = Path(carpeta)
+    try:
+        origen = fichero_en_carpeta(fuente, base, {".md"})
+        destino = fichero_en_carpeta(
+            salida if salida is not None else origen.with_suffix(".docx"), base, {".docx"}
+        )
+    except ErrorLectura as error:
+        raise ErrorEscritura(error.codigo, error.detalle) from None
+    try:
+        texto = leer_bytes_acotado(origen, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8")
+    except FileNotFoundError:
+        raise ErrorEscritura("DOCUMENTO_AUSENTE", f"No existe el fichero {origen.name}.") from None
+    except FicheroNoSeguro as exc:
+        if exc.motivo == "grande":
+            raise ErrorEscritura(
+                "FICHERO_DEMASIADO_GRANDE", f"{origen.name} pesa más de 2 MB."
+            ) from None
+        raise ErrorEscritura("FICHERO_BLOQUEADO", f"No se puede leer {origen.name}.") from None
+    except UnicodeDecodeError:
+        raise ErrorEscritura("FORMATO_NO_ADMITIDO", f"{origen.name} no está en UTF-8.") from None
+    except OSError:
+        raise ErrorEscritura("FICHERO_BLOQUEADO", f"No se puede leer {origen.name}.") from None
+    bloques = escribir_docx(texto, destino)
+    return informe.Documento(
+        fuente=origen.relative_to(base.resolve()).as_posix(),
+        documento=destino.relative_to(base.resolve()).as_posix(),
+        bloques=bloques,
+    )

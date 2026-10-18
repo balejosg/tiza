@@ -88,6 +88,15 @@ def _parser() -> argparse.ArgumentParser:
     )
     leer.add_argument("fichero", help="el .docx o .pdf, dentro de la carpeta de la asignatura")
 
+    documento = sub.add_parser(
+        "documento",
+        help="convierte un .md en un Word sencillo (.docx) en la carpeta, sin sobrescribir (offline)",
+    )
+    documento.add_argument("fuente", help="el .md, dentro de la carpeta de la asignatura")
+    documento.add_argument(
+        "--salida", help="el .docx de salida (por defecto, el nombre del .md con .docx)"
+    )
+
     estructura = sub.add_parser("estructura", help="lee las secciones de los cursos (autenticado)")
     estructura.add_argument("--debug", action="store_true")
 
@@ -287,6 +296,8 @@ def _despachar(args) -> int:
         return _normativa(args)
     if args.comando == "leer":
         return _leer(args)
+    if args.comando == "documento":
+        return _documento(args)
     return 2
 
 
@@ -397,6 +408,23 @@ def _leer(args) -> int:
         documento = {"error": "NOMBRE_NO_VALIDO", "detalle": "El nombre del fichero no vale."}
         codigo = 2
     _escribir_json(documento)
+    return codigo
+
+
+def _documento(args) -> int:
+    """Escribe un Word desde un .md: un único JSON en stdout (resumen o error) y 0 o 2."""
+    from .escritura import ErrorEscritura  # carga diferida
+
+    try:
+        resultado = agente.documento(args.fuente, Path.cwd(), args.salida).a_dict()
+        codigo = 0
+    except ErrorEscritura as error:
+        resultado = {"error": error.codigo, "detalle": _sin_control(error.detalle)}
+        codigo = 2
+    except ErrorInforme:  # un nombre de fichero con símbolos no permitidos
+        resultado = {"error": "NOMBRE_NO_VALIDO", "detalle": "El nombre del fichero no vale."}
+        codigo = 2
+    _escribir_json(resultado)
     return codigo
 
 

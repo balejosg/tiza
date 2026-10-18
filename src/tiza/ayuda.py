@@ -168,6 +168,10 @@ MENSAJES: dict[str, str] = {
     "NOMBRE_NO_VALIDO": "El nombre del fichero tiene símbolos que tiza no admite (los signos de menor y mayor que) o caracteres invisibles. Renómbralo sin ellos y repite el comando.",
     "DOCUMENTO_AUSENTE": "No existe ese documento. Revisa el nombre y que esté dentro de la carpeta de la asignatura.",
     "LECTURA_NO_ESCRIBIBLE": "No se pudo guardar el texto leído en la carpeta .tiza/lecturas. Comprueba que .tiza no sea un enlace y que puedas escribir en la carpeta de la asignatura.",
+    # Escritura de documentos
+    "MARKDOWN_NO_ADMITIDO": "El Word sencillo no admite esa parte del Markdown (HTML, imágenes, bloques de código, citas, títulos de nivel 5 o 6, listas de más de 3 niveles). Quítala o cámbiala por texto normal en la línea indicada y repite el comando.",
+    "DOCUMENTO_EXISTE": "Ya existe un Word con ese nombre y tiza nunca sobrescribe un Word. Elige otro nombre con «--salida» y repite el comando.",
+    "DOCUMENTO_NO_ESCRIBIBLE": "No se pudo crear el Word. Comprueba que la carpeta de destino exista y que puedas escribir en ella, y repite el comando.",
     "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
