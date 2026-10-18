@@ -315,6 +315,13 @@ def _plano(texto: str) -> str:
     return " ".join(comun.normalizar_unicode(texto).split())
 
 
+def _nombre_en_anexo_ii(numero: str, texto: str) -> str | None:
+    """El nombre antiguo de ``CMO-<numero>`` como lo escribe el anexo II («CMO-315 <nombre>
+    (90 horas).»), o ``None`` si la página no trae ese módulo con su nombre."""
+    encontrado = re.search(rf"CMO-{numero} (.+?) \(\d+ horas?\)", _plano(texto))
+    return encontrado.group(1) if encontrado else None
+
+
 def _con_via(
     elemento: Elemento,
     problemas: list[Discrepancia],
@@ -329,6 +336,7 @@ def _con_via(
     """
     procedencia = elemento.procedencia
     resultado = list(problemas)
+    cmo = re.fullmatch(r"MAD\.CMO\.(\d{3})", elemento.codigo)
     for via in procedencia.via:
         if not _relacionadas(procedencia.norma, via.norma, fuentes):
             resultado.append(
@@ -337,6 +345,23 @@ def _con_via(
                     elemento.codigo,
                     f"«{procedencia.norma}» no figura en fuentes.toml como corrección o "
                     f"modificación de «{via.norma}» (ni al revés)",
+                )
+            )
+        # un módulo renombrado: la página de la original tiene que traer su nombre antiguo
+        original = documentos.get(via.norma)
+        if (
+            cmo is not None
+            and original is not None
+            and via.pagina is not None
+            and via.pagina in original.paginas
+            and _nombre_en_anexo_ii(cmo[1], original.paginas[via.pagina]) is None
+        ):
+            resultado.append(
+                Discrepancia(
+                    "PROCEDENCIA",
+                    elemento.codigo,
+                    f"la página {via.pagina} de la vía «{via.norma}» no trae el nombre original "
+                    f"de CMO-{cmo[1]}",
                 )
             )
     if not any(p.tipo == "TEXTO" for p in problemas):

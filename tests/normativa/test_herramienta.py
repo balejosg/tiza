@@ -1070,6 +1070,46 @@ def test_comprobar_un_texto_con_via_que_esta_en_su_propia_pagina_solo_pide_la_re
     assert _tipos(informe) == ["RELACION"]
 
 
+def _modulo_renombrado(via_pagina: str):
+    comprobar = herramienta("comprobar")
+    elemento = Elemento(
+        codigo="MAD.CMO.315",
+        tipo="modulo",
+        texto="Arquitecturas en la nube",
+        procedencia=Procedencia(
+            norma="corrige-1",
+            ubicacion="anexo I, módulo CMO-315",
+            pagina=2,
+            via=(Procedencia(norma="original-1", ubicacion="anexo II", pagina=5),),
+        ),
+        padre=None,
+    )
+    documentos = {
+        "original-1": comprobar.Documento(paginas={5: via_pagina}),
+        "corrige-1": comprobar.Documento(paginas={2: "CMO-315 Arquitecturas en la nube 90"}),
+    }
+    fuentes = {
+        "original-1": {"correcciones": ["corrige-1"], "modifica": [], "modificada_por": []},
+        "corrige-1": {"correcciones": [], "modifica": [], "modificada_por": []},
+    }
+    return comprobar, elemento, documentos, fuentes
+
+
+def test_comprobar_un_modulo_renombrado_con_su_nombre_original_en_la_via():
+    comprobar, elemento, documentos, fuentes = _modulo_renombrado(
+        "x\nCMO-315 Arquitectura en la nube (90 horas).\ny"
+    )
+    assert comprobar.comprobar_elemento(elemento, documentos, fuentes) == []
+
+
+def test_comprobar_un_modulo_renombrado_con_la_via_en_una_pagina_sin_el_modulo():
+    comprobar, elemento, documentos, fuentes = _modulo_renombrado(
+        "x\nCMO-316 Programación en Phyton (90 horas).\ny"
+    )
+    informe = comprobar.comprobar_elemento(elemento, documentos, fuentes)
+    assert _tipos(informe) == ["PROCEDENCIA"]
+
+
 def test_descriptor_corregido_cita_la_correccion_con_el_original_en_via():
     modulo = herramienta("extraer_descriptores")
     registro = {
