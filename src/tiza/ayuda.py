@@ -156,9 +156,12 @@ MENSAJES: dict[str, str] = {
     "VISIBILIDAD_NO_CONSERVADA": "Al republicar, el aula cambió la visibilidad de la actividad. Revisa en el aula si debe verse y avisa a quien mantiene tiza con este código.",
     "ERROR_CURSOS": "No se pudo leer la lista de tus cursos. Puedes escribir el id del curso; lo ves en su URL: course/view.php?id=1234.",
     # Lectura de documentos
-    "FORMATO_NO_ADMITIDO": "tiza solo lee documentos .docx. Si es un Word antiguo (.doc) u otro formato, ábrelo en Word o LibreOffice y guárdalo como .docx.",
+    "FORMATO_NO_ADMITIDO": "tiza solo lee documentos .docx y PDF. Si es un Word antiguo (.doc) u otro formato, ábrelo en Word o LibreOffice y guárdalo como .docx.",
     "DOCUMENTO_PROTEGIDO": "El documento está protegido con contraseña. Quítale la contraseña en Word, guarda una copia sin ella y vuelve a intentarlo.",
     "DOCUMENTO_DEMASIADO_GRANDE": "El documento es demasiado grande para leerlo (más de 30 MB, o mucho más al descomprimirlo). Guarda una copia sin imágenes pesadas y vuelve a intentarlo.",
+    "PDF_PROTEGIDO": "El PDF está protegido con contraseña. Quítasela y guarda una copia sin ella, o pide el documento en Word, y vuelve a intentarlo.",
+    "PDF_SIN_TEXTO": "El PDF no tiene texto: es un escaneado (imágenes). Pide el documento en Word o un PDF con texto seleccionable.",
+    "PDF_SIN_TABLAS": "En un PDF las tablas se leen columna a columna y pueden salir desordenadas. Si las tablas importan, pide el documento en Word.",
     "FICHERO_BLOQUEADO": "El fichero está abierto en otro programa o bloqueado. Ciérralo en Word y repite el comando.",
     "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",
     # Instalación

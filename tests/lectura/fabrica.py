@@ -97,3 +97,54 @@ def reescribir(datos: bytes, miembro: str, contenido: bytes) -> bytes:
                 destino.writestr(info.filename, origen.read(info.filename))
         destino.writestr(miembro, contenido)
     return salida.getvalue()
+
+
+def _escapar_pdf(linea: str) -> str:
+    return linea.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def pdf_bytes(paginas: list[list[str]]) -> bytes:
+    """Un PDF mínimo válido (Helvetica, xref correcta). Cada página es una lista de líneas;
+    una lista vacía da una página con el flujo de contenido vacío."""
+    n = len(paginas)
+    objetos: list[bytes] = [b""] * (3 + 2 * n)
+    objetos[0] = b"<< /Type /Catalog /Pages 2 0 R >>"
+    hijos = " ".join(f"{4 + 2 * i} 0 R" for i in range(n))
+    objetos[1] = f"<< /Type /Pages /Kids [{hijos}] /Count {n} >>".encode()
+    objetos[2] = b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+    for i, lineas in enumerate(paginas):
+        partes = []
+        for k, linea in enumerate(lineas):
+            partes.append(f"BT /F1 12 Tf 50 {750 - 20 * k} Td ({_escapar_pdf(linea)}) Tj ET")
+        flujo = "\n".join(partes).encode("latin-1")
+        objetos[3 + 2 * i] = (
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+            b"/Resources << /Font << /F1 3 0 R >> >> " + f"/Contents {5 + 2 * i} 0 R >>".encode()
+        )
+        objetos[4 + 2 * i] = (
+            f"<< /Length {len(flujo)} >>\nstream\n".encode() + flujo + b"\nendstream"
+        )
+    salida = bytearray(b"%PDF-1.4\n")
+    posiciones = []
+    for numero, cuerpo in enumerate(objetos, start=1):
+        posiciones.append(len(salida))
+        salida += f"{numero} 0 obj\n".encode() + cuerpo + b"\nendobj\n"
+    inicio = len(salida)
+    salida += f"xref\n0 {len(objetos) + 1}\n".encode() + b"0000000000 65535 f \n"
+    for pos in posiciones:
+        salida += f"{pos:010d} 00000 n \n".encode()
+    salida += (
+        f"trailer\n<< /Size {len(objetos) + 1} /Root 1 0 R >>\nstartxref\n{inicio}\n%%EOF\n"
+    ).encode()
+    return bytes(salida)
+
+
+def cifrar_pdf(datos: bytes, clave: str) -> bytes:
+    """El mismo PDF cifrado con RC4-128 y la contraseña de usuario ``clave``."""
+    from pypdf import PdfReader, PdfWriter
+
+    escritor = PdfWriter(clone_from=PdfReader(io.BytesIO(datos)))
+    escritor.encrypt(user_password=clave, algorithm="RC4-128")
+    salida = io.BytesIO()
+    escritor.write(salida)
+    return salida.getvalue()

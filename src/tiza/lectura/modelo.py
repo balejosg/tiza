@@ -51,6 +51,7 @@ class Lectura:
     bloques: list[Bloque] = field(default_factory=list)
     avisos: list[str] = field(default_factory=list)
     sha256: str = ""
+    paginas: int | None = None  # páginas de un PDF; ``None`` en un Word
 
 
 def _contenido(bloque: Bloque) -> str:
