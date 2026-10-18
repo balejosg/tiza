@@ -11,6 +11,7 @@ import io
 from pathlib import Path
 
 from pypdf import PdfReader
+from pypdf.errors import DependencyError
 
 from tiza.ficheros import FicheroNoSeguro, leer_bytes_acotado
 from tiza.lectura.modelo import Bloque, ErrorLectura, Lectura
@@ -62,6 +63,8 @@ def leer_pdf(ruta: Path) -> Lectura:
                 bloques.append(Bloque(id=f"g{numero + 1}.{n}", tipo="parrafo", texto=linea))
     except ErrorLectura:
         raise
+    except DependencyError:  # cifrado AES: pypdf necesitaría cryptography, que no se instala
+        raise _fallo("PDF_PROTEGIDO", "El PDF está cifrado y tiza no puede abrirlo.") from None
     except Exception:  # pypdf lanza errores muy variados con entrada mal formada
         raise _no_es_pdf() from None
     if not bloques:

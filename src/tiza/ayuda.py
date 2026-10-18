@@ -159,7 +159,7 @@ MENSAJES: dict[str, str] = {
     "FORMATO_NO_ADMITIDO": "tiza solo lee documentos .docx y PDF. Si es un Word antiguo (.doc) u otro formato, ábrelo en Word o LibreOffice y guárdalo como .docx.",
     "DOCUMENTO_PROTEGIDO": "El documento está protegido con contraseña. Quítale la contraseña en Word, guarda una copia sin ella y vuelve a intentarlo.",
     "DOCUMENTO_DEMASIADO_GRANDE": "El documento es demasiado grande para leerlo (más de 30 MB, o mucho más al descomprimirlo). Guarda una copia sin imágenes pesadas y vuelve a intentarlo.",
-    "PDF_PROTEGIDO": "El PDF está protegido con contraseña. Quítasela y guarda una copia sin ella, o pide el documento en Word, y vuelve a intentarlo.",
+    "PDF_PROTEGIDO": "El PDF está protegido o cifrado y tiza no puede abrirlo. Pide el documento en Word, o guarda una copia sin protección desde el lector de PDF («Imprimir → Guardar como PDF»).",
     "PDF_SIN_TEXTO": "El PDF no tiene texto: es un escaneado (imágenes). Pide el documento en Word o un PDF con texto seleccionable.",
     "PDF_SIN_TABLAS": "En un PDF las tablas se leen columna a columna y pueden salir desordenadas. Si las tablas importan, pide el documento en Word.",
     "FICHERO_BLOQUEADO": "El fichero está abierto en otro programa o bloqueado. Ciérralo en Word y repite el comando.",

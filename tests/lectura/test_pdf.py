@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import pytest
+from pypdf import PdfReader
+from pypdf._page import PageObject
+from pypdf.errors import DependencyError
 
 from lectura import fabrica as f
 from tiza.lectura import pdf as modulo
@@ -54,6 +57,11 @@ def test_pdf_cifrado_con_contrasena_vacia_se_lee(tmp_path):
 
 def test_pdf_demasiadas_paginas(tmp_path, monkeypatch):
     monkeypatch.setattr(modulo, "MAXIMO_PAGINAS", 2)
+
+    def prohibido(*args, **kwargs):
+        raise AssertionError("no debe extraerse texto antes de comprobar el límite")
+
+    monkeypatch.setattr(PageObject, "extract_text", prohibido)
     with pytest.raises(ErrorLectura) as e:
         leer_pdf(escribir(tmp_path, f.pdf_bytes([["a"], ["b"], ["c"]])))
     assert e.value.codigo == "DOCUMENTO_DEMASIADO_GRANDE"
@@ -70,10 +78,21 @@ def test_pdf_malformado(tmp_path):
     with pytest.raises(ErrorLectura) as e:
         leer_pdf(escribir(tmp_path, b"%PDF-1.4\nesto no es un pdf"))
     assert e.value.codigo == "FORMATO_NO_ADMITIDO"
-    assert "pypdf" not in e.value.detalle.lower()
+    assert e.value.detalle == "No se puede leer el PDF: está dañado o no es un PDF."
 
 
 def test_pdf_no_es_pdf(tmp_path):
     with pytest.raises(ErrorLectura) as e:
         leer_pdf(escribir(tmp_path, b"hola"))
     assert e.value.codigo == "FORMATO_NO_ADMITIDO"
+
+
+def test_pdf_cifrado_con_aes_sin_cryptography(tmp_path, monkeypatch):
+    def sin_cryptography(self, password):
+        raise DependencyError("cryptography is required for AES algorithm")
+
+    monkeypatch.setattr(PdfReader, "decrypt", sin_cryptography)
+    datos = f.cifrar_pdf(f.pdf_bytes([["Abierto"]]), "")
+    with pytest.raises(ErrorLectura) as e:
+        leer_pdf(escribir(tmp_path, datos))
+    assert e.value.codigo == "PDF_PROTEGIDO"
