@@ -25,12 +25,13 @@ __all__ = [
     "TIPOS_ELEMENTO",
 ]
 
-RANGOS = ("real_decreto", "decreto", "orden", "resolucion")
+RANGOS = ("real_decreto", "decreto", "orden", "resolucion", "correccion")
 NOMBRE_DEL_RANGO = {
     "real_decreto": "real decreto",
     "decreto": "decreto",
     "orden": "orden",
     "resolucion": "resolución",
+    "correccion": "corrección de errores",
 }
 BOLETINES = ("BOE", "BOCM", "CM")  # CM: el portal de la comunidad, no un boletín
 ESTADOS = ("vigente", "derogada")

@@ -476,45 +476,99 @@ def test_descargar_no_sobrescribe_si_el_sha256_no_coincide(tmp_path):
     assert destino.read_bytes() == contenido
 
 
-# --- descriptores del BOE (XML de prueba con la estructura de la API) ----------
+# --- descriptores del BOE (tablas de dos columnas del anexo I) ----------------
 
-XML_DESCRIPTORES = """<?xml version="1.0" encoding="utf-8"?>
-<texto>
-<bloque id="ai" tipo="anexo"><version id_norma="BOE-A-2022-4975" fecha_vigencia="20220406">
-<p class="titulo">ANEXO I</p>
-<p class="parrafo">Perfil de salida del alumnado</p>
-<p class="parrafo">CCL1. Se expresa de forma oral,
- escrita o signada con coherencia.</p>
-<p class="parrafo">CCL1. Se expresa con fluidez y precisión en el Bachillerato.</p>
-<table><tr><td><p class="parrafo">STEM4.</p></td></tr></table>
-<p class="parrafo">CCEC4.1. Experimenta de forma creativa con diversos medios.</p>
-<p class="parrafo">Otro párrafo cualquiera.</p>
-</version></bloque>
-</texto>
-"""
+XML_ESO = FUENTES / "boe-a-2022-4975_anexo-i_descriptores-cp.xml"
+XML_BACH = FUENTES / "boe-a-2022-5521_anexo-i_descriptores-cpsaa.xml"
 
 
-def test_descriptores_desde_el_xml_del_boe():
+def test_descriptores_son_los_de_la_columna_de_la_etapa():
     modulo = herramienta("extraer_descriptores")
-    descriptores = modulo.analizar_descriptores(XML_DESCRIPTORES)
-    assert list(descriptores) == ["CCL1", "CCEC4.1"]
-    assert descriptores["CCL1"] == "Se expresa con fluidez y precisión en el Bachillerato."
+    eso = modulo.analizar_descriptores(XML_ESO.read_text(encoding="utf-8"), "eso")
+    assert list(eso) == ["CP1", "CP2", "CP3"]
+    # la columna de la derecha («enseñanza básica»), no la de la Educación Primaria
+    assert eso["CP1"].startswith("Usa eficazmente una o más lenguas, además de la lengua")
+    assert not eso["CP1"].startswith("CP1")
+    assert eso["CP2"].startswith("A partir de sus experiencias, realiza transferencias")
+
+    # el mismo texto de «enseñanza básica» es la columna de la izquierda en Bachillerato
+    bach = modulo.analizar_descriptores(XML_BACH.read_text(encoding="utf-8"), "bachillerato")
+    assert not any(texto.startswith("Regula y expresa") for texto in bach.values())
+
+
+def test_descriptores_con_punto_interior_y_varios_por_celda():
+    modulo = herramienta("extraer_descriptores")
+    bach = modulo.analizar_descriptores(XML_BACH.read_text(encoding="utf-8"), "bachillerato")
+    assert list(bach) == [
+        "CPSAA1.1",
+        "CPSAA1.2",
+        "CPSAA2",
+        "CPSAA3.1",
+        "CPSAA3.2",
+        "CPSAA4",
+        "CPSAA5",
+    ]
+    assert bach["CPSAA1.1"].startswith("Fortalece el optimismo, la resiliencia")
+    assert bach["CPSAA1.2"].startswith("Desarrolla una personalidad autónoma")
+    assert bach["CPSAA2"].startswith("Adopta de forma autónoma un estilo de vida sostenible")
+
+
+def test_descriptores_ficha_con_procedencia_del_anexo_i():
+    modulo = herramienta("extraer_descriptores")
+    descriptores = modulo.analizar_descriptores(
+        XML_BACH.read_text(encoding="utf-8"), "bachillerato"
+    )
     ficha = modulo.ficha_descriptores(
         descriptores,
-        norma="boe-a-2022-4975",
+        norma="boe-a-2022-5521",
         etapa="bachillerato",
-        cursos_academicos=["2023-24"],
+        cursos_academicos=["2026-27"],
     )
     assert ficha["codigo"] == "EST.BACH.DESC"
-    assert [e["codigo"] for e in ficha["elementos"]] == [
-        "EST.BACH.DESC.CCL1",
-        "EST.BACH.DESC.CCEC4.1",
+    assert [e["codigo"] for e in ficha["elementos"]][:2] == [
+        "EST.BACH.DESC.CPSAA1.1",
+        "EST.BACH.DESC.CPSAA1.2",
     ]
     assert ficha["elementos"][0]["procedencia"] == {
-        "norma": "boe-a-2022-4975",
+        "norma": "boe-a-2022-5521",
         "ubicacion": "anexo I",
         "pagina": None,
     }
+
+
+def test_descriptores_rechazan_lo_que_no_cuadra():
+    modulo = herramienta("extraer_descriptores")
+    eso = XML_ESO.read_text(encoding="utf-8")
+    # una columna que no es la de la etapa
+    with pytest.raises(ValueError, match="cabecera"):
+        modulo.analizar_descriptores(eso, "bachillerato")
+    # una celda que no empieza por un código
+    estropeado = eso.replace("CP1. Usa eficazmente", "Usa eficazmente", 1)
+    with pytest.raises(ValueError, match="código"):
+        modulo.analizar_descriptores(estropeado, "eso")
+    # un código repetido
+    repetido = eso.replace(
+        "CP2. A partir de sus experiencias, realiza", "CP1. A partir, realiza", 1
+    )
+    with pytest.raises(ValueError, match="repetido"):
+        modulo.analizar_descriptores(repetido, "eso")
+
+
+def test_comprobar_busca_los_descriptores_en_las_celdas_del_xml(tmp_path):
+    modulo = herramienta("extraer_descriptores")
+    comprobar = herramienta("comprobar")
+    for norma, fragmento, etapa in (
+        ("boe-a-2022-4975", XML_ESO, "eso"),
+        ("boe-a-2022-5521", XML_BACH, "bachillerato"),
+    ):
+        xml = fragmento.read_text(encoding="utf-8")
+        (tmp_path / f"{norma}.xml").write_text(xml, encoding="utf-8")
+        documento = comprobar.cargar_documentos(tmp_path, [norma])[norma]
+        # lo extraído de una celda sin <p> o de una con varios <p> aparece literal y completo
+        for texto in modulo.analizar_descriptores(xml, etapa).values():
+            assert comprobar.aparece(texto, documento.xml, completo=True)
+        # y un trozo recortado no
+        assert not comprobar.aparece("Usa eficazmente una o más", documento.xml, completo=True)
 
 
 # --- formación profesional ----------------------------------------------------
@@ -718,3 +772,74 @@ def test_fp_codigos_segun_el_plan_y_el_cargador_los_acepta(tmp_path):
     assert comprobar.comprobar_recuentos(cargada, esperado) == []
     esperado = {"bocm-20110113-3": {"recuentos": {ficha: {"contenidos_basicos": hay}}}}
     assert _tipos(comprobar.comprobar_recuentos(cargada, esperado)) == ["FALTA"]
+
+
+# --- normas del paquete desde fuentes.toml --------------------------------------
+
+FUENTES_MINIMAS = """\
+[[norma]]
+id = "bocm-20250101-1"
+rango = "decreto"
+numero = "27/2025"
+fecha = 2025-01-01
+titulo = "Decreto de prueba"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/ejemplo.pdf"
+sha256 = "1111111111111111111111111111111111111111111111111111111111111111"
+correcciones = ["bocm-20250201-2"]
+estado = "vigente"
+citas = ["Decreto 21/2025"]
+sustituciones = [["Phyton", "Python"]]
+
+[norma.recuentos."MAD.X"]
+criterios = 3
+
+[[norma]]
+id = "bocm-20250201-2"
+rango = "correccion"
+numero = "del Decreto 27/2025"
+fecha = "2025-02-01"
+titulo = "Corrección de errores del Decreto de prueba"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/ejemplo-correccion.pdf"
+sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
+estado = "vigente"
+"""
+
+
+def test_normas_del_paquete_desde_fuentes(tmp_path):
+    normas = herramienta("normas")
+    fuentes = tmp_path / "fuentes.toml"
+    fuentes.write_text(FUENTES_MINIMAS, encoding="utf-8")
+    salida = tmp_path / "datos"
+
+    argumentos = ["--revisada", "2026-10-18", "--fuentes", str(fuentes), "--salida", str(salida)]
+    assert normas.main(argumentos) == 0
+
+    ficheros = sorted(p.name for p in (salida / "normas").iterdir())
+    assert ficheros == ["bocm-20250101-1.json", "bocm-20250201-2.json"]
+    texto = (salida / "normas" / "bocm-20250101-1.json").read_text(encoding="utf-8")
+    assert texto.endswith("}\n")
+    norma = json.loads(texto)
+    # lo que es solo del mantenedor no llega al paquete; sí la fecha de la revisión
+    assert "recuentos" not in norma and "sustituciones" not in norma
+    assert norma["revisada"] == "2026-10-18"
+    assert norma["fecha"] == "2025-01-01"
+    assert norma["citas"] == ["Decreto 21/2025"]
+    assert "url_api" not in norma and "derogada_por" not in norma
+    assert list(norma)[:4] == ["id", "rango", "numero", "fecha"]
+    # el cargador del paquete los acepta tal cual (sin fichas, pero con su carpeta)
+    (salida / "fichas").mkdir()
+    limpiar_cache()
+    indice = cargar(salida)
+    assert indice.normas["bocm-20250201-2"].rango == "correccion"
+    assert indice.normas["bocm-20250101-1"].correcciones == ("bocm-20250201-2",)
+
+
+def test_normas_exigen_una_fecha_de_revision_valida(tmp_path):
+    normas = herramienta("normas")
+    fuentes = tmp_path / "fuentes.toml"
+    fuentes.write_text(FUENTES_MINIMAS, encoding="utf-8")
+    argumentos = ["--revisada", "18/10/2026", "--fuentes", str(fuentes), "--salida", str(tmp_path)]
+    with pytest.raises(SystemExit):
+        normas.main(argumentos)

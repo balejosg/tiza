@@ -16,9 +16,13 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
    no coincide, para y no sobrescribe nada. Las normas con `url_api` bajan también su XML
    consolidado. La caché (`<id>.pdf`, `<id>.txt`, `<id>.xml`) **va fuera del repositorio**
    y **nunca se commitean los PDF**.
-2. **Extraer**, según la fuente (escriben `fichas/<código>.json` en `src/tiza/normativa/datos`,
+2. **Normas**: `normas --revisada AAAA-MM-DD [--salida <datos>]` escribe `normas/<id>.json`
+   de cada norma de `fuentes.toml` (sin `recuentos` ni `sustituciones`, con la fecha de la
+   revisión). Se repite cuando cambia `fuentes.toml`.
+3. **Extraer**, según la fuente (escriben `fichas/<código>.json` en `src/tiza/normativa/datos`,
    o donde diga `--salida`):
-   - `extraer_descriptores --norma <id> --etapa <…> --cursos-academicos … --cache <dir>`:
+   - `extraer_descriptores --norma <id> --etapa <eso|bachillerato> --cursos-academicos …
+     --cache <dir>` (toma de las tablas del anexo I la columna de la etapa):
      **primero**, antes de cualquier materia. Las relaciones entre fichas (los descriptores
      que cita cada competencia) se validan entre fichas al cargar, y una materia sin la
      ficha de descriptores de su etapa no carga.
@@ -28,7 +32,7 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      --horas <id> --cursos-academicos … --cache <dir>` (la ficha es el módulo, p. ej.
      `MAD.DAM.0485`). Quedan pendientes los módulos transversales y los optativos de FP:
      la Orden 3537/2025 sale cifrada de `pdftotext` y hay que resolver antes cómo se lee.
-3. **Comprobar**: `comprobar --cache <dir>` revisa todas las fichas. Sale con código distinto
+4. **Comprobar**: `comprobar --cache <dir>` revisa todas las fichas. Sale con código distinto
    de 0 y una línea por discrepancia: `TEXTO`, `PROCEDENCIA`, `RELACION`, `CODIGO`,
    `VIGENCIA`, `FALTA`, `SOBRA` o `SIN_FUENTE`.
 
@@ -38,7 +42,7 @@ corrección de errores que lo enmienda), no se arregla en el JSON.
 
 ## Los fragmentos de `fuentes/`
 
-`fuentes/*.txt` son trozos de texto de boletín ya extraído, con sus cabeceras de página,
-para los tests (`tests/normativa/test_herramienta.py`). Junto con los
+`fuentes/*.txt` son trozos de texto de boletín ya extraído, con sus cabeceras de página, y
+`fuentes/*.xml` trozos del XML consolidado del BOE (una tabla del anexo I), para los tests (`tests/normativa/test_herramienta.py`). Junto con los
 datos de `src/tiza/normativa/datos/`, es el único sitio del repositorio donde puede aparecer
 texto de boletín literal.

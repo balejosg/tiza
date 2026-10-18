@@ -1,0 +1,32 @@
+<texto>
+<bloque>
+<version id_norma="BOE-A-2022-4975">
+<table class="tabla">
+          <colgroup>
+            <col width="50%" />
+            <col width="50%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="cabeza_tabla">Al completar la Educación Primaria, el alumno o la alumna…</th>
+              <th class="cabeza_tabla">Al completar la enseñanza básica, el alumno o la alumna…</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cuerpo_tabla_izq">CP1. Usa, al menos, una lengua, además de la lengua o lenguas familiares, para responder a necesidades comunicativas sencillas y predecibles, de manera adecuada tanto a su desarrollo e intereses como a situaciones y contextos cotidianos de los ámbitos personal, social y educativo.</td>
+              <td class="cuerpo_tabla_izq">CP1. Usa eficazmente una o más lenguas, además de la lengua o lenguas familiares, para responder a sus necesidades comunicativas, de manera apropiada y adecuada tanto a su desarrollo e intereses como a diferentes situaciones y contextos de los ámbitos personal, social, educativo y profesional.</td>
+            </tr>
+            <tr>
+              <td class="cuerpo_tabla_izq">CP2. A partir de sus experiencias, reconoce la diversidad de perfiles lingüísticos y experimenta estrategias que, de manera guiada, le permiten realizar transferencias sencillas entre distintas lenguas para comunicarse en contextos cotidianos y ampliar su repertorio lingüístico individual.</td>
+              <td class="cuerpo_tabla_izq">CP2. A partir de sus experiencias, realiza transferencias entre distintas lenguas como estrategia para comunicarse y ampliar su repertorio lingüístico individual.</td>
+            </tr>
+            <tr>
+              <td class="cuerpo_tabla_izq">CP3. Conoce y respeta la diversidad lingüística y cultural presente en su entorno, reconociendo y comprendiendo su valor como factor de diálogo, para mejorar la convivencia.</td>
+              <td class="cuerpo_tabla_izq">CP3. Conoce, valora y respeta la diversidad lingüística y cultural presente en la sociedad, integrándola en su desarrollo personal como factor de diálogo, para fomentar la cohesión social.</td>
+            </tr>
+          </tbody>
+        </table>
+</version>
+</bloque>
+</texto>

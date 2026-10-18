@@ -1,0 +1,46 @@
+<texto>
+<bloque>
+<version id_norma="BOE-A-2022-5521">
+<table class="tabla">
+          <colgroup>
+            <col width="50%" />
+            <col width="50%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="cabeza_tabla">Al completar la enseñanza básica, el alumno o la alumna…</th>
+              <th class="cabeza_tabla">Al completar el Bachillerato, el alumno o la alumna…</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cuerpo_tabla_izq">CPSAA1. Regula y expresa sus emociones, fortaleciendo el optimismo, la resiliencia, la autoeficacia y la búsqueda de propósito y motivación hacia el aprendizaje, para gestionar los retos y cambios y armonizarlos con sus propios objetivos.</td>
+              <td class="cuerpo_tabla_izq">
+                <p class="cuerpo_tabla_izq">CPSAA1.1 Fortalece el optimismo, la resiliencia, la autoeficacia y la búsqueda de objetivos de forma autónoma para hacer eficaz su aprendizaje.</p>
+                <p class="cuerpo_tabla_izq">CPSAA1.2 Desarrolla una personalidad autónoma, gestionando constructivamente los cambios, la participación social y su propia actividad para dirigir su vida.</p>
+              </td>
+            </tr>
+            <tr>
+              <td class="cuerpo_tabla_izq">CPSAA2. Comprende los riesgos para la salud relacionados con factores sociales, consolida estilos de vida saludable a nivel físico y mental, reconoce conductas contrarias a la convivencia y aplica estrategias para abordarlas.</td>
+              <td class="cuerpo_tabla_izq">CPSAA2. Adopta de forma autónoma un estilo de vida sostenible y atiende al bienestar físico y mental propio y de los demás, buscando y ofreciendo apoyo en la sociedad para construir un mundo más saludable.</td>
+            </tr>
+            <tr>
+              <td class="cuerpo_tabla_izq">CPSAA3. Comprende proactivamente las perspectivas y las experiencias de las demás personas y las incorpora a su aprendizaje, para participar en el trabajo en grupo, distribuyendo y aceptando tareas y responsabilidades de manera equitativa y empleando estrategias cooperativas.</td>
+              <td class="cuerpo_tabla_izq">
+                <p class="cuerpo_tabla_izq">CPSAA3.1 Muestra sensibilidad hacia las emociones y experiencias de los demás, siendo consciente de la influencia que ejerce el grupo en las personas, para consolidar una personalidad empática e independiente y desarrollar su inteligencia.</p>
+                <p class="cuerpo_tabla_izq">CPSAA3.2 Distribuye en un grupo las tareas, recursos y responsabilidades de manera ecuánime, según sus objetivos, favoreciendo un enfoque sistémico para contribuir a la consecución de objetivos compartidos.</p>
+              </td>
+            </tr>
+            <tr>
+              <td class="cuerpo_tabla_izq">CPSAA4. Realiza autoevaluaciones sobre su proceso de aprendizaje, buscando fuentes fiables para validar, sustentar y contrastar la información y para obtener conclusiones relevantes.</td>
+              <td class="cuerpo_tabla_izq">CPSAA4. Compara, analiza, evalúa y sintetiza datos, información e ideas de los medios de comunicación, para obtener conclusiones lógicas de forma autónoma, valorando la fiabilidad de las fuentes.</td>
+            </tr>
+            <tr>
+              <td class="cuerpo_tabla_izq">CPSAA5. Planea objetivos a medio plazo y desarrolla procesos metacognitivos de retroalimentación para aprender de sus errores en el proceso de construcción del conocimiento.</td>
+              <td class="cuerpo_tabla_izq">CPSAA5. Planifica a largo plazo evaluando los propósitos y los procesos de la construcción del conocimiento, relacionando los diferentes campos del mismo para desarrollar procesos autorregulados de aprendizaje que le permitan transmitir ese conocimiento, proponer ideas creativas y resolver problemas con autonomía.</td>
+            </tr>
+          </tbody>
+        </table>
+</version>
+</bloque>
+</texto>

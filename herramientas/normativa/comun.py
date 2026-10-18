@@ -25,6 +25,7 @@ __all__ = [
     "paginas_limpias",
     "parrafos_de_xml",
     "texto_de_norma",
+    "textos_de_xml",
     "unir",
 ]
 
@@ -190,6 +191,21 @@ def parrafos_de_xml(xml: str) -> list[str]:
     raiz = ET.fromstring(xml)
     parrafos = (unir(["".join(p.itertext())]) for p in raiz.iter("p"))
     return [p for p in parrafos if p]
+
+
+def textos_de_xml(xml: str) -> list[str]:
+    """Los párrafos de un XML del BOE y las celdas de tabla sin párrafos, en orden.
+
+    Los descriptores del perfil de salida son celdas (``<td>``) con el texto directo, sin
+    ``<p>``; las celdas con ``<p>`` ya salen por sus párrafos.
+    """
+    raiz = ET.fromstring(xml)
+    textos = (
+        unir(["".join(e.itertext())])
+        for e in raiz.iter()
+        if e.tag == "p" or (e.tag in ("td", "th") and e.find(".//p") is None)
+    )
+    return [t for t in textos if t]
 
 
 # --- fuentes.toml -------------------------------------------------------------------

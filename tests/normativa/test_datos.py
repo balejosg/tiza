@@ -228,6 +228,26 @@ def test_rechaza_valor_invalido_en_norma(raiz, campo, valor):
     invalido(raiz, "bocm-20250101-1.json", campo)
 
 
+def test_numero_de_una_correccion_nombra_la_norma_corregida(raiz):
+    def correccion(d):
+        d.update(rango="correccion", numero="del Real Decreto 217/2022")
+
+    modificar(raiz, NORMA, correccion)
+    assert cargar(raiz).normas["bocm-20250101-1"].rango == "correccion"
+    for malo in ("27/2025", "Decreto 27/2025", "del Decreto 27", "del Decreto"):
+        modificar(raiz, NORMA, lambda d, malo=malo: d.update(numero=malo))
+        invalido(raiz, "bocm-20250101-1.json", "numero")
+
+
+def test_numero_de_una_resolucion_puede_ser_un_titulo_corto(raiz):
+    ruta = "normas/cm-resolucion-3-2025.json"
+    modificar(raiz, ruta, lambda d: d.update(numero="de instrucciones de FP 2026-27"))
+    assert cargar(raiz).normas["cm-resolucion-3-2025"].numero == "de instrucciones de FP 2026-27"
+    # solo las resoluciones: un decreto sin número no es un decreto
+    modificar(raiz, NORMA, lambda d: d.update(numero="de instrucciones de FP 2026-27"))
+    invalido(raiz, "bocm-20250101-1.json", "numero")
+
+
 def test_rechaza_estado_incoherente(raiz):
     modificar(raiz, "normas/boe-a-2020-50.json", lambda d: d.pop("derogada_por"))
     invalido(raiz, "boe-a-2020-50.json", "derogada_por")

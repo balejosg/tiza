@@ -361,7 +361,7 @@ def cargar_documentos(cache: Path, ids: list[str]) -> dict[str, Documento]:
             pass
         xml = cache / f"{id_}.xml"
         if xml.is_file():
-            documento.xml = "\n".join(comun.parrafos_de_xml(xml.read_text(encoding="utf-8")))
+            documento.xml = "\n".join(comun.textos_de_xml(xml.read_text(encoding="utf-8")))
         if documento.paginas or documento.xml is not None:
             documentos[id_] = documento
     return documentos

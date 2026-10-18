@@ -241,6 +241,45 @@ def test_norma_con_errata_de_real_decreto_usa_el_estilo_oficial(tmp_path):
     assert r.cita_correcta == "Real Decreto 1/2024"
 
 
+def con_correccion(tmp_path, **cambios):
+    """Datos de juguete más una corrección de errores del decreto 27/2025."""
+    raiz = tmp_path / "datos"
+    shutil.copytree(SINTETICOS, raiz)
+    correccion = {
+        "id": "bocm-20250301-3",
+        "rango": "correccion",
+        "numero": "del Decreto 27/2025",
+        "fecha": "2025-03-01",
+        "titulo": "Corrección de errores de juguete del Decreto 27/2025",
+        "boletin": "BOCM",
+        "url_pdf": "https://www.bocm.es/boletin/ejemplo-correccion-27-2025.pdf",
+        "sha256": "6" * 64,
+        "estado": "vigente",
+        "revisada": "2025-03-10",
+    } | cambios
+    ruta = raiz / "normas" / "bocm-20250301-3.json"
+    ruta.write_text(json.dumps(correccion, ensure_ascii=False), encoding="utf-8")
+    limpiar_cache()
+    return cargar(raiz)
+
+
+def test_norma_correccion_de_errores_se_cita_con_la_norma_corregida(tmp_path):
+    datos = con_correccion(tmp_path)
+    r = consulta.norma("corrección de errores del Decreto 27/2025", hoy=HOY, indice=datos)
+    assert (r.id, r.rango, r.numero) == ("bocm-20250301-3", "correccion", "del Decreto 27/2025")
+    assert (r.cita_pedida, r.cita_correcta) == (None, None)
+    # la mayúscula inicial y «de»/«del» no cambian la cita
+    r = consulta.norma("Corrección de errores del Decreto 27/2025", hoy=HOY, indice=datos)
+    assert r.id == "bocm-20250301-3"
+
+
+def test_norma_correccion_con_errata_no_se_pone_en_mayusculas_cada_palabra(tmp_path):
+    datos = con_correccion(tmp_path, citas=["Corrección de errores del Decreto 21/2025"])
+    r = consulta.norma("corrección de errores del decreto 21/2025", hoy=HOY, indice=datos)
+    assert r.id == "bocm-20250301-3"
+    assert r.cita_correcta == "Corrección de errores del Decreto 27/2025"
+
+
 def test_norma_desconocida(indice):
     error = fallo(lambda: consulta.norma("Decreto 1/1999", hoy=HOY, indice=indice))
     assert error.codigo == "NORMA_DESCONOCIDA"

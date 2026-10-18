@@ -53,6 +53,13 @@ _FRAGMENTO = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _CODIGO = re.compile(r"[A-Z][A-Z0-9]*(?:\.[A-Za-z0-9]+)*")
 _RELACION = re.compile(r"[a-z][a-z_]*")
 _NUMERO = re.compile(r"[0-9A-Za-z.-]+/\d{4}")
+# Una corrección de errores se numera por la norma que corrige («del Decreto 27/2025») y una
+# resolución sin número propio, por su asunto («de instrucciones de FP 2026-27»).
+_NUMERO_CORRECCION = re.compile(
+    r"del (?:Real Decreto|Decreto|Orden|Resolución) [0-9A-Za-z.-]+/\d{4}"
+)
+_NUMERO_RESOLUCION = re.compile(r"[0-9A-Za-z.-]+/\d{4}|de \S+(?: \S+)*")
+_NUMERO_POR_RANGO = {"correccion": _NUMERO_CORRECCION, "resolucion": _NUMERO_RESOLUCION}
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _FECHA = re.compile(r"\d{4}-\d{2}-\d{2}")
 _CURSO_ACADEMICO = re.compile(r"(\d{4})-(\d{2})")
@@ -266,10 +273,11 @@ def _leer_norma(lector: _Lector, bruto: Any) -> Norma:
         if boletin != "BOE":
             raise lector.fallo("url_api", "solo las normas del BOE tienen API")
         url_api = lector.url(url_api, "url_api", boletin)
-    numero = lector.patron(d["numero"], "numero", _NUMERO)
+    rango = lector.una_de(d["rango"], "rango", RANGOS)
+    numero = lector.patron(d["numero"], "numero", _NUMERO_POR_RANGO.get(rango, _NUMERO))
     return Norma(
         id=lector.patron(d["id"], "id", _ID_NORMA),
-        rango=lector.una_de(d["rango"], "rango", RANGOS),
+        rango=rango,
         numero=numero,
         fecha=lector.fecha(d["fecha"], "fecha"),
         titulo=lector.texto(d["titulo"], "titulo"),
