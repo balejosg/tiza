@@ -144,7 +144,9 @@ def test_lomloe_subviñeta_tras_la_cabecera_de_un_bloque_no_cuelga_del_bloque_an
 # --- materias de ESO: título del boletín, curso con y sin marca, límite de la materia ----
 
 
-def extraer_eso(fragmento: Path, sigla: str, curso: str, titulo: str, nombre: str, texto=None):
+def extraer_eso(
+    fragmento: Path, sigla: str, curso: str, titulo: str, nombre: str, texto=None, **cambios
+):
     """Extrae una materia de ESO del fragmento del Decreto 65/2022 (o de ``texto``)."""
     return herramienta("extraer_lomloe").extraer_materia(
         texto if texto is not None else fragmento.read_text(encoding="utf-8"),
@@ -156,10 +158,11 @@ def extraer_eso(fragmento: Path, sigla: str, curso: str, titulo: str, nombre: st
         curso=curso,
         cursos_academicos=["2026-27"],
         anexo="anexo II",  # el fragmento no trae la cabecera del anexo
+        **cambios,
     )
 
 
-def ccomp_eso(curso: str, texto=None) -> dict:
+def ccomp_eso(curso: str, texto=None, **cambios) -> dict:
     return extraer_eso(
         CCOMP_ESO,
         "CCOMP",
@@ -167,11 +170,13 @@ def ccomp_eso(curso: str, texto=None) -> dict:
         "CIENCIAS DE LA COMPUTACIÓN",
         "Ciencias de la Computación",
         texto,
+        **cambios,
     )
 
 
-def dig_eso(texto=None) -> dict:
-    return extraer_eso(DIG_ESO, "DIG", "4", "DIGITALIZACIÓN", "Digitalización", texto)
+def dig_eso(texto=None, **cambios) -> dict:
+    cambios.setdefault("curso_unico", True)
+    return extraer_eso(DIG_ESO, "DIG", "4", "DIGITALIZACIÓN", "Digitalización", texto, **cambios)
 
 
 def de_tipo(ficha: dict[str, dict], tipo: str) -> list[str]:
@@ -276,6 +281,43 @@ def test_lomloe_materia_de_un_solo_curso_sin_marca_de_curso():
     assert bloques[0] == "Dispositivos digitales, sistemas operativos y de comunicación."
     assert bloques[-1] == "Ciudadanía digital crítica."
     assert not any(e["texto"].startswith(("•", "–")) for e in ficha.values())
+
+
+def test_lomloe_una_materia_sin_marcas_exige_declarar_que_es_de_un_solo_curso():
+    with pytest.raises(ValueError, match="no marca el curso.*--curso-unico"):
+        dig_eso(curso_unico=False)
+
+
+def test_lomloe_curso_unico_no_vale_si_hay_varios_bloques_de_criterios():
+    texto = DIG_ESO.read_text(encoding="utf-8")
+    segundo = "    Criterios de evaluación.\n    Competencia específica 1.\n    1.1. Otro.\n\n"
+    siguiente = "ECONOMÍA Y EMPRENDIMIENTO"  # el bloque cae dentro de la materia, antes del título
+    antes, despues = texto.split(siguiente)[0], siguiente + texto.split(siguiente)[1]
+    antes = antes[: antes.rindex("\n")]  # sin la sangría del título
+    with pytest.raises(ValueError, match="varios bloques de criterios y ninguna marca de curso"):
+        dig_eso(antes + "\n" + segundo + "    " + despues)
+    # y tampoco con las marcas de un curso reales: o hay marcas o es de un solo curso
+    with pytest.raises(ValueError, match="marca los cursos"):
+        ccomp_eso("1", curso_unico=True)
+
+
+def test_lomloe_el_nombre_con_ordinal_romano_no_lleva_sufijo_de_curso():
+    ficha = extraer(nombre="Ciencias de la Computación I", titulo="Ciencias de la Computación")
+    assert ficha["nombre"] == "Ciencias de la Computación I"
+    # el sufijo depende solo del nombre, no del curso (el fragmento solo tiene el 1.º)
+    ficha = extraer(nombre="Ciencias de la Computación II", titulo="Ciencias de la Computación")
+    assert ficha["nombre"] == "Ciencias de la Computación II"
+    # sin ordinal romano se mantiene el sufijo
+    assert extraer()["nombre"] == "Ciencias de la Computación, primer curso"
+
+
+def test_lomloe_una_linea_corta_en_mayusculas_no_cierra_la_materia():
+    texto = DIG_ESO.read_text(encoding="utf-8")
+    parada = "    Esta competencia específica se conecta"
+    assert parada in texto
+    # «A, B, C, D» tiene 10 caracteres pero solo 4 letras: no es el título de otra materia
+    ficha = elementos(dig_eso(texto.replace(parada, "    A, B, C, D\n" + parada, 1)))
+    assert "MAD.ESO.DIG.4.CR.4.5" in ficha
 
 
 def test_lomloe_la_busqueda_se_queda_dentro_de_la_materia():

@@ -31,9 +31,13 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      2023-24,2024-25 --cache <dir>`. El título que se busca en el boletín es el de la materia
      tal cual (en el decreto de la ESO, en mayúsculas: `--titulo "DIGITALIZACIÓN"`); si la ficha
      la nombra distinto (Bachillerato: «Ciencias de la Computación I»), `--nombre` es el de la
-     ficha. La búsqueda acaba en el título de la materia siguiente. Una materia que no marca
-     el curso (Digitalización, solo 4.º ESO) lleva sus criterios y contenidos tras las
-     competencias.
+     ficha (si termina en un ordinal romano, «… II», no lleva el sufijo «, N curso»). La
+     búsqueda acaba en el título de la materia siguiente: una línea solo en mayúsculas con al
+     menos cinco letras (limitación: una línea así *dentro* de una materia la cortaría antes;
+     `comprobar` y los recuentos lo delatarían). Una materia que no marca el curso
+     (Digitalización, solo 4.º ESO) solo se extrae con `--curso-unico`: sus criterios y
+     contenidos van tras las competencias y debe haber un único bloque de criterios; sin esa
+     opción es un error.
    - `extraer_fp --ficha <código> --modulo <código> --ciclo <nombre> --boe <id> --madrid <id>
      --horas <id> --cursos-academicos … --cache <dir>` (la ficha es el módulo, p. ej.
      `MAD.DAM.0485`). Quedan pendientes los módulos transversales y los optativos de FP:

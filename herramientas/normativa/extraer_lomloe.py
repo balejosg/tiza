@@ -7,8 +7,10 @@ curso agrupados por «Competencia específica N.» y los contenidos de ese curso
 
 La búsqueda se queda dentro de la materia: acaba en el título de la siguiente (una línea en
 mayúsculas, como en el decreto de la ESO) o en el siguiente anexo. Una materia que no marca
-sus cursos (Digitalización, de un solo curso) lleva sus criterios y contenidos justo tras
-las competencias; el nombre de la ficha puede diferir del título del boletín (``--titulo``).
+sus cursos (Digitalización, de un solo curso) solo se extrae con ``--curso-unico``: lleva
+sus criterios y contenidos justo tras las competencias, y debe haber un único bloque de
+criterios. El nombre de la ficha puede diferir del título del boletín (``--titulo``); si
+termina en un ordinal romano («… II») no lleva el sufijo «, N curso».
 
 Uso::
 
@@ -48,9 +50,12 @@ _BLOQUE = re.compile(r"^\s*([A-Z])\.\s+(\S.*)$")
 _VINETA = re.compile(r"^\s*[-–—−]\s+(\S.*)$")  # guion, raya y signo menos (U+2212)
 _SUBVINETA = re.compile(r"^\s*(?:x\s+|•\s*)(\S.*)$")  # «x» o «•», este a veces pegado al texto
 # El título de la materia siguiente (en mayúsculas, sin cifras ni «º») o el siguiente anexo.
+# Al menos cinco letras (no cinco caracteres) y ninguna minúscula.
 _FIN_DE_MATERIA = re.compile(
-    r"^\s*(?:ANEXO\s+[IVXLC]+|(?=.{5,}$)[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ ,]*[A-ZÁÉÍÓÚÜÑ])\s*$"
+    r"^\s*(?:ANEXO\s+[IVXLC]+"
+    r"|(?=(?:[^A-ZÁÉÍÓÚÜÑ]*[A-ZÁÉÍÓÚÜÑ]){5})[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ ,]*[A-ZÁÉÍÓÚÜÑ])\s*$"
 )
+_ORDINAL_ROMANO = re.compile(r"\s(?:I|II|III|IV|V)$")
 _DESCRIPTORES_FRASE = "Esta competencia específica se conecta"
 _DESCRIPTOR = re.compile(r"\b[A-Z]{2,6}\d+(?:\.\d+)?\b")
 
@@ -184,11 +189,13 @@ def extraer_materia(
     anexo: str | None = None,
     desde: str | None = None,
     titulo: str | None = None,
+    curso_unico: bool = False,
 ) -> dict[str, Any]:
     """La ficha (``dict`` listo para ``fichas/<código>.json``) de una materia y un curso.
 
     ``nombre`` es el de la ficha; ``titulo``, el que lleva la materia en el boletín (por
-    defecto, el mismo).
+    defecto, el mismo). ``curso_unico`` declara una materia de un solo curso que no marca
+    el curso en el boletín; sin él, una materia sin marcas es un error.
     """
     abreviatura = ETAPAS[etapa]
     lineas = comun.lineas_limpias(texto)
@@ -222,8 +229,21 @@ def extraer_materia(
     if not competencias:
         raise ValueError(f"«{nombre}»: no hay competencias específicas")
 
-    if _indice(region, _CURSO_CUALQUIERA, inicio + 1) is None:
+    hay_marcas = _indice(region, _CURSO_CUALQUIERA, inicio + 1) is not None
+    if curso_unico and hay_marcas:
+        raise ValueError(
+            f"«{nombre}»: marca los cursos; no es de un solo curso (quita --curso-unico)"
+        )
+    if not hay_marcas:
+        if not curso_unico:
+            raise ValueError(
+                f"«{nombre}»: no marca el curso; si es de un solo curso, pasa --curso-unico"
+            )
         seccion = region[fin:]  # una materia de un solo curso: no marca el curso
+        if sum(1 for l in seccion if _CRITERIOS.match(l.texto)) != 1:
+            raise ValueError(
+                f"«{nombre}»: la materia tiene varios bloques de criterios y ninguna marca de curso"
+            )
     else:
         marca = _indice(region, _marca_de_curso(curso), inicio + 1)
         if marca is None:
@@ -329,7 +349,9 @@ def extraer_materia(
 
     ficha: dict[str, Any] = {
         "codigo": ficha_codigo,
-        "nombre": f"{nombre}, {ORDINALES.get(curso, curso)} curso",
+        "nombre": nombre
+        if _ORDINAL_ROMANO.search(nombre)
+        else f"{nombre}, {ORDINALES.get(curso, curso)} curso",
         "etapa": etapa,
         "curso": curso,
         "cursos_academicos": list(cursos_academicos),
@@ -359,6 +381,11 @@ def main(argv: list[str] | None = None) -> int:
         "--titulo",
         help="título de la materia en el boletín, si difiere de --nombre (p. ej. mayúsculas)",
     )
+    ap.add_argument(
+        "--curso-unico",
+        action="store_true",
+        help="la materia es de un solo curso y no lo marca en el boletín (p. ej. Digitalización)",
+    )
     ap.add_argument("--etapa", required=True, choices=sorted(ETAPAS))
     ap.add_argument(
         "--cursos-academicos", required=True, help="separados por comas: 2023-24,2024-25"
@@ -373,6 +400,7 @@ def main(argv: list[str] | None = None) -> int:
         norma=args.norma,
         nombre=args.nombre,
         titulo=args.titulo,
+        curso_unico=args.curso_unico,
         sigla=args.materia,
         etapa=args.etapa,
         curso=args.curso,
