@@ -47,14 +47,14 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$USERPROFILE/.local/bin:$PATH"
           tiza --help
-      - name: Comprobar que el wheel trae los datos de normativa
+      - name: Comprobar que tiza instalado trae los datos de normativa
         shell: bash
         env:
           PYTHONUTF8: "1"
         run: |
           export PATH="$HOME/.local/bin:$USERPROFILE/.local/bin:$PATH"
           # la salida se guarda antes de buscar en ella: así un fallo de tiza no lo tapa la tubería
-          tiza normativa catalogo > catalogo.txt
+          tiza normativa catalogo --curso-academico 2026-27 > catalogo.txt
           grep -q "MAD.DAM.0485" catalogo.txt
       - name: Comprobar la ventana de entrada (Windows y macOS)
         if: runner.os != 'Linux'
@@ -76,10 +76,10 @@ jobs:
       - name: Instalar dependencias
         run: uv sync --extra dev
       - name: Lint
-        run: uvx ruff@0.16.10 check src tests
+        run: uvx ruff@0.16.10 check src tests herramientas
       - name: Formato
-        run: uvx ruff@0.16.10 format --check src tests
+        run: uvx ruff@0.16.10 format --check src tests herramientas
       - name: Tipos
-        run: uv run --with mypy==2.4.0 --with types-PyYAML --with types-requests mypy
+        run: uv run --with mypy==2.4.0 --with types-PyYAML --with types-requests mypy src herramientas/normativa
       - name: Tests con cobertura
         run: uv run --with pytest-cov==7.1.0 pytest --cov --cov-report=term-missing --cov-fail-under=80

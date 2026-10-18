@@ -42,6 +42,29 @@ HORAS_DAM = {
 }
 
 
+HOY = date(2026, 9, 15)  # dentro del curso 2026-27, el de los datos
+
+
+@pytest.fixture(autouse=True)
+def sin_reloj(monkeypatch):
+    """Ningún test del lote puede leer la fecha de hoy: la suite no depende del reloj."""
+
+    def _reloj():
+        raise AssertionError("este test lee el reloj: fija `hoy` o el curso académico")
+
+    monkeypatch.setattr(consulta, "hoy_en_madrid", _reloj)
+
+
+def test_la_suite_del_lote_no_depende_del_reloj():
+    # con el reloj prohibido, la consulta fijada con `hoy` (aunque sea de otro año) no lo lee
+    assert consulta.buscar("ampliacion", hoy=date(2026, 9, 15)).curso_academico == "2026-27"
+    with pytest.raises(AssertionError, match="reloj"):
+        consulta.buscar("ampliacion")
+    with pytest.raises(consulta.ErrorNormativa) as e:
+        consulta.buscar("ampliacion", hoy=date(2027, 10, 1))
+    assert e.value.codigo == "CURSO_SIN_DATOS"
+
+
 @pytest.fixture(scope="module")
 def indice():
     return cargar()
@@ -125,14 +148,14 @@ def test_descriptores_citados_existen(indice):
 
 
 def test_ampliacion_no_esta():
-    assert consulta.buscar("ampliacion de programacion").resultados == ()
+    assert consulta.buscar("ampliacion de programacion", hoy=HOY).resultados == ()
     assert not any(
         "ampliacion de programacion" in f.nombre.lower() for f in cargar().fichas.values()
     )
 
 
 def test_decreto_27_2025_corregido():
-    n = consulta.norma("Decreto 21/2025")
+    n = consulta.norma("Decreto 21/2025", hoy=HOY)
     assert n.numero == "27/2025"
     assert any(c.norma.id == "bocm-20250526-1" for c in n.correcciones)
     assert n.cita_pedida
@@ -164,7 +187,7 @@ def test_requisitos_con_codigo_del_plan(indice):
 
 def test_un_curso_academico(indice):
     assert {c for f in indice.fichas.values() for c in f.cursos_academicos} == {"2026-27"}
-    catalogo = consulta.catalogo(hoy=date(2026, 9, 15))
+    catalogo = consulta.catalogo(hoy=HOY)
     assert catalogo.curso_academico == "2026-27"
     assert catalogo.curso_en_vigor is True
     assert len(catalogo.fichas) == len(indice.fichas)
@@ -177,3 +200,4 @@ def test_sin_caracteres_invisibles(indice):
             if any(unicodedata.category(c) in ("Cf", "Cc") for c in texto):
                 malos.append(donde)
     assert not malos
+
