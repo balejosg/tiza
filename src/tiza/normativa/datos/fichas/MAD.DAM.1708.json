@@ -7,8 +7,8 @@
     "2026-27"
   ],
   "normas": [
-    "boe-a-2023-16889",
     "bocm-20250827-6",
+    "boe-a-2023-16889",
     "bocm-20241115-2"
   ],
   "elementos": [
@@ -32,9 +32,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Identifica los aspectos ambientales, sociales y de gobernanza (ASG) relativos a la sostenibilidad teniendo en cuenta el concepto de desarrollo sostenible y los marcos internacionales que contribuyen a su consecución.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 1",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 1",
+        "pagina": 284
       },
       "orden": 2,
       "padre": "MAD.DAM.1708"
@@ -44,9 +44,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha descrito el concepto de sostenibilidad, estableciendo los marcos internacionales asociados al desarrollo sostenible.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 1, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 1, criterio a",
+        "pagina": 284
       },
       "orden": 3,
       "padre": "MAD.DAM.1708.RA.1"
@@ -56,9 +56,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los asuntos ambientales, sociales y de gobernanza que influyen en el desarrollo sostenible de las organizaciones empresariales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 1, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 1, criterio b",
+        "pagina": 284
       },
       "orden": 4,
       "padre": "MAD.DAM.1708.RA.1"
@@ -68,9 +68,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han relacionado los Objetivos de Desarrollo Sostenible (ODS) con su importancia para la consecución de la Agenda 2030.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 1, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 1, criterio c",
+        "pagina": 284
       },
       "orden": 5,
       "padre": "MAD.DAM.1708.RA.1"
@@ -80,9 +80,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha analizado la importancia de identificar los aspectos ASG más relevantes para los grupos de interés de las organizaciones relacionándolos con los riesgos y oportunidades que suponen para la propia organización.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 1, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 1, criterio d",
+        "pagina": 284
       },
       "orden": 6,
       "padre": "MAD.DAM.1708.RA.1"
@@ -92,9 +92,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los principales estándares de métricas para la evaluación del desempeño en sostenibilidad y su papel en la rendición de cuentas que marca la legislación vigente y las futuras regulaciones en desarrollo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 1, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 1, criterio e",
+        "pagina": 284
       },
       "orden": 7,
       "padre": "MAD.DAM.1708.RA.1"
@@ -104,9 +104,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha descrito la inversión socialmente responsable y el papel de los analistas, inversores, agencias e índices de sostenibilidad en el fomento de la sostenibilidad.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 1, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 1, criterio f",
+        "pagina": 284
       },
       "orden": 8,
       "padre": "MAD.DAM.1708.RA.1"
@@ -116,9 +116,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Caracteriza los retos ambientales y sociales a los que se enfrenta la sociedad, describiendo los impactos sobre las personas y los sectores productivos y proponiendo acciones para minimizarlos.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 2",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 2",
+        "pagina": 284
       },
       "orden": 9,
       "padre": "MAD.DAM.1708"
@@ -128,9 +128,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los principales retos ambientales y sociales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 2, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 2, criterio a",
+        "pagina": 284
       },
       "orden": 10,
       "padre": "MAD.DAM.1708.RA.2"
@@ -140,9 +140,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han relacionado los retos ambientales y sociales con el desarrollo de la actividad económica.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 2, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 2, criterio b",
+        "pagina": 285
       },
       "orden": 11,
       "padre": "MAD.DAM.1708.RA.2"
@@ -152,9 +152,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha analizado el efecto de los impactos ambientales y sociales sobre las personas y los sectores productivos.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 2, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 2, criterio c",
+        "pagina": 285
       },
       "orden": 12,
       "padre": "MAD.DAM.1708.RA.2"
@@ -164,9 +164,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado las medidas y acciones encaminadas a minimizar los impactos ambientales y sociales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 2, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 2, criterio d",
+        "pagina": 285
       },
       "orden": 13,
       "padre": "MAD.DAM.1708.RA.2"
@@ -176,9 +176,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha analizado la importancia de establecer alianzas y trabajar de manera transversal y coordinada para abordar con éxito los retos ambientales y sociales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 2, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 2, criterio e",
+        "pagina": 285
       },
       "orden": 14,
       "padre": "MAD.DAM.1708.RA.2"
@@ -188,9 +188,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Establece la aplicación de criterios de sostenibilidad en el desempeño profesional y personal, identificando los elementos necesarios.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 3",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 3",
+        "pagina": 285
       },
       "orden": 15,
       "padre": "MAD.DAM.1708"
@@ -200,9 +200,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los ODS más relevantes para la actividad profesional que realiza.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 3, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 3, criterio a",
+        "pagina": 285
       },
       "orden": 16,
       "padre": "MAD.DAM.1708.RA.3"
@@ -212,9 +212,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han analizado los riesgos y oportunidades que representan los ODS.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 3, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 3, criterio b",
+        "pagina": 285
       },
       "orden": 17,
       "padre": "MAD.DAM.1708.RA.3"
@@ -224,9 +224,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado las acciones necesarias para atender algunos de los retos ambientales y sociales desde la actividad profesional y el entorno personal.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 3, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 3, criterio c",
+        "pagina": 285
       },
       "orden": 18,
       "padre": "MAD.DAM.1708.RA.3"
@@ -234,11 +234,11 @@
     {
       "codigo": "MAD.DAM.1708.RA.4",
       "tipo": "resultado_aprendizaje",
-      "texto": "Propón productos y servicios responsables teniendo en cuenta los principios de la economía circular.",
+      "texto": "Propone productos y servicios responsables teniendo en cuenta los principios de la economía circular.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 4",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 4",
+        "pagina": 285
       },
       "orden": 19,
       "padre": "MAD.DAM.1708"
@@ -248,9 +248,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha caracterizado el modelo de producción y consumo actual.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 4, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 4, criterio a",
+        "pagina": 285
       },
       "orden": 20,
       "padre": "MAD.DAM.1708.RA.4"
@@ -260,9 +260,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los principios de la economía verde y circular.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 4, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 4, criterio b",
+        "pagina": 285
       },
       "orden": 21,
       "padre": "MAD.DAM.1708.RA.4"
@@ -272,9 +272,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han contrastado los beneficios de la economía verde y circular frente al modelo clásico de producción.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 4, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 4, criterio c",
+        "pagina": 285
       },
       "orden": 22,
       "padre": "MAD.DAM.1708.RA.4"
@@ -284,9 +284,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han aplicado principios de ecodiseño.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 4, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 4, criterio d",
+        "pagina": 285
       },
       "orden": 23,
       "padre": "MAD.DAM.1708.RA.4"
@@ -296,9 +296,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha analizado el ciclo de vida del producto.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 4, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 4, criterio e",
+        "pagina": 285
       },
       "orden": 24,
       "padre": "MAD.DAM.1708.RA.4"
@@ -308,9 +308,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los procesos de producción y los criterios de sostenibilidad aplicados.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 4, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 4, criterio f",
+        "pagina": 285
       },
       "orden": 25,
       "padre": "MAD.DAM.1708.RA.4"
@@ -320,9 +320,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Realiza actividades sostenibles minimizando el impacto de las mismas en el medio ambiente.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5",
+        "pagina": 285
       },
       "orden": 26,
       "padre": "MAD.DAM.1708"
@@ -332,9 +332,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha caracterizado el modelo de producción y consumo actual.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio a",
+        "pagina": 285
       },
       "orden": 27,
       "padre": "MAD.DAM.1708.RA.5"
@@ -344,9 +344,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los principios de la economía verde y circular.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio b",
+        "pagina": 285
       },
       "orden": 28,
       "padre": "MAD.DAM.1708.RA.5"
@@ -356,9 +356,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han contrastado los beneficios de la economía verde y circular frente al modelo clásico de producción.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio c",
+        "pagina": 285
       },
       "orden": 29,
       "padre": "MAD.DAM.1708.RA.5"
@@ -368,9 +368,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha evaluado el impacto de las actividades personales y profesionales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio d",
+        "pagina": 285
       },
       "orden": 30,
       "padre": "MAD.DAM.1708.RA.5"
@@ -380,9 +380,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han aplicado principios de ecodiseño.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio e",
+        "pagina": 285
       },
       "orden": 31,
       "padre": "MAD.DAM.1708.RA.5"
@@ -392,9 +392,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han aplicado estrategias sostenibles.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio f",
+        "pagina": 286
       },
       "orden": 32,
       "padre": "MAD.DAM.1708.RA.5"
@@ -404,9 +404,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha analizado el ciclo de vida del producto.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio g",
+        "pagina": 286
       },
       "orden": 33,
       "padre": "MAD.DAM.1708.RA.5"
@@ -416,9 +416,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los procesos de producción y los criterios de sostenibilidad aplicados.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio h",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio h",
+        "pagina": 286
       },
       "orden": 34,
       "padre": "MAD.DAM.1708.RA.5"
@@ -428,9 +428,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha aplicado la normativa ambiental.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 5, criterio i",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 5, criterio i",
+        "pagina": 286
       },
       "orden": 35,
       "padre": "MAD.DAM.1708.RA.5"
@@ -438,11 +438,11 @@
     {
       "codigo": "MAD.DAM.1708.RA.6",
       "tipo": "resultado_aprendizaje",
-      "texto": "Analiza un plan de sostenibilidad de una empresa del sector, identificando sus grupos de interés, los aspectos ASG materiales y justificando acciones para su gestión y medición.",
+      "texto": "Analiza un plan de sostenibilidad de una empresa del sector, identificando sus grupos de interés, los aspectos ASG materiales y justificando acciones para su gestión y medición. Se han identificado los principales grupos de interés de la empresa.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 6",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 6",
+        "pagina": 286
       },
       "orden": 36,
       "padre": "MAD.DAM.1708"
@@ -452,9 +452,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los principales grupos de interés de la empresa.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 6, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 6, criterio a",
+        "pagina": 286
       },
       "orden": 37,
       "padre": "MAD.DAM.1708.RA.6"
@@ -464,9 +464,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han analizado los aspectos ASG materiales, las expectativas de los grupos de interés y la importancia de los aspectos ASG en relación con los objetivos empresariales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 6, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 6, criterio b",
+        "pagina": 286
       },
       "orden": 38,
       "padre": "MAD.DAM.1708.RA.6"
@@ -476,9 +476,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han definido acciones encaminadas a minimizar los impactos negativos y aprovechar las oportunidades que plantean los principales aspectos ASG identificados.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 6, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 6, criterio c",
+        "pagina": 286
       },
       "orden": 39,
       "padre": "MAD.DAM.1708.RA.6"
@@ -488,9 +488,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han determinado las métricas de evaluación del desempeño de la empresa de acuerdo con los estándares de sostenibilidad más ampliamente utilizados.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 6, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 6, criterio d",
+        "pagina": 286
       },
       "orden": 40,
       "padre": "MAD.DAM.1708.RA.6"
@@ -500,9 +500,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha elaborado un informe de sostenibilidad con el plan y los indicadores propuestos.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 6, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 6, criterio e",
+        "pagina": 286
       },
       "orden": 41,
       "padre": "MAD.DAM.1708.RA.6"

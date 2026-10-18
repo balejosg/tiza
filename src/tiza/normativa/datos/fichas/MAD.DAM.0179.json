@@ -7,8 +7,8 @@
     "2026-27"
   ],
   "normas": [
-    "boe-a-2023-16889",
     "bocm-20250827-6",
+    "boe-a-2023-16889",
     "bocm-20241115-2"
   ],
   "elementos": [
@@ -32,9 +32,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Comprende información, de índole profesional, académica y cotidiana, contenida en todo tipo de discursos orales, emitidos por cualquier medio de comunicación en lengua estándar, interpretando con precisión el contenido del mensaje.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1",
+        "pagina": 270
       },
       "orden": 2,
       "padre": "MAD.DAM.0179"
@@ -44,9 +44,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha identificado la idea principal de mensajes en lengua estándar relacionados con la vida social, profesional o académica.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio a",
+        "pagina": 271
       },
       "orden": 3,
       "padre": "MAD.DAM.0179.RA.1"
@@ -56,9 +56,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha reconocido la finalidad de mensajes directos o emitidos en cualquier soporte en lengua estándar.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio b",
+        "pagina": 271
       },
       "orden": 4,
       "padre": "MAD.DAM.0179.RA.1"
@@ -68,9 +68,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha extraído información específica contenida en distintos discursos orales en lengua estándar, relacionada con la vida social, profesional o académica.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio c",
+        "pagina": 271
       },
       "orden": 5,
       "padre": "MAD.DAM.0179.RA.1"
@@ -80,9 +80,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha identificado el punto de vista y la actitud del hablante.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio d",
+        "pagina": 271
       },
       "orden": 6,
       "padre": "MAD.DAM.0179.RA.1"
@@ -92,9 +92,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha identificado el hilo argumental de mensajes orales y determinado los roles que aparecen en dichos mensajes.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio e",
+        "pagina": 271
       },
       "orden": 7,
       "padre": "MAD.DAM.0179.RA.1"
@@ -104,9 +104,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han comprendido adecuadamente mensajes en lengua estándar en ambientes con contaminación acústica.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio f",
+        "pagina": 271
       },
       "orden": 8,
       "padre": "MAD.DAM.0179.RA.1"
@@ -116,9 +116,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han extraído las ideas principales de conferencias, charlas e informes, y otras formas de presentación académica y profesional, lingüísticamente complejas.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio g",
+        "pagina": 271
       },
       "orden": 9,
       "padre": "MAD.DAM.0179.RA.1"
@@ -128,9 +128,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha tomado conciencia de la importancia de comprender globalmente un mensaje sin entender todos y cada uno de los elementos del mismo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 1, criterio h",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 1, criterio h",
+        "pagina": 271
       },
       "orden": 10,
       "padre": "MAD.DAM.0179.RA.1"
@@ -140,9 +140,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Comprende mensajes escritos, de naturaleza profesional, académica y cotidiana, de relativa dificultad, analizando de forma comprensiva su contenido.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2",
+        "pagina": 271
       },
       "orden": 11,
       "padre": "MAD.DAM.0179"
@@ -152,9 +152,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha identificado la idea principal de textos específicos de su ámbito social, profesional o académico.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio a",
+        "pagina": 271
       },
       "orden": 12,
       "padre": "MAD.DAM.0179.RA.2"
@@ -164,9 +164,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha reconocido la finalidad de distintos textos escritos en cualquier soporte, en lengua estándar y relacionados con la actividad profesional.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio b",
+        "pagina": 271
       },
       "orden": 13,
       "padre": "MAD.DAM.0179.RA.2"
@@ -176,9 +176,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha extraído información específica de textos, de diferente naturaleza, relativos a su profesión, y contenidos en distintos soportes.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio c",
+        "pagina": 271
       },
       "orden": 14,
       "padre": "MAD.DAM.0179.RA.2"
@@ -188,9 +188,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha tomado conciencia de la importancia de comprender globalmente un texto sin entender todos y cada uno de los elementos del mismo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio d",
+        "pagina": 271
       },
       "orden": 15,
       "padre": "MAD.DAM.0179.RA.2"
@@ -200,9 +200,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han leído y comprendido, de manera autónoma, textos relacionados con el sector con la velocidad y estilo de lectura propia del nivel competencial.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio e",
+        "pagina": 271
       },
       "orden": 16,
       "padre": "MAD.DAM.0179.RA.2"
@@ -212,9 +212,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha interpretado la correspondencia relativa a su especialidad, captando fácilmente el significado esencial.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio f",
+        "pagina": 271
       },
       "orden": 17,
       "padre": "MAD.DAM.0179.RA.2"
@@ -224,9 +224,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han interpretado textos extensos, y de cierta complejidad, relacionados o no con su especialidad, pudiendo realizar varias lecturas del mismo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio g",
+        "pagina": 271
       },
       "orden": 18,
       "padre": "MAD.DAM.0179.RA.2"
@@ -236,9 +236,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha identificado con rapidez el contenido y la importancia de noticias, artículos e informes sobre una amplia serie de temas profesionales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio h",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio h",
+        "pagina": 272
       },
       "orden": 19,
       "padre": "MAD.DAM.0179.RA.2"
@@ -248,9 +248,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han interpretado instrucciones, con distintos niveles de dificultad, y mensajes técnicos recibidos a través de soportes digitales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio i",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio i",
+        "pagina": 272
       },
       "orden": 20,
       "padre": "MAD.DAM.0179.RA.2"
@@ -260,9 +260,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han traducido textos de cierta complejidad, utilizando material de apoyo en caso necesario.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 2, criterio j",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 2, criterio j",
+        "pagina": 272
       },
       "orden": 21,
       "padre": "MAD.DAM.0179.RA.2"
@@ -272,9 +272,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Produce mensajes orales claros y bien estructurados, analizando el contenido de la situación y adaptándose al registro lingüístico del interlocutor.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3",
+        "pagina": 272
       },
       "orden": 22,
       "padre": "MAD.DAM.0179"
@@ -282,11 +282,11 @@
     {
       "codigo": "MAD.DAM.0179.RA.3.a",
       "tipo": "criterio_fp",
-      "texto": "Se han emitido mensajes generales propios de sector y de la vida cotidiana, utilizando nexos y estrategias de interacción.",
+      "texto": "Se han emitido mensajes generales propios del sector y de la vida cotidiana, utilizando nexos y estrategias de interacción.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio a",
+        "pagina": 272
       },
       "orden": 23,
       "padre": "MAD.DAM.0179.RA.3"
@@ -296,9 +296,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha intercambiado con fluidez información específica y detallada utilizando estructuras de una complejidad acorde al nivel competencial.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio b",
+        "pagina": 272
       },
       "orden": 24,
       "padre": "MAD.DAM.0179.RA.3"
@@ -308,9 +308,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han seleccionado y aplicado los registros adecuados para la emisión del mensaje, así como protocolos y normas de relación social propios del país.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio c",
+        "pagina": 272
       },
       "orden": 25,
       "padre": "MAD.DAM.0179.RA.3"
@@ -320,9 +320,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han realizado presentaciones, bien estructuradas, sobre temas de su ámbito profesional, haciendo uso de los protocolos establecidos.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio d",
+        "pagina": 272
       },
       "orden": 26,
       "padre": "MAD.DAM.0179.RA.3"
@@ -332,9 +332,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha utilizado correctamente la terminología de la profesión.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio e",
+        "pagina": 272
       },
       "orden": 27,
       "padre": "MAD.DAM.0179.RA.3"
@@ -344,9 +344,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha descrito y secuenciado oralmente un proceso de trabajo de su competencia.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio f",
+        "pagina": 272
       },
       "orden": 28,
       "padre": "MAD.DAM.0179.RA.3"
@@ -356,9 +356,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha solicitado la reformulación del discurso o parte del mismo cuando se ha considerado necesario.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio g",
+        "pagina": 272
       },
       "orden": 29,
       "padre": "MAD.DAM.0179.RA.3"
@@ -368,9 +368,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha interaccionado espontáneamente, adoptando un nivel de formalidad adecuado a las circunstancias.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio h",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio h",
+        "pagina": 272
       },
       "orden": 30,
       "padre": "MAD.DAM.0179.RA.3"
@@ -380,9 +380,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha expresado con fluidez, precisión y eficacia sobre una amplia serie de temas generales, académicos, profesionales o de ocio, marcando con claridad la relación entre las ideas.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio i",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio i",
+        "pagina": 272
       },
       "orden": 31,
       "padre": "MAD.DAM.0179.RA.3"
@@ -392,9 +392,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han expresado y defendido puntos de vista con claridad, proporcionando explicaciones y argumentos adecuados.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio j",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio j",
+        "pagina": 272
       },
       "orden": 32,
       "padre": "MAD.DAM.0179.RA.3"
@@ -404,9 +404,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha respondido a preguntas relativas a su vida socio-profesional, incluidas las propias de una entrevista de trabajo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 3, criterio k",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 3, criterio k",
+        "pagina": 272
       },
       "orden": 33,
       "padre": "MAD.DAM.0179.RA.3"
@@ -416,9 +416,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Redacta documentos e informes, propios del sector o de la vida académica y cotidiana, relacionando los recursos lingüísticos con el propósito de los mismos.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4",
+        "pagina": 272
       },
       "orden": 34,
       "padre": "MAD.DAM.0179"
@@ -428,9 +428,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han escrito textos claros y detallados sobre una variedad de temas relacionados con su profesión, sintetizando y evaluando información y argumentos procedentes de varias fuentes.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio a",
+        "pagina": 272
       },
       "orden": 35,
       "padre": "MAD.DAM.0179.RA.4"
@@ -440,9 +440,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha cumplimentado documentación específica de su campo profesional, utilizando vocabulario específico y protocolos y normas de relación social propios del país.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio b",
+        "pagina": 273
       },
       "orden": 36,
       "padre": "MAD.DAM.0179.RA.4"
@@ -450,11 +450,11 @@
     {
       "codigo": "MAD.DAM.0179.RA.4.c",
       "tipo": "criterio_fp",
-      "texto": "Se ha organizado la información con corrección, precisión, con cohesión y coherencia, solicitando y/o facilitando información de tipo general o detallada.",
+      "texto": "Se ha organizado la información con corrección, precisión, con cohesión y coherencia, solicitando o facilitando información de tipo general o detallada",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio c",
+        "pagina": 273
       },
       "orden": 37,
       "padre": "MAD.DAM.0179.RA.4"
@@ -464,9 +464,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han cumplimentado textos mediante apoyos visuales y claves lingüísticas.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio d",
+        "pagina": 273
       },
       "orden": 38,
       "padre": "MAD.DAM.0179.RA.4"
@@ -476,9 +476,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han elaborado informes, destacando los aspectos significativos y ofreciendo detalles relevantes que sirvan de apoyo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio e",
+        "pagina": 273
       },
       "orden": 39,
       "padre": "MAD.DAM.0179.RA.4"
@@ -488,9 +488,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han escrito cartas, formales e informales, empleando las fórmulas de cortesía establecidas y el vocabulario específico para la elaboración de las mismas.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio f",
+        "pagina": 273
       },
       "orden": 40,
       "padre": "MAD.DAM.0179.RA.4"
@@ -500,9 +500,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han resumido diferentes tipos de documentos escritos, utilizando sus propios recursos lingüísticos.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio g",
+        "pagina": 273
       },
       "orden": 41,
       "padre": "MAD.DAM.0179.RA.4"
@@ -512,9 +512,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han utilizado las fórmulas de cortesía propias del documento que se va a elaborar.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 4, criterio h",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 4, criterio h",
+        "pagina": 273
       },
       "orden": 42,
       "padre": "MAD.DAM.0179.RA.4"
@@ -524,9 +524,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Aplica actitudes y comportamientos profesionales en situaciones de comunicación, describiendo las relaciones típicas características del país de la lengua extranjera.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 5",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 5",
+        "pagina": 273
       },
       "orden": 43,
       "padre": "MAD.DAM.0179"
@@ -536,9 +536,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han definido los rasgos más significativos de las costumbres y usos de la comunidad donde se habla la lengua extranjera.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 5, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 5, criterio a",
+        "pagina": 273
       },
       "orden": 44,
       "padre": "MAD.DAM.0179.RA.5"
@@ -548,9 +548,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han descrito los protocolos y normas de relación social propios del país.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 5, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 5, criterio b",
+        "pagina": 273
       },
       "orden": 45,
       "padre": "MAD.DAM.0179.RA.5"
@@ -560,9 +560,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los valores y creencias propios de la comunidad donde se habla la lengua extranjera.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 5, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 5, criterio c",
+        "pagina": 273
       },
       "orden": 46,
       "padre": "MAD.DAM.0179.RA.5"
@@ -572,9 +572,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha identificado los aspectos socio-profesionales propios del sector, en cualquier tipo de texto.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 5, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 5, criterio d",
+        "pagina": 273
       },
       "orden": 47,
       "padre": "MAD.DAM.0179.RA.5"
@@ -584,9 +584,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han aplicado los protocolos y normas de relación social propios del país de la lengua extranjera.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 5, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 5, criterio e",
+        "pagina": 273
       },
       "orden": 48,
       "padre": "MAD.DAM.0179.RA.5"
@@ -596,9 +596,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han reconocido los marcadores lingüísticos de la procedencia regional.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo X, módulo 0179, resultado de aprendizaje 5, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo III, módulo 0179, resultado de aprendizaje 5, criterio f",
+        "pagina": 273
       },
       "orden": 49,
       "padre": "MAD.DAM.0179.RA.5"

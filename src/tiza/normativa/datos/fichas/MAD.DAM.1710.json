@@ -7,8 +7,8 @@
     "2026-27"
   ],
   "normas": [
-    "boe-a-2023-16889",
     "bocm-20250827-6",
+    "boe-a-2023-16889",
     "bocm-20241115-2"
   ],
   "elementos": [
@@ -32,9 +32,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Planifica y pone en marcha estrategias en los diferentes procesos selectivos de empleo que le permiten mejorar sus posibilidades de inserción laboral.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 1",
+        "pagina": 293
       },
       "orden": 2,
       "padre": "MAD.DAM.1710"
@@ -44,9 +44,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han determinado las técnicas utilizadas actualmente en el sector para el proceso de selección de personal.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 1, criterio a",
+        "pagina": 293
       },
       "orden": 3,
       "padre": "MAD.DAM.1710.RA.1"
@@ -56,9 +56,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han desarrollado estrategias para la búsqueda de empleo relacionadas con las técnicas actuales más utilizadas contextualizadas al sector.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 1, criterio b",
+        "pagina": 293
       },
       "orden": 4,
       "padre": "MAD.DAM.1710.RA.1"
@@ -68,9 +68,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han valorado las actitudes y aptitudes que permiten superar procesos selectivos en el sector privado y en el sector público.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 1, criterio c",
+        "pagina": 293
       },
       "orden": 5,
       "padre": "MAD.DAM.1710.RA.1"
@@ -80,9 +80,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha construido una marca personal identificando las necesidades del mercado actual, sus habilidades, destrezas y su aporte de valor.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 1, criterio d",
+        "pagina": 293
       },
       "orden": 6,
       "padre": "MAD.DAM.1710.RA.1"
@@ -92,9 +92,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Aplica estrategias relacionadas con las competencias personales, sociales y emocionales para el empleo en búsqueda de la mejora de su empleabilidad.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2",
+        "pagina": 294
       },
       "orden": 7,
       "padre": "MAD.DAM.1710"
@@ -104,9 +104,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha valorado la importancia de las competencias personales y sociales en la empleabilidad en el sector de referencia.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2, criterio a",
+        "pagina": 294
       },
       "orden": 8,
       "padre": "MAD.DAM.1710.RA.2"
@@ -116,9 +116,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha participado activamente en el establecimiento de los objetivos del equipo y en la toma de decisiones del mismo y asumido la responsabilidad de las acciones y decisiones del grupo, participando activamente en el logro de unos objetivos compartidos cooperando con otras personas y compartiendo el liderazgo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2, criterio b",
+        "pagina": 294
       },
       "orden": 9,
       "padre": "MAD.DAM.1710.RA.2"
@@ -128,9 +128,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han incorporado al propio proceso de aprendizaje las técnicas y recursos de presentación y comunicación, tanto orales como escritos, adecuados para una comunicación efectiva y afectiva siendo capaz de adaptarlos a cada situación y circunstancias, valorando las oportunidades y dificultades que ofrece cada una de ellas.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2, criterio c",
+        "pagina": 294
       },
       "orden": 10,
       "padre": "MAD.DAM.1710.RA.2"
@@ -140,9 +140,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han aplicado técnicas y estrategias para la gestión del tiempo disponible para alcanzar los objetivos tanto individuales como del equipo y programado las actividades necesarias.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2, criterio d",
+        "pagina": 294
       },
       "orden": 11,
       "padre": "MAD.DAM.1710.RA.2"
@@ -152,9 +152,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han aplicado estrategias para canalizar las emociones mostrando una actitud flexible en las relaciones con otras personas.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2, criterio e",
+        "pagina": 294
       },
       "orden": 12,
       "padre": "MAD.DAM.1710.RA.2"
@@ -164,9 +164,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han desarrollado estrategias para la programación de actividades atendiendo a criterios de organización eficiente y previendo las posibles dificultades.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2, criterio f",
+        "pagina": 294
       },
       "orden": 13,
       "padre": "MAD.DAM.1710.RA.2"
@@ -176,9 +176,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha reaccionado de forma flexible y positiva ante conflictos y situaciones nuevas, aprovechando las oportunidades y gestionando las dificultades haciendo uso de estrategias relacionadas con la inteligencia emocional.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 2, criterio g",
+        "pagina": 294
       },
       "orden": 14,
       "padre": "MAD.DAM.1710.RA.2"
@@ -188,9 +188,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Pone en práctica las habilidades emprendedoras necesarias para el desarrollo de procesos de innovación e investigación aplicadas que promuevan la modernización del sector productivo hacia un modelo sostenible.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 3",
+        "pagina": 294
       },
       "orden": 15,
       "padre": "MAD.DAM.1710"
@@ -200,9 +200,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha identificado el concepto de innovación y su relación con la construcción de una sociedad más sostenible que mejore en el bienestar de los individuos.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 3, criterio a",
+        "pagina": 294
       },
       "orden": 16,
       "padre": "MAD.DAM.1710.RA.3"
@@ -212,9 +212,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han analizado las distintas metodologías para emprender y su importancia para favorecer la innovación y como fuente de creación de empleo y bienestar social.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 3, criterio b",
+        "pagina": 294
       },
       "orden": 17,
       "padre": "MAD.DAM.1710.RA.3"
@@ -224,9 +224,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han aplicado las habilidades emprendedoras necesarias para promover el emprendimiento y el intraemprendimiento.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 3, criterio c",
+        "pagina": 294
       },
       "orden": 18,
       "padre": "MAD.DAM.1710.RA.3"
@@ -236,9 +236,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha puesto en práctica el trabajo colaborativo como requisito para el desarrollo de procesos de innovación.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 3, criterio d",
+        "pagina": 294
       },
       "orden": 19,
       "padre": "MAD.DAM.1710.RA.3"
@@ -248,9 +248,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha desarrollado la competencia digital necesaria para la mejora de los procesos de innovación e investigación aplicadas que promuevan la modernización del sector productivo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 3, criterio e",
+        "pagina": 295
       },
       "orden": 20,
       "padre": "MAD.DAM.1710.RA.3"
@@ -260,9 +260,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han incorporado los objetivos de las políticas e iniciativas relacionadas con la sostenibilidad y el medio ambiente a la estrategia empresarial enfocada al desarrollo de un modelo económico y social sostenible.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 3, criterio f",
+        "pagina": 295
       },
       "orden": 21,
       "padre": "MAD.DAM.1710.RA.3"
@@ -272,9 +272,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Identifica, define y valida ideas de emprendimiento generadoras de nuevas oportunidades a partir de estrategias de análisis del entorno socio productivo utilizando metodologías ágiles para el emprendimiento.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4",
+        "pagina": 295
       },
       "orden": 22,
       "padre": "MAD.DAM.1710"
@@ -284,9 +284,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han identificado los problemas de las personas destinatarias potenciales del proyecto emprendedor como paso previo a la propuesta de soluciones que se conviertan en oportunidades.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio a",
+        "pagina": 295
       },
       "orden": 23,
       "padre": "MAD.DAM.1710.RA.4"
@@ -296,9 +296,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha puesto en práctica el proceso creativo con el fin de conseguir una idea emprendedora que aporte valor económico, social y/o cultural.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio b",
+        "pagina": 295
       },
       "orden": 24,
       "padre": "MAD.DAM.1710.RA.4"
@@ -308,9 +308,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha diseñado un modelo de negocio y/o gestión derivado de la idea emprendedora.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio c",
+        "pagina": 295
       },
       "orden": 25,
       "padre": "MAD.DAM.1710.RA.4"
@@ -320,9 +320,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han incorporado valores éticos y sociales a la idea emprendedora analizando modelos de balance social.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio d",
+        "pagina": 295
       },
       "orden": 26,
       "padre": "MAD.DAM.1710.RA.4"
@@ -332,9 +332,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha analizado la contribución de la Economía Circular y la Economía del Bien Común al desarrollo de un modelo económico y social basado en la equidad, la justicia social y la sostenibilidad.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio e",
+        "pagina": 295
       },
       "orden": 27,
       "padre": "MAD.DAM.1710.RA.4"
@@ -344,9 +344,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han analizado los principales componentes del entorno general y específico, y su impacto en la idea emprendedora.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio f",
+        "pagina": 295
       },
       "orden": 28,
       "padre": "MAD.DAM.1710.RA.4"
@@ -356,9 +356,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han realizado entrevistas de problema para validar el perfil y el problema de las personas destinatarias de la idea emprendedora.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio g",
+        "pagina": 295
       },
       "orden": 29,
       "padre": "MAD.DAM.1710.RA.4"
@@ -366,11 +366,11 @@
     {
       "codigo": "MAD.DAM.1710.RA.4.h",
       "tipo": "criterio_fp",
-      "texto": "Se ha validado la solución mediante la creación de prototipos buscando el encaje problema-solución.",
+      "texto": "Se ha validado la solución mediante la creación de prototipos buscando el encaje problema y solución.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio h",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio h",
+        "pagina": 295
       },
       "orden": 30,
       "padre": "MAD.DAM.1710.RA.4"
@@ -380,9 +380,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha experimentado con la puesta en práctica de estrategias de marketing para desarrollar destrezas en técnicas de comunicación y venta.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio i",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 4, criterio i",
+        "pagina": 295
       },
       "orden": 31,
       "padre": "MAD.DAM.1710.RA.4"
@@ -392,9 +392,9 @@
       "tipo": "resultado_aprendizaje",
       "texto": "Desarrolla un proyecto emprendedor de innovación social y/o tecnológica aplicada en colaboración con el entorno.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5",
+        "pagina": 295
       },
       "orden": 32,
       "padre": "MAD.DAM.1710"
@@ -404,9 +404,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han analizado los conceptos básicos del emprendimiento y la innovación social.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio a",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio a",
+        "pagina": 295
       },
       "orden": 33,
       "padre": "MAD.DAM.1710.RA.5"
@@ -416,9 +416,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha reflexionado sobre la necesidad del liderazgo ético y sostenible en las organizaciones.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio b",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio b",
+        "pagina": 295
       },
       "orden": 34,
       "padre": "MAD.DAM.1710.RA.5"
@@ -428,9 +428,9 @@
       "tipo": "criterio_fp",
       "texto": "Se ha reflexionado sobre la tecnología como base para el cambio del modelo productivo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio c",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio c",
+        "pagina": 296
       },
       "orden": 35,
       "padre": "MAD.DAM.1710.RA.5"
@@ -440,9 +440,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han puesto en marcha las estrategias propias del pensamiento de diseño para detectar necesidades sociales y medioambientales.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio d",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio d",
+        "pagina": 296
       },
       "orden": 36,
       "padre": "MAD.DAM.1710.RA.5"
@@ -452,9 +452,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han analizado los elementos del diseño de modelos de negocio ecosociales y/o de base tecnológica.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio e",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio e",
+        "pagina": 296
       },
       "orden": 37,
       "padre": "MAD.DAM.1710.RA.5"
@@ -462,11 +462,11 @@
     {
       "codigo": "MAD.DAM.1710.RA.5.f",
       "tipo": "criterio_fp",
-      "texto": "Se han alineado metas de desarrollo sostenible con el diseño de modelos de negocio ecosociales y/o de base tecnológica.",
+      "texto": "Se han alineado metas de desarrollo sostenible con el diseño de modelos de negocio ecosociales o de base tecnológica.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio f",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio f",
+        "pagina": 296
       },
       "orden": 38,
       "padre": "MAD.DAM.1710.RA.5"
@@ -474,11 +474,11 @@
     {
       "codigo": "MAD.DAM.1710.RA.5.g",
       "tipo": "criterio_fp",
-      "texto": "Se han aplicado las estrategias necesarias para analizar la viabilidad del proyecto emprendedor.",
+      "texto": "Se han aplicado las estrategias necesarias para analizar la viabilidad económica-financiera del modelo de negocio propuesto del proyecto emprendedor.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio g",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio g",
+        "pagina": 296
       },
       "orden": 39,
       "padre": "MAD.DAM.1710.RA.5"
@@ -488,9 +488,9 @@
       "tipo": "criterio_fp",
       "texto": "Se han investigado las opciones financieras socialmente responsables.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio h",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio h",
+        "pagina": 296
       },
       "orden": 40,
       "padre": "MAD.DAM.1710.RA.5"
@@ -500,11 +500,83 @@
       "tipo": "criterio_fp",
       "texto": "Se han definido los agentes implicados en el proyecto, así como su participación en el mismo.",
       "procedencia": {
-        "norma": "boe-a-2023-16889",
-        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio i",
-        "pagina": null
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio i",
+        "pagina": 296
       },
       "orden": 41,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.j",
+      "tipo": "criterio_fp",
+      "texto": "Se ha seleccionado la forma jurídica más adecuada al modelo de negocio.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio j",
+        "pagina": 296
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.k",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los trámites administrativos para la puesta en marcha del negocio.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio k",
+        "pagina": 296
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.l",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las diferentes obligaciones fiscales relacionadas con el modelo de negocio.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio l",
+        "pagina": 296
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.m",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las posibles ayudas y subvenciones para la creación y el desarrollo del negocio.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio m",
+        "pagina": 296
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.n",
+      "tipo": "criterio_fp",
+      "texto": "Se ha cumplimentado la documentación básica de carácter comercial y contable.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio n",
+        "pagina": 296
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.ñ",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las vías de asesoramiento y gestión administrativa externas existentes a la hora de poner en marcha una empresa.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII, módulo 1710, resultado de aprendizaje 5, criterio ñ",
+        "pagina": 296
+      },
+      "orden": 47,
       "padre": "MAD.DAM.1710.RA.5"
     },
     {
@@ -516,7 +588,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 296
       },
-      "orden": 42,
+      "orden": 48,
       "padre": "MAD.DAM.1710"
     },
     {
@@ -528,7 +600,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 296
       },
-      "orden": 43,
+      "orden": 49,
       "padre": "MAD.DAM.1710.CO.1"
     },
     {
@@ -540,7 +612,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 296
       },
-      "orden": 44,
+      "orden": 50,
       "padre": "MAD.DAM.1710.CO.1"
     },
     {
@@ -552,7 +624,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 296
       },
-      "orden": 45,
+      "orden": 51,
       "padre": "MAD.DAM.1710.CO.1"
     },
     {
@@ -564,7 +636,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 46,
+      "orden": 52,
       "padre": "MAD.DAM.1710.CO.1"
     },
     {
@@ -576,7 +648,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 47,
+      "orden": 53,
       "padre": "MAD.DAM.1710.CO.1"
     },
     {
@@ -588,7 +660,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 48,
+      "orden": 54,
       "padre": "MAD.DAM.1710.CO.1"
     },
     {
@@ -600,7 +672,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 49,
+      "orden": 55,
       "padre": "MAD.DAM.1710"
     },
     {
@@ -612,7 +684,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 50,
+      "orden": 56,
       "padre": "MAD.DAM.1710.CO.2"
     },
     {
@@ -624,7 +696,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 51,
+      "orden": 57,
       "padre": "MAD.DAM.1710.CO.2"
     },
     {
@@ -636,7 +708,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 52,
+      "orden": 58,
       "padre": "MAD.DAM.1710.CO.2"
     },
     {
@@ -648,7 +720,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 53,
+      "orden": 59,
       "padre": "MAD.DAM.1710.CO.2"
     },
     {
@@ -660,7 +732,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 54,
+      "orden": 60,
       "padre": "MAD.DAM.1710.CO.2"
     },
     {
@@ -672,7 +744,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 55,
+      "orden": 61,
       "padre": "MAD.DAM.1710"
     },
     {
@@ -684,7 +756,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 56,
+      "orden": 62,
       "padre": "MAD.DAM.1710.CO.3"
     },
     {
@@ -696,7 +768,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 57,
+      "orden": 63,
       "padre": "MAD.DAM.1710.CO.3"
     },
     {
@@ -708,7 +780,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 58,
+      "orden": 64,
       "padre": "MAD.DAM.1710.CO.3"
     },
     {
@@ -720,7 +792,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 59,
+      "orden": 65,
       "padre": "MAD.DAM.1710.CO.3"
     },
     {
@@ -732,7 +804,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 60,
+      "orden": 66,
       "padre": "MAD.DAM.1710.CO.3"
     },
     {
@@ -744,7 +816,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 297
       },
-      "orden": 61,
+      "orden": 67,
       "padre": "MAD.DAM.1710"
     },
     {
@@ -756,7 +828,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 62,
+      "orden": 68,
       "padre": "MAD.DAM.1710.CO.4"
     },
     {
@@ -768,7 +840,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 63,
+      "orden": 69,
       "padre": "MAD.DAM.1710.CO.4"
     },
     {
@@ -780,7 +852,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 64,
+      "orden": 70,
       "padre": "MAD.DAM.1710.CO.4"
     },
     {
@@ -792,7 +864,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 65,
+      "orden": 71,
       "padre": "MAD.DAM.1710.CO.4"
     },
     {
@@ -804,7 +876,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 66,
+      "orden": 72,
       "padre": "MAD.DAM.1710.CO.4"
     },
     {
@@ -816,7 +888,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 67,
+      "orden": 73,
       "padre": "MAD.DAM.1710.CO.4"
     },
     {
@@ -828,7 +900,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 68,
+      "orden": 74,
       "padre": "MAD.DAM.1710"
     },
     {
@@ -840,7 +912,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 69,
+      "orden": 75,
       "padre": "MAD.DAM.1710.CO.5"
     },
     {
@@ -852,7 +924,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 70,
+      "orden": 76,
       "padre": "MAD.DAM.1710.CO.5"
     },
     {
@@ -864,7 +936,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 71,
+      "orden": 77,
       "padre": "MAD.DAM.1710.CO.5"
     },
     {
@@ -876,7 +948,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 72,
+      "orden": 78,
       "padre": "MAD.DAM.1710.CO.5"
     },
     {
@@ -888,7 +960,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 73,
+      "orden": 79,
       "padre": "MAD.DAM.1710.CO.5"
     },
     {
@@ -900,7 +972,7 @@
         "ubicacion": "anexo VIII",
         "pagina": 298
       },
-      "orden": 74,
+      "orden": 80,
       "padre": "MAD.DAM.1710.CO.5"
     }
   ]
