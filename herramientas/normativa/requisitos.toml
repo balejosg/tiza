@@ -1,0 +1,640 @@
+[[ficha]]
+codigo = "MAD.ESO.PROG"
+nombre = "Requisitos de la programación didáctica, ESO"
+etapa = "eso"
+cursos_academicos = ["2026-27"]
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.1"
+norma = "bocm-20230531-17"
+ubicacion = "art. 19.3"
+pagina = 68
+inicio = "La evaluación continua del alumnado requiere"
+fin = "en la correspondiente programación didáctica."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.2"
+norma = "bocm-20230531-17"
+ubicacion = "art. 46.4.a"
+pagina = 82
+inicio = "Adecuación de las competencias, criterios de evaluación y contenidos"
+fin = "los recogidos en la correspondiente programación didáctica."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.3"
+norma = "bocm-20230531-17"
+ubicacion = "art. 46.4.b"
+pagina = 82
+inicio = "Adecuación de los procedimientos e instrumentos de evaluación aplicados"
+fin = "señalado en la programación didáctica."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.4"
+norma = "bocm-20230531-17"
+ubicacion = "art. 46.4.c"
+pagina = 82
+inicio = "Correcta aplicación de los criterios de calificación establecidos"
+fin = "para la superación del ámbito o materia."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2"
+inicio = "La programación didáctica de los departamentos incluirá"
+fin = "de este Reglamento:"
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.a"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.a"
+inicio = "En el caso de la educación secundaria obligatoria, los objetivos"
+fin = "del segundo ciclo."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.c"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.c"
+inicio = "En la programación de los distintos aspectos que se señalan"
+fin = "los temas transversales."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.d"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.d"
+inicio = "La distribución temporal de los contenidos"
+fin = "curso correspondiente."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.e"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.e"
+inicio = "La metodología didáctica que se va a aplicar."
+fin = "La metodología didáctica que se va a aplicar."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.f"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.f"
+inicio = "Los procedimientos de evaluación del aprendizaje de los alumnos."
+fin = "Los procedimientos de evaluación del aprendizaje de los alumnos."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.g"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.g"
+inicio = "Los criterios de calificación que se vayan a aplicar."
+fin = "Los criterios de calificación que se vayan a aplicar."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.i"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.i"
+inicio = "Los materiales y recursos didácticos que se vayan a utilizar"
+fin = "para uso de los alumnos."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.j"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.j"
+inicio = "Las actividades complementarias y extraescolares que se pretenden realizar"
+fin = "desde el departamento."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.5.k"
+padre = "MAD.ESO.PROG.5"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.k"
+inicio = "Las medidas de atención a la diversidad y las adaptaciones curriculares"
+fin = "que las precisen."
+
+[[ficha.requisitos]]
+codigo = "MAD.ESO.PROG.6"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.3"
+inicio = "Los profesores desarrollarán su actividad docente de acuerdo con"
+fin = "de la etapa correspondiente."
+
+[[ficha]]
+codigo = "MAD.BACH.PROG"
+nombre = "Requisitos de la programación didáctica, Bachillerato"
+etapa = "bachillerato"
+cursos_academicos = ["2026-27"]
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.1"
+norma = "bocm-20230621-14"
+ubicacion = "art. 17.2"
+pagina = 58
+inicio = "La evaluación continua del alumnado requiere"
+fin = "en la correspondiente programación didáctica."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.2"
+norma = "bocm-20230621-14"
+ubicacion = "art. 23.1"
+pagina = 61
+inicio = "Una vez concluido el proceso ordinario de evaluación"
+fin = "responsables de cada materia."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.3"
+norma = "bocm-20230621-14"
+ubicacion = "art. 38.4.a"
+pagina = 67
+inicio = "Adecuación de las competencias, criterios de evaluación y contenidos"
+fin = "los recogidos en la correspondiente programación didáctica."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.4"
+norma = "bocm-20230621-14"
+ubicacion = "art. 38.4.b"
+pagina = 67
+inicio = "Adecuación de los procedimientos e instrumentos de evaluación aplicados"
+fin = "señalado en la programación didáctica."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.5"
+norma = "bocm-20230621-14"
+ubicacion = "art. 38.4.c"
+pagina = 67
+inicio = "Correcta aplicación de los criterios de calificación establecidos"
+fin = "para la superación del ámbito o materia."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.6"
+norma = "bocm-20220726-1"
+ubicacion = "art. 16.3"
+pagina = 21
+inicio = "Para la adquisición y desarrollo, tanto de las competencias clave"
+fin = "orientaciones para ello."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2"
+inicio = "La programación didáctica de los departamentos incluirá"
+fin = "de este Reglamento:"
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.b"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.b"
+inicio = "En el caso del bachillerato y de los ciclos formativos, los objetivos"
+fin = "para cada curso."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.c"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.c"
+inicio = "En la programación de los distintos aspectos que se señalan"
+fin = "los temas transversales."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.d"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.d"
+inicio = "La distribución temporal de los contenidos"
+fin = "curso correspondiente."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.e"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.e"
+inicio = "La metodología didáctica que se va a aplicar."
+fin = "La metodología didáctica que se va a aplicar."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.f"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.f"
+inicio = "Los procedimientos de evaluación del aprendizaje de los alumnos."
+fin = "Los procedimientos de evaluación del aprendizaje de los alumnos."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.g"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.g"
+inicio = "Los criterios de calificación que se vayan a aplicar."
+fin = "Los criterios de calificación que se vayan a aplicar."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.h"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.h"
+inicio = "Las actividades de recuperación para los alumnos de bachillerato"
+fin = "dicha recuperación."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.i"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.i"
+inicio = "Los materiales y recursos didácticos que se vayan a utilizar"
+fin = "para uso de los alumnos."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.j"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.j"
+inicio = "Las actividades complementarias y extraescolares que se pretenden realizar"
+fin = "desde el departamento."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.7.k"
+padre = "MAD.BACH.PROG.7"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.k"
+inicio = "Las medidas de atención a la diversidad y las adaptaciones curriculares"
+fin = "que las precisen."
+
+[[ficha.requisitos]]
+codigo = "MAD.BACH.PROG.8"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.3"
+inicio = "Los profesores desarrollarán su actividad docente de acuerdo con"
+fin = "de la etapa correspondiente."
+
+[[ficha]]
+codigo = "MAD.FP.PROG"
+nombre = "Requisitos de la programación didáctica, FP de grado superior"
+etapa = "fp_gs"
+cursos_academicos = ["2026-27"]
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.1"
+norma = "bocm-20250522-1"
+ubicacion = "art. 63.4"
+pagina = 44
+inicio = "Partiendo de los planes de estudio de los ciclos"
+fin = "la actividad profesional correspondiente."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1"
+pagina = 46
+inicio = "El equipo directivo coordinará la elaboración"
+fin = "siguientes elementos:"
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.a"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.a"
+pagina = 46
+inicio = "Identificación del título"
+fin = "familia profesional."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.b"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.b"
+pagina = 46
+inicio = "Competencia general y competencias profesionales, personales y sociales del ciclo."
+fin = "Competencia general y competencias profesionales, personales y sociales del ciclo."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.c"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.c"
+pagina = 46
+inicio = "Estándares de competencia incluidos en el título."
+fin = "Estándares de competencia incluidos en el título."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.d"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.d"
+pagina = 46
+inicio = "Objetivos generales del ciclo."
+fin = "Objetivos generales del ciclo."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.e"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.e"
+pagina = 46
+inicio = "Recursos didácticos."
+fin = "Recursos didácticos."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.f"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.f"
+pagina = 46
+inicio = "Programación de cada módulo profesional incluido en el ciclo."
+fin = "Programación de cada módulo profesional incluido en el ciclo."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.g"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.g"
+pagina = 46
+inicio = "Características generales del programa formativo de la fase de formación"
+fin = "en la empresa."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.h"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.h"
+pagina = 46
+inicio = "Características generales del proyecto intermodular"
+fin = "para su desarrollo."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.2.i"
+padre = "MAD.FP.PROG.2"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.1.i"
+pagina = 46
+inicio = "En su caso, características propias del plan de trabajo"
+fin = "autorizados."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.3"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.2"
+pagina = 46
+inicio = "Los departamentos de familia profesional y los departamentos didácticos"
+fin = "mismo ciclo formativo."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.4"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.3"
+pagina = 46
+inicio = "Las programaciones de los módulos profesionales tendrán en cuenta"
+fin = "incluidas en el perfil profesional."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.5"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.3, párrafo segundo"
+pagina = 46
+inicio = "En los procesos de enseñanza y de aprendizaje definidos en las programaciones"
+fin = "identidad o expresión de género."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.6"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.4"
+pagina = 47
+inicio = "En las programaciones didácticas se tendrán en consideración"
+fin = "para todas las personas»."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5"
+pagina = 47
+inicio = "La programación de cada módulo profesional deberá incluir"
+fin = "los siguientes elementos:"
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.a"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.a"
+pagina = 47
+inicio = "Aquellos objetivos generales del ciclo formativo"
+fin = "con el módulo profesional."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.b"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.b"
+pagina = 47
+inicio = "Los resultados de aprendizaje propios de cada módulo profesional."
+fin = "Los resultados de aprendizaje propios de cada módulo profesional."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.c"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.c"
+pagina = 47
+inicio = "Relación de unidades didácticas que la integran"
+fin = "del módulo profesional."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.d"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.d"
+pagina = 47
+inicio = "Secuenciación y distribución temporal de cada una"
+fin = "unidades didácticas."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.e"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.e"
+pagina = 47
+inicio = "Competencias profesionales y personales, y contenidos"
+fin = "cada unidad didáctica."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.f"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.f"
+pagina = 47
+inicio = "Actividades de enseñanzas-aprendizaje y de evaluación"
+fin = "para su realización."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.g"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.g"
+pagina = 47
+inicio = "Actividades y procedimientos de refuerzo o recuperación."
+fin = "Actividades y procedimientos de refuerzo o recuperación."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.7.h"
+padre = "MAD.FP.PROG.7"
+norma = "bocm-20250522-1"
+ubicacion = "art. 67.5.h"
+pagina = 47
+inicio = "Criterios de evaluación y calificación que serán aplicados"
+fin = "progreso de los alumnos."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.8"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción segunda, 1"
+pagina = 1
+inicio = "Los centros elaborarán una programación didáctica de las ofertas"
+fin = "los siguientes aspectos:"
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.8.a"
+padre = "MAD.FP.PROG.8"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción segunda, 1.a"
+pagina = 2
+inicio = "La organización general de la oferta."
+fin = "del curso académico."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.8.b"
+padre = "MAD.FP.PROG.8"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción segunda, 1.b"
+pagina = 2
+inicio = "La coordinación intermodular de la formación en prevención"
+fin = "del sector profesional."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.8.c"
+padre = "MAD.FP.PROG.8"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción segunda, 1.c"
+pagina = 2
+inicio = "Características generales de la fase de formación en empresa"
+fin = "horaria anual correspondiente al centro docente."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.8.d"
+padre = "MAD.FP.PROG.8"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción segunda, 1.d"
+pagina = 2
+inicio = "En el caso de las ofertas en régimen intensivo, los criterios"
+fin = "instrucción vigésima."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.9"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción segunda, 2"
+pagina = 2
+inicio = "Las programaciones de los módulos profesionales se diseñarán"
+fin = "21 de mayo."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.10"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción quinta, 3"
+pagina = 5
+inicio = "La programación de los módulos integrados"
+fin = "a cada módulo."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.11"
+norma = "cm-instrucciones-fp-2026-27"
+ubicacion = "instrucción sexta, 4"
+pagina = 6
+inicio = "En la programación didáctica del ciclo formativo se determinarán"
+fin = "proyecto intermodular."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2"
+inicio = "La programación didáctica de los departamentos incluirá"
+fin = "de este Reglamento:"
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.b"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.b"
+inicio = "En el caso del bachillerato y de los ciclos formativos, los objetivos"
+fin = "para cada curso."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.c"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.c"
+inicio = "En la programación de los distintos aspectos que se señalan"
+fin = "los temas transversales."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.d"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.d"
+inicio = "La distribución temporal de los contenidos"
+fin = "curso correspondiente."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.e"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.e"
+inicio = "La metodología didáctica que se va a aplicar."
+fin = "La metodología didáctica que se va a aplicar."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.f"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.f"
+inicio = "Los procedimientos de evaluación del aprendizaje de los alumnos."
+fin = "Los procedimientos de evaluación del aprendizaje de los alumnos."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.g"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.g"
+inicio = "Los criterios de calificación que se vayan a aplicar."
+fin = "Los criterios de calificación que se vayan a aplicar."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.i"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.i"
+inicio = "Los materiales y recursos didácticos que se vayan a utilizar"
+fin = "para uso de los alumnos."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.j"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.j"
+inicio = "Las actividades complementarias y extraescolares que se pretenden realizar"
+fin = "desde el departamento."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.12.k"
+padre = "MAD.FP.PROG.12"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.2.k"
+inicio = "Las medidas de atención a la diversidad y las adaptaciones curriculares"
+fin = "que las precisen."
+
+[[ficha.requisitos]]
+codigo = "MAD.FP.PROG.13"
+norma = "boe-a-1996-3834"
+ubicacion = "art. 68.3"
+inicio = "Los profesores desarrollarán su actividad docente de acuerdo con"
+fin = "de la etapa correspondiente."

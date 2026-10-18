@@ -93,12 +93,21 @@ def lineas_limpias(texto: str) -> list[Linea]:
     con las líneas en blanco que lo siguen; también se van las del principio de cada
     página. Las demás líneas en blanco se conservan, una por tramo: separan de verdad un
     apartado de otro.
+
+    Si el texto no trae ninguna cabecera de boletín («Pág. n»), las páginas son las que
+    marcan los saltos de página, desde la 1, y se quita el número del pie de cada una.
     """
     resultado: list[Linea] = []
     anterior: int | None = None
-    for trozo in texto.split("\f"):
+    trozos = texto.split("\f")
+    # Un texto sin cabeceras de boletín (una resolución de la web de la Comunidad) no trae
+    # «Pág. n»: las páginas se numeran por los saltos de página y se quita el número del pie.
+    sin_cabeceras = not any(_NUMERO_DE_PAGINA.search(t) for t in trozos)
+    for n, trozo in enumerate(trozos, start=1):
         lineas = trozo.rstrip().split("\n")  # el salto de línea antes de «\f» no es un blanco
-        pagina: int | None = None
+        if sin_cabeceras and lineas[-1].strip() == str(n):
+            lineas = lineas[:-1]
+        pagina: int | None = n if sin_cabeceras else None
         cabecera: set[int] = set()
         vistas = 0
         for i, linea in enumerate(lineas):

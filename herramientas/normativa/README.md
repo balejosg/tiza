@@ -80,6 +80,21 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      (`F`, `I`, `A`): una ficha por variante, con el mismo texto. Se aplican las
      `sustituciones` de `--madrid` (Phyton→Python); una diferencia entre las horas del catálogo
      y las del anexo, o un criterio fuera de orden, es un error.
+   - `extraer_requisitos --cache <dir>` (las tres fichas `MAD.ESO.PROG`, `MAD.BACH.PROG` y
+     `MAD.FP.PROG`, tipo `requisito_programacion`): declarativo. `requisitos.toml` lista por ficha
+     cada requisito (código, norma, ubicación, página y dos anclas literales, de inicio y de fin,
+     ambas incluidas en el texto) y el módulo saca el texto de la página del PDF (y la siguiente)
+     o, si no lleva `pagina`, del XML consolidado, con la normalización de `comprobar`. Un ancla
+     que no aparece, que se repite en la región o con el fin antes del inicio es un error; en
+     el XML el apartado no puede cruzar de párrafo. Un apartado con letras es un elemento (la
+     frase que las introduce) y un hijo por letra (`padre`, código `….PROG.5.a`), sin la marca
+     «a)». Para elegir los apartados: «programación didáctica», «programaciones» y
+     «programación del» en cada norma; solo entra el que dice qué debe incluir, recoger,
+     concretar, tener en cuenta o integrar la programación (no el que la nombra de pasada:
+     quién la elabora, cuándo se revisa, qué hace la inspección con ella). Los `recuentos`
+     son los apartados de cada norma que entran en cada ficha. Un texto sin cabeceras de
+     boletín (las instrucciones de la web de la Comunidad) numera sus páginas por los saltos de
+     página y no cuenta el número del pie.
 
 ## La Orden 3537/2025 sale cifrada: `cifrado.py`
 
