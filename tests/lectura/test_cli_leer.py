@@ -124,7 +124,10 @@ def test_leer_otro_error_del_sistema(carpeta, capsys, monkeypatch):
 def test_ruta_lectura_sanea_el_nombre(tmp_path):
     ruta = estado.ruta_lectura(tmp_path, tmp_path / "..x" / "a b..docx")
     assert ruta.parent == tmp_path / ".tiza" / "lecturas"
-    assert ruta.name.endswith(".txt") and ".." not in ruta.name and "/" not in ruta.name
+    assert ruta.name == "_x__a b_docx.txt"  # ruta relativa con «__», sin «..» ni separadores
+    assert estado.ruta_lectura(tmp_path, tmp_path / "prog.docx").name == "prog.docx.txt"
+    fuera = estado.ruta_lectura(tmp_path / "a", tmp_path / "b" / "x.docx")
+    assert fuera.name == "x.docx.txt"  # fuera de la carpeta solo cuenta el nombre
 
 
 def test_leer_nombre_realista_de_docente(carpeta, capsys):
@@ -162,3 +165,35 @@ def test_leer_no_sigue_un_enlace_en_lecturas(carpeta, capsys):
         pytest.skip("sin enlaces simbólicos")
     codigo, salida = ejecutar(capsys, ["leer", "prog.docx"])
     assert codigo == 2 and not list(objetivo.iterdir())
+
+
+def test_lecturas_por_ruta_relativa_no_se_pisan(carpeta, capsys):
+    for curso in ("1DAM", "2DAM"):
+        (carpeta / curso).mkdir()
+        d = f.nuevo()
+        d.add_paragraph(f"Contenido de {curso}")
+        d.save(str(carpeta / curso / "Programacion.docx"))
+    resumenes = []
+    for curso in ("1DAM", "2DAM"):
+        codigo, resumen = ejecutar(capsys, ["leer", f"{curso}/Programacion.docx"])
+        assert codigo == 0
+        assert resumen["fichero"] == f"{curso}/Programacion.docx"
+        assert resumen["lectura"] == f".tiza/lecturas/{curso}__Programacion.docx.txt"
+        resumenes.append(resumen)
+    textos = [(carpeta / r["lectura"]).read_text(encoding="utf-8") for r in resumenes]
+    assert "Contenido de 1DAM" in textos[0] and "Contenido de 2DAM" not in textos[0]
+    assert "Contenido de 2DAM" in textos[1]
+
+
+def test_error_de_leer_trae_que_hacer(carpeta, capsys):
+    codigo, salida = ejecutar(capsys, ["leer", "ausente.docx"])
+    assert codigo == 2 and salida["error"] == "DOCUMENTO_AUSENTE"
+    assert set(salida) == {"error", "detalle", "que_hacer"}
+    assert salida["que_hacer"] == ayuda.explicar("DOCUMENTO_AUSENTE")
+
+
+def test_error_de_documento_trae_que_hacer(carpeta, capsys):
+    (carpeta / "u.md").write_text("Hola\n\n<div>x</div>\n", encoding="utf-8")
+    codigo, salida = ejecutar(capsys, ["documento", "u.md"])
+    assert codigo == 2 and salida["error"] == "MARKDOWN_NO_ADMITIDO"
+    assert salida["que_hacer"] == ayuda.explicar("MARKDOWN_NO_ADMITIDO")
