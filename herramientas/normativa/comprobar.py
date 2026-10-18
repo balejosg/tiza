@@ -107,10 +107,13 @@ def _patron(texto: str, tabla: bool = False) -> str:
         return rf"[\s{_MARCA}]+".join(re.escape(p) for p in palabras)
     # Fila de tabla: entre palabras, un espacio; las cifras de las otras columnas solo
     # pueden quedar en medio si el nombre salta de línea; y tras la última palabra solo
-    # cifras hasta el fin de la línea.
+    # cifras hasta el fin de la línea. El encabezado de un optativo en el anexo II lo cierra
+    # con sus horas y un punto («Programación en Python (90 horas).», que puede saltar de
+    # línea), o con solo el punto: ese cierre también vale.
     union = rf"(?:[ ]+|(?:[ ]+(?:\d+|-))*[ ]*\n{_MARCA}?)"
     cuerpo = union.join(re.escape(p) for p in palabras)
-    return rf"(?<!\S){cuerpo}(?=(?:[ ]+(?:\d+|-))*[ ]*(?:\n|$))"
+    cierre = r"(?:(?:[ ]+\(\d+\s+horas\))?\.)?"
+    return rf"(?<!\S){cuerpo}{cierre}(?=(?:[ ]+(?:\d+|-))*[ ]*(?:\n|$))"
 
 
 def aparece(

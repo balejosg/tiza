@@ -1,0 +1,111 @@
+     BOCM                              BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 229                      VIERNES 25 DE SEPTIEMBRE DE 2026                               Pág. 107
+
+
+
+                                                    Módulo profesional Carga         Atribución
+                     Código   Familia profesional
+                                                        optativo       horaria        docente
+
+                                                                                 116 Procesos en la
+                                                                                 Industria
+                                                                                 Alimentaria
+
+                                                                                 226/009 (0598)
+                                                                                 Servicios de
+                                                                                 Restauración
+                                   Industrias       Enoturismo y                 214 Operaciones y
+                    CMO-231 INA    alimentarias                             50
+                                                    viticultura                  Equipos de
+                                                                                 Elaboración de
+                                                                                 Productos
+                                                                                 Alimentarios
+
+                                                                                 116 Procesos en la
+                                   Industrias       Análisis sensorial de
+                    CMO-235 INA    alimentarias                             90   Industria
+                                                    los alimentos
+                                                                                 Alimentaria
+
+                                                                                 106 Hostelería y
+                                                                                 Turismo
+                                   Industrias       Marketing
+                    CMO-236 INA    alimentarias                             50   116 Procesos en la
+                                                    gastronómico
+                                                                                 Industria
+                                                                                 Alimentaria
+
+                                                                                 214 Operaciones y
+                                                                                 Equipos de
+                                   Industrias       Elaboración de               Elaboración de
+                    CMO-290 INA                                             90
+                                   alimentarias     cerveza
+                                                                                 Productos
+                                                                                 Alimentarios
+
+                                                    Producción ecológica         116 Procesos en la
+                                   Industrias                                    Industria
+                    CMO-291 INA                     de vinos y técnicas     50
+                                   alimentarias
+                                                    afines                       Alimentaria
+
+                                                                                 227 Sistemas y
+                                   Informática y  Fundamentos de                 Aplicaciones
+                    CMO-310 IFC                                             50
+                                   comunicaciones bases de datos
+                                                                                 informáticas
+
+                                                  Informática aplicada
+                                   Informática y  a sistemas                     107 Informática
+                    CMO-311 IFC                                             50
+                                   comunicaciones electrónicos
+                                                  (Robótica)
+                                                                                                                 BOCM-20260925-20
+     BOCM                     BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 108                      VIERNES 25 DE SEPTIEMBRE DE 2026                               B.O.C.M. Núm. 229
+
+
+
+                                           Módulo profesional Carga         Atribución
+            Código   Familia profesional
+                                               optativo       horaria        docente
+
+                                                                        227 Sistemas y
+                                                                        Aplicaciones
+                                                                        Informáticas
+
+                                                                        107 Informática
+                                         Fundamentos de
+                          Informática y                                 227 Sistemas y
+           CMO-312 IFC                   computación en la      50
+                          comunicaciones                                Aplicaciones
+                                         nube
+                                                                        Informáticas
+
+                          Informática y  Fundamentos de                 107 Informática
+           CMO-313 IFC                                          50
+                          comunicaciones programación
+                          Informática y                                 107 Informática
+           CMO-314 IFC                   Ciberseguridad         90
+                          Comunicaciones
+                          Informática y  Arquitecturas en la            107 Informática
+           CMO-315 IFC                                          90
+                          comunicaciones nube
+                          Informática y  Programación en                107 Informática
+           CMO-316 IFC                                          90
+                          comunicaciones Python
+
+                                                                        107 Informática
+                          Informática y  Posicionamiento y              227 Sistemas y
+           CMO-317 IFC                                          50
+                          comunicaciones optimización web               Aplicaciones
+                                                                        Informáticas
+
+                          Informática y  Programación de                107 Informática
+           CMO-318 IFC                                          90
+                          comunicaciones videojuegos
+
+                                                                        112 Organización y
+                                                                        Proyectos de
+                                                                        Fabricación
+                                                                        Mecánica

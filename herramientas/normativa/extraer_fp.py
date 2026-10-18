@@ -20,8 +20,14 @@ artículo 2 (RD 500/2024: el nivel del Marco Español de Cualificaciones) es un 
 Sostenibilidad): resultados, criterios y contenidos de la Orden 3537/2025 de Madrid (el currículo que se
 aplica allí; el mínimo estatal del RD 659/2023 se cita solo en las normas de la ficha),
 cuyo PDF sale cifrado de ``pdftotext`` y se lee descifrado (:mod:`.cifrado`, declarado en
-``fuentes.toml``); y horas y curso de la tabla del decreto de planes de estudios. Los optativos de las órdenes
-de 2025 quedan para otra orden.
+``fuentes.toml``); y horas y curso de la tabla del decreto de planes de estudios.
+
+``optativo`` extrae un módulo optativo del catálogo de Madrid: su currículo (resultados,
+criterios y contenidos) es el anexo II de la Orden 3536/2025, que no deja espacio tras el
+número de resultado («1.Reconoce»); sus horas salen del encabezado del módulo y se cruzan con
+las del catálogo (anexo I en la redacción de la Orden 3822/2026), de donde sale también el
+curso de los transversales. La corrección «Phyton»→«Python» de la Orden 3822/2026 se aplica
+con las ``sustituciones`` que declara ``fuentes.toml``.
 
 Las funciones de análisis trabajan sobre texto o líneas; solo :func:`main` toca ficheros.
 """
@@ -401,7 +407,17 @@ def analizar_resultados_orden(lineas: Sequence[Linea], codigo_modulo: str) -> di
     inicio = next((i for i, l in enumerate(lineas) if patron.match(l.texto)), None)
     if inicio is None:
         raise ValueError(f"no encuentro el módulo {codigo_modulo} en la orden")
-    cuerpo = lineas[inicio + 1 :]
+    return _resultados_del_cuerpo(lineas[inicio + 1 :], codigo_modulo, _RA)
+
+
+def _resultados_del_cuerpo(
+    cuerpo: Sequence[Linea], codigo_modulo: str, patron_ra: re.Pattern[str]
+) -> dict[str, Any]:
+    """Los resultados y criterios del cuerpo de un módulo (tras su encabezado).
+
+    ``patron_ra`` es lo que abre un resultado: el anexo II de la Orden 3536/2025 no deja
+    espacio tras el número («1.Reconoce»).
+    """
     desde = next((i for i, l in enumerate(cuerpo) if _SECCION_RA.match(l.texto)), None)
     hasta = next(
         (i for i, l in enumerate(cuerpo) if re.match(r"^\s*Contenidos:\s*$", l.texto)), None
@@ -413,7 +429,7 @@ def analizar_resultados_orden(lineas: Sequence[Linea], codigo_modulo: str) -> di
     for linea in cuerpo[desde + 1 : hasta]:
         if not linea.texto.strip():
             continue
-        ra = _RA.match(linea.texto)
+        ra = patron_ra.match(linea.texto)
         criterio = _CRITERIO_ORDEN.match(linea.texto)
         if ra is not None and int(ra[1]) == len(resultados) + 1:
             abierto = {"numero": ra[1], "lineas": [ra[2]], "pagina": linea.pagina, "criterios": []}
@@ -589,7 +605,13 @@ def analizar_contenidos_orden(lineas: Sequence[Linea], codigo_modulo: str) -> li
         (i for i in range(inicio + 1, len(lineas)) if _ESTRUCTURA_FIN_ORDEN.match(lineas[i].texto)),
         len(lineas),
     )
-    cuerpo = lineas[inicio + 1 : fin]
+    return _contenidos_del_cuerpo(lineas[inicio + 1 : fin], codigo_modulo, _APARTADO_ORDEN)
+
+
+def _contenidos_del_cuerpo(
+    cuerpo: Sequence[Linea], codigo_modulo: str, patron_apartado: re.Pattern[str]
+) -> list[dict[str, Any]]:
+    """Los contenidos del cuerpo de un módulo, de «Contenidos:» al final del cuerpo."""
     titulo = next(
         (i for i, l in enumerate(cuerpo) if re.match(r"^\s*Contenidos:\s*$", l.texto)), None
     )
@@ -600,7 +622,7 @@ def analizar_contenidos_orden(lineas: Sequence[Linea], codigo_modulo: str) -> li
     for linea in cuerpo[titulo + 1 :]:
         if not linea.texto.strip():
             continue
-        apartado = _APARTADO_ORDEN.match(linea.texto)
+        apartado = patron_apartado.match(linea.texto)
         letra = _LETRA_ORDEN.match(linea.texto)
         if apartado is not None:
             if int(apartado[1]) != apartados + 1:
@@ -626,6 +648,131 @@ def analizar_contenidos_orden(lineas: Sequence[Linea], codigo_modulo: str) -> li
         {"nivel": i["nivel"], "texto": comun.unir(i["lineas"]), "pagina": i["pagina"]}
         for i in items
     ]
+
+
+# --- módulos optativos: anexo II de la Orden 3536/2025 y catálogo del anexo I -----------------
+
+_RA_OPTATIVO = re.compile(r"^\s*(\d+)\.\s*(\S.*)$")  # «1.Reconoce»: sin espacio tras el número
+_UN_OPTATIVO = re.compile(r"^\s*CMO-\s*\d{3}\b")
+_FIN_DE_OPTATIVO = re.compile(
+    r"^\s*(?:[A-Z]\)\s+M[óo]dulos profesionales|ANEXO\b|\(\d{2}/\d+\.\d+/\d{2}\)\s*$)"
+)
+_ENCABEZADO_OPTATIVO = re.compile(
+    r"CMO-\s*\d{3}\s+(?P<nombre>.+?)(?:\s*\((?P<horas>\d+)\s+horas\))?\.?"
+)
+
+
+class Optativo(NamedTuple):
+    """Un módulo optativo tal como lo trae el anexo II: su encabezado y su currículo.
+
+    ``horas`` es ``None`` en los transversales (el anexo II no se las pone); ``modulo`` tiene
+    la forma de :func:`analizar_modulo` y ``contenidos`` la de :func:`analizar_contenidos_orden`.
+    """
+
+    nombre: str
+    horas: int | None
+    pagina: int | None
+    modulo: dict[str, Any]
+    contenidos: list[dict[str, Any]]
+
+
+def analizar_optativo(
+    lineas: Sequence[Linea],
+    codigo_modulo: str,
+    sustituciones: Sequence[tuple[str, str]] = (),
+) -> Optativo:
+    """El módulo ``codigo_modulo`` («CMO-316») en el anexo II de la Orden 3536/2025.
+
+    Empieza en su encabezado («CMO-316 Programación en Phyton (90 horas).», que puede saltar
+    de línea) y acaba en el siguiente módulo, en el apartado B) o en el final del boletín.
+    ``sustituciones`` son pares (incorrecto, correcto) de una corrección de errores declarada
+    en ``fuentes.toml`` (Orden 3822/2026, disposición adicional única: Phyton→Python): se
+    aplican al texto antes de partirlo, y es lo único que se cambia. Lo que no encaja es un
+    ``ValueError``.
+    """
+    aplicadas = [
+        Linea(_sustituir(l.texto, sustituciones), l.pagina) if sustituciones else l for l in lineas
+    ]
+    numero = re.escape(codigo_modulo.removeprefix("CMO-"))
+    inicio = next(
+        (i for i, l in enumerate(aplicadas) if re.match(rf"^\s*CMO-\s*{numero}\b", l.texto)),
+        None,
+    )
+    if inicio is None:
+        raise ValueError(f"no encuentro el módulo {codigo_modulo} en la orden")
+    fin = next(
+        (
+            i
+            for i in range(inicio + 1, len(aplicadas))
+            if _UN_OPTATIVO.match(aplicadas[i].texto) or _FIN_DE_OPTATIVO.match(aplicadas[i].texto)
+        ),
+        len(aplicadas),
+    )
+    cuerpo = aplicadas[inicio + 1 : fin]
+    desde = next((i for i, l in enumerate(cuerpo) if _SECCION_RA.match(l.texto)), None)
+    if desde is None:
+        raise ValueError(f"{codigo_modulo}: no encuentro los resultados de aprendizaje")
+    encabezado = comun.unir(
+        [aplicadas[inicio].texto, *(l.texto for l in cuerpo[:desde] if l.texto.strip())]
+    )
+    partido = _ENCABEZADO_OPTATIVO.fullmatch(encabezado)
+    if partido is None:
+        raise ValueError(f"{codigo_modulo}: encabezado que no entiendo: «{encabezado}»")
+    modulo = _resultados_del_cuerpo(cuerpo, codigo_modulo, _RA_OPTATIVO)
+    contenidos = _contenidos_del_cuerpo(cuerpo, codigo_modulo, _RA_OPTATIVO)
+    horas = int(partido["horas"]) if partido["horas"] else None
+    return Optativo(partido["nombre"], horas, aplicadas[inicio].pagina, modulo, contenidos)
+
+
+def _sustituir(texto: str, sustituciones: Sequence[tuple[str, str]]) -> str:
+    for incorrecto, correcto in sustituciones:
+        texto = texto.replace(incorrecto, correcto)
+    return texto
+
+
+class FilaCatalogo(NamedTuple):
+    """Lo que el catálogo (anexo I) dice de un módulo: sus horas (solo los específicos) y el
+    curso en que se imparte (solo los transversales, y ``None`` si es «en cualquiera de los
+    dos cursos»)."""
+
+    horas: int | None
+    curso: str | None
+    pagina: int | None
+
+
+def analizar_catalogo(lineas: Sequence[Linea], codigo: str) -> FilaCatalogo:
+    """La fila de ``codigo`` («CMO-316», «CMO-002I») en el catálogo del anexo I.
+
+    Un específico tiene su familia («IFC») tras el código y la carga horaria al final de la
+    fila. Un transversal comparte el bloque (líneas seguidas, sin blanco) con sus variantes
+    por lengua, y el curso se lee de ese bloque: «2º curso.» o «En cualquiera de los dos
+    cursos».
+    """
+    fila = re.compile(rf"^\s*CMO-\s*{re.escape(codigo.removeprefix('CMO-'))}\b(.*)$")
+    posicion = next((i for i, l in enumerate(lineas) if fila.match(l.texto)), None)
+    if posicion is None:
+        raise ValueError(f"{codigo}: no está en el catálogo")
+    linea = lineas[posicion]
+    resto = fila.match(linea.texto)
+    assert resto is not None
+    if re.match(r"\s+[A-Z]{3}\b", resto[1]):
+        horas = re.search(r"\s(\d+)\s*$", resto[1])
+        if horas is None:
+            raise ValueError(f"{codigo}: la fila del catálogo no acaba en las horas")
+        return FilaCatalogo(int(horas[1]), None, linea.pagina)
+    desde = posicion
+    while desde > 0 and lineas[desde - 1].texto.strip():
+        desde -= 1
+    hasta = posicion
+    while hasta + 1 < len(lineas) and lineas[hasta + 1].texto.strip():
+        hasta += 1
+    bloque = " ".join(" ".join(l.texto.split()) for l in lineas[desde : hasta + 1])
+    curso = re.search(r"(\d)º curso", bloque)
+    if curso is not None:
+        return FilaCatalogo(None, curso[1], linea.pagina)
+    if "En cualquiera de los" in bloque and "dos cursos" in bloque:
+        return FilaCatalogo(None, None, linea.pagina)
+    raise ValueError(f"{codigo}: no encuentro el curso en el catálogo")
 
 
 # --- horas y curso (tabla del anexo II) -------------------------------------------------------
@@ -694,8 +841,8 @@ def analizar_horas_curso(lineas: Sequence[Linea], *, ciclo: str, codigo_modulo: 
 
 def elemento_modulo(
     nombre: str,
-    horas: int,
-    curso: str,
+    horas: int | None,
+    curso: str | None,
     *,
     ficha: str,
     norma: str,
@@ -703,13 +850,19 @@ def elemento_modulo(
     pagina: int | None,
     orden: int = 1,
 ) -> dict[str, Any]:
+    """El elemento ``modulo``; ``horas`` o ``curso`` ``None`` (el boletín no los dice) no se escriben."""
+    datos: dict[str, int | str] = {}
+    if horas is not None:
+        datos["horas"] = horas
+    if curso is not None:
+        datos["curso"] = curso
     return {
         "codigo": ficha,
         "tipo": "modulo",
         "texto": nombre,
         "procedencia": {"norma": norma, "ubicacion": ubicacion, "pagina": pagina},
         "orden": orden,
-        "datos": {"horas": horas, "curso": curso},
+        "datos": datos,
     }
 
 
@@ -1103,6 +1256,60 @@ def _extraer_transversal(args: argparse.Namespace) -> dict[str, Any]:
     )
 
 
+def _extraer_optativo(args: argparse.Namespace) -> dict[str, Any]:
+    partido = re.fullmatch(r"(CMO-\d{3})[FIA]?", args.modulo)
+    if partido is None:
+        raise SystemExit(f"{args.modulo}: no es un código de módulo optativo")
+    curricular = partido[1]
+    sustituciones = tuple(
+        (par[0], par[1]) for par in comun.leer_fuentes()[args.madrid]["sustituciones"]
+    )
+    optativo = analizar_optativo(
+        comun.lineas_limpias(_texto(args.cache, args.madrid)), curricular, sustituciones
+    )
+    catalogo = analizar_catalogo(
+        comun.lineas_limpias(_texto(args.cache, args.catalogo)), args.modulo
+    )
+    if catalogo.horas != optativo.horas:
+        raise SystemExit(
+            f"{args.modulo}: el catálogo dice {catalogo.horas} horas y el anexo II {optativo.horas}"
+        )
+    ubicacion = f"{args.ubicacion_madrid}, módulo {curricular}"
+    elementos = [
+        elemento_modulo(
+            optativo.nombre,
+            optativo.horas,
+            catalogo.curso,
+            ficha=args.ficha,
+            norma=args.madrid,
+            ubicacion=ubicacion,
+            pagina=optativo.pagina,
+        )
+    ]
+    elementos += elementos_del_modulo(
+        optativo.modulo,
+        ficha=args.ficha,
+        norma=args.madrid,
+        ubicacion=args.ubicacion_madrid,
+        orden_inicial=len(elementos) + 1,
+    )
+    elementos += elementos_de_contenidos(
+        optativo.contenidos,
+        ficha=args.ficha,
+        norma=args.madrid,
+        ubicacion=f"{ubicacion}, contenidos",
+        orden_inicial=len(elementos) + 1,
+    )
+    return _ficha_de_fp(
+        args.ficha,
+        optativo.nombre,
+        catalogo.curso,
+        args.cursos_academicos,
+        [args.madrid, args.catalogo],
+        elementos,
+    )
+
+
 def _extraer_titulo(args: argparse.Namespace) -> dict[str, Any]:
     articulo = recortar_articulo(
         comun.lineas_limpias(comun.texto_de_norma(args.cache, args.boe)), args.articulo
@@ -1204,9 +1411,20 @@ def main(argv: list[str] | None = None) -> int:
         help="id del real decreto del mínimo estatal: se cita en las normas de la ficha",
     )
 
+    o = sub.add_parser(
+        "optativo",
+        parents=[base],
+        help="un módulo optativo (Orden 3536/2025, en la redacción de la Orden 3822/2026)",
+    )
+    o.add_argument("--modulo", required=True, help="código del catálogo, p. ej. CMO-316 o CMO-002I")
+    o.add_argument("--madrid", required=True, help="id de la orden con el currículo (anexo II)")
+    o.add_argument("--ubicacion-madrid", default="anexo II")
+    o.add_argument("--catalogo", required=True, help="id de la orden con el catálogo vigente")
+
     args = ap.parse_args(argv)
     ficha = {
         "modulo": _extraer_modulo,
+        "optativo": _extraer_optativo,
         "titulo": _extraer_titulo,
         "transversal": _extraer_transversal,
     }[args.orden](args)

@@ -68,8 +68,18 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      sangría; cada uno con la página en que empieza y la orden como procedencia (sin `via`: es
      currículo propio, no una modificación). El mínimo estatal (RD 659/2023, que la orden
      reformula y en 1709 y 1710 amplía) no se guarda: `--estatal` solo lo cita en las normas de
-     la ficha. Las horas y el curso, de la tabla de `--horas`, como en `modulo`. Los optativos
-     de la Orden 3536/2025 quedan pendientes.
+     la ficha. Las horas y el curso, de la tabla de `--horas`, como en `modulo`.
+   - `extraer_fp optativo --ficha <código> --modulo <código del catálogo> --madrid <id>
+     --catalogo <id> --cursos-academicos … --cache <dir>` (Orden 3536/2025 en la redacción de
+     la Orden 3822/2026; la ficha es `MAD.CMO.316`, `MAD.CMO.001I`…). El currículo (resultados
+     «1.Reconoce», criterios y contenidos) es el anexo II de `--madrid`; el nombre y las horas
+     salen del encabezado del módulo («CMO-316 Programación en Python (90 horas).», o sin horas
+     en los transversales), y las horas se cruzan con la fila del catálogo (`--catalogo`), de
+     donde sale también el curso de los transversales (`2º curso.`; «en cualquiera de los dos
+     cursos» es sin curso). CMO-001, 002 y 003 son un único currículo para tres lenguas
+     (`F`, `I`, `A`): una ficha por variante, con el mismo texto. Se aplican las
+     `sustituciones` de `--madrid` (Phyton→Python); una diferencia entre las horas del catálogo
+     y las del anexo, o un criterio fuera de orden, es un error.
 
 ## La Orden 3537/2025 sale cifrada: `cifrado.py`
 

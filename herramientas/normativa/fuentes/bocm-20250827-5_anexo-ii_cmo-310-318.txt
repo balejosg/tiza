@@ -1,0 +1,1304 @@
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                    MIÉRCOLES 27 DE AGOSTO DE 2025                             Pág. 183
+
+
+
+             5. La vitivinicultura en biodinámica.
+                a) Origen y evolución.
+                b) La influencia de los astros sobre los procesos biológicos. El calendario
+                   astronómico.
+                c) Los preparados biodinámicos. Métodos de elaboración.
+                d) Los estados de la materia en agricultura biodinámica y la importancia de
+                   las estaciones.
+                e) El enfoque de las enfermedades en la agricultura biodinámica.
+                f) Las prácticas de elaboración de vinos desde el punto de vista de la
+                   biodinámica: desfangado, fermentaciones, fecha de vendimia,
+                   clarificación y otras.
+             6. La elaboración de vinos ecológicos.
+                a) Prácticas y tratamientos del mosto autorizados en la UE. Tendencias.
+                b) Regulación del uso de compuestos y tratamientos utilizados en los vinos
+                   de agricultura. ecológica: dióxido de azufre, tratamientos térmicos, ácido
+                   ascórbico, ácido cítrico y otros.
+                c) Regulación del proceso de clarificación y estabilización en los vinos
+                   ecológicos.
+                d) Regulación del uso de levaduras y bacterias, y productos derivados en la
+                   elaboración de vinos ecológicos.
+
+            CMO-310 Fundamentos de bases de datos (50 horas).
+
+            Resultados de aprendizaje y criterios de evaluación:
+
+            1. Reconoce los elementos de las bases de datos analizando sus funciones y
+             valorando la utilidad de los sistemas gestores.
+                a) Se han analizado los sistemas lógicos de almacenamiento y sus
+                   características.
+                b) Se ha evaluado la utilidad de un sistema gestor de bases de datos.
+                c) Se ha reconocido la función de cada uno de los elementos de un sistema
+                   gestor de bases de datos.
+                d) Se han clasificado los sistemas gestores de bases de datos.
+             2. Crea bases de datos definiendo su estructura y las características de sus
+             elementos según el modelo relacional.
+                a) Se ha analizado el formato de almacenamiento de la información.
+                b) Se han creado las tablas y las relaciones entre ellas.
+                c) Se han seleccionado los tipos de datos adecuados.
+                d) Se han definido los campos clave en las tablas.
+                                                                                                           BOCM-20250827-5
+
+
+
+
+                e) Se han implantado las restricciones reflejadas en el diseño lógico.
+                f) Se han utilizado asistentes, herramientas gráficas y el lenguaje de
+                   definición de datos.
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 184                            MIÉRCOLES 27 DE AGOSTO DE 2025                      B.O.C.M. Núm. 204
+
+
+
+            3. Consulta la información almacenada en una base de datos empleando
+            asistentes, herramientas gráficas y el lenguaje de manipulación de datos.
+               a) Se han identificado las herramientas y sentencias para realizar consultas.
+               b) Se han realizado consultas simples sobre una tabla.
+               c) Se han realizado consultas sobre el contenido de varias tablas mediante
+                  composiciones internas.
+               d) Se han realizado consultas sobre el contenido de varias tablas mediante
+                  composiciones externas
+            4. Modifica la información almacenada en la base de datos utilizando
+            asistentes, herramientas gráficas y el lenguaje de manipulación de datos.
+               a) Se han identificado las herramientas y sentencias para modificar el
+                  contenido de la base de datos.
+               b) Se han insertado, borrado y actualizado datos en las tablas.
+               c) Se ha incluido en una tabla la información resultante de la ejecución de
+                  una consulta.
+               d) Se han adoptado medidas para mantener la integridad y consistencia de
+                  la información.
+            5. Diseña modelos relacionales interpretando diagramas entidad/relación.
+               a) Se han utilizado herramientas gráficas para representar el diseño lógico.
+               b) Se han identificado las tablas del diseño lógico.
+               c) Se han identificado los campos que forman parte de las tablas del diseño
+                  lógico.
+               d) Se han analizado las relaciones entre las tablas del diseño lógico.
+               e) Se han identificado los campos clave.
+               f) Se han aplicado reglas de integridad.
+           Contenidos:
+            Almacenamiento de la información.
+              a) Bases de datos (BD). Conceptos, usos y tipos según el modelo de datos,
+                 la ubicación de la información.
+              b) Sistemas gestores de bases de datos (SGBD): funciones, componentes y
+                 tipos.
+              c) SGBD comerciales vs. SGBD libres.
+            Bases de datos relacionales.
+              a) Modelo de datos.
+              b) Terminología del modelo relacional. Relaciones, atributos, tuplas.
+              c) Tipos de datos.
+              d) Claves primarias.
+                                                                                                            BOCM-20250827-5
+
+
+
+
+              e) El valor NULL.
+              f) Claves ajenas.
+            Lenguaje de definición de datos (DDL Data Definition Language).
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                              Pág. 185
+
+
+
+             Lenguaje de manipulación de datos (DML Data Manipulation Language).
+             Realización de consultas.
+               a) Consultas para extraer información: la sentencia SELECT.
+               b) Selección, filtrado y ordenación de registros.
+               c) Operadores (combinación, precedencia): de comparación. Lógicos.
+                  Aritméticos.
+               d) Consultas de resumen.
+               e) Composiciones internas.
+               f) Composiciones externas.
+             Tratamiento de datos.
+                a) Inserción, borrado y modificación de registros:
+                       i. A partir de datos proporcionados por el usuario.
+                b) Borrados y modificaciones e integridad referencial.
+             Interpretación de diagramas entidad/relación.
+                a) Entidades y relaciones. Atributos. Cardinalidad.
+                b) Entidades fuertes vs. entidades débiles. Relaciones de dependencia en
+                   existencia y en identificación.
+                c) El modelo E/R ampliado. Generalizaciones.
+                d) Paso del modelo E/R al modelo relacional.
+
+            CMO-311 Informática aplicada a sistemas electrónicos (Robótica) (50
+            horas).
+
+            Resultados de aprendizaje y criterios de evaluación:
+
+             1. Describe los fundamentos básicos de las señales eléctricas.
+                a) Se ha descrito el significado de corriente, tensión, resistencia, potencia y
+                   energía.
+                b) Se han identificado señales continuas y alternas.
+                c) Se han identificado señales periódicas y aleatorias.
+                d) Se han descrito la amplitud, frecuencia y el periodo de una señal
+                   periódica.
+                e) Se han identificado señales en tiempo continuo y discreto.
+                f) Se ha descrito la conversión analógico-digital (muestreo, cuantificación y
+                   codificación) examinando los conceptos básicos (frecuencia de muestreo
+                   y resolución).
+             2. Analiza, diseña, simula y mide circuitos electrónicos en continua.
+                a) Se han identificado los distintos componentes discretos que forman parte
+                   de un circuito electrónico.
+                                                                                                             BOCM-20250827-5
+
+
+
+
+                b) Se han descrito las características básicas y principios de los distintos
+                   componentes discretos.
+     BOCM                         BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 186                          MIÉRCOLES 27 DE AGOSTO DE 2025                    B.O.C.M. Núm. 204
+
+
+
+             c) Se han analizado y explicado circuitos electrónicos con componentes
+                discretos.
+             d) Se han diseñado circuitos electrónicos con componentes discretos.
+             e) Se han empleado programas de simulación para comprobar cálculos y
+                verificar el diseño de los circuitos electrónicos.
+             f) Se han realizado montajes y pruebas de funcionamiento de circuitos con
+                componentes discretos con las herramientas e instrumentación
+                adecuada.
+             g) Se han identificado circuitos abiertos y cortocircuitos.
+           3. Utiliza con destreza un entorno de programación de sistemas electrónicos
+           digitales.
+              a) Se ha utilizado con precisión el entorno de programación de un sistema
+                 electrónico.
+              b) Se han desarrollado programas para controlar el funcionamiento de un
+                 sistema electrónico.
+              c) Se han usado de manera adecuada comandos de control de ejecución
+                 (condicionales y bucles).
+              d) Se han usado de manera adecuada constantes, variables y listas.
+              e) Se ha analizado el funcionamiento de un programa de un sistema
+                 electrónico.
+           4. Utiliza software de diseño 3D e impresión 3D para la creación de objetos y
+           prototipos.
+              a) Se ha descrito el funcionamiento de un sistema de impresión 3D.
+              b) Se han enumerado los distintos tipos de materiales usados en impresión
+                 3D, así como las características de cada uno de ellos.
+              c) Se ha seleccionado el material adecuado de impresión 3D.
+              d) Se ha usado software de diseño adecuado para la creación de objetos y
+                 prototipos 3D.
+              e) Se ha usado software de impresión 3D y se han configurado sus
+                 parámetros para la impresión adecuada de objetos y prototipos 3D.
+           5. Desarrolla un proyecto para la creación de un prototipo de un sistema
+           robótico funcional, respetando las fases de diseño, elaborando documentación
+           técnica y presentando dicho proyecto.
+              a) Se han descrito las fases del proceso de un proyecto tecnológico.
+              b) Se han usado herramientas de gestión de proyectos.
+              c) Se ha empleado el software adecuado para la generación de la
+                 documentación asociada al proceso tecnológico (elaboración de
+                 exposiciones, presupuestos...).
+              d) Se ha elaborado documentación técnica asociada a un proyecto
+                                                                                                        BOCM-20250827-5
+
+
+
+
+                 tecnológico.
+              e) Se ha desarrollado y seguido una planificación del proyecto.
+              f) Se ha diseñado y creado un sistema robótico.
+     BOCM                             BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                      MIÉRCOLES 27 DE AGOSTO DE 2025                          Pág. 187
+
+
+
+                g) Se ha presentado adecuadamente el proyecto de un sistema robótico.
+
+            Contenidos:
+            1. Electricidad y circuitos electrónicos en corriente continua.
+            2. Sistemas electrónicos analógicos y digitales.
+            3. Dispositivos discretos: pasivos (resistores fijos, resistores variables,
+            condensadores y bobinas); activos (diodos como rectificadores, diodo led y
+            fotodetectores); sensores (temperatura, iluminación, ultrasonidos y presencia);
+            actuadores (motores DC, servomotores, relés y zumbadores).
+            4. Diseño, montaje y medida de circuitos electrónicos en un proyecto
+            tecnológico.
+            5. Programación de sistemas/circuitos electrónicos de un proyecto tecnológico.
+            6. Diseño y fabricación de los elementos mecánicos de un proyecto tecnológico
+            mediante impresión 3D.
+            7. Proyectos tecnológicos:
+            8. Fases del proyecto tecnológico.
+            9. Diseño y representación gráfica de los elementos de un proyecto tecnológico.
+            10. Identificación del problema y análisis de su naturaleza.
+            11. Innovación y creatividad para la búsqueda de soluciones tecnológicas.
+            12. Documentación de un proyecto tecnológico.
+
+            CMO-312 Fundamentos de computación en la nube (50 horas).
+
+            Resultados de aprendizaje y criterios de evaluación:
+
+            1. Define qué es la computación en la nube.
+                a) Se han definido los diferentes modelos de computación en la nube.
+                b) Se han descrito las ventajas de la computación en la nube frente a la
+                   computación en las instalaciones.
+                c) Se han reconocido los servicios esenciales de la computación en la nube.
+                d) Se ha revisado el marco de adopción de la nube.
+            2. Describe la filosofía de precios en la nube.
+                a) Se han reconocido las características fundamentales de los precios.
+                b) Se han indicado los factores que intervienen en el coste total de la
+                   propiedad (TCO).
+                c) Se han utilizado servicios para estimar el coste del despliegue de una
+                   infraestructura en la nube.
+                                                                                                          BOCM-20250827-5
+
+
+
+
+                d) Se han utilizado los servicios para presupuestar y analizar costes de una
+                   infraestructura en la nube.
+                e) Se han descrito los diferentes planes de soporte de los proveedores de
+                   servicios en la nube.
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 188                             MIÉRCOLES 27 DE AGOSTO DE 2025                       B.O.C.M. Núm. 204
+
+
+
+               f) Se han identificado los elementos de optimización de costes de las
+                  máquinas virtuales en la nube.
+           3. Identifica los componentes de la infraestructura en la nube.
+                a) Se han identificado las diferencias entre regiones, zonas de disponibilidad
+                   y zonas de borde.
+                b) Se han identificado las diferentes categorías y servicios en la nube.
+           4. Describe las medidas de seguridad y conformidad de la nube.
+               a) Se ha reconocido el modelo de responsabilidad compartida.
+               b) Se han identificado las responsabilidades del cliente y del proveedor de
+                  servicios en la nube.
+               c) Se han reconocido las entidades que intervienen en el proceso de
+                  autenticación.
+               d) Se han descrito los diferentes tipos de credenciales de seguridad en la
+                  nube.
+               e) Se han creado usuarios, grupos y roles.
+               f) Se ha reconocido cómo proteger los datos en la nube.
+               g) Se han reconocido los diferentes programas de conformidad.
+           5. Crea una nube privada virtual.
+               a) Se han reconocido los conceptos básicos de redes.
+               b) Se han descrito las redes virtuales en la nube.
+               c) Se han diseñado arquitecturas básicas de redes privadas en la nube.
+               d) Se han indicado los pasos para desplegar una red privada en la nube.
+               e) Se ha creado una red privada en la nube y se han agregado los
+                  componentes necesarios para personalizarla.
+               f) Se han identificado los aspectos fundamentales de los servicios de
+                  nombres de dominio en la nube.
+               g) Se han reconocido los beneficios de utilizar redes de entrega de
+                  contenidos en la nube.
+           6. Describe los casos de uso de los diferentes servicios de computación en nube.
+               a) Se han descrito los diferentes servicios de cómputo en la nube.
+               b) Se han identificado los casos de uso de las máquinas virtuales en la nube.
+               c) Se han lanzado máquinas virtuales en la nube.
+               d) Se han identificado los casos de uso de los servicios administrados de
+                  despliegue de aplicaciones web.
+               e) Se han identificado los casos de uso de los servicios de funciones sin
+                  servidor.
+               f) Se han identificado los casos de uso de los servicios de contenedorización
+                  en un clúster de servidores administrados.
+                                                                                                              BOCM-20250827-5
+
+
+
+
+           7. Describe y diferencia los servicios de almacenamiento en la nube.
+               a) Se han diferenciado los tipos de servicios de almacenamiento en la nube.
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                              Pág. 189
+
+
+
+                b) Se han descrito los servicios de almacenamiento de objetos en la nube y
+                   se ha identificado sus funcionalidades.
+                c) Se han descrito los servicios de almacenamiento de bloques en la nube y
+                   se ha identificado sus funcionalidades.
+                d) Se han descrito los servicios de almacenamiento de ficheros en la nube y
+                   se ha identificado sus funcionalidades.
+                e) Se han identificado los servicios de archivado de datos en la nube y se
+                   han identificado sus funcionalidades.
+            8. Describe, diferencia y despliega bases de datos administradas en la nube.
+                a) Se han descrito e identificado las funcionalidades de los servicios
+                   administrados de bases de datos relacionales.
+                b) Se han descrito e identificado las funcionalidades de los servicios
+                   administrados de bases de datos NoSQL.
+                c) Se han descrito e identificado las funcionalidades de los servicios
+                   administrados de bases de datos analíticas.
+                d) Se han desplegado bases de datos relacionales administradas en la nube.
+            9. Describe los principios arquitectónicos en la nube.
+                a) Se ha descrito el marco de la buena arquitectura en la nube.
+                b) Se han identificado los seis pilares de la buena arquitectura y se han
+                   identificado los principios de diseño.
+                c) Se ha explicado la importancia de la fiabilidad y de la alta disponibilidad.
+                d) Se han utilizado los servicios administrados para obtener
+                   recomendaciones arquitectónicas.
+            10. Entiende los conceptos de balanceado de carga, autoescalado y
+            monitorización para el diseño de arquitecturas elásticas.
+                a) Se ha indicado cómo distribuir el tráfico entre diferentes máquinas
+                   virtuales utilizando balanceadores de carga.
+                b) Se han identificado los servicios de monitorización de recursos y
+                   aplicaciones en tiempo real.
+                c) Se ha indicado el funcionamiento de los servicios de escalado automático
+                   en respuesta a cambios en las cargas de trabajo.
+                d) Se han realizado tareas de escalado y balanceo de carga para aumentar
+                   la elasticidad de una infraestructura.
+
+            Contenidos:
+            1. Conceptos de la computación en la nube.
+                a) Introducción a la computación en la nube.
+                b) Ventajas de la computación en la nube.
+                c) Migración a un proveedor de servicios de computación en la nube.
+                                                                                                             BOCM-20250827-5
+
+
+
+
+            2. Economía y facturación en la nube.
+                a) Introducción.
+                b) Fundamentos de la facturación.
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 190                             MIÉRCOLES 27 DE AGOSTO DE 2025            B.O.C.M. Núm. 204
+
+
+
+               c) Coste total de la propiedad (TCO).
+               d) Modelos de precios.
+               e) Servicios de facturación consolidada.
+               f) Servicios de monitorización de costes y presupuestos.
+               g) Modelos de soporte técnico.
+           3. Infraestructura de la nube.
+                a) Introducción.
+                b) Infraestructura global.
+                c) Categorías de servicios ofrecidos.
+           4. Seguridad en la nube.
+               a) Introducción.
+               b) Modelo de responsabilidad compartida.
+               c) Control de la autenticación, autorización y federación.
+               d) Seguridad en las cuentas.
+               e) Seguridad en los datos.
+               f) Seguridad en el cumplimiento normativo.
+           5. Redes y entrega de contenidos.
+               a) Introducción.
+               b) Principios de las redes.
+               c) Nubes privadas virtuales.
+               d) Seguridad en nubes privadas virtuales.
+               e) Servicios de resolución de nombres de dominios en la nube.
+               f) Redes de entrega de contenidos (CDN).
+           6. Servicios de cómputo.
+               a) Introducción.
+               b) Principios de los servicios de cómputo.
+               c) Máquinas virtuales.
+               d) Optimización de costes en máquinas virtuales.
+               e) Servicios de contenedorización.
+               f) Introducción a la computación sin servidor (serverless).
+               g) Introducción a los servicios administrados de cómputo.
+           7. Servicios de almacenamiento.
+               a) Introducción.
+               b) Servicios de almacenamiento de bloques.
+               c) Servicios de almacenamiento de objetos.
+               d) Servicios de almacenamiento de ficheros.
+                                                                                                   BOCM-20250827-5
+
+
+
+
+               e) Servicios de archivado de datos.
+           8. Servicios de bases de datos.
+               a) Introducción.
+     BOCM                             BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                               Pág. 191
+
+
+
+                b) Servicios de bases de datos relacionales.
+                c) Servicios de bases de datos NoSQL.
+                d) Servicios de bases de datos analíticas.
+            9. Arquitectura en la nube.
+                a) Introducción.
+                b) Principios de diseño del marco de la buena arquitectura.
+                c) Excelencia operacional.
+                d) Seguridad.
+                e) Fiabilidad.
+                f) Eficiencia en el rendimiento.
+                g) Optimización de costes.
+                h) Fiabilidad y alta disponibilidad.
+                i) Servicios para el diseño de arquitecturas.
+            10. Escalado automático y monitorización.
+                a) Introducción.
+                b) Balanceadores de carga.
+                c) Servicios de monitorización.
+                d) Servicios de escalado automático.
+
+            CMO-313 Fundamentos de programación (50 horas).
+
+            Resultados de aprendizaje y criterios de evaluación:
+
+            1. Reconoce la estructura de un programa informático, identificando y
+            relacionando los elementos propios del lenguaje de programación utilizado.
+                a) Se han identificado los bloques que componen la estructura de un
+                   programa informático.
+                b) Se han creado proyectos de desarrollo de aplicaciones.
+                c) Se han utilizado entornos integrados de desarrollo.
+                d) Se han identificado los distintos tipos de variables y la utilidad específica
+                   de cada uno.
+                e) Se ha modificado el código de un programa para crear y utilizar variables.
+                f) Se han creado y utilizado constantes y literales.
+                g) Se han clasificado, reconocido y utilizado en expresiones los operadores
+                   del lenguaje.
+                h) Se ha comprobado el funcionamiento de las conversiones de tipo
+                   explícitas e implícitas.
+                i) Se han introducido comentarios en el código.
+                                                                                                              BOCM-20250827-5
+
+
+
+
+            2. Escribe y prueba programas sencillos, reconociendo y aplicando los
+            fundamentos de la programación.
+                a) Se han identificado los fundamentos de la programación.
+                b) Se han escrito programas simples.
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 192                             MIÉRCOLES 27 DE AGOSTO DE 2025                      B.O.C.M. Núm. 204
+
+
+
+               c) Se han utilizado métodos/ funciones.
+               d) Se han utilizado parámetros en la llamada métodos.
+               e) Se han incorporado y utilizado librerías.
+           3. Escribe y depura código, analizando y utilizando las estructuras de control del
+           lenguaje.
+               a) Se ha escrito y probado código que haga uso de estructuras de selección.
+               b) Se han utilizado estructuras de repetición.
+               c) Se han reconocido las posibilidades de las sentencias de salto.
+               d) Se ha escrito código utilizando control de excepciones.
+               e) Se han creado programas ejecutables utilizando diferentes estructuras de
+                  control.
+               f) Se han probado y depurado los programas.
+               g) Se ha comentado y documentado el código.
+           4. Conoce los fundamentos de la programación orientada a objetos.
+               a) Se han definido y utilizado clases adecuadamente.
+               b) Se ha conocido el concepto de herencia y su utilización
+               c) Se han diferenciado las condiciones de acceso a los atributos y métodos
+                  que definen una clase.
+           5. Realiza operaciones de entrada y salida de información utilizando ficheros
+           usando las librerías o clases que ofrece el lenguaje de programación.
+               a) Se ha utilizado la consola para realizar operaciones de entrada y salida
+                  de información.
+               b) Se han aplicado formatos en la visualización de la información.
+               c) Se han reconocido las posibilidades de entrada / salida del lenguaje y las
+                  librerías asociadas.
+               d) Se han utilizado ficheros para almacenar y recuperar información.
+               e) Se han creado programas que utilicen ficheros distintos formatos.
+           6. Gestiona información almacenada en bases de datos relacionales
+           manteniendo la integridad y la consistencia de los datos.
+               a) Se han identificado las características y métodos de acceso a sistemas
+                  gestores de bases de datos relacionales.
+               b) Se han programado conexiones con bases de datos.
+               c) Se ha escrito código para almacenar información en bases de datos.
+               d) Se han creado programas para recuperar y mostrar información
+                  almacenada en bases de datos.
+               e) Se han efectuado borrados y modificaciones sobre la información
+                  almacenada.
+               f) Se han creado aplicaciones que ejecuten consultas sobre bases de datos.
+                                                                                                             BOCM-20250827-5
+
+
+
+
+               g) Se han creado aplicaciones para posibilitar la gestión de información
+                  presente en bases de datos relacionales.
+
+           Contenidos:
+     BOCM                                BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                        MIÉRCOLES 27 DE AGOSTO DE 2025                          Pág. 193
+
+
+
+            1. Introducción a la programación.
+                a) Lenguajes de programación.
+                b) Datos, algoritmos y programas.
+                c) Metodologías de desarrollo de software.
+            2. Elementos de un programa informático.
+                a) Identificadores y palabras reservadas.
+                b) Definición de datos.
+                c) Instrucciones y operadores.
+            3. Estructuras de control.
+                a) Alternativas.
+                b) Repetitivas.
+            4. Estructuras de datos.
+                a) Datos simples.
+                b) Datos compuestos.
+                c) Estructuras estáticas y estructuras dinámicas.
+            5. Funciones y librerías.
+                a) Definición de funciones, paso de parámetros.
+                b) Uso de módulo y/o paquetes.
+            6. Excepciones y manejo de errores.
+            7. Estructuras externas: ficheros y base de datos.
+                a) Operaciones básicas sobre ficheros.
+                b) Operaciones básicas sobre BD.
+            8. Introducción a la programación orientada a objetos.
+                a) Principios básicos de POO.
+                b) Objetos, clases y herencia.
+
+            CMO-314 Ciberseguridad (90 horas).
+
+            Resultados de aprendizaje y criterios de evaluación:
+
+             1. Adopta pautas y prácticas de tratamiento seguro de la información,
+             reconociendo las vulnerabilidades de un sistema informático y la necesidad de
+             asegurarlo.
+                a) Se ha valorado la importancia de asegurar la privacidad, coherencia y
+                   disponibilidad de la información en los sistemas informáticos.
+                b) Se han descrito las diferencias entre seguridad física y lógica.
+                c) Se han clasificado las principales vulnerabilidades de un sistema
+                                                                                                            BOCM-20250827-5
+
+
+
+
+                   informático, según su tipología y origen.
+                d) Se ha contrastado la incidencia de las técnicas de ingeniería social en los
+                   fraudes informáticos.
+                e) Se han adoptado políticas de contraseñas.
+     BOCM                          BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 194                            MIÉRCOLES 27 DE AGOSTO DE 2025                      B.O.C.M. Núm. 204
+
+
+
+             f) Se han valorado las ventajas que supone la utilización de sistemas
+                biométricos.
+             g) Se han aplicado técnicas criptográficas en el almacenamiento y
+                transmisión de la información.
+             h) Se ha reconocido la necesidad de establecer un plan integral de
+                protección perimetral, especialmente en sistemas conectados a redes
+                públicas.
+             i) Se han identificado las fases del análisis forense ante ataques a un
+                sistema.
+           2. Implanta mecanismos de seguridad activa, seleccionando y ejecutando
+           contramedidas ante amenazas o ataques al sistema.
+              a) Se han clasificado los principales tipos de amenazas lógicas contra un
+                 sistema informático
+              b) Se ha verificado el origen y la autenticidad de las aplicaciones instaladas
+                 en un equipo, así como el estado de actualización del sistema operativo.
+              c) Se ha identificado la anatomía de los ataques más habituales, así como
+                 las medidas preventivas y paliativas disponibles
+              d) Se han analizado diversos tipos de amenazas, ataques y software
+                 malicioso, en entornos de ejecución controlados.
+              e) Se han implantado aplicaciones específicas para la detección de
+                 amenazas y la eliminación de software malicioso.
+              f) Se han utilizado técnicas de cifrado, firmas y certificados digitales en un
+                 entorno de trabajo basado en el uso de redes públicas
+              g) Se han evaluado las medidas de seguridad de los protocolos usados en
+                 redes inalámbricas.
+              h) Se ha reconocido la necesidad de inventariar y controlar los servicios de
+                 red que se ejecutan en un sistema.
+              i) Se han descrito los tipos y características de los sistemas de detección de
+                 intrusiones
+           3. Implanta técnicas seguras de acceso remoto a un sistema informático,
+           interpretando y aplicando el plan de seguridad.
+              a) Se han descrito escenarios típicos de sistemas con conexión a redes
+                 públicas en los que se precisa fortificar la red interna.
+              b) Se han clasificado las zonas de riesgo de un sistema, según criterios de
+                 seguridad perimetral.
+              c) Se han identificado los protocolos seguros de comunicación y sus ámbitos
+                 de utilización.
+              d) Se han configurado redes privadas virtuales mediante protocolos seguros
+                 a distintos niveles.
+              e) Se ha implantado un servidor como pasarela de acceso a la red interna
+                                                                                                            BOCM-20250827-5
+
+
+
+
+                 desde ubicaciones remotas.
+              f) Se han identificado y configurado los posibles métodos de autenticación
+                 en el acceso de usuarios remotos a través de la pasarela.
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                             Pág. 195
+
+
+
+                g) Se ha instalado, configurado e integrado en la pasarela un servidor remoto
+                   de autenticación.
+             4. Diseña planes de securización de sistemas e implanta sistemas de control
+             de acceso y autenticación de personas.
+                a) Se han identificado los activos, las amenazas y vulnerabilidades de la
+                   organización.
+                b) Se han evaluado las medidas de seguridad actuales.
+                c) Se ha elaborado un análisis de riesgo de la situación actual en
+                   ciberseguridad de la organización
+                d) Se han definido los mecanismos de autenticación en base a distintos /
+                   múltiples factores (físicos, inherentes y basados en el conocimiento),
+                   existentes.
+                e) Se han definido protocolos y políticas de autenticación basados en
+                   contraseñas y frases de paso, en base a las principales vulnerabilidades
+                   y tipos de ataques.
+                f) Se han definido protocolos y políticas de autenticación basados en
+                   certificados digitales y tarjetas inteligentes, en base a las principales
+                   vulnerabilidades y tipos de ataques.
+             5. Utiliza herramientas de monitorización para detectar vulnerabilidades y
+             ataque y defensa en entornos de pruebas.
+                a) Se ha definido la terminología esencial del hacking ético.
+                b) Se ha definido el alcance y condiciones de un test de intrusión.
+                c) Se han analizado y definido los tipos vulnerabilidades.
+                d) Se han analizado y definido los tipos de ataque.
+                e) Se han determinado y caracterizado las diferentes vulnerabilidades
+                   existentes.
+                f) Se han determinado las herramientas de monitorización disponibles en el
+                   mercado adecuadas en función del tipo de organización.
+                g) Se han utilizado técnicas de “Equipo Rojo y Azul”.
+                h) Se han realizado informes sobre las vulnerabilidades detectadas.
+             6. Reconoce la legislación y normativa sobre seguridad y protección de datos
+             valorando su importancia.
+                a) Se ha descrito la legislación sobre protección de datos de carácter
+                   personal.
+                b) Se ha determinado la necesidad de controlar el acceso a la información
+                   personal almacenada.
+                c) Se han identificado las figuras legales que intervienen en el tratamiento y
+                   mantenimiento de los ficheros de datos.
+                d) Se ha contrastado el deber de poner a disposición de las personas los
+                                                                                                            BOCM-20250827-5
+
+
+
+
+                   datos personales que les conciernen.
+                e) Se ha descrito la legislación actual sobre los servicios de la sociedad de
+                   la información y comercio electrónico.
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 196                            MIÉRCOLES 27 DE AGOSTO DE 2025                   B.O.C.M. Núm. 204
+
+
+
+              f) Se han contrastado las normas sobre gestión de seguridad de la
+                 información.
+              g) Se ha comprendido la necesidad de conocer y respetar la normativa legal
+                 aplicable.
+
+           Contenidos:
+            1. Adopción de pautas de seguridad informática.
+               a) Fiabilidad, confidencialidad, integridad y disponibilidad.
+               b) Elementos vulnerables en el sistema informático: hardware, software y
+                  datos.
+               c) Análisis de las principales vulnerabilidades de un sistema informático.
+               d) Amenazas. Tipos:
+                      i. Amenazas físicas.
+                      ii. Amenazas lógicas.
+            2. Seguridad física y ambiental.
+               a) Ubicación y protección física de los equipos y servidores.
+               b) Sistemas de alimentación ininterrumpida.
+            3. Seguridad lógica.
+               a) Criptografía.
+               b) Listas de control de acceso.
+               c) Establecimiento de políticas de contraseñas.
+               d) Políticas de almacenamiento.
+               e) Copias de seguridad e imágenes de respaldo.
+               f) Medios de almacenamiento.
+            4. Análisis forense en sistemas informáticos.
+               a) Aplicación de metodologías de análisis forenses.
+               b) Documentación y elaboración de informes de análisis forenses.
+            5. Implantación de mecanismos de seguridad activa.
+               a) Ataques y contramedidas en sistemas personales.
+               b) Clasificación de los ataques.
+               c) Anatomía de ataques y análisis de software malicioso.
+               d) Herramientas preventivas. Instalación y configuración.
+               e) Herramientas paliativas. Instalación y configuración.
+               f) Actualización de sistemas y aplicaciones.
+               g) Seguridad en la conexión con redes públicas.
+               h) Pautas y prácticas seguras.
+                                                                                                         BOCM-20250827-5
+
+
+
+
+            6. Seguridad en la red corporativa.
+               a) Monitorización del tráfico en redes.
+               b) Seguridad en los protocolos para comunicaciones inalámbricas.
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                             Pág. 197
+
+
+
+                c) Riesgos potenciales de los servicios de red.
+                d) Intentos de penetración.
+             7. Implantación de técnicas de acceso remoto. Seguridad perimetral.
+                a) Elementos básicos de la seguridad perimetral.
+                b) Perímetros de red. Zonas desmilitarizadas.
+                c) Arquitectura débil de subred protegida.
+                d) Arquitectura fuerte de subred protegida.
+                e) Redes privadas virtuales. VPN.
+                f) Beneficios y desventajas con respecto a las líneas dedicadas.
+                g) Técnicas de cifrado. Clave pública y clave privada.
+             8. Bastionado de redes y sistemas.
+                a) Diseño de planes de securización.
+                b) Configuración de sistemas de control de acceso y autenticación de
+                   personas.
+                c) Administración de credenciales de acceso a sistemas informáticos.
+                d) Diseño de redes de computadores seguras.
+                e) Configuración de dispositivos y sistemas informáticos.
+                f) Configuración de dispositivos para la instalación de sistemas informáticos.
+                g) Configuración de los sistemas informáticos.
+             9. Hacking ético.
+                a) Determinación de las herramientas de monitorización para detectar
+                   vulnerabilidades.
+                b) Ataque y defensa en entorno de pruebas, de las comunicaciones
+                   inalámbricas.
+                c) Ataque y defensa en entorno de pruebas, de redes y sistemas para
+                   acceder a sistemas de terceros.
+                d) Consolidación y utilización de sistemas comprometidos.
+                e) Ataque y defensa en entorno de pruebas, a aplicaciones web.
+             10. Normativa de ciberseguridad.
+               a) Puntos principales de aplicación para un correcto cumplimiento normativo.
+               b) Diseño de sistemas de cumplimiento normativo.
+               c) Legislación para el cumplimiento de la responsabilidad penal.
+               d) Legislación y jurisprudencia en materia de protección de datos.
+               e) Normativa vigente de ciberseguridad de ámbito nacional e internacional.
+               f) Ley PIC (Protección de infraestructuras críticas).
+
+            CMO-315 Arquitectura en la nube (90 horas).
+                                                                                                            BOCM-20250827-5
+
+
+
+
+            Resultados de aprendizaje y criterios de evaluación:
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 198                             MIÉRCOLES 27 DE AGOSTO DE 2025                      B.O.C.M. Núm. 204
+
+
+
+           1. Toma decisiones en materia de arquitectura a partir de los principios y buenas
+           prácticas recomendadas.
+               a) Se ha definido la arquitectura en la nube.
+               b) Se ha descrito cómo diseñar y evaluar arquitecturas utilizando marcos de
+                  la buena arquitectura.
+               c) Se han explicado las mejores prácticas para diseño de soluciones
+                  arquitectónicas en la nube.
+               d) Se han descrito cómo tomar decisiones sobre dónde desplegar recursos
+                  en la nube.
+           2. Utiliza los servicios de computación en la nube para lograr una infraestructura
+           escalable, fiable y altamente disponible.
+               a) Se ha identificado los diferentes servicios computacionales en la nube.
+               b) Se han implementado y configurado máquinas virtuales.
+               c) Se han creado soluciones de almacenamiento en la nube para máquinas
+                   virtuales.
+               d) Se han lanzado máquinas virtuales en clústeres.
+               e) Se han descrito los diferentes modelos de precios para las máquinas
+                   virtuales en la nube.
+               f) Se han reconocido los problemas que los servicios de almacenamiento en
+                   la nube pueden resolver.
+               g) Se ha descrito cómo utilizar eficientemente los servicios de
+                   almacenamiento en la nube y cómo migrar datos a la nube.
+               h) Se ha creado un sitio web estático altamente disponible en la nube.
+               i) Se han implementado y conectado discos EBS a instancias.
+               j) Se han implementado y conectado de forma persistente unidades EFS a
+                   instancias.
+           3. Utiliza los servicios administrados para lograr una mayor flexibilidad y
+           resiliencia de una infraestructura.
+                a) Se han utilizado servicios administrados para el despliegue automatizado
+                   de la infraestructura.
+                b) Se han utilizado servicios administrados para el despliegue de
+                   aplicaciones sencillas.
+                c) Se han comparado los diferentes tipos de bases de datos administradas.
+                d) Se han desplegado servicios administrados de bases de datos
+                   relacionales en la nube.
+                e) Se ha explicado cómo utilizar bases de datos NoSQL administradas en la
+                   nube.
+                f) Se han descrito los controles de seguridad de las bases de datos
+                   administradas.
+                                                                                                             BOCM-20250827-5
+
+
+
+
+                g) Se han realizado migraciones de bases de datos en las instalaciones a la
+                   nube.
+                h) Se han comparado los diferentes tipos de bases de datos administradas.
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                             Pág. 199
+
+
+
+                i) Se han desplegado servicios administrados de bases de datos relacionales
+                    en la nube.
+                j) Se ha explicado cómo utilizar bases de datos NoSQL administradas en la
+                    nube.
+                k) Se han descrito los controles de seguridad de las bases de datos
+                    administradas.
+                l) Se han realizado migraciones de bases de datos en las instalaciones a la
+                    nube.
+                m)Se ha explicado cómo gestionar la autenticación y autorización del acceso
+                    a los recursos de la nube.
+                n) Se ha descrito cómo puede utilizarse la identidad federada para
+                    incrementar la seguridad de la infraestructura.
+                ñ) Se han utilizado servicios administrados de bases de datos en memoria
+                    (Memchached, Redis, etc.)
+                o) Se han utilizado servicios administrados de colas de mensajes para el
+                    diseño de arquitecturas débilmente acopladas.
+                p) Se han utilizado servicios administrados de notificaciones para el diseño
+                    de arquitecturas débilmente acopladas.
+                q) Se ha identificado como las técnicas de caché pueden mejorar el
+                    rendimiento y reducir la latencia de una infraestructura.
+                r) Se ha identificado cómo la computación en el borde (Edge Computing)
+                    puede utilizarse para la distribución de contenidos y como protección de
+                    ataques DDoS.
+                s) Se ha reconocido cómo la administración de datos de sesión está
+                    relacionada con las técnicas de caché.
+            4. Potencia el rendimiento y reduce los costes de una infraestructura creada en
+            la nube.
+                a) Se han desplegado balanceadores de carga para crear entornos
+                    altamente disponibles.
+                b) Se ha utilizado los servicios de autoescalado para brindar elasticidad a un
+                    clúster de máquinas virtuales.
+                c) Se han utilizado servidores DNS administrados para conmutar por error
+                    automáticamente en caso de fallo en una infraestructura.
+                d) Se han diseñado arquitecturas con servicios de monitorización para dar
+                    respuestas reactivas a un evento o fallo en la infraestructura.
+                e) Se ha explicado el rol de las redes virtuales en la nube.
+                f) Se han identificado los servicios que permiten establecer una conexión de
+                    red híbrida entre las instalaciones y la nube.
+                g) Se han implementado VPC y subredes.
+                h) Se han configurado grupos de seguridad y ALC de red.
+                                                                                                            BOCM-20250827-5
+
+
+
+
+                i) Se ha descrito cómo conectar diferentes redes virtuales en la nube.
+                j) Se ha descrito cómo escalar una infraestructura de red en la nube.
+     BOCM                          BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 200                           MIÉRCOLES 27 DE AGOSTO DE 2025                      B.O.C.M. Núm. 204
+
+
+
+              k) Se han creado redes virtuales en la nube, gateways de Internet, tablas de
+                  encaminamiento y cortafuegos.
+              l) Se ha definido el despliegue de Infraestructura como Código (IaC).
+              m)Se ha modelado una infraestructura como código mediante una plantilla.
+              n) Se ha explicado qué es el acoplamiento de infraestructuras en la nube y
+                  el por qué deben diseñarse arquitecturas débilmente acopladas.
+              ñ) Se han identificado las diferentes estrategias de planificación ante
+                  desastres.
+              o) Se han definido los conceptos de RPO (Recovery Point Objective) y RTO
+                  (Recovery Time Objective).
+              p) Se han descrito patrones comunes para el respaldo y recuperación de
+                  desastres y cómo implementarlos.
+              q) Se han aplicado las buenas prácticas para lograr una infraestructura en la
+                  nube escalable, segura y altamente disponible.
+              r) Se han utilizado servicios administrados de almacenamiento híbrido como
+                  soluciones de respaldo de datos.
+              s) Se han aplicado las buenas prácticas para lograr mayor flexibilidad y
+                  resiliencia de una infraestructura en la nube.
+              t) Se han indicado las características de las arquitecturas basadas en
+                  microservicios y cómo éstas pueden reducir los costes de la
+                  infraestructura y potenciar el rendimiento.
+              u) Se ha explicado qué es una arquitectura sin servidor (serverless).
+              v) Se ha desplegado una infraestructura sin servidor utilizando funciones
+                  serverless, API Gateway.
+              w) Se ha explicado qué es la orquestación de flujos sin servidor y cómo
+                  puede reducir los costes.
+              x) Se han aplicado las buenas prácticas para para potenciar el rendimiento
+                  y reducir los costes de la infraestructura en la nube.
+
+           Contenidos:
+            1. Introducción a la Arquitectura en la Nube.
+               a) Definición de Arquitectura en la Nube.
+               b) El marco de la buena arquitectura.
+               c) Prácticas recomendadas para crear soluciones en la nube.
+               d) Infraestructura global de la nube.
+            2. Incorporación de una capa de almacenamiento.
+               a) Uso de servicios de almacenamiento de objetos.
+               b) Alojamiento de un sitio web estático.
+               c) Almacenamiento de datos.
+                                                                                                           BOCM-20250827-5
+
+
+
+
+               d) Traslado de datos desde y hacia un servicio de almacenamiento de
+                  objetos.
+               e) Aceleración de transferencias mediante CDNs.
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                        Pág. 201
+
+
+
+                f) Criterios arquitectónicos para la elección de regiones.
+             3. Incorporación de una capa de cómputo.
+                a) Necesidad arquitectónica.
+                b) Incorporación de recursos de cómputo mediante máquinas virtuales en la
+                   nube
+                c) Elección de una plantilla para lanzar una máquina virtual.
+                d) Selección de un tipo de máquina virtual.
+                e) Bootstrapping de máquinas virtuales en la nube.
+                f) Incorporación de un sistema de ficheros de compartido entre varias
+                   máquinas virtuales en la nube.
+                g) Opciones de precios de máquinas virtuales.
+                h) Otras consideraciones sobre máquinas virtuales en la nube.
+             4. Incorporación de una capa de bases de datos.
+                a) Necesidad arquitectónica.
+                b) Consideraciones de la capa de bases de datos.
+                c) Servicios administrados de Bases de datos relacionales en la nube.
+                d) Réplicas de lectura y copias de seguridad automatizadas de bases de
+                   datos relacionales.
+                e) Bases de datos NoSQL.
+                f) Controles de seguridad en las bases de datos.
+                g) Migración de datos a las bases de datos en la nube.
+             5. Creación de entornos de red.
+                a) Necesidad arquitectónica.
+                b) Creación de un entorno de red.
+                c) Conexión del entorno de red a Internet.
+                d) Creación de una nube privada virtual.
+                e) Protección del entorno de red.
+             6. Conexión de redes.
+                a) Necesidad arquitectónica.
+                b) Conexión desde una red on-premises mediante VPN.
+                c) Conexión desde una red on-premises mediante conexiones dedicadas.
+                d) Interconexión de nubes privadas virtuales.
+                e) Escalado de nubes privadas virtuales.
+                f) Conexión de la nube privada virtual a otros servicios de la nube.
+             7. Protección del acceso de los usuarios y las aplicaciones.
+                a) Necesidad arquitectónica.
+                                                                                                       BOCM-20250827-5
+
+
+
+
+                b) Usuarios de cuentas. Autenticación y autorización.
+                c) Análisis de políticas de permisos.
+                d) Organización de usuarios.
+     BOCM                         BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 202                           MIÉRCOLES 27 DE AGOSTO DE 2025                       B.O.C.M. Núm. 204
+
+
+
+             e) Federación de usuarios.
+             f) Permisos en máquinas virtuales.
+             g) Cuentas múltiples.
+             h) Control del acceso a cuentas múltiples.
+           8. Implementación de la elasticidad, monitorización y alta disponibilidad.
+              a) Necesidad arquitectónica.
+              b) Escalado de recursos de cómputo.
+              c) Creación de políticas de escalado automático de máquinas virtuales.
+              d) Escalado de bases de datos.
+              e) Diseño de entornos de alta disponibilidad.
+              f) Creación de una aplicación web altamente disponible.
+              g) Servicios DNS administrados.
+              h) Creación de un entorno altamente disponible.
+              i) Monitorización.
+           9. Automatización de un diseño arquitectónico.
+              a) Necesidad arquitectónica.
+              b) Motivos para automatizar.
+              c) Automatización del despliegue de la infraestructura.
+              d) Análisis de plantillas de Infraestructura como código (IaC).
+              e) Automatización del despliegue de la infraestructura mediante IaC.
+              f) Automatización del despliegue de aplicaciones.
+              g) Servicios administrados de despliegue de aplicaciones.
+           10. Almacenamiento de contenido en caché.
+             a) Necesidad arquitectónica.
+             b) Información general sobre el almacenamiento en caché.
+             c) Almacenamiento en caché perimetral.
+             d) Streaming de contenido dinámico con CDNs.
+             e) Almacenamiento de sesiones de aplicaciones web en caché.
+             f) Almacenamiento de bases de datos en caché.
+           11. Creación de arquitecturas desacopladas.
+             a) Necesidad arquitectónica.
+             b) Desacoplamiento de la arquitectura.
+             c) Desacoplamiento mediante colas de mensajes.
+             d) Desacoplamiento mediante servicios de notificaciones.
+             e) Envío de mensajes entre aplicaciones en la nube y on-premises con
+                servicios Apache MQ.
+                                                                                                            BOCM-20250827-5
+
+
+
+
+           12. Creación de arquitecturas basadas en microservicios y serverless.
+             a) Necesidad arquitectónica.
+             b) Introducción a los microservicios.
+     BOCM                             BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                               Pág. 203
+
+
+
+                c) Creación de aplicaciones de microservicios con los servicios de
+                   contenedorización en la nube.
+                d) División de una aplicación monolítica en microservicios.
+                e) Introducción a las arquitecturas serverless.
+                f) Creación de arquitecturas con funciones serverless.
+                g) Uso de funciones serverless con almacenamiento de objetos.
+                h) Despliegue de una arquitectura serverless.
+                i) Ampliación de las arquitecturas serverless con API Gateway.
+                j) Orquestación de microservicios.
+             13. Planificación ante desastres.
+               a) Necesidad arquitectónica.
+               b) Estrategias de planificación ante desastres.
+               c) Patrones de recuperación de desastres.
+               d) Almacenamiento híbrido y migración de datos.
+
+            CMO-316 Programación en Phyton (90 horas).
+
+            Resultados de aprendizaje y criterios de evaluación:
+
+            1.Reconoce la estructura de un programa informático, identificando y
+            relacionando los elementos propios del lenguaje de programación utilizado.
+                a) Se han identificado los bloques que componen la estructura de un
+                   programa informático.
+                b) Se han creado proyectos de desarrollo de aplicaciones.
+                c) Se han utilizado entornos integrados de desarrollo.
+                d) Se han identificado los distintos tipos de variables y la utilidad específica
+                   de cada uno.
+                e) Se ha modificado el código de un programa para crear y utilizar variables.
+                f) Se han creado y utilizado constantes y literales. Se han clasificado,
+                   reconocido y utilizado en expresiones los operadores del lenguaje.
+                g) Se ha comprobado el funcionamiento de las conversiones de tipo
+                   explícitas e implícitas.
+                h) Se han introducido comentarios en el código.
+            2.Escribe y depura código, analizando y utilizando las estructuras de control del
+            lenguaje.
+                a) Se ha escrito y probado código que haga uso de estructuras de selección.
+                b) Se han utilizado estructuras de repetición.
+                c) Se han reconocido las posibilidades de las sentencias de salto.
+                                                                                                              BOCM-20250827-5
+
+
+
+
+                d) Se ha escrito código utilizando control de excepciones.
+                e) Se han creado programas ejecutables utilizando diferentes estructuras de
+                   control.
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 204                             MIÉRCOLES 27 DE AGOSTO DE 2025                     B.O.C.M. Núm. 204
+
+
+
+               f) Se han probado y depurado los programas. Se ha comentado y
+                  documentado el código.
+           3.Escribe código utilizando programación modular. Conoce la diferencia entre el
+           paso de parámetros por valor y por referencia.
+              a) Se han codificado funciones para resolver problemas de matemática
+                 elemental.
+              b) Se ha utilizado el concepto de iteración y recursividad.
+           4.Escribe programas que manipulen información, seleccionando y utilizando
+           tipos avanzados de datos.
+               a) Se han escrito programas que utilizan cadenas, listas y diccionarios.
+           5.Realiza operaciones de entrada y salida de información, utilizando
+           procedimientos específicos del lenguaje y librerías de clases.
+               a) Se ha utilizado la consola para realizar operaciones de entrada y salida
+                  de información.
+               b) Se han aplicado formatos en la visualización de la información.
+               c) Se han reconocido las posibilidades de entrada / salida del lenguaje y las
+                  librerías asociadas.
+               d) Se han utilizado ficheros para almacenar y recuperar información.
+               e) Se han creado programas que utilicen diversos métodos de acceso al
+                  contenido de los ficheros.
+           6.Desarrolla programas organizados en clases analizando y aplicando los
+           principios de la programación orientada a objetos.
+               a) Se ha reconocido la sintaxis, estructura y componentes típicos de una
+                  clase.
+               b) Se han definido clases.
+               c) Se han definido propiedades y métodos. Se han creado constructores.
+               d) Se han desarrollado programas que instancien y utilicen objetos de las
+                  clases creadas anteriormente. Se han utilizado mecanismos para
+                  controlar la visibilidad de las clases y de sus miembros.
+               e) Se han definido y utilizado clases heredadas.
+           Contenidos:
+            1. Identificación de los elementos de un programa informático.
+               a) Estructura y bloques fundamentales.
+               b) Variables.
+               c) Tipos de datos.
+               d) Literales.
+               e) Constantes.
+                                                                                                            BOCM-20250827-5
+
+
+
+
+               f) Operadores y expresiones.
+               g) Conversiones de tipo.
+               h) Comentarios.
+     BOCM                             BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                      MIÉRCOLES 27 DE AGOSTO DE 2025                               Pág. 205
+
+
+
+             2. Uso de estructuras de control.
+                a) Estructuras de selección.
+                b) Estructuras de repetición.
+                c) Estructuras de salto.
+                d) Control de excepciones.
+             3. Funciones. Definición de funciones definidas por el programador.
+             Recursividad.
+             4. Cadenas de caracteres. Listas. Tuplas y Diccionarios.
+             5. Lectura y escritura de información.
+                a) Entrada desde teclado.
+                b) Salida a pantalla.
+                c) Ficheros de datos.
+                d) Registros.
+                e) Apertura y cierre de ficheros. Modos de acceso.
+                f) Escritura y lectura de información en ficheros.
+                g) Utilización de los sistemas de ficheros.
+                h) Creación y eliminación de ficheros y directorios.
+             6. Programación orientada a objetos. Encapsulación, herencia y polimorfismo.
+
+            CMO-317 Posicionamiento y optimización web (50 horas).
+
+            Resultados de aprendizaje y criterios de evaluación:
+
+            1. Comprende los fundamentos del SEO.
+                a) Se han entendido los conceptos básicos de SEO y el marco en el que
+                   actúa.
+            2. Identifica palabras claves y desarrolla estrategias de construcción de sitios
+            webs.
+                 a) Se han investigado, identificado y seleccionado las palabras clave y
+                    términos de búsqueda que generan tráfico orgánico hacia el sitio web
+                    corporativo, utilizando herramientas específicas de analítica digital para el
+                    SEO.
+            3. Implementa las estrategias de optimización de contenido técnico para mejorar
+            la visibilidad en los resultados de búsqueda informáticos.
+                 a) Se ha optimizado el contenido del sitio web para mejorar su visibilidad en
+                    los motores de búsqueda, incluyendo la redacción de títulos y
+                    descripciones META, la optimización de encabezados e imágenes y la
+                    estructuración de contenidos.
+                                                                                                               BOCM-20250827-5
+
+
+
+
+            4. Se mantiene al día en las nuevas tendencias y actualizaciones de SEO. Ética
+            y buenas prácticas en SEO.
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 206                             MIÉRCOLES 27 DE AGOSTO DE 2025                       B.O.C.M. Núm. 204
+
+
+
+               a) Se ha comprendido la naturaleza en constante evolución del SEO y se ha
+                  preparado para adaptarse a las actualizaciones del algoritmo de los
+                  motores de búsqueda y a las tendencias emergentes en la industria.
+               b) Se ha comprendido la importancia de practicar SEO ético y de seguir las
+                  directrices establecidas por los motores de búsqueda para evitar
+                  sanciones y mantener la integridad de su sitio web.
+
+           Contenidos:
+           1. Pilares en una estrategia SEO: SEO técnico, contenidos y autoridad.
+           2. El SEO dentro de la estrategia de Marketing online y su objetivo.
+           3. Evolución del SEO.
+           4. Conociendo a Google. Acciones que no funcionan.
+           5. Las Bases del SEO.
+           6. De la parte técnica a la parte estratégica.
+           7. Visibilidad y Estructura SEO. SEO Técnico. Cómo hacer una auditoría SEO.
+           8. Palabras claves de sitios webs.
+           9. Pasos para estructurar una web.
+           10. Práctica de la Unidad: RETO trabajando las palabras claves junto a
+           estructura de web.
+           11. Etiquetas HTML.
+           12. Análisis de imágenes para el sitio web. Estudios de url.
+           13. WPO (Optimización del rendimiento web).
+           14. Javascript para SEO y Aplicaciones Web progresiva (PWA).
+           15. Rastreo e indexación en sitios web. Sitemaps, robots.txt.
+           16. Optimización On-Page y Estrategias de redacción para SEO: cómo mejorar
+           tu posicionamiento en motores de búsqueda.
+           17. Herramientas para el análisis.
+           18. Gestión SEO en CMSs.
+
+           CMO-318 Programación de videojuegos (90 horas).
+
+           Resultados de aprendizaje y criterios de evaluación:
+
+           1. Identifica los principales referentes de la historia y la cultura del videojuego
+           valorando su incidencia en la sociedad actual y las tendencias de desarrollo.
+                a) Se ha situado el videojuego en el contexto de la creación audiovisual,
+                   reconociendo su importancia y potencial.
+                b) Se han conocido las características del mercado de videojuegos.
+                c) Se han reconocido los principales elementos de desarrollo de videojuegos
+                   y el state of the art de las tecnologías implicadas.
+                                                                                                              BOCM-20250827-5
+
+
+
+
+                d) Se han valorado las principales tendencias en el mundo de los
+                   videojuegos en relación con las tecnologías emergentes.
+     BOCM                            BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                     MIÉRCOLES 27 DE AGOSTO DE 2025                             Pág. 207
+
+
+
+            2. Configura entornos de desarrollo, herramientas y motores de desarrollo de
+            videojuegos, aplicando las técnicas necesarias y teniendo en cuenta los avances
+            tecnológicos en el sector.
+                a) Se ha instalado y configurado el motor de desarrollo de videojuegos.
+                b) Se han identificado y conectado todos los tipos de recursos disponibles y
+                   necesarios para la elaboración del videojuego.
+                c) Se ha definido la estructura de un proyecto de videojuego.
+                d) Se han creado diferentes objetos del videojuego y componentes.
+                e) Se han configurado las interacciones entre los diferentes elementos y los
+                   conceptos básicos de iluminación.
+                f) Se han analizado y creado las diferentes interacciones del usuario con el
+                   videojuego.
+            3. Establece la arquitectura interna de videojuegos determinando la
+            programación de scripts del motor de desarrollo.
+                a) Se han manejado conceptos esenciales del lenguaje de programación,
+                   utilizado en el motor de desarrollo de videojuegos.
+                b) Se han analizado los diferentes elementos que intervienen en la mecánica
+                   del videojuego.
+                c) Se han creado y usado scripts para la programación de los objetos del
+                   videojuego.
+                d) Se han creado funciones de eventos que ocurren durante el juego.
+                e) Se han administrado el tiempo de los eventos y acciones y el orden de
+                   ejecución.
+                f) Se han verificado las herramientas de ayuda a la programación de scripts
+                   que permiten la depuración, testeo y desarrollo de los mismos.
+                g) Se ha supervisado el sistema de eventos para comunicación entre los
+                   objetos de la aplicación basados en la entrada.
+            4. Define el interfaz de usuario del videojuego teniendo en cuenta su rapidez y la
+            facilidad de utilización.
+                 a) Se ha determinado el orden de visualización de todos los objetos que
+                    contiene el juego.
+                 b) Se han ajustado los modos de renderizado de los objetos en la pantalla o
+                    contenedor del juego.
+                 c) Se han posicionado y establecido los tamaños y rotaciones de los
+                    elementos de la interfaz de usuario en la pantalla.
+                 d) Se ha proporcionado a los elementos del interfaz la interacción asociada
+                    a las acciones del videojuego.
+                 e) Se han configurado las animaciones del interfaz de usuario.
+
+            Contenidos:
+                                                                                                            BOCM-20250827-5
+
+
+
+
+            1. Contexto del desarrollo de videojuegos.
+                a) Historia y cultura del videojuego.
+                b) Importancia económica de los videojuegos.
+     BOCM                          BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 208                            MIÉRCOLES 27 DE AGOSTO DE 2025                    B.O.C.M. Núm. 204
+
+
+
+              c) Contexto tecnológico de los videojuegos.
+              d) Prospectiva.
+           2. Configuración del motor de desarrollo de videojuegos.
+               a) Motor de desarrollo de videojuegos: descarga, instalación y
+                  configuración.
+               b) Recursos necesarios para la elaboración del videojuego.
+               c) Estructura de un proyecto de videojuegos.
+               d) Objetos del videojuego y componentes.
+               e) Interacciones entre los diferentes elementos del videojuego.
+               f) Conceptos básicos de iluminación y texturas de videojuegos.
+           3. Desarrollo de scripts del motor de videojuego.
+               a) Scripts básicos para la programación de los objetos del videojuego.
+               b) Funciones de eventos durante el juego.
+               c) Tiempo de los eventos y acciones. Orden de ejecución.
+               d) Herramientas de ayuda al scripting. Depuración, testeo y desarrollo.
+               e) Sistema de eventos para comunicación entre los objetos de la aplicación
+                  basados en la entrada.
+           4. Definición y configuración de la interfaz de usuario.
+               a) Orden de visualización de todos los objetos que contiene el juego.
+               b) Modos de renderizado de los objetos en la pantalla o contenedor del
+                  juego.
+               c) Tamaños y rotaciones de los elementos de la interfaz de usuario en la
+                  pantalla.
+               d) Animaciones del interfaz de usuario y su configuración.
+
