@@ -268,15 +268,27 @@ boletin = "BOE"
 url_pdf = "https://www.boe.es/boe/dias/2022/04/06/pdfs/BOE-A-2022-5521.pdf"
 url_api = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2022-5521"
 sha256 = "dcbbd5b2b34a503782f7be03afa3bf480db6cc63643f28a877ea23f9d11c1222"
-# La corrección toca el descriptor STEM4 del anexo I (pág. 46069, dos columnas), que sí
-# es del lote. El XML consolidado ya lo trae corregido, con tres puntos («símbolos...)»)
-# donde la corrección escribe «…»; la sustitución usa la forma del XML, de donde sale el
-# texto. Los RD 205/2023 y 535/2026 modifican las disposiciones adicional 3.3 y
-# transitoria 1.2 y el art. 23.4: nada del lote.
+# La corrección BOE-A-2022-16754 toca el descriptor STEM4 del anexo I (pág. 46069, en las dos
+# columnas: «símbolos.)» pasa a «símbolos…)»); el de Bachillerato es el de la segunda y solo
+# aparece una vez. Manda el texto publicado de la corrección (con «…», U+2026), no el
+# consolidado del XML, que no tiene validez jurídica y escribe tres puntos. `sustituciones`
+# lleva la página original a la forma corregida; `consolidado`, el XML a la corrección (de
+# donde sale el texto y la procedencia del descriptor); `correccion_en`, el lugar de la
+# corrección (su página del BOE). Los RD 205/2023 y 535/2026 modifican las disposiciones
+# adicional 3.3 y transitoria 1.2 y el art. 23.4: nada del lote.
 correcciones = ["boe-a-2022-16754"]
 modificada_por = ["boe-a-2023-7939", "boe-a-2026-14333"]
 estado = "vigente"
-sustituciones = [["símbolos.)", "símbolos...)"]]
+sustituciones = [["símbolos.)", "símbolos…)"]]
+
+[norma.correccion_en]
+norma = "boe-a-2022-16754"
+ubicacion = "corrección de errores, página 46069 (tabla de «Descriptores operativos», STEM4)"
+pagina = 139703
+
+[norma.consolidado]
+pagina = 46069
+pares = [["símbolos...)", "símbolos…)"]]
 
 # Descriptores de la columna «Bachillerato» del anexo I (CPSAA1, CPSAA3, CCEC3 y CCEC4 se
 # desdoblan en .1 y .2), contados en el texto del PDF.
@@ -701,6 +713,11 @@ modificada_por = ["bocm-20260925-20"]
 estado = "vigente"
 sustituciones = [["Phyton", "Python"], ["Phython", "Python"]]
 
+[norma.correccion_en]
+norma = "bocm-20260925-20"
+ubicacion = "disposición adicional única"
+pagina = 194
+
 # Optativos que se pueden ofrecer en DAM (anexo II): los 7 transversales a todos los ciclos
 # del apartado A (CMO-001F/I/A, 002F/I/A y 003; 001 y 002 son un único currículo para tres
 # lenguas, de ahí una ficha por variante con las mismas cifras) y los 9 de la familia IFC
@@ -715,9 +732,15 @@ sustituciones = [["Phyton", "Python"], ["Phython", "Python"]]
 # CMO-392; su anexo I da el catálogo vigente, de donde salen el curso de los transversales y
 # las horas, que el extractor cruza con las del encabezado de cada módulo.
 #
-# El nombre de CMO-315 sale del anexo II («Arquitectura en la nube»; el catálogo de la
-# Orden 3822/2026 dice «Arquitecturas») y el curso de CMO-002x («2º curso») lo dan los
-# anexos I de la Orden 3536/2025 y de la 3822/2026, no el anexo II que cita la procedencia.
+# Lo que una orden posterior corrige o renombra lleva esa orden en la procedencia y el lugar
+# original en `via`: el nombre de CMO-315 («Arquitectura en la nube» en el anexo II;
+# «Arquitecturas en la nube» en el catálogo vigente, anexo I de la Orden 3822/2026, p. 108) y
+# el de CMO-316 («Phyton» en el anexo II, ya «Python» en ese catálogo). La disposición
+# adicional única de la 3822/2026 (`correccion_en`, p. 194) sustituye además «Phyton» en
+# cualquier otro apartado; en los módulos del lote solo cambia el nombre de CMO-316 (el
+# «Programación (Phython)» del anexo II es de CMO-186, que no es del lote). El curso de CMO-002x
+# («2º curso») lo dan los anexos I de la Orden 3536/2025 y de la 3822/2026, no el anexo II que
+# cita la procedencia.
 
 [norma.recuentos."MAD.CMO.001F"]
 resultados = 4

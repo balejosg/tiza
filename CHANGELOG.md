@@ -7,7 +7,7 @@ se avisa aquí con **Cambia**.
 ## Sin publicar
 
 ### Añadido
-- **`tiza normativa`**: el agente consulta, sin red, la normativa de la Comunidad de Madrid del curso 2026-27 (ESO, Bachillerato y FP de Desarrollo de Aplicaciones Multiplataforma) y lo que exige de la programación, con código, texto literal y procedencia. La skill le obliga a consultarla antes de citar el currículo.
+- **`tiza normativa`**: el agente consulta, sin red, la normativa de la Comunidad de Madrid del curso 2026-27 (ESO, Bachillerato y FP de Desarrollo de Aplicaciones Multiplataforma) y lo que exige de la programación, con código, texto literal y procedencia. La skill le obliga a consultarla antes de citar el currículo. Lo que una norma posterior corrige o renombra (p. ej. STEM4, «Arquitecturas en la nube») cita esa norma y deja el original en `via`.
 
 ### Cambia
 - **README más corto y pensado para docentes**: qué puedes pedir, cómo funciona y

@@ -199,8 +199,18 @@ def comprobar_elemento(
         ]
 
     tabla = elemento.tipo in TIPOS_DE_TABLA
+    cmo = re.fullmatch(r"MAD\.CMO\.(\d{3})", elemento.codigo) if tabla else None
+
+    def en_catalogo() -> bool:
+        # el nombre de un módulo en el catálogo del anexo I se reparte en columnas
+        if cmo is None or pagina is None:
+            return False
+        lineas = documento.paginas[pagina].split("\n")
+        return comun.nombre_de_catalogo(lineas, f"CMO-{cmo[1]}") == elemento.texto
 
     def en_pdf() -> bool:
+        if en_catalogo():
+            return True
         if pagina is None:
             return aparece(
                 elemento.texto,
@@ -244,6 +254,8 @@ def comprobar_elemento(
                     f"{elemento.texto[:60]}…",
                 )
             )
+    if procedencia.via:
+        problemas = _con_via(elemento, problemas, documentos, fuentes)
     for via in procedencia.via:
         if via.norma not in documentos:
             problemas.append(
@@ -264,6 +276,115 @@ def comprobar_elemento(
     return problemas
 
 
+def _es_de(elemento: Elemento, norma: str, registro: Mapping[str, Any]) -> bool:
+    """¿Es un elemento de ``norma``? También lo es el que su corrección declarada (``correccion_en``)
+    cita, con ``norma`` como original en ``via``: sigue siendo uno de los suyos."""
+    procedencia = elemento.procedencia
+    if procedencia.norma == norma:
+        return True
+    correccion = registro.get("correccion_en")
+    return (
+        correccion is not None
+        and procedencia.norma == correccion["norma"]
+        and any(v.norma == norma for v in procedencia.via)
+    )
+
+
+def _relacionadas(a: str, b: str, fuentes: Mapping[str, Mapping[str, Any]]) -> bool:
+    """¿Declara ``fuentes.toml`` que una de las dos normas corrige o modifica a la otra?"""
+
+    def lista(id_: str, clave: str) -> set[str]:
+        return {r.split("#")[0] for r in fuentes.get(id_, {}).get(clave, [])}
+
+    claves = ("correcciones", "modifica", "modificada_por")
+    return any(b in lista(a, c) or a in lista(b, c) for c in claves)
+
+
+def _aparece_en(texto: str, pagina: int, documento: Documento, sustituciones, tabla: bool) -> bool:
+    return aparece(
+        texto,
+        documento.paginas[pagina],
+        documento.paginas.get(pagina + 1, ""),
+        sustituciones,
+        completo=True,
+        tabla=tabla,
+    )
+
+
+def _plano(texto: str) -> str:
+    return " ".join(comun.normalizar_unicode(texto).split())
+
+
+def _con_via(
+    elemento: Elemento,
+    problemas: list[Discrepancia],
+    documentos: Mapping[str, Documento],
+    fuentes: Mapping[str, Mapping[str, Any]],
+) -> list[Discrepancia]:
+    """Lo propio de un elemento con ``via``: la norma que cita y la original están relacionadas.
+
+    Un texto que no está en la página que cita (``problemas`` lo dice) vale si la corrige
+    la norma que cita: tras aplicar las ``sustituciones`` que declara la norma original, es el
+    de la página original, y la página de la corrección trae lo corregido.
+    """
+    procedencia = elemento.procedencia
+    resultado = list(problemas)
+    for via in procedencia.via:
+        if not _relacionadas(procedencia.norma, via.norma, fuentes):
+            resultado.append(
+                Discrepancia(
+                    "RELACION",
+                    elemento.codigo,
+                    f"«{procedencia.norma}» no figura en fuentes.toml como corrección o "
+                    f"modificación de «{via.norma}» (ni al revés)",
+                )
+            )
+    if not any(p.tipo == "TEXTO" for p in problemas):
+        return resultado
+    tabla = elemento.tipo in TIPOS_DE_TABLA
+    for via in procedencia.via:
+        original = documentos.get(via.norma)
+        if original is None or via.pagina is None or via.pagina not in original.paginas:
+            continue
+        registro = fuentes.get(via.norma, {})
+        pares = tuple((p[0], p[1]) for p in registro.get("sustituciones", []))
+        if not _aparece_en(elemento.texto, via.pagina, original, pares, tabla):
+            # un texto del XML consolidado (descriptores): se lee con las formas del XML
+            consolidado = registro.get("consolidado") or {}
+            en_xml = elemento.texto
+            for del_xml, publicada in consolidado.get("pares", []):
+                en_xml = en_xml.replace(publicada, del_xml)
+            if original.xml is None or not aparece(en_xml, original.xml, completo=True):
+                continue
+        # el texto es el original corregido: la página de la corrección tiene que traerlo
+        pagina_original = _plano(original.paginas[via.pagina])
+        corrige = documentos.get(procedencia.norma)
+        pagina = procedencia.pagina
+        aplicadas = [
+            correcto
+            for incorrecto, correcto in pares
+            if incorrecto in pagina_original and correcto in _plano(elemento.texto)
+        ]
+        if (
+            corrige is None
+            or pagina is None
+            or pagina not in corrige.paginas
+            or not any(c in _plano(corrige.paginas[pagina]) for c in aplicadas)
+        ):
+            resultado = [p for p in resultado if p.tipo != "TEXTO"]
+            resultado.append(
+                Discrepancia(
+                    "PROCEDENCIA",
+                    elemento.codigo,
+                    f"la página {pagina} de «{procedencia.norma}» no trae lo que corrige "
+                    f"de «{via.norma}»",
+                )
+            )
+            return resultado
+        return [p for p in resultado if p.tipo != "TEXTO"]
+    return resultado
+
+
 def comprobar_recuentos(
     ficha: Ficha, fuentes: Mapping[str, Mapping[str, Any]]
 ) -> list[Discrepancia]:
@@ -275,7 +396,7 @@ def comprobar_recuentos(
             continue
         for clave, esperado in esperados.items():
             tipo = comun.RECUENTOS.get(clave, clave)
-            hay = sum(1 for e in ficha.elementos if e.tipo == tipo and e.procedencia.norma == norma)
+            hay = sum(1 for e in ficha.elementos if e.tipo == tipo and _es_de(e, norma, registro))
             donde = f"{ficha.codigo} {clave}"
             if hay < esperado:
                 problemas.append(

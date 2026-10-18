@@ -799,6 +799,7 @@ class FilaCatalogo(NamedTuple):
     horas: int | None
     curso: str | None
     pagina: int | None
+    nombre: str | None = None  # el nombre del módulo, solo en los específicos
 
 
 def analizar_catalogo(lineas: Sequence[Linea], codigo: str) -> FilaCatalogo:
@@ -820,7 +821,8 @@ def analizar_catalogo(lineas: Sequence[Linea], codigo: str) -> FilaCatalogo:
         horas = re.search(r"\s(\d+)\s*$", resto[1])
         if horas is None:
             raise ValueError(f"{codigo}: la fila del catálogo no acaba en las horas")
-        return FilaCatalogo(int(horas[1]), None, linea.pagina)
+        nombre = comun.nombre_de_catalogo([l.texto for l in lineas], codigo)
+        return FilaCatalogo(int(horas[1]), None, linea.pagina, nombre)
     desde = posicion
     while desde > 0 and lineas[desde - 1].texto.strip():
         desde -= 1
@@ -1322,12 +1324,13 @@ def _extraer_optativo(args: argparse.Namespace) -> dict[str, Any]:
     if partido is None:
         raise SystemExit(f"{args.modulo}: no es un código de módulo optativo")
     curricular = partido[1]
-    sustituciones = tuple(
-        (par[0], par[1]) for par in comun.leer_fuentes()[args.madrid]["sustituciones"]
-    )
-    optativo = analizar_optativo(
-        comun.lineas_limpias(_texto(args.cache, args.madrid)), curricular, sustituciones
-    )
+    registro = comun.leer_fuentes()[args.madrid]
+    sustituciones = tuple((par[0], par[1]) for par in registro["sustituciones"])
+    lineas_madrid = comun.lineas_limpias(_texto(args.cache, args.madrid))
+    optativo = analizar_optativo(lineas_madrid, curricular, sustituciones)
+    # El mismo módulo tal como está en el boletín, sin la corrección: lo que difiere es lo que
+    # la corrección cambió, y esos elementos citan la norma que corrige, con el original en `via`.
+    original = analizar_optativo(lineas_madrid, curricular) if sustituciones else optativo
     catalogo = analizar_catalogo(
         comun.lineas_limpias(_texto(args.cache, args.catalogo)), args.modulo
     )
@@ -1336,38 +1339,65 @@ def _extraer_optativo(args: argparse.Namespace) -> dict[str, Any]:
             f"{args.modulo}: el catálogo dice {catalogo.horas} horas y el anexo II {optativo.horas}"
         )
     ubicacion = f"{args.ubicacion_madrid}, módulo {curricular}"
-    elementos = [
-        elemento_modulo(
-            optativo.nombre,
+    nombre = optativo.nombre
+    modulo = elemento_modulo(
+        nombre,
+        optativo.horas,
+        catalogo.curso,
+        ficha=args.ficha,
+        norma=args.madrid,
+        ubicacion=ubicacion,
+        pagina=optativo.pagina,
+    )
+    lugar_original = {"norma": args.madrid, "ubicacion": ubicacion, "pagina": optativo.pagina}
+    if catalogo.nombre is not None and catalogo.nombre != original.nombre:
+        # el catálogo vigente (anexo I de la modificadora) da otro nombre al módulo que el
+        # anexo II original: manda el catálogo y el anexo II queda en `via`
+        nombre = catalogo.nombre
+        modulo = elemento_modulo(
+            nombre,
             optativo.horas,
             catalogo.curso,
             ficha=args.ficha,
-            norma=args.madrid,
-            ubicacion=ubicacion,
-            pagina=optativo.pagina,
+            norma=args.catalogo,
+            ubicacion=f"anexo I, módulo {curricular}",
+            pagina=catalogo.pagina,
         )
-    ]
-    elementos += elementos_del_modulo(
-        optativo.modulo,
-        ficha=args.ficha,
-        norma=args.madrid,
-        ubicacion=args.ubicacion_madrid,
-        orden_inicial=len(elementos) + 1,
-    )
-    elementos += elementos_de_contenidos(
-        optativo.contenidos,
-        ficha=args.ficha,
-        norma=args.madrid,
-        ubicacion=f"{ubicacion}, contenidos",
-        orden_inicial=len(elementos) + 1,
-    )
+        modulo["procedencia"]["via"] = [lugar_original]
+    elif optativo.nombre != original.nombre:
+        modulo["procedencia"] = comun.procedencia_corregida(modulo["procedencia"], registro)
+
+    def cuerpo(o: Optativo) -> list[dict[str, Any]]:
+        elementos = elementos_del_modulo(
+            o.modulo,
+            ficha=args.ficha,
+            norma=args.madrid,
+            ubicacion=args.ubicacion_madrid,
+            orden_inicial=2,
+        )
+        return elementos + elementos_de_contenidos(
+            o.contenidos,
+            ficha=args.ficha,
+            norma=args.madrid,
+            ubicacion=f"{ubicacion}, contenidos",
+            orden_inicial=len(elementos) + 2,
+        )
+
+    elementos = cuerpo(optativo)
+    if original is not optativo:
+        sin_corregir = {e["codigo"]: e["texto"] for e in cuerpo(original)}
+        if set(sin_corregir) != {e["codigo"] for e in elementos}:
+            raise SystemExit(f"{args.modulo}: la corrección cambia la estructura del módulo")
+        for e in elementos:
+            if sin_corregir[e["codigo"]] != e["texto"]:
+                e["procedencia"] = comun.procedencia_corregida(e["procedencia"], registro)
     return _ficha_de_fp(
         args.ficha,
-        optativo.nombre,
+        nombre,
         catalogo.curso,
         args.cursos_academicos,
         [args.madrid, args.catalogo],
-        elementos,
+        [modulo, *elementos],
     )
 
 

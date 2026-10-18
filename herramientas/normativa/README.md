@@ -149,6 +149,15 @@ certificar el boletín. Sus límites:
 - **Las `sustituciones` de `fuentes.toml`** son correcciones de errores oficiales declaradas
   («Phyton» por «Python»): el texto guardado difiere a propósito de la página y `comprobar`
   aplica el par a la página antes de comparar. Lo que no está declarado ahí no se perdona.
+- **Un elemento cuyo texto no es el de la página original** porque una norma posterior lo
+  corrige o lo renombra lleva esa norma en `procedencia.norma` (con su ubicación y página,
+  declaradas en `correccion_en`) y el lugar original en `procedencia.via`; el extractor lo pone
+  solo, a partir de `fuentes.toml` (`sustituciones`, `correccion_en`, `consolidado`) y del
+  catálogo vigente, nunca a mano. `comprobar` exige: el texto, tras aplicar las `sustituciones`
+  de la norma original (o su forma del XML consolidado, `consolidado`), está en la página de
+  `via`; la página de la corrección trae lo corregido; y las dos normas figuran relacionadas
+  (`correcciones`, `modifica`, `modificada_por`). Un nombre renombrado en el catálogo se lee
+  del catálogo por columnas y se compara con el mismo lector. Sin eso, discrepancia.
 - **El descifrado de la Orden 3537/2025** (`cifrado.py`) lo comparten el extractor y
   `comprobar`: leen el mismo PDF por el mismo descifrado, así que un glifo mal traducido sale
   igual en los dos y la comparación no lo ve. Su única salvaguarda independiente es la

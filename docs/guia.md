@@ -41,7 +41,8 @@ los descriptores del perfil de salida; y lo que la normativa exige de la program
 (`tiza normativa programacion eso|bachillerato|fp`). El texto es el literal del
 boletín, con las correcciones de errores oficiales de su norma ya aplicadas
 (`tiza normativa norma "<cita>"` las lista), y cada elemento lleva su código y su
-procedencia. Lo que no está responde
+procedencia; si una norma posterior lo corrige o lo renombra, la procedencia nombra esa
+corrección y `via` el texto original. Lo que no está responde
 `NORMATIVA_SIN_DATOS`; un curso sin datos, `CURSO_SIN_DATOS` (prueba `tiza actualizar`).
 El agente no busca normativa en internet: si necesitas una norma que no está,
 déjale su PDF en la carpeta.

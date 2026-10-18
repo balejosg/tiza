@@ -25,6 +25,8 @@ __all__ = [
     "Linea",
     "convertir_pdf",
     "leer_fuentes",
+    "nombre_de_catalogo",
+    "procedencia_corregida",
     "lineas_de",
     "lineas_limpias",
     "norma_para_el_paquete",
@@ -60,7 +62,7 @@ _OPCIONALES_LISTA = (
     "derogaciones_parciales",
     "citas",
 )
-SOLO_MANTENEDOR = ("recuentos", "sustituciones", "cifrado")
+SOLO_MANTENEDOR = ("recuentos", "sustituciones", "cifrado", "correccion_en", "consolidado")
 
 # Los recuentos se nombran como se habla del anexo; cualquier tipo de elemento vale tal cual.
 RECUENTOS = {
@@ -321,7 +323,56 @@ def _leer_registro(id_: str, entrada: Any) -> dict[str, Any]:
     registro["cifrado"] = cifrado
     registro["recuentos"] = _leer_recuentos(id_, entrada.get("recuentos", {}))
     registro["sustituciones"] = _leer_sustituciones(id_, entrada.get("sustituciones", []))
+    registro["correccion_en"] = _leer_correccion_en(id_, entrada, registro)
+    registro["consolidado"] = _leer_consolidado(id_, entrada.get("consolidado"))
     return registro
+
+
+def _leer_correccion_en(
+    id_: str, entrada: dict[str, Any], registro: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Dónde está, en la norma que corrige o modifica ésta, lo que hacen las ``sustituciones``."""
+    bruto = entrada.get("correccion_en")
+    if bruto is None:
+        return None
+    if not (
+        isinstance(bruto, dict)
+        and set(bruto) == {"norma", "ubicacion", "pagina"}
+        and isinstance(bruto["norma"], str)
+        and isinstance(bruto["ubicacion"], str)
+        and bruto["ubicacion"]
+        and type(bruto["pagina"]) is int
+        and bruto["pagina"] > 0
+    ):
+        raise ValueError(f"{id_}: «correccion_en» debe tener norma, ubicacion y pagina")
+    relacionadas = {
+        r.split("#")[0] for r in (*registro["correcciones"], *registro["modificada_por"])
+    }
+    if bruto["norma"] not in relacionadas:
+        raise ValueError(
+            f"{id_}: «correccion_en» cita «{bruto['norma']}», que no la corrige ni la modifica"
+        )
+    if not entrada.get("sustituciones"):
+        raise ValueError(f"{id_}: «correccion_en» sin «sustituciones» que corregir")
+    return dict(bruto)
+
+
+def _leer_consolidado(id_: str, bruto: Any) -> dict[str, Any] | None:
+    """La lectura del XML consolidado que difiere de la corrección publicada.
+
+    ``pares`` son (forma del consolidado, forma de la corrección publicada) y ``pagina``,
+    la del PDF original donde está lo corregido.
+    """
+    if bruto is None:
+        return None
+    if not (
+        isinstance(bruto, dict)
+        and set(bruto) == {"pagina", "pares"}
+        and type(bruto["pagina"]) is int
+        and bruto["pagina"] > 0
+    ):
+        raise ValueError(f"{id_}: «consolidado» debe tener pagina y pares")
+    return {"pagina": bruto["pagina"], "pares": _leer_sustituciones(id_, bruto["pares"])}
 
 
 def _como_texto(valor: Any) -> str:
@@ -362,3 +413,101 @@ def _leer_sustituciones(id_: str, bruto: Any) -> list[list[str]]:
 def norma_para_el_paquete(registro: dict[str, Any]) -> dict[str, Any]:
     """El registro sin las claves del mantenedor: lo que puede ir a ``normas/<id>.json``."""
     return {c: v for c, v in registro.items() if c not in SOLO_MANTENEDOR}
+
+
+def procedencia_corregida(original: dict[str, Any], registro: dict[str, Any]) -> dict[str, Any]:
+    """La procedencia de un texto que una norma posterior corrige o renombra.
+
+    ``norma`` pasa a ser la que corrige (con su ubicación y página, que declara ``fuentes.toml``
+    en ``correccion_en``) y ``via``, el lugar original (``original``, sin ``via``).
+    """
+    correccion = registro.get("correccion_en")
+    if correccion is None:
+        raise ValueError(f"«{original['norma']}» no declara «correccion_en» en fuentes.toml")
+    if original.get("via"):
+        raise ValueError("una procedencia que ya tiene vía no se corrige otra vez")
+    return {
+        "norma": correccion["norma"],
+        "ubicacion": correccion["ubicacion"],
+        "pagina": correccion["pagina"],
+        "via": [dict(original)],
+    }
+
+
+# --- catálogo en columnas ---------------------------------------------------------------------
+
+_FAMILIA_INICIO = re.compile(r"Informática\s+y(?=\s)")
+_FAMILIA_FIN = re.compile(r"^\s*(?:CMO-\s*\d{3}\s+[A-Z]{3}\s+)?[Cc]omunicaciones\b")
+_CODIGO_DE_FILA = re.compile(r"CMO-\s*\d{3}\b")
+_COLA_DE_FILA = re.compile(r"\s{3,}.*$")  # las horas y la atribución, tras un hueco ancho
+
+
+def _columna_del_nombre(lineas: list[str], cerca_de: int) -> int | None:
+    """Dónde empieza el nombre del módulo: pegado a la «Informática y» de la familia más cercana.
+
+    La sangría cambia de una página a otra, así que se busca junto a la fila, no en todo el texto.
+    """
+    for distancia in range(0, 9):
+        for i in {cerca_de - distancia, cerca_de + distancia}:
+            if 0 <= i < len(lineas) and (
+                m := re.search(r"Informática\s+y(\s{1,4})(?=[^\s\d])", lineas[i])
+            ):
+                return m.end()
+    return None
+
+
+def nombre_de_catalogo(lineas: list[str], codigo: str) -> str | None:
+    """El nombre del módulo ``codigo`` («CMO-316») en el catálogo del anexo I, en columnas.
+
+    La familia («Informática y» / «comunicaciones») ocupa dos líneas a ambos lados de la del
+    código, y el nombre se reparte en ellas, en la columna siguiente: se lee esa columna. Un
+    nombre de tres líneas desborda una línea por arriba o por abajo. ``None`` si no hay
+    nombre que leer (los transversales, que no lo traen).
+    """
+    fila = re.compile(rf"CMO-\s*{re.escape(codigo.removeprefix('CMO-'))}\b")
+    posicion = next((i for i, l in enumerate(lineas) if fila.search(l)), None)
+    if posicion is None:
+        return None
+    columna = _columna_del_nombre(lineas, posicion)
+    if columna is None:
+        return None
+    arriba = next(
+        (
+            i
+            for i in range(posicion, max(posicion - 3, -1), -1)
+            if _FAMILIA_INICIO.search(lineas[i])
+        ),
+        None,
+    )
+    abajo = next(
+        (
+            i
+            for i in range(posicion, min(posicion + 3, len(lineas)))
+            if _FAMILIA_FIN.match(lineas[i])
+        ),
+        None,
+    )
+    if arriba is None or abajo is None:
+        return None
+
+    def parte(i: int) -> str:
+        resto = lineas[i][columna:]
+        return _COLA_DE_FILA.sub("", resto).strip()
+
+    def es_de_nombre(i: int) -> bool:
+        linea = lineas[i]
+        return (
+            bool(linea.strip())
+            and not _CODIGO_DE_FILA.search(linea)
+            and not _FAMILIA_INICIO.search(linea)
+            and not _FAMILIA_FIN.match(linea)
+            and linea[:columna].strip() == ""
+        )
+
+    indices = list(range(arriba, abajo + 1))
+    if arriba > 0 and es_de_nombre(arriba - 1) and parte(arriba - 1):
+        indices.insert(0, arriba - 1)
+    if abajo + 1 < len(lineas) and es_de_nombre(abajo + 1) and parte(abajo + 1):
+        indices.append(abajo + 1)
+    partes = [parte(i) for i in indices]
+    return unir([p for p in partes if p]) or None

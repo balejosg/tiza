@@ -101,8 +101,19 @@ def test_recuentos_por_ficha(indice, fuentes, comun):
             anotado = True
             for clave, esperado in esperados.items():
                 tipo = comun.RECUENTOS.get(clave, clave)
+                correccion = (registro.get("correccion_en") or {}).get("norma")
                 hay = sum(
-                    1 for e in ficha.elementos if e.tipo == tipo and e.procedencia.norma == norma
+                    1
+                    for e in ficha.elementos
+                    if e.tipo == tipo
+                    and (
+                        e.procedencia.norma == norma
+                        # lo que la corrección declarada de la norma cambia sigue siendo suyo
+                        or (
+                            e.procedencia.norma == correccion
+                            and any(v.norma == norma for v in e.procedencia.via)
+                        )
+                    )
                 )
                 if hay != esperado:
                     fallos.append(f"{ficha.codigo} {clave} en {norma}: {esperado} != {hay}")
@@ -210,3 +221,49 @@ def test_ningun_texto_tiene_marcas_combinantes(indice):
             if any(unicodedata.category(c) == "Mn" for c in unicodedata.normalize("NFC", texto)):
                 malos.append(donde)
     assert not malos
+
+
+def test_ningun_texto_del_paquete_lleva_la_grafia_corregida_de_python(indice):
+    malos = []
+    for f in indice.fichas.values():
+        for texto, donde in [(f.nombre, f.codigo)] + [(e.texto, e.codigo) for e in f.elementos]:
+            if re.search(r"phy?thon", texto, re.IGNORECASE):
+                malos.append(donde)
+    assert not malos
+
+
+def test_stem4_de_bachillerato_es_el_texto_de_la_correccion(indice):
+    (stem4,) = [e for e in indice.fichas["EST.BACH.DESC"].elementos if e.codigo.endswith(".STEM4")]
+    assert "esquemas, símbolos…) y aprovechando" in stem4.texto
+    assert "..." not in stem4.texto
+    assert stem4.procedencia.norma == "boe-a-2022-16754"
+    assert stem4.procedencia.pagina == 139703
+    (via,) = stem4.procedencia.via
+    assert (via.norma, via.ubicacion, via.pagina) == ("boe-a-2022-5521", "anexo I", 46069)
+
+
+def test_los_nombres_de_cmo_315_y_316_citan_el_catalogo_vigente_con_el_anexo_ii_en_via(indice):
+    for codigo, pagina_ii in (("MAD.CMO.315", 197), ("MAD.CMO.316", 203)):
+        modulo = next(e for e in indice.fichas[codigo].elementos if e.tipo == "modulo")
+        assert (modulo.procedencia.norma, modulo.procedencia.pagina) == ("bocm-20260925-20", 108)
+        (via,) = modulo.procedencia.via
+        assert (via.norma, via.pagina) == ("bocm-20250827-5", pagina_ii)
+    assert indice.fichas["MAD.CMO.315"].nombre == "Arquitecturas en la nube"
+
+
+def test_todo_texto_que_una_norma_posterior_corrige_lleva_via(indice, fuentes):
+    # lo que cita una corrección declarada (`correccion_en`) es lo que ésta cambia: el
+    # original queda en `via`; y lo que cita la norma original no puede traer ya su error
+    correctoras = {
+        r["correccion_en"]["norma"]: id_ for id_, r in fuentes.items() if r["correccion_en"]
+    }
+    for ficha in indice.fichas.values():
+        for e in ficha.elementos:
+            if e.procedencia.norma in correctoras and e.procedencia.norma != "bocm-20260925-20":
+                assert [v.norma for v in e.procedencia.via] == [correctoras[e.procedencia.norma]]
+    for id_, registro in fuentes.items():
+        for incorrecto, _ in registro["sustituciones"]:
+            for ficha in indice.fichas.values():
+                for e in ficha.elementos:
+                    if e.procedencia.norma == id_ and not e.procedencia.via:
+                        assert incorrecto not in e.texto, (e.codigo, incorrecto)

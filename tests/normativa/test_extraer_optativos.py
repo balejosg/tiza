@@ -18,6 +18,7 @@ FUENTES = Path(__file__).parents[2] / "herramientas" / "normativa" / "fuentes"
 ORDEN = "bocm-20250827-5"
 MODIFICADORA = "bocm-20260925-20"
 SUSTITUCIONES = (("Phyton", "Python"), ("Phython", "Python"))
+PAGINA_CATALOGO = 108
 
 CURRICULO_A = FUENTES / f"{ORDEN}_anexo-ii_cmo-001-003.txt"
 CURRICULO_IFC = FUENTES / f"{ORDEN}_anexo-ii_cmo-310-318.txt"
@@ -315,7 +316,13 @@ def comprobar_todo(tmp_path: Path, *, con_correccion: bool = True):
     comprobar = herramienta("comprobar")
     limpiar_cache()
     documentos = comprobar.cargar_documentos(tmp_path / "cache", [ORDEN, MODIFICADORA])
-    fuentes = {ORDEN: {"sustituciones": [list(s) for s in SUSTITUCIONES]}} if con_correccion else {}
+    fuentes = {
+        ORDEN: {
+            "sustituciones": [list(s) for s in SUSTITUCIONES] if con_correccion else [],
+            "modificada_por": [MODIFICADORA],
+        },
+        MODIFICADORA: {"modifica": [ORDEN]},
+    }
     return comprobar.comprobar_datos(tmp_path / "datos", documentos, fuentes)
 
 
@@ -330,11 +337,13 @@ def test_ficha_de_un_especifico_con_la_correccion_de_python(tmp_path):
     assert ficha["normas"] == [ORDEN, MODIFICADORA]
     modulo = ficha["elementos"][0]
     assert modulo["datos"] == {"horas": 90}
-    # la corrección de «Phyton» no cambia el lugar: la procedencia sigue siendo el anexo II, sin `via`
+    # el catálogo vigente (Orden 3822/2026, anexo I) ya da el nombre corregido: la procedencia
+    # es ese catálogo y el anexo II original, con su «Phyton», queda en `via`
     assert modulo["procedencia"] == {
-        "norma": ORDEN,
-        "ubicacion": "anexo II, módulo CMO-316",
-        "pagina": 203,
+        "norma": MODIFICADORA,
+        "ubicacion": "anexo I, módulo CMO-316",
+        "pagina": PAGINA_CATALOGO,
+        "via": [{"norma": ORDEN, "ubicacion": "anexo II, módulo CMO-316", "pagina": 203}],
     }
     ra = next(e for e in ficha["elementos"] if e["codigo"] == "MAD.CMO.316.RA.2")
     assert ra["procedencia"] == {
@@ -392,11 +401,95 @@ def test_las_horas_del_catalogo_y_del_anexo_ii_tienen_que_coincidir(tmp_path):
         extraer_optativo(tmp_path, "CMO-314")
 
 
-def test_sin_la_correccion_declarada_el_texto_corregido_no_aparece_en_el_boletin(tmp_path):
-    extraer_optativo(tmp_path, "CMO-316")
-    # el boletín dice «Phyton»: lo guardado («Python») solo vale si la corrección está declarada
-    problemas = comprobar_todo(tmp_path, con_correccion=False)
-    assert [(d.tipo, d.donde) for d in problemas] == [("TEXTO", "MAD.CMO.316")]
+def test_el_catalogo_renombra_cmo_315_y_el_anexo_ii_queda_en_via(tmp_path):
+    ficha = extraer_optativo(tmp_path, "CMO-315")
+    assert ficha["nombre"] == "Arquitecturas en la nube"
+    modulo = ficha["elementos"][0]
+    assert modulo["texto"] == "Arquitecturas en la nube"
+    assert modulo["procedencia"]["norma"] == MODIFICADORA
+    assert modulo["procedencia"]["via"] == [
+        {"norma": ORDEN, "ubicacion": "anexo II, módulo CMO-315", "pagina": 197}
+    ]
+    # el resto del currículo no cambia de procedencia
+    assert all("via" not in e["procedencia"] for e in ficha["elementos"][1:])
+    assert comprobar_todo(tmp_path) == []
+
+
+def test_sin_relacion_declarada_entre_las_ordenes_el_renombrado_es_discrepancia(tmp_path):
+    from tiza.normativa import limpiar_cache
+
+    extraer_optativo(tmp_path, "CMO-315")
+    limpiar_cache()
+    comprobar = herramienta("comprobar")
+    documentos = comprobar.cargar_documentos(tmp_path / "cache", [ORDEN, MODIFICADORA])
+    problemas = comprobar.comprobar_datos(tmp_path / "datos", documentos, {})
+    assert [(d.tipo, d.donde) for d in problemas] == [("RELACION", "MAD.CMO.315")]
+
+
+def test_un_renombrado_que_no_esta_en_el_catalogo_es_texto(tmp_path):
+    extraer_optativo(tmp_path, "CMO-315")
+    ruta = tmp_path / "datos" / "fichas" / "MAD.CMO.315.json"
+    ficha = json.loads(ruta.read_text(encoding="utf-8"))
+    ficha["elementos"][0]["texto"] = "Arquitecturas de la nube"
+    ruta.write_text(json.dumps(ficha), encoding="utf-8")
+    assert [(d.tipo, d.donde) for d in comprobar_todo(tmp_path)] == [("TEXTO", "MAD.CMO.315")]
+
+
+def test_un_elemento_que_la_correccion_cambia_cita_la_correccion_con_el_original_en_via(tmp_path):
+    cache = cache_optativos(tmp_path)
+    ruta = cache / f"{ORDEN}.txt"
+    ruta.write_text(
+        ruta.read_text(encoding="utf-8").replace(
+            "Identificación de los elementos de un programa informático.",
+            "Identificación de los elementos de un programa en Phyton.",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    # la página de la disposición adicional única de la modificadora
+    destino = cache / f"{MODIFICADORA}.txt"
+    destino.write_text(
+        destino.read_text(encoding="utf-8")
+        + "\fPág. 194   VIERNES 25 DE SEPTIEMBRE DE 2026   B.O.C.M. Núm. 229\n"
+        + "   DISPOSICIÓN ADICIONAL ÚNICA\n   se sustituye por la forma correcta: Python.\n",
+        encoding="utf-8",
+    )
+    ficha = extraer_optativo(tmp_path, "CMO-316")
+    (co,) = [
+        e for e in ficha["elementos"] if "en Python." in e["texto"] and e["tipo"] == "contenido"
+    ]
+    assert co["texto"] == "Identificación de los elementos de un programa en Python."
+    assert co["procedencia"]["norma"] == MODIFICADORA
+    assert (co["procedencia"]["ubicacion"], co["procedencia"]["pagina"]) == (
+        "disposición adicional única",
+        194,
+    )
+    (via,) = co["procedencia"]["via"]
+    assert (via["norma"], via["ubicacion"]) == (ORDEN, "anexo II, módulo CMO-316, contenidos")
+    assert comprobar_todo(tmp_path) == []
+    # sin la sustitución declarada en la orden original, la página original no casa
+    assert [(d.tipo, d.donde) for d in comprobar_todo(tmp_path, con_correccion=False)] == [
+        ("TEXTO", co["codigo"])
+    ]
+
+
+def test_el_nombre_del_catalogo_es_el_del_anexo_ii_salvo_en_cmo_315():
+    fp = herramienta("extraer_fp")
+    catalogo = lineas(CATALOGO_IFC)
+    curricular = lineas(CURRICULO_IFC)
+    diferentes = {}
+    for n in range(310, 319):
+        codigo = f"CMO-{n}"
+        del_catalogo = fp.analizar_catalogo(catalogo, codigo).nombre
+        del_anexo = fp.analizar_optativo(curricular, codigo, sustituciones=SUSTITUCIONES).nombre
+        if del_catalogo != del_anexo:
+            diferentes[codigo] = (del_catalogo, del_anexo)
+    assert diferentes == {"CMO-315": ("Arquitecturas en la nube", "Arquitectura en la nube")}
+
+
+def test_el_catalogo_de_los_transversales_no_trae_nombre():
+    fp = herramienta("extraer_fp")
+    assert fp.analizar_catalogo(lineas(CATALOGO_A), "CMO-002I").nombre is None
 
 
 def test_un_nombre_distinto_del_encabezado_se_rechaza(tmp_path):

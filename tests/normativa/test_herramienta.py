@@ -15,7 +15,7 @@ from types import ModuleType
 
 import pytest
 
-from tiza.normativa import Elemento, Procedencia, cargar, limpiar_cache
+from tiza.normativa import Elemento, Ficha, Procedencia, cargar, limpiar_cache
 
 SINTETICOS = Path(__file__).parent / "datos_sinteticos"
 
@@ -963,3 +963,222 @@ def test_comprobar_solo_exime_del_codigo_de_la_ficha_a_los_modulos(tmp_path):
     ruta.write_text(json.dumps(ficha, ensure_ascii=False), encoding="utf-8")
     limpiar_cache()
     assert codigos(destino) == []
+
+
+# --- textos corregidos o renombrados por una norma posterior (`via`) ---------------------------
+
+
+def _corregido(texto: str, pagina_via: int | None = 5, norma="corrige-1", via="original-1"):
+    return Elemento(
+        codigo="EST.X.DESC.D1",
+        tipo="descriptor",
+        texto=texto,
+        procedencia=Procedencia(
+            norma=norma,
+            ubicacion="corrección de errores",
+            pagina=2,
+            via=(Procedencia(norma=via, ubicacion="anexo I", pagina=pagina_via),),
+        ),
+        padre=None,
+    )
+
+
+def _mundo(original: str = "Usa símbolos.) y más.", correccion: str = "dice: símbolos…)"):
+    comprobar = herramienta("comprobar")
+    documentos = {
+        "original-1": comprobar.Documento(paginas={5: original}),
+        "corrige-1": comprobar.Documento(paginas={2: correccion}),
+    }
+    fuentes = {
+        "original-1": {
+            "sustituciones": [["símbolos.)", "símbolos…)"]],
+            "correcciones": ["corrige-1"],
+            "modifica": [],
+            "modificada_por": [],
+        },
+        "corrige-1": {"correcciones": [], "modifica": [], "modificada_por": []},
+    }
+    return documentos, fuentes
+
+
+def test_comprobar_un_texto_corregido_se_verifica_en_la_pagina_original_con_la_correccion():
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo()
+    assert (
+        comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes) == []
+    )
+
+
+def test_comprobar_un_texto_corregido_que_no_casa_con_la_pagina_original_es_texto():
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo()
+    informe = comprobar.comprobar_elemento(
+        _corregido("Usa otra cosa…) y más."), documentos, fuentes
+    )
+    assert _tipos(informe) == ["TEXTO"]
+    # sin la sustitución declarada en la norma original, el texto corregido tampoco casa
+    fuentes["original-1"]["sustituciones"] = []
+    informe = comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes)
+    assert _tipos(informe) == ["TEXTO"]
+
+
+def test_comprobar_la_norma_que_corrige_tiene_que_estar_relacionada_con_la_original():
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo()
+    fuentes["original-1"]["correcciones"] = []
+    informe = comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes)
+    assert _tipos(informe) == ["RELACION"]
+    # vale que la relación la declare la norma que corrige («modifica»)
+    fuentes["corrige-1"]["modifica"] = ["original-1"]
+    assert (
+        comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes) == []
+    )
+    # y la fragmentada («#da-unica») cuenta
+    fuentes["corrige-1"]["modifica"] = []
+    fuentes["original-1"]["correcciones"] = ["corrige-1#da-unica"]
+    assert (
+        comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes) == []
+    )
+
+
+def test_comprobar_la_pagina_de_la_correccion_tiene_que_traer_lo_corregido():
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo(correccion="dice: otra cosa")
+    informe = comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes)
+    assert _tipos(informe) == ["PROCEDENCIA"]
+
+
+def test_comprobar_una_via_sin_la_pagina_original_no_vale_para_un_texto_corregido():
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo()
+    informe = comprobar.comprobar_elemento(
+        _corregido("Usa símbolos…) y más.", pagina_via=None), documentos, fuentes
+    )
+    assert _tipos(informe) == ["TEXTO"]
+
+
+def test_comprobar_un_texto_con_via_que_esta_en_su_propia_pagina_solo_pide_la_relacion():
+    # un módulo renombrado en el catálogo vigente: el texto nuevo está en la página de la
+    # norma que cita, y la original (con otro nombre) queda en `via`
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo(correccion="Usa símbolos…) y más.")
+    assert (
+        comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes) == []
+    )
+    fuentes["original-1"]["correcciones"] = []
+    informe = comprobar.comprobar_elemento(_corregido("Usa símbolos…) y más."), documentos, fuentes)
+    assert _tipos(informe) == ["RELACION"]
+
+
+def test_descriptor_corregido_cita_la_correccion_con_el_original_en_via():
+    modulo = herramienta("extraer_descriptores")
+    registro = {
+        "consolidado": {"pagina": 46069, "pares": [["símbolos...)", "símbolos…)"]]},
+        "correccion_en": {"norma": "boe-a-2022-16754", "ubicacion": "corrección", "pagina": 139703},
+    }
+    ficha = modulo.ficha_descriptores(
+        {"STEM4": "Usa fórmulas, símbolos...) y más.", "STEM5": "Otro descriptor..."},
+        norma="boe-a-2022-5521",
+        etapa="bachillerato",
+        cursos_academicos=["2026-27"],
+        registro=registro,
+    )
+    stem4, stem5 = ficha["elementos"]
+    assert stem4["texto"] == "Usa fórmulas, símbolos…) y más."
+    assert stem4["procedencia"] == {
+        "norma": "boe-a-2022-16754",
+        "ubicacion": "corrección",
+        "pagina": 139703,
+        "via": [{"norma": "boe-a-2022-5521", "ubicacion": "anexo I", "pagina": 46069}],
+    }
+    assert stem5["procedencia"] == {
+        "norma": "boe-a-2022-5521",
+        "ubicacion": "anexo I",
+        "pagina": None,
+    }
+    assert ficha["normas"] == ["boe-a-2022-5521", "boe-a-2022-16754"]
+
+
+def test_lector_de_fuentes_correccion_en_y_consolidado(tmp_path):
+    comun = herramienta("comun")
+    ruta = tmp_path / "fuentes.toml"
+    bueno = FUENTES_TOML.replace(
+        'sustituciones = [["phyton", "Python"]]\n',
+        'sustituciones = [["phyton", "Python"]]\n\n[norma.correccion_en]\n'
+        'norma = "bocm-20240101-9"\nubicacion = "disposición"\npagina = 7\n',
+    )
+    ruta.write_text(bueno, encoding="utf-8")
+    orden = comun.leer_fuentes(ruta)["bocm-20230531-18"]
+    assert orden["correccion_en"] == {
+        "norma": "bocm-20240101-9",
+        "ubicacion": "disposición",
+        "pagina": 7,
+    }
+    assert orden["consolidado"] is None
+    assert comun.procedencia_corregida(
+        {"norma": "bocm-20230531-18", "ubicacion": "anexo", "pagina": 3}, orden
+    ) == {
+        "norma": "bocm-20240101-9",
+        "ubicacion": "disposición",
+        "pagina": 7,
+        "via": [{"norma": "bocm-20230531-18", "ubicacion": "anexo", "pagina": 3}],
+    }
+    for roto, motivo in (
+        (bueno.replace('norma = "bocm-20240101-9"', 'norma = "bocm-20990101-1"'), "correccion_en"),
+        (bueno.replace("pagina = 7", "pagina = 0"), "correccion_en"),
+        (bueno.replace('ubicacion = "disposición"\n', ""), "correccion_en"),
+    ):
+        ruta.write_text(roto, encoding="utf-8")
+        with pytest.raises(ValueError, match=motivo):
+            comun.leer_fuentes(ruta)
+    with pytest.raises(ValueError, match="correccion_en"):
+        comun.procedencia_corregida({"norma": "x", "ubicacion": "a", "pagina": 1}, {})
+
+
+def _mundo_con_xml(xml: str = "Usa símbolos...) y más."):
+    # el original solo se verifica en el XML consolidado (sus descriptores no tienen página
+    # legible en el PDF): la página del PDF solo dice dónde estaba el error
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo(original="Otra columna. símbolos.) aparte")
+    documentos["original-1"] = comprobar.Documento(
+        paginas=documentos["original-1"].paginas, xml=xml
+    )
+    fuentes["original-1"]["consolidado"] = {"pagina": 5, "pares": [["símbolos...)", "símbolos…)"]]}
+    return documentos, fuentes
+
+
+def test_comprobar_un_texto_corregido_se_verifica_en_el_xml_con_la_forma_del_consolidado():
+    comprobar = herramienta("comprobar")
+    documentos, fuentes = _mundo_con_xml()
+    bueno = _corregido("Usa símbolos…) y más.")
+    assert comprobar.comprobar_elemento(bueno, documentos, fuentes) == []
+    # el texto no es el del XML
+    malo = _corregido("Usa otra cosa…) y más.")
+    assert _tipos(comprobar.comprobar_elemento(malo, documentos, fuentes)) == ["TEXTO"]
+    # la página original no trae el error que dice corregir la corrección
+    documentos["original-1"].paginas[5] = "Otra columna sin el error"
+    assert _tipos(comprobar.comprobar_elemento(bueno, documentos, fuentes)) == ["PROCEDENCIA"]
+
+
+def test_comprobar_los_recuentos_cuentan_los_elementos_que_la_correccion_declarada_toma():
+    comprobar = herramienta("comprobar")
+    fuentes = {
+        "original-1": {
+            "recuentos": {"EST.X.DESC": {"descriptores": 1}},
+            "correccion_en": {"norma": "corrige-1", "ubicacion": "c", "pagina": 2},
+        },
+        "corrige-1": {"recuentos": {"EST.X.DESC": {"descriptores": 0}}},
+    }
+    ficha = Ficha(
+        codigo="EST.X.DESC",
+        nombre="x",
+        etapa="bachillerato",
+        curso=None,
+        cursos_academicos=("2026-27",),
+        normas=("original-1", "corrige-1"),
+        elementos=(_corregido("Usa símbolos…) y más."),),
+    )
+    # corregido por «corrige-1» y con «original-1» en `via`: sigue siendo uno de los de «original-1»
+    assert [str(d) for d in comprobar.comprobar_recuentos(ficha, fuentes)] == [
+        "SOBRA EST.X.DESC descriptores: «corrige-1» tiene 0 y la ficha 1"
+    ]

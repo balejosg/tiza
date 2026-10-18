@@ -19,7 +19,7 @@ import argparse
 import re
 import sys
 import xml.etree.ElementTree as ET
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
@@ -80,27 +80,51 @@ def ficha_descriptores(
     etapa: str,
     cursos_academicos: Sequence[str],
     ubicacion: str = "anexo I",
+    registro: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """La ficha ``EST.<ETAPA>.DESC`` con un elemento por descriptor (procedencia sin página)."""
+    """La ficha ``EST.<ETAPA>.DESC`` con un elemento por descriptor (procedencia sin página).
+
+    El XML consolidado puede diferir de la corrección de errores publicada. Si el ``registro``
+    de la norma en ``fuentes.toml`` declara ``consolidado``, el texto de un descriptor que
+    contenga una de sus formas se sustituye por la de la corrección, y su procedencia pasa a
+    ser la de la corrección con el lugar original (anexo I, página del PDF) en ``via``.
+    """
     abreviatura = ETAPAS[etapa]
     codigo = f"EST.{abreviatura}.DESC"
+    consolidado = registro.get("consolidado") if registro else None
+
+    def elemento(orden: int, descriptor: str, texto: str) -> dict[str, Any]:
+        procedencia: dict[str, Any] = {"norma": norma, "ubicacion": ubicacion, "pagina": None}
+        if consolidado:
+            corregido = texto
+            for consolidada, publicada in consolidado["pares"]:
+                corregido = corregido.replace(consolidada, publicada)
+            if corregido != texto:
+                texto = corregido
+                original = {**procedencia, "pagina": consolidado["pagina"]}
+                assert registro is not None
+                procedencia = comun.procedencia_corregida(original, dict(registro))
+        return {
+            "codigo": f"{codigo}.{descriptor}",
+            "tipo": "descriptor",
+            "texto": texto,
+            "procedencia": procedencia,
+            "orden": orden,
+        }
+
+    elementos = [
+        elemento(orden, descriptor, texto)
+        for orden, (descriptor, texto) in enumerate(descriptores.items(), start=1)
+    ]
+    normas = list(dict.fromkeys([norma, *(e["procedencia"]["norma"] for e in elementos)]))
     return {
         "codigo": codigo,
         "nombre": f"Descriptores operativos del perfil de salida, {NOMBRES[etapa]}",
         "etapa": etapa,
         "curso": None,
         "cursos_academicos": list(cursos_academicos),
-        "normas": [norma],
-        "elementos": [
-            {
-                "codigo": f"{codigo}.{descriptor}",
-                "tipo": "descriptor",
-                "texto": texto,
-                "procedencia": {"norma": norma, "ubicacion": ubicacion, "pagina": None},
-                "orden": orden,
-            }
-            for orden, (descriptor, texto) in enumerate(descriptores.items(), start=1)
-        ],
+        "normas": normas,
+        "elementos": elementos,
     }
 
 
@@ -126,6 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         norma=args.norma,
         etapa=args.etapa,
         cursos_academicos=args.cursos_academicos.split(","),
+        registro=comun.leer_fuentes().get(args.norma),
     )
     raiz = args.salida or Path(str(files("tiza.normativa").joinpath("datos")))
     print(escribir_ficha(ficha, raiz))

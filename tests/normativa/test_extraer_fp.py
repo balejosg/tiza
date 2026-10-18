@@ -696,7 +696,9 @@ def comprobar_todo(tmp_path: Path) -> list:
     comprobar = herramienta("comprobar")
     limpiar_cache()
     documentos = comprobar.cargar_documentos(tmp_path / "cache", list(NORMAS_DAM))
-    return comprobar.comprobar_datos(tmp_path / "datos", documentos, {})
+    # lo único que declara fuentes.toml aquí: el RD 1691/2023 modifica el del título
+    fuentes = {RD450: {"modificada_por": ["boe-a-2023-13221", "boe-a-2024-10685"]}}
+    return comprobar.comprobar_datos(tmp_path / "datos", documentos, fuentes)
 
 
 def test_linea_de_ordenes_un_modulo_pasa_el_cargador_y_la_comprobacion_literal(tmp_path):
