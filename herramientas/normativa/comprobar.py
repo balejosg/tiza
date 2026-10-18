@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
@@ -46,7 +45,7 @@ TIPOS_DE_DISCREPANCIA = (
     "SIN_FUENTE",
 )
 
-_VINETA = re.compile(r"^(?:[-–—−•·▪●\x02]|x)\s+")
+_VINETA = re.compile(rf"^(?:[{comun.GUIONES_DE_VINETA}•·▪●\x02]|x)\s+")
 _PARTICION = re.compile(r"(?<=\w)-\n(?=\w)")
 # Marca que deja el lugar de una viñeta del PDF: una línea que empieza por viñeta es
 # siempre el principio de otra unidad, aunque su texto empiece en minúscula.
@@ -58,7 +57,6 @@ _BORDE = r"[ ]*»?[ ]*(?:\n(?!(?![a-zñ]\)|[ivx]+\.[ ])[a-záéíóúüñ])|$)"
 # Los elementos que salen de una fila de tabla (el nombre del módulo, seguido de horas y
 # créditos en la misma línea) no acaban donde acaba una línea: se buscan salteando cifras.
 TIPOS_DE_TABLA = frozenset({"modulo"})
-_CIFRAS_DE_TABLA = r"(?:\s+(?:\d+|-))*"
 
 
 @dataclass(frozen=True)
@@ -66,6 +64,10 @@ class Discrepancia:
     tipo: str
     donde: str
     detalle: str = ""
+
+    def __post_init__(self) -> None:
+        if self.tipo not in TIPOS_DE_DISCREPANCIA:
+            raise ValueError(f"tipo de discrepancia desconocido: {self.tipo}")
 
     def __str__(self) -> str:
         return (
@@ -93,7 +95,7 @@ def _variantes(crudo: str) -> tuple[str, str]:
     sangría, ni las viñetas del PDF, ni los espacios repetidos.
     """
     lineas = []
-    for linea in unicodedata.normalize("NFC", crudo).replace("\xa0", " ").split("\n"):
+    for linea in comun.normalizar_unicode(crudo).replace("\xa0", " ").split("\n"):
         linea = " ".join(linea.split())
         linea = _MARCA + _VINETA.sub("", linea) if _VINETA.match(linea) else linea
         if linea:
@@ -103,7 +105,7 @@ def _variantes(crudo: str) -> tuple[str, str]:
 
 
 def _patron(texto: str, tabla: bool = False) -> str:
-    palabras = unicodedata.normalize("NFC", texto).replace("\xa0", " ").split()
+    palabras = comun.normalizar_unicode(texto).replace("\xa0", " ").split()
     if not tabla:
         return rf"[\s{_MARCA}]+".join(re.escape(p) for p in palabras)
     # Fila de tabla: entre palabras, un espacio; las cifras de las otras columnas solo

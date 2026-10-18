@@ -38,7 +38,7 @@ CABECERAS = {
 
 
 def _texto(elemento: ET.Element) -> str:
-    return comun.unir(["".join(elemento.itertext())])
+    return comun.normalizar("".join(elemento.itertext()))
 
 
 def analizar_descriptores(xml: str, etapa: str) -> dict[str, str]:

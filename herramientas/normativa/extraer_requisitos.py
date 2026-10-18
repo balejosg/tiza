@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import sys
 import tomllib
-import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from importlib.resources import files
@@ -64,7 +63,7 @@ class Entrada:
 
 
 def _normal(texto: str) -> str:
-    return comun.unir([unicodedata.normalize("NFC", texto)])
+    return comun.normalizar(texto)
 
 
 def _una_vez(region: str, ancla: str, donde: str, etiqueta: str) -> int:

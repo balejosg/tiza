@@ -47,7 +47,6 @@ _CURSO_CUALQUIERA = re.compile(r"^\s*\d\s*\.?\s*[º°]\s*\.?\s*[A-ZÁÉÍÓÚ][A
 _NUMERADA = re.compile(r"^\s*(\d+)\.\s+(\S.*)$")
 _CRITERIO = re.compile(r"^\s*(\d+)\.(\d+)\.?\s+(\S.*)$")  # «1.1 Texto» o «1.1. Texto»
 _BLOQUE = re.compile(r"^\s*([A-Z])\.\s+(\S.*)$")
-_VINETA = re.compile(r"^\s*[-–—−]\s+(\S.*)$")  # guion, raya y signo menos (U+2212)
 _SUBVINETA = re.compile(r"^\s*(?:x\s+|•\s*)(\S.*)$")  # «x» o «•», este a veces pegado al texto
 # El título de la materia siguiente (en mayúsculas, sin cifras ni «º») o el siguiente anexo.
 # Al menos cinco letras (no cinco caracteres) y ninguna minúscula.
@@ -154,7 +153,7 @@ def _contenidos(lineas: Sequence[Linea]) -> list[dict[str, Any]]:
             break  # el apartado del curso siguiente, si la línea en blanco cayó al cambiar de página
         vistas += 1
         bloque = _BLOQUE.match(linea.texto)
-        vineta = _VINETA.match(linea.texto)
+        vineta = comun.VINETA.match(linea.texto)
         sub = _SUBVINETA.match(linea.texto)
         if bloque and bloque[1] == chr(ord("A") + bloques):
             items.append(

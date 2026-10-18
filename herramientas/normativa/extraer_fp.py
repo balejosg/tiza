@@ -47,7 +47,6 @@ from .comun import Linea
 from .extraer_lomloe import escribir_ficha
 
 _MODULO_MADRID = re.compile(r"^\s*M[óo]dulo profesional\s+\d+\s*:", re.IGNORECASE)
-_VINETA = re.compile(r"^\s*[—–-]\s+(\S.*)$")
 
 
 def _sangria(texto: str) -> int:
@@ -102,7 +101,6 @@ _SECCION_BASICOS = re.compile(r"^\s*Contenidos b[áa]sicos[:.]\s*$")
 _SECCION_ORIENTACIONES = re.compile(r"^\s*Orientaciones pedag[óo]gicas\.?\s*$")
 _RA = re.compile(r"^\s*(\d+)\.\s+(\S.*)$")
 _CRITERIO = re.compile(r"^\s*([a-zñ])\)\s+(\S.*)$")
-_VINETA_BOE = re.compile(r"^\s*[−–—-]\s+(\S.*)$")  # raya, menos (U+2212) y guion
 _LETRAS = "abcdefghijklmnñopqrstuvwxyz"  # el orden del alfabeto español: la ñ va tras la n
 _ESTRUCTURA_FIN_ORDEN = re.compile(r"^\s*(?:ANEXO\s+[IVX]+\s*$|\(\d{2}/\d+\.\d+/\d{2}\)\s*$)")
 _MODULO_ORDEN = r"^\s*M[óo]dulo profesional\s+{codigo}\."
@@ -183,7 +181,7 @@ def analizar_modulo(lineas: Sequence[Linea], codigo_modulo: str) -> dict[str, An
         raise ValueError(f"{codigo_modulo}: no hay resultados de aprendizaje")
     ori: dict[str, Any] | None = None
     if orientaciones:
-        textos = [_VINETA_BOE.sub(r"\1", l.texto) for l in orientaciones]
+        textos = [comun.VINETA.sub(r"\1", l.texto) for l in orientaciones]
         textos[-1] = _sin_cierre_de_cita(textos[-1])
         ori = {"texto": comun.unir(textos), "pagina": orientaciones[0].pagina}
     return {
@@ -253,7 +251,7 @@ def _linea_de_basicos(
 ) -> dict[str, Any]:
     """Una línea de los contenidos básicos: viñeta, encabezado o continuación de lo anterior."""
     linea = cuerpo[n]
-    vineta = _VINETA_BOE.match(linea.texto)
+    vineta = comun.VINETA.match(linea.texto)
     if vineta is not None:
         nuevo: dict[str, Any] = {"nivel": 2, "lineas": [vineta[1]], "pagina": linea.pagina}
         basicos.append(nuevo)
@@ -262,7 +260,7 @@ def _linea_de_basicos(
     # tras un blanco o tras una frase completa
     bloque = [linea.texto.strip()]
     for siguiente in cuerpo[n + 1 :]:
-        if not siguiente.texto.strip() or _VINETA_BOE.match(siguiente.texto):
+        if not siguiente.texto.strip() or comun.VINETA.match(siguiente.texto):
             break
         bloque.append(siguiente.texto.strip())
     empieza = not basicos or anterior_en_blanco or anterior.endswith(".")
@@ -525,7 +523,7 @@ def analizar_contenidos_madrid(lineas: Sequence[Linea], codigo_modulo: str) -> l
     # la izquierda
     vinetas: dict[int | None, int] = {}
     for linea in cuerpo:
-        if _VINETA.match(linea.texto):
+        if comun.VINETA.match(linea.texto):
             vinetas[linea.pagina] = min(vinetas.get(linea.pagina, 10**6), _sangria(linea.texto))
     margenes = {
         p: vinetas.get(p, min(_sangria(l.texto) for l in cuerpo if l.pagina == p))
@@ -537,7 +535,7 @@ def analizar_contenidos_madrid(lineas: Sequence[Linea], codigo_modulo: str) -> l
         texto = linea.texto.strip()
         relativa = _sangria(linea.texto) - margenes[linea.pagina]
         ultimo = items[-1] if items else None
-        vineta = _VINETA.match(linea.texto)
+        vineta = comun.VINETA.match(linea.texto)
         subvineta = _SUBVINETA.match(linea.texto)
         if vineta is not None and relativa <= _MARGEN:
             items.append({"nivel": 2, "lineas": [vineta[1]], "pagina": linea.pagina})

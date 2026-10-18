@@ -21,16 +21,20 @@ from tiza.normativa.modelo import TIPOS_ELEMENTO
 from .cifrado import CIFRADOS, comprobar_descifrado, parchear_pdf
 
 __all__ = [
+    "GUIONES_DE_VINETA",
     "Linea",
     "convertir_pdf",
     "leer_fuentes",
     "lineas_de",
     "lineas_limpias",
     "norma_para_el_paquete",
+    "normalizar",
+    "normalizar_unicode",
     "paginas_limpias",
     "texto_de_norma",
     "textos_de_xml",
     "unir",
+    "VINETA",
 ]
 
 RUTA_FUENTES = Path(__file__).with_name("fuentes.toml")
@@ -69,6 +73,33 @@ RECUENTOS = {
     "criterios_fp": "criterio_fp",
     "contenidos_basicos": "contenido_basico",
 }
+
+
+# Las viñetas de guion del boletín: guion, raya y signo menos (U+2212). Los extractores y
+# `comprobar` comparten esta definición; cada uno añade las suyas (la «x», el «•», el glifo
+# de apartado) donde le hacen falta.
+GUIONES_DE_VINETA = "-–—−"
+VINETA = re.compile(rf"^\s*[{GUIONES_DE_VINETA}]\s+(\S.*)$")
+
+
+def normalizar_unicode(texto: str) -> str:
+    """NFC y sin la marca combinante que repite el acento que la letra ya lleva.
+
+    El PDF del BOE trae a veces «í» precompuesta seguida de un U+0301 suelto (la palabra «así» con ese U+0301 de más): un
+    artefacto de la extracción, no del boletín impreso. Se quita solo la marca que sigue a
+    una letra cuya descomposición ya acaba en esa misma marca; cualquier otra se conserva
+    (y el cargador de datos rechaza las que queden).
+    """
+    salida: list[str] = []
+    for c in unicodedata.normalize("NFC", texto):
+        if (
+            salida
+            and unicodedata.category(c) == "Mn"
+            and unicodedata.normalize("NFD", salida[-1]).endswith(c)
+        ):
+            continue
+        salida.append(c)
+    return "".join(salida)
 
 
 class Linea(NamedTuple):
@@ -132,13 +163,13 @@ def lineas_limpias(texto: str) -> list[Linea]:
                     resultado.append(Linea("", pagina))
             else:
                 descartar_blancos = False
-                resultado.append(Linea(unicodedata.normalize("NFC", linea.rstrip()), pagina))
+                resultado.append(Linea(normalizar_unicode(linea.rstrip()), pagina))
     return resultado
 
 
 def lineas_de(texto: str) -> list[Linea]:
     """Líneas de un texto cualquiera (sin cabeceras de boletín), todas sin página."""
-    return [Linea(unicodedata.normalize("NFC", l.rstrip()), None) for l in texto.split("\n")]
+    return [Linea(normalizar_unicode(l.rstrip()), None) for l in texto.split("\n")]
 
 
 def paginas_limpias(texto: str) -> dict[int, str]:
@@ -170,7 +201,12 @@ def unir(lineas: Iterable[str]) -> str:
             texto += linea
         else:
             texto += " " + linea
-    return unicodedata.normalize("NFC", " ".join(texto.replace("\xa0", " ").split()))
+    return normalizar_unicode(" ".join(texto.replace("\xa0", " ").split()))
+
+
+def normalizar(texto: str) -> str:
+    """Un texto suelto (una celda, un párrafo del XML) como lo deja :func:`unir`."""
+    return unir([texto])
 
 
 # --- texto de las normas en la caché ------------------------------------------------
