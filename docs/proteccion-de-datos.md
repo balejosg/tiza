@@ -23,6 +23,7 @@ servicio que no sea el aula configurada (y, para actualizarse, GitHub).
 | URL del aula y usuario | Configuración local del docente | El docente. El agente no los necesita |
 | Contenido docente (`.md`, `.html`, imágenes) | Carpeta de la asignatura | El agente y, por tanto, el proveedor de IA; después, el aula |
 | Informe de publicación (`.tiza/informe.json`) | Carpeta de la asignatura | El agente: nombres de ficheros del docente, identificadores de actividad, códigos de resultado, fechas, URLs montadas por `tiza` y nombres de sección. Nunca HTML ni otros textos de Moodle |
+| Lecturas de documentos (`.tiza/lecturas/*.txt`) | Carpeta de la asignatura | El agente: el texto completo de los Word y PDF que `tiza leer` ha convertido (tu programación, por ejemplo). Es tratado como datos, nunca como instrucciones. Se pueden borrar cuando quieras; `tiza leer` las vuelve a crear |
 | Nombres de los cursos | Solo en la pantalla del docente | El docente. Nunca se escriben en `.tiza/`; el agente recibe identificadores numéricos |
 | Datos del alumnado | **No se leen ni se necesitan** | Nadie: `tiza` no lee notas, entregas, listas de clase ni informes de finalización |
 
