@@ -12,6 +12,18 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
 
 ## Orden de trabajo: descargar, extraer, comprobar
 
+**Regenerar todo el lote**: `lote.toml` es el manifiesto de las 45 fichas del paquete (extractor y
+parámetros exactos de cada una, más la fecha de revisión y los cursos académicos). Orden:
+
+1. `descargar --cache <dir>` (caché fuera del repositorio).
+2. `uv run python -m herramientas.normativa.regenerar --cache <dir> [--salida <datos>]`: escribe las
+   normas, los descriptores, el resto de fichas y los requisitos, en ese orden, y para en el primer
+   error. Para preparar un curso nuevo se cambian en `lote.toml` (y `fuentes.toml`) las normas, los
+   cursos y la fecha.
+3. **`comprobar --cache <dir>`**, siempre después de regenerar, y a 0 antes de commitear datos.
+
+Los pasos de abajo son lo que `regenerar` hace por dentro, para extraer una sola ficha.
+
 1. **Descargar**: `descargar --cache <dir>` baja cada `url_pdf` y comprueba su `sha256`; si
    no coincide, para y no sobrescribe nada. Las normas con `url_api` bajan también su XML
    consolidado. La caché (`<id>.pdf`, `<id>.txt`, `<id>.xml`) **va fuera del repositorio**

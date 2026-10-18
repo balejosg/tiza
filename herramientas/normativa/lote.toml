@@ -1,0 +1,237 @@
+# Manifiesto del lote de normativa: una entrada por ficha del paquete, con el extractor y los
+# parámetros exactos con que se generó (los de la última regeneración, que reproduce los datos
+# byte a byte). `regenerar.py` lo lee; para preparar un curso nuevo se cambian aquí las normas,
+# los cursos académicos y la fecha de revisión, y después `comprobar`.
+#
+# extractor: descriptores | lomloe | titulo | modulo | transversal | optativo | requisitos
+# `argumentos` son los del extractor sin los comunes (--ficha en los de FP, --cursos-academicos,
+# --cache y --salida), que pone `regenerar`. Los tres de requisitos salen de una sola ejecución
+# (el detalle está en requisitos.toml).
+
+revisada = "2026-10-18"
+cursos_academicos = ["2026-27"]
+
+[[ficha]]
+codigo = "EST.ESO.DESC"
+extractor = "descriptores"
+argumentos = ["--norma", "boe-a-2022-4975", "--etapa", "eso"]
+
+[[ficha]]
+codigo = "EST.BACH.DESC"
+extractor = "descriptores"
+argumentos = ["--norma", "boe-a-2022-5521", "--etapa", "bachillerato"]
+
+[[ficha]]
+codigo = "MAD.ESO.CCOMP.1"
+extractor = "lomloe"
+argumentos = ["--norma", "bocm-20220726-2", "--materia", "CCOMP", "--curso", "1", "--nombre", "Ciencias de la Computación", "--titulo", "CIENCIAS DE LA COMPUTACIÓN", "--etapa", "eso"]
+
+[[ficha]]
+codigo = "MAD.ESO.CCOMP.2"
+extractor = "lomloe"
+argumentos = ["--norma", "bocm-20220726-2", "--materia", "CCOMP", "--curso", "2", "--nombre", "Ciencias de la Computación", "--titulo", "CIENCIAS DE LA COMPUTACIÓN", "--etapa", "eso"]
+
+[[ficha]]
+codigo = "MAD.ESO.TECDIG.2"
+extractor = "lomloe"
+argumentos = ["--norma", "bocm-20220726-2", "--materia", "TECDIG", "--curso", "2", "--nombre", "Tecnología y Digitalización", "--titulo", "TECNOLOGÍA Y DIGITALIZACIÓN", "--etapa", "eso"]
+
+[[ficha]]
+codigo = "MAD.ESO.TECDIG.3"
+extractor = "lomloe"
+argumentos = ["--norma", "bocm-20220726-2", "--materia", "TECDIG", "--curso", "3", "--nombre", "Tecnología y Digitalización", "--titulo", "TECNOLOGÍA Y DIGITALIZACIÓN", "--etapa", "eso"]
+
+[[ficha]]
+codigo = "MAD.ESO.DIG.4"
+extractor = "lomloe"
+argumentos = ["--norma", "bocm-20220726-2", "--materia", "DIG", "--curso", "4", "--nombre", "Digitalización", "--titulo", "DIGITALIZACIÓN", "--etapa", "eso", "--curso-unico"]
+
+[[ficha]]
+codigo = "MAD.BACH.CCOMP.1"
+extractor = "lomloe"
+argumentos = ["--norma", "bocm-20230531-18", "--materia", "CCOMP", "--curso", "1", "--nombre", "Ciencias de la Computación I", "--titulo", "Ciencias de la Computación", "--etapa", "bachillerato"]
+
+[[ficha]]
+codigo = "MAD.BACH.CCOMP.2"
+extractor = "lomloe"
+argumentos = ["--norma", "bocm-20230531-18", "--materia", "CCOMP", "--curso", "2", "--nombre", "Ciencias de la Computación II", "--titulo", "Ciencias de la Computación", "--etapa", "bachillerato"]
+
+[[ficha]]
+codigo = "MAD.DAM"
+extractor = "titulo"
+argumentos = ["--nombre", "Técnico Superior en Desarrollo de Aplicaciones Multiplataforma", "--boe", "boe-a-2023-13221", "--original", "boe-a-2010-8067", "--adicion", "boe-a-2024-10685"]
+
+[[ficha]]
+codigo = "MAD.DAM.0373"
+extractor = "modulo"
+argumentos = ["--modulo", "0373", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0483"
+extractor = "modulo"
+argumentos = ["--modulo", "0483", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0484"
+extractor = "modulo"
+argumentos = ["--modulo", "0484", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0485"
+extractor = "modulo"
+argumentos = ["--modulo", "0485", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0486"
+extractor = "modulo"
+argumentos = ["--modulo", "0486", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0487"
+extractor = "modulo"
+argumentos = ["--modulo", "0487", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0488"
+extractor = "modulo"
+argumentos = ["--modulo", "0488", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0489"
+extractor = "modulo"
+argumentos = ["--modulo", "0489", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0490"
+extractor = "modulo"
+argumentos = ["--modulo", "0490", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0491"
+extractor = "modulo"
+argumentos = ["--modulo", "0491", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--horas", "bocm-20241115-2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0492"
+extractor = "modulo"
+argumentos = ["--modulo", "0492", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--boe", "boe-a-2023-13221", "--ubicacion-boe", "artículo segundo, apartado Seis (anexo I)", "--via", "boe-a-2010-8067", "--madrid", "bocm-20110131-3", "--sin-contenidos-madrid", "--horas", "bocm-20241115-2", "--curso", "2"]
+
+[[ficha]]
+codigo = "MAD.DAM.0179"
+extractor = "transversal"
+argumentos = ["--modulo", "0179", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--madrid", "bocm-20250827-6", "--ubicacion-madrid", "anexo III", "--horas", "bocm-20241115-2", "--estatal", "boe-a-2023-16889"]
+
+[[ficha]]
+codigo = "MAD.DAM.1665"
+extractor = "transversal"
+argumentos = ["--modulo", "1665", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--madrid", "bocm-20250827-6", "--ubicacion-madrid", "anexo V", "--horas", "bocm-20241115-2", "--estatal", "boe-a-2023-16889"]
+
+[[ficha]]
+codigo = "MAD.DAM.1708"
+extractor = "transversal"
+argumentos = ["--modulo", "1708", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--madrid", "bocm-20250827-6", "--ubicacion-madrid", "anexo VI", "--horas", "bocm-20241115-2", "--estatal", "boe-a-2023-16889"]
+
+[[ficha]]
+codigo = "MAD.DAM.1709"
+extractor = "transversal"
+argumentos = ["--modulo", "1709", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--madrid", "bocm-20250827-6", "--ubicacion-madrid", "anexo VII", "--horas", "bocm-20241115-2", "--estatal", "boe-a-2023-16889"]
+
+[[ficha]]
+codigo = "MAD.DAM.1710"
+extractor = "transversal"
+argumentos = ["--modulo", "1710", "--ciclo", "DESARROLLO DE APLICACIONES MULTIPLATAFORMA", "--madrid", "bocm-20250827-6", "--ubicacion-madrid", "anexo VIII", "--horas", "bocm-20241115-2", "--estatal", "boe-a-2023-16889"]
+
+[[ficha]]
+codigo = "MAD.CMO.310"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-310", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.311"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-311", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.312"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-312", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.313"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-313", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.314"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-314", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.315"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-315", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.316"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-316", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.317"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-317", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.318"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-318", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.001F"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-001F", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.001I"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-001I", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.001A"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-001A", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.002F"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-002F", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.002I"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-002I", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.002A"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-002A", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.CMO.003"
+extractor = "optativo"
+argumentos = ["--modulo", "CMO-003", "--madrid", "bocm-20250827-5", "--catalogo", "bocm-20260925-20"]
+
+[[ficha]]
+codigo = "MAD.ESO.PROG"
+extractor = "requisitos"
+argumentos = []
+
+[[ficha]]
+codigo = "MAD.BACH.PROG"
+extractor = "requisitos"
+argumentos = []
+
+[[ficha]]
+codigo = "MAD.FP.PROG"
+extractor = "requisitos"
+argumentos = []
