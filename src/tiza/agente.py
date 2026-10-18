@@ -529,7 +529,7 @@ def documento(
     except ErrorLectura as error:
         raise ErrorEscritura(error.codigo, error.detalle) from None
     try:
-        texto = leer_bytes_acotado(origen, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8")
+        texto = leer_bytes_acotado(origen, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8-sig")
     except FileNotFoundError:
         raise ErrorEscritura("DOCUMENTO_AUSENTE", f"No existe el fichero {origen.name}.") from None
     except FicheroNoSeguro as exc:
@@ -542,9 +542,9 @@ def documento(
         raise ErrorEscritura("FORMATO_NO_ADMITIDO", f"{origen.name} no está en UTF-8.") from None
     except OSError:
         raise ErrorEscritura("FICHERO_BLOQUEADO", f"No se puede leer {origen.name}.") from None
+    fuente_rel = origen.relative_to(base.resolve()).as_posix()
+    documento_rel = destino.relative_to(base.resolve()).as_posix()
+    # Se valida el resumen antes de escribir: si no vale, no queda ningún Word.
+    informe.Documento(fuente=fuente_rel, documento=documento_rel, bloques=0)
     bloques = escribir_docx(texto, destino)
-    return informe.Documento(
-        fuente=origen.relative_to(base.resolve()).as_posix(),
-        documento=destino.relative_to(base.resolve()).as_posix(),
-        bloques=bloques,
-    )
+    return informe.Documento(fuente=fuente_rel, documento=documento_rel, bloques=bloques)

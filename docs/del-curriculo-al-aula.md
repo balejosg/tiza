@@ -38,7 +38,7 @@ trabajo de tu alumnado.
 
 > **Docente:** Te dejo `programacion-SI.docx`. Lo otro no lo tengo.
 
-> **Agente:** He leído tu programación. La UT 3 está en la tabla de la pág. 12, con 18 horas,
+> **Agente:** He leído tu programación. La UT 3 está en la tabla del apartado «Temporalización», con 18 horas,
 > 3 RA y sus criterios. Dos cosas: la tabla cita un criterio del RA 2 que en la normativa de
 > este curso tiene otro texto, y hay cambios sin aceptar en el apartado de evaluación (los
 > he leído como aceptados). ¿Mantengo tu redacción del criterio o uso la de la norma?

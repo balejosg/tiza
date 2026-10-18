@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 
 import pytest
 from docx import Document
@@ -260,3 +261,43 @@ def test_word_en_espanol_y_sin_firma_de_python_docx(tmp_path):
     assert (propiedades.subject, propiedades.keywords) == ("", "")
     with zipfile.ZipFile(destino) as z:
         assert not any(b"python-docx" in z.read(n) for n in z.namelist())
+
+
+def test_cli_documento_con_bom(carpeta, capsys):
+    (carpeta / "u.md").write_bytes(b"\xef\xbb\xbf# T\xc3\xadtulo\n\nTexto\n")
+    codigo, _ = ejecutar(capsys, ["documento", "u.md"])
+    assert codigo == 0
+    primero = leer_docx(carpeta / "u.docx").bloques[0]
+    assert (primero.tipo, primero.nivel, primero.texto) == ("titulo", 1, "Título")
+
+
+def test_cli_documento_rechaza_frontmatter(carpeta, capsys):
+    (carpeta / "u.md").write_text("---\ntitulo: x\n---\n\n# Hola\n", encoding="utf-8")
+    codigo, salida = ejecutar(capsys, ["documento", "u.md"])
+    assert codigo == 2 and salida["error"] == "MARKDOWN_NO_ADMITIDO"
+    assert salida["detalle"].startswith("línea 1:") and "frontmatter" in salida["detalle"]
+    assert not list(carpeta.glob("*.docx"))
+
+
+def test_una_regla_horizontal_sola_no_es_frontmatter(tmp_path):
+    escribir_docx("Antes\n\n---\n\nDespués\n", tmp_path / "u.docx")
+
+
+def test_parrafo_de_continuacion_no_rompe_la_numeracion(tmp_path):
+    destino = tmp_path / "u.docx"
+    escribir_docx("1. uno\n2. dos\n\n   segundo párrafo\n\n3. tres\n", destino)
+    bloques = leer_docx(destino).bloques
+    assert [(b.etiqueta, b.texto) for b in bloques] == [
+        ("1.", "uno"),
+        ("2.", "dos"),
+        ("", "segundo párrafo"),
+        ("3.", "tres"),
+    ]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="'<' no es válido en nombres de Windows")
+def test_documento_valida_el_resumen_antes_de_escribir(carpeta):
+    (carpeta / "u.md").write_text("Texto\n", encoding="utf-8")
+    with pytest.raises(informe.ErrorInforme):
+        agente.documento("u.md", carpeta, "a<b.docx")
+    assert not list(carpeta.glob("*.docx"))

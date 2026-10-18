@@ -30,8 +30,10 @@ Pide copias **sin datos del alumnado**. Si falta algún documento, sigue y avisa
 ## 3. Localiza lo que dice de esa unidad
 
 Evaluación, horas, RA y CE o criterios, contenidos, instrumentos y ponderaciones. Cita por
-bloque (`[t12.f3.c1]`: tabla 12, fila 3, columna 1; `[p12]`: párrafo) o, en un PDF, por
-documento, apartado y página (`g<página>.<n>` es una línea).
+bloque (`[t12.f3.c1]`: tabla 12, fila 3, celda 1 de esa fila; las celdas se numeran según
+aparecen y las combinadas desplazan los números; `[p12]`: párrafo) o, en un PDF, por
+documento, apartado y página (`g<página>.<n>` es una línea). Esos ids son solo para tus
+notas: al docente le nombras la tabla por su título o encabezado y la fila, sin jerga.
 
 ## 4. Contrasta con la normativa
 
@@ -63,7 +65,7 @@ pruebas y real.
 
 - Títulos `#` a `####`, párrafos, **negrita** y *cursiva*.
 - Código en línea (sale como texto normal).
-- Listas con `-` o `1.`, hasta 3 niveles.
+- Listas con `-` o `1.`, hasta 3 niveles. Sin frontmatter (el bloque `---` del principio).
 - Tablas con barras `|` (con fila de cabecera y `---`).
 - Enlaces `[texto](url)` (salen como «texto (url)»).
 - Salto de página: una línea que solo diga `\pagebreak`.

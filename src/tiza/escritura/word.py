@@ -49,6 +49,9 @@ def _linea(token: Token) -> int | None:
     return token.map[0] + 1 if token.map else None
 
 
+_FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n(?:.*\r?\n)*?---[ \t]*(?:\r?\n|\Z)")
+
+
 def _validar(tokens: list[Token]) -> None:
     """Rechaza, antes de escribir nada, todo lo que el Word sencillo no admite."""
     nivel_lista = 0
@@ -168,10 +171,16 @@ class _Constructor:
         self.bloques += 1
         return i
 
-    def _parrafo(self, listas: list[tuple[str, int | None]]) -> Any:
+    def _parrafo(self, listas: list[tuple[str, int | None]], continuacion: bool = False) -> Any:
         if not listas:
             return self.documento.add_paragraph()
         estilo, num_id = listas[-1]
+        if continuacion:
+            # Otro párrafo del mismo elemento: sangrado de la lista y sin número ni viñeta.
+            nivel = len(listas)
+            return self.documento.add_paragraph(
+                style="List Continue" if nivel == 1 else f"List Continue {nivel}"
+            )
         parrafo = self.documento.add_paragraph(style=estilo)
         if num_id is not None:
             parrafo._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = num_id
@@ -179,6 +188,7 @@ class _Constructor:
 
     def construir(self, tokens: list[Token]) -> None:
         listas: list[tuple[str, int | None]] = []  # (estilo, numId propio o None) por nivel
+        con_parrafo: list[bool] = []  # por elemento de lista abierto: ¿ya tiene su primer párrafo?
         i = 0
         while i < len(tokens):
             token = tokens[i]
@@ -192,7 +202,10 @@ class _Constructor:
                 if not listas and inline.content.strip() == _SALTO_DE_PAGINA:
                     self.documento.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
                 else:
-                    self._inline(self._parrafo(listas), inline)
+                    seguido = bool(con_parrafo) and con_parrafo[-1]
+                    if con_parrafo:
+                        con_parrafo[-1] = True
+                    self._inline(self._parrafo(listas, continuacion=seguido), inline)
                 self.bloques += 1
                 i += 2
             elif token.type in ("bullet_list_open", "ordered_list_open"):
@@ -205,6 +218,10 @@ class _Constructor:
                 listas.append((estilo, num_id))
             elif token.type in ("bullet_list_close", "ordered_list_close"):
                 listas.pop()
+            elif token.type == "list_item_open":
+                con_parrafo.append(False)
+            elif token.type == "list_item_close":
+                con_parrafo.pop()
             elif token.type == "table_open":
                 i = self._tabla(tokens, i)
             i += 1
@@ -245,6 +262,12 @@ def escribir_docx(markdown: str, destino: Path) -> int:
     Nunca sustituye un fichero existente (``DOCUMENTO_EXISTE``). Si algo falla a mitad no
     queda nada escrito.
     """
+    if _FRONTMATTER.match(markdown):
+        raise ErrorEscritura(
+            "MARKDOWN_NO_ADMITIDO",
+            "línea 1: no se admite el frontmatter (el bloque entre líneas `---`): "
+            "`tiza documento` no lo acepta; quítalo del Markdown.",
+        )
     tokens = MarkdownIt("commonmark").enable("table").parse(markdown)
     _validar(tokens)
     constructor = _Constructor()
