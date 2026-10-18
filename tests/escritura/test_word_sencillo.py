@@ -7,6 +7,7 @@ import json
 
 import pytest
 from docx import Document
+from docx.oxml.ns import qn
 
 from tiza import agente, ayuda, cli, informe
 from tiza.escritura import ErrorEscritura
@@ -239,3 +240,23 @@ def test_cli_documento_markdown_no_admitido(carpeta, capsys):
     assert codigo == 2 and salida["error"] == "MARKDOWN_NO_ADMITIDO"
     assert "línea 3" in salida["detalle"]
     assert not (carpeta / "u.docx").exists()
+
+
+def test_word_en_espanol_y_sin_firma_de_python_docx(tmp_path):
+    import zipfile
+
+    destino = tmp_path / "u.docx"
+    escribir_docx("# Unidad\n", destino)
+    documento = Document(str(destino))
+    lang = documento.styles.element.xpath("w:docDefaults/w:rPrDefault/w:rPr/w:lang")[0]
+    assert lang.get(qn("w:val")) == "es-ES"
+    assert lang.get(qn("w:eastAsia")) == "es-ES"
+    propiedades = documento.core_properties
+    assert propiedades.author == "tiza"
+    assert propiedades.last_modified_by == "tiza"
+    assert propiedades.created.year >= 2026
+    assert propiedades.modified.year >= 2026
+    assert (propiedades.comments, propiedades.title) == ("", "")
+    assert (propiedades.subject, propiedades.keywords) == ("", "")
+    with zipfile.ZipFile(destino) as z:
+        assert not any(b"python-docx" in z.read(n) for n in z.namelist())

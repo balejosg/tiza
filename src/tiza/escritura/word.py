@@ -12,11 +12,13 @@ from __future__ import annotations
 import io
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from docx import Document
 from docx.enum.text import WD_BREAK
+from docx.oxml.ns import qn
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
@@ -27,7 +29,7 @@ __all__ = ["escribir_docx"]
 MAX_NIVEL_TITULO = 4
 MAX_NIVEL_LISTA = 3
 _SALTO_DE_PAGINA = "\\pagebreak"
-_CONTROL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
+_CONTROL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
 _NO_ADMITIDO = {
     "html_block": "el HTML incrustado",
     "html_inline": "el HTML incrustado",
@@ -69,9 +71,33 @@ def _validar(tokens: list[Token]) -> None:
                 raise _rechazo(_linea(token), "caracteres de control")
 
 
+IDIOMA = "es-ES"
+_LANG = "w:docDefaults/w:rPrDefault/w:rPr/w:lang"
+
+
+def _plantilla_en_espanol() -> Any:
+    """El documento base: idioma español y sin la firma de la librería en las propiedades."""
+    documento = Document()
+    for lang in documento.styles.element.xpath(_LANG):
+        for atributo in ("w:val", "w:eastAsia", "w:bidi"):
+            if lang.get(qn(atributo)) is not None:
+                lang.set(qn(atributo), IDIOMA)
+    ahora = datetime.now(timezone.utc).replace(microsecond=0)
+    propiedades = documento.core_properties
+    propiedades.author = "tiza"
+    propiedades.last_modified_by = "tiza"
+    propiedades.created = ahora
+    propiedades.modified = ahora
+    propiedades.comments = ""
+    propiedades.title = ""
+    propiedades.subject = ""
+    propiedades.keywords = ""
+    return documento
+
+
 class _Constructor:
     def __init__(self) -> None:
-        self.documento = Document()
+        self.documento = _plantilla_en_espanol()
         self.bloques = 0
 
     def _inline(self, parrafo: Any, token: Token, negrita: bool = False) -> None:
