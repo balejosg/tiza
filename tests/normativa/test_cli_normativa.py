@@ -173,3 +173,17 @@ def test_cli_norma_con_cita_valida(datos, capsys):
     assert codigo == 0
     assert documento["consulta"] == "norma"
     salida.validar(documento)
+
+
+@pytest.mark.parametrize(
+    "invisible",
+    ["\x00", "\n", "\x7f", "\x85", "\x9b", "\u00ad", "\u200b", "\u202e", "\u2066", "\ufeff"],
+)
+def test_la_salida_rechaza_los_mismos_invisibles_que_el_cargador(invisible):
+    # C0 y DEL (Cc), C1 (Cc) y formato (Cf: guion blando, cero ancho, marcas bidi)
+    malo = {"error": "CODIGO_DESCONOCIDO", "detalle": f"a{invisible}b", "disponibles": []}
+    with pytest.raises(salida.ErrorSalida):
+        salida.validar(malo)
+    malo = {"error": "CODIGO_DESCONOCIDO", "detalle": "a", "disponibles": [f"x{invisible}"]}
+    with pytest.raises(salida.ErrorSalida):
+        salida.validar(malo)

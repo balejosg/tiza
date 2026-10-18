@@ -19,7 +19,7 @@ import typing
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any, ClassVar, Union, get_args, get_origin
 
-from .datos import ErrorNormativa
+from .datos import ErrorNormativa, primer_invisible
 
 __all__ = [
     "AVISO",
@@ -68,7 +68,6 @@ MAX_DETALLE = 300
 _CODIGO = re.compile(r"[A-Z][A-Z0-9_]{1,39}")
 _FECHA = re.compile(r"\d{4}-\d{2}-\d{2}")
 _CURSO_ACADEMICO = re.compile(r"\d{4}-\d{2}")
-_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 
 
 class ErrorSalida(Exception):
@@ -320,11 +319,15 @@ def _validar_error(documento: dict[str, Any]) -> None:
     if not isinstance(codigo, str) or not _CODIGO.fullmatch(codigo) or codigo not in CODIGOS_ERROR:
         raise ErrorSalida("VALOR_NO_PERMITIDO", "el código de error no está registrado")
     detalle = documento["detalle"]
-    if not isinstance(detalle, str) or len(detalle) > MAX_DETALLE or _CONTROL.search(detalle):
+    if (
+        not isinstance(detalle, str)
+        or len(detalle) > MAX_DETALLE
+        or primer_invisible(detalle) is not None
+    ):
         raise ErrorSalida("VALOR_NO_PERMITIDO", "el detalle debe ser un texto corto de una línea")
     disponibles = documento["disponibles"]
     if not isinstance(disponibles, list) or not all(
-        type(d) is str and not _CONTROL.search(d) for d in disponibles
+        type(d) is str and primer_invisible(d) is None for d in disponibles
     ):
         raise ErrorSalida("TIPO_INCORRECTO", "disponibles debe ser una lista de textos")
 
@@ -341,7 +344,7 @@ def _comprobar(valor: Any, tipo: Any, ruta: str) -> None:
     elif tipo is str:
         if type(valor) is not str:
             raise ErrorSalida("TIPO_INCORRECTO", f"{ruta}: debe ser texto")
-        if _CONTROL.search(valor):
+        if primer_invisible(valor) is not None:
             raise ErrorSalida("VALOR_NO_PERMITIDO", f"{ruta}: el texto lleva caracteres de control")
     elif origen is Union or origen is types.UnionType:
         errores: list[ErrorSalida] = []

@@ -42,6 +42,7 @@ __all__ = [
     "cargar",
     "limpiar_cache",
     "normalizar_cita",
+    "primer_invisible",
 ]
 
 _CACHE: dict[Traversable | None, Indice] = {}  # por raíz; solo guarda cargas completas
@@ -133,6 +134,16 @@ class Indice:
     alias: dict[str, str]
 
 
+def primer_invisible(texto: str) -> str | None:
+    """El primer carácter invisible del texto, o ``None``: la regla única de todo lo que sale.
+
+    Cf (cero ancho, guion blando, marcas bidi) y Cc (control, C0 y C1): invisibles que
+    cambiarían lo que se ve sin cambiar lo que se cita. La usan el cargador de datos y la
+    validación de la salida.
+    """
+    return next((c for c in texto if unicodedata.category(c) in ("Cf", "Cc")), None)
+
+
 def normalizar_cita(cita: str) -> str:
     """La cita en NFC, en minúsculas, sin puntos ni «de»/«del» y con espacios simples."""
     texto = unicodedata.normalize("NFC", cita).lower().replace(".", "")
@@ -187,13 +198,11 @@ class _Lector:
             raise self.fallo(campo, "debe ser un texto no vacío, sin espacios sobrantes")
         if unicodedata.normalize("NFC", valor) != valor:
             raise self.fallo(campo, "el texto debe estar en forma NFC")
-        # Cf (cero ancho, guion blando, marcas bidi) y Cc (control): invisibles que
-        # cambiarían lo que se ve sin cambiar lo que se cita.
-        for caracter in valor:
-            if unicodedata.category(caracter) in ("Cf", "Cc"):
-                raise self.fallo(
-                    campo, f"el texto lleva un carácter invisible (U+{ord(caracter):04X})"
-                )
+        invisible = primer_invisible(valor)
+        if invisible is not None:
+            raise self.fallo(
+                campo, f"el texto lleva un carácter invisible (U+{ord(invisible):04X})"
+            )
         return valor
 
     def patron(self, valor: Any, campo: str, patron: re.Pattern[str]) -> str:
