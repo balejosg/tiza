@@ -608,46 +608,102 @@ def analizar_contenidos_orden(lineas: Sequence[Linea], codigo_modulo: str) -> li
     return _contenidos_del_cuerpo(lineas[inicio + 1 : fin], codigo_modulo, _APARTADO_ORDEN)
 
 
+_ROMANOS = ("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x")
+_ROMANO = re.compile(r"^\s*([ivx]+)\.\s+(\S.*)$")
+
+
 def _contenidos_del_cuerpo(
-    cuerpo: Sequence[Linea], codigo_modulo: str, patron_apartado: re.Pattern[str]
+    cuerpo: Sequence[Linea],
+    codigo_modulo: str,
+    patron_apartado: re.Pattern[str],
+    *,
+    libre: bool = False,
 ) -> list[dict[str, Any]]:
-    """Los contenidos del cuerpo de un módulo, de «Contenidos:» al final del cuerpo."""
+    """Los contenidos del cuerpo de un módulo, de «Contenidos:» al final del cuerpo.
+
+    Con ``libre`` (los optativos del anexo II de la Orden 3536/2025) admite además los
+    subapartados en romanos («i. …», nivel 3, bajo una letra) y que un módulo no numere sus
+    títulos (CMO-310): si lo primero tras «Contenidos:» no es «1. …», cada título es una línea
+    sin marca que sigue a un punto y está menos sangrada que la letra anterior, o que sigue a
+    otro título. La sangría cambia de una página a otra, así que si la letra anterior está en
+    otra página no se adivina: es un ``ValueError``.
+    """
     titulo = next(
         (i for i, l in enumerate(cuerpo) if re.match(r"^\s*Contenidos:\s*$", l.texto)), None
     )
     if titulo is None:
         raise ValueError(f"{codigo_modulo}: no encuentro «Contenidos:»")
     items: list[dict[str, Any]] = []
-    apartados = letras = 0
+    apartados = letras = romanos = 0
+    sin_numerar = False
+    letra_previa: Linea | None = None  # la línea de la última letra, para comparar sangrías
+    anterior = ""
     for linea in cuerpo[titulo + 1 :]:
         if not linea.texto.strip():
             continue
         apartado = patron_apartado.match(linea.texto)
         letra = _LETRA_ORDEN.match(linea.texto)
-        if apartado is not None:
+        romano = _ROMANO.match(linea.texto) if libre else None
+        if libre and not items and apartado is None:
+            sin_numerar = True
+        if apartado is not None and not sin_numerar:
             if int(apartado[1]) != apartados + 1:
                 raise ValueError(
                     f"{codigo_modulo}: apartado {apartado[1]} fuera de orden (iba el {apartados + 1})"
                 )
-            apartados, letras = apartados + 1, 0
+            apartados, letras, romanos = apartados + 1, 0, 0
             items.append({"nivel": 1, "lineas": [apartado[2]], "pagina": linea.pagina})
         elif letra is not None and apartados:
             if letra[1] != _LETRAS[letras]:
                 raise ValueError(
                     f"{codigo_modulo}: letra {letra[1]} fuera de orden (iba la {_LETRAS[letras]})"
                 )
-            letras += 1
+            letras, romanos, letra_previa = letras + 1, 0, linea
             items.append({"nivel": 2, "lineas": [letra[2]], "pagina": linea.pagina})
+        elif (
+            romano is not None
+            and items
+            and items[-1]["nivel"] >= 2
+            and romano[1] == _ROMANOS[romanos]
+        ):
+            romanos += 1
+            items.append({"nivel": 3, "lineas": [romano[2]], "pagina": linea.pagina})
+        elif sin_numerar and _es_titulo(linea, anterior, items, letra_previa, codigo_modulo):
+            apartados, letras, romanos = apartados + 1, 0, 0
+            items.append({"nivel": 1, "lineas": [linea.texto.strip()], "pagina": linea.pagina})
         elif items:
             items[-1]["lineas"].append(linea.texto.strip())
         else:
             raise ValueError(f"{codigo_modulo}: texto antes del primer apartado: «{linea.texto}»")
+        anterior = linea.texto
     if not items:
         raise ValueError(f"{codigo_modulo}: «Contenidos:» está vacío")
     return [
         {"nivel": i["nivel"], "texto": comun.unir(i["lineas"]), "pagina": i["pagina"]}
         for i in items
     ]
+
+
+def _es_titulo(
+    linea: Linea,
+    anterior: str,
+    items: Sequence[Mapping[str, Any]],
+    letra_previa: Linea | None,
+    codigo_modulo: str,
+) -> bool:
+    """¿Una línea sin marca de un módulo sin títulos numerados abre un título nuevo?"""
+    if not items:
+        return True
+    if not anterior.rstrip().endswith("."):
+        return False  # la frase anterior no ha acabado: es su continuación
+    if items[-1]["nivel"] == 1:
+        return True  # tras un título que acaba, otro título
+    if letra_previa is None or letra_previa.pagina != linea.pagina:
+        raise ValueError(
+            f"{codigo_modulo}: no sé si «{linea.texto.strip()}» es un título o la continuación "
+            "de la letra anterior (otra página: la sangría no sirve)"
+        )
+    return _sangria(linea.texto) < _sangria(letra_previa.texto)
 
 
 # --- módulos optativos: anexo II de la Orden 3536/2025 y catálogo del anexo I -----------------
@@ -694,8 +750,15 @@ def analizar_optativo(
         Linea(_sustituir(l.texto, sustituciones), l.pagina) if sustituciones else l for l in lineas
     ]
     numero = re.escape(codigo_modulo.removeprefix("CMO-"))
+    # el encabezado, no el código a secas (el catálogo del anexo I lo cita antes): el que
+    # tiene «Resultados de aprendizaje…» en las líneas siguientes
     inicio = next(
-        (i for i, l in enumerate(aplicadas) if re.match(rf"^\s*CMO-\s*{numero}\b", l.texto)),
+        (
+            i
+            for i, l in enumerate(aplicadas)
+            if re.match(rf"^\s*CMO-\s*{numero}\b", l.texto)
+            and any(_SECCION_RA.match(m.texto) for m in aplicadas[i + 1 : i + 4])
+        ),
         None,
     )
     if inicio is None:
@@ -719,7 +782,7 @@ def analizar_optativo(
     if partido is None:
         raise ValueError(f"{codigo_modulo}: encabezado que no entiendo: «{encabezado}»")
     modulo = _resultados_del_cuerpo(cuerpo, codigo_modulo, _RA_OPTATIVO)
-    contenidos = _contenidos_del_cuerpo(cuerpo, codigo_modulo, _RA_OPTATIVO)
+    contenidos = _contenidos_del_cuerpo(cuerpo, codigo_modulo, _RA_OPTATIVO, libre=True)
     horas = int(partido["horas"]) if partido["horas"] else None
     return Optativo(partido["nombre"], horas, aplicadas[inicio].pagina, modulo, contenidos)
 

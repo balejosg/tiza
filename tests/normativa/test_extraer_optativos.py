@@ -116,6 +116,71 @@ def test_el_ultimo_modulo_del_fragmento_acaba_donde_acaba_el_texto():
     assert o.horas == 90 and len(o.modulo["resultados"]) >= 1 and o.contenidos
 
 
+def test_el_modulo_se_busca_por_su_encabezado_no_por_la_primera_vez_que_aparece_el_codigo():
+    fp = herramienta("extraer_fp")
+    # en el catálogo del anexo I, CMO-003 aparece antes que su currículo
+    previa = "          CMO-003                                   En cualquiera de los 011 Inglés\n"
+    texto = previa + CURRICULO_A.read_text(encoding="utf-8")
+    o = fp.analizar_optativo(herramienta("comun").lineas_limpias(texto), "CMO-003")
+    assert o.nombre == "Inglés para los negocios" and o.modulo["resultados"]
+
+
+def test_contenidos_con_titulos_sin_numerar_y_un_subapartado_en_romanos():
+    fp = herramienta("extraer_fp")
+    o = fp.analizar_optativo(lineas(CURRICULO_IFC), "CMO-310")
+    texto = [(i["nivel"], i["texto"]) for i in o.contenidos]
+    assert [t for n, t in texto if n == 1] == [
+        "Almacenamiento de la información.",
+        "Bases de datos relacionales.",
+        "Lenguaje de definición de datos (DDL Data Definition Language).",
+        "Lenguaje de manipulación de datos (DML Data Manipulation Language).",
+        "Realización de consultas.",
+        "Tratamiento de datos.",
+        "Interpretación de diagramas entidad/relación.",
+    ]
+    assert [n for n, _ in texto].count(2) == 21
+    # una continuación que sigue a un punto («Lógicos.» / «Aritméticos.») no es un título
+    assert (
+        2,
+        "Operadores (combinación, precedencia): de comparación. Lógicos. Aritméticos.",
+    ) in texto
+    assert texto[texto.index((2, "Inserción, borrado y modificación de registros:")) + 1] == (
+        3,
+        "A partir de datos proporcionados por el usuario.",
+    )
+    # el título que abre una página sigue al título anterior: no es continuación suya
+    assert (
+        o.contenidos[
+            [t for _, t in texto].index(
+                "Lenguaje de manipulación de datos (DML Data Manipulation Language)."
+            )
+        ]["pagina"]
+        == 185
+    )
+
+
+def test_subapartados_en_romanos_bajo_una_letra():
+    fp = herramienta("extraer_fp")
+    o = fp.analizar_optativo(lineas(CURRICULO_IFC), "CMO-314")
+    texto = [(i["nivel"], i["texto"]) for i in o.contenidos]
+    amenazas = texto.index((2, "Amenazas. Tipos:"))
+    assert texto[amenazas + 1 : amenazas + 3] == [
+        (3, "Amenazas físicas."),
+        (3, "Amenazas lógicas."),
+    ]
+
+
+def test_una_linea_sin_marca_a_principio_de_pagina_tras_una_letra_es_un_error():
+    fp = herramienta("extraer_fp")
+    # sin el título que cierra la página, «Lenguaje de manipulación…» (en otra página) sigue
+    # a «f) Claves ajenas.»: la sangría de una página no sirve para otra
+    roto = CURRICULO_IFC.read_text(encoding="utf-8").replace(
+        "            Lenguaje de definición de datos (DDL Data Definition Language).\n", "", 1
+    )
+    with pytest.raises(ValueError, match="CMO-310: no sé si «Lenguaje de manipulación"):
+        fp.analizar_optativo(herramienta("comun").lineas_limpias(roto), "CMO-310")
+
+
 def test_un_modulo_que_no_esta_es_un_error():
     fp = herramienta("extraer_fp")
     with pytest.raises(ValueError, match="no encuentro el módulo CMO-999"):
@@ -341,3 +406,14 @@ def test_un_nombre_distinto_del_encabezado_se_rechaza(tmp_path):
     ficha["elementos"][0]["texto"] = "Fundamentos de programación avanzada"
     ruta.write_text(json.dumps(ficha), encoding="utf-8")
     assert [(d.tipo, d.donde) for d in comprobar_todo(tmp_path)] == [("TEXTO", "MAD.CMO.313")]
+
+
+def test_un_subapartado_en_romanos_empieza_una_unidad_nueva_no_continua_la_frase():
+    aparece = herramienta("comprobar").aparece
+    pagina = (
+        "a) Inserción, borrado y modificación de registros:\n   i. A partir de datos del usuario."
+    )
+    assert aparece("Inserción, borrado y modificación de registros:", pagina, completo=True)
+    # una continuación en minúscula sigue sin valer: el texto guardado sería un trozo
+    cortada = "a) Inserción, borrado y modificación\n   de registros:"
+    assert not aparece("Inserción, borrado y modificación", cortada, completo=True)

@@ -52,8 +52,9 @@ _PARTICION = re.compile(r"(?<=\w)-\n(?=\w)")
 # siempre el principio de otra unidad, aunque su texto empiece en minúscula.
 _MARCA = "\x01"
 # Tras el final de lo guardado, la unidad debe acabar: fin de línea y que la línea
-# siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)»).
-_BORDE = r"[ ]*»?[ ]*(?:\n(?!(?![a-zñ]\))[a-záéíóúüñ])|$)"
+# siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)» y «ii.»,
+# las marcas de una letra y de un subapartado en romanos).
+_BORDE = r"[ ]*»?[ ]*(?:\n(?!(?![a-zñ]\)|[ivx]+\.[ ])[a-záéíóúüñ])|$)"
 # Los elementos que salen de una fila de tabla (el nombre del módulo, seguido de horas y
 # créditos en la misma línea) no acaban donde acaba una línea: se buscan salteando cifras.
 TIPOS_DE_TABLA = frozenset({"modulo"})
