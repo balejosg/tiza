@@ -27,6 +27,7 @@ from . import (
     buzon,
     config,
     contenido,
+    ficheros,
     informe,
     mensajes,
     publicacion,
@@ -610,20 +611,82 @@ def _numeros(etiqueta: str) -> tuple[int, ...]:
     return tuple(int(n) if n.isdigit() else 0 for n in etiqueta.lstrip("v").split("."))
 
 
+_REGISTRO_SKILL = ".tiza-instalado"
+
+
+def _ficheros_de_la_skill(carpeta, prefijo: tuple[str, ...] = ()) -> dict[str, bytes]:
+    """Lista recursiva (ruta relativa con «/» -> contenido) de la skill empaquetada."""
+    lista: dict[str, bytes] = {}
+    for hijo in sorted(carpeta.iterdir(), key=lambda h: h.name):
+        if hijo.name == "__pycache__" or hijo.name == _REGISTRO_SKILL:
+            continue
+        if hijo.is_dir():
+            lista.update(_ficheros_de_la_skill(hijo, (*prefijo, hijo.name)))
+        else:
+            lista["/".join((*prefijo, hijo.name))] = hijo.read_bytes()
+    return lista
+
+
+def _retirar_instalados_antes(carpeta: Path, nuevos: set[str]) -> None:
+    """Borra lo que tiza instaló antes (según el registro) y ya no está en la skill.
+
+    Solo toca rutas relativas del registro que caen dentro de ``carpeta``; nada más.
+    """
+    registro = carpeta / _REGISTRO_SKILL
+    try:
+        lineas = registro.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return
+    raiz = carpeta.resolve()
+    for linea in lineas:
+        ruta = linea.strip()
+        if not ruta or ruta in nuevos:
+            continue
+        partes = ruta.split("/")
+        if ruta.startswith("/") or ".." in partes or "\\" in ruta or ":" in ruta:
+            continue
+        candidato = carpeta.joinpath(*partes)
+        try:
+            if candidato.is_symlink() or candidato.is_file():
+                if candidato.parent.resolve().is_relative_to(raiz):
+                    candidato.unlink()
+        except OSError:
+            continue
+        padre = candidato.parent
+        while padre != carpeta and padre.is_relative_to(carpeta):
+            try:
+                padre.rmdir()  # solo si quedó vacía
+            except OSError:
+                break
+            padre = padre.parent
+
+
 def instalar_skill(home: Path) -> list[Path]:
-    """Copia la skill portable a los directorios de los agentes (Claude Code, Codex, opencode y Copilot)."""
-    origen = importlib.resources.files("tiza").joinpath("skill", "tiza", "SKILL.md")
-    texto = origen.read_text(encoding="utf-8")
-    destinos = [
-        home / ".claude" / "skills" / "tiza" / "SKILL.md",
-        home / ".agents" / "skills" / "tiza" / "SKILL.md",
-        home / ".codex" / "skills" / "tiza" / "SKILL.md",
-        home / ".config" / "opencode" / "skills" / "tiza" / "SKILL.md",
+    """Copia la carpeta de la skill (SKILL.md y guías) a los directorios de los agentes.
+
+    En cada destino apunta lo instalado en ``.tiza-instalado`` y, en la siguiente
+    instalación, retira lo que tiza instaló antes y ya no existe; nunca borra un fichero
+    que no esté en esa lista.
+    """
+    origen = importlib.resources.files("tiza").joinpath("skill", "tiza")
+    contenidos = _ficheros_de_la_skill(origen)
+    carpetas = [
+        home / ".claude" / "skills" / "tiza",
+        home / ".agents" / "skills" / "tiza",
+        home / ".codex" / "skills" / "tiza",
+        home / ".config" / "opencode" / "skills" / "tiza",
     ]
-    for destino in destinos:
-        destino.parent.mkdir(parents=True, exist_ok=True)
-        destino.write_text(texto, encoding="utf-8")
-    return destinos
+    for carpeta in carpetas:
+        carpeta.mkdir(parents=True, exist_ok=True)
+        _retirar_instalados_antes(carpeta, set(contenidos))
+        for ruta, datos in contenidos.items():
+            destino = carpeta.joinpath(*ruta.split("/"))
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            ficheros.escribir_texto(destino, datos.decode("utf-8"))
+        ficheros.escribir_texto(
+            carpeta / _REGISTRO_SKILL, "".join(f"{ruta}\n" for ruta in sorted(contenidos))
+        )
+    return [carpeta / "SKILL.md" for carpeta in carpetas]
 
 
 # --------------------------------------------------------------------------- #

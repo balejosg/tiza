@@ -467,6 +467,34 @@ class TestInstalarSkill:
             ".config/opencode/skills/tiza/SKILL.md",
         }
 
+    def test_instalar_skill_copia_guias(self, tmp_path):
+        cli.instalar_skill(tmp_path)
+        assert (tmp_path / ".claude/skills/tiza/guias/README.md").is_file()
+        registro = tmp_path / ".claude/skills/tiza/.tiza-instalado"
+        lineas = registro.read_text(encoding="utf-8").splitlines()
+        assert "SKILL.md" in lineas
+        assert "guias/README.md" in lineas
+
+    def test_instalar_skill_retira_guia_obsoleta(self, tmp_path):
+        carpeta = tmp_path / ".claude/skills/tiza"
+        (carpeta / "guias").mkdir(parents=True)
+        (carpeta / "guias/vieja.md").write_text("vieja", encoding="utf-8")
+        (carpeta / "guias/notas.md").write_text("mis notas", encoding="utf-8")
+        (carpeta / ".tiza-instalado").write_text("SKILL.md\nguias/vieja.md\n", encoding="utf-8")
+        cli.instalar_skill(tmp_path)
+        assert not (carpeta / "guias/vieja.md").exists()
+        assert (carpeta / "guias/notas.md").read_text(encoding="utf-8") == "mis notas"
+        assert (carpeta / "guias/README.md").is_file()
+
+    def test_instalar_skill_no_borra_fuera_de_la_carpeta(self, tmp_path):
+        carpeta = tmp_path / ".claude/skills/tiza"
+        carpeta.mkdir(parents=True)
+        ajeno = tmp_path / "ajeno.md"
+        ajeno.write_text("no tocar", encoding="utf-8")
+        (carpeta / ".tiza-instalado").write_text("../../../ajeno.md\n", encoding="utf-8")
+        cli.instalar_skill(tmp_path)
+        assert ajeno.read_text(encoding="utf-8") == "no tocar"
+
 
 def informe_ok(*, comando="publicar", entorno="pruebas", curso=1234) -> dict:
     return informe.crear(comando, "ok", [informe.Paso("LOGIN")], entorno=entorno, curso=curso)
