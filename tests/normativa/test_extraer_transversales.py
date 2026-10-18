@@ -1,10 +1,8 @@
 """Módulos transversales de FP (`herramientas/normativa/extraer_fp.py`, orden `transversal`).
 
-Todo sobre fragmentos reales (`herramientas/normativa/fuentes/`): los anexos V, VII, VIII y X
-del RD 659/2023 en su texto consolidado (XML de la API del BOE, con una versión por reforma),
-el párrafo del RD 658/2024 que reescribe un resultado del anexo V, los contenidos de Madrid de
-la Orden 3537/2025 (ya descifrados, tal como sale `pdftotext -layout` del PDF arreglado) y la
-tabla de horas del Decreto 103/2024. Sin red ni `pdftotext`.
+Todo sobre fragmentos reales (`herramientas/normativa/fuentes/`): los resultados, criterios y
+contenidos de Madrid de la Orden 3537/2025 (ya descifrados, tal como sale `pdftotext -layout`
+del PDF arreglado) y la tabla de horas del Decreto 103/2024. Sin red ni `pdftotext`.
 """
 
 from __future__ import annotations
@@ -18,12 +16,9 @@ import pytest
 
 FUENTES = Path(__file__).parents[2] / "herramientas" / "normativa" / "fuentes"
 RD659 = "boe-a-2023-16889"
-RD658 = "boe-a-2024-14079"
 ORDEN = "bocm-20250827-6"
 DECRETO103 = "bocm-20241115-2"
 
-ANEXOS_659 = FUENTES / f"{RD659}_anexos-v-vii-viii-x.xml"
-REFORMA_658 = FUENTES / f"{RD658}_art-segundo_veintiseis.txt"
 ORDEN_0179 = FUENTES / f"{ORDEN}_anexo-iii_0179.txt"
 ORDEN_1665_1708 = FUENTES / f"{ORDEN}_anexos-v-vi_1665-1708.txt"
 ORDEN_1709 = FUENTES / f"{ORDEN}_anexo-vii_1709.txt"
@@ -46,88 +41,61 @@ def lineas(*rutas: Path):
     return herramienta("comun").lineas_limpias(texto)
 
 
-def xml_anexos() -> str:
-    return ANEXOS_659.read_text(encoding="utf-8")
+# --- resultados y criterios de la orden --------------------------------------------------------
 
 
-# --- resultados y criterios del RD 659/2023 (texto consolidado) -----------------------------
-
-
-def test_el_xml_da_los_resultados_con_sus_criterios_sin_numero_ni_letra():
+def test_los_resultados_y_criterios_salen_de_la_orden_con_su_pagina():
     fp = herramienta("extraer_fp")
-    m = fp.analizar_modulo_xml(xml_anexos(), "1708")
+    m = fp.analizar_resultados_orden(lineas(ORDEN_1665_1708), "1708")
     assert [len(r["criterios"]) for r in m["resultados"]] == [6, 5, 3, 6, 9, 5]
     primero = m["resultados"][0]
-    assert primero["numero"] == "1"
-    assert primero["texto"].startswith("Identifica los aspectos ambientales, sociales y de gob")
+    assert primero["numero"] == "1" and primero["pagina"] == 284
+    assert primero["texto"] == (
+        "Identifica los aspectos ambientales, sociales y de gobernanza (ASG) relativos a la "
+        "sostenibilidad teniendo en cuenta el concepto de desarrollo sostenible y los marcos "
+        "internacionales que contribuyen a su consecución."
+    )
     assert primero["criterios"][0]["letra"] == "a"
     assert primero["criterios"][0]["texto"].startswith("Se ha descrito el concepto de sosteni")
-    assert primero["pagina"] is None  # el consolidado no tiene páginas
+    # los resultados y criterios que saltan de página llevan la página en que empiezan
+    assert m["resultados"][1]["criterios"][1]["pagina"] == 285
     assert m["basicos"] == [] and m["orientaciones"] is None
 
 
-def test_la_etiqueta_criterios_de_evaluacion_pegada_al_resultado_no_es_del_resultado():
+def test_un_resultado_que_continua_en_otra_pagina_se_une_y_la_letra_pegada_es_criterio():
     fp = herramienta("extraer_fp")
-    m = fp.analizar_modulo_xml(xml_anexos(), "1708")
-    tercero = m["resultados"][2]
-    assert tercero["texto"].endswith("identificando los elementos necesarios.")
-    assert all("Criterios de evaluación" not in r["texto"] for r in m["resultados"])
-
-
-def test_un_anexo_con_dos_modulos_se_reparte_por_su_codigo():
-    fp = herramienta("extraer_fp")
-    uno = fp.analizar_modulo_xml(xml_anexos(), "1709")
-    dos = fp.analizar_modulo_xml(xml_anexos(), "1710")
-    assert (len(uno["resultados"]), len(dos["resultados"])) == (5, 5)
-    assert sum(len(r["criterios"]) for r in uno["resultados"]) == 39
-    assert sum(len(r["criterios"]) for r in dos["resultados"]) == 35
-    assert uno["resultados"][0]["texto"].startswith("Distingue las características del sector")
-    assert dos["resultados"][0]["texto"].startswith("Planifica y pone en marcha estrategias")
-
-
-def test_se_toma_la_ultima_version_de_un_anexo_reformado():
-    fp = herramienta("extraer_fp")
-    uno = fp.analizar_modulo_xml(xml_anexos(), "1709")
-    # el RD 658/2024 cambió el primer párrafo del apartado 2 (antes «Alcanza las competencias…»)
-    assert uno["resultados"][1]["texto"] == (
-        "Adquiere las competencias necesarias para el desempeño de las funciones de nivel "
-        "básico en Prevención de Riesgos Laborales."
+    m = fp.analizar_resultados_orden(lineas(ORDEN_0179), "0179")
+    assert (len(m["resultados"]), sum(len(r["criterios"]) for r in m["resultados"])) == (5, 43)
+    # el resultado 1 empieza en la pág. 270 y acaba en la 271
+    assert m["resultados"][0]["pagina"] == 270
+    assert m["resultados"][0]["texto"].endswith(
+        "interpretando con precisión el contenido del mensaje."
     )
-    # y la nota al pie que lo anuncia no es un criterio ni un resultado
-    assert sum(len(r["criterios"]) for r in uno["resultados"]) == 39
 
 
-def test_el_modulo_que_no_esta_en_el_xml_es_un_error():
+def test_madrid_reordena_y_amplia_los_resultados_de_1709_y_1710():
     fp = herramienta("extraer_fp")
-    with pytest.raises(ValueError, match="no encuentro el módulo 9999"):
-        fp.analizar_modulo_xml(xml_anexos(), "9999")
+    uno = fp.analizar_resultados_orden(lineas(ORDEN_1665_1708, ORDEN_1709, ORDEN_1710), "1709")
+    dos = fp.analizar_resultados_orden(lineas(ORDEN_1710), "1710")
+    assert [len(r["criterios"]) for r in uno["resultados"]] == [9, 11, 3, 11, 9]
+    assert [len(r["criterios"]) for r in dos["resultados"]] == [4, 7, 6, 9, 15]
+    assert uno["resultados"][0]["texto"].startswith("Adquiere las competencias necesarias")
+    assert dos["resultados"][4]["criterios"][-1]["letra"] == "ñ"
 
 
-def test_una_letra_de_criterio_fuera_de_orden_en_el_xml_es_un_error():
+def test_un_criterio_fuera_de_orden_en_la_orden_es_un_error():
     fp = herramienta("extraer_fp")
-    roto = xml_anexos().replace(
-        ">b) Se han identificado los asuntos", ">c) Se han identificado los asuntos"
+    roto = ORDEN_1665_1708.read_text(encoding="utf-8").replace(
+        "b) Se han identificado los asuntos", "c) Se han identificado los asuntos"
     )
-    with pytest.raises(ValueError, match="criterio c fuera de orden"):
-        fp.analizar_modulo_xml(roto, "1708")
+    with pytest.raises(ValueError, match="1708: criterio c fuera de orden"):
+        fp.analizar_resultados_orden(herramienta("comun").lineas_limpias(roto), "1708")
 
 
-# --- el párrafo que reescribe el RD 658/2024 -----------------------------------------------
-
-
-def test_el_parrafo_reescrito_da_el_texto_y_la_pagina_sin_comillas():
+def test_un_modulo_sin_resultados_en_la_orden_es_un_error():
     fp = herramienta("extraer_fp")
-    reforma = fp.parrafo_reescrito(lineas(REFORMA_658), "Veintiséis")
-    assert reforma == {
-        "numero": "2",
-        "texto": (
-            "Adquiere las competencias necesarias para el desempeño de las funciones de nivel "
-            "básico en Prevención de Riesgos Laborales."
-        ),
-        "pagina": 86592,
-    }
-    with pytest.raises(ValueError, match="no encuentro el apartado Cuarenta"):
-        fp.parrafo_reescrito(lineas(REFORMA_658), "Cuarenta")
+    with pytest.raises(ValueError, match="no encuentro el módulo 1709 en la orden"):
+        fp.analizar_resultados_orden(lineas(ORDEN_1710), "1709")
 
 
 # --- contenidos de Madrid (Orden 3537/2025) -------------------------------------------------
@@ -206,8 +174,6 @@ def test_un_modulo_que_no_esta_en_la_orden_es_un_error():
 def cache_transversales(tmp_path: Path) -> Path:
     cache = tmp_path / "cache"
     cache.mkdir()
-    (cache / f"{RD659}.xml").write_text(xml_anexos(), encoding="utf-8")
-    (cache / f"{RD658}.txt").write_text(REFORMA_658.read_text(encoding="utf-8"), encoding="utf-8")
     (cache / f"{ORDEN}.txt").write_text(
         "".join(
             r.read_text(encoding="utf-8")
@@ -227,7 +193,6 @@ def datos_transversales(tmp_path: Path) -> Path:
     (raiz / "fichas").mkdir()
     for id_, (rango, numero, boletin) in {
         RD659: ("real_decreto", "659/2023", "BOE"),
-        RD658: ("real_decreto", "658/2024", "BOE"),
         ORDEN: ("orden", "3537/2025", "BOCM"),
         DECRETO103: ("decreto", "103/2024", "BOCM"),
     }.items():
@@ -247,7 +212,7 @@ def datos_transversales(tmp_path: Path) -> Path:
     return raiz
 
 
-def extraer_transversal(tmp_path: Path, modulo: str, anexo_estatal: str, anexo_madrid: str, *extra):
+def extraer_transversal(tmp_path: Path, modulo: str, anexo_madrid: str, *extra):
     fp = herramienta("extraer_fp")
     cache = tmp_path / "cache"
     raiz = tmp_path / "datos"
@@ -267,10 +232,6 @@ def extraer_transversal(tmp_path: Path, modulo: str, anexo_estatal: str, anexo_m
         "2026-27",
         "--cache",
         str(cache),
-        "--estatal",
-        RD659,
-        "--ubicacion-estatal",
-        anexo_estatal,
         "--madrid",
         ORDEN,
         "--ubicacion-madrid",
@@ -285,32 +246,32 @@ def extraer_transversal(tmp_path: Path, modulo: str, anexo_estatal: str, anexo_m
     return json.loads((raiz / "fichas" / f"MAD.DAM.{modulo}.json").read_text(encoding="utf-8"))
 
 
-def comprobar_todo(tmp_path: Path, **fuentes):
+def comprobar_todo(tmp_path: Path):
     from tiza.normativa import limpiar_cache
 
     comprobar = herramienta("comprobar")
     limpiar_cache()
-    ids = [RD659, RD658, ORDEN, DECRETO103]
+    ids = [RD659, ORDEN, DECRETO103]
     documentos = comprobar.cargar_documentos(tmp_path / "cache", ids)
-    return comprobar.comprobar_datos(tmp_path / "datos", documentos, fuentes)
+    return comprobar.comprobar_datos(tmp_path / "datos", documentos, {})
 
 
-def test_ficha_de_un_transversal_estatal_para_ra_y_ce_y_madrid_para_contenidos(tmp_path):
-    ficha = extraer_transversal(tmp_path, "1708", "anexo VIII", "anexo VI")
+def test_ficha_de_un_transversal_todo_de_la_orden_de_madrid(tmp_path):
+    ficha = extraer_transversal(tmp_path, "1708", "anexo VI")
     assert (ficha["codigo"], ficha["nombre"], ficha["curso"], ficha["etapa"]) == (
         "MAD.DAM.1708",
         "Sostenibilidad aplicada al sistema productivo",
         "2",
         "fp_gs",
     )
-    assert ficha["normas"] == [RD659, ORDEN, DECRETO103]
-    modulo = ficha["elementos"][0]
-    assert modulo["datos"] == {"horas": 30, "curso": "2"}
+    assert ficha["normas"] == [ORDEN, DECRETO103]
+    assert ficha["elementos"][0]["datos"] == {"horas": 30, "curso": "2"}
     ra = next(e for e in ficha["elementos"] if e["codigo"] == "MAD.DAM.1708.RA.3")
+    # currículo propio de Madrid: cita la orden, su anexo y su página, sin `via`
     assert ra["procedencia"] == {
-        "norma": RD659,
-        "ubicacion": "anexo VIII, módulo 1708, resultado de aprendizaje 3",
-        "pagina": None,
+        "norma": ORDEN,
+        "ubicacion": "anexo VI, módulo 1708, resultado de aprendizaje 3",
+        "pagina": 285,
     }
     ce = next(e for e in ficha["elementos"] if e["codigo"] == "MAD.DAM.1708.RA.3.b")
     assert ce["tipo"] == "criterio_fp" and ce["padre"] == "MAD.DAM.1708.RA.3"
@@ -321,81 +282,23 @@ def test_ficha_de_un_transversal_estatal_para_ra_y_ce_y_madrid_para_contenidos(t
     assert tipos.count("resultado_aprendizaje") == 6
     assert tipos.count("criterio_fp") == 34
     assert tipos.count("contenido") == 23
+    assert [e["orden"] for e in ficha["elementos"]] == list(range(1, len(ficha["elementos"]) + 1))
     assert comprobar_todo(tmp_path) == []
 
 
-def test_ficha_con_un_resultado_reescrito_cita_la_reforma_y_deja_el_original_en_via(tmp_path):
-    ficha = extraer_transversal(
-        tmp_path,
-        "1709",
-        "anexo V",
-        "anexo VII",
-        "--reforma",
-        RD658,
-        "--reforma-apartado",
-        "Veintiséis",
-        "--reforma-ubicacion",
-        "artículo segundo, apartado Veintiséis (anexo V)",
-    )
+def test_el_minimo_estatal_se_cita_en_las_normas_de_la_ficha(tmp_path):
+    ficha = extraer_transversal(tmp_path, "1709", "anexo VII", "--estatal", RD659)
+    assert ficha["normas"] == [ORDEN, RD659, DECRETO103]
     assert ficha["curso"] == "1" and ficha["elementos"][0]["datos"] == {"horas": 100, "curso": "1"}
-    assert ficha["normas"] == [RD659, RD658, ORDEN, DECRETO103]
-    ra2 = next(e for e in ficha["elementos"] if e["codigo"] == "MAD.DAM.1709.RA.2")
-    assert ra2["procedencia"] == {
-        "norma": RD658,
-        "ubicacion": "artículo segundo, apartado Veintiséis (anexo V), módulo 1709, "
-        "resultado de aprendizaje 2",
-        "pagina": 86592,
-        "via": [
-            {
-                "norma": RD659,
-                "ubicacion": "anexo V, módulo 1709, resultado de aprendizaje 2",
-                "pagina": None,
-            }
-        ],
-    }
     tipos = [e["tipo"] for e in ficha["elementos"]]
-    assert (tipos.count("resultado_aprendizaje"), tipos.count("criterio_fp")) == (5, 39)
-    assert tipos.count("contenido") == 34  # 5 apartados y 29 letras, y el último pasa de página
-    # el resto del módulo sigue siendo del RD 659/2023
-    ra1 = next(e for e in ficha["elementos"] if e["codigo"] == "MAD.DAM.1709.RA.1")
-    assert ra1["procedencia"]["norma"] == RD659 and "via" not in ra1["procedencia"]
+    assert (tipos.count("resultado_aprendizaje"), tipos.count("criterio_fp")) == (5, 43)
+    assert tipos.count("contenido") == 34  # el último apartado pasa de página
     assert comprobar_todo(tmp_path) == []
 
 
-def test_la_reforma_debe_decir_lo_mismo_que_el_consolidado(tmp_path):
-    cache_transversales(tmp_path)
-    xml = tmp_path / "cache" / f"{RD659}.xml"
-    xml.write_text(
-        xml.read_text(encoding="utf-8").replace(
-            "Adquiere las competencias necesarias para el desempeño",
-            "Adquiere las competencias necesarias para el trabajo",
-        ),
-        encoding="utf-8",
-    )
-    with pytest.raises(ValueError, match="no dice lo mismo que el texto consolidado"):
-        extraer_transversal(
-            tmp_path,
-            "1709",
-            "anexo V",
-            "anexo VII",
-            "--reforma",
-            RD658,
-            "--reforma-apartado",
-            "Veintiséis",
-            "--reforma-ubicacion",
-            "artículo segundo, apartado Veintiséis (anexo V)",
-        )
-
-
-def test_el_resultado_pegado_a_la_etiqueta_pasa_la_comprobacion_literal(tmp_path):
-    # 1708: el resultado 3 está en el XML como «… necesarios. Criterios de evaluación:»
-    extraer_transversal(tmp_path, "1708", "anexo VIII", "anexo VI")
-    assert comprobar_todo(tmp_path) == []
-
-
-def test_la_comprobacion_sigue_rechazando_un_resultado_cortado(tmp_path):
+def test_la_comprobacion_sigue_rechazando_un_criterio_cortado(tmp_path):
     ficha_ruta = tmp_path / "datos" / "fichas" / "MAD.DAM.1708.json"
-    extraer_transversal(tmp_path, "1708", "anexo VIII", "anexo VI")
+    extraer_transversal(tmp_path, "1708", "anexo VI")
     ficha = json.loads(ficha_ruta.read_text(encoding="utf-8"))
     ra = next(e for e in ficha["elementos"] if e["codigo"] == "MAD.DAM.1708.RA.3")
     ra["texto"] = "Establece la aplicación de criterios de sostenibilidad en el desempeño"

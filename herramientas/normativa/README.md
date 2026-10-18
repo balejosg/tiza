@@ -59,28 +59,17 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      profesionales (`CP.a`…) y los objetivos generales (`OG.a`…) en la redacción de `--boe`,
      con `via` al real decreto original, y la competencia general (`CG`) del PDF de
      `--original`. `--adicion` es la norma que añade un párrafo final al artículo 2.
-   - `extraer_fp transversal --ficha <código> --modulo <código> --ciclo <nombre> --estatal <id>
-     --ubicacion-estatal <anexo> --madrid <id> --ubicacion-madrid <anexo> --horas <id>
-     [--reforma <id> --reforma-apartado <apartado> --reforma-ubicacion <lugar>]
-     --cursos-academicos … --cache <dir>` (Itinerario I y II, Inglés, Digitalización y
-     Sostenibilidad: `MAD.DAM.1709`…). Resultados y criterios, del **texto consolidado (XML)**
-     del real decreto `--estatal` (RD 659/2023, anexos V, VII, VIII y X), en la última versión
-     de cada anexo (una por reforma); sin página. La etiqueta «Criterios de evaluación:» que
-     el BOE pega a algunos resultados no es del resultado. Si una reforma reescribe un
-     resultado (el RD 658/2024, apartado «Veintiséis», el 2 de 1709), `--reforma` lo cita a
-     ella, con la página de su PDF, y deja el anexo del consolidado en `via`; tiene que decir
-     lo mismo que el consolidado. Los contenidos son los de la orden de Madrid `--madrid`
-     (Orden 3537/2025): apartados «1. …» y letras «a) …», por orden y sin interpretar la
-     sangría. Las horas y el curso, de la tabla de `--horas`, como en `modulo`. Los optativos
+   - `extraer_fp transversal --ficha <código> --modulo <código> --ciclo <nombre> --madrid <id>
+     --ubicacion-madrid <anexo> --horas <id> [--estatal <id>] --cursos-academicos … --cache
+     <dir>` (Itinerario I y II, Inglés, Digitalización y Sostenibilidad: `MAD.DAM.1709`…).
+     Resultados, criterios y contenidos salen de la orden de Madrid `--madrid` (Orden
+     3537/2025, el currículo que se aplica allí): resultados «1. …», criterios «a) …» (a veces
+     pegada al texto) y, tras «Contenidos:», apartados y letras, por orden y sin interpretar la
+     sangría; cada uno con la página en que empieza y la orden como procedencia (sin `via`: es
+     currículo propio, no una modificación). El mínimo estatal (RD 659/2023, que la orden
+     reformula y en 1709 y 1710 amplía) no se guarda: `--estatal` solo lo cita en las normas de
+     la ficha. Las horas y el curso, de la tabla de `--horas`, como en `modulo`. Los optativos
      de la Orden 3536/2025 quedan pendientes.
-
-4. **Comprobar**: `comprobar --cache <dir>` revisa todas las fichas. Sale con código distinto
-   de 0 y una línea por discrepancia: `TEXTO`, `PROCEDENCIA`, `RELACION`, `CODIGO`,
-   `VIGENCIA`, `FALTA`, `SOBRA` o `SIN_FUENTE`.
-
-Lo extraído se revisa a mano antes de commitear: el PDF manda, así que el texto se guarda
-tal como sale de `pdftotext` y un error del boletín se declara en `sustituciones` (la
-corrección de errores que lo enmienda), no se arregla en el JSON.
 
 ## La Orden 3537/2025 sale cifrada: `cifrado.py`
 

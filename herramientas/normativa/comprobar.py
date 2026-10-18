@@ -52,10 +52,8 @@ _PARTICION = re.compile(r"(?<=\w)-\n(?=\w)")
 # siempre el principio de otra unidad, aunque su texto empiece en minúscula.
 _MARCA = "\x01"
 # Tras el final de lo guardado, la unidad debe acabar: fin de línea y que la línea
-# siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)»). Lo único
-# que puede quedar pegado al final es la etiqueta «Criterios de evaluación:» que el BOE deja
-# en el mismo párrafo que el resultado de aprendizaje.
-_BORDE = r"[ ]*»?[ ]*(?:Criterios de evaluaci[óo]n:[ ]*)?(?:\n(?!(?![a-zñ]\))[a-záéíóúüñ])|$)"
+# siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)»).
+_BORDE = r"[ ]*»?[ ]*(?:\n(?!(?![a-zñ]\))[a-záéíóúüñ])|$)"
 # Los elementos que salen de una fila de tabla (el nombre del módulo, seguido de horas y
 # créditos en la misma línea) no acaban donde acaba una línea: se buscan salteando cifras.
 TIPOS_DE_TABLA = frozenset({"modulo"})

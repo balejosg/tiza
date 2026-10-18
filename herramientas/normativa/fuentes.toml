@@ -484,46 +484,22 @@ correcciones = ["boe-a-2025-10203"]
 modificada_por = ["boe-a-2024-14079"]
 estado = "vigente"
 
-# Currículo básico (código, duración, ECTS, resultados de aprendizaje y criterios de evaluación)
-# de los módulos transversales de DAM: anexo V (1709 y 1710), VII (1665), VIII (1708) y X
-# (0179); el RD 500/2024 (art. séptimo, Uno.b) remite a ellos. Se extraen del texto
-# consolidado de la API (XML), no del PDF: la versión vigente de los anexos V y VII no es la
-# del PDF original. Cada bloque del XML trae una versión por cada reforma; se toma la última.
-#  - RD 658/2024 (art. segundo, apartados Veintiséis a Veintiocho): reescribe el primer
-#    párrafo del apartado 2 del anexo V («Itinerario personal para la empleabilidad I»: el
-#    resultado de aprendizaje 2 de 1709, ahora «Adquiere las competencias necesarias para el
-#    desempeño de las funciones de nivel básico en Prevención de Riesgos Laborales»; antes
-#    «Alcanza las competencias necesarias para la obtención del título de Técnico Básico…») y
-#    las cabeceras de los anexos VI y VII (nombre, ECTS, duración y código), que no se
-#    guardan: el nombre del módulo sale de la tabla del Decreto 103/2024. Ese resultado de 1709
-#    cita al RD 658/2024 (PDF, con su página) y, en `via`, al anexo V del RD 659/2023.
-#  - La corrección BOE-A-2025-10203 solo toca el art. 168.1 y la disposición transitoria
-#    octava: ninguno de estos anexos. Su texto ya está en el consolidado.
-#  - Sentencia del TC 82/2025: afecta a artículos (166, 203…) y al anexo IV, no a los
-#    anexos V, VII, VIII ni X.
-# Los recuentos los contó el mantenedor en el XML con una regex por párrafo, sin el
-# extractor: resultados = párrafos «N. …», criterios_fp = párrafos «a) …».
-# El resultado 2 de 1709 es del RD 658/2024 (cuenta en su norma, no aquí).
-
-[norma.recuentos."MAD.DAM.1709"]
-resultados = 4
-criterios_fp = 39
-
-[norma.recuentos."MAD.DAM.1710"]
-resultados = 5
-criterios_fp = 35
-
-[norma.recuentos."MAD.DAM.1665"]
-resultados = 6
-criterios_fp = 45
-
-[norma.recuentos."MAD.DAM.1708"]
-resultados = 6
-criterios_fp = 34
-
-[norma.recuentos."MAD.DAM.0179"]
-resultados = 5
-criterios_fp = 43
+# Currículo básico (mínimo estatal: código, duración, ECTS, resultados de aprendizaje y criterios
+# de evaluación) de los módulos transversales de DAM: anexo V (1709 y 1710), VII (1665), VIII
+# (1708) y X (0179); el RD 500/2024 (art. séptimo, Uno.b) remite a ellos. **Las fichas no
+# guardan sus textos**: los resultados, criterios y contenidos que se aplican en Madrid son los
+# de la Orden 3537/2025, que los reformula (en 1709 y 1710 reordena y amplía los criterios);
+# la ficha solo cita este real decreto en `normas`, como constancia del mínimo estatal. Qué
+# toca lo que lo modifica o corrige:
+#  - RD 658/2024 (art. segundo, apartados Veinticuatro a Veintiocho): reescribe el resultado 2
+#    de 1709 en el consolidado («Adquiere las competencias necesarias para el desempeño de las
+#    funciones de nivel básico en Prevención de Riesgos Laborales», antes «Alcanza las
+#    competencias… para la obtención del título de Técnico Básico…») y las cabeceras de los
+#    anexos III, VI y VII (nombre, ECTS, duración y código);
+#  - la corrección BOE-A-2025-10203 solo toca el art. 168.1 y la disposición transitoria octava:
+#    ninguno de estos anexos (su texto ya está en el consolidado);
+#  - Sentencia del TC 82/2025: afecta a artículos (166, 203…) y al anexo IV, no a los anexos
+#    V, VII, VIII ni X.
 
 [[norma]]
 id = "boe-a-2024-14079"
@@ -540,8 +516,7 @@ estado = "vigente"
 # Art. segundo, apartado Veintiséis: reescribe el primer párrafo del apartado 2 del anexo V
 # (resultado de aprendizaje 2 de 1709). Los apartados Veinticuatro, Veinticinco, Veintisiete y
 # Veintiocho tocan solo cabeceras (código, duración, ECTS) y la estructura modular (anexo IV).
-[norma.recuentos."MAD.DAM.1709"]
-resultados = 1
+# Ninguna ficha cita sus textos: ver el comentario del RD 659/2023.
 
 [[norma]]
 id = "boe-a-2025-10203"
@@ -650,26 +625,37 @@ estado = "vigente"
 # mantenedor.
 cifrado = "glifos-arial"
 
-# Contenidos de Madrid de los módulos transversales de DAM: anexos III (0179), V (1665), VI
-# (1708), VII (1709) y VIII (1710). Un apartado «N. …» y cada letra «a) …» son un contenido
-# (la letra a veces va pegada al texto: «m)Léxico»). Los contó el mantenedor con una regex por
-# línea en el texto descifrado, sin el extractor, y los comparó con la imagen de las páginas.
-# Los resultados y criterios de la orden no se guardan: los de las fichas son los del
-# RD 659/2023 (la orden difiere en detalles y, en 1709, en el orden; ver el informe de 5.4).
+# Currículo de Madrid de los módulos transversales de DAM: anexos III (0179), V (1665), VI
+# (1708), VII (1709) y VIII (1710). Resultados («N. …»), criterios («a) …», a veces pegada al
+# texto: «m)Léxico») y contenidos (apartados «N. …» y letras «a) …», tras «Contenidos:») los
+# contó el mantenedor con una regex por línea en el texto descifrado, sin el extractor, y los
+# comparó con la imagen de las páginas. Es currículo propio de Madrid: los resultados y
+# criterios no son los del RD 659/2023 (ver el informe de 5.4: en 1709 los reordena y en 1709
+# y 1710 añade criterios).
 
 [norma.recuentos."MAD.DAM.0179"]
+resultados = 5
+criterios_fp = 43
 contenidos = 59
 
 [norma.recuentos."MAD.DAM.1665"]
+resultados = 6
+criterios_fp = 45
 contenidos = 30
 
 [norma.recuentos."MAD.DAM.1708"]
+resultados = 6
+criterios_fp = 34
 contenidos = 23
 
 [norma.recuentos."MAD.DAM.1709"]
+resultados = 5
+criterios_fp = 43
 contenidos = 34
 
 [norma.recuentos."MAD.DAM.1710"]
+resultados = 5
+criterios_fp = 41
 contenidos = 33
 
 [[norma]]
