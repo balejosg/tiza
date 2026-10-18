@@ -679,6 +679,20 @@ def test_lector_de_fuentes_toml(tmp_path):
             comun.leer_fuentes(ruta)
 
 
+def test_lector_de_fuentes_los_recuentos_admiten_cualquier_tipo_de_elemento(tmp_path):
+    # los del título de FP: lo que no tiene un nombre corto sale con el del tipo tal cual
+    comun = herramienta("comun")
+    ruta = tmp_path / "fuentes.toml"
+    toml = FUENTES_TOML.replace(
+        "{ competencias = 4, criterios = 10 }",
+        "{ titulo = 8, competencia_general = 1, competencia_profesional = 26, "
+        "objetivo_general = 26, resultados = 9, contenidos_basicos = 72 }",
+    )
+    ruta.write_text(toml, encoding="utf-8")
+    recuentos = comun.leer_fuentes(ruta)["bocm-20230531-18"]["recuentos"]["MAD.BACH.CCOMP.1"]
+    assert recuentos["competencia_profesional"] == 26 and recuentos["titulo"] == 8
+
+
 # --- descarga: sin red --------------------------------------------------------
 
 

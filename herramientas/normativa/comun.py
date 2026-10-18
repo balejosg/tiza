@@ -15,6 +15,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from tiza.normativa.modelo import TIPOS_ELEMENTO
+
 __all__ = [
     "Linea",
     "convertir_pdf",
@@ -265,7 +267,7 @@ def _leer_recuentos(id_: str, bruto: Any) -> dict[str, dict[str, int]]:
         if not isinstance(cuentas, dict):
             raise ValueError(f"{id_}: recuentos de «{ficha}» debe ser una tabla")
         for clave, valor in cuentas.items():
-            if clave not in RECUENTOS and clave not in RECUENTOS.values():
+            if clave not in RECUENTOS and clave not in TIPOS_ELEMENTO:
                 raise ValueError(f"{id_}: recuentos: «{clave}» no es un tipo de elemento")
             if type(valor) is not int or valor < 0:
                 raise ValueError(f"{id_}: recuentos: «{clave}» debe ser un entero")
