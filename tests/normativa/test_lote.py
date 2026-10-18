@@ -201,3 +201,12 @@ def test_sin_caracteres_invisibles(indice):
                 malos.append(donde)
     assert not malos
 
+
+def test_ningun_texto_tiene_marcas_combinantes(indice):
+    # tras NFC, una marca combinante (Mn) suelta es un artefacto del PDF, no del boletín
+    malos = []
+    for f in indice.fichas.values():
+        for texto, donde in [(f.nombre, f.codigo)] + [(e.texto, e.codigo) for e in f.elementos]:
+            if any(unicodedata.category(c) == "Mn" for c in unicodedata.normalize("NFC", texto)):
+                malos.append(donde)
+    assert not malos
