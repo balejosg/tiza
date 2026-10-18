@@ -125,5 +125,6 @@ necesita la misma línea en `fuentes.toml`, y si su fuente usa más glifos, ampl
 `fuentes/*.txt` son trozos de texto de boletín ya extraído, con sus cabeceras de página,
 `fuentes/*.xml` trozos del XML consolidado del BOE (tablas y anexos) y
 `bocm-20250827-6_cifrado.pdf` un PDF mínimo con los objetos reales de la fuente cifrada, para
-los tests (`tests/normativa/test_herramienta.py`). Junto con los datos de `src/tiza/normativa/datos/`, es el único sitio del repositorio donde puede aparecer
-texto de boletín literal.
+los tests (`tests/normativa/test_herramienta.py`). Junto con los datos de
+`src/tiza/normativa/datos/`, es el único sitio del repositorio donde puede aparecer texto de
+boletín literal.
