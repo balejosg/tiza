@@ -16,9 +16,16 @@
       "tipo": "modulo",
       "texto": "Programación en Python",
       "procedencia": {
-        "norma": "bocm-20250827-5",
-        "ubicacion": "anexo II, módulo CMO-316",
-        "pagina": 203
+        "norma": "bocm-20260925-20",
+        "ubicacion": "anexo I, módulo CMO-316",
+        "pagina": 108,
+        "via": [
+          {
+            "norma": "bocm-20250827-5",
+            "ubicacion": "anexo II, módulo CMO-316",
+            "pagina": 203
+          }
+        ]
       },
       "orden": 1,
       "datos": {

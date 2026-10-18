@@ -7,7 +7,8 @@
     "2026-27"
   ],
   "normas": [
-    "boe-a-2022-5521"
+    "boe-a-2022-5521",
+    "boe-a-2022-16754"
   ],
   "elementos": [
     {
@@ -134,11 +135,18 @@
     {
       "codigo": "EST.BACH.DESC.STEM4",
       "tipo": "descriptor",
-      "texto": "Interpreta y transmite los elementos más relevantes de investigaciones de forma clara y precisa, en diferentes formatos (gráficos, tablas, diagramas, fórmulas, esquemas, símbolos...) y aprovechando la cultura digital con ética y responsabilidad y valorando de forma crítica la contribución de la ciencia y la tecnología en el cambio de las condiciones de vida para compartir y construir nuevos conocimientos.",
+      "texto": "Interpreta y transmite los elementos más relevantes de investigaciones de forma clara y precisa, en diferentes formatos (gráficos, tablas, diagramas, fórmulas, esquemas, símbolos…) y aprovechando la cultura digital con ética y responsabilidad y valorando de forma crítica la contribución de la ciencia y la tecnología en el cambio de las condiciones de vida para compartir y construir nuevos conocimientos.",
       "procedencia": {
-        "norma": "boe-a-2022-5521",
-        "ubicacion": "anexo I",
-        "pagina": null
+        "norma": "boe-a-2022-16754",
+        "ubicacion": "corrección de errores, página 46069 (tabla de «Descriptores operativos», STEM4)",
+        "pagina": 139703,
+        "via": [
+          {
+            "norma": "boe-a-2022-5521",
+            "ubicacion": "anexo I",
+            "pagina": 46069
+          }
+        ]
       },
       "orden": 12
     },

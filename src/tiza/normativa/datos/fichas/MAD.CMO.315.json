@@ -1,6 +1,6 @@
 {
   "codigo": "MAD.CMO.315",
-  "nombre": "Arquitectura en la nube",
+  "nombre": "Arquitecturas en la nube",
   "etapa": "fp_gs",
   "curso": null,
   "cursos_academicos": [
@@ -14,11 +14,18 @@
     {
       "codigo": "MAD.CMO.315",
       "tipo": "modulo",
-      "texto": "Arquitectura en la nube",
+      "texto": "Arquitecturas en la nube",
       "procedencia": {
-        "norma": "bocm-20250827-5",
-        "ubicacion": "anexo II, módulo CMO-315",
-        "pagina": 197
+        "norma": "bocm-20260925-20",
+        "ubicacion": "anexo I, módulo CMO-315",
+        "pagina": 108,
+        "via": [
+          {
+            "norma": "bocm-20250827-5",
+            "ubicacion": "anexo II, módulo CMO-315",
+            "pagina": 197
+          }
+        ]
       },
       "orden": 1,
       "datos": {
