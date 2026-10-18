@@ -43,3 +43,10 @@ def test_guia_unidad_existe_y_se_cita():
     assert GUIA.is_file()
     assert "guias/unidad.md" in SKILL.read_text(encoding="utf-8")
     assert len(GUIA.read_text(encoding="utf-8").splitlines()) <= 90
+
+
+def test_unidad_completa_carga_la_guia_antes_del_primer_paso():
+    texto = SKILL.read_text(encoding="utf-8")
+    seccion = texto.split("## Unidad completa", 1)[1].split("\n## ", 1)[0]
+    assert "guias/unidad.md" in seccion
+    assert seccion.index("guias/unidad.md") < seccion.index("\n1. ")

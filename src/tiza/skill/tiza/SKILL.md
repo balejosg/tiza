@@ -1,6 +1,6 @@
 ---
 name: tiza
-description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestionarios o tests autocorregibles) para tu aula virtual Moodle con la CLI tiza. Úsala cuando el docente pida crear, revisar o publicar contenido para su aula virtual. El agente puede publicar mientras el docente mantenga abierta una sesión creada con `tiza empezar` o `tiza sesion`; nunca ve la contraseña ni se conecta al aula.
+description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestionarios o tests autocorregibles) para tu aula virtual Moodle con la CLI tiza, y prepara unidades a partir de la programación del docente. Úsala cuando el docente pida crear, revisar o publicar contenido para su aula virtual, o una unidad desde su programación. El agente puede publicar mientras el docente mantenga abierta una sesión creada con `tiza empezar` o `tiza sesion`; nunca ve la contraseña ni se conecta al aula.
 ---
 
 # Publicar en tu aula virtual Moodle con `tiza`
@@ -270,6 +270,8 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
 ## Unidad completa (un tema, una unidad, una situación de aprendizaje)
 
+Si el docente parte de su programación, o pide una unidad o una situación de aprendizaje a partir de ella, carga `guias/unidad.md` y síguela **antes de preguntar nada**.
+
 Se aplica cuando el docente pide un **tema entero**. Para una pieza suelta, el flujo de siempre.
 
 1. **Averigua antes de escribir**: mira primero la carpeta y pregunta **en un solo mensaje** lo que falte: materia y curso, número de sesiones y fechas, sección (por nombre), si hay documento curricular o material propio que reutilizar y si la unidad acaba en un producto final.
@@ -279,8 +281,8 @@ Se aplica cuando el docente pide un **tema entero**. Para una pieza suelta, el f
 5. **Currículo**: **no cites normativa de memoria ni la busques en internet.**
    - Antes de citar un criterio, una competencia, un saber o un descriptor, consúltalo con `tiza normativa` (`catalogo`, `ficha <codigo>`, `elemento <codigo>`, `norma "<cita>"`, `buscar "<texto>"`, `programacion eso|bachillerato|fp`; ver `--help`). Cítalo con su **código**, su **texto literal** y su **procedencia**, y di de qué fecha son los datos (`version_datos`). El texto ya lleva aplicadas las correcciones de errores oficiales de su norma; la procedencia del elemento nombra la corrección y `via`, el texto original.
    - `NORMATIVA_SIN_DATOS`: díselo al docente y no lo completes. `CURSO_SIN_DATOS`: pídele `tiza actualizar`; si sigue igual, repite con `--curso-academico` y el último de `disponibles`, y avisa en cada cita de que los datos son de ese curso.
-   - Si el docente pide una unidad o situación de aprendizaje **a partir de su programación**, carga `guias/unidad.md` y síguela.
-   - Si el docente aporta el PDF de una norma que la fuente no tiene, o un documento curricular, léelo, cita su página y di que tiza no lo ha comprobado.
+   - Si el docente pide una unidad o situación de aprendizaje **a partir de su programación**, `guias/unidad.md` ya la has cargado al empezar.
+   - Si el docente aporta el PDF de una norma que la fuente no tiene, o un documento curricular, léelo con `tiza leer` y abre su `.txt`, cita su página y di que tiza no lo ha comprobado.
    - El art. 68 del RD 83/1996 (requisitos de la programación) es de 1996: cítalo literal, sin actualizarlo. En su apartado 2, cada etapa solo trae las letras que le aplican.
    - **No inventes criterios.** Díselo al docente: los criterios citados los revisa él.
 6. **Versiones de refuerzo o ampliación**: son actividades distintas, descritas por su contenido; nunca por alumnos ni por grupos con nombre. Si la programación del docente trae datos del alumnado, no la uses: pide una copia sin ellos.
