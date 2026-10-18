@@ -19,7 +19,7 @@ en español.
   excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar` y `tiza actualizar` son del docente** (tampoco lances `python -m tiza.ventana`): no los ejecutes. El agente puede usar
-  `tiza comprobar` (offline) y, mientras el docente mantenga abierta
+  `tiza normativa` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
   `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar` y `tiza estructura` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
@@ -61,6 +61,12 @@ en español.
   hash (`hash_fechas`/`hash_contenido`/`hash_extra`) reproduce el formato de
   siempre: cambiarlo invalida `verificados.json`. El test de contrato es
   `tests/test_tipos.py`.
+- `src/tiza/normativa/`: la fuente de normativa (`tiza normativa`), offline: modelo,
+  datos con esquema cerrado en `datos/`, consultas y salida validada. Los datos se
+  generan con `herramientas/normativa/`, nunca a mano; `comprobar` debe dar 0 antes
+  de commitear datos.
+- `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
+  `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
   nombres de los ficheros (`informe.json`, `estructura.json`, `verificados.json`
   y `preview/`), sus formatos y su validación al leer. `cargar_estructura`
@@ -179,11 +185,14 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.22.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.23.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con
   `educa` antes de commitear en el público (el dominio de Educaplay): no lo «arregles».
+  La búsqueda excluye `src/tiza/normativa/datos/`, `herramientas/normativa/fuentes/`,
+  `herramientas/normativa/fuentes.toml` y `herramientas/normativa/requisitos.toml`
+  (texto literal de boletín: «Consejería de Educación», «calificación»).
 - Al cambiar algo visible para el docente, añade una línea a `CHANGELOG.md`.
 - Commits en `main`, estilo Conventional Commits en español (`feat:`, `fix:`,
   `docs:`, `test:`).

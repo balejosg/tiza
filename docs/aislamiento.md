@@ -332,7 +332,7 @@ Si tu agente no está en la lista:
    del proyecto.
 5. No le permitas ejecutar `tiza empezar`, `tiza sesion`, `tiza autoprueba`,
    `tiza configurar`, `tiza aislar`, `tiza actualizar`
-   ni `python -m tiza.ventana`. El agente solo necesita `tiza comprobar` (offline),
+   ni `python -m tiza.ventana`. El agente solo necesita `tiza normativa` y `tiza comprobar` (offline),
    `tiza publicar`, `tiza ordenar` y `tiza estructura` (con la sesión
    abierta no salen de `.tiza/`; sin sesión fallan con `SIN_SESION`) y
    `tiza revisar` (solo lectura).

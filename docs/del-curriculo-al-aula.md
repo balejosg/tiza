@@ -19,7 +19,9 @@ En la carpeta de la asignatura, la misma donde abres `tiza empezar`, deja:
   [guía de uso](guia.md#calendario-y-cambio-de-fechas)) y el material propio que
   quieras reutilizar (apuntes, imágenes, fichas).
 
-El agente solo lee lo que hay en esa carpeta. No consulta el aula ni ve el
+Si tu materia está en la normativa que trae `tiza` (mira `tiza normativa catalogo`), el
+agente cita de ahí, con código y procedencia; si no está, sigue con el decreto que dejes
+en la carpeta. El agente solo lee lo que hay en esa carpeta. No consulta el aula ni ve el
 trabajo de tu alumnado.
 
 ## La conversación

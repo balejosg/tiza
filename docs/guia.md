@@ -12,6 +12,7 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 | `tiza configurar` | docente | Guarda la URL y el usuario (nada más); los cursos se eligen por nombre al abrir la sesión en cada carpeta y se guardan en su `tiza.toml` |
 | `tiza instalar-skill` | docente | Instala la skill portable en los agentes |
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |
+| `tiza normativa <consulta>` | agente o docente | Offline: consulta la normativa que trae tiza y devuelve un JSON con código, texto literal y procedencia. Consultas: `catalogo`, `ficha <codigo>`, `elemento <codigo>`, `norma "<cita>"`, `buscar "<texto>" [--en <codigo>]` y `programacion eso\|bachillerato\|fp`; todas menos `norma` aceptan `--curso-academico AAAA-AA` (por defecto, el de hoy) |
 | `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json` |
 | `tiza sesion [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
 | `tiza ordenar <md>… --en pruebas\|real` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): deja las actividades de esos ficheros en ese orden dentro de su sección, sin mover nada más; en real, el docente confirma el orden curso a curso. Cambiar `seccion:` y publicar mueve la actividad en vez de duplicarla |
@@ -28,6 +29,20 @@ una línea «Qué hacer» con el siguiente paso. Si no se arregla, abre una
 [*issue*](https://github.com/balejosg/tiza/issues) con la orden que
 ejecutaste, tu sistema y el código y la línea «Qué hacer» copiados tal cual.
 No adjuntes capturas del aula (pueden salir alumnos) ni tu contraseña.
+
+## Normativa
+
+`tiza normativa` trae la normativa de la Comunidad de Madrid del curso 2026-27:
+en ESO, Ciencias de la Computación (1.º y 2.º), Tecnología y Digitalización (2.º y
+3.º) y Digitalización (4.º); en Bachillerato, Ciencias de la Computación I y II; en
+FP, el título y los módulos de Desarrollo de Aplicaciones Multiplataforma (técnicos,
+transversales y los optativos del catálogo que caben en él, como `MAD.CMO.316`);
+los descriptores del perfil de salida; y lo que la normativa exige de la programación
+(`tiza normativa programacion eso|bachillerato|fp`). El texto es el literal del
+boletín y cada elemento lleva su código y su procedencia. Lo que no está responde
+`NORMATIVA_SIN_DATOS`; un curso sin datos, `CURSO_SIN_DATOS` (prueba `tiza actualizar`).
+El agente no busca normativa en internet: si necesitas una norma que no está,
+déjale su PDF en la carpeta.
 
 ## Flujo con un agente
 

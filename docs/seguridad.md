@@ -24,6 +24,7 @@ Son medidas para reducir riesgos, no garantías absolutas. Si tu centro o tu
 Delegación de Protección de Datos te pide un resumen, pásale
 [proteccion-de-datos.md](proteccion-de-datos.md).
 
+- **`tiza normativa` es offline**: solo lee los datos que trae el paquete, no usa la red ni el aula, y su salida pasa por un esquema cerrado como el resto de lo que ve el agente.
 - **Sin secretos persistentes**: en Windows y macOS (y en Linux, si la instalas), `tiza` abre una ventana con la
   página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
   solo recoge las cookies de sesión del servidor del aula (las de cualquier otro
