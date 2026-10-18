@@ -1,0 +1,479 @@
+# Fuentes oficiales del lote de normativa de Madrid (curso 2026-27).
+#
+# Una tabla [[norma]] por disposición. Solo la usa el mantenedor: `descargar` baja cada
+# `url_pdf` y comprueba su `sha256`; `comprobar` lee `sustituciones` y `recuentos`.
+# Los PDF y XML van a una caché fuera del repositorio y nunca se commitean.
+#
+# - `id`: referencia del boletín en minúsculas; `fecha`: la de la disposición (la de su
+#   nombre) o, en una corrección de errores sin fecha propia, la de su publicación.
+# - `titulo`: el del sumario del boletín (BOCM) o el de los metadatos (BOE), sin el punto
+#   final. Si una corrección de errores lo arregla, el corregido.
+# - `rango = "correccion"`: correcciones de errores publicadas como disposición propia.
+#   Su `numero` es «del <norma corregida>», de modo que se citan como «corrección de
+#   errores del Decreto 27/2025».
+# - `url_api`: solo para las normas del BOE con texto consolidado en su API (la API
+#   responde 404 para las que no lo tienen, como el RD 450/2010).
+# - `recuentos`: los escribe el mantenedor al extraer cada ficha (tarea 5), contados en el
+#   boletín y no en lo extraído.
+#
+# Investigado y descargado el 2026-10-18.
+
+# --- ESO y Bachillerato: currículo de Madrid --------------------------------------------
+
+[[norma]]
+id = "bocm-20220726-2"
+rango = "decreto"
+numero = "65/2022"
+fecha = "2022-07-20"
+titulo = "Decreto 65/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo de la Educación Secundaria Obligatoria"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2022/07/26/BOCM-20220726-2.PDF"
+sha256 = "fba12d2dd0a19cb11cd670a922213aac5acdfb82db774dea187ed481430ffb53"
+# El Decreto 59/2024 solo toca los arts. 16.4 y la disposición adicional segunda y añade
+# contenidos a Geografía e Historia: nada del lote.
+modificada_por = ["bocm-20240613-2"]
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20220726-1"
+rango = "decreto"
+numero = "64/2022"
+fecha = "2022-07-20"
+titulo = "Decreto 64/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo del Bachillerato"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2022/07/26/BOCM-20220726-1.PDF"
+sha256 = "bfac82153cb0dc4e9246b5e94f278eae401ff9ce00f81b856135882cb26d348f"
+# El Acuerdo de 13-09-2023 corrige los arts. 8 y 13.4 y descriptores de materias del
+# anexo II (Biología, Ciencias Generales, Cultura Audiovisual…), ninguna del lote.
+correcciones = ["bocm-20230915-1"]
+modificada_por = ["bocm-20240613-2"]
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20230915-1"
+rango = "correccion"
+numero = "del Decreto 64/2022"
+fecha = "2023-09-13"
+titulo = "Acuerdo de 13 de septiembre de 2023, del Consejo de Gobierno, por el que se procede a la corrección de errores del Decreto 64/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo del bachillerato"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2023/09/15/BOCM-20230915-1.PDF"
+sha256 = "61d4034011e286590d4b100451cd11da924713cf77522a1df38348b391fecc9d"
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20240613-2"
+rango = "decreto"
+numero = "59/2024"
+fecha = "2024-06-12"
+titulo = "Decreto 59/2024, de 12 de junio, del Consejo de Gobierno, por el que se modifica el Decreto 61/2022, de 13 de julio, del Consejo de Gobierno, por el que se establece para la Comunidad de Madrid la ordenación y el currículo de la etapa de Educación Primaria, el Decreto 65/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo de la Educación Secundaria Obligatoria, y el Decreto 64/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo del Bachillerato"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/06/13/BOCM-20240613-2.PDF"
+sha256 = "b77c3e24041b2e310c6079d895911c1f9e590c9cf42ede621203568ef43d734a"
+correcciones = ["bocm-20240619-1"]
+modifica = ["bocm-20220726-2", "bocm-20220726-1"]
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20240619-1"
+rango = "correccion"
+numero = "del Decreto 59/2024"
+fecha = "2024-06-19"
+titulo = "Corrección de errores del Decreto 59/2024, de 12 de junio, del Consejo de Gobierno, por el que se modifica el Decreto 61/2022, de 13 de julio, del Consejo de Gobierno, por el que se establece para la Comunidad de Madrid la ordenación y el currículo de la etapa de Educación Primaria; el Decreto 65/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo de la Educación Secundaria Obligatoria, y el Decreto 64/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo del Bachillerato"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/06/19/BOCM-20240619-1.PDF"
+sha256 = "c51bc48073a3ef6bda28ec94015840aad06d283da7a6f17bd5cac305763197d1"
+estado = "vigente"
+
+# --- Optativas de ESO y Bachillerato (Ciencias de la Computación) ----------------------
+
+[[norma]]
+id = "bocm-20230531-18"
+rango = "orden"
+numero = "1736/2023"
+fecha = "2023-05-19"
+titulo = "Orden 1736/2023, de 19 de mayo, de la Vicepresidencia, Consejería de Educación y Universidades, por la que se establecen los catálogos de materias optativas que los centros podrán incorporar a su oferta educativa en la Educación Secundaria Obligatoria y en el Bachillerato en la Comunidad de Madrid"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2023/05/31/BOCM-20230531-18.PDF"
+sha256 = "a1d3970f53965fed66546235c705229b55817f8a473ac9970eaf03df444f5079"
+# Ni la 114/2025 ni la 4150/2025 tocan el currículo de Ciencias de la Computación del
+# anexo IV: reescriben los catálogos (anexos I y III) y añaden currículos de otras materias.
+modificada_por = ["bocm-20250131-18", "bocm-20250917-45"]
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20250131-18"
+rango = "orden"
+numero = "114/2025"
+fecha = "2025-01-23"
+titulo = "Orden 114/2025, de 23 de enero, de la Consejería de Educación, Ciencia y Universidades, por la que se modifica la Orden 1736/2023, de 19 de mayo, de la Vicepresidencia, Consejería de Educación y Universidades, por la que se establecen los catálogos de materias optativas que los centros podrán incorporar a su oferta educativa en la Educación Secundaria Obligatoria y en el Bachillerato en la Comunidad de Madrid"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/01/31/BOCM-20250131-18.PDF"
+sha256 = "f6b3902c313065a5df3543fb4ccb3ae914675598b1b1496d522d53ce6151644d"
+modifica = ["bocm-20230531-18"]
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20250917-45"
+rango = "orden"
+numero = "4150/2025"
+fecha = "2025-09-05"
+titulo = "Orden 4150/2025, de 5 de septiembre, de la Consejería de Educación, Ciencia y Universidades, por la que se modifica la Orden 1736/2023, de 19 de mayo, de la Vicepresidencia, Consejería de Educación y Universidades, por la que se establecen los catálogos de materias optativas que los centros podrán incorporar a su oferta educativa en la Educación Secundaria Obligatoria y en el Bachillerato en la Comunidad de Madrid"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/09/17/BOCM-20250917-45.PDF"
+sha256 = "91511d8aa4aa18d4d00cf52fb442d536d9e7eabbfa56e8d24a9c7e27db198ee0"
+modifica = ["bocm-20230531-18"]
+estado = "vigente"
+
+# --- Evaluación en ESO y Bachillerato (elementos de la programación) --------------------
+
+[[norma]]
+id = "bocm-20230531-17"
+rango = "orden"
+numero = "1712/2023"
+fecha = "2023-05-19"
+titulo = "Orden 1712/2023, de 19 de mayo, de la Vicepresidencia, Consejería de Educación y Universidades, por la que se regulan determinados aspectos de organización, funcionamiento y evaluación en la Educación Secundaria Obligatoria"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2023/05/31/BOCM-20230531-17.PDF"
+sha256 = "52b2229ffc16926e5e2bfed986f395063217b6b782059c692dbdf247ea9f3511"
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20230621-14"
+rango = "orden"
+numero = "2067/2023"
+fecha = "2023-06-11"
+titulo = "Orden 2067/2023, de 11 de junio, de la Vicepresidencia, Consejería de Educación y Universidades, por la que se regulan determinados aspectos de organización, funcionamiento y evaluación en el Bachillerato"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2023/06/21/BOCM-20230621-14.PDF"
+sha256 = "4cb4bc57181f3e68d5a868ca28a83e5749c4be40899f7bd891650b9e8abf0e0e"
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20220520-1"
+rango = "decreto"
+numero = "29/2022"
+fecha = "2022-05-18"
+titulo = "Decreto 29/2022, de 18 de mayo, del Consejo de Gobierno, por el que se regulan determinados aspectos sobre la evaluación, la promoción y la titulación en la Educación Secundaria Obligatoria, el Bachillerato y la Formación Profesional, así como en las enseñanzas de personas adultas que conduzcan a la obtención de los títulos de Graduado en Educación Secundaria Obligatoria y de Bachiller"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2022/05/20/BOCM-20220520-1.PDF"
+sha256 = "27a65f37eecca36737ce6c67de96ff5b48eda00f13191a110b3e4ec47ad8067b"
+estado = "vigente"
+# Disposición derogatoria única.2 de cada decreto (comprobado en su texto).
+derogaciones_parciales = [
+  "Decreto 65/2022: capítulo II y artículo 23",
+  "Decreto 64/2022: capítulo III y artículo 24",
+]
+
+# --- Normas estatales de ESO y Bachillerato ---------------------------------------------
+
+[[norma]]
+id = "boe-a-2022-4975"
+rango = "real_decreto"
+numero = "217/2022"
+fecha = "2022-03-29"
+titulo = "Real Decreto 217/2022, de 29 de marzo, por el que se establece la ordenación y las enseñanzas mínimas de la Educación Secundaria Obligatoria"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2022/03/30/pdfs/BOE-A-2022-4975.pdf"
+url_api = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2022-4975"
+sha256 = "d38dd914a84b8a66796f7c87a8d476135119f75f67b1c56dfd6ad7b3527dccd0"
+# La corrección solo cambia una remisión del art. 17.1 (20.2 por 20.3); el anexo I
+# (descriptores) queda igual.
+correcciones = ["boe-a-2022-5813"]
+estado = "vigente"
+
+[[norma]]
+id = "boe-a-2022-5813"
+rango = "correccion"
+numero = "del Real Decreto 217/2022"
+fecha = "2022-04-09"
+titulo = "Corrección de errores del Real Decreto 217/2022, de 29 de marzo, por el que se establece la ordenación y las enseñanzas mínimas de la Educación Secundaria Obligatoria"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2022/04/09/pdfs/BOE-A-2022-5813.pdf"
+sha256 = "de60ee2254b44f78ae90fd3e7c77e1361de28aed8ad3e5bc576fa2c953a3366c"
+estado = "vigente"
+
+[[norma]]
+id = "boe-a-2022-5521"
+rango = "real_decreto"
+numero = "243/2022"
+fecha = "2022-04-05"
+titulo = "Real Decreto 243/2022, de 5 de abril, por el que se establecen la ordenación y las enseñanzas mínimas del Bachillerato"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2022/04/06/pdfs/BOE-A-2022-5521.pdf"
+url_api = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2022-5521"
+sha256 = "dcbbd5b2b34a503782f7be03afa3bf480db6cc63643f28a877ea23f9d11c1222"
+# La corrección toca el descriptor STEM4 del anexo I (pág. 46069, dos columnas), que sí
+# es del lote. El XML consolidado ya lo trae corregido, con tres puntos («símbolos...)»)
+# donde la corrección escribe «…»; la sustitución usa la forma del XML, de donde sale el
+# texto. Los RD 205/2023 y 535/2026 modifican las disposiciones adicional 3.3 y
+# transitoria 1.2 y el art. 23.4: nada del lote.
+correcciones = ["boe-a-2022-16754"]
+modificada_por = ["boe-a-2023-7939", "boe-a-2026-14333"]
+estado = "vigente"
+sustituciones = [["símbolos.)", "símbolos...)"]]
+
+[[norma]]
+id = "boe-a-2022-16754"
+rango = "correccion"
+numero = "del Real Decreto 243/2022"
+fecha = "2022-10-14"
+titulo = "Corrección de errores del Real Decreto 243/2022, de 5 de abril, por el que se establecen la ordenación y las enseñanzas mínimas del Bachillerato"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2022/10/14/pdfs/BOE-A-2022-16754.pdf"
+sha256 = "5766c6260cbded258687b51404535a02a1fb705c2a51ff98b4b8858f0e1bf3c9"
+estado = "vigente"
+
+[[norma]]
+id = "boe-a-2023-7939"
+rango = "real_decreto"
+numero = "205/2023"
+fecha = "2023-03-28"
+titulo = "Real Decreto 205/2023, de 28 de marzo, por el que se establecen medidas relativas a la transición entre planes de estudios, como consecuencia de la aplicación de la Ley Orgánica 3/2020, de 29 de diciembre, por la que se modifica la Ley Orgánica 2/2006, de 3 de mayo, de Educación"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2023/03/29/pdfs/BOE-A-2023-7939.pdf"
+sha256 = "f70e3a4120e43665a71c5784c575d868bde315e0d1e60bbdafd23978bb6b5f24"
+modifica = ["boe-a-2022-5521"]
+estado = "vigente"
+
+[[norma]]
+id = "boe-a-2026-14333"
+rango = "real_decreto"
+numero = "535/2026"
+fecha = "2026-06-30"
+titulo = "Real Decreto 535/2026, de 30 de junio, por el que se modifican los reales decretos por los que se establecen los títulos de Técnico Deportivo Superior regulados por la Ley Orgánica 2/2006, de 3 de mayo, de Educación, así como el Real Decreto 243/2022, de 5 de abril, por el que se establecen la ordenación y las enseñanzas mínimas del Bachillerato, y el Real Decreto 534/2024, de 11 de junio, por el que se regulan los requisitos de acceso a las enseñanzas universitarias oficiales de Grado, las características básicas de la prueba de acceso y la normativa básica de los procedimientos de admisión"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2026/07/02/pdfs/BOE-A-2026-14333.pdf"
+sha256 = "2cbcd4107b838d3430b57dcdb46e6f780d3f04fa274d5c23e57e1e69bcc0afbf"
+modifica = ["boe-a-2022-5521"]
+estado = "vigente"
+
+[[norma]]
+id = "boe-a-1996-3834"
+rango = "real_decreto"
+numero = "83/1996"
+fecha = "1996-01-26"
+titulo = "Real Decreto 83/1996, de 26 de enero, por el que se aprueba el Reglamento orgánico de los institutos de educación secundaria"
+boletin = "BOE"
+# El PDF es un escaneo con un OCR ilegible: el texto del art. 68 sale del XML consolidado.
+url_pdf = "https://www.boe.es/boe/dias/1996/02/21/pdfs/A06306-06324.pdf"
+url_api = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1996-3834"
+sha256 = "c32607fa89b96f4fd6662ecb6a3289c7e9e3ecd1762bbda43c185ea12560c26b"
+estado = "vigente"
+
+# --- DAM: título estatal ------------------------------------------------------------------
+
+[[norma]]
+id = "boe-a-2010-8067"
+rango = "real_decreto"
+numero = "450/2010"
+fecha = "2010-04-16"
+titulo = "Real Decreto 450/2010, de 16 de abril, por el que se establece el título de Técnico Superior en Desarrollo de Aplicaciones Multiplataforma y se fijan sus enseñanzas mínimas"
+boletin = "BOE"
+# Sin texto consolidado en el BOE: los resultados y criterios vigentes salen del anexo I
+# en la redacción del RD 405/2023, con lo que cambie el RD 500/2024.
+url_pdf = "https://www.boe.es/boe/dias/2010/05/20/pdfs/BOE-A-2010-8067.pdf"
+sha256 = "f2507616eab8a240cf508df9466defbe3c40d7324f9cf05f328b809bd3215604"
+modificada_por = ["boe-a-2023-13221", "boe-a-2024-10685"]
+estado = "vigente"
+derogaciones_parciales = [
+  "Real Decreto 1085/2020: el anexo de convalidaciones de módulos profesionales",
+]
+
+[[norma]]
+id = "boe-a-2023-13221"
+rango = "real_decreto"
+numero = "405/2023"
+fecha = "2023-05-29"
+titulo = "Real Decreto 405/2023, de 29 de mayo, por el que se actualizan los títulos de la formación profesional del sistema educativo de Técnico Superior en Desarrollo de Aplicaciones Multiplataforma y Técnico Superior en Desarrollo de Aplicaciones Web, de la familia profesional Informática y Comunicaciones, y se fijan sus enseñanzas mínimas"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2023/06/03/pdfs/BOE-A-2023-13221.pdf"
+sha256 = "8e86226ae370094ea608bc18c03348e24956088035cdde141ca2c0e7e35ff8aa"
+modifica = ["boe-a-2010-8067"]
+estado = "vigente"
+
+[[norma]]
+id = "boe-a-2024-10685"
+rango = "real_decreto"
+numero = "500/2024"
+fecha = "2024-05-21"
+titulo = "Real Decreto 500/2024, de 21 de mayo, por el que se modifican determinados reales decretos por los que se establecen títulos de Formación Profesional de grado superior y se fijan sus enseñanzas mínimas"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2024/05/28/pdfs/BOE-A-2024-10685.pdf"
+sha256 = "9ca3fd2d274ec8d3b32bcef71aa54862fdd23874594d1c46f119f4be242515e4"
+# Su corrección (BOE-A-2025-10205) solo toca un título de Imagen Personal.
+correcciones = ["boe-a-2025-10205"]
+modifica = ["boe-a-2010-8067"]
+estado = "vigente"
+
+[[norma]]
+id = "boe-a-2025-10205"
+rango = "correccion"
+numero = "del Real Decreto 500/2024"
+fecha = "2025-05-23"
+titulo = "Corrección de errores del Real Decreto 500/2024, de 21 de mayo, por el que se modifican determinados reales decretos por los que se establecen títulos de Formación Profesional de grado superior y se fijan sus enseñanzas mínimas"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2025/05/23/pdfs/BOE-A-2025-10205.pdf"
+sha256 = "3339ec7c1281b12e53dd0a7389710c47282aef2f10c69a90ed50958806d2de98"
+estado = "vigente"
+
+# --- DAM: currículo y plan de estudios de Madrid ------------------------------------------
+
+[[norma]]
+id = "bocm-20110131-3"
+rango = "decreto"
+numero = "3/2011"
+fecha = "2011-01-13"
+titulo = "Decreto 3/2011, de 13 de enero, del Consejo de Gobierno, por el que se establece para la Comunidad de Madrid el currículo del ciclo formativo de grado superior correspondiente al título de Técnico Superior en Desarrollo de Aplicaciones Multiplataforma"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2011/01/31/BOCM-20110131-3.PDF"
+sha256 = "3270811e2833dee27b6e4fe79fcc2d10465c5646e76bb733ce3b4c96743d7d54"
+modificada_por = ["bocm-20241115-2"]
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20241115-2"
+rango = "decreto"
+numero = "103/2024"
+fecha = "2024-11-13"
+titulo = "Decreto 103/2024, de 13 de noviembre, del Consejo de Gobierno, por el que se modifican setenta y seis Decretos por los que se establecen para la Comunidad de Madrid planes de estudios de ciclos formativos de grado superior"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/11/15/BOCM-20241115-2.PDF"
+sha256 = "a195d44258c425f0c37c4ed283a353d127160a07c180b604c429c885cdcf1f6e"
+modifica = ["bocm-20110131-3"]
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20250827-6"
+rango = "orden"
+numero = "3537/2025"
+fecha = "2025-08-12"
+titulo = "Orden 3537/2025, de 12 de agosto, de la Consejería de Educación, Ciencia y Universidades, por la que se desarrolla el currículo de los módulos profesionales de carácter transversal incluidos en los planes de estudios de los ciclos formativos de formación profesional en la Comunidad de Madrid"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/08/27/BOCM-20250827-6.PDF"
+sha256 = "60cb736cb6b42cba70badaaf17ae3ee7cc1288c14738e7650659b2c9f7180fa5"
+estado = "vigente"
+
+[[norma]]
+id = "bocm-20250827-5"
+rango = "orden"
+numero = "3536/2025"
+fecha = "2025-08-12"
+titulo = "Orden 3536/2025, de 12 de agosto, de la Consejería de Educación, Ciencia y Universidades, por la que se aprueba el catálogo de módulos profesionales de la parte de optatividad en los ciclos formativos de grado medio y grado superior de formación profesional en la Comunidad de Madrid y se establece el procedimiento de incorporación de módulos profesionales optativos a este catálogo"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/08/27/BOCM-20250827-5.PDF"
+sha256 = "b66ebf2b16caeadddec6ee73f8349c9580794b21da565efe85054765b1c79e24"
+# La disposición adicional única de la Orden 3822/2026 cambia en toda la orden
+# «phyton», «phython» «o cualquier otra grafía incorrecta» por «Python». En el PDF
+# aparecen «Phyton» (CMO-316, en el catálogo y en su currículo) y «Phython».
+correcciones = ["bocm-20260925-20#da-unica"]
+modificada_por = ["bocm-20260925-20"]
+estado = "vigente"
+sustituciones = [["Phyton", "Python"], ["Phython", "Python"]]
+
+[[norma]]
+id = "bocm-20260925-20"
+rango = "orden"
+numero = "3822/2026"
+fecha = "2026-09-14"
+titulo = "Orden 3822/2026, de 14 de septiembre, de la Consejería de Educación, Ciencia y Universidades, por la que se modifica la Orden 3536/2025, de 12 de agosto, de la Consejería de Educación, Ciencia y Universidades, por la que se aprueba el catálogo de módulos profesionales de la parte de optatividad en los ciclos formativos de grado medio y grado superior de formación profesional en la Comunidad de Madrid y se establece el procedimiento de incorporación de módulos profesionales optativos a este catálogo"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2026/09/25/BOCM-20260925-20.PDF"
+sha256 = "36f2cb8a39254d086fc8355b96258dfe2b9c8064787d3347f758a43c19540a2c"
+modifica = ["bocm-20250827-5"]
+estado = "vigente"
+
+# --- FP: ordenación e instrucciones --------------------------------------------------------
+
+[[norma]]
+id = "bocm-20250522-1"
+rango = "decreto"
+numero = "27/2025"
+fecha = "2025-05-21"
+titulo = "Decreto 27/2025, de 21 de mayo, del Consejo de Gobierno, por el que se regula la ordenación y organización del Sistema de Formación Profesional de la Comunidad de Madrid"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/05/22/BOCM-20250522-1.PDF"
+sha256 = "730ac3ab8f407663d8b621ba0152f337ba0bcc5d935594dd39dff21b2dbbfaf1"
+# Se publicó como «Decreto 21/2025». La corrección arregla el número en el sumario
+# (págs. 1 y 11); la cabecera de la disposición y el ELI del BOCM (…/d/2025/05/21/21)
+# siguen diciendo 21/2025.
+correcciones = ["bocm-20250526-1"]
+estado = "vigente"
+citas = ["Decreto 21/2025"]
+
+[[norma]]
+id = "bocm-20250526-1"
+rango = "correccion"
+numero = "del Decreto 27/2025"
+fecha = "2025-05-26"
+titulo = "Corrección de errores del Decreto 27/2025, de 21 de mayo, del Consejo de Gobierno, por el que se regula la ordenación y organización del Sistema de Formación Profesional de la Comunidad de Madrid"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/05/26/BOCM-20250526-1.PDF"
+sha256 = "61050b740854c6ed11b697b491ffdf01ce2c9beaa64db56e7954d56c03bfc1a7"
+estado = "vigente"
+
+[[norma]]
+id = "cm-instrucciones-fp-2026-27"
+rango = "resolucion"
+# Ni número ni fecha en el texto (la firma no la lleva): la fecha es la del PDF publicado.
+numero = "de instrucciones de FP 2026-27"
+fecha = "2026-06-24"
+titulo = "Resolución de la Dirección General de Educación Secundaria, Formación Profesional y Régimen Especial por la que se dictan Instrucciones sobre la ordenación y la organización de los grados D y E de formación profesional para el año académico 2026-2027"
+boletin = "CM"
+url_pdf = "https://www.comunidad.madrid/docs/2026-06/resolucion_intrucciones_ordenacion_fp_dgesfpre_26-27.pdf"
+sha256 = "b9e7914b7e633613ade23673d34da0b33abeb70c5c736553ad5a4c13a0e8a6a5"
+estado = "vigente"
+
+# --- Derogadas: solo metadatos, para responder «derogada por…» (caso A2) --------------
+
+[[norma]]
+id = "boe-a-2015-37"
+rango = "real_decreto"
+numero = "1105/2014"
+fecha = "2014-12-26"
+titulo = "Real Decreto 1105/2014, de 26 de diciembre, por el que se establece el currículo básico de la Educación Secundaria Obligatoria y del Bachillerato"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2015/01/03/pdfs/BOE-A-2015-37.pdf"
+sha256 = "50a75e3ca24c65c3c716e1a2cc9c03432283fa4c9d1d26334f6d2c47c93838c0"
+estado = "derogada"
+derogada_por = "boe-a-2022-5521"
+desde = "2022-04-07"
+derogaciones_parciales = ["Real Decreto 217/2022: capítulo II"]
+
+[[norma]]
+id = "bocm-20150520-1"
+rango = "decreto"
+numero = "48/2015"
+fecha = "2015-05-14"
+titulo = "Decreto 48/2015, de 14 de mayo, del Consejo de Gobierno, por el que se establece para la Comunidad de Madrid el currículo de la Educación Secundaria Obligatoria"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2015/05/20/BOCM-20150520-1.PDF"
+sha256 = "6b02a6e7125a7a378e78ea0ea22336d630852a5252f7c186df108ade9e8e310d"
+estado = "derogada"
+derogada_por = "bocm-20220726-2"
+desde = "2022-07-27"
+
+[[norma]]
+id = "bocm-20150522-3"
+rango = "decreto"
+numero = "52/2015"
+fecha = "2015-05-21"
+titulo = "Decreto 52/2015, de 21 de mayo, del Consejo de Gobierno, por el que se establece para la Comunidad de Madrid el currículo del Bachillerato"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2015/05/22/BOCM-20150522-3.PDF"
+sha256 = "bf3bd1ada12b98611c08d8c12b054a15c8b9939de8b368039f15b9eba3792e5f"
+estado = "derogada"
+derogada_por = "bocm-20220726-1"
+desde = "2022-07-27"
+
+[[norma]]
+id = "bocm-20190719-1"
+rango = "decreto"
+numero = "63/2019"
+fecha = "2019-07-16"
+titulo = "Decreto 63/2019, de 16 de julio, del Consejo de Gobierno, por el que se regula la ordenación y organización de la formación profesional en la Comunidad de Madrid"
+boletin = "BOCM"
+url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2019/07/19/BOCM-20190719-1.PDF"
+sha256 = "8ad1c06d5552857c97a47827ceccf2df6d9fa46abb5e3b5955cb29635d1d6c5f"
+estado = "derogada"
+derogada_por = "bocm-20250522-1"
+desde = "2025-05-23"

@@ -7,7 +7,8 @@ ni los docentes ni sus agentes la usan.** Necesita `pdftotext` (poppler) para lo
 
 Se ejecuta desde la raíz del repositorio, con `uv run python -m herramientas.normativa.<módulo>`.
 La lista de normas (`fuentes.toml`: id, URL, `sha256`, correcciones, `recuentos` y
-`sustituciones`) vivirá en esta carpeta; todavía no existe, la entrega otra tarea del plan.
+`sustituciones`) vive en esta carpeta; sus comentarios explican cada decisión (qué toca
+cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve).
 
 ## Orden de trabajo: descargar, extraer, comprobar
 
