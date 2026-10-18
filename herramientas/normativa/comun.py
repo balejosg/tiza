@@ -228,13 +228,16 @@ def convertir_pdf(pdf: Path, cifrado: str | None = None) -> str:
             texto = convertir_pdf(copia)
         comprobar_descifrado(texto)
         return texto
+    # «-enc UTF-8»: en Windows pdftotext escribe por defecto en otra codificación.
     proceso = subprocess.run(
-        ["pdftotext", "-layout", str(pdf), "-"],
+        ["pdftotext", "-enc", "UTF-8", "-layout", str(pdf), "-"],
         check=True,
         capture_output=True,
         text=True,
         encoding="utf-8",
     )
+    if proceso.stdout is None:
+        raise ValueError(f"pdftotext no devolvió texto de {pdf.name}")
     return proceso.stdout
 
 
