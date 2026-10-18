@@ -304,6 +304,8 @@ Si `publicar`, `ordenar` o `estructura` devuelven `SESION_CADUCADA`, el aula ha 
 
 Si responden `SESION_DESACTUALIZADA`, tiza cambió después de abrir la sesión y la sesión se ha cerrado sola: pide al docente que la vuelva a abrir con `tiza empezar`. Si responden `ERROR_INTERNO`, el detalle aparece en la terminal de la sesión del docente, no en la tuya: pídele que lo mire.
 
+Si `publicar` devuelve `AULA_PIDE_ESPERA`, el aula frena las subidas porque se han subido muchas imágenes seguidas; tiza ya ha esperado y reintentado sola. Lo publicado antes del fallo se queda. Dile al docente que esperas unos cinco minutos, y repite después solo con lo que falta, en tandas de unas diez actividades con imágenes. No reintentes antes.
+
 Si responden `SESION_INCOMPATIBLE`, la sesión abierta usa otra versión de tiza: pide al docente que actualice la más antigua y vuelva a abrir la sesión.
 
 ## Comandos que sí puedes ejecutar

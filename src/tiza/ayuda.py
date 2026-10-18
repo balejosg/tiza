@@ -116,6 +116,7 @@ MENSAJES: dict[str, str] = {
     "ERROR_SECCION": "El aula rechazó un cambio en las secciones. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba».",
     "ERROR_CONTEXTO": "No se pudo preparar la subida de ficheros. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba».",
     "ERROR_SUBIDA": "No se pudo subir un recurso. Comprueba su tamaño y vuelve a intentarlo.",
+    "AULA_PIDE_ESPERA": "El aula frena las subidas cuando se suben muchas imágenes seguidas. Lo ya publicado se queda. Espera unos cinco minutos y repite; con muchas actividades con imágenes, publícalas en tandas de unas diez.",
     "ERROR_CREACION": "El aula no creó la actividad. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba».",
     "ERROR_ACTUALIZACION": "El aula no actualizó la actividad. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba».",
     "ERROR_CONSULTA": "No se pudo leer la actividad publicada. Vuelve a intentarlo más tarde.",

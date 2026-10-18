@@ -79,6 +79,9 @@ __all__ = [
 ]
 
 PAUSA_POR_DEFECTO = 0.4
+# Esperas antes de repetir una subida que el aula frena por su límite de áreas de borrador
+# (unas 50 seguidas; repone ~1 cada 5 s, espiga 6). Si no basta, AULA_PIDE_ESPERA.
+ESPERAS_LIMITE_BORRADORES = (5.0, 10.0, 20.0, 40.0)
 TIEMPO_ESPERA = 30  # segundos por petición: un aula que no responde no cuelga la sesión
 
 # Fechas del formulario de las actividades con fechas, para releerlas: los campos
@@ -180,6 +183,37 @@ def _bloqueo_de_destino(exc: BaseException) -> bool:
         vistos.add(id(actual))
         actual = actual.__cause__ or actual.__context__
     return False
+
+
+def _pide_espera(respuesta: Any) -> bool:
+    """¿Es la respuesta del aula su límite de áreas de borrador?
+
+    Mira el código de error de Moodle (``maxdraftitemids``), nunca el texto, que va en el
+    idioma del aula. Ante cualquier duda, falso.
+    """
+    try:
+        datos = respuesta.json()
+    except Exception:  # noqa: BLE001 - sin JSON legible no es ese límite
+        return False
+    return isinstance(datos, dict) and datos.get("errorcode") == "maxdraftitemids"
+
+
+class _SesionQueAnota:
+    """La sesión del aula guardando la última respuesta de un ``post``.
+
+    python-moodle reduce el error de la subida a su texto y tira el código de Moodle.
+    """
+
+    def __init__(self, sesion: Any) -> None:
+        self._sesion = sesion
+        self.ultima: Any = None
+
+    def __getattr__(self, nombre: str) -> Any:
+        return getattr(self._sesion, nombre)
+
+    def post(self, *args, **kwargs):
+        self.ultima = self._sesion.post(*args, **kwargs)
+        return self.ultima
 
 
 class ErrorPublicacion(Exception):
@@ -289,11 +323,14 @@ class Moodle:
         try:
             return funcion(*args, **kwargs)
         except ERRORES_MOODLE as exc:
-            if _bloqueo_de_destino(exc):
-                raise ErrorPublicacion("DESTINO_NO_PERMITIDO") from exc
-            if not self.sesion_viva():
-                raise ErrorPublicacion("SESION_CADUCADA") from exc
-            raise ErrorPublicacion(codigo) from exc
+            raise self._error(codigo, exc) from exc
+
+    def _error(self, codigo: str, exc: BaseException) -> ErrorPublicacion:
+        if _bloqueo_de_destino(exc):
+            return ErrorPublicacion("DESTINO_NO_PERMITIDO")
+        if not self.sesion_viva():
+            return ErrorPublicacion("SESION_CADUCADA")
+        return ErrorPublicacion(codigo)
 
     def cerrar(self) -> None:
         """Cierra la sesión en el aula, para que la cookie deje de valer (nunca lanza).
@@ -390,18 +427,31 @@ class Moodle:
         )
 
     def subir(self, curso_id: int, contexto: int, ruta: Path, itemid: int) -> tuple[int, str]:
-        self._esperar()
-        return self._reducir(
-            "ERROR_SUBIDA",
-            py_draftfile.upload_file_to_draft_area,
-            self.sesion,
-            self.base_url,
-            self.sesskey,
-            curso_id,
-            contexto,
-            str(ruta),
-            itemid=itemid,
-        )
+        """Sube un fichero a un área de borrador.
+
+        Si el aula la frena por su límite de áreas, espera y repite (una subida rechazada
+        no deja nada en el aula); si no basta, ``AULA_PIDE_ESPERA``.
+        """
+        for espera in (*ESPERAS_LIMITE_BORRADORES, None):
+            self._esperar()
+            sesion = _SesionQueAnota(self.sesion)
+            try:
+                return py_draftfile.upload_file_to_draft_area(
+                    sesion,  # type: ignore[arg-type]  # la sesión, envuelta
+                    self.base_url,
+                    self.sesskey,
+                    curso_id,
+                    contexto,
+                    str(ruta),
+                    itemid=itemid,
+                )
+            except ERRORES_MOODLE as exc:
+                if not _pide_espera(sesion.ultima):
+                    raise self._error("ERROR_SUBIDA", exc) from exc
+                if espera is None:
+                    raise ErrorPublicacion("AULA_PIDE_ESPERA") from exc
+                self._dormir(espera)
+        raise AssertionError("inalcanzable")
 
     def crear(self, curso_id: int, seccion_id: int, tipo: str, payload: dict) -> int:
         try:

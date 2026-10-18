@@ -2983,3 +2983,67 @@ class TestCerrarLaSesionDelAula:
         with pytest.raises(ValueError), publicar.sesion_del_aula(aula):
             raise ValueError("fallo")
         assert aula.cerradas == 2
+
+
+class _SesionSubidas:
+    """Responde a cada subida con la siguiente respuesta de la lista."""
+
+    def __init__(self, respuestas):
+        self.respuestas = list(respuestas)
+        self.subidas = 0
+
+    def post(self, *a, **k):
+        self.subidas += 1
+        return _RespuestaJson(self.respuestas.pop(0))
+
+    def get(self, url, allow_redirects=True, timeout=None):
+        return _Respuesta(200)
+
+
+_LIMITE = {"error": "Ha alcanzado el límite… espere", "errorcode": "maxdraftitemids"}
+
+
+class TestLimiteDeBorradores:
+    """Espiga 6: el aula frena las subidas cuando se agotan sus áreas de borrador."""
+
+    def _subir(self, monkeypatch, tmp_path, respuestas):
+        monkeypatch.setattr(publicar.py_draftfile, "detect_upload_repo", lambda *a: 5)
+        fichero = tmp_path / "foto.png"
+        fichero.write_bytes(b"png")
+        sesion = _SesionSubidas(respuestas)
+        dormidas: list[float] = []
+        moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0, dormir=dormidas.append)
+        try:
+            return moodle.subir(1, 2, fichero, 77), sesion, dormidas
+        except ErrorPublicacion as exc:
+            return exc, sesion, dormidas
+
+    def test_espera_y_repite_la_subida(self, monkeypatch, tmp_path):
+        resultado, sesion, dormidas = self._subir(
+            monkeypatch, tmp_path, [_LIMITE, _LIMITE, {"id": 77, "filename": "foto.png"}]
+        )
+        assert resultado == (77, "foto.png")
+        assert sesion.subidas == 3
+        assert dormidas == [5.0, 10.0]
+
+    def test_si_no_basta_pide_esperar_al_docente(self, monkeypatch, tmp_path):
+        resultado, sesion, dormidas = self._subir(monkeypatch, tmp_path, [_LIMITE] * 5)
+        assert isinstance(resultado, ErrorPublicacion)
+        assert resultado.codigo == "AULA_PIDE_ESPERA"
+        assert resultado.detalle == ""
+        assert sesion.subidas == 5
+        assert dormidas == list(publicar.ESPERAS_LIMITE_BORRADORES)
+
+    def test_otro_error_no_espera(self, monkeypatch, tmp_path):
+        otro = {"error": "límite del área", "errorcode": "maxareabytes"}
+        resultado, sesion, dormidas = self._subir(monkeypatch, tmp_path, [otro])
+        assert isinstance(resultado, ErrorPublicacion)
+        assert resultado.codigo == "ERROR_SUBIDA"
+        assert sesion.subidas == 1
+        assert dormidas == []
+
+    def test_reconoce_el_codigo_y_no_el_texto(self):
+        assert publicar._pide_espera(_RespuestaJson(_LIMITE))
+        assert not publicar._pide_espera(_RespuestaJson({"error": "limit, wait"}))
+        assert not publicar._pide_espera(_RespuestaJson(["maxdraftitemids"]))
+        assert not publicar._pide_espera(None)
