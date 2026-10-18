@@ -75,6 +75,10 @@ aislamiento. No sigas hasta que lo confirme.
 antes de citar un elemento curricular, no completes de memoria lo que responda
 `NORMATIVA_SIN_DATOS` y no busques normativa en internet.
 
+`tiza leer` y `tiza documento` (offline, solo dentro de la carpeta de la asignatura) también
+son tuyos: el primero convierte un Word o un PDF en texto; el segundo, un `.md` en un Word
+sencillo, y nunca sobrescribe un fichero.
+
 ### Paso 3. Empezar (lo hace el docente, en su terminal)
 
 Dile al docente que abra **una terminal propia** (no la del agente), entre en la

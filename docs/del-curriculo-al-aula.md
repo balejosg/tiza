@@ -1,102 +1,74 @@
 # Del currículo al aula: una conversación de ejemplo
 
-Este documento muestra cómo un agente con `tiza` puede ayudarte a llevar el
-currículo oficial y tu programación didáctica hasta el aula virtual. La
-conversación y los códigos de los criterios son **inventados** y solo sirven de
-ilustración. En tu caso, saldrán de tus documentos.
+Cómo un agente con `tiza` te ayuda a pasar de tu programación didáctica a una unidad
+en el aula virtual. La conversación, el centro y los códigos son **inventados**: en tu
+caso saldrán de tus documentos.
+
+## Qué hace cada pieza
+
+- **`tiza normativa`** trae la normativa de la Comunidad de Madrid del curso 2026-27 (mira
+  `tiza normativa catalogo`). El agente cita de ahí, con código, texto literal y procedencia.
+  No busca normativa en internet.
+- **`tiza leer`** convierte tu programación (Word o PDF) en un texto que el agente puede
+  leer sin errores. El Word se lee mejor que el PDF, sobre todo si tiene tablas.
+- **`tiza documento`** escribe la unidad como un Word sencillo, para que la revises o la
+  incorpores a tu programación. Nunca sobrescribe un Word tuyo: si el nombre existe, crea otro.
+
+El agente solo lee lo que hay en la carpeta de la asignatura. No consulta el aula ni ve el
+trabajo de tu alumnado.
 
 ## Antes de empezar: qué dejar en la carpeta
 
-En la carpeta de la asignatura, la misma donde abres `tiza empezar`, deja:
-
-- **El currículo de tu materia**: el decreto de tu comunidad autónoma o el real
-  decreto de enseñanzas mínimas, en PDF o en texto. Basta con la parte de tu
-  materia. Si tu agente no lee PDF, pásalo antes a texto.
-- **Tu programación didáctica**, sin ningún dato del alumnado: nada de nombres,
-  listas de clase, notas, informes ni adaptaciones de alumnos concretos. Si la
-  tuya los tiene, guarda una copia sin ellos y deja solo esa.
-- **Opcional**: tu calendario escolar en `calendario.toml` (mira la
-  [guía de uso](guia.md#calendario-y-cambio-de-fechas)) y el material propio que
-  quieras reutilizar (apuntes, imágenes, fichas).
-
-Si tu materia está en la normativa que trae `tiza` (mira `tiza normativa catalogo`), el
-agente cita de ahí, con código y procedencia; si no está, sigue con el decreto que dejes
-en la carpeta. El agente solo lee lo que hay en esa carpeta. No consulta el aula ni ve el
-trabajo de tu alumnado.
+- **Tu programación**, en Word si puedes, **sin datos del alumnado**: nada de nombres,
+  listas de clase, notas ni adaptaciones de alumnos concretos. Si la tuya los tiene,
+  guarda una copia sin ellos y deja solo esa. Si el agente encuentra alguno, no lo usa,
+  borra su lectura y te pide la copia.
+- **Si existen**: el currículo de tu optativa de centro, cómo evalúa y pondera tu
+  departamento y la programación del ciclo (en FP). El agente te los pedirá todos a la vez.
+- **Opcional**: tu calendario en `calendario.toml` (mira la
+  [guía de uso](guia.md#calendario-y-cambio-de-fechas)) y tu material propio.
 
 ## La conversación
 
-> **Docente:** Lee la programación y el decreto y prepárame la unidad de
-> fracciones de 1.º de ESO.
+> **Docente:** Toca la unidad de trabajo 3 de mi programación de Sistemas Informáticos.
 
-> **Agente:** He leído `programacion-mates-1eso.pdf` y `decreto-matematicas.pdf`.
-> Antes de proponerte nada, necesito saber:
-> 1. ¿Cuántas sesiones tiene la unidad y a partir de qué fecha?
-> 2. ¿En qué sección del aula va? ¿Te vale «Fracciones»?
-> 3. Tu programación sitúa esta unidad en la situación de aprendizaje 3 (SA 3),
->    «El mercado del barrio». ¿Quieres que el producto final sea el presupuesto de
->    una compra, como allí se propone?
+> **Agente:** Para empezar necesito, de una vez: tu programación en Word (de ella sale lo que
+> ya decidiste para la UT 3) y la programación del ciclo, si la tienes. Sin nombres de
+> alumnado, por favor.
 
-> **Docente:** Seis sesiones desde el 3 de noviembre, sección «Fracciones», y sí
-> al presupuesto.
+> **Docente:** Te dejo `programacion-SI.docx`. Lo otro no lo tengo.
 
-> **Agente:** Te propongo esta secuencia. Indico de dónde sale cada referencia
-> curricular:
+> **Agente:** He leído tu programación. La UT 3 está en la tabla de la pág. 12, con 18 horas,
+> 3 RA y sus criterios. Dos cosas: la tabla cita un criterio del RA 2 que en la normativa de
+> este curso tiene otro texto, y hay cambios sin aceptar en el apartado de evaluación (los
+> he leído como aceptados). ¿Mantengo tu redacción del criterio o uso la de la norma?
+
+> **Docente:** Mantén la mía.
+
+> **Agente:** Te propongo la unidad:
 >
-> | # | Actividad | Tipo | Criterios | De dónde sale |
-> |---|---|---|---|---|
-> | 1 | Presentación: «El mercado del barrio» | etiqueta | — | Programación, SA 3 |
-> | 2 | Qué es una fracción | página | CE 1.1 | Decreto, anexo II; programación, pág. 14 |
-> | 3 | Fracciones equivalentes y comparación | página | CE 1.1, CE 2.2 | Decreto, anexo II |
-> | 4 | Práctica: completa las frases (numerador, denominador…) | H5P | CE 1.1 | — (práctica sin nota) |
-> | 5 | Comprobación | cuestionario, 10 preguntas | CE 1.1, CE 2.2 | Programación, instrumentos de evaluación |
-> | 6 | Producto final: presupuesto de la compra | tarea con niveles de logro | CE 2.2, CE 6.1 | Programación, SA 3 |
-> | 7 | Refuerzo y ampliación | 2 H5P opcionales | CE 1.1 | Programación, atención a la diversidad |
+> | Código | Texto literal | Procedencia |
+> |---|---|---|
+> | RA2 | (texto de la norma) | Normativa (tiza) |
+> | CE 2.c | (texto de tu programación) | Tu programación, tabla de la UT 3 |
 >
-> Cada actividad se abre al completar la anterior. La tarea se abre el 12 de
-> noviembre y se entrega el 17. No cae en festivo según tu calendario. Revisa
-> sobre todo los códigos de criterio: los he copiado de tus documentos, pero
-> `tiza` no los comprueba. ¿Lo preparo así?
+> Tus instrumentos y ponderaciones los he copiado de tu programación; la secuencia de
+> actividades es propuesta mía. Te dejo `unidad-3.docx`. ¿Preparo las actividades en el
+> curso de pruebas?
 
-> **Docente:** Sí, pero en la tarea escribe los niveles de logro en lenguaje
-> para alumnos de 12 años.
-
-> **Agente:** Hecho. He escrito los siete ficheros, los he comprobado con
-> `tiza comprobar` y los he publicado en tu curso de pruebas. Tienes el enlace
-> «Ver en el aula» de cada uno. Cuando lo revises, dime si los publico en el
-> curso real.
-
-Tú revisas la unidad en el curso de pruebas igual que la verá tu alumnado. Si
-algo no te convence, se lo pides al agente y vuelve a publicarla en pruebas.
-Cuando te guste, se la pides para el curso real: en tu terminal ves qué se
-publica, en qué cursos y con qué fechas, y confirmas con `s`.
-
-## Más cosas que puedes pedirle
-
-- *«¿Qué criterios de la programación del primer trimestre no tienen todavía
-  ninguna actividad en esta carpeta?»* Te devuelve los huecos para que decidas
-  qué preparar.
-- *«Haz una tabla con cada actividad de la unidad y los criterios que trabaja.»*
-  Te sirve para tu programación o tu memoria, sin tocar el aula.
-- *«Añade a cada página un recuadro con lo que vamos a aprender, en lenguaje
-  sencillo.»* Los objetivos de aprendizaje, visibles para tu alumnado.
-- *«Retrasa una semana la unidad: hemos perdido dos sesiones.»* Solo cambian las
-  fechas de tareas y cuestionarios. Lo demás, y los intentos ya hechos, quedan
-  como estaban.
-- *«Copia la unidad a los tres grupos de 1.º.»* Si tienes varios cursos reales,
-  una petición llega a todos y la confirmas curso a curso.
+Después, el camino de siempre: el agente escribe las actividades, las publica **ocultas** en
+tu curso de pruebas, las revisas y, cuando te guste, se la pides para el curso real. En tu
+terminal ves qué se publica y confirmas con `s`.
 
 ## Lo que conviene tener presente
 
-- **Revisa lo curricular tú.** El agente parte de tus documentos y no debe
-  inventar criterios, pero puede equivocarse al leerlos o al relacionarlos.
-  `tiza` comprueba el formato y la seguridad de lo que se publica, no el
-  currículo.
-- **Nada de datos del alumnado.** Las medidas de atención a la diversidad se
-  convierten en actividades de refuerzo o ampliación para quien las necesite,
-  nunca en actividades con nombres de alumnos o grupos. Mira
+- **Revisa lo curricular tú.** El agente dice de dónde sale cada referencia: normativa de
+  tiza, tus documentos (que tiza no comprueba) o propuesta suya. No debe inventar criterios,
+  pero puede equivocarse al leer o relacionar.
+- **Si tu programación y la normativa no coinciden**, el agente te enseña las dos versiones
+  y decides tú. Antes de hablar de error, comprueba si hay una corrección de errores.
+- **Nada de datos del alumnado.** Las medidas de atención a la diversidad se convierten en
+  actividades de refuerzo o ampliación para quien las necesite, nunca con nombres. Mira
   [Protección de datos](proteccion-de-datos.md).
-- **Los niveles de logro son texto.** Van en la descripción de la tarea para
-  que tu alumnado los lea. `tiza` no configura la evaluación avanzada de Moodle.
-- **Un cuestionario con intentos ya no se cambia.** Revisa bien las respuestas
-  correctas en pruebas antes de publicarlo en real.
+- **Un cuestionario con intentos ya no se cambia.** Revisa las respuestas correctas en
+  pruebas antes de publicarlo en real.

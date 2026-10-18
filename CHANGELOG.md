@@ -6,6 +6,10 @@ se avisa aquí con **Cambia**.
 
 ## Sin publicar
 
+### Añadido
+- **`tiza leer` y `tiza documento`**: el agente lee, sin red, el Word o el PDF de tu programación y escribe un Word sencillo con la unidad. Nunca sobrescribe un Word tuyo.
+- **Guía del agente para pasar de tu programación a la unidad**: pide lo que falta en un solo mensaje, contrasta tu programación con la normativa y dice de dónde sale cada referencia.
+
 ### Cambia
 - **Publicar muchas imágenes seguidas ya no acaba en `ERROR_SUBIDA`.** Cuando el aula frena las subidas (su límite de ficheros subidos en poco tiempo), tiza espera y reintenta sola; si no basta, responde `AULA_PIDE_ESPERA` y dice que esperes unos minutos.
 

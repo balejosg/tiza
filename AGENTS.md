@@ -19,7 +19,7 @@ en español.
   excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar` y `tiza actualizar` son del docente** (tampoco lances `python -m tiza.ventana`): no los ejecutes. El agente puede usar
-  `tiza normativa` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
+  `tiza normativa`, `tiza leer`, `tiza documento` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
   `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar` y `tiza estructura` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
@@ -65,6 +65,14 @@ en español.
   datos con esquema cerrado en `datos/`, consultas y salida validada. Los datos se
   generan con `herramientas/normativa/`, nunca a mano; `comprobar` debe dar 0 antes
   de commitear datos.
+- `src/tiza/lectura/`: `tiza leer`, offline: convierte un `.docx` o un `.pdf` de la carpeta
+  en un texto con ids de bloque (`[p12]`, `[t4.f2.c1]`, `g<página>.<n>`), siempre igual, en
+  `.tiza/lecturas/`. Un módulo por formato (`word.py`, `pdf.py`) sobre el modelo común
+  (`modelo.py`); lee con los límites de `ficheros.leer_bytes_acotado` y el resumen que ve el
+  agente pasa por `informe.py`.
+- `src/tiza/escritura/`: `tiza documento`, offline: convierte el Markdown del agente en un Word
+  sencillo (`word.py`). Solo admite el subconjunto documentado (`MARKDOWN_NO_ADMITIDO` con el
+  número de línea) y nunca sobrescribe (`DOCUMENTO_EXISTE`).
 - `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
   `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
