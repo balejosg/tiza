@@ -1,0 +1,17 @@
+{
+  "id": "boe-a-2015-37",
+  "rango": "real_decreto",
+  "numero": "1105/2014",
+  "fecha": "2014-12-26",
+  "titulo": "Real Decreto 1105/2014, de 26 de diciembre, por el que se establece el currículo básico de la Educación Secundaria Obligatoria y del Bachillerato",
+  "boletin": "BOE",
+  "url_pdf": "https://www.boe.es/boe/dias/2015/01/03/pdfs/BOE-A-2015-37.pdf",
+  "sha256": "50a75e3ca24c65c3c716e1a2cc9c03432283fa4c9d1d26334f6d2c47c93838c0",
+  "estado": "derogada",
+  "derogada_por": "boe-a-2022-5521",
+  "desde": "2022-04-07",
+  "derogaciones_parciales": [
+    "Real Decreto 217/2022: capítulo II"
+  ],
+  "revisada": "2026-10-18"
+}

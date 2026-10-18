@@ -1,0 +1,19 @@
+{
+  "id": "bocm-20240613-2",
+  "rango": "decreto",
+  "numero": "59/2024",
+  "fecha": "2024-06-12",
+  "titulo": "Decreto 59/2024, de 12 de junio, del Consejo de Gobierno, por el que se modifica el Decreto 61/2022, de 13 de julio, del Consejo de Gobierno, por el que se establece para la Comunidad de Madrid la ordenación y el currículo de la etapa de Educación Primaria, el Decreto 65/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo de la Educación Secundaria Obligatoria, y el Decreto 64/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo del Bachillerato",
+  "boletin": "BOCM",
+  "url_pdf": "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/06/13/BOCM-20240613-2.PDF",
+  "sha256": "b77c3e24041b2e310c6079d895911c1f9e590c9cf42ede621203568ef43d734a",
+  "correcciones": [
+    "bocm-20240619-1"
+  ],
+  "modifica": [
+    "bocm-20220726-2",
+    "bocm-20220726-1"
+  ],
+  "estado": "vigente",
+  "revisada": "2026-10-18"
+}

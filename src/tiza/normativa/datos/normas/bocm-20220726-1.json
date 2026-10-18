@@ -1,0 +1,18 @@
+{
+  "id": "bocm-20220726-1",
+  "rango": "decreto",
+  "numero": "64/2022",
+  "fecha": "2022-07-20",
+  "titulo": "Decreto 64/2022, de 20 de julio, del Consejo de Gobierno, por el que se establecen para la Comunidad de Madrid la ordenación y el currículo del Bachillerato",
+  "boletin": "BOCM",
+  "url_pdf": "https://www.bocm.es/boletin/CM_Orden_BOCM/2022/07/26/BOCM-20220726-1.PDF",
+  "sha256": "bfac82153cb0dc4e9246b5e94f278eae401ff9ce00f81b856135882cb26d348f",
+  "correcciones": [
+    "bocm-20230915-1"
+  ],
+  "modificada_por": [
+    "bocm-20240613-2"
+  ],
+  "estado": "vigente",
+  "revisada": "2026-10-18"
+}

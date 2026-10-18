@@ -1,0 +1,15 @@
+{
+  "id": "boe-a-2026-14333",
+  "rango": "real_decreto",
+  "numero": "535/2026",
+  "fecha": "2026-06-30",
+  "titulo": "Real Decreto 535/2026, de 30 de junio, por el que se modifican los reales decretos por los que se establecen los títulos de Técnico Deportivo Superior regulados por la Ley Orgánica 2/2006, de 3 de mayo, de Educación, así como el Real Decreto 243/2022, de 5 de abril, por el que se establecen la ordenación y las enseñanzas mínimas del Bachillerato, y el Real Decreto 534/2024, de 11 de junio, por el que se regulan los requisitos de acceso a las enseñanzas universitarias oficiales de Grado, las características básicas de la prueba de acceso y la normativa básica de los procedimientos de admisión",
+  "boletin": "BOE",
+  "url_pdf": "https://www.boe.es/boe/dias/2026/07/02/pdfs/BOE-A-2026-14333.pdf",
+  "sha256": "2cbcd4107b838d3430b57dcdb46e6f780d3f04fa274d5c23e57e1e69bcc0afbf",
+  "modifica": [
+    "boe-a-2022-5521"
+  ],
+  "estado": "vigente",
+  "revisada": "2026-10-18"
+}

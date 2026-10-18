@@ -1,0 +1,388 @@
+{
+  "codigo": "EST.ESO.DESC",
+  "nombre": "Descriptores operativos del perfil de salida, ESO",
+  "etapa": "eso",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2022-4975"
+  ],
+  "elementos": [
+    {
+      "codigo": "EST.ESO.DESC.CCL1",
+      "tipo": "descriptor",
+      "texto": "Se expresa de forma oral, escrita, signada o multimodal con coherencia, corrección y adecuación a los diferentes contextos sociales, y participa en interacciones comunicativas con actitud cooperativa y respetuosa tanto para intercambiar información, crear conocimiento y transmitir opiniones, como para construir vínculos personales.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 1
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCL2",
+      "tipo": "descriptor",
+      "texto": "Comprende, interpreta y valora con actitud crítica textos orales, escritos, signados o multimodales de los ámbitos personal, social, educativo y profesional para participar en diferentes contextos de manera activa e informada y para construir conocimiento.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 2
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCL3",
+      "tipo": "descriptor",
+      "texto": "Localiza, selecciona y contrasta de manera progresivamente autónoma información procedente de diferentes fuentes, evaluando su fiabilidad y pertinencia en función de los objetivos de lectura y evitando los riesgos de manipulación y desinformación, y la integra y transforma en conocimiento para comunicarla adoptando un punto de vista creativo, crítico y personal a la par que respetuoso con la propiedad intelectual.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 3
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCL4",
+      "tipo": "descriptor",
+      "texto": "Lee con autonomía obras diversas adecuadas a su edad, seleccionando las que mejor se ajustan a sus gustos e intereses; aprecia el patrimonio literario como cauce privilegiado de la experiencia individual y colectiva; y moviliza su propia experiencia biográfica y sus conocimientos literarios y culturales para construir y compartir su interpretación de las obras y para crear textos de intención literaria de progresiva complejidad.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 4
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCL5",
+      "tipo": "descriptor",
+      "texto": "Pone sus prácticas comunicativas al servicio de la convivencia democrática, la resolución dialogada de los conflictos y la igualdad de derechos de todas las personas, evitando los usos discriminatorios, así como los abusos de poder, para favorecer la utilización no solo eficaz sino también ética de los diferentes sistemas de comunicación.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 5
+    },
+    {
+      "codigo": "EST.ESO.DESC.CP1",
+      "tipo": "descriptor",
+      "texto": "Usa eficazmente una o más lenguas, además de la lengua o lenguas familiares, para responder a sus necesidades comunicativas, de manera apropiada y adecuada tanto a su desarrollo e intereses como a diferentes situaciones y contextos de los ámbitos personal, social, educativo y profesional.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 6
+    },
+    {
+      "codigo": "EST.ESO.DESC.CP2",
+      "tipo": "descriptor",
+      "texto": "A partir de sus experiencias, realiza transferencias entre distintas lenguas como estrategia para comunicarse y ampliar su repertorio lingüístico individual.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 7
+    },
+    {
+      "codigo": "EST.ESO.DESC.CP3",
+      "tipo": "descriptor",
+      "texto": "Conoce, valora y respeta la diversidad lingüística y cultural presente en la sociedad, integrándola en su desarrollo personal como factor de diálogo, para fomentar la cohesión social.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 8
+    },
+    {
+      "codigo": "EST.ESO.DESC.STEM1",
+      "tipo": "descriptor",
+      "texto": "Utiliza métodos inductivos y deductivos propios del razonamiento matemático en situaciones conocidas, y selecciona y emplea diferentes estrategias para resolver problemas analizando críticamente las soluciones y reformulando el procedimiento, si fuera necesario.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 9
+    },
+    {
+      "codigo": "EST.ESO.DESC.STEM2",
+      "tipo": "descriptor",
+      "texto": "Utiliza el pensamiento científico para entender y explicar los fenómenos que ocurren a su alrededor, confiando en el conocimiento como motor de desarrollo, planteándose preguntas y comprobando hipótesis mediante la experimentación y la indagación, utilizando herramientas e instrumentos adecuados, apreciando la importancia de la precisión y la veracidad y mostrando una actitud crítica acerca del alcance y las limitaciones de la ciencia.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 10
+    },
+    {
+      "codigo": "EST.ESO.DESC.STEM3",
+      "tipo": "descriptor",
+      "texto": "Plantea y desarrolla proyectos diseñando, fabricando y evaluando diferentes prototipos o modelos para generar o utilizar productos que den solución a una necesidad o problema de forma creativa y en equipo, procurando la participación de todo el grupo, resolviendo pacíficamente los conflictos que puedan surgir, adaptándose ante la incertidumbre y valorando la importancia de la sostenibilidad.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 11
+    },
+    {
+      "codigo": "EST.ESO.DESC.STEM4",
+      "tipo": "descriptor",
+      "texto": "Interpreta y transmite los elementos más relevantes de procesos, razonamientos, demostraciones, métodos y resultados científicos, matemáticos y tecnológicos de forma clara y precisa y en diferentes formatos (gráficos, tablas, diagramas, fórmulas, esquemas, símbolos...), aprovechando de forma crítica la cultura digital e incluyendo el lenguaje matemático-formal con ética y responsabilidad, para compartir y construir nuevos conocimientos.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 12
+    },
+    {
+      "codigo": "EST.ESO.DESC.STEM5",
+      "tipo": "descriptor",
+      "texto": "Emprende acciones fundamentadas científicamente para promover la salud física, mental y social, y preservar el medio ambiente y los seres vivos; y aplica principios de ética y seguridad en la realización de proyectos para transformar su entorno próximo de forma sostenible, valorando su impacto global y practicando el consumo responsable.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 13
+    },
+    {
+      "codigo": "EST.ESO.DESC.CD1",
+      "tipo": "descriptor",
+      "texto": "Realiza búsquedas en internet atendiendo a criterios de validez, calidad, actualidad y fiabilidad, seleccionando los resultados de manera crítica y archivándolos, para recuperarlos, referenciarlos y reutilizarlos, respetando la propiedad intelectual.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 14
+    },
+    {
+      "codigo": "EST.ESO.DESC.CD2",
+      "tipo": "descriptor",
+      "texto": "Gestiona y utiliza su entorno personal digital de aprendizaje para construir conocimiento y crear contenidos digitales, mediante estrategias de tratamiento de la información y el uso de diferentes herramientas digitales, seleccionando y configurando la más adecuada en función de la tarea y de sus necesidades de aprendizaje permanente.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 15
+    },
+    {
+      "codigo": "EST.ESO.DESC.CD3",
+      "tipo": "descriptor",
+      "texto": "Se comunica, participa, colabora e interactúa compartiendo contenidos, datos e información mediante herramientas o plataformas virtuales, y gestiona de manera responsable sus acciones, presencia y visibilidad en la red, para ejercer una ciudadanía digital activa, cívica y reflexiva.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 16
+    },
+    {
+      "codigo": "EST.ESO.DESC.CD4",
+      "tipo": "descriptor",
+      "texto": "Identifica riesgos y adopta medidas preventivas al usar las tecnologías digitales para proteger los dispositivos, los datos personales, la salud y el medioambiente, y para tomar conciencia de la importancia y necesidad de hacer un uso crítico, legal, seguro, saludable y sostenible de dichas tecnologías.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 17
+    },
+    {
+      "codigo": "EST.ESO.DESC.CD5",
+      "tipo": "descriptor",
+      "texto": "Desarrolla aplicaciones informáticas sencillas y soluciones tecnológicas creativas y sostenibles para resolver problemas concretos o responder a retos propuestos, mostrando interés y curiosidad por la evolución de las tecnologías digitales y por su desarrollo sostenible y uso ético.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 18
+    },
+    {
+      "codigo": "EST.ESO.DESC.CPSAA1",
+      "tipo": "descriptor",
+      "texto": "Regula y expresa sus emociones, fortaleciendo el optimismo, la resiliencia, la autoeficacia y la búsqueda de propósito y motivación hacia el aprendizaje, para gestionar los retos y cambios y armonizarlos con sus propios objetivos.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 19
+    },
+    {
+      "codigo": "EST.ESO.DESC.CPSAA2",
+      "tipo": "descriptor",
+      "texto": "Comprende los riesgos para la salud relacionados con factores sociales, consolida estilos de vida saludable a nivel físico y mental, reconoce conductas contrarias a la convivencia y aplica estrategias para abordarlas.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 20
+    },
+    {
+      "codigo": "EST.ESO.DESC.CPSAA3",
+      "tipo": "descriptor",
+      "texto": "Comprende proactivamente las perspectivas y las experiencias de las demás personas y las incorpora a su aprendizaje, para participar en el trabajo en grupo, distribuyendo y aceptando tareas y responsabilidades de manera equitativa y empleando estrategias cooperativas.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 21
+    },
+    {
+      "codigo": "EST.ESO.DESC.CPSAA4",
+      "tipo": "descriptor",
+      "texto": "Realiza autoevaluaciones sobre su proceso de aprendizaje, buscando fuentes fiables para validar, sustentar y contrastar la información y para obtener conclusiones relevantes.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 22
+    },
+    {
+      "codigo": "EST.ESO.DESC.CPSAA5",
+      "tipo": "descriptor",
+      "texto": "Planea objetivos a medio plazo y desarrolla procesos metacognitivos de retroalimentación para aprender de sus errores en el proceso de construcción del conocimiento.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 23
+    },
+    {
+      "codigo": "EST.ESO.DESC.CC1",
+      "tipo": "descriptor",
+      "texto": "Analiza y comprende ideas relativas a la dimensión social y ciudadana de su propia identidad, así como a los hechos culturales, históricos y normativos que la determinan, demostrando respeto por las normas, empatía, equidad y espíritu constructivo en la interacción con los demás en cualquier contexto.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 24
+    },
+    {
+      "codigo": "EST.ESO.DESC.CC2",
+      "tipo": "descriptor",
+      "texto": "Analiza y asume fundadamente los principios y valores que emanan del proceso de integración europea, la Constitución española y los derechos humanos y de la infancia, participando en actividades comunitarias, como la toma de decisiones o la resolución de conflictos, con actitud democrática, respeto por la diversidad, y compromiso con la igualdad de género, la cohesión social, el desarrollo sostenible y el logro de la ciudadanía mundial.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 25
+    },
+    {
+      "codigo": "EST.ESO.DESC.CC3",
+      "tipo": "descriptor",
+      "texto": "Comprende y analiza problemas éticos fundamentales y de actualidad, considerando críticamente los valores propios y ajenos, y desarrollando juicios propios para afrontar la controversia moral con actitud dialogante, argumentativa, respetuosa y opuesta a cualquier tipo de discriminación o violencia.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 26
+    },
+    {
+      "codigo": "EST.ESO.DESC.CC4",
+      "tipo": "descriptor",
+      "texto": "Comprende las relaciones sistémicas de interdependencia, ecodependencia e interconexión entre actuaciones locales y globales, y adopta, de forma consciente y motivada, un estilo de vida sostenible y ecosocialmente responsable.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 27
+    },
+    {
+      "codigo": "EST.ESO.DESC.CE1",
+      "tipo": "descriptor",
+      "texto": "Analiza necesidades y oportunidades y afronta retos con sentido crítico, haciendo balance de su sostenibilidad, valorando el impacto que puedan suponer en el entorno, para presentar ideas y soluciones innovadoras, éticas y sostenibles, dirigidas a crear valor en el ámbito personal, social, educativo y profesional.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 28
+    },
+    {
+      "codigo": "EST.ESO.DESC.CE2",
+      "tipo": "descriptor",
+      "texto": "Evalúa las fortalezas y debilidades propias, haciendo uso de estrategias de autoconocimiento y autoeficacia, y comprende los elementos fundamentales de la economía y las finanzas, aplicando conocimientos económicos y financieros a actividades y situaciones concretas, utilizando destrezas que favorezcan el trabajo colaborativo y en equipo, para reunir y optimizar los recursos necesarios que lleven a la acción una experiencia emprendedora que genere valor.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 29
+    },
+    {
+      "codigo": "EST.ESO.DESC.CE3",
+      "tipo": "descriptor",
+      "texto": "Desarrolla el proceso de creación de ideas y soluciones valiosas y toma decisiones, de manera razonada, utilizando estrategias ágiles de planificación y gestión, y reflexiona sobre el proceso realizado y el resultado obtenido, para llevar a término el proceso de creación de prototipos innovadores y de valor, considerando la experiencia como una oportunidad para aprender.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 30
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCEC1",
+      "tipo": "descriptor",
+      "texto": "Conoce, aprecia críticamente y respeta el patrimonio cultural y artístico, implicándose en su conservación y valorando el enriquecimiento inherente a la diversidad cultural y artística.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 31
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCEC2",
+      "tipo": "descriptor",
+      "texto": "Disfruta, reconoce y analiza con autonomía las especificidades e intencionalidades de las manifestaciones artísticas y culturales más destacadas del patrimonio, distinguiendo los medios y soportes, así como los lenguajes y elementos técnicos que las caracterizan.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 32
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCEC3",
+      "tipo": "descriptor",
+      "texto": "Expresa ideas, opiniones, sentimientos y emociones por medio de producciones culturales y artísticas, integrando su propio cuerpo y desarrollando la autoestima, la creatividad y el sentido del lugar que ocupa en la sociedad, con una actitud empática, abierta y colaborativa.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 33
+    },
+    {
+      "codigo": "EST.ESO.DESC.CCEC4",
+      "tipo": "descriptor",
+      "texto": "Conoce, selecciona y utiliza con creatividad diversos medios y soportes, así como técnicas plásticas, visuales, audiovisuales, sonoras o corporales, para la creación de productos artísticos y culturales, tanto de forma individual como colaborativa, identificando oportunidades de desarrollo personal, social y laboral, así como de emprendimiento.",
+      "procedencia": {
+        "norma": "boe-a-2022-4975",
+        "ubicacion": "anexo I",
+        "pagina": null
+      },
+      "orden": 34
+    }
+  ]
+}

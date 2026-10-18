@@ -1,0 +1,16 @@
+{
+  "id": "boe-a-2022-4975",
+  "rango": "real_decreto",
+  "numero": "217/2022",
+  "fecha": "2022-03-29",
+  "titulo": "Real Decreto 217/2022, de 29 de marzo, por el que se establece la ordenación y las enseñanzas mínimas de la Educación Secundaria Obligatoria",
+  "boletin": "BOE",
+  "url_pdf": "https://www.boe.es/boe/dias/2022/03/30/pdfs/BOE-A-2022-4975.pdf",
+  "url_api": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2022-4975",
+  "sha256": "d38dd914a84b8a66796f7c87a8d476135119f75f67b1c56dfd6ad7b3527dccd0",
+  "correcciones": [
+    "boe-a-2022-5813"
+  ],
+  "estado": "vigente",
+  "revisada": "2026-10-18"
+}

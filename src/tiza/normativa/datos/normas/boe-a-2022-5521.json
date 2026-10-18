@@ -1,0 +1,20 @@
+{
+  "id": "boe-a-2022-5521",
+  "rango": "real_decreto",
+  "numero": "243/2022",
+  "fecha": "2022-04-05",
+  "titulo": "Real Decreto 243/2022, de 5 de abril, por el que se establecen la ordenación y las enseñanzas mínimas del Bachillerato",
+  "boletin": "BOE",
+  "url_pdf": "https://www.boe.es/boe/dias/2022/04/06/pdfs/BOE-A-2022-5521.pdf",
+  "url_api": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2022-5521",
+  "sha256": "dcbbd5b2b34a503782f7be03afa3bf480db6cc63643f28a877ea23f9d11c1222",
+  "correcciones": [
+    "boe-a-2022-16754"
+  ],
+  "modificada_por": [
+    "boe-a-2023-7939",
+    "boe-a-2026-14333"
+  ],
+  "estado": "vigente",
+  "revisada": "2026-10-18"
+}

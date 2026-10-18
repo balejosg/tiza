@@ -1,0 +1,19 @@
+{
+  "id": "boe-a-2010-8067",
+  "rango": "real_decreto",
+  "numero": "450/2010",
+  "fecha": "2010-04-16",
+  "titulo": "Real Decreto 450/2010, de 16 de abril, por el que se establece el título de Técnico Superior en Desarrollo de Aplicaciones Multiplataforma y se fijan sus enseñanzas mínimas",
+  "boletin": "BOE",
+  "url_pdf": "https://www.boe.es/boe/dias/2010/05/20/pdfs/BOE-A-2010-8067.pdf",
+  "sha256": "f2507616eab8a240cf508df9466defbe3c40d7324f9cf05f328b809bd3215604",
+  "modificada_por": [
+    "boe-a-2023-13221",
+    "boe-a-2024-10685"
+  ],
+  "estado": "vigente",
+  "derogaciones_parciales": [
+    "Real Decreto 1085/2020: el anexo de convalidaciones de módulos profesionales"
+  ],
+  "revisada": "2026-10-18"
+}

@@ -181,6 +181,10 @@ sha256 = "d38dd914a84b8a66796f7c87a8d476135119f75f67b1c56dfd6ad7b3527dccd0"
 correcciones = ["boe-a-2022-5813"]
 estado = "vigente"
 
+# Descriptores de la columna «enseñanza básica» del anexo I, contados en el texto del PDF.
+[norma.recuentos."EST.ESO.DESC"]
+descriptores = 34
+
 [[norma]]
 id = "boe-a-2022-5813"
 rango = "correccion"
@@ -211,6 +215,11 @@ correcciones = ["boe-a-2022-16754"]
 modificada_por = ["boe-a-2023-7939", "boe-a-2026-14333"]
 estado = "vigente"
 sustituciones = [["símbolos.)", "símbolos...)"]]
+
+# Descriptores de la columna «Bachillerato» del anexo I (CPSAA1, CPSAA3, CCEC3 y CCEC4 se
+# desdoblan en .1 y .2), contados en el texto del PDF.
+[norma.recuentos."EST.BACH.DESC"]
+descriptores = 38
 
 [[norma]]
 id = "boe-a-2022-16754"
