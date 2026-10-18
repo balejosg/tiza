@@ -1,0 +1,3286 @@
+{
+  "codigo": "MAD.DAM.0484",
+  "nombre": "Bases de datos",
+  "etapa": "fp_gs",
+  "curso": "1",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-13221",
+    "boe-a-2010-8067",
+    "bocm-20110131-3",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0484",
+      "tipo": "modulo",
+      "texto": "Bases de datos",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 205,
+        "curso": "1"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Reconoce los elementos de las bases de datos analizando sus funciones y valorando la utilidad de los sistemas gestores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado los sistemas lógicos de almacenamiento y sus características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio a",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los distintos tipos de bases de datos según el modelo de datos utilizado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio b",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los distintos tipos de bases de datos en función de la ubicación de la información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio c",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha evaluado la utilidad de un sistema gestor de bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio d",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido la función de cada uno de los elementos de un sistema gestor de bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio e",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado los sistemas gestores de bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio f",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido la utilidad de las bases de datos distribuidas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio g",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las políticas de fragmentación de la información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio h",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.i",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado la legislación vigente sobre protección de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio i",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.1.j",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los conceptos de Big Data y de la inteligencia de negocios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 1, criterio j",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 1, criterio j",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.0484.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Crea bases de datos definiendo su estructura y las características de sus elementos según el modelo relacional.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado el formato de almacenamiento de la información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio a",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado las tablas y las relaciones entre ellas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio b",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han seleccionado los tipos de datos adecuados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio c",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los campos clave en las tablas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio d",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han implantado las restricciones reflejadas en el diseño lógico.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio e",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado vistas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio f",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado los usuarios y se les han asignado privilegios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio g",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.2.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado asistentes, herramientas gráficas y los lenguajes de definición y control de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 2, criterio h",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 2, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.0484.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Consulta la información almacenada en una base de datos empleando asistentes, herramientas gráficas y el lenguaje de manipulación de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las herramientas y sentencias para realizar consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio a",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas simples sobre una tabla.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio b",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas sobre el contenido de varias tablas mediante composiciones internas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio c",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas sobre el contenido de varias tablas mediante composiciones externas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio d",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas resumen.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio e",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas con subconsultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio f",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas que implican múltiples selecciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio g",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.3.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado criterios de optimización de consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 3, criterio h",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 3, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.0484.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Modifica la información almacenada en la base de datos utilizando asistentes, herramientas gráficas y el lenguaje de manipulación de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las herramientas y sentencias para modificar el contenido de la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio a",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han insertado, borrado y actualizado datos en las tablas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio b",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha incluido en una tabla la información resultante de la ejecución de una consulta.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio c",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han diseñado guiones de sentencias para llevar a cabo tareas complejas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio d",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido el funcionamiento de las transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio e",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han anulado parcial o totalmente los cambios producidos por una transacción.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio f",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los efectos de las distintas políticas de bloqueo de registros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio g",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.4.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han adoptado medidas para mantener la integridad y consistencia de la información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 4, criterio h",
+        "pagina": 79012,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 4, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.0484.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla procedimientos almacenados evaluando y utilizando las sentencias del lenguaje incorporado en el sistema gestor de bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las diversas formas de automatizar tareas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio a",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los métodos de ejecución de guiones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio b",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las herramientas disponibles para editar guiones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio c",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido y utilizado guiones para automatizar tareas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio d",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha hecho uso de las funciones proporcionadas por el sistema gestor.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio e",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido procedimientos y funciones de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio f",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado estructuras de control de flujo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio g",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 47,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido eventos y disparadores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio h",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 48,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado cursores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio i",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 49,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.5.j",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado excepciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 5, criterio j",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 5, criterio j",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 50,
+      "padre": "MAD.DAM.0484.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Diseña modelos relacionales normalizados interpretando diagramas entidad/relación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 51,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado herramientas gráficas para representar el diseño lógico.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio a",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 52,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las tablas del diseño lógico.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio b",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 53,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los campos que forman parte de las tablas del diseño lógico.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio c",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 54,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las relaciones entre las tablas del diseño lógico.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio d",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 55,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los campos clave.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio e",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 56,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado reglas de integridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio f",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 57,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado reglas de normalización.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio g",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 58,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.6.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado y documentado las restricciones que no pueden plasmarse en el diseño lógico.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 6, criterio h",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 6, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 59,
+      "padre": "MAD.DAM.0484.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.7",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Gestiona la información almacenada en bases de datos no relacionales, evaluando y utilizando las posibilidades que proporciona el sistema gestor.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 7",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 7",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 60,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.7.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han caracterizado las bases de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 7, criterio a",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 7, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 61,
+      "padre": "MAD.DAM.0484.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.7.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han evaluado los principales tipos de bases de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 7, criterio b",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 7, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 62,
+      "padre": "MAD.DAM.0484.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.7.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los elementos utilizados en estas bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 7, criterio c",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 7, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 63,
+      "padre": "MAD.DAM.0484.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.7.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado distintas formas de gestión de la información según el tipo de base de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 7, criterio d",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 7, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 64,
+      "padre": "MAD.DAM.0484.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.RA.7.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado las herramientas del sistema gestor para la gestión de la información almacenada.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, resultado de aprendizaje 7, criterio e",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, resultado de aprendizaje 7, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 65,
+      "padre": "MAD.DAM.0484.RA.7"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.1",
+      "tipo": "contenido_basico",
+      "texto": "Almacenamiento de la información:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 66,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.1.1",
+      "tipo": "contenido_basico",
+      "texto": "Ficheros (planos, indexados, acceso directo, entre otros).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 67,
+      "padre": "EST.DAM.0484.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.1.2",
+      "tipo": "contenido_basico",
+      "texto": "Bases de datos. Conceptos, usos y tipos según el modelo de datos, la ubicación de la información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 68,
+      "padre": "EST.DAM.0484.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.1.3",
+      "tipo": "contenido_basico",
+      "texto": "Sistemas gestores de base de datos: Funciones, componentes y tipos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 69,
+      "padre": "EST.DAM.0484.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.1.4",
+      "tipo": "contenido_basico",
+      "texto": "Bases de datos centralizadas y bases de datos distribuidas. Técnicas de fragmentación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 70,
+      "padre": "EST.DAM.0484.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.1.5",
+      "tipo": "contenido_basico",
+      "texto": "Legislación sobre protección de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 71,
+      "padre": "EST.DAM.0484.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.1.6",
+      "tipo": "contenido_basico",
+      "texto": "Big Data: introducción, análisis de datos, inteligencia de negocios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79013,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 72,
+      "padre": "EST.DAM.0484.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2",
+      "tipo": "contenido_basico",
+      "texto": "Bases de datos relacionales:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 73,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.1",
+      "tipo": "contenido_basico",
+      "texto": "Modelo de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 74,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.2",
+      "tipo": "contenido_basico",
+      "texto": "Terminología del modelo relacional.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 75,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.3",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 76,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.4",
+      "tipo": "contenido_basico",
+      "texto": "Claves primarias.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 77,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.5",
+      "tipo": "contenido_basico",
+      "texto": "Restricciones de validación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 78,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.6",
+      "tipo": "contenido_basico",
+      "texto": "Índices. Características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 79,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.7",
+      "tipo": "contenido_basico",
+      "texto": "El valor NULL.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 80,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.8",
+      "tipo": "contenido_basico",
+      "texto": "Claves ajenas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 81,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.9",
+      "tipo": "contenido_basico",
+      "texto": "Vistas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 82,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.10",
+      "tipo": "contenido_basico",
+      "texto": "Usuarios. Privilegios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 83,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.11",
+      "tipo": "contenido_basico",
+      "texto": "Lenguaje de descripción de datos (DDL).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 84,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.2.12",
+      "tipo": "contenido_basico",
+      "texto": "Lenguaje de control de datos (DCL).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 85,
+      "padre": "EST.DAM.0484.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3",
+      "tipo": "contenido_basico",
+      "texto": "Realización de consultas:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 86,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.1",
+      "tipo": "contenido_basico",
+      "texto": "Proyección, selección y ordenación de registros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 87,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.2",
+      "tipo": "contenido_basico",
+      "texto": "Operadores. Operadores de comparación. Operadores lógicos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 88,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.3",
+      "tipo": "contenido_basico",
+      "texto": "Consultas de resumen.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 89,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.4",
+      "tipo": "contenido_basico",
+      "texto": "Agrupamiento de registros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 90,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.5",
+      "tipo": "contenido_basico",
+      "texto": "Composiciones internas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 91,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.6",
+      "tipo": "contenido_basico",
+      "texto": "Composiciones externas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 92,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.7",
+      "tipo": "contenido_basico",
+      "texto": "Subconsultas",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 93,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.8",
+      "tipo": "contenido_basico",
+      "texto": "Combinación de múltiples selecciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 94,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.3.9",
+      "tipo": "contenido_basico",
+      "texto": "Optimización de consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 95,
+      "padre": "EST.DAM.0484.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.4",
+      "tipo": "contenido_basico",
+      "texto": "Tratamiento de datos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 96,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.4.1",
+      "tipo": "contenido_basico",
+      "texto": "Inserción, borrado y modificación de registros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 97,
+      "padre": "EST.DAM.0484.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.4.2",
+      "tipo": "contenido_basico",
+      "texto": "Integridad referencial.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 98,
+      "padre": "EST.DAM.0484.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.4.3",
+      "tipo": "contenido_basico",
+      "texto": "Subconsultas y composiciones en órdenes de edición.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 99,
+      "padre": "EST.DAM.0484.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.4.4",
+      "tipo": "contenido_basico",
+      "texto": "Transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 100,
+      "padre": "EST.DAM.0484.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.4.5",
+      "tipo": "contenido_basico",
+      "texto": "Políticas de bloqueo. Concurrencia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 101,
+      "padre": "EST.DAM.0484.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5",
+      "tipo": "contenido_basico",
+      "texto": "Programación de bases de datos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 102,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.1",
+      "tipo": "contenido_basico",
+      "texto": "Introducción. Lenguaje de programación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 103,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.2",
+      "tipo": "contenido_basico",
+      "texto": "Variables del sistema y variables de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 104,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.3",
+      "tipo": "contenido_basico",
+      "texto": "Funciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 105,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.4",
+      "tipo": "contenido_basico",
+      "texto": "Estructuras de control de flujo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 106,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.5",
+      "tipo": "contenido_basico",
+      "texto": "Procedimientos almacenados. Funciones de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 107,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.6",
+      "tipo": "contenido_basico",
+      "texto": "Eventos y disparadores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 108,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.7",
+      "tipo": "contenido_basico",
+      "texto": "Excepciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 109,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.5.8",
+      "tipo": "contenido_basico",
+      "texto": "Cursores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 110,
+      "padre": "EST.DAM.0484.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.6",
+      "tipo": "contenido_basico",
+      "texto": "Interpretación de Diagramas Entidad/Relación:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 111,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.6.1",
+      "tipo": "contenido_basico",
+      "texto": "El modelo E/R. Entidades y relaciones. Cardinalidades. Debilidad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 112,
+      "padre": "EST.DAM.0484.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.6.2",
+      "tipo": "contenido_basico",
+      "texto": "El modelo E/R ampliado. Generalización y especialización. Agregación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 113,
+      "padre": "EST.DAM.0484.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.6.3",
+      "tipo": "contenido_basico",
+      "texto": "Paso del diagrama E/R al modelo relacional.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 114,
+      "padre": "EST.DAM.0484.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.6.4",
+      "tipo": "contenido_basico",
+      "texto": "Restricciones semánticas del modelo relacional.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 115,
+      "padre": "EST.DAM.0484.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.6.5",
+      "tipo": "contenido_basico",
+      "texto": "Normalización de modelos relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 116,
+      "padre": "EST.DAM.0484.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.7",
+      "tipo": "contenido_basico",
+      "texto": "Uso de bases de datos no relacionales:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 117,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.7.1",
+      "tipo": "contenido_basico",
+      "texto": "Características de las bases de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 118,
+      "padre": "EST.DAM.0484.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.7.2",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de bases de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79014,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 119,
+      "padre": "EST.DAM.0484.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.7.3",
+      "tipo": "contenido_basico",
+      "texto": "Elementos de las bases de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79015,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 120,
+      "padre": "EST.DAM.0484.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.7.4",
+      "tipo": "contenido_basico",
+      "texto": "Sistemas gestores de bases de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79015,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 121,
+      "padre": "EST.DAM.0484.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0484.CB.7.5",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas de los sistemas gestores de bases de datos no relacionales para la gestión de la información almacenada.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, contenidos básicos",
+        "pagina": 79015,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 122,
+      "padre": "EST.DAM.0484.CB.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.ORI",
+      "tipo": "orientaciones",
+      "texto": "Este módulo profesional contiene la formación necesaria para desempeñar la función de programación de bases de datos. La función de programación de bases de datos incluye aspectos como: La planificación y realización del diseño lógico y físico de una base de datos. La normalización de esquemas. La inserción y manipulación de datos. La planificación y realización de consultas. La programación de procedimientos almacenados. Las actividades profesionales asociadas a esta función se aplican en: La gestión de la información almacenada en bases de datos. El desarrollo de aplicaciones que acceden a bases de datos. La formación del módulo contribuye a alcanzar los objetivos generales c), e), f), p) y t) del ciclo formativo y las competencias b), c), e), p) y t) del título. Las líneas de actuación en el proceso de enseñanza-aprendizaje que permiten alcanzar los objetivos del módulo versarán sobre: La interpretación de diseños lógicos de bases de datos. La realización del diseño físico de una base de datos a partir de un diseño lógico. La implementación y normalización de bases de datos. La realización de operaciones de consulta y modificación sobre los datos almacenados. La programación de procedimientos almacenados. La utilización de bases de datos no relacionales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0484, orientaciones pedagógicas",
+        "pagina": 79015,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0484, orientaciones pedagógicas",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 123,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.1",
+      "tipo": "contenido",
+      "texto": "Almacenamiento de la información:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 124,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Ficheros (planos, indexados y acceso directo, de marcas, entre otros).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 125,
+      "padre": "MAD.DAM.0484.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Bases de Datos (BD). Conceptos, usos y tipos según el modelo de datos, la ubicación de la información.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 126,
+      "padre": "MAD.DAM.0484.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Sistemas gestores de bases de datos (SGBD): funciones, componentes y tipos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 127,
+      "padre": "MAD.DAM.0484.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.1.4",
+      "tipo": "contenido",
+      "texto": "SGBD comerciales vs. SGBD libres.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 128,
+      "padre": "MAD.DAM.0484.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Bases de datos centralizadas y bases de datos distribuidas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 129,
+      "padre": "MAD.DAM.0484.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2",
+      "tipo": "contenido",
+      "texto": "Bases de datos relacionales:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 130,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Modelo de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 131,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Terminología del modelo relacional. Relaciones, atributos, tuplas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 132,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Tipos de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 133,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Claves primarias.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 134,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Índices. Características. Tipos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 135,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.6",
+      "tipo": "contenido",
+      "texto": "El valor NULL.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 136,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.7",
+      "tipo": "contenido",
+      "texto": "Claves ajenas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 137,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.8",
+      "tipo": "contenido",
+      "texto": "Vistas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 138,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.9",
+      "tipo": "contenido",
+      "texto": "Gestión de seguridad:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 139,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.9.1",
+      "tipo": "contenido",
+      "texto": "Usuarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 140,
+      "padre": "MAD.DAM.0484.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.9.2",
+      "tipo": "contenido",
+      "texto": "Roles.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 141,
+      "padre": "MAD.DAM.0484.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.9.3",
+      "tipo": "contenido",
+      "texto": "Privilegios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 142,
+      "padre": "MAD.DAM.0484.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.9.4",
+      "tipo": "contenido",
+      "texto": "Límites en el uso del SGBD (Perfiles).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 143,
+      "padre": "MAD.DAM.0484.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.10",
+      "tipo": "contenido",
+      "texto": "Lenguaje de definición de datos (DDL, Data Definition Language).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 144,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.11",
+      "tipo": "contenido",
+      "texto": "Lenguaje de manipulación de datos (DML, Data Manipulation Language).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 145,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.2.12",
+      "tipo": "contenido",
+      "texto": "Lenguaje de control de datos (DCL, Data Control Language).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 146,
+      "padre": "MAD.DAM.0484.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3",
+      "tipo": "contenido",
+      "texto": "Realización de consultas:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 147,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Consultas para extraer información: la sentencia SELECT.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 148,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Selección, filtrado y ordenación de registros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 149,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Operadores (combinación, precedencia):",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 150,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.3.1",
+      "tipo": "contenido",
+      "texto": "De comparación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 151,
+      "padre": "MAD.DAM.0484.CO.3.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.3.2",
+      "tipo": "contenido",
+      "texto": "Lógicos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 152,
+      "padre": "MAD.DAM.0484.CO.3.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.3.3",
+      "tipo": "contenido",
+      "texto": "Aritméticos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 153,
+      "padre": "MAD.DAM.0484.CO.3.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Consultas de resumen. Funciones de agregado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 154,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Agrupaciones de registros. Filtrado de las agrupaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 155,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Composiciones internas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 156,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.7",
+      "tipo": "contenido",
+      "texto": "Composiciones externas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 157,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.8",
+      "tipo": "contenido",
+      "texto": "Subconsultas:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 158,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.8.1",
+      "tipo": "contenido",
+      "texto": "Devolución de valores individuales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 159,
+      "padre": "MAD.DAM.0484.CO.3.8"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.8.2",
+      "tipo": "contenido",
+      "texto": "Devolución de listas de valores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 160,
+      "padre": "MAD.DAM.0484.CO.3.8"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.8.3",
+      "tipo": "contenido",
+      "texto": "Devolución de tuplas de valores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 161,
+      "padre": "MAD.DAM.0484.CO.3.8"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.8.4",
+      "tipo": "contenido",
+      "texto": "Correlacionadas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 162,
+      "padre": "MAD.DAM.0484.CO.3.8"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.9",
+      "tipo": "contenido",
+      "texto": "Consultas jerárquicas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 163,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.3.10",
+      "tipo": "contenido",
+      "texto": "Consultas de operaciones de conjuntos: unión, intersección, diferencia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 164,
+      "padre": "MAD.DAM.0484.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4",
+      "tipo": "contenido",
+      "texto": "Tratamiento de datos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 165,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Inserción, borrado y modificación de registros:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 166,
+      "padre": "MAD.DAM.0484.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4.1.1",
+      "tipo": "contenido",
+      "texto": "A partir de datos proporcionados por el usuario.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 167,
+      "padre": "MAD.DAM.0484.CO.4.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4.1.2",
+      "tipo": "contenido",
+      "texto": "A partir de datos recuperados mediante subconsultas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 168,
+      "padre": "MAD.DAM.0484.CO.4.1"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Borrados y modificaciones e integridad referencial.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 169,
+      "padre": "MAD.DAM.0484.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Subconsultas y composiciones en órdenes de edición.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 68
+      },
+      "orden": 170,
+      "padre": "MAD.DAM.0484.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Transacciones. Sentencias de confirmación y deshacer.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 171,
+      "padre": "MAD.DAM.0484.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Políticas de bloqueo: a nivel de registro, a nivel de tabla.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 172,
+      "padre": "MAD.DAM.0484.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5",
+      "tipo": "contenido",
+      "texto": "Programación de bases de datos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 173,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Introducción. Lenguaje de programación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 174,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Sintaxis. Palabras reservadas. Comentarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 175,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Variables del sistema y variables de usuario.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 176,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Tipos de datos compuestos: registros, listas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 177,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Funciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 178,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Estructuras de control de flujo (disyunción, iteración).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 179,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Procedimientos almacenados. Funciones de usuario.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 180,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Subrutinas. Ámbito de variables.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 181,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.9",
+      "tipo": "contenido",
+      "texto": "Eventos y disparadores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 182,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.10",
+      "tipo": "contenido",
+      "texto": "Excepciones: Tipos y tratamiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 183,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.5.11",
+      "tipo": "contenido",
+      "texto": "Cursores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 184,
+      "padre": "MAD.DAM.0484.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.6",
+      "tipo": "contenido",
+      "texto": "Interpretación de diagramas entidad/relación:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 185,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Entidades y relaciones. Atributos. Cardinalidad.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 186,
+      "padre": "MAD.DAM.0484.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Entidades fuertes vs. entidades débiles. Relaciones de dependencia en existencia y en identificación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 187,
+      "padre": "MAD.DAM.0484.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.6.3",
+      "tipo": "contenido",
+      "texto": "El modelo E/R ampliado. Generalizaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 188,
+      "padre": "MAD.DAM.0484.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.6.4",
+      "tipo": "contenido",
+      "texto": "Paso del modelo E/R al modelo relacional.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 189,
+      "padre": "MAD.DAM.0484.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.6.5",
+      "tipo": "contenido",
+      "texto": "Normalización de modelos relacionales. Formas normales. Desnormalización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 190,
+      "padre": "MAD.DAM.0484.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7",
+      "tipo": "contenido",
+      "texto": "Uso de bases de datos objeto-relacionales:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 191,
+      "padre": "MAD.DAM.0484"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.1",
+      "tipo": "contenido",
+      "texto": "Características de las bases de datos objeto-relacionales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 192,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.2",
+      "tipo": "contenido",
+      "texto": "Tipos de datos objeto.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 193,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.3",
+      "tipo": "contenido",
+      "texto": "Definición de tipos de objeto.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 194,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.4",
+      "tipo": "contenido",
+      "texto": "Herencia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 195,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.5",
+      "tipo": "contenido",
+      "texto": "Identificadores; referencias. Navegabilidad.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 196,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.6",
+      "tipo": "contenido",
+      "texto": "Tipos de datos colección.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 197,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.7",
+      "tipo": "contenido",
+      "texto": "Declaración e inicialización de objetos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 198,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.8",
+      "tipo": "contenido",
+      "texto": "Uso de la sentencia SELECT.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 199,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.9",
+      "tipo": "contenido",
+      "texto": "Inserción de objetos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 200,
+      "padre": "MAD.DAM.0484.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0484.CO.7.10",
+      "tipo": "contenido",
+      "texto": "Modificación y borrado de objetos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 69
+      },
+      "orden": 201,
+      "padre": "MAD.DAM.0484.CO.7"
+    }
+  ]
+}

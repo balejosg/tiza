@@ -1,0 +1,2919 @@
+{
+  "codigo": "MAD.DAM.0489",
+  "nombre": "Programación multimedia y dispositivos móviles",
+  "etapa": "fp_gs",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-13221",
+    "boe-a-2010-8067",
+    "bocm-20110131-3",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0489",
+      "tipo": "modulo",
+      "texto": "Programación multimedia y dispositivos móviles",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 135,
+        "curso": "2"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Aplica tecnologías de desarrollo para dispositivos móviles evaluando sus características y capacidades.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las limitaciones que plantea la ejecución de aplicaciones en los dispositivos móviles.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio a",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las tecnologías de desarrollo de aplicaciones para dispositivos móviles.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio b",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han instalado, configurado y utilizado entornos de trabajo para el desarrollo de aplicaciones para dispositivos móviles.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio c",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado configuraciones que clasifican los dispositivos móviles en base a sus características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio d",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito perfiles que establecen la relación entre el dispositivo y la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio e",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado la estructura de aplicaciones existentes para dispositivos móviles identificando las clases utilizadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio f",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado modificaciones sobre aplicaciones existentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio g",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado emuladores para comprobar el funcionamiento de las aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 1, criterio h",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 1, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.0489.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla aplicaciones para dispositivos móviles analizando y empleando las tecnologías y librerías específicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha generado la estructura de clases necesaria para la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio a",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado y utilizado las clases que modelan ventanas, menús, alertas y controles para el desarrollo de aplicaciones gráficas sencillas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio b",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado las clases necesarias para la conexión y comunicación con dispositivos inalámbricos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio c",
+        "pagina": 79037,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones que hacen uso de las funcionalidades proporcionadas por los sensores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio d",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado las clases necesarias para establecer conexiones y comunicaciones HTTP y HTTPS.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio e",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado las clases necesarias para establecer conexiones con almacenes de datos garantizando la persistencia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio f",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas de interacción usuario-aplicación para optimizar las aplicaciones desarrolladas a partir de emuladores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio g",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han empaquetado y desplegado las aplicaciones desarrolladas en dispositivos móviles reales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio h",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado los procesos necesarios para el desarrollo de las aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio i",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.2.j",
+      "tipo": "criterio_fp",
+      "texto": "Se han establecido los permisos requeridos para el funcionamiento de las aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 2, criterio j",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 2, criterio j",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.0489.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla programas que integran contenidos multimedia analizando y empleando las tecnologías y librerías específicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado entornos de desarrollo multimedia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio a",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido las clases que permiten la captura, procesamiento y almacenamiento de datos multimedia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio b",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para la conversión de datos multimedia de un formato a otro.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio c",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para procesar datos multimedia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio d",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para el control de eventos, tipos de media y excepciones, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio e",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para la creación y control de animaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio f",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para reproducir contenidos multimedia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio g",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.3.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han depurado y documentado los programas desarrollados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 3, criterio h",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 3, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.0489.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Selecciona y prueba motores de juegos analizando la arquitectura de juegos 2D y 3D.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 4",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 4",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los elementos que componen la arquitectura de un juego 2D y 3D.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 4, criterio a",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 4, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.0489.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado los componentes de un motor de juegos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 4, criterio b",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 4, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.0489.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado entornos de desarrollo de juegos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 4, criterio c",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 4, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.0489.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado diferentes motores de juegos, sus características y funcionalidades.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 4, criterio d",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 4, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.0489.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los bloques funcionales de un juego existente.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 4, criterio e",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 4, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.0489.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido la representación lógica y espacial de una escena gráfica sobre un juego existente.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 4, criterio f",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 4, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.0489.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla juegos 2D y 3D sencillos utilizando motores de juegos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido la lógica de un nuevo juego.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio a",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado los objetos necesarios para el juego y definido sus características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio b",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado las escenas del juego y distribuido los objetos en las mismas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio c",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado materiales para determinar las propiedades finales de la superficie de un objeto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio d",
+        "pagina": 79038,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han establecido las propiedades físicas de los objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio e",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha incorporado sonido a los diferentes eventos del juego.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio f",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado cámaras y configurado la iluminación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio g",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado e implantado juegos para dispositivos móviles.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio h",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas de funcionamiento y optimización de los juegos desarrollados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio i",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 47,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.RA.5.j",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado las fases de diseño y desarrollo de los juegos creados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, resultado de aprendizaje 5, criterio j",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, resultado de aprendizaje 5, criterio j",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 48,
+      "padre": "MAD.DAM.0489.RA.5"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1",
+      "tipo": "contenido_basico",
+      "texto": "Análisis de tecnologías para aplicaciones en dispositivos móviles:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 49,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.1",
+      "tipo": "contenido_basico",
+      "texto": "Dispositivos móviles. Evolución. Tipos. Características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 50,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.2",
+      "tipo": "contenido_basico",
+      "texto": "Hardware para dispositivos móviles: pantalla, procesador, memoria, cámara, batería, sensores, conectividad, entre otros. Limitaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 51,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.3",
+      "tipo": "contenido_basico",
+      "texto": "Tecnologías de desarrollo. Nativas y multiplataforma. Entornos de trabajo. Módulos y librerías. Lenguajes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 52,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.4",
+      "tipo": "contenido_basico",
+      "texto": "Emuladores. Configuraciones. Perfiles. Dispositivos soportados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 53,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.5",
+      "tipo": "contenido_basico",
+      "texto": "Aplicaciones móviles. Estructura. Jerarquía de clases.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 54,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.6",
+      "tipo": "contenido_basico",
+      "texto": "Modelo de estados de una aplicación móvil: activo, pausa y destruido.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 55,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.7",
+      "tipo": "contenido_basico",
+      "texto": "Ciclo de vida de una aplicación: descubrimiento, instalación, ejecución, actualización y borrado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 56,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.8",
+      "tipo": "contenido_basico",
+      "texto": "Modificación de aplicaciones existentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 57,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.1.9",
+      "tipo": "contenido_basico",
+      "texto": "Utilización del entorno de ejecución del administrador de aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 58,
+      "padre": "EST.DAM.0489.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de aplicaciones para dispositivos móviles:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 59,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.1",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas. Flujo de trabajo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 60,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.2",
+      "tipo": "contenido_basico",
+      "texto": "Componentes de una aplicación. Recursos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 61,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.3",
+      "tipo": "contenido_basico",
+      "texto": "Interfaces de usuario. Clases asociadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 62,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.4",
+      "tipo": "contenido_basico",
+      "texto": "Contexto gráfico. Imágenes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 63,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.5",
+      "tipo": "contenido_basico",
+      "texto": "Métodos de entrada. Eventos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 64,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.6",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de las preferencias de la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 65,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.7",
+      "tipo": "contenido_basico",
+      "texto": "Bases de datos y almacenamiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 66,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.8",
+      "tipo": "contenido_basico",
+      "texto": "Persistencia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 67,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.9",
+      "tipo": "contenido_basico",
+      "texto": "Tareas en segundo plano. Servicios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 68,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.10",
+      "tipo": "contenido_basico",
+      "texto": "Seguridad y permisos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 69,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.11",
+      "tipo": "contenido_basico",
+      "texto": "Conectividad. Tipos. Clases asociadas. Gestión de las comunicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 70,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.12",
+      "tipo": "contenido_basico",
+      "texto": "Manejo de conexiones HTTP y HTTPS. Acceso a servicios web.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 71,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.13",
+      "tipo": "contenido_basico",
+      "texto": "Sensores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 72,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.2.14",
+      "tipo": "contenido_basico",
+      "texto": "Posicionamiento. Localización. Mapas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 73,
+      "padre": "EST.DAM.0489.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.3",
+      "tipo": "contenido_basico",
+      "texto": "Utilización de librerías multimedia integradas:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 74,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.3.1",
+      "tipo": "contenido_basico",
+      "texto": "Conceptos sobre aplicaciones multimedia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 75,
+      "padre": "EST.DAM.0489.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.3.2",
+      "tipo": "contenido_basico",
+      "texto": "Arquitectura del API utilizado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 76,
+      "padre": "EST.DAM.0489.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.3.3",
+      "tipo": "contenido_basico",
+      "texto": "Fuentes de datos multimedia. Clases.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 77,
+      "padre": "EST.DAM.0489.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.3.4",
+      "tipo": "contenido_basico",
+      "texto": "Procesamiento de objetos multimedia. Clases. Estados, métodos y eventos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 78,
+      "padre": "EST.DAM.0489.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.3.5",
+      "tipo": "contenido_basico",
+      "texto": "Reproducción de objetos multimedia. Clases. Estados, métodos y eventos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 79,
+      "padre": "EST.DAM.0489.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.3.6",
+      "tipo": "contenido_basico",
+      "texto": "Animación de objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 80,
+      "padre": "EST.DAM.0489.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4",
+      "tipo": "contenido_basico",
+      "texto": "Análisis de motores de juegos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 81,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.1",
+      "tipo": "contenido_basico",
+      "texto": "Animación 2D y 3D.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 82,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.2",
+      "tipo": "contenido_basico",
+      "texto": "Arquitectura del juego. Componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79039,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 83,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.3",
+      "tipo": "contenido_basico",
+      "texto": "Motores de juegos: Tipos y utilización.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 84,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.4",
+      "tipo": "contenido_basico",
+      "texto": "Áreas de especialización, librerías utilizadas y lenguajes de programación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 85,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.5",
+      "tipo": "contenido_basico",
+      "texto": "Componentes de un motor de juegos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 86,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.6",
+      "tipo": "contenido_basico",
+      "texto": "Librerías que proporcionan las funciones básicas de un Motor 2D/3D. Clases.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 87,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.7",
+      "tipo": "contenido_basico",
+      "texto": "Estudio de juegos existentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 88,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.4.8",
+      "tipo": "contenido_basico",
+      "texto": "Aplicación de modificaciones sobre juegos existentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 89,
+      "padre": "EST.DAM.0489.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de juegos 2D y 3D:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 90,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5.1",
+      "tipo": "contenido_basico",
+      "texto": "Técnicas de programación 2D/3D.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 91,
+      "padre": "EST.DAM.0489.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5.2",
+      "tipo": "contenido_basico",
+      "texto": "Fases de desarrollo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 92,
+      "padre": "EST.DAM.0489.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5.3",
+      "tipo": "contenido_basico",
+      "texto": "Componentes de los objetos: materiales y texturas. Propiedades físicas (peso, gravedad, fricciones, colisiones, entre otros).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 93,
+      "padre": "EST.DAM.0489.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5.4",
+      "tipo": "contenido_basico",
+      "texto": "Fuentes de audio. Propiedades.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 94,
+      "padre": "EST.DAM.0489.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5.5",
+      "tipo": "contenido_basico",
+      "texto": "Cámaras e iluminación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 95,
+      "padre": "EST.DAM.0489.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5.6",
+      "tipo": "contenido_basico",
+      "texto": "Creación de escenas. Jerarquía de objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 96,
+      "padre": "EST.DAM.0489.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0489.CB.5.7",
+      "tipo": "contenido_basico",
+      "texto": "Análisis de ejecución. Optimización del código.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, contenidos básicos",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 97,
+      "padre": "EST.DAM.0489.CB.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.ORI",
+      "tipo": "orientaciones",
+      "texto": "Este módulo profesional contiene la formación necesaria para desempeñar la función de desarrollo de aplicaciones multimedia, juegos y aplicaciones adaptadas para su explotación en dispositivos móviles. La función de desarrollo de aplicaciones multimedia, juegos y aplicaciones adaptadas para su explotación en dispositivos móviles incluye aspectos como: La creación de aplicaciones que incluyen contenidos multimedia basadas en la inclusión de librerías específicas en función de la tecnología utilizada. La creación de aplicaciones para dispositivos móviles que garantizan la persistencia de los datos y establecen conexiones para permitir su intercambio. El desarrollo de juegos 2D y 3D utilizando las funcionalidades que ofrecen los motores de juegos, así́ como su puesta a punto e implantación en dispositivos móviles. Las actividades profesionales asociadas a esta función se aplican en el desarrollo de software multiplataforma en empresas especializadas en la elaboración de contenidos multimedia, aplicaciones interactivas y juegos. La formación del módulo contribuye a alcanzar los objetivos generales d), e), g), h), i), j), l), m), n), ñ), s), t) y w) del ciclo formativo y las competencias profesionales, personales y sociales d), e), g), h), i), j), l), m), n), ñ), s), t) y w) del título. Las líneas de actuación en el proceso de enseñanza-aprendizaje que permiten alcanzar los objetivos del módulo versarán sobre: El análisis de las tecnologías disponibles para dispositivos móviles, sus características y funcionalidad. La utilización de emuladores para evaluar el funcionamiento tanto de las aplicaciones para dispositivos móviles desarrolladas como de las modificaciones introducidas en aplicaciones existentes. El desarrollo de aplicaciones para dispositivos móviles que garantizan la persistencia de los datos y permiten el establecimiento de conexiones el intercambio de datos. El desarrollo de aplicaciones que integran objetos multimedia. El análisis de motores de juegos, sus características y funcionalidades. El desarrollo de juegos 2D y 3D aplicando técnicas específicas, así como la prueba e implantación en dispositivos móviles.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0489, orientaciones pedagógicas",
+        "pagina": 79040,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0489, orientaciones pedagógicas",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 98,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1",
+      "tipo": "contenido",
+      "texto": "Análisis de tecnologías para aplicaciones en dispositivos móviles:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 99,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Limitaciones que plantea la ejecución de aplicaciones en los dispositivos móviles: desconexión, seguridad, memoria, consumo batería, almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 100,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Tecnologías disponibles.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 101,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Entornos integrados de trabajo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 102,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Módulos para el desarrollo de aplicaciones móviles.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 103,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Emuladores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 104,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Integración en el entorno de desarrollo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 105,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.7",
+      "tipo": "contenido",
+      "texto": "Configuraciones. Tipos y características. Dispositivos soportados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 106,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.8",
+      "tipo": "contenido",
+      "texto": "Perfiles. Características. Arquitectura y requerimientos. Dispositivos soportados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 107,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.9",
+      "tipo": "contenido",
+      "texto": "Jerarquía de clases del perfil.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 108,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.10",
+      "tipo": "contenido",
+      "texto": "Modelo de estados de una aplicación para dispositivos móviles. Activo, pausa y",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 109,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.11",
+      "tipo": "contenido",
+      "texto": "destruido.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 110,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.12",
+      "tipo": "contenido",
+      "texto": "Ciclo de vida de una aplicación: descubrimiento, instalación, ejecución, actualización y borrado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 111,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.13",
+      "tipo": "contenido",
+      "texto": "Modificación de aplicaciones existentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 112,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.14",
+      "tipo": "contenido",
+      "texto": "Compilación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 113,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.1.15",
+      "tipo": "contenido",
+      "texto": "Utilización del entorno de ejecución del administrador de aplicaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 114,
+      "padre": "MAD.DAM.0489.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2",
+      "tipo": "contenido",
+      "texto": "Programación de aplicaciones para dispositivos móviles:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 115,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Herramientas y fases de construcción.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 116,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Desarrollo del código.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 117,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Compilación, preverificación, empaquetado y ejecución.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 118,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Depuración.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 119,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Interfaces de usuario. Clases asociadas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 120,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Contexto gráfico. Imágenes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 121,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.7",
+      "tipo": "contenido",
+      "texto": "Eventos del teclado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 122,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.8",
+      "tipo": "contenido",
+      "texto": "Técnicas de animación y sonido.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 123,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.9",
+      "tipo": "contenido",
+      "texto": "Descubrimiento de servicios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 124,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.10",
+      "tipo": "contenido",
+      "texto": "Bases de datos y almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 125,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.11",
+      "tipo": "contenido",
+      "texto": "Persistencia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 126,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.12",
+      "tipo": "contenido",
+      "texto": "Modelo de hilos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 127,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.13",
+      "tipo": "contenido",
+      "texto": "Comunicaciones: Clases asociadas. Tipos de conexiones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 128,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.14",
+      "tipo": "contenido",
+      "texto": "Gestión de la comunicación inalámbrica.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 129,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.15",
+      "tipo": "contenido",
+      "texto": "Búsqueda de dispositivos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 130,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.16",
+      "tipo": "contenido",
+      "texto": "Búsqueda de servicios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 131,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.17",
+      "tipo": "contenido",
+      "texto": "Establecimiento de la conexión. Cliente y servidor.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 132,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.18",
+      "tipo": "contenido",
+      "texto": "Envío y recepción de mensajes texto. Seguridad y permisos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 133,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.19",
+      "tipo": "contenido",
+      "texto": "Envío y recepción de mensajería multimedia. Sincronización de contenido. Seguridad y permisos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 134,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.20",
+      "tipo": "contenido",
+      "texto": "Manejo de conexiones HTTP y HTTPS.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 135,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.21",
+      "tipo": "contenido",
+      "texto": "Complementos de los navegadores para visualizar el aspecto de un sitio web en un dispositivo móvil.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 136,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.2.22",
+      "tipo": "contenido",
+      "texto": "Pruebas y documentación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 137,
+      "padre": "MAD.DAM.0489.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3",
+      "tipo": "contenido",
+      "texto": "Utilización de librerías multimedia integradas:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 138,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Conceptos sobre aplicaciones multimedia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 139,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Arquitectura del API utilizado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 140,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Descripción e instalación de las librerías multimedia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 141,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Fuentes de datos multimedia. Clases.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 142,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Datos basados en el tiempo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 143,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Clips de audio, secuencias MIDI, clips de vídeo, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 144,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.7",
+      "tipo": "contenido",
+      "texto": "Procesamiento de objetos multimedia. Clases. Estados, métodos y eventos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 145,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.8",
+      "tipo": "contenido",
+      "texto": "Reproducción de objetos multimedia. Clases. Estados, métodos y eventos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 146,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.9",
+      "tipo": "contenido",
+      "texto": "Protocolo de transmisión en tiempo real RTP.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 147,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.10",
+      "tipo": "contenido",
+      "texto": "Control y monitorización de la transmisión.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 148,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.3.11",
+      "tipo": "contenido",
+      "texto": "Pruebas y documentación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 87
+      },
+      "orden": 149,
+      "padre": "MAD.DAM.0489.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4",
+      "tipo": "contenido",
+      "texto": "Análisis de motores de juegos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 150,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Conceptos de animación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 151,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Arquitectura del juego. Componentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 152,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Motores de juegos: tipos y utilización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 153,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Áreas de especialización, librerías utilizadas y lenguajes de programación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 154,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Componentes de un motor de juegos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 155,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.6",
+      "tipo": "contenido",
+      "texto": "Motor gráfico o de renderizado (2D/3D).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 156,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.7",
+      "tipo": "contenido",
+      "texto": "Grafo de escena.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 157,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.8",
+      "tipo": "contenido",
+      "texto": "Detector de colisiones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 158,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.9",
+      "tipo": "contenido",
+      "texto": "Motor de físicas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 159,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.10",
+      "tipo": "contenido",
+      "texto": "Motor de Inteligencia Artificial.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 160,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.11",
+      "tipo": "contenido",
+      "texto": "Motor de Sonidos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 161,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.12",
+      "tipo": "contenido",
+      "texto": "Gestión de Redes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 162,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.13",
+      "tipo": "contenido",
+      "texto": "Librerías que proporcionan las funciones básicas de un Motor 2D/3D.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 163,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.14",
+      "tipo": "contenido",
+      "texto": "APIs gráficos 3D.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 164,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.15",
+      "tipo": "contenido",
+      "texto": "Ventajas de la utilización de un motor de juegos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 165,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.16",
+      "tipo": "contenido",
+      "texto": "Estudio de juegos existentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 166,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.4.17",
+      "tipo": "contenido",
+      "texto": "Aplicación de modificaciones sobre juegos existentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 167,
+      "padre": "MAD.DAM.0489.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5",
+      "tipo": "contenido",
+      "texto": "Desarrollo de juegos 2D y 3D:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 168,
+      "padre": "MAD.DAM.0489"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Entornos de desarrollo para juegos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 169,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Motores comerciales y Open Source.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 170,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Integración del motor de juegos en entornos de desarrollo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 171,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Conceptos avanzados de programación 3D.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 172,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Sistemas de coordenadas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 173,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Modelos 3D.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 174,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Formas 3D.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 175,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Transformaciones. Renderización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 176,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.9",
+      "tipo": "contenido",
+      "texto": "Fases de desarrollo:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 177,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.9.1",
+      "tipo": "contenido",
+      "texto": "Diseño: modelos, escenarios, efectos visuales, edición de sonidos, creación de la historia, animación, texturización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 178,
+      "padre": "MAD.DAM.0489.CO.5.9"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.9.2",
+      "tipo": "contenido",
+      "texto": "Producción con motores de juegos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 179,
+      "padre": "MAD.DAM.0489.CO.5.9"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.9.3",
+      "tipo": "contenido",
+      "texto": "Post-producción: optimización y pruebas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 180,
+      "padre": "MAD.DAM.0489.CO.5.9"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.10",
+      "tipo": "contenido",
+      "texto": "Propiedades de los objetos: luz, texturas, reflejos, sombras.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 181,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.11",
+      "tipo": "contenido",
+      "texto": "Utilización de shaders. Tipos y funciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 182,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.12",
+      "tipo": "contenido",
+      "texto": "Aplicación de las funciones del motor gráfico. Renderización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 183,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.13",
+      "tipo": "contenido",
+      "texto": "Aplicación de las funciones del grafo de escena. Tipos de nodos y su utilización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 184,
+      "padre": "MAD.DAM.0489.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0489.CO.5.14",
+      "tipo": "contenido",
+      "texto": "Análisis de ejecución. Optimización del código.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 185,
+      "padre": "MAD.DAM.0489.CO.5"
+    }
+  ]
+}

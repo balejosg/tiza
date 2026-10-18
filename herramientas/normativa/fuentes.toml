@@ -336,6 +336,11 @@ derogaciones_parciales = [
   "Real Decreto 1085/2020: el anexo de convalidaciones de módulos profesionales",
 ]
 
+# De este PDF sale solo la competencia general (art. 4), que ni el RD 405/2023 ni el
+# RD 500/2024 tocan; el resto del título y de los módulos, de la redacción del RD 405/2023.
+[norma.recuentos."MAD.DAM"]
+competencia_general = 1
+
 [[norma]]
 id = "boe-a-2023-13221"
 rango = "real_decreto"
@@ -347,6 +352,83 @@ url_pdf = "https://www.boe.es/boe/dias/2023/06/03/pdfs/BOE-A-2023-13221.pdf"
 sha256 = "8e86226ae370094ea608bc18c03348e24956088035cdde141ca2c0e7e35ff8aa"
 modifica = ["boe-a-2010-8067"]
 estado = "vigente"
+
+# Su artículo segundo reescribe el título (arts. 2, 5, 6, 8 y 9 y el anexo I) y el tercero
+# repite módulos comunes para el otro título (DAW): el extractor solo lee el segundo. De ahí
+# salen los datos del título (identificación, competencias profesionales y objetivos
+# generales; `titulo` cuenta los datos del art. 2, uno por línea «Etiqueta: valor») y los
+# 11 módulos técnicos de DAM, con vía al anexo I del RD 450/2010. Las horas y el curso no son
+# de aquí (el anexo I da la duración mínima, no la de Madrid) sino del Decreto 103/2024.
+# Los recuentos los contó el mantenedor en el PDF con una regex por línea, sin el extractor:
+# resultados = líneas «N.», criterios_fp = líneas «a)», contenidos_basicos = viñetas (−/–)
+# más encabezados (líneas que acaban en «:»). Las dos líneas que acaban en «:» tras una
+# palabra partida («propieta-/rios:») son la continuación de una viñeta y no cuentan.
+#
+# Erratas del boletín que se guardan literales (no hay corrección de errores; el XML
+# del BOE trae lo mismo):
+#  - 0490, resultado 3: «g) … para intercambiar» y «h) información.» son un solo criterio
+#    mal partido por el boletín; se guardan como RA.3.g y RA.3.h tal como están impresos.
+#  - título, art. 5: «t) Establecer vidas eficaces de relación…» (el RD 450/2010 decía «vías»).
+[norma.recuentos."MAD.DAM"]
+titulo = 8
+competencia_profesional = 26
+objetivo_general = 26
+
+[norma.recuentos."MAD.DAM.0483"]
+resultados = 7
+criterios_fp = 54
+contenidos_basicos = 68
+
+[norma.recuentos."MAD.DAM.0484"]
+resultados = 7
+criterios_fp = 57
+contenidos_basicos = 57
+
+[norma.recuentos."MAD.DAM.0485"]
+resultados = 9
+criterios_fp = 79
+contenidos_basicos = 72
+
+[norma.recuentos."MAD.DAM.0373"]
+resultados = 7
+criterios_fp = 57
+contenidos_basicos = 47
+
+[norma.recuentos."MAD.DAM.0487"]
+resultados = 6
+criterios_fp = 46
+contenidos_basicos = 45
+
+[norma.recuentos."MAD.DAM.0486"]
+resultados = 6
+criterios_fp = 47
+contenidos_basicos = 55
+
+[norma.recuentos."MAD.DAM.0488"]
+resultados = 8
+criterios_fp = 61
+contenidos_basicos = 64
+
+[norma.recuentos."MAD.DAM.0489"]
+resultados = 5
+criterios_fp = 42
+contenidos_basicos = 49
+
+[norma.recuentos."MAD.DAM.0490"]
+resultados = 5
+criterios_fp = 47
+contenidos_basicos = 48
+
+[norma.recuentos."MAD.DAM.0491"]
+resultados = 5
+criterios_fp = 39
+contenidos_basicos = 48
+
+# El proyecto no tiene contenidos básicos (pasa de «Duración» a «Orientaciones»).
+[norma.recuentos."MAD.DAM.0492"]
+resultados = 4
+criterios_fp = 33
+contenidos_basicos = 0
 
 [[norma]]
 id = "boe-a-2024-10685"
@@ -361,6 +443,19 @@ sha256 = "9ca3fd2d274ec8d3b32bcef71aa54862fdd23874594d1c46f119f4be242515e4"
 correcciones = ["boe-a-2025-10205"]
 modifica = ["boe-a-2010-8067"]
 estado = "vigente"
+
+# Qué cambia en DAM (comprobado en su texto: arts. segundo, cuarto y séptimo, apartado
+# Dieciséis y anexo XVII; el RD 450/2010 está en el ámbito de su art. primero.Dos.a):
+#  - art. segundo: añade un párrafo final al artículo 2 (nivel 5A del Marco Español de
+#    Cualificaciones para el Aprendizaje Permanente): es un dato más del título (TIT.9);
+#  - arts. cuarto y séptimo: suprimen FOL, EIE y FCT, añaden los módulos transversales
+#    (Itinerario I y II, Inglés profesional, Digitalización, Sostenibilidad) y llaman
+#    «Proyecto intermodular» al proyecto, «manteniendo el resto de la denominación y el
+#    código» (el nombre vigente de 0492 es el de la tabla del Decreto 103/2024). No tocan
+#    resultados, criterios, contenidos ni orientaciones de los módulos técnicos;
+#  - los créditos ECTS cambian (0485 pasa de 14 a 15, 0483 de 10 a 11…): el modelo no los guarda.
+[norma.recuentos."MAD.DAM"]
+titulo = 1
 
 [[norma]]
 id = "boe-a-2025-10205"
@@ -387,6 +482,49 @@ sha256 = "3270811e2833dee27b6e4fe79fcc2d10465c5646e76bb733ce3b4c96743d7d54"
 modificada_por = ["bocm-20241115-2"]
 estado = "vigente"
 
+# Contenidos de Madrid de los módulos técnicos de DAM (anexo I): un bloque «Contenidos
+# (duración N horas)» por módulo. Las horas del bloque son las de 2011 y no se guardan
+# (las vigentes son las del Decreto 103/2024); FOL y EIE ya no forman parte del plan y no
+# se extraen. Contenidos = encabezados (líneas sin viñeta que acaban en «:»), viñetas «—» y
+# apartados (el glifo de viñeta de la fuente, un carácter de control), contados con una regex
+# por línea en el PDF, sin el extractor. Las líneas que acaban en «:» tras una palabra
+# partida («propieta-/rios:») son la continuación de una viñeta. El decreto no desarrolla
+# el proyecto (0492): no tiene bloque de contenidos. En 0489 el boletín imprime «— destruido.»
+# como una viñeta más, aunque continúa la anterior («Activo, pausa y / destruido.»); se
+# guarda como está impreso.
+[norma.recuentos."MAD.DAM.0483"]
+contenidos = 155
+
+[norma.recuentos."MAD.DAM.0484"]
+contenidos = 78
+
+[norma.recuentos."MAD.DAM.0485"]
+contenidos = 123
+
+[norma.recuentos."MAD.DAM.0373"]
+contenidos = 78
+
+[norma.recuentos."MAD.DAM.0487"]
+contenidos = 97
+
+[norma.recuentos."MAD.DAM.0486"]
+contenidos = 55
+
+[norma.recuentos."MAD.DAM.0488"]
+contenidos = 110
+
+[norma.recuentos."MAD.DAM.0489"]
+contenidos = 87
+
+[norma.recuentos."MAD.DAM.0490"]
+contenidos = 77
+
+[norma.recuentos."MAD.DAM.0491"]
+contenidos = 78
+
+[norma.recuentos."MAD.DAM.0492"]
+contenidos = 0
+
 [[norma]]
 id = "bocm-20241115-2"
 rango = "decreto"
@@ -398,6 +536,17 @@ url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/11/15/BOCM-20241115-2.
 sha256 = "a195d44258c425f0c37c4ed283a353d127160a07c180b604c429c885cdcf1f6e"
 modifica = ["bocm-20110131-3"]
 estado = "vigente"
+
+# Horas y curso de los módulos técnicos de DAM: anexo II, tabla del ciclo (código IFCS02,
+# pág. 120). El curso es la columna de las horas semanales (1.º: 0484, 0487, 0373, 0485,
+# 0483; 2.º: 0486, 0488, 0490, 0489, 0491). Los créditos ECTS de la tabla no se guardan.
+# 0492 «Proyecto intermodular de desarrollo de aplicaciones multiplataforma» (50 h; el nombre,
+# en dos líneas de la tabla) no tiene horas semanales en ninguna columna y se le pone el
+# curso 2: la tabla lo lista tras los módulos de 2.º, el Decreto dice que se desarrolla
+# «a lo largo de los dos cursos» (preámbulo), las instrucciones de FP 2026-27 fijan que
+# empieza, como tarde, con el 2.º (sexta, 3) y que su evaluación final es «en el último
+# curso» (vigesimoprimera, 3). Es una decisión del mantenedor (`--curso 2`), no un dato
+# de la tabla.
 
 [[norma]]
 id = "bocm-20250827-6"

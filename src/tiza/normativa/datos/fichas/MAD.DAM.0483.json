@@ -1,0 +1,4362 @@
+{
+  "codigo": "MAD.DAM.0483",
+  "nombre": "Sistemas informáticos",
+  "etapa": "fp_gs",
+  "curso": "1",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-13221",
+    "boe-a-2010-8067",
+    "bocm-20110131-3",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0483",
+      "tipo": "modulo",
+      "texto": "Sistemas informáticos",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 205,
+        "curso": "1"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Evalúa sistemas informáticos, identificando sus componentes y características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los componentes físicos de un sistema informático y sus mecanismos de interconexión.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio a",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado los tipos de memorias, señalando sus características e identifcando sus prestaciones y la función que desarrollan en el conjunto del sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio b",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha verificado el proceso de puesta en marcha de un equipo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio c",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado, instalado y configurado diferentes tipos de dispositivos periféricos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio d",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los tipos de redes y sistemas de comunicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio e",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los componentes de una red informática.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio f",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han interpretado mapas físicos y lógicos de una red informática.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio g",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido las normas de seguridad y prevención de riesgos laborales en el uso de los sistemas informáticos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 1, criterio h",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 1, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.0483.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Instala sistemas operativos planificando el proceso e interpretando documentación técnica.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los elementos funcionales de un sistema informático.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio a",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las características, funciones y arquitectura de un sistema operativo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio b",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han comparado sistemas operativos en base a sus requisitos, características, campos de aplicación y licencias de uso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio c",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha planificado el proceso de la instalación de sistemas operativos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio d",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han instalado y actualizado sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio e",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado técnicas de actualización y recuperación del sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio f",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado tecnologías de virtualización para instalar y probar sistemas operativos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio g",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han instalado, desinstalado y actualizado aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio h",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.2.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado los procesos realizados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 2, criterio i",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 2, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.0483.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Gestiona la información del sistema identificando las estructuras de almacenamiento y aplicando medidas para asegurar la integridad de los datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han comparado sistemas de archivos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3, criterio a",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.0483.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado la estructura y función de los directorios del sistema operativo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3, criterio b",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.0483.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado herramientas en entorno gráfico y comandos para localizar información en el sistema de archivos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3, criterio c",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.0483.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado diferentes tipos de particiones y unidades lógicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3, criterio d",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.0483.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado y restaurado copias de seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3, criterio e",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.0483.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han planificado y automatizado tareas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3, criterio f",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.0483.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han instalado y evaluado utilidades relacionadas con la gestión de información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 3, criterio g",
+        "pagina": 79007,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 3, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.0483.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Gestiona sistemas operativos utilizando comandos y herramientas gráficas y evaluando las necesidades del sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado cuentas de usuario locales y grupos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio a",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha asegurado el acceso al sistema mediante el uso de directivas de cuenta y directivas de contraseñas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio b",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado, arrancado y detenido servicios y procesos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio c",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha protegido el acceso a la información mediante el uso de permisos locales y listas de control de acceso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio d",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado comandos para realizar las tareas básicas de configuración y administración del sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio e",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha monitorizado el sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio f",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han instalado y evaluado utilidades para el mantenimiento y optimización del sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio g",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.4.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han evaluado las necesidades del sistema informático en relación con el desarrollo de aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 4, criterio h",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 4, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.0483.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Interconecta sistemas en red configurando dispositivos y protocolos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha configurado el protocolo TCP/IP.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio a",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado redes de área local cableadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio b",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado redes de área local inalámbricas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio c",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado dispositivos de interconexión de redes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio d",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha configurado el acceso a redes de área extensa.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio e",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han gestionado puertos de comunicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio f",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha verificado el funcionamiento de la red mediante el uso de comandos y herramientas básicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio g",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.5.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado protocolos seguros de comunicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 5, criterio h",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 5, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.0483.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Opera sistemas en red gestionando sus recursos e identificando las restricciones de seguridad existentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 47,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha configurado el acceso a recursos locales y recursos de red.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6, criterio a",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 48,
+      "padre": "MAD.DAM.0483.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado y configurado los derechos de usuario y directivas de seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6, criterio b",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 49,
+      "padre": "MAD.DAM.0483.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han explotado servidores de ficheros, servidores de impresión y servidores de aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6, criterio c",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 50,
+      "padre": "MAD.DAM.0483.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha accedido a los servidores utilizando técnicas de conexión remota.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6, criterio d",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 51,
+      "padre": "MAD.DAM.0483.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha evaluado la necesidad de proteger los recursos y el sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6, criterio e",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 52,
+      "padre": "MAD.DAM.0483.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han instalado y evaluado utilidades de seguridad básica.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6, criterio f",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 53,
+      "padre": "MAD.DAM.0483.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.6.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado y explotado dominios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 6, criterio g",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 6, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 54,
+      "padre": "MAD.DAM.0483.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Elabora documentación valorando y utilizando aplicaciones informáticas de propósito general.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 55,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha clasificado software en función de su licencia y propósito.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7, criterio a",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 56,
+      "padre": "MAD.DAM.0483.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las necesidades específicas de software asociadas al uso de sistemas informáticos en diferentes entornos productivos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7, criterio b",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 57,
+      "padre": "MAD.DAM.0483.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado tareas de documentación mediante el uso de herramientas ofimáticas y de trabajo colaborativo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7, criterio c",
+        "pagina": 79008,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 58,
+      "padre": "MAD.DAM.0483.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado sistemas de correo y mensajería electrónica.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7, criterio d",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 59,
+      "padre": "MAD.DAM.0483.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado los servicios de transferencia de ficheros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7, criterio e",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 60,
+      "padre": "MAD.DAM.0483.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado métodos de búsqueda de documentación técnica mediante el uso de servicios de Internet.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7, criterio f",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 61,
+      "padre": "MAD.DAM.0483.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.RA.7.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado herramientas de propósito general.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, resultado de aprendizaje 7, criterio g",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, resultado de aprendizaje 7, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 62,
+      "padre": "MAD.DAM.0483.RA.7"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1",
+      "tipo": "contenido_basico",
+      "texto": "Explotación de sistemas microinformáticos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 63,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.1",
+      "tipo": "contenido_basico",
+      "texto": "Placas base. Formatos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 64,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.2",
+      "tipo": "contenido_basico",
+      "texto": "Estructura y componentes: procesador (Set de Instrucciones, Registros, Contador, Unidad Aritmético-Lógica, Interrupciones); memoria interna, tipos y características (RAM, xPROM y otras); interfaces de entrada/salida; discos Periféricos. Adaptadores para la conexión de dispositivos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 65,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.3",
+      "tipo": "contenido_basico",
+      "texto": "Normas de seguridad y prevención de riesgos laborales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 66,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.4",
+      "tipo": "contenido_basico",
+      "texto": "Características de las redes. Ventajas e inconvenientes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 67,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.5",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de redes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 68,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.6",
+      "tipo": "contenido_basico",
+      "texto": "Componentes de una red informática.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 69,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.7",
+      "tipo": "contenido_basico",
+      "texto": "Topologías de red.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 70,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.8",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de cableado. Conectores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 71,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.1.9",
+      "tipo": "contenido_basico",
+      "texto": "Mapa físico y lógico de una red local.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 72,
+      "padre": "EST.DAM.0483.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2",
+      "tipo": "contenido_basico",
+      "texto": "Instalación de sistemas operativos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 73,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.1",
+      "tipo": "contenido_basico",
+      "texto": "Evolución histórica y clasificación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 74,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.2",
+      "tipo": "contenido_basico",
+      "texto": "Funciones de un sistema operativo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 75,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.3",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de sistemas operativos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 76,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.4",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 77,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.5",
+      "tipo": "contenido_basico",
+      "texto": "Licencias y tipos de licencias.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 78,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.6",
+      "tipo": "contenido_basico",
+      "texto": "Procedimiento de instalación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 79,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.7",
+      "tipo": "contenido_basico",
+      "texto": "Gestores de arranque. Configuración y reparación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 80,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.8",
+      "tipo": "contenido_basico",
+      "texto": "Tecnologías de virtualización. Tipos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 81,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.9",
+      "tipo": "contenido_basico",
+      "texto": "Consideraciones previas a la instalación de sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 82,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.10",
+      "tipo": "contenido_basico",
+      "texto": "Instalación de sistemas operativos libres y propietarios. Requisitos, versiones y licencias.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 83,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.11",
+      "tipo": "contenido_basico",
+      "texto": "Instalación / desinstalación de aplicaciones. Requisitos, versiones y licencias.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 84,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.12",
+      "tipo": "contenido_basico",
+      "texto": "Actualización y recuperación de sistemas operativos y aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 85,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.2.13",
+      "tipo": "contenido_basico",
+      "texto": "Documentación de la instalación y de las incidencias detectadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 86,
+      "padre": "EST.DAM.0483.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de la información:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 87,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3.1",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de sistemas de archivos mediante comandos y entornos gráficos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 88,
+      "padre": "EST.DAM.0483.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3.2",
+      "tipo": "contenido_basico",
+      "texto": "Estructura de directorios de sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 89,
+      "padre": "EST.DAM.0483.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3.3",
+      "tipo": "contenido_basico",
+      "texto": "Búsqueda de información del sistema mediante comandos y herramientas gráficas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 90,
+      "padre": "EST.DAM.0483.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3.4",
+      "tipo": "contenido_basico",
+      "texto": "Identificación del software instalado mediante comandos y herramientas gráficas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 91,
+      "padre": "EST.DAM.0483.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3.5",
+      "tipo": "contenido_basico",
+      "texto": "Realización y restauración de copias de seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 92,
+      "padre": "EST.DAM.0483.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3.6",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas de administración de discos. Particiones y volúmenes. Desfragmentación y chequeo. Cifrado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 93,
+      "padre": "EST.DAM.0483.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.3.7",
+      "tipo": "contenido_basico",
+      "texto": "Tareas automáticas. Planificación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79009,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 94,
+      "padre": "EST.DAM.0483.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4",
+      "tipo": "contenido_basico",
+      "texto": "Configuración de sistemas operativos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 95,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4.1",
+      "tipo": "contenido_basico",
+      "texto": "Configuración de usuarios y grupos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 96,
+      "padre": "EST.DAM.0483.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4.2",
+      "tipo": "contenido_basico",
+      "texto": "Seguridad de cuentas de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 97,
+      "padre": "EST.DAM.0483.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4.3",
+      "tipo": "contenido_basico",
+      "texto": "Seguridad de contraseñas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 98,
+      "padre": "EST.DAM.0483.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4.4",
+      "tipo": "contenido_basico",
+      "texto": "Acceso a recursos. Permisos locales. Listas de control de acceso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 99,
+      "padre": "EST.DAM.0483.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4.5",
+      "tipo": "contenido_basico",
+      "texto": "Servicios y procesos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 100,
+      "padre": "EST.DAM.0483.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4.6",
+      "tipo": "contenido_basico",
+      "texto": "Comandos de sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 101,
+      "padre": "EST.DAM.0483.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.4.7",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas de monitorización del sistema. Registros y logs.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 102,
+      "padre": "EST.DAM.0483.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5",
+      "tipo": "contenido_basico",
+      "texto": "Conexión de sistemas en red:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 103,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.1",
+      "tipo": "contenido_basico",
+      "texto": "Configuración del protocolo TCP/IP en un cliente de red. Direcciones IP. Máscaras de subred. Puertas de enlace. Servidores de nombres de dominio. IPv4. IPv6. Configuración estática. Configuración dinámica automática.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 104,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.2",
+      "tipo": "contenido_basico",
+      "texto": "Ficheros de configuración de red.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 105,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.3",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de puertos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 106,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.4",
+      "tipo": "contenido_basico",
+      "texto": "Resolución de problemas de conectividad en sistemas operativos en red. Herramientas de diagnóstico.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 107,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.5",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas gráficas y comandos utilizados en sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 108,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.6",
+      "tipo": "contenido_basico",
+      "texto": "Monitorización de redes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 109,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.7",
+      "tipo": "contenido_basico",
+      "texto": "Protocolos TCP/IP.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 110,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.8",
+      "tipo": "contenido_basico",
+      "texto": "Configuración de los adaptadores de red en sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 111,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.9",
+      "tipo": "contenido_basico",
+      "texto": "Interconexión de redes: adaptadores de red y dispositivos de interconexión. Enrutamiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 112,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.10",
+      "tipo": "contenido_basico",
+      "texto": "Redes cableadas. Tipos y características. Adaptadores de red. Conmutadores, enrutadores, entre otros. Seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 113,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.11",
+      "tipo": "contenido_basico",
+      "texto": "Redes inalámbricas. Tipos y características. Adaptadores. Dispositivos de interconexión. Seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 114,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.12",
+      "tipo": "contenido_basico",
+      "texto": "Seguridad de comunicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 115,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.5.13",
+      "tipo": "contenido_basico",
+      "texto": "Tecnologías de acceso a redes de área extensa.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 116,
+      "padre": "EST.DAM.0483.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de recursos en una red:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 117,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.1",
+      "tipo": "contenido_basico",
+      "texto": "Permisos y derechos. Permisos de red. Permisos locales. Herencia. Listas de control de acceso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 118,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.2",
+      "tipo": "contenido_basico",
+      "texto": "Configuración de recursos compartidos. Permisos de acceso y directivas de seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 119,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.3",
+      "tipo": "contenido_basico",
+      "texto": "Requisitos de seguridad del sistema y de los datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 120,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.4",
+      "tipo": "contenido_basico",
+      "texto": "Servidores de ficheros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 121,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.5",
+      "tipo": "contenido_basico",
+      "texto": "Servidores de impresión.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 122,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.6",
+      "tipo": "contenido_basico",
+      "texto": "Servidores de aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 123,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.7",
+      "tipo": "contenido_basico",
+      "texto": "Técnicas de conexión remota.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 124,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.8",
+      "tipo": "contenido_basico",
+      "texto": "Cortafuegos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 125,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.6.9",
+      "tipo": "contenido_basico",
+      "texto": "Implantación y explotación de dominios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 126,
+      "padre": "EST.DAM.0483.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.7",
+      "tipo": "contenido_basico",
+      "texto": "Explotación de aplicaciones informáticas de propósito general:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 127,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.7.1",
+      "tipo": "contenido_basico",
+      "texto": "Software: tipos, requisitos, licencias.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 128,
+      "padre": "EST.DAM.0483.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.7.2",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas ofimáticas y de trabajo colaborativo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 129,
+      "padre": "EST.DAM.0483.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0483.CB.7.3",
+      "tipo": "contenido_basico",
+      "texto": "Utilidades de propósito general: antimalware, correo, transferencia de ficheros, recuperación de datos, mantenimiento del sistema, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, contenidos básicos",
+        "pagina": 79010,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 130,
+      "padre": "EST.DAM.0483.CB.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.ORI",
+      "tipo": "orientaciones",
+      "texto": "Este módulo profesional contiene la formación necesaria para desempeñar la función de explotación de sistemas informáticos. La función de explotación de sistemas informáticos incluye aspectos como: La instalación, configuración básica y explotación de sistemas operativos. La gestión de la información del sistema. La configuración básica y gestión de redes de área local. La instalación, mantenimiento y explotación de aplicaciones a partir de documentación técnica. Las actividades profesionales asociadas a esta función se aplican en la explotación de sistemas informáticos en relación al desarrollo de aplicaciones. La formación del módulo contribuye a alcanzar los objetivos generales a), b), t), u), v), w) y x) del ciclo formativo y las competencias profesionales, personales y sociales a), b), l), t), u), v), w), x) e y) del título. Las líneas de actuación en el proceso de enseñanza-aprendizaje que permiten alcanzar los objetivos del módulo están relacionadas con: La identificación del hardware. El análisis de los cambios y novedades que se producen en los sistemas informáticos: hardware, sistemas operativos, redes y aplicaciones. La utilización de tecnologías de virtualización para simular sistemas. La correcta interpretación de documentación técnica. La instalación y actualización de sistemas operativos. La gestión de la información del sistema mediante comandos y herramientas gráficas. La gestión de redes locales. La instalación y configuración de aplicaciones. La verificación de la seguridad de acceso al sistema. La elaboración de documentación técnica.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0483, orientaciones pedagógicas",
+        "pagina": 79011,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0483, orientaciones pedagógicas",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 131,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1",
+      "tipo": "contenido",
+      "texto": "Explotación de Sistemas microinformáticos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 132,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Arquitectura de ordenadores. Máquina de Turing, arquitectura Harvard y arquitectura de von Neumann. Programa almacenado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 133,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Componentes de un sistema informático. Hardware, software y componente humano. Estructura y clasificación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 134,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Periféricos. Adaptadores para la conexión de dispositivos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 135,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Normas de seguridad y prevención de riesgos laborales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 136,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Medios de transmisión. Guiados y no guiados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 137,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Características de las redes. Ventajas e inconvenientes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 138,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.7",
+      "tipo": "contenido",
+      "texto": "Tipos de redes. Clasificación por alcance, por topología de red y por la direccionalidad de los datos: Simplex, half-duplex y full-duplex.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 139,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.8",
+      "tipo": "contenido",
+      "texto": "Componentes de una red informática.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 140,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.9",
+      "tipo": "contenido",
+      "texto": "Topologías de red. Bus, estrella, anillo, árbol, malla y mixtas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 141,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.10",
+      "tipo": "contenido",
+      "texto": "Protocolos. Estándares IEEE.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 142,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.11",
+      "tipo": "contenido",
+      "texto": "Tipos de cableado. Conectores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 143,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.1.12",
+      "tipo": "contenido",
+      "texto": "Mapa físico y lógico de una red local.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 77
+      },
+      "orden": 144,
+      "padre": "MAD.DAM.0483.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2",
+      "tipo": "contenido",
+      "texto": "Instalación de Sistemas Operativos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 145,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Estructura de un sistema informático. Monolítica. Jerárquica. Capas o anillos (ring). Máquinas virtuales. Cliente-servidor.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 146,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Arquitectura de un sistema operativo. Sistemas por lotes (batch). Sistemas por lotes con multiprogramación. Sistemas de tiempo compartido. Sistemas distribuidos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 147,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Funciones de un sistema operativo:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 148,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.3.1",
+      "tipo": "contenido",
+      "texto": "Controlar y gestionar el uso del hardware del ordenador: CPU, dispositivos de E/S, Memoria principal, tarjetas gráficas y el resto de periféricos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 149,
+      "padre": "MAD.DAM.0483.CO.2.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.3.2",
+      "tipo": "contenido",
+      "texto": "Administrar la ejecución de los procesos. Planificación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 150,
+      "padre": "MAD.DAM.0483.CO.2.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.3.3",
+      "tipo": "contenido",
+      "texto": "Controlar el proceso de organización de la información. Creación, acceso (ubicación física) y borrado de archivos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 151,
+      "padre": "MAD.DAM.0483.CO.2.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.3.4",
+      "tipo": "contenido",
+      "texto": "Controlar el acceso de los programas o los usuarios a los recursos del sistema.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 152,
+      "padre": "MAD.DAM.0483.CO.2.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.3.5",
+      "tipo": "contenido",
+      "texto": "Proporcionar interfaces de usuario: En modo texto y gráficos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 153,
+      "padre": "MAD.DAM.0483.CO.2.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.3.6",
+      "tipo": "contenido",
+      "texto": "Servicios soporte: actualizaciones de software, controladores para nuevos periféricos, etcétera.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 154,
+      "padre": "MAD.DAM.0483.CO.2.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Tipos de sistemas operativos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 155,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.4.1",
+      "tipo": "contenido",
+      "texto": "Monousuario o multiusuario.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 156,
+      "padre": "MAD.DAM.0483.CO.2.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.4.2",
+      "tipo": "contenido",
+      "texto": "Centralizado o distribuido.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 157,
+      "padre": "MAD.DAM.0483.CO.2.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.4.3",
+      "tipo": "contenido",
+      "texto": "Monotarea o multitarea.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 158,
+      "padre": "MAD.DAM.0483.CO.2.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.4.4",
+      "tipo": "contenido",
+      "texto": "Uniprocesador o multiprocesador.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 159,
+      "padre": "MAD.DAM.0483.CO.2.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.4.5",
+      "tipo": "contenido",
+      "texto": "Instalables y/o autoarrancables.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 160,
+      "padre": "MAD.DAM.0483.CO.2.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Tipos de aplicaciones. Software de sistema. Software de programación. Software de aplicación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 161,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Licencias y tipos de licencias.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 162,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.7",
+      "tipo": "contenido",
+      "texto": "Máquinas virtuales:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 163,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.7.1",
+      "tipo": "contenido",
+      "texto": "Concepto de virtualización del hardware y características de los principales productos software libre y propietario, para el uso de máquinas virtuales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 164,
+      "padre": "MAD.DAM.0483.CO.2.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.7.2",
+      "tipo": "contenido",
+      "texto": "Creación y personalización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 165,
+      "padre": "MAD.DAM.0483.CO.2.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.7.3",
+      "tipo": "contenido",
+      "texto": "Ventajas e inconvenientes de la virtualización.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 166,
+      "padre": "MAD.DAM.0483.CO.2.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.8",
+      "tipo": "contenido",
+      "texto": "Consideraciones previas a la instalación de sistemas operativos libres y propietarios:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 167,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.8.1",
+      "tipo": "contenido",
+      "texto": "Particionado del disco duro.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 168,
+      "padre": "MAD.DAM.0483.CO.2.8"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.8.2",
+      "tipo": "contenido",
+      "texto": "En sistemas propietarios determinar la partición donde instalaremos el SO.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 169,
+      "padre": "MAD.DAM.0483.CO.2.8"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.8.3",
+      "tipo": "contenido",
+      "texto": "En sistemas libres determinar las particiones para los distintos puntos de montaje.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 170,
+      "padre": "MAD.DAM.0483.CO.2.8"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.8.4",
+      "tipo": "contenido",
+      "texto": "Controladores (drivers) de almacenamiento necesarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 171,
+      "padre": "MAD.DAM.0483.CO.2.8"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.9",
+      "tipo": "contenido",
+      "texto": "Instalación de sistemas operativos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 172,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.9.1",
+      "tipo": "contenido",
+      "texto": "Requisitos, versiones y licencias.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 173,
+      "padre": "MAD.DAM.0483.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.9.2",
+      "tipo": "contenido",
+      "texto": "Soporte utilizado para la instalación: CD/DVD, Pendrive, LAN.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 174,
+      "padre": "MAD.DAM.0483.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.9.3",
+      "tipo": "contenido",
+      "texto": "Datos necesarios para la instalación: usuarios, contraseñas, nombre del equipo, direcciones IP, número de licencia, etcétera.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 175,
+      "padre": "MAD.DAM.0483.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.9.4",
+      "tipo": "contenido",
+      "texto": "Instalación de parches: de seguridad, funcionales, opcionales, etcétera.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 176,
+      "padre": "MAD.DAM.0483.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.9.5",
+      "tipo": "contenido",
+      "texto": "Automatizar las actualizaciones. Configurar la fuente de las actualizaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 177,
+      "padre": "MAD.DAM.0483.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.9.6",
+      "tipo": "contenido",
+      "texto": "Preparación de imágenes del sistema para automatizar la instalación masiva de ordenadores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 178,
+      "padre": "MAD.DAM.0483.CO.2.9"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.10",
+      "tipo": "contenido",
+      "texto": "Gestión de varios sistemas operativos en un ordenador:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 179,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.10.1",
+      "tipo": "contenido",
+      "texto": "Requisitos previos. Administración del espacio del disco. Particionado y redimensionado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 180,
+      "padre": "MAD.DAM.0483.CO.2.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.10.2",
+      "tipo": "contenido",
+      "texto": "Problemas con el registro maestro de arranque (MBR). Elegir un gestor de arranque compatible con todos los sistemas operativos a instalar.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 181,
+      "padre": "MAD.DAM.0483.CO.2.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.10.3",
+      "tipo": "contenido",
+      "texto": "Preparar las particiones de los SO para permitir su arranque.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 182,
+      "padre": "MAD.DAM.0483.CO.2.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.10.4",
+      "tipo": "contenido",
+      "texto": "Analizar el orden en la instalación de los sistemas operativos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 183,
+      "padre": "MAD.DAM.0483.CO.2.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.11",
+      "tipo": "contenido",
+      "texto": "Gestores de arranque:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 184,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.11.1",
+      "tipo": "contenido",
+      "texto": "Código de arranque maestro (Master Boot Code).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 185,
+      "padre": "MAD.DAM.0483.CO.2.11"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.11.2",
+      "tipo": "contenido",
+      "texto": "Configuración de los gestores de arranque de los sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 78
+      },
+      "orden": 186,
+      "padre": "MAD.DAM.0483.CO.2.11"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.11.3",
+      "tipo": "contenido",
+      "texto": "Reparar el gestor de arranque.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 187,
+      "padre": "MAD.DAM.0483.CO.2.11"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.11.4",
+      "tipo": "contenido",
+      "texto": "Sustitución del gestor de arranque estándar por otro más completo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 188,
+      "padre": "MAD.DAM.0483.CO.2.11"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.12",
+      "tipo": "contenido",
+      "texto": "Instalación/desinstalación de aplicaciones:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 189,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.12.1",
+      "tipo": "contenido",
+      "texto": "Requisitos, versiones y licencias.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 190,
+      "padre": "MAD.DAM.0483.CO.2.12"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.12.2",
+      "tipo": "contenido",
+      "texto": "Actualizar a una versión superior (update).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 191,
+      "padre": "MAD.DAM.0483.CO.2.12"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.12.3",
+      "tipo": "contenido",
+      "texto": "Cambiar a una versión inferior (downgrade).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 192,
+      "padre": "MAD.DAM.0483.CO.2.12"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.13",
+      "tipo": "contenido",
+      "texto": "Uso de instalaciones desatendidas. Características de los instaladores más habituales y parámetros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 193,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.14",
+      "tipo": "contenido",
+      "texto": "Actualización de sistemas operativos y aplicaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 194,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.15",
+      "tipo": "contenido",
+      "texto": "Ficheros necesarios para el arranque de los principales sistemas operativos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 195,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.2.16",
+      "tipo": "contenido",
+      "texto": "Controladores de dispositivos. Herramientas para actualizar, hacer backup y exportar controladores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 196,
+      "padre": "MAD.DAM.0483.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3",
+      "tipo": "contenido",
+      "texto": "Gestión de la información:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 197,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Almacenamiento externo e interno.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 198,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Principales medios de almacenamiento. DVD, Blue-Ray, HDD y SSD.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 199,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Interfaz de transferencia. PATA, SATA, SCSI y SAS.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 200,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Monitorización del estado de un disco duro. SMART.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 201,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Esquemas de particiones. MBR y GPT. Tipos de particiones. Características y límites.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 202,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Sistemas de archivos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 203,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.7",
+      "tipo": "contenido",
+      "texto": "Operaciones con particiones: creación, borrado y cambio de tamaño. Clonación. Desfragmentación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 204,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.8",
+      "tipo": "contenido",
+      "texto": "Modos de acceder a los volúmenes. Montar volúmenes en carpetas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 205,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.9",
+      "tipo": "contenido",
+      "texto": "Gestión de sistemas de archivos mediante comandos y entornos gráficos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 206,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.10",
+      "tipo": "contenido",
+      "texto": "Estructura de directorios de sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 207,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.11",
+      "tipo": "contenido",
+      "texto": "Búsqueda de información del sistema mediante comandos y herramientas gráficas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 208,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.12",
+      "tipo": "contenido",
+      "texto": "Identificación del software instalado mediante comandos y herramientas gráficas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 209,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.13",
+      "tipo": "contenido",
+      "texto": "Herramientas de administración de discos. Particiones y volúmenes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 210,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14",
+      "tipo": "contenido",
+      "texto": "Tolerancia a fallos. Niveles RAID:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 211,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14.1",
+      "tipo": "contenido",
+      "texto": "Implementación por hardware y por software. Ventajas e inconvenientes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 212,
+      "padre": "MAD.DAM.0483.CO.3.14"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14.2",
+      "tipo": "contenido",
+      "texto": "Características: tolerancia a fallos, número de mínimo de discos necesarios para su implementación, cuántos discos pueden fallar sin perder el servicio, etcétera.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 213,
+      "padre": "MAD.DAM.0483.CO.3.14"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14.3",
+      "tipo": "contenido",
+      "texto": "Funciones avanzadas. Unión de niveles RAID.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 214,
+      "padre": "MAD.DAM.0483.CO.3.14"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14.4",
+      "tipo": "contenido",
+      "texto": "Operaciones con volúmenes: extender y distribuir.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 215,
+      "padre": "MAD.DAM.0483.CO.3.14"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14.5",
+      "tipo": "contenido",
+      "texto": "Tolerancia a fallos. Simular un fallo de disco para comprobar la tolerancia del sistema.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 216,
+      "padre": "MAD.DAM.0483.CO.3.14"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14.6",
+      "tipo": "contenido",
+      "texto": "Detectar fallos consultando los registros del sistema.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 217,
+      "padre": "MAD.DAM.0483.CO.3.14"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.14.7",
+      "tipo": "contenido",
+      "texto": "Programar alertas por correo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 218,
+      "padre": "MAD.DAM.0483.CO.3.14"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.3.15",
+      "tipo": "contenido",
+      "texto": "Tareas automáticas. Tipos de programaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 219,
+      "padre": "MAD.DAM.0483.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4",
+      "tipo": "contenido",
+      "texto": "Configuración de sistemas operativos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 220,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Configuración de usuarios y grupos locales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 221,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.1.1",
+      "tipo": "contenido",
+      "texto": "Crear, modificar y editar usuarios y grupos. Añadir usuarios a los grupos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 222,
+      "padre": "MAD.DAM.0483.CO.4.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.1.2",
+      "tipo": "contenido",
+      "texto": "Cambiar la ruta del perfil del usuario, scripts de inicio y carpeta particular.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 223,
+      "padre": "MAD.DAM.0483.CO.4.1"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Usuarios y grupos predeterminados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 224,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Seguridad de cuentas de usuario:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 225,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.3.1",
+      "tipo": "contenido",
+      "texto": "Establecer la contraseña.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 226,
+      "padre": "MAD.DAM.0483.CO.4.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.3.2",
+      "tipo": "contenido",
+      "texto": "Habilitar y deshabilitar cuentas de usuario.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 227,
+      "padre": "MAD.DAM.0483.CO.4.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.3.3",
+      "tipo": "contenido",
+      "texto": "Añadir las cuentas de usuario a los grupos predeterminados según sus necesidades.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 228,
+      "padre": "MAD.DAM.0483.CO.4.3"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Seguridad de contraseñas:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 229,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.4.1",
+      "tipo": "contenido",
+      "texto": "Algoritmos para la elección de contraseñas seguras.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 230,
+      "padre": "MAD.DAM.0483.CO.4.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.4.2",
+      "tipo": "contenido",
+      "texto": "Opciones de la contraseña: obligar a cambiar la contraseña, caducidad, etcétera.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 231,
+      "padre": "MAD.DAM.0483.CO.4.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Configuración de perfiles locales de usuario:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 232,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.5.1",
+      "tipo": "contenido",
+      "texto": "Directorios y ficheros implicados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 233,
+      "padre": "MAD.DAM.0483.CO.4.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.5.2",
+      "tipo": "contenido",
+      "texto": "Cambiar la ruta de las carpetas de documentos a otra partición o recurso de red.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 79
+      },
+      "orden": 234,
+      "padre": "MAD.DAM.0483.CO.4.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.6",
+      "tipo": "contenido",
+      "texto": "Acceso a recursos. Permisos locales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 235,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.7",
+      "tipo": "contenido",
+      "texto": "Directivas locales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 236,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.8",
+      "tipo": "contenido",
+      "texto": "Servicios y procesos. Operaciones y configuración. Prioridades.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 237,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.9",
+      "tipo": "contenido",
+      "texto": "Comandos de sistemas libres y propietarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 238,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.10",
+      "tipo": "contenido",
+      "texto": "Herramientas de monitorización del sistema:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 239,
+      "padre": "MAD.DAM.0483.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.10.1",
+      "tipo": "contenido",
+      "texto": "Herramientas de monitorización en tiempo real.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 240,
+      "padre": "MAD.DAM.0483.CO.4.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.10.2",
+      "tipo": "contenido",
+      "texto": "Herramientas de monitorización continuada.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 241,
+      "padre": "MAD.DAM.0483.CO.4.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.10.3",
+      "tipo": "contenido",
+      "texto": "Herramientas de análisis del rendimiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 242,
+      "padre": "MAD.DAM.0483.CO.4.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.10.4",
+      "tipo": "contenido",
+      "texto": "Registros de sucesos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 243,
+      "padre": "MAD.DAM.0483.CO.4.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.10.5",
+      "tipo": "contenido",
+      "texto": "Monitorización de sucesos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 244,
+      "padre": "MAD.DAM.0483.CO.4.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.4.10.6",
+      "tipo": "contenido",
+      "texto": "Registros (logs) del sistema.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 245,
+      "padre": "MAD.DAM.0483.CO.4.10"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5",
+      "tipo": "contenido",
+      "texto": "Conexión de sistemas en red:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 246,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Configuración del protocolo TCP/IP en un cliente de red. Direcciones IP. Máscaras de subred. IPv4. IPv6. Configuración estática. Configuración dinámica automática.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 247,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Configuración de la resolución de nombres.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 248,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Ficheros de configuración de red.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 249,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Tablas de enrutamientos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 250,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Gestión de puertos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 251,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Verificación del funcionamiento de una red mediante el uso de comandos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 252,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Resolución de problemas de conectividad en sistemas operativos en red.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 253,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Comandos utilizados en sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 254,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.9",
+      "tipo": "contenido",
+      "texto": "Monitorización de redes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 255,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.10",
+      "tipo": "contenido",
+      "texto": "Protocolos TCP/IP.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 256,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.11",
+      "tipo": "contenido",
+      "texto": "Configuración de los adaptadores de red en sistemas operativos libres y propietarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 257,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.12",
+      "tipo": "contenido",
+      "texto": "Software de configuración de los dispositivos de red.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 258,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.13",
+      "tipo": "contenido",
+      "texto": "Interconexión de redes: sdaptadores de red y dispositivos de interconexión.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 259,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.14",
+      "tipo": "contenido",
+      "texto": "Redes cableadas. Tipos y características. Adaptadores de red. Conmutadores, enrutadores, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 260,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.15",
+      "tipo": "contenido",
+      "texto": "Redes inalámbricas. Tipos y características. Adaptadores. Dispositivos de interconexión.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 261,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.16",
+      "tipo": "contenido",
+      "texto": "Seguridad básica en redes cableadas e inalámbricas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 262,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.17",
+      "tipo": "contenido",
+      "texto": "Seguridad en la comunicación de redes inalámbricas, WEP, WPA, WPA2-PSK WPA-PSK, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 263,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.18",
+      "tipo": "contenido",
+      "texto": "Acceso a redes WAN. Tecnologías.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 264,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.5.19",
+      "tipo": "contenido",
+      "texto": "Seguridad de comunicaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 265,
+      "padre": "MAD.DAM.0483.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6",
+      "tipo": "contenido",
+      "texto": "Gestión de recursos en una red:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 266,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Derechos de usuarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 267,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Diferencias entre permisos y derechos. Permisos de red. Permisos locales. Herencia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 268,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.3",
+      "tipo": "contenido",
+      "texto": "Permisos en sistemas de ficheros. Permisos efectivos. Delegación de permisos. Listas de control de acceso.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 269,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.4",
+      "tipo": "contenido",
+      "texto": "Directivas de seguridad. Objetos de directiva. Ámbito de las directivas. Plantillas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 270,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.5",
+      "tipo": "contenido",
+      "texto": "Requisitos de seguridad del sistema y de los datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 271,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.6",
+      "tipo": "contenido",
+      "texto": "Seguridad a nivel de usuarios y seguridad a nivel de equipos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 272,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.7",
+      "tipo": "contenido",
+      "texto": "Servidores de ficheros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 273,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.8",
+      "tipo": "contenido",
+      "texto": "Servidores de impresión.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 274,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.9",
+      "tipo": "contenido",
+      "texto": "Servidores de aplicaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 275,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.10",
+      "tipo": "contenido",
+      "texto": "Técnicas de conexión remota.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 276,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.11",
+      "tipo": "contenido",
+      "texto": "Herramientas de cifrado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 277,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.12",
+      "tipo": "contenido",
+      "texto": "Herramientas de análisis y administración.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 278,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.13",
+      "tipo": "contenido",
+      "texto": "Cortafuegos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 279,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.6.14",
+      "tipo": "contenido",
+      "texto": "Sistemas de detección de intrusión.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 280,
+      "padre": "MAD.DAM.0483.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.7",
+      "tipo": "contenido",
+      "texto": "Explotación de aplicaciones informáticas de propósito general:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 281,
+      "padre": "MAD.DAM.0483"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.7.1",
+      "tipo": "contenido",
+      "texto": "Tipos de software.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 282,
+      "padre": "MAD.DAM.0483.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.7.2",
+      "tipo": "contenido",
+      "texto": "Requisitos del software.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 283,
+      "padre": "MAD.DAM.0483.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.7.3",
+      "tipo": "contenido",
+      "texto": "Herramientas ofimáticas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 284,
+      "padre": "MAD.DAM.0483.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.7.4",
+      "tipo": "contenido",
+      "texto": "Herramientas de Internet.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 285,
+      "padre": "MAD.DAM.0483.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0483.CO.7.5",
+      "tipo": "contenido",
+      "texto": "Utilidades de propósito general: antivirus, recuperación de datos, mantenimiento del sistema, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 80
+      },
+      "orden": 286,
+      "padre": "MAD.DAM.0483.CO.7"
+    }
+  ]
+}

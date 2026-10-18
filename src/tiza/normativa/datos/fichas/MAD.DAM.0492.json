@@ -1,0 +1,753 @@
+{
+  "codigo": "MAD.DAM.0492",
+  "nombre": "Proyecto intermodular de desarrollo de aplicaciones multiplataforma",
+  "etapa": "fp_gs",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-13221",
+    "boe-a-2010-8067",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0492",
+      "tipo": "modulo",
+      "texto": "Proyecto intermodular de desarrollo de aplicaciones multiplataforma",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 50,
+        "curso": "2"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica necesidades del sector productivo, relacionándolas con proyectos tipo que puedan satisfacerlas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.0492"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado las empresas del sector por sus características organizativas y el tipo de producto o servicio que ofrecen.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio a",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han caracterizado las empresas tipo indicando la estructura organizativa y las funciones de cada departamento.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio b",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las necesidades más demandadas a las empresas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio c",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las oportunidades de negocio previsibles en el sector.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio d",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado el tipo de proyecto requerido para dar respuesta a las demandas previstas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio e",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado las características específicas del proyecto según los requerimientos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio f",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado las obligaciones fiscales, laborales y de prevención de riesgos y sus condiciones de aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio g",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado posibles ayudas o subvenciones para la incorporación de las nuevas tecnologías de producción o de servicio propuestas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio h",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.1.i",
+      "tipo": "criterio_fp",
+      "texto": "Se ha elaborado el guión de trabajo que se va a seguir para la elaboración del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 1, criterio i",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 1, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.0492.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Diseña proyectos relacionados con las competencias expresadas en el título, desarrollando explícitamente las fases que lo componen.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.0492"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha recopilado información relativa a los aspectos que van a ser tratados en el proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio a",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha realizado el estudio de viabilidad técnica del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio b",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las fases del proyecto especificando su contenido y plazos de ejecución.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio c",
+        "pagina": 79048,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han establecido los objetivos que se pretenden conseguir identificando su alcance.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio d",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado las actividades necesarias para el desarrollo del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio e",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han previsto los recursos materiales y personales necesarios para realizar el proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio f",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las necesidades de financiación para la puesta en marcha del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio g",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido y elaborado la documentación necesaria para su diseño.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio h",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.2.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los aspectos que se deben controlar para garantizar la calidad del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 2, criterio i",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 2, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.0492.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Planifica la ejecución del proyecto, determinando el plan de intervención y la documentación asociada.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.0492"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han secuenciado las tareas en función de las necesidades de implementación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio a",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado los recursos y la logística necesaria para cada tarea.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio b",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las necesidades de permisos y autorizaciones para llevar a cabo las tareas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio c",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado los procedimientos para ejecución de las tareas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio d",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los riesgos inherentes a la ejecución del proyecto, definiendo el plan de prevención de riesgos y los medios necesarios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio e",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha planificado la asignación de recursos materiales y humanos según los tiempos de ejecución.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio f",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha hecho la valoración económica que da respuesta a las condiciones de la ejecución del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio g",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.3.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido y elaborado la documentación necesaria para la ejecución del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 3, criterio h",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 3, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.0492.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Define los procedimientos para el seguimiento y control en la ejecución del proyecto, justificando la selección de variables e instrumentos empleados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.0492"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido el procedimiento de evaluación de las actividades o intervenciones realizadas durante la ejecución del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4, criterio a",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.0492.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los indicadores de calidad para realizar la evaluación del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4, criterio b",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.0492.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido el procedimiento para el registro y evaluación de las incidencias que puedan presentarse durante la ejecución del proyecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4, criterio c",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.0492.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido el procedimiento para la solución de las incidencias registradas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4, criterio d",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.0492.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido el procedimiento para la gestión y registro de los cambios en los recursos y en las tareas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4, criterio e",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.0492.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido el procedimiento para la participación en la evaluación de los usuarios y se han elaborado documentos específicos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4, criterio f",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.0492.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0492.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido un sistema para garantizar el cumplimiento del pliego de condiciones del proyecto cuando este existe.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, resultado de aprendizaje 4, criterio g",
+        "pagina": 79049,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, resultado de aprendizaje 4, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.0492.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0492.ORI",
+      "tipo": "orientaciones",
+      "texto": "Este módulo profesional complementa la formación de otros módulos profesionales en las funciones de análisis del contexto, diseño y organización de la intervención y planificación de la evaluación de la misma. La función de análisis del contexto incluye aspectos como: La recopilación de información. La identificación y priorización de necesidades. La identificación de los aspectos que facilitan o dificultan el desarrollo de la posible intervención. La función de diseño de la intervención incluye aspectos como: La definición o adaptación de la intervención. La priorización y secuenciación de las acciones. La planificación de la intervención. La determinación de recursos. La planificación de la evaluación. El diseño de documentación. El plan de atención al cliente. La función de organización de la intervención incluye aspectos como: La detección de demandas y necesidades. La programación. La gestión. La coordinación y supervisión de la intervención. La elaboración de informes. Las actividades profesionales asociadas a esta función se aplican en: Áreas de sistemas y departamentos de informática en cualquier sector de actividad. Sector de servicios tecnológicos y comunicaciones. Área comercial con gestión de transacciones por Internet. La formación del módulo contribuye a alcanzar los objetivos generales b), c), e), f), g), l), t) e y) del ciclo formativo y las competencias profesionales, personales y sociales b), c), e), f), g), l), t) e y) del título. Las líneas de actuación en el proceso de enseñanza aprendizaje que permiten alcanzar los objetivos del módulo versarán sobre: La ejecución de trabajos en equipo. La autoevaluación del trabajo realizado. La autonomía y la iniciativa. El uso de las TIC.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0492, orientaciones pedagógicas",
+        "pagina": 79050,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0492, orientaciones pedagógicas",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.0492"
+    }
+  ]
+}

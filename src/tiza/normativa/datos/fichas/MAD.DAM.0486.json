@@ -1,0 +1,2763 @@
+{
+  "codigo": "MAD.DAM.0486",
+  "nombre": "Acceso a datos",
+  "etapa": "fp_gs",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-13221",
+    "boe-a-2010-8067",
+    "bocm-20110131-3",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0486",
+      "tipo": "modulo",
+      "texto": "Acceso a datos",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 165,
+        "curso": "2"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla aplicaciones que gestionan información almacenada en ficheros identificando el campo de aplicación de los mismos y utilizando clases específicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para la gestión de ficheros y directorios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1, criterio a",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.0486.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las ventajas y los inconvenientes de las distintas formas de acceso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1, criterio b",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.0486.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para recuperar información almacenada en ficheros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1, criterio c",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.0486.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para almacenar información en ficheros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1, criterio d",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.0486.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado clases para realizar conversiones entre diferentes formatos de ficheros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1, criterio e",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.0486.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han previsto y gestionado las excepciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1, criterio f",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.0486.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han probado y documentado las aplicaciones desarrolladas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 1, criterio g",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 1, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.0486.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla aplicaciones que gestionan información almacenada en bases de datos relacionales identificando y utilizando mecanismos de conexión.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las ventajas e inconvenientes de utilizar conectores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio a",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado gestores de bases de datos embebidos e independientes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio b",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha utilizado el conector idóneo en la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio c",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido la conexión.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio d",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido la estructura de la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio e",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones que modifican el contenido de la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio f",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los objetos destinados a almacenar el resultado de las consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio g",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones que efectúan consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio h",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han eliminado los objetos una vez finalizada su función.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio i",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.j",
+      "tipo": "criterio_fp",
+      "texto": "Se han gestionado las transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio j",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio j",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.2.k",
+      "tipo": "criterio_fp",
+      "texto": "Se han ejecutado procedimientos almacenados en la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 2, criterio k",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 2, criterio k",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.0486.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Gestiona la persistencia de los datos identificando herramientas de mapeo objeto relacional (ORM) y desarrollando aplicaciones que las utilizan.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha instalado la herramienta ORM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3, criterio a",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.0486.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha configurado la herramienta ORM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3, criterio b",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.0486.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido configuraciones de mapeo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3, criterio c",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.0486.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado mecanismos de persistencia a los objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3, criterio d",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.0486.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones que modifican y recuperan objetos persistentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3, criterio e",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.0486.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones que realizan consultas usando el lenguaje SQL.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3, criterio f",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.0486.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han gestionado las transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 3, criterio g",
+        "pagina": 79029,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 3, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.0486.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla aplicaciones que gestionan la información almacenada en bases de datos objeto relacionales y orientadas a objetos valorando sus características y utilizando los mecanismos de acceso incorporados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las ventajas e inconvenientes de las bases de datos que almacenan objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio a",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han establecido y cerrado conexiones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio b",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha gestionado la persistencia de objetos simples.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio c",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha gestionado la persistencia de objetos estructurados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio d",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones que realizan consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio e",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han modificado los objetos almacenados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio f",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han gestionado las transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio g",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.4.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han probado y documentado las aplicaciones desarrolladas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 4, criterio h",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 4, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.0486.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla aplicaciones que gestionan la información almacenada en bases de datos documentales nativas evaluando y utilizando clases específicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 5",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 5",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las ventajas e inconvenientes de utilizar bases de datos documentales nativas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 5, criterio a",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 5, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.0486.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido la conexión con la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 5, criterio b",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 5, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.0486.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones que efectúan consultas sobre el contenido de la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 5, criterio c",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 5, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.0486.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han añadido y eliminado colecciones de la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 5, criterio d",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 5, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.0486.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado aplicaciones para añadir, modificar y eliminar documentos de la base de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 5, criterio e",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 5, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.0486.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Programa componentes de acceso a datos identificando las características que debe poseer un componente y utilizando herramientas de desarrollo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las ventajas e inconvenientes de utilizar programación orientada a componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio a",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado herramientas de desarrollo de componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio b",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 47,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han programado componentes que gestionan información almacenada en ficheros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio c",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 48,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han programado componentes que gestionan mediante conectores información almacenada en bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio d",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 49,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han programado componentes que gestionan información usando mapeo objeto relacional.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio e",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 50,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han programado componentes que gestionan información almacenada en bases de datos objeto relacionales y orientadas a objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio f",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 51,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han programado componentes que gestionan información almacenada en una base de datos documental nativa.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio g",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 52,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han probado y documentado los componentes desarrollados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio h",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 53,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.RA.6.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han integrado los componentes desarrollados en aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, resultado de aprendizaje 6, criterio i",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, resultado de aprendizaje 6, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 54,
+      "padre": "MAD.DAM.0486.RA.6"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1",
+      "tipo": "contenido_basico",
+      "texto": "Manejo de ficheros:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 55,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.1",
+      "tipo": "contenido_basico",
+      "texto": "Clases asociadas a las operaciones de gestión de ficheros y directorios: creación, borrado, copia, movimiento, recorrido, entre otras.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79030,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 56,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.2",
+      "tipo": "contenido_basico",
+      "texto": "Formas de acceso a un fichero. Ventajas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 57,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.3",
+      "tipo": "contenido_basico",
+      "texto": "Clases para gestión de flujos de datos desde/hacia ficheros. Flujos de bytes y de caracteres.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 58,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.4",
+      "tipo": "contenido_basico",
+      "texto": "Operaciones sobre ficheros secuenciales y aleatorios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 59,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.5",
+      "tipo": "contenido_basico",
+      "texto": "Serialización/deserialización de objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 60,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.6",
+      "tipo": "contenido_basico",
+      "texto": "Trabajo con ficheros: de intercambio de datos (XML y JSON, entre otros). Analizadores sintácticos (parser) y vinculación (binding). Conversión entre diferentes formatos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 61,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.7",
+      "tipo": "contenido_basico",
+      "texto": "Excepciones: detección y tratamiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 62,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.1.8",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de aplicaciones que utilizan ficheros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 63,
+      "padre": "EST.DAM.0486.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2",
+      "tipo": "contenido_basico",
+      "texto": "Manejo de conectores:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 64,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.1",
+      "tipo": "contenido_basico",
+      "texto": "El desfase objeto-relacional.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 65,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.2",
+      "tipo": "contenido_basico",
+      "texto": "Protocolos de acceso a bases de datos. Conectores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 66,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.3",
+      "tipo": "contenido_basico",
+      "texto": "Establecimiento de conexiones. Pooling de conexiones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 67,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.4",
+      "tipo": "contenido_basico",
+      "texto": "Ejecución de sentencias de descripción de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 68,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.5",
+      "tipo": "contenido_basico",
+      "texto": "Ejecución de sentencias de modificación de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 69,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.6",
+      "tipo": "contenido_basico",
+      "texto": "Ejecución de consultas. Manipulación del resultado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 70,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.7",
+      "tipo": "contenido_basico",
+      "texto": "Ejecución de procedimientos almacenados en la base de datos. Parámetros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 71,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.8",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 72,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.2.9",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de programas que utilizan bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 73,
+      "padre": "EST.DAM.0486.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas de mapeo objeto relacional (ORM):",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 74,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.1",
+      "tipo": "contenido_basico",
+      "texto": "Concepto de mapeo objeto relacional.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 75,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.2",
+      "tipo": "contenido_basico",
+      "texto": "Características de las herramientas ORM. Herramientas ORM más utilizadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 76,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.3",
+      "tipo": "contenido_basico",
+      "texto": "Instalación de una herramienta ORM. Configuración.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 77,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.4",
+      "tipo": "contenido_basico",
+      "texto": "Estructura de un fichero de mapeo. Elementos, propiedades.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 78,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.5",
+      "tipo": "contenido_basico",
+      "texto": "Mapeo basado en anotaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 79,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.6",
+      "tipo": "contenido_basico",
+      "texto": "Clases persistentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 80,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.7",
+      "tipo": "contenido_basico",
+      "texto": "Sesiones; estados de un objeto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 81,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.8",
+      "tipo": "contenido_basico",
+      "texto": "Carga, almacenamiento y modificación de objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 82,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.9",
+      "tipo": "contenido_basico",
+      "texto": "Consultas SQL.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 83,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.10",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 84,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.3.11",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de programas que utilizan bases de datos a través de herramientas ORM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 85,
+      "padre": "EST.DAM.0486.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4",
+      "tipo": "contenido_basico",
+      "texto": "Bases de datos objeto relacionales y orientadas a objetos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 86,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.1",
+      "tipo": "contenido_basico",
+      "texto": "Gestores de bases de datos objeto relacionales. Características. Ventajas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 87,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.2",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de objetos con SQL; ANSI SQL.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 88,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.3",
+      "tipo": "contenido_basico",
+      "texto": "Acceso a las funciones del gestor de base de datos objeto-relacional desde el lenguaje de programación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 89,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.4",
+      "tipo": "contenido_basico",
+      "texto": "Gestores de bases de datos orientadas a objetos. Características. Ventajas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 90,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.5",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de la persistencia de objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 91,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.6",
+      "tipo": "contenido_basico",
+      "texto": "El interfaz de programación de aplicaciones de la base de datos orientada a objetos. Consultas y persistencia de datos. Lenguaje OQL.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 92,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.7",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de transacciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 93,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.4.8",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de programas que gestionan objetos en bases de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 94,
+      "padre": "EST.DAM.0486.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5",
+      "tipo": "contenido_basico",
+      "texto": "Bases de datos documentales:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 95,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5.1",
+      "tipo": "contenido_basico",
+      "texto": "Bases de datos documentales nativas. Características. Ventajas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 96,
+      "padre": "EST.DAM.0486.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5.2",
+      "tipo": "contenido_basico",
+      "texto": "Establecimiento y cierre de conexiones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 97,
+      "padre": "EST.DAM.0486.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5.3",
+      "tipo": "contenido_basico",
+      "texto": "Colecciones y documentos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 98,
+      "padre": "EST.DAM.0486.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5.4",
+      "tipo": "contenido_basico",
+      "texto": "Creación y borrado de colecciones; clases y métodos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79031,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 99,
+      "padre": "EST.DAM.0486.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5.5",
+      "tipo": "contenido_basico",
+      "texto": "Añadir, modificar y eliminar documentos; clases y métodos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 100,
+      "padre": "EST.DAM.0486.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5.6",
+      "tipo": "contenido_basico",
+      "texto": "Lenguajes de consulta. Realización de consultas; clases y métodos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 101,
+      "padre": "EST.DAM.0486.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.5.7",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de programas que utilizan bases de datos documentales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 102,
+      "padre": "EST.DAM.0486.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.6",
+      "tipo": "contenido_basico",
+      "texto": "Programación de componentes de acceso a datos:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 103,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.6.1",
+      "tipo": "contenido_basico",
+      "texto": "Concepto de componente; características. Ventajas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 104,
+      "padre": "EST.DAM.0486.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.6.2",
+      "tipo": "contenido_basico",
+      "texto": "Propiedades y atributos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 105,
+      "padre": "EST.DAM.0486.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.6.3",
+      "tipo": "contenido_basico",
+      "texto": "Eventos; asociación de acciones a eventos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 106,
+      "padre": "EST.DAM.0486.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.6.4",
+      "tipo": "contenido_basico",
+      "texto": "Persistencia del componente. Serialización.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 107,
+      "padre": "EST.DAM.0486.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.6.5",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas para desarrollo de componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 108,
+      "padre": "EST.DAM.0486.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0486.CB.6.6",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo, empaquetado y utilización de componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, contenidos básicos",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 109,
+      "padre": "EST.DAM.0486.CB.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.ORI",
+      "tipo": "orientaciones",
+      "texto": "Este módulo profesional contiene parte de la formación necesaria para desempeñar la función de desarrollador de aplicaciones multiplataforma. La función de desarrollador de aplicaciones multiplataforma incluye aspectos como: El desarrollo de aplicaciones que gestionan ficheros y directorios. El desarrollo de aplicaciones que acceden a bases de datos relacionales. El desarrollo de aplicaciones que hacen uso de bases de datos orientadas a objetos. El desarrollo de aplicaciones que acceden a bases de datos documentales. El desarrollo de componentes de acceso a datos y su integración en aplicaciones. Las actividades profesionales asociadas a esta función se aplican en el desarrollo de software de gestión multiplataforma. La formación del módulo contribuye a alcanzar los objetivos generales b), c), e), f), l), p), r) y t) del ciclo formativo y las competencias profesionales, personales y sociales b), c), e), f), l), p), r) y t) del título. Las líneas de actuación en el proceso de enseñanza-aprendizaje que permiten alcanzar los objetivos del módulo están relacionados con: La identificación de las tecnologías de persistencia de la información. La gestión de información almacenada en bases de datos relacionales, orientadas a objetos, y documentales. La utilización de herramientas de mapeo. La utilización de herramientas para el desarrollo de componentes de acceso a datos. La integración en aplicaciones de los componentes desarrollados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0486, orientaciones pedagógicas",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0486, orientaciones pedagógicas",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 110,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1",
+      "tipo": "contenido",
+      "texto": "Manejo de ficheros:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 111,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Clases asociadas a las operaciones de gestión de ficheros (secuenciales, aleatorios) y directorios: creación, borrado, copia, movimiento, entre otras.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 112,
+      "padre": "MAD.DAM.0486.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Formas de acceso a un fichero.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 113,
+      "padre": "MAD.DAM.0486.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Clases para gestión de flujos de datos desde/hacia ficheros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 114,
+      "padre": "MAD.DAM.0486.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Flujos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 115,
+      "padre": "MAD.DAM.0486.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.4.1",
+      "tipo": "contenido",
+      "texto": "Basados en bytes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 116,
+      "padre": "MAD.DAM.0486.CO.1.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.4.2",
+      "tipo": "contenido",
+      "texto": "Basados en caracteres.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 117,
+      "padre": "MAD.DAM.0486.CO.1.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Trabajo con ficheros XML (eXtended Mark-up Language): analizadores sintácticos [parser DOM (Document Object Model) y SAX (Simple Api for Xml)] y vinculación (binding).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 118,
+      "padre": "MAD.DAM.0486.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Procesamiento de XML: XPath (Xml Path Language).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 119,
+      "padre": "MAD.DAM.0486.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.1.7",
+      "tipo": "contenido",
+      "texto": "Excepciones: detección y tratamiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 120,
+      "padre": "MAD.DAM.0486.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.2",
+      "tipo": "contenido",
+      "texto": "Manejo de conectores:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 121,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.2.1",
+      "tipo": "contenido",
+      "texto": "El desfase objeto-relacional.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 122,
+      "padre": "MAD.DAM.0486.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Protocolos de acceso a bases de datos. Conectores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 123,
+      "padre": "MAD.DAM.0486.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Ejecución de sentencias de definición de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 124,
+      "padre": "MAD.DAM.0486.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Ejecución de sentencias de manipulación de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 125,
+      "padre": "MAD.DAM.0486.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Ejecución de consultas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 126,
+      "padre": "MAD.DAM.0486.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Gestión de transacciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 127,
+      "padre": "MAD.DAM.0486.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3",
+      "tipo": "contenido",
+      "texto": "Herramientas de mapeo objeto relacional:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 128,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Concepto de mapeo objeto-relacional (ORM, Object-Relational Mapping).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 129,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Características de las herramientas ORM. Herramientas ORM más utilizadas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 130,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Instalación y configuración de una herramienta ORM.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 131,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Estructura de un fichero de mapeo. Elementos, propiedades.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 132,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Clases persistentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 133,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Sesiones; estados de un objeto.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 134,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.7",
+      "tipo": "contenido",
+      "texto": "Carga, almacenamiento y modificación de objetos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 135,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.3.8",
+      "tipo": "contenido",
+      "texto": "Consultas SQL (Standard Query Language).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 136,
+      "padre": "MAD.DAM.0486.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4",
+      "tipo": "contenido",
+      "texto": "Bases de datos relacionales y orientadas a objeto:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 137,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Características de las bases de datos objeto-relacionales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 138,
+      "padre": "MAD.DAM.0486.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Gestión de objetos con SQL; ANSI SQL 1999.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 139,
+      "padre": "MAD.DAM.0486.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Características de las bases de datos orientadas a objetos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 140,
+      "padre": "MAD.DAM.0486.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Sistemas gestores de bases de datos orientadas a objeto (ODBMS, Object Data Base Management System).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 141,
+      "padre": "MAD.DAM.0486.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Tipos de datos: tipos básicos y tipos estructurados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 142,
+      "padre": "MAD.DAM.0486.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4.6",
+      "tipo": "contenido",
+      "texto": "El interfaz de programación de aplicaciones de la base de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 143,
+      "padre": "MAD.DAM.0486.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.4.7",
+      "tipo": "contenido",
+      "texto": "Lenguaje de consultas para objetos (OQL, Object Query Language).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 144,
+      "padre": "MAD.DAM.0486.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5",
+      "tipo": "contenido",
+      "texto": "Bases de datos XML:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 145,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Bases de datos nativas XML. Comparativa con bases de datos relacionales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 146,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Estrategias de almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 147,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Establecimiento y cierre de conexiones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 148,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Colecciones y documentos. Clases para su tratamiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 149,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Creación y borrado de colecciones; clases y métodos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 150,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Añadir, modificar y eliminar documentos; clases y métodos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 151,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Realización de consultas; clases y métodos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 152,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Tratamiento de excepciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 153,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.5.9",
+      "tipo": "contenido",
+      "texto": "Lenguaje de consulta para XML: XQuery (Xml Query Language).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 154,
+      "padre": "MAD.DAM.0486.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6",
+      "tipo": "contenido",
+      "texto": "Programación de componentes de acceso a datos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 155,
+      "padre": "MAD.DAM.0486"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Concepto de componente; características.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 156,
+      "padre": "MAD.DAM.0486.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Propiedades:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 157,
+      "padre": "MAD.DAM.0486.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.2.1",
+      "tipo": "contenido",
+      "texto": "Simples e indexadas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 158,
+      "padre": "MAD.DAM.0486.CO.6.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.2.2",
+      "tipo": "contenido",
+      "texto": "Compartidas y restringidas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 81
+      },
+      "orden": 159,
+      "padre": "MAD.DAM.0486.CO.6.2"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.3",
+      "tipo": "contenido",
+      "texto": "Atributos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 160,
+      "padre": "MAD.DAM.0486.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.4",
+      "tipo": "contenido",
+      "texto": "Eventos; asociación de acciones a eventos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 161,
+      "padre": "MAD.DAM.0486.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.5",
+      "tipo": "contenido",
+      "texto": "Introspección. Reflexión.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 162,
+      "padre": "MAD.DAM.0486.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.6",
+      "tipo": "contenido",
+      "texto": "Persistencia del componente.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 163,
+      "padre": "MAD.DAM.0486.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.7",
+      "tipo": "contenido",
+      "texto": "Herramientas para desarrollo de componentes no visuales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 164,
+      "padre": "MAD.DAM.0486.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0486.CO.6.8",
+      "tipo": "contenido",
+      "texto": "Empaquetado de componentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 165,
+      "padre": "MAD.DAM.0486.CO.6"
+    }
+  ]
+}

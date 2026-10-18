@@ -1,0 +1,2735 @@
+{
+  "codigo": "MAD.DAM.0491",
+  "nombre": "Sistemas de gestión empresarial",
+  "etapa": "fp_gs",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-13221",
+    "boe-a-2010-8067",
+    "bocm-20110131-3",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0491",
+      "tipo": "modulo",
+      "texto": "Sistemas de gestión empresarial",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 95,
+        "curso": "2"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica sistemas de planificación de recursos empresariales y de gestión de relaciones con clientes (ERP-CRM) reconociendo sus características y verificando la configuración del sistema informático.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1",
+        "pagina": 79044,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los diferentes sistemas ERP-CRM que existen en el mercado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio a",
+        "pagina": 79044,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los diferentes tipos de licencia de los sistemas ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio b",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han comparado sistemas ERP-CRM en función de sus características y requisitos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio c",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado el sistema operativo adecuado a cada sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio d",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado el sistema gestor de datos adecuado a cada sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio e",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han verificado las configuraciones del sistema operativo y del gestor de datos para garantizar la funcionalidad del ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio f",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado las operaciones realizadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio g",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado las incidencias producidas durante el proceso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 1, criterio h",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 1, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.0491.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Implanta sistemas ERP-CRM interpretando la documentación técnica e identificando las diferentes opciones y módulos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 2",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 2",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los módulos que componen el ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 2, criterio a",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 2, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.0491.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado diferentes tipos de instalaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 2, criterio b",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 2, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.0491.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado los módulos instalados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 2, criterio c",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 2, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.0491.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado instalaciones adaptadas a las necesidades planteadas en diferentes supuestos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 2, criterio d",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 2, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.0491.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha verificado el funcionamiento del ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 2, criterio e",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 2, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.0491.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado las operaciones realizadas y las incidencias.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 2, criterio f",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 2, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.0491.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Realiza operaciones de gestión, consulta y análisis de la información siguiendo las especificaciones de diseño y utilizando las herramientas proporcionadas por los sistemas ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado herramientas y lenguajes de consulta y manipulación de datos proporcionados por los sistemas ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio a",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado formularios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio b",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado informes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio c",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han exportado datos e informes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio d",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han automatizado las extracciones de datos mediante procesos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio e",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha verificado el rendimiento del sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio f",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado las operaciones realizadas y las incidencias observadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio g",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.3.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha obtenido información relevante a partir de los datos procesados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 3, criterio h",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 3, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.0491.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Adapta sistemas ERP-CRM identificando los requerimientos de un supuesto empresarial y utilizando las herramientas proporcionadas por los mismos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las posibilidades de adaptación del ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio a",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han adaptado definiciones de campos, tablas y vistas de la base de datos del ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio b",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han adaptado consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio c",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han adaptado interfaces de entrada de datos y de procesos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio d",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han personalizado informes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio e",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado paneles de control.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio f",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han adaptado procedimientos almacenados de servidor.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio g",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio h",
+        "pagina": 79045,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado las operaciones realizadas y las incidencias observadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio i",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.4.j",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado integraciones con otro sistema de gestión empresarial.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 4, criterio j",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 4, criterio j",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.0491.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla componentes para un sistema ERP-CRM analizando y utilizando el lenguaje de programación incorporado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido las sentencias del lenguaje propio del sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5, criterio a",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.0491.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado los elementos de programación del lenguaje para crear componentes de manipulación de datos y extracción de información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5, criterio b",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.0491.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han modificado componentes software para añadir nuevas funcionalidades al sistema.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5, criterio c",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.0491.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han integrado los nuevos componentes software en el sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5, criterio d",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.0491.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha verificado el correcto funcionamiento de los componentes creados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5, criterio e",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.0491.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado todos los componentes creados o modificados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5, criterio f",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.0491.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado la arquitectura del ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, resultado de aprendizaje 5, criterio g",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, resultado de aprendizaje 5, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.0491.RA.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1",
+      "tipo": "contenido_basico",
+      "texto": "Identificación de sistemas ERP-CRM:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.1",
+      "tipo": "contenido_basico",
+      "texto": "Concepto de ERP (Sistemas de planificación de recursos empresariales).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 47,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.2",
+      "tipo": "contenido_basico",
+      "texto": "Revisión de los ERP actuales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 48,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.3",
+      "tipo": "contenido_basico",
+      "texto": "Concepto de CRM (Sistemas de gestión de relaciones con clientes).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 49,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.4",
+      "tipo": "contenido_basico",
+      "texto": "Revisión de los CRM actuales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 50,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.5",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de licencias de los ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 51,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.6",
+      "tipo": "contenido_basico",
+      "texto": "Sistemas gestores de bases de datos compatibles con el software.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 52,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.7",
+      "tipo": "contenido_basico",
+      "texto": "Instalación y configuración del sistema informático.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 53,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.8",
+      "tipo": "contenido_basico",
+      "texto": "Verificación de la instalación y configuración de los sistemas operativos y de gestión de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 54,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.1.9",
+      "tipo": "contenido_basico",
+      "texto": "Documentación de las operaciones realizadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 55,
+      "padre": "EST.DAM.0491.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2",
+      "tipo": "contenido_basico",
+      "texto": "Instalación y configuración de sistemas ERP-CRM:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 56,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2.1",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de instalación. Monopuesto. Cliente/servidor. En la nube.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 57,
+      "padre": "EST.DAM.0491.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2.2",
+      "tipo": "contenido_basico",
+      "texto": "Módulos de un sistema ERP-CRM: descripción, tipología e interconexión entre módulos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 58,
+      "padre": "EST.DAM.0491.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2.3",
+      "tipo": "contenido_basico",
+      "texto": "Procesos de instalación del sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 59,
+      "padre": "EST.DAM.0491.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2.4",
+      "tipo": "contenido_basico",
+      "texto": "Parámetros de configuración del sistema ERP-CRM: descripción, tipología y uso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 60,
+      "padre": "EST.DAM.0491.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2.5",
+      "tipo": "contenido_basico",
+      "texto": "Actualización del sistema ERP-CRM y aplicación de actualizaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 61,
+      "padre": "EST.DAM.0491.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2.6",
+      "tipo": "contenido_basico",
+      "texto": "Servicios de acceso al sistema ERP-CRM: características y parámetros de configuración, instalación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 62,
+      "padre": "EST.DAM.0491.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.2.7",
+      "tipo": "contenido_basico",
+      "texto": "Entornos de desarrollo, pruebas y explotación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 63,
+      "padre": "EST.DAM.0491.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3",
+      "tipo": "contenido_basico",
+      "texto": "Organización y consulta de la información:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 64,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.1",
+      "tipo": "contenido_basico",
+      "texto": "Definición de campos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 65,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.2",
+      "tipo": "contenido_basico",
+      "texto": "Consultas de acceso a datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 66,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.3",
+      "tipo": "contenido_basico",
+      "texto": "Interfaces de entrada de datos y de procesos. Formularios.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 67,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.4",
+      "tipo": "contenido_basico",
+      "texto": "Informes y listados de la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79046,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 68,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.5",
+      "tipo": "contenido_basico",
+      "texto": "Gestión de pedidos, albaranes, facturas, asientos predefinidos, trazabilidad, producción, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 69,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.6",
+      "tipo": "contenido_basico",
+      "texto": "Gráficos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 70,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.7",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas de monitorización y de evaluación del rendimiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 71,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.8",
+      "tipo": "contenido_basico",
+      "texto": "Incidencias: identificación y resolución.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 72,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.9",
+      "tipo": "contenido_basico",
+      "texto": "Procesos de extracción de datos en sistemas de ERP-CRM y almacenes de datos. Automatización.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 73,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.3.10",
+      "tipo": "contenido_basico",
+      "texto": "Inteligencia de negocio (Business Intelligence).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 74,
+      "padre": "EST.DAM.0491.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4",
+      "tipo": "contenido_basico",
+      "texto": "Implantación de sistemas ERP-CRM en una empresa:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 75,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.1",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de empresa. Necesidades de la empresa.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 76,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.2",
+      "tipo": "contenido_basico",
+      "texto": "Selección de los módulos del sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 77,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.3",
+      "tipo": "contenido_basico",
+      "texto": "Tablas y vistas que es preciso adaptar.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 78,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.4",
+      "tipo": "contenido_basico",
+      "texto": "Consultas necesarias para obtener información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 79,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.5",
+      "tipo": "contenido_basico",
+      "texto": "Creación de formularios personalizados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 80,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.6",
+      "tipo": "contenido_basico",
+      "texto": "Creación de informes personalizados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 81,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.7",
+      "tipo": "contenido_basico",
+      "texto": "Paneles de control (Dashboards).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 82,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.4.8",
+      "tipo": "contenido_basico",
+      "texto": "Integración con otros sistemas de gestión.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 83,
+      "padre": "EST.DAM.0491.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5",
+      "tipo": "contenido_basico",
+      "texto": "Desarrollo de componentes:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 84,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.1",
+      "tipo": "contenido_basico",
+      "texto": "Arquitectura del ERP-CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 85,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.2",
+      "tipo": "contenido_basico",
+      "texto": "Lenguaje proporcionado por el sistema ERP-CRM. Características y sintaxis del lenguaje. Declaración de datos. Estructuras de programación. Sentencias del lenguaje.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 86,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.3",
+      "tipo": "contenido_basico",
+      "texto": "Entornos de desarrollo y herramientas del sistema ERP y CRM.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 87,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.4",
+      "tipo": "contenido_basico",
+      "texto": "Inserción, modificación y eliminación de datos en los objetos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 88,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.5",
+      "tipo": "contenido_basico",
+      "texto": "Operaciones de consulta. Herramientas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 89,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.6",
+      "tipo": "contenido_basico",
+      "texto": "Formularios e informes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 90,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.7",
+      "tipo": "contenido_basico",
+      "texto": "Procesamiento de datos y obtención de la información.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 91,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.8",
+      "tipo": "contenido_basico",
+      "texto": "Llamadas a funciones, librerías de funciones (APIs).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 92,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0491.CB.5.9",
+      "tipo": "contenido_basico",
+      "texto": "Depuración y tratamiento de errores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, contenidos básicos",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 93,
+      "padre": "EST.DAM.0491.CB.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.ORI",
+      "tipo": "orientaciones",
+      "texto": "Este módulo profesional contiene la formación necesaria para desempeñar la función de implantación y adaptación de sistemas de planificación de recursos empresariales y de gestión de relaciones con clientes. La función de implantación y adaptación de sistemas de planificación de recursos empresariales y de gestión de relaciones con clientes incluye aspectos como: La instalación, configuración y explotación de sistemas ERP-CRM. La supervisión en la implantación de sistemas ERP-CRM. El mantenimiento, consulta y análisis de la información de sistemas ERP-CRM. La adaptación de ERP-CRM a las necesidades de la empresa. El desarrollo de nuevos componentes para ERP-CRM. Las actividades profesionales asociadas a esta función se aplican en el área de sistemas y desarrollo de software en el entorno empresarial. La formación del módulo contribuye a alcanzar los objetivos generales a), b), c), e), f), l), o), p), q), r), t), u) y w) del ciclo formativo y las competencias profesionales, personales y sociales a), b), c), e), f), l), o), p), q), r), t), u) y w) del título. Las líneas de actuación en el proceso de enseñanza-aprendizaje que permiten alcanzar los objetivos del módulo están relacionadas con: La identificación del hardware necesario. El análisis de los cambios y novedades que se producen en los sistemas de gestión empresarial. La interpretación de documentación técnica. La instalación y actualización de sistemas ERP-CRM. La selección e instalación de módulos en función de las necesidades planteadas. La adaptación de sistemas ERP-CRM a las necesidades de un supuesto planteado. La verificación de la seguridad de acceso. La elaboración de documentación técnica. El desarrollo de nuevos componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0491, orientaciones pedagógicas",
+        "pagina": 79047,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0491, orientaciones pedagógicas",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 94,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1",
+      "tipo": "contenido",
+      "texto": "Identificación de sistemas ERP-CRM (Enterprise resource planning-Customer relationship management):",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 95,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Historia evolución de la informática enfocada a la gestión empresarial.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 96,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Organización de una empresa. Relaciones externas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 97,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Arquitectura de un sistema ERP-CRM. Arquitectura orientada a servicios (SOA, Services oriented architecture). Modular, flexible y abierto.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 98,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Concepto de ERP (Sistemas de planificación de recursos empresariales).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 99,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Principales módulos de un ERP:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 100,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.5.1",
+      "tipo": "contenido",
+      "texto": "Sistemas financieros: contabilidad general, analítica, tesorería, gestión de acreedores, deudores y activos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 101,
+      "padre": "MAD.DAM.0491.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.5.2",
+      "tipo": "contenido",
+      "texto": "Ventas: gestión de órdenes, pedidos de ventas y clientes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 102,
+      "padre": "MAD.DAM.0491.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.5.3",
+      "tipo": "contenido",
+      "texto": "Logística: gestión de compras, proveedores y materiales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 103,
+      "padre": "MAD.DAM.0491.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.5.4",
+      "tipo": "contenido",
+      "texto": "Recursos humanos: la gestión de los datos del personal.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 104,
+      "padre": "MAD.DAM.0491.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.5.5",
+      "tipo": "contenido",
+      "texto": "Sistemas productivos: gestión del producto/servicio y la planificación necesaria para su aprovisionamiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 88
+      },
+      "orden": 105,
+      "padre": "MAD.DAM.0491.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Revisión de ERPs actuales. ERPs libres y propietarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 106,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.7",
+      "tipo": "contenido",
+      "texto": "Concepto de CRM (Sistemas de gestión de relaciones con clientes).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 107,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.8",
+      "tipo": "contenido",
+      "texto": "Revisión de CRMs actuales. CRMs independientes o integrados en ERPs.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 108,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.9",
+      "tipo": "contenido",
+      "texto": "Características de un ERP-CRM: Integrales, modulares y adaptables.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 109,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.10",
+      "tipo": "contenido",
+      "texto": "Sistemas operativos libres o propietarios compatibles con el software.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 110,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.11",
+      "tipo": "contenido",
+      "texto": "Sistemas gestores de bases de datos compatibles con el software.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 111,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.12",
+      "tipo": "contenido",
+      "texto": "Configuración de la plataforma. Software, hardware y RR HH para la consultoría e implantación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 112,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.1.13",
+      "tipo": "contenido",
+      "texto": "Verificación de la instalación y configuración de los sistemas operativos y de gestión de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 113,
+      "padre": "MAD.DAM.0491.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2",
+      "tipo": "contenido",
+      "texto": "Instalación y configuración de sistemas ERP-CRM:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 114,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Modelos de sistemas atendiendo a la adaptabilidad: cerrados, parametrizables y programables.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 115,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Tipos de licencia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 116,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Tipos de instalación. Monopuesto. Cliente/servidor.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 117,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Módulos básicos. Funcionalidades operacionales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 118,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Módulos de un sistema ERP-CRM: descripción, tipología e interconexión entre módulos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 119,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Procesos genéricos de instalación del sistema ERP-CRM:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 120,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.1",
+      "tipo": "contenido",
+      "texto": "Auditoría inicial: definición de los resultados a obtener con la implantación de un ERP, definición del modelo de negocio, definición del modelo de gestión, definición de la estrategia de implantación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 121,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.2",
+      "tipo": "contenido",
+      "texto": "Evaluación de la necesidad de software complementario al producto ERP.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 122,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.3",
+      "tipo": "contenido",
+      "texto": "Alineamiento de la estructura y plataformas tecnológicas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 123,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.4",
+      "tipo": "contenido",
+      "texto": "Análisis del cambio organizativo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 124,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.5",
+      "tipo": "contenido",
+      "texto": "Entrega de una visión completa de la solución a implantar.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 125,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.6",
+      "tipo": "contenido",
+      "texto": "Implantación del sistema.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 126,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.7",
+      "tipo": "contenido",
+      "texto": "Controles de calidad.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 127,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.6.8",
+      "tipo": "contenido",
+      "texto": "Auditoría del entorno técnico y del entorno de desarrollo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 128,
+      "padre": "MAD.DAM.0491.CO.2.6"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.7",
+      "tipo": "contenido",
+      "texto": "Parámetros de configuración del sistema ERP-CRM: descripción, tipología y uso.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 129,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.8",
+      "tipo": "contenido",
+      "texto": "Actualización del sistema ERP-CRM y aplicación de actualizaciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 130,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.9",
+      "tipo": "contenido",
+      "texto": "Servicios de acceso al sistema ERP-CRM: características y parámetros de configuración, instalación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 131,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.2.10",
+      "tipo": "contenido",
+      "texto": "Entornos de desarrollo, pruebas y explotación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 132,
+      "padre": "MAD.DAM.0491.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3",
+      "tipo": "contenido",
+      "texto": "Organización y consulta de la información:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 133,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Bases de datos soporte de la información.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 134,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Tablas y vistas de la base de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 135,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Definición de campos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 136,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Consultas de acceso a datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 137,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Interfaces de entrada de datos y de procesos. Formularios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 138,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Informes y listados de la aplicación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 139,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.7",
+      "tipo": "contenido",
+      "texto": "Procedimientos almacenados de servidor.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 140,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.8",
+      "tipo": "contenido",
+      "texto": "Cálculos de pedidos, albaranes, facturas, asientos predefinidos, trazabilidad, producción, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 141,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.9",
+      "tipo": "contenido",
+      "texto": "Búsqueda de información.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 142,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.10",
+      "tipo": "contenido",
+      "texto": "Gráficos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 143,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.11",
+      "tipo": "contenido",
+      "texto": "Herramientas de monitorización y de evaluación del rendimiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 144,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.12",
+      "tipo": "contenido",
+      "texto": "Auditorías de control de acceso a los datos. Trazas del sistema (logs).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 145,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.13",
+      "tipo": "contenido",
+      "texto": "Incidencias: Identificación y resolución.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 146,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.14",
+      "tipo": "contenido",
+      "texto": "Procesos de extracción de datos en sistemas de ERP-CRM y almacenes de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 147,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.3.15",
+      "tipo": "contenido",
+      "texto": "Exportación de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 148,
+      "padre": "MAD.DAM.0491.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4",
+      "tipo": "contenido",
+      "texto": "Implantación de sistemas ERP-CRM en una empresa:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 149,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Tipos de empresa. Necesidades de la empresa.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 150,
+      "padre": "MAD.DAM.0491.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Selección de los módulos del sistema ERP-CRM.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 151,
+      "padre": "MAD.DAM.0491.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Tablas y vistas que es preciso adaptar.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 152,
+      "padre": "MAD.DAM.0491.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Consultas necesarias para obtener información.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 153,
+      "padre": "MAD.DAM.0491.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Creación de formularios personalizados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 154,
+      "padre": "MAD.DAM.0491.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4.6",
+      "tipo": "contenido",
+      "texto": "Creación de informes personalizados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 155,
+      "padre": "MAD.DAM.0491.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.4.7",
+      "tipo": "contenido",
+      "texto": "Cuadro de mando. Creación de gráficos personalizados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 89
+      },
+      "orden": 156,
+      "padre": "MAD.DAM.0491.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5",
+      "tipo": "contenido",
+      "texto": "Desarrollo de componentes:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 157,
+      "padre": "MAD.DAM.0491"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Técnicas y estándares.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 158,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Especificaciones funcionales para el desarrollo de componentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 159,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Técnicas de optimización de consultas y acceso a grandes volúmenes de información.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 160,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Lenguaje proporcionado por los sistemas ERP-CRM. Características y sintaxis del lenguaje. Declaración de datos. Estructuras de programación. Sentencias del lenguaje.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 161,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Entornos de desarrollo y herramientas de desarrollo en sistemas ERP y CRM.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 162,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Inserción, modificación y eliminación de datos en los objetos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 163,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Operaciones de consulta. Herramientas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 164,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Formularios e informes en sistemas ERP-CRM.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 165,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.9",
+      "tipo": "contenido",
+      "texto": "Diseño de informes. Elementos principales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 166,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.10",
+      "tipo": "contenido",
+      "texto": "Herramientas para la creación de formularios e informes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 167,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.11",
+      "tipo": "contenido",
+      "texto": "Generación de programas de extracción de datos entre sistemas (batch inputs).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 168,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.12",
+      "tipo": "contenido",
+      "texto": "Extracciones de informaciones contenidas en sistemas ERP-CRM, procesamiento de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 169,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.13",
+      "tipo": "contenido",
+      "texto": "Llamadas a funciones, librerías de funciones (APIs-Application program interface).",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 170,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.14",
+      "tipo": "contenido",
+      "texto": "Depuración de un programa.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 171,
+      "padre": "MAD.DAM.0491.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0491.CO.5.15",
+      "tipo": "contenido",
+      "texto": "Manejo de errores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 90
+      },
+      "orden": 172,
+      "padre": "MAD.DAM.0491.CO.5"
+    }
+  ]
+}

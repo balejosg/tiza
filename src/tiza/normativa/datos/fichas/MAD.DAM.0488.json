@@ -1,0 +1,3898 @@
+{
+  "codigo": "MAD.DAM.0488",
+  "nombre": "Desarrollo de interfaces",
+  "etapa": "fp_gs",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-13221",
+    "boe-a-2010-8067",
+    "bocm-20110131-3",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.0488",
+      "tipo": "modulo",
+      "texto": "Desarrollo de interfaces",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 150,
+        "curso": "2"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Genera interfaces gráficos de usuario mediante editores visuales utilizando las funcionalidades del editor y adaptando el código generado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1",
+        "pagina": 79032,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las herramientas y librerías disponibles para la generación de interfaces gráficos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio a",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha creado un interfaz gráfico utilizando las herramientas de un editor visual.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio b",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado las funciones del editor para ubicar los componentes del interfaz.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio c",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han modificado las propiedades de los componentes para adecuarlas a las necesidades de la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio d",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado el código generado por el editor visual.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio e",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha modificado el código generado por el editor visual.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio f",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han asociado a los eventos las acciones correspondientes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio g",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha desarrollado una aplicación que incluye el interfaz gráfico obtenido.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 1, criterio h",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 1, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.0488.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Genera interfaces naturales de usuario utilizando herramientas visuales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 2",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 2",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las herramientas disponibles para el aprendizaje automático relacionadas con las interfaces de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 2, criterio a",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 2, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.0488.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha creado una interfaz natural de usuario utilizando las herramientas disponibles.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 2, criterio b",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 2, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.0488.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha utilizado el reconocimiento de voz para implementar acciones en las interfaces naturales de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 2, criterio c",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 2, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.0488.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha incorporado la detección del movimiento del cuerpo para implementar acciones en las interfaces naturales de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 2, criterio d",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 2, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.0488.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han integrado elementos de detección de partes del cuerpo para implementar acciones en las interfaces naturales de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 2, criterio e",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 2, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.0488.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha integrado la realidad aumentada en los interfaces de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 2, criterio f",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 2, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.0488.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Crea componentes visuales valorando y empleando herramientas específicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las herramientas para diseño y prueba de componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio a",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado componentes visuales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio b",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido sus métodos y propiedades con asignación de valores por defecto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio c",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado los eventos a los que debe responder el componente y se les han asociado las acciones correspondientes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio d",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas unitarias sobre los componentes desarrollados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio e",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado los componentes creados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio f",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han empaquetado componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio g",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.3.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han programado aplicaciones cuyo interfaz gráfico utiliza los componentes creados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 3, criterio h",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 3, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.0488.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Diseña interfaces gráficas identificando y aplicando criterios de usabilidad y accesibilidad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los principales estándares de usabilidad y accesibilidad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio a",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha valorado la importancia del uso de estándares para la creación de interfaces.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio b",
+        "pagina": 79033,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado diferentes tipos de menús cuya estructura y contenido siguen los estándares establecidos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio c",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han distribuido las acciones en menús, barras de herramientas, botones de comando, entre otros, siguiendo un criterio coherente.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio d",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han distribuido adecuadamente los controles en la interfaz de usuario.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio e",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha utilizado el tipo de control más apropiado en cada caso.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio f",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha diseñado el aspecto de la interfaz de usuario (colores y fuentes entre otros) atendiendo a su legibilidad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio g",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha verificado que los mensajes generados por la aplicación son adecuados en extensión y claridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio h",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.4.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas para evaluar la usabilidad y accesibilidad de la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 4, criterio i",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 4, criterio i",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.0488.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Crea informes evaluando y utilizando herramientas gráficas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido la estructura del informe.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio a",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado informes básicos a partir de diferentes fuentes de datos mediante asistentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio b",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han establecido filtros sobre los valores a presentar en los informes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio c",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han incluido valores calculados, recuentos y totales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio d",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han incluido gráficos generados a partir de los datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio e",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado herramientas para generar el código correspondiente a los informes de una aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio f",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha modificado el código correspondiente a los informes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio g",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.5.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha desarrollado una aplicación que incluye informes incrustados.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 5, criterio h",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 5, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.0488.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Documenta aplicaciones seleccionando y utilizando herramientas específicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado sistemas de generación de ayudas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6, criterio a",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 47,
+      "padre": "MAD.DAM.0488.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado ayudas en los formatos habituales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6, criterio b",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 48,
+      "padre": "MAD.DAM.0488.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado ayudas sensibles al contexto.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6, criterio c",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 49,
+      "padre": "MAD.DAM.0488.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha documentado la estructura de la información persistente.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6, criterio d",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 50,
+      "padre": "MAD.DAM.0488.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha confeccionado el manual de usuario y la guía de referencia.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6, criterio e",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 51,
+      "padre": "MAD.DAM.0488.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han confeccionado los manuales de instalación, configuración y administración.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6, criterio f",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 52,
+      "padre": "MAD.DAM.0488.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.6.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han confeccionado tutoriales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 6, criterio g",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 6, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 53,
+      "padre": "MAD.DAM.0488.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Prepara aplicaciones para su distribución evaluando y utilizando herramientas específicas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 54,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han empaquetado los componentes que requiere la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio a",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 55,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha personalizado el asistente de instalación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio b",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 56,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado paquetes de instalación utilizando el entorno de desarrollo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio c",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 57,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado paquetes de instalación utilizando herramientas externas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio d",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 58,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han firmado digitalmente las aplicaciones para su distribución.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio e",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 59,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han generado paquetes instalables en modo desatendido.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio f",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 60,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha preparado el paquete de instalación para que la aplicación pueda ser correctamente desinstalada.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio g",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 61,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.7.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha preparado la aplicación para ser distribuida a través de diferentes canales de distribución.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 7, criterio h",
+        "pagina": 79034,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 7, criterio h",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 62,
+      "padre": "MAD.DAM.0488.RA.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Evalúa el funcionamiento de aplicaciones diseñando y ejecutando pruebas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 63,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido una estrategia de pruebas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8, criterio a",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8, criterio a",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 64,
+      "padre": "MAD.DAM.0488.RA.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas de integración de los distintos elementos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8, criterio b",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8, criterio b",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 65,
+      "padre": "MAD.DAM.0488.RA.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas de regresión.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8, criterio c",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8, criterio c",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 66,
+      "padre": "MAD.DAM.0488.RA.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas de volumen y estrés.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8, criterio d",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8, criterio d",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 67,
+      "padre": "MAD.DAM.0488.RA.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas de seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8, criterio e",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8, criterio e",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 68,
+      "padre": "MAD.DAM.0488.RA.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado pruebas de uso de recursos por parte de la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8, criterio f",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8, criterio f",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 69,
+      "padre": "MAD.DAM.0488.RA.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.RA.8.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha documentado la estrategia de pruebas y los resultados obtenidos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, resultado de aprendizaje 8, criterio g",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, resultado de aprendizaje 8, criterio g",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 70,
+      "padre": "MAD.DAM.0488.RA.8"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1",
+      "tipo": "contenido_basico",
+      "texto": "Generación de interfaces de usuario:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 71,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.1",
+      "tipo": "contenido_basico",
+      "texto": "Patrones de arquitectura de las aplicaciones gráficas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 72,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.2",
+      "tipo": "contenido_basico",
+      "texto": "Librerías de componentes nativas y multiplataforma. Características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 73,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.3",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas propietarias y libres de edición de interfaces.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 74,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.4",
+      "tipo": "contenido_basico",
+      "texto": "Lenguajes descriptivos para la definición de interfaces.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 75,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.5",
+      "tipo": "contenido_basico",
+      "texto": "Componentes: características y campo de aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 76,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.6",
+      "tipo": "contenido_basico",
+      "texto": "Enlace de componentes a orígenes de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 77,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.7",
+      "tipo": "contenido_basico",
+      "texto": "Asociación de acciones a eventos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 78,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.8",
+      "tipo": "contenido_basico",
+      "texto": "Edición del código generado por la herramienta de diseño.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 79,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.9",
+      "tipo": "contenido_basico",
+      "texto": "Clases, propiedades, métodos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 80,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.1.10",
+      "tipo": "contenido_basico",
+      "texto": "Eventos; escuchadores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 81,
+      "padre": "EST.DAM.0488.CB.1"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.2",
+      "tipo": "contenido_basico",
+      "texto": "Generación de interfaces naturales de usuario:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 82,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.2.1",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas para el aprendizaje automático. Entrenamiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 83,
+      "padre": "EST.DAM.0488.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.2.2",
+      "tipo": "contenido_basico",
+      "texto": "Interfaces naturales. Tipos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 84,
+      "padre": "EST.DAM.0488.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.2.3",
+      "tipo": "contenido_basico",
+      "texto": "Voz y Habla. Reconocimiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 85,
+      "padre": "EST.DAM.0488.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.2.4",
+      "tipo": "contenido_basico",
+      "texto": "Partes y movimientos del cuerpo. Detección.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 86,
+      "padre": "EST.DAM.0488.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.2.5",
+      "tipo": "contenido_basico",
+      "texto": "Realidad aumentada.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 87,
+      "padre": "EST.DAM.0488.CB.2"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3",
+      "tipo": "contenido_basico",
+      "texto": "Creación de componentes visuales:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 88,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3.1",
+      "tipo": "contenido_basico",
+      "texto": "Concepto de componente; características.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 89,
+      "padre": "EST.DAM.0488.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3.2",
+      "tipo": "contenido_basico",
+      "texto": "Propiedades, atributos y métodos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 90,
+      "padre": "EST.DAM.0488.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3.3",
+      "tipo": "contenido_basico",
+      "texto": "Eventos; asociación de acciones a eventos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 91,
+      "padre": "EST.DAM.0488.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3.4",
+      "tipo": "contenido_basico",
+      "texto": "Persistencia del componente.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 92,
+      "padre": "EST.DAM.0488.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3.5",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas para desarrollo de componentes visuales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 93,
+      "padre": "EST.DAM.0488.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3.6",
+      "tipo": "contenido_basico",
+      "texto": "Prueba de los componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 94,
+      "padre": "EST.DAM.0488.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.3.7",
+      "tipo": "contenido_basico",
+      "texto": "Empaquetado de componentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 95,
+      "padre": "EST.DAM.0488.CB.3"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4",
+      "tipo": "contenido_basico",
+      "texto": "Diseño de interfaces gráficas:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 96,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4.1",
+      "tipo": "contenido_basico",
+      "texto": "Usabilidad y accesibilidad. Características. Pautas. Estándares.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 97,
+      "padre": "EST.DAM.0488.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4.2",
+      "tipo": "contenido_basico",
+      "texto": "Medidas de usabilidad y accesibilidad de las aplicaciones; herramientas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 98,
+      "padre": "EST.DAM.0488.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4.3",
+      "tipo": "contenido_basico",
+      "texto": "Esquemas (Wireframes) y Maquetas (Mockups).",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 99,
+      "padre": "EST.DAM.0488.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4.4",
+      "tipo": "contenido_basico",
+      "texto": "Pautas de diseño de la estructura de la interfaz de usuario; menús, ventanas, cuadros de diálogo, atajos de teclado, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 100,
+      "padre": "EST.DAM.0488.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4.5",
+      "tipo": "contenido_basico",
+      "texto": "Pautas de diseño del aspecto de la interfaz de usuario: colores, fuentes, iconos, distribución de los elementos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 101,
+      "padre": "EST.DAM.0488.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4.6",
+      "tipo": "contenido_basico",
+      "texto": "Pautas de diseño de los elementos interactivos de la interfaz de usuario: Botones de comando, listas desplegables, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79035,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 102,
+      "padre": "EST.DAM.0488.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.4.7",
+      "tipo": "contenido_basico",
+      "texto": "Pautas de diseño de la secuencia de control de la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 103,
+      "padre": "EST.DAM.0488.CB.4"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5",
+      "tipo": "contenido_basico",
+      "texto": "Creación de informes:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 104,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.1",
+      "tipo": "contenido_basico",
+      "texto": "Informes incrustados y no incrustados en la aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 105,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.2",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas gráficas integradas en el IDE y externas al mismo.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 106,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.3",
+      "tipo": "contenido_basico",
+      "texto": "Estructura general. Secciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 107,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.4",
+      "tipo": "contenido_basico",
+      "texto": "Filtrado de datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 108,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.5",
+      "tipo": "contenido_basico",
+      "texto": "Numeración de líneas, recuentos y totales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 109,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.6",
+      "tipo": "contenido_basico",
+      "texto": "Gráficos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 110,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.7",
+      "tipo": "contenido_basico",
+      "texto": "Librerías para generación de informes. Clases, métodos y atributos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 111,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.5.8",
+      "tipo": "contenido_basico",
+      "texto": "Conexión con las fuentes de datos. Ejecución de consultas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 112,
+      "padre": "EST.DAM.0488.CB.5"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.6",
+      "tipo": "contenido_basico",
+      "texto": "Documentación de aplicaciones:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 113,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.6.1",
+      "tipo": "contenido_basico",
+      "texto": "Ficheros de ayuda. Formatos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 114,
+      "padre": "EST.DAM.0488.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.6.2",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas de generación de ayudas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 115,
+      "padre": "EST.DAM.0488.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.6.3",
+      "tipo": "contenido_basico",
+      "texto": "Tablas de contenidos, índices, sistemas de búsqueda, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 116,
+      "padre": "EST.DAM.0488.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.6.4",
+      "tipo": "contenido_basico",
+      "texto": "Tipos de manuales: Manual de usuario, guía de referencia, guías rápidas, manuales de instalación, configuración y administración. Preguntas más frecuentes. Destinatarios y estructura.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 117,
+      "padre": "EST.DAM.0488.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.6.5",
+      "tipo": "contenido_basico",
+      "texto": "Elaboración de tutoriales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 118,
+      "padre": "EST.DAM.0488.CB.6"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7",
+      "tipo": "contenido_basico",
+      "texto": "Distribución de aplicaciones:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 119,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.1",
+      "tipo": "contenido_basico",
+      "texto": "Componentes de una aplicación. Empaquetado.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 120,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.2",
+      "tipo": "contenido_basico",
+      "texto": "Instaladores.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 121,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.3",
+      "tipo": "contenido_basico",
+      "texto": "Paquetes autoinstalables.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 122,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.4",
+      "tipo": "contenido_basico",
+      "texto": "Firma digital de aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 123,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.5",
+      "tipo": "contenido_basico",
+      "texto": "Herramientas para crear paquetes de instalación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 124,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.6",
+      "tipo": "contenido_basico",
+      "texto": "Personalización de la instalación: Logotipos, fondos, diálogos, botones, idioma, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 125,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.7",
+      "tipo": "contenido_basico",
+      "texto": "Asistentes de instalación y desinstalación.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 126,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.7.8",
+      "tipo": "contenido_basico",
+      "texto": "Canales de distribución: repositorios (stores), ad-hoc, sitios web, correo electrónico, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 127,
+      "padre": "EST.DAM.0488.CB.7"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.8",
+      "tipo": "contenido_basico",
+      "texto": "Realización de pruebas:",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 128,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.8.1",
+      "tipo": "contenido_basico",
+      "texto": "Objetivo, importancia y limitaciones del proceso de prueba. Estrategias.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 129,
+      "padre": "EST.DAM.0488.CB.8"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.8.2",
+      "tipo": "contenido_basico",
+      "texto": "Pruebas de integración: ascendentes y descendentes.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 130,
+      "padre": "EST.DAM.0488.CB.8"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.8.3",
+      "tipo": "contenido_basico",
+      "texto": "Pruebas de sistema: configuración, recuperación, entre otras.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 131,
+      "padre": "EST.DAM.0488.CB.8"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.8.4",
+      "tipo": "contenido_basico",
+      "texto": "Pruebas de uso de recursos.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 132,
+      "padre": "EST.DAM.0488.CB.8"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.8.5",
+      "tipo": "contenido_basico",
+      "texto": "Pruebas de seguridad.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 133,
+      "padre": "EST.DAM.0488.CB.8"
+    },
+    {
+      "codigo": "EST.DAM.0488.CB.8.6",
+      "tipo": "contenido_basico",
+      "texto": "Pruebas manuales y automáticas. Herramientas software para la realización de pruebas.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, contenidos básicos",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, contenidos básicos",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 134,
+      "padre": "EST.DAM.0488.CB.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.ORI",
+      "tipo": "orientaciones",
+      "texto": "Este módulo profesional contiene parte de la formación necesaria para desempeñar la función de desarrollador de aplicaciones multiplataforma. La función de desarrollador de aplicaciones multiplataforma incluye aspectos como: El desarrollo de interfaces de usuario. La creación de informes. La preparación de aplicaciones para su distribución. La elaboración de los elementos de ayuda. La evaluación del funcionamiento de aplicaciones. Las actividades profesionales asociadas a esta función se aplican en el desarrollo de software de gestión multiplataforma. La formación del módulo contribuye a alcanzar los objetivos generales d), e), f), g), h), i), j), k), l), m), r), s), t) y w) del ciclo formativo y las competencias profesionales, personales y sociales d), e), f), g), h), i), j), k), l), m), r), s), t) y w) del título. Las líneas de actuación en el proceso de enseñanza-aprendizaje que permiten alcanzar los objetivos del módulo están relacionados con: La utilización de herramientas de diseño de interfaces de usuario. La utilización de herramientas para el diseño de componentes visuales. La utilización de herramientas de diseño y generación de informes. La aplicación de criterios de usabilidad. El diseño y ejecución de pruebas. La instalación de aplicaciones. El uso de herramientas de generación de ayudas, guías, tutoriales y manuales.",
+      "procedencia": {
+        "norma": "boe-a-2023-13221",
+        "ubicacion": "artículo segundo, apartado Seis (anexo I), módulo 0488, orientaciones pedagógicas",
+        "pagina": 79036,
+        "via": [
+          {
+            "norma": "boe-a-2010-8067",
+            "ubicacion": "anexo I, módulo 0488, orientaciones pedagógicas",
+            "pagina": null
+          }
+        ]
+      },
+      "orden": 135,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1",
+      "tipo": "contenido",
+      "texto": "Confección de interfaces de usuario:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 136,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Librerías de componentes disponibles para diferentes sistemas operativos y lenguajes de programación; características.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 137,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Herramientas propietarias y libres de edición de interfaces.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 138,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Área de diseño, paleta de componentes, editor de propiedades, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 139,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Componentes contenedores de controles.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 140,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Componentes:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 141,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.5.1",
+      "tipo": "contenido",
+      "texto": "Características y campo de aplicación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 142,
+      "padre": "MAD.DAM.0488.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.5.2",
+      "tipo": "contenido",
+      "texto": "Añadir y eliminar componentes al interfaz.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 143,
+      "padre": "MAD.DAM.0488.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.5.3",
+      "tipo": "contenido",
+      "texto": "Ubicación, tamaño y alineamiento de controles.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 144,
+      "padre": "MAD.DAM.0488.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.5.4",
+      "tipo": "contenido",
+      "texto": "Propiedades comunes de los componentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 145,
+      "padre": "MAD.DAM.0488.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.5.5",
+      "tipo": "contenido",
+      "texto": "Propiedades específicas de los componentes más utilizados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 146,
+      "padre": "MAD.DAM.0488.CO.1.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Enlace de componentes a orígenes de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 147,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.7",
+      "tipo": "contenido",
+      "texto": "Interfaces relacionadas con el enlace de datos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 148,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.7.1",
+      "tipo": "contenido",
+      "texto": "Interfaces diseñadas para que consumidores del origen de datos las utilicen.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 149,
+      "padre": "MAD.DAM.0488.CO.1.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.7.2",
+      "tipo": "contenido",
+      "texto": "Interfaces diseñadas para que las utilicen los creadores de componentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 150,
+      "padre": "MAD.DAM.0488.CO.1.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.8",
+      "tipo": "contenido",
+      "texto": "Asociación de acciones a eventos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 151,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.9",
+      "tipo": "contenido",
+      "texto": "Diálogos modales y no modales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 152,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.10",
+      "tipo": "contenido",
+      "texto": "Edición del código generado por la herramienta de diseño.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 153,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.11",
+      "tipo": "contenido",
+      "texto": "Clases, propiedades, métodos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 154,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.1.12",
+      "tipo": "contenido",
+      "texto": "Eventos; escuchadores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 155,
+      "padre": "MAD.DAM.0488.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2",
+      "tipo": "contenido",
+      "texto": "Generación de interfaces a partir de documentos XML:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 156,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Diseño de interfaces estáticas o interfaces dinámicas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 157,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Lenguajes de descripción de interfaces basados en XML: XAML, XUL, UIML, SVG, MXML. Ámbito de aplicación. Elementos, etiquetas, atributos y valores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 158,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Herramientas libres y propietarias para la creación de interfaces de usuario multiplataforma.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 159,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Paletas y vistas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 160,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Controles, propiedades.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 161,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Componentes contenedores de controles.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 162,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.7",
+      "tipo": "contenido",
+      "texto": "Ubicación, tamaño y alineamiento de controles.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 163,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.8",
+      "tipo": "contenido",
+      "texto": "Eventos, controladores. Secuencia de los eventos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 164,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.9",
+      "tipo": "contenido",
+      "texto": "Edición del documento XML.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 165,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.2.10",
+      "tipo": "contenido",
+      "texto": "Generación de código para diferentes plataformas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 166,
+      "padre": "MAD.DAM.0488.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3",
+      "tipo": "contenido",
+      "texto": "Creación de componentes visuales:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 167,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Desarrollo de software basado en componentes. Reutilización del software. Beneficios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 168,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Concepto de componente; características.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 169,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Propiedades y atributos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 170,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.3.1",
+      "tipo": "contenido",
+      "texto": "Propiedades simples e indexadas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 171,
+      "padre": "MAD.DAM.0488.CO.3.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.3.2",
+      "tipo": "contenido",
+      "texto": "Ámbito de las Propiedades.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 172,
+      "padre": "MAD.DAM.0488.CO.3.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.3.3",
+      "tipo": "contenido",
+      "texto": "Atributos para los miembros de un componente o control. Atributos que afectan en tiempo de diseño y en tiempo de ejecución.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 173,
+      "padre": "MAD.DAM.0488.CO.3.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Eventos:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 174,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.4.1",
+      "tipo": "contenido",
+      "texto": "Asociación de acciones a eventos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 175,
+      "padre": "MAD.DAM.0488.CO.3.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.4.2",
+      "tipo": "contenido",
+      "texto": "Generalizar el componente mediante la creación de eventos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 176,
+      "padre": "MAD.DAM.0488.CO.3.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.4.3",
+      "tipo": "contenido",
+      "texto": "Comunicación del componente con la aplicación que lo usa, parámetros por valor y por referencia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 82
+      },
+      "orden": 177,
+      "padre": "MAD.DAM.0488.CO.3.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Persistencia del componente.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 178,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Extender la apariencia y el comportamiento de los controles en modo de diseño.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 179,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.7",
+      "tipo": "contenido",
+      "texto": "Integrar controles existentes en nuestros componentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 180,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.8",
+      "tipo": "contenido",
+      "texto": "Herramientas para desarrollo de componentes visuales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 181,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.3.9",
+      "tipo": "contenido",
+      "texto": "Empaquetado de componentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 182,
+      "padre": "MAD.DAM.0488.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4",
+      "tipo": "contenido",
+      "texto": "Usabilidad:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 183,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Concepto de usabilidad. Características, atributos. HCI (Human Computer Interaction). Objetivo crear sistemas: eficientes, efectivos, seguros, útiles, fáciles de aprender y fáciles de recordar.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 184,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.2",
+      "tipo": "contenido",
+      "texto": "La experiencia de usuario UX (User Experience) se preocupa de aspectos más amplios y subjetivos: satisfacción, diversión, entretenimiento, motivación, estética, creatividad o emociones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 185,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Normas ISO referentes a calidad, interfaces, interacción, ergonomía y documentación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 186,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Medida de usabilidad de aplicaciones; tipos de métricas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 187,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Pruebas de expertos; formularios tipo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 188,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.6",
+      "tipo": "contenido",
+      "texto": "Pruebas con usuarios; cuestionarios.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 189,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.7",
+      "tipo": "contenido",
+      "texto": "Pautas de diseño de la estructura del interface de usuario; menús, ventanas, cuadros de diálogo, atajos de teclado, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 190,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.8",
+      "tipo": "contenido",
+      "texto": "Pautas de diseño del aspecto del interface de usuario: colores, fuentes, iconos, distribución de los elementos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 191,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.9",
+      "tipo": "contenido",
+      "texto": "Pautas de diseño de los elementos interactivos del interface de usuario: botones de comando, listas desplegables, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 192,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.10",
+      "tipo": "contenido",
+      "texto": "Pautas de diseño de la presentación de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 193,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.11",
+      "tipo": "contenido",
+      "texto": "Pautas de diseño de la secuencia de control de la aplicación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 194,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.12",
+      "tipo": "contenido",
+      "texto": "Pautas de diseño para el aseguramiento de la información.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 195,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.4.13",
+      "tipo": "contenido",
+      "texto": "Pautas de diseño específicas para aplicaciones multimedia.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 196,
+      "padre": "MAD.DAM.0488.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5",
+      "tipo": "contenido",
+      "texto": "Confección de informes:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 197,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Informes incrustados y no incrustados en la aplicación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 198,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Herramientas gráficas integradas en el IDE y externas al mismo.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 199,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Estructura general. Secciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 200,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Encabezados y pies.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 201,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Formatos de salida.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 202,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Filtrado de datos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 203,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Valores calculados.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 204,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Numeración de líneas, recuentos y totales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 205,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.9",
+      "tipo": "contenido",
+      "texto": "Informes con agrupamiento, recuentos parciales y subtotales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 206,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.10",
+      "tipo": "contenido",
+      "texto": "Subinformes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 207,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.11",
+      "tipo": "contenido",
+      "texto": "Imágenes. Gráficos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 208,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.12",
+      "tipo": "contenido",
+      "texto": "Librerías para generación de informes. Clases, métodos y atributos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 209,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.13",
+      "tipo": "contenido",
+      "texto": "Parámetros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 210,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.5.14",
+      "tipo": "contenido",
+      "texto": "Conexión con las fuentes de datos. Ejecución de consultas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 211,
+      "padre": "MAD.DAM.0488.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6",
+      "tipo": "contenido",
+      "texto": "Documentación de aplicaciones:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 212,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Ficheros de ayuda. Formatos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 213,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Herramientas de generación de ayudas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 214,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.3",
+      "tipo": "contenido",
+      "texto": "Ayuda genérica y sensible al contexto.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 215,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.4",
+      "tipo": "contenido",
+      "texto": "Tablas de contenidos, índices, sistemas de búsqueda, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 216,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.5",
+      "tipo": "contenido",
+      "texto": "Incorporación de la ayuda a la aplicación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 217,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.6",
+      "tipo": "contenido",
+      "texto": "Tipos de manuales: anual de usuario, guía de referencia, guías rápidas, manuales de instalación, configuración y administración. Destinatarios y estructura.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 218,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.7",
+      "tipo": "contenido",
+      "texto": "Confección de tutoriales multimedia. Herramientas de captura de pantallas y secuencias de acciones.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 219,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.6.8",
+      "tipo": "contenido",
+      "texto": "Herramientas para la confección de tutoriales interactivos; simulación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 220,
+      "padre": "MAD.DAM.0488.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7",
+      "tipo": "contenido",
+      "texto": "Distribución de aplicaciones:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 221,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.1",
+      "tipo": "contenido",
+      "texto": "Componentes de una aplicación. Empaquetado.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 222,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.2",
+      "tipo": "contenido",
+      "texto": "Instaladores.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 223,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.3",
+      "tipo": "contenido",
+      "texto": "Paquetes autoinstalables.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 224,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.4",
+      "tipo": "contenido",
+      "texto": "Herramientas para crear paquetes de instalación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 225,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.5",
+      "tipo": "contenido",
+      "texto": "Parámetros de la instalación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 83
+      },
+      "orden": 226,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.6",
+      "tipo": "contenido",
+      "texto": "Personalización de la instalación: logotipos, fondos, diálogos, botones, idioma, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 227,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.7",
+      "tipo": "contenido",
+      "texto": "Asistentes de instalación y desinstalación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 228,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.8",
+      "tipo": "contenido",
+      "texto": "Interacción con el usuario.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 229,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.9",
+      "tipo": "contenido",
+      "texto": "Ficheros firmados digitalmente.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 230,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.10",
+      "tipo": "contenido",
+      "texto": "Instalación de aplicaciones desde un servidor web.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 231,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.7.11",
+      "tipo": "contenido",
+      "texto": "Descarga y ejecución de aplicaciones ubicadas en servidores web.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 232,
+      "padre": "MAD.DAM.0488.CO.7"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8",
+      "tipo": "contenido",
+      "texto": "Realización de pruebas:",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 233,
+      "padre": "MAD.DAM.0488"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.1",
+      "tipo": "contenido",
+      "texto": "Objetivo, importancia y limitaciones del proceso de prueba. Estrategias.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 234,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.2",
+      "tipo": "contenido",
+      "texto": "Pruebas de integración: ascendentes y descendentes.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 235,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.3",
+      "tipo": "contenido",
+      "texto": "Pruebas de sistema: configuración, recuperación, entre otras.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 236,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.4",
+      "tipo": "contenido",
+      "texto": "Pruebas de regresión.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 237,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.5",
+      "tipo": "contenido",
+      "texto": "Pruebas funcionales.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 238,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.6",
+      "tipo": "contenido",
+      "texto": "Pruebas de capacidad y rendimiento.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 239,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.7",
+      "tipo": "contenido",
+      "texto": "Pruebas de uso de recursos.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 240,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.8",
+      "tipo": "contenido",
+      "texto": "Pruebas de seguridad.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 241,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.9",
+      "tipo": "contenido",
+      "texto": "Pruebas manuales y automáticas. Herramientas software para la realización de pruebas.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 242,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.10",
+      "tipo": "contenido",
+      "texto": "Pruebas de usuario.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 243,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.11",
+      "tipo": "contenido",
+      "texto": "Pruebas de aceptación.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 244,
+      "padre": "MAD.DAM.0488.CO.8"
+    },
+    {
+      "codigo": "MAD.DAM.0488.CO.8.12",
+      "tipo": "contenido",
+      "texto": "Versiones alfa y beta.",
+      "procedencia": {
+        "norma": "bocm-20110131-3",
+        "ubicacion": "anexo I",
+        "pagina": 84
+      },
+      "orden": 245,
+      "padre": "MAD.DAM.0488.CO.8"
+    }
+  ]
+}
