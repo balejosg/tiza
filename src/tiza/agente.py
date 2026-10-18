@@ -12,7 +12,7 @@ import textwrap
 import threading
 import time
 import uuid
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
@@ -21,6 +21,8 @@ from . import buzon, calendario, contenido, estado, informe, rutas
 from .calendario import ErrorCalendario
 from .contenido import Documento, ErrorContenido, hash_documento
 from .estado import ErrorEstado, Estructura, buscar_seccion, cargar_estructura
+from .ficheros import asegurar_directorio, escribir_texto
+from .lectura.modelo import ErrorLectura
 
 __all__ = [
     "Comprobacion",
@@ -29,6 +31,7 @@ __all__ = [
     "estado_sesion",
     "estructura",
     "formato_documento",
+    "leer",
     "ordenar",
     "peticion_estructura",
     "peticion_ordenar",
@@ -423,3 +426,80 @@ def formato_documento() -> str:
     inicio = texto.index(_INICIO_FORMATO) + len(_INICIO_FORMATO)
     fin = texto.index(_FIN_FORMATO, inicio)
     return textwrap.dedent(texto[inicio:fin]).strip()
+
+
+EXTENSIONES_LECTURA = frozenset({".docx", ".pdf"})
+
+
+def fichero_en_carpeta(ruta: str | Path, carpeta: str | Path, extensiones: Collection[str]) -> Path:
+    """La ruta resuelta de un fichero de la asignatura que el agente puede leer o crear.
+
+    Es la comprobación común de ``tiza leer`` y ``tiza documento``: resuelve enlaces
+    simbólicos y ``..`` y exige que quede dentro de la carpeta (``FICHERO_FUERA``), que ni él
+    ni ninguna carpeta del camino sea oculta (empiece por «.») ni el temporal ``~$…`` que deja
+    Word (``FICHERO_TEMPORAL``: así el agente no lee ``.tiza/`` ni ``.git/``) y que tenga una
+    de las ``extensiones`` (``FORMATO_NO_ADMITIDO``). No exige que exista.
+    """
+    raiz = Path(carpeta).resolve()
+    try:
+        destino = (raiz / ruta).resolve()
+        relativa = destino.relative_to(raiz)
+    except (ValueError, OSError, RuntimeError):
+        raise ErrorLectura(
+            "FICHERO_FUERA", "El fichero no está en la carpeta de la asignatura."
+        ) from None
+    if not relativa.parts:
+        raise ErrorLectura("FICHERO_FUERA", "Indica un fichero, no la carpeta de la asignatura.")
+    if destino.name.startswith("~$") or any(parte.startswith(".") for parte in relativa.parts):
+        raise ErrorLectura(
+            "FICHERO_TEMPORAL", "El fichero es oculto o es un temporal de Word (~$…)."
+        )
+    if destino.suffix.lower() not in extensiones:
+        permitidas = ", ".join(sorted(extensiones))
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", f"Solo se admiten ficheros {permitidas}.")
+    return destino
+
+
+def _contar_tablas(bloques) -> int:
+    return sum((bloque.tipo == "tabla") + _contar_tablas(bloque.hijos) for bloque in bloques)
+
+
+def leer(ruta: str | Path, carpeta: str | Path) -> informe.Lectura:
+    """Lee un Word o un PDF de la asignatura y guarda su texto en ``.tiza/lecturas/``.
+
+    Offline. Devuelve el resumen validado; el agente abre después el texto. Lanza
+    ``ErrorLectura`` con un código estable si el fichero no vale. Las librerías de lectura se
+    importan aquí para que el resto de comandos no las carguen.
+    """
+    from .lectura.modelo import a_texto
+    from .lectura.pdf import leer_pdf
+    from .lectura.word import leer_docx
+
+    base = Path(carpeta)
+    origen = fichero_en_carpeta(ruta, base, EXTENSIONES_LECTURA)
+    lector = leer_pdf if origen.suffix.lower() == ".pdf" else leer_docx
+    try:
+        lectura = lector(origen)
+    except FileNotFoundError:
+        raise ErrorLectura("DOCUMENTO_AUSENTE", f"No existe el fichero {origen.name}.") from None
+    except OSError:  # permisos, bloqueo u otro fallo del sistema que el lector no mapeó
+        raise ErrorLectura("FICHERO_BLOQUEADO", "El fichero no se puede abrir.") from None
+    destino = estado.ruta_lectura(base, origen)
+    try:
+        asegurar_directorio(base / rutas.CARPETA_TRABAJO)
+        asegurar_directorio(destino.parent)
+        escribir_texto(destino, a_texto(lectura))
+    except OSError:
+        raise ErrorLectura(
+            "LECTURA_NO_ESCRIBIBLE", f"No se pudo guardar en {rutas.CARPETA_TRABAJO}/lecturas."
+        ) from None
+    return informe.Lectura(
+        fichero=lectura.fichero,
+        formato=lectura.formato,
+        lectura=destino.relative_to(base).as_posix(),
+        bloques=len(lectura.bloques),
+        tablas=_contar_tablas(lectura.bloques),
+        paginas=lectura.paginas,
+        avisos=tuple(lectura.avisos),
+        sha256=lectura.sha256,
+    )

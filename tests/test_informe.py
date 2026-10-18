@@ -477,3 +477,29 @@ class TestOrdenar:
     def test_una_accion_desconocida_no_vale(self):
         with pytest.raises(ErrorInforme):
             Fichero(nombre="a.md", tipo="pagina", accion="reordenada")
+
+
+def test_resumen_lectura_esquema_cerrado():
+    resumen = {
+        "fichero": "prog.docx",
+        "formato": "docx",
+        "lectura": ".tiza/lecturas/prog.docx.txt",
+        "bloques": 3,
+        "tablas": 0,
+        "paginas": None,
+        "avisos": ["PDF_SIN_TABLAS"],
+        "sha256": "a" * 64,
+    }
+    informe.validar_lectura(resumen)
+    with pytest.raises(ErrorInforme) as exc:
+        informe.validar_lectura({**resumen, "html_moodle": "x"})
+    assert exc.value.codigo == "CAMPO_NO_PERMITIDO"
+    with pytest.raises(ErrorInforme):
+        informe.validar_lectura({**resumen, "bloques": "3"})
+    with pytest.raises(ErrorInforme):
+        informe.validar_lectura({**resumen, "sha256": "zz"})
+    with pytest.raises(ErrorInforme):
+        informe.validar_lectura({**resumen, "avisos": ["no es codigo"]})
+    with pytest.raises(ErrorInforme):
+        informe.validar_lectura({**resumen, "fichero": "a<b>.docx"})
+    assert informe.Lectura(**resumen).a_dict() == resumen

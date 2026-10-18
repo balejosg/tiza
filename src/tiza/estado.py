@@ -22,9 +22,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from . import rutas
 from .ficheros import asegurar_directorio, escribir_json
 
 __all__ = [
+    "CARPETA_LECTURAS",
     "CARPETA_PREVIEW",
     "ErrorEstado",
     "Estructura",
@@ -40,12 +42,14 @@ __all__ = [
     "escribir_estructura",
     "guardar_verificado",
     "nombre_de_seccion",
+    "ruta_lectura",
 ]
 
 FICHERO_INFORME = "informe.json"
 FICHERO_ESTRUCTURA = "estructura.json"
 FICHERO_VERIFICADOS = "verificados.json"
 CARPETA_PREVIEW = "preview"  # las vistas previas clicables dentro de la carpeta de trabajo
+CARPETA_LECTURAS = "lecturas"  # el texto de cada Word o PDF que lee ``tiza leer``
 
 
 class ErrorEstado(Exception):
@@ -240,3 +244,16 @@ def buscar_seccion(secciones: list[dict], clave: int | str) -> dict | None:
         ):
             return seccion
     return None
+
+
+def ruta_lectura(carpeta: str | Path, fichero: str | Path) -> Path:
+    """Dónde queda la lectura de ``fichero``: ``.tiza/lecturas/<nombre-saneado>.txt``.
+
+    Solo cuenta el nombre del fichero, con su extensión (así ``a.docx`` y ``a.pdf`` no se
+    pisan); se quitan separadores, caracteres de control y ``..``. Dos ficheros con el mismo
+    nombre en carpetas distintas comparten lectura: la última sobrescribe.
+    """
+    nombre = Path(str(fichero).replace("\\", "/")).name
+    nombre = "".join(c for c in nombre if c.isprintable() and c not in '<>:"/\\|?*')
+    nombre = nombre.replace("..", "_").strip(". ") or "lectura"
+    return Path(carpeta) / rutas.CARPETA_TRABAJO / CARPETA_LECTURAS / f"{nombre}.txt"

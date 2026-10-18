@@ -24,6 +24,7 @@ __all__ = [
     "Borrador",
     "ErrorInforme",
     "Fichero",
+    "Lectura",
     "PASOS",
     "Paso",
     "crear",
@@ -32,6 +33,7 @@ __all__ = [
     "resumen",
     "validar",
     "validar_estructura",
+    "validar_lectura",
 ]
 
 COMANDOS = {
@@ -333,6 +335,71 @@ def _validar_fichero(fichero: Any) -> None:
     if fichero["hash"] is not None:
         if not isinstance(fichero["hash"], str) or not _HASH.match(fichero["hash"]):
             raise ErrorInforme("VALOR_NO_PERMITIDO", "hash no es un sha256")
+
+
+_CAMPOS_LECTURA = {
+    "fichero",
+    "formato",
+    "lectura",
+    "bloques",
+    "tablas",
+    "paginas",
+    "avisos",
+    "sha256",
+}
+
+
+@dataclass(frozen=True)
+class Lectura:
+    """El resumen que imprime ``tiza leer``: dónde quedó la lectura y qué tiene.
+
+    ``tablas`` cuenta todas las tablas, también las anidadas; ``paginas`` es el número de
+    páginas de un PDF y ``None`` en un Word. Se valida al construirlo: nunca sale uno inválido.
+    """
+
+    fichero: str
+    formato: str
+    lectura: str
+    bloques: int
+    tablas: int
+    paginas: int | None
+    avisos: Sequence[str]
+    sha256: str
+
+    def __post_init__(self) -> None:
+        validar_lectura(self.a_dict())
+
+    def a_dict(self) -> dict:
+        return {
+            "fichero": self.fichero,
+            "formato": self.formato,
+            "lectura": self.lectura,
+            "bloques": self.bloques,
+            "tablas": self.tablas,
+            "paginas": self.paginas,
+            "avisos": list(self.avisos),
+            "sha256": self.sha256,
+        }
+
+
+def validar_lectura(datos: Any) -> None:
+    """Esquema cerrado del resumen de ``tiza leer``."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "la lectura debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_LECTURA, "lectura")
+    _exigir_opcion(datos["formato"], {"docx", "pdf"}, "formato")
+    for campo in ("fichero", "lectura"):
+        if not isinstance(datos[campo], str) or not datos[campo]:
+            raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
+        _exigir_texto(datos[campo], campo)
+    _exigir_entero(datos["bloques"], "bloques")
+    _exigir_entero(datos["tablas"], "tablas")
+    _exigir_entero_o_nulo(datos["paginas"], "paginas")
+    for aviso in _exigir_lista(datos["avisos"], "avisos"):
+        if not isinstance(aviso, str) or not _CODIGO.match(aviso):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "los avisos deben ser códigos")
+    if not isinstance(datos["sha256"], str) or not _HASH.match(datos["sha256"]):
+        raise ErrorInforme("VALOR_NO_PERMITIDO", "sha256 no es un hash válido")
 
 
 _CAMPOS_ESTRUCTURA = {"version", "generado", "cursos"}

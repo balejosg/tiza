@@ -82,6 +82,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     comprobar.add_argument("ficheros", nargs="+")
 
+    leer = sub.add_parser(
+        "leer",
+        help="convierte un Word (.docx) o un PDF de la carpeta en texto para el agente (offline)",
+    )
+    leer.add_argument("fichero", help="el .docx o .pdf, dentro de la carpeta de la asignatura")
+
     estructura = sub.add_parser("estructura", help="lee las secciones de los cursos (autenticado)")
     estructura.add_argument("--debug", action="store_true")
 
@@ -279,6 +285,8 @@ def _despachar(args) -> int:
         return _empezar(args)
     if args.comando == "normativa":
         return _normativa(args)
+    if args.comando == "leer":
+        return _leer(args)
     return 2
 
 
@@ -370,6 +378,23 @@ def _normativa(args) -> int:
             codigo = 2
     except salida.ErrorSalida:
         documento = {"error": "SALIDA_INVALIDA", "detalle": "", "disponibles": []}
+        codigo = 2
+    _escribir_json(documento)
+    return codigo
+
+
+def _leer(args) -> int:
+    """Lee un Word o PDF: un único JSON en stdout (resumen o error) y 0 o 2. No escribe informe."""
+    from .lectura.modelo import ErrorLectura  # carga diferida: sin python-docx ni pypdf
+
+    try:
+        documento = agente.leer(args.fichero, Path.cwd()).a_dict()
+        codigo = 0
+    except ErrorLectura as error:
+        documento = {"error": error.codigo, "detalle": _sin_control(error.detalle)}
+        codigo = 2
+    except ErrorInforme:  # p. ej. un nombre de fichero con símbolos no permitidos
+        documento = {"error": "FORMATO_NO_ADMITIDO", "detalle": "El nombre del fichero no vale."}
         codigo = 2
     _escribir_json(documento)
     return codigo

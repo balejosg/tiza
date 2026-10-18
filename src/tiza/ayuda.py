@@ -163,6 +163,10 @@ MENSAJES: dict[str, str] = {
     "PDF_SIN_TEXTO": "El PDF no tiene texto: es un escaneado (imágenes). Pide el documento en Word o un PDF con texto seleccionable.",
     "PDF_SIN_TABLAS": "En un PDF las tablas se leen columna a columna y pueden salir desordenadas. Si las tablas importan, pide el documento en Word.",
     "FICHERO_BLOQUEADO": "El fichero está abierto en otro programa o bloqueado. Ciérralo en Word y repite el comando.",
+    "FICHERO_FUERA": "El fichero no está dentro de la carpeta de la asignatura. Cópialo a esa carpeta y repite el comando con su nombre.",
+    "FICHERO_TEMPORAL": "Ese fichero es oculto o es el temporal que Word deja mientras el documento está abierto (empieza por «~$»). Indica el documento de verdad.",
+    "DOCUMENTO_AUSENTE": "No existe ese documento. Revisa el nombre y que esté dentro de la carpeta de la asignatura.",
+    "LECTURA_NO_ESCRIBIBLE": "No se pudo guardar el texto leído en la carpeta .tiza/lecturas. Comprueba que .tiza no sea un enlace y que puedas escribir en la carpeta de la asignatura.",
     "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
