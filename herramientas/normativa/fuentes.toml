@@ -675,6 +675,100 @@ modificada_por = ["bocm-20260925-20"]
 estado = "vigente"
 sustituciones = [["Phyton", "Python"], ["Phython", "Python"]]
 
+# Optativos que se pueden ofrecer en DAM (anexo II): los 7 transversales a todos los ciclos
+# del apartado A (CMO-001F/I/A, 002F/I/A y 003; 001 y 002 son un único currículo para tres
+# lenguas, de ahí una ficha por variante con las mismas cifras) y los 9 de la familia IFC
+# (CMO-310 a CMO-318). Recuentos contados con otro método que el extractor: sobre el texto
+# crudo de `pdftotext -layout` (sin cabeceras ni limpieza), entre el encabezado del módulo
+# y el siguiente módulo o el apartado B), líneas «N. …» y «a) …» hasta «Contenidos:»
+# (resultados y criterios) y, tras él, todas las «N. …», «a) …» y «i. …» (contenidos); en
+# CMO-310, que no numera sus títulos, se sumaron además los 7 que se ven en las páginas 184 y 185
+# del boletín (imagen), y se contrastó en CMO-316 entero a ojo. La Orden 3822/2026 no toca
+# ninguno: su apartado «Dos» solo añade módulos específicos de otras familias (CMO-073, 092,
+# 133-136, 151, 152, 187, 188, 190, 394, 395, 412-414, 435-441) y su «Tres» reescribe
+# CMO-392; su anexo I da el catálogo vigente, de donde salen el curso de los transversales y
+# las horas, que el extractor cruza con las del encabezado de cada módulo.
+
+[norma.recuentos."MAD.CMO.001F"]
+resultados = 4
+criterios_fp = 16
+contenidos = 21
+
+[norma.recuentos."MAD.CMO.001I"]
+resultados = 4
+criterios_fp = 16
+contenidos = 21
+
+[norma.recuentos."MAD.CMO.001A"]
+resultados = 4
+criterios_fp = 16
+contenidos = 21
+
+[norma.recuentos."MAD.CMO.002F"]
+resultados = 4
+criterios_fp = 15
+contenidos = 22
+
+[norma.recuentos."MAD.CMO.002I"]
+resultados = 4
+criterios_fp = 15
+contenidos = 22
+
+[norma.recuentos."MAD.CMO.002A"]
+resultados = 4
+criterios_fp = 15
+contenidos = 22
+
+[norma.recuentos."MAD.CMO.003"]
+resultados = 4
+criterios_fp = 16
+contenidos = 25
+
+[norma.recuentos."MAD.CMO.310"]
+resultados = 5
+criterios_fp = 24
+contenidos = 29
+
+[norma.recuentos."MAD.CMO.311"]
+resultados = 5
+criterios_fp = 30
+contenidos = 12
+
+[norma.recuentos."MAD.CMO.312"]
+resultados = 10
+criterios_fp = 49
+contenidos = 64
+
+[norma.recuentos."MAD.CMO.313"]
+resultados = 6
+criterios_fp = 36
+contenidos = 25
+
+[norma.recuentos."MAD.CMO.314"]
+resultados = 6
+criterios_fp = 46
+contenidos = 63
+
+[norma.recuentos."MAD.CMO.315"]
+resultados = 4
+criterios_fp = 59
+contenidos = 98
+
+[norma.recuentos."MAD.CMO.316"]
+resultados = 6
+criterios_fp = 27
+contenidos = 26
+
+[norma.recuentos."MAD.CMO.317"]
+resultados = 4
+criterios_fp = 5
+contenidos = 18
+
+[norma.recuentos."MAD.CMO.318"]
+resultados = 4
+criterios_fp = 22
+contenidos = 23
+
 [[norma]]
 id = "bocm-20260925-20"
 rango = "orden"

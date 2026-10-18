@@ -1,0 +1,567 @@
+{
+  "codigo": "MAD.CMO.003",
+  "nombre": "Inglés para los negocios",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.003",
+      "tipo": "modulo",
+      "texto": "Inglés para los negocios",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003",
+        "pagina": 38
+      },
+      "orden": 1,
+      "datos": {}
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica y comprende informaciones relativas al campo profesional objeto de estudio en diversas situaciones comunicativas orales planteadas (presencial, telefónica, videollamadas, etc.).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 1",
+        "pagina": 38
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.003"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado todos los elementos de la situación comunicativa entre empresas comerciales de distintos países.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 1, criterio a",
+        "pagina": 38
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.003.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las ideas principales de declaraciones y mensajes en el proceso de una negociación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 1, criterio b",
+        "pagina": 38
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.003.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha comprendido el sentido global de un mensaje en un contexto comercial.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 1, criterio c",
+        "pagina": 38
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.003.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han extraído las ideas principales de conferencias, charlas e informes, y otras formas de presentación profesional lingüísticamente complejas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 1, criterio d",
+        "pagina": 38
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.003.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Analiza e interpreta información administrativa y comercial contenida en mensajes orales y escritos de cierta longitud y complejidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 2",
+        "pagina": 38
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.003"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha leído con un alto grado de independencia, adaptando el estilo de textos con distintas finalidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 2, criterio a",
+        "pagina": 38
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.003.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha interpretado el significado esencial de los mensajes en formato físico y digital relativo a su especialidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 2, criterio b",
+        "pagina": 38
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.003.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han interpretado textos orales y escritos de diferente extensión y de relativa complejidad, relacionados con la administración y el comercio.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 2, criterio c",
+        "pagina": 38
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.003.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido el contenido y la importancia de noticias, artículos e informes sobre una amplia serie de temas comerciales y administrativos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 2, criterio d",
+        "pagina": 38
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.003.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Emite argumentaciones orales originales, claras y coherentes, sobre informaciones profesionales conforme a una situación de comunicación concreta, a las normas de cortesía y al registro lingüístico del interlocutor.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 3",
+        "pagina": 38
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.003"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los registros, puntos de vista y las actitudes del hablante utilizados para la emisión del mensaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 3, criterio a",
+        "pagina": 39
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.003.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha comunicado espontáneamente con fluidez, adoptando un nivel de formalidad adecuado a la situación profesional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 3, criterio b",
+        "pagina": 39
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.003.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado normas de cortesía de la cultura en presentaciones formales e informales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 3, criterio c",
+        "pagina": 39
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.003.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han expresado y defendido puntos de vista con claridad, proporcionando argumentos adecuados y utilizando correctamente la terminología de la actividad económica.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 3, criterio d",
+        "pagina": 39
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.003.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha solicitado la reformulación del discurso o parte del mismo cuando se ha considerado necesario.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 3, criterio e",
+        "pagina": 39
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.003.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Elabora textos adecuados al contexto de una empresa globalizada. Sirviéndose de un nivel de competencia en inglés adecuado a la situación de comunicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 4",
+        "pagina": 39
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.003"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los rasgos más significativos de las costumbres y usos del país donde se habla la lengua extranjera.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 4, criterio a",
+        "pagina": 39
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.003.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado los protocolos y normas de relación social propios del país de la lengua extranjera en relación a una negociación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 4, criterio b",
+        "pagina": 39
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.003.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.003.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha respondido a las indicaciones requeridas por el puesto de trabajo elaborando la documentación necesaria.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, resultado de aprendizaje 4, criterio c",
+        "pagina": 39
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.003.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1",
+      "tipo": "contenido",
+      "texto": "Técnicas de escucha activa:",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.003"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Comprensión del contenido de una tipología variada de discursos profesionales del sector: conversaciones presenciales, telefónicas, videollamadas, reuniones, conferencias, etc.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.003.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Interpretación de la terminología específica del ámbito administrativo y comercial.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.003.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Comprensión e interpretación de correos electrónicos, plataformas comunicativas, etc.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.003.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Análisis y comprensión del mercado internacional donde la empresa realiza su actividad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.003.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Análisis del lenguaje técnico utilizado en el entorno laboral: reuniones, conferencias, etc.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.003.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Empleo de la paráfrasis como medio para confirmar la comprensión precisa del mensaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.003.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.1.7",
+      "tipo": "contenido",
+      "texto": "Uso de estrategias de comunicación adaptadas al contexto profesional que permitan fomentar la interacción y transmitir un mensaje de manera efectiva: identificación del contexto, del medio, etc.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 29,
+      "padre": "MAD.CMO.003.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2",
+      "tipo": "contenido",
+      "texto": "Técnicas de producción oral / escrita:",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 30,
+      "padre": "MAD.CMO.003"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Redacción de documentación comercial internacional conforme a lo establecido a los estándares internacionales: Contratos, pedidos, facturas, etc.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 39
+      },
+      "orden": 31,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Participación activa y respetuosa en distintas situaciones comunicativas orales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 32,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Reformulación de preguntas para comprobar la comprensión del mensaje por parte de los distintos participantes en la situación de comunicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 33,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Preparación para una reunión de trabajo usando estrategias de argumentación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 34,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Simulación de una negociación entre un cliente y un proveedor internacional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 35,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Aplicación de estrategias de marketing y atención de quejas y sugerencias de los consumidores.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 36,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.7",
+      "tipo": "contenido",
+      "texto": "Elaboración y presentación de informes relacionados con la actividad de la empresa.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 37,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.2.8",
+      "tipo": "contenido",
+      "texto": "Atención de un cliente extranjero conforme a los protocolos establecidos en la empresa.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 38,
+      "padre": "MAD.CMO.003.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3",
+      "tipo": "contenido",
+      "texto": "Recursos comunicativos:",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 39,
+      "padre": "MAD.CMO.003"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Uso de estructuras lingüísticas fundamentales para comunicarse en situaciones de negociación o búsqueda de información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 40,
+      "padre": "MAD.CMO.003.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Uso de fórmulas de cortesía, de saludo o de despedida para participar en una comunicación oral.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 41,
+      "padre": "MAD.CMO.003.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Aplicación de normas de convivencia y elementos necesarios para intervenir en una situación de comunicación en el entorno laboral (toma, mantenimiento y cesión del turno de palabra, etc.).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 42,
+      "padre": "MAD.CMO.003.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Uso del léxico y terminología de uso común en el ámbito contable y comercial.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 43,
+      "padre": "MAD.CMO.003.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Utilización de diferentes fuentes de información para reconocer los distintos tipos de organizaciones internacionales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 44,
+      "padre": "MAD.CMO.003.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Reflexión sobre la entonación o el ritmo como recursos de coherencia discursiva.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 45,
+      "padre": "MAD.CMO.003.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.003.CO.3.7",
+      "tipo": "contenido",
+      "texto": "Uso de estructuras gramaticales adecuadas en la elaboración de escritos relacionados con la actividad económica de la empresa.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-003, contenidos",
+        "pagina": 40
+      },
+      "orden": 46,
+      "padre": "MAD.CMO.003.CO.3"
+    }
+  ]
+}

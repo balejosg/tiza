@@ -1,0 +1,1409 @@
+{
+  "codigo": "MAD.CMO.314",
+  "nombre": "Ciberseguridad",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.314",
+      "tipo": "modulo",
+      "texto": "Ciberseguridad",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314",
+        "pagina": 193
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 90
+      }
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Adopta pautas y prácticas de tratamiento seguro de la información, reconociendo las vulnerabilidades de un sistema informático y la necesidad de asegurarlo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1",
+        "pagina": 193
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha valorado la importancia de asegurar la privacidad, coherencia y disponibilidad de la información en los sistemas informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio a",
+        "pagina": 193
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito las diferencias entre seguridad física y lógica.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio b",
+        "pagina": 193
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado las principales vulnerabilidades de un sistema informático, según su tipología y origen.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio c",
+        "pagina": 193
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha contrastado la incidencia de las técnicas de ingeniería social en los fraudes informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio d",
+        "pagina": 193
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han adoptado políticas de contraseñas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio e",
+        "pagina": 193
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las ventajas que supone la utilización de sistemas biométricos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio f",
+        "pagina": 194
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado técnicas criptográficas en el almacenamiento y transmisión de la información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio g",
+        "pagina": 194
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido la necesidad de establecer un plan integral de protección perimetral, especialmente en sistemas conectados a redes públicas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio h",
+        "pagina": 194
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.1.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las fases del análisis forense ante ataques a un sistema.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 1, criterio i",
+        "pagina": 194
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.314.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Implanta mecanismos de seguridad activa, seleccionando y ejecutando contramedidas ante amenazas o ataques al sistema.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2",
+        "pagina": 194
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado los principales tipos de amenazas lógicas contra un sistema informático",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio a",
+        "pagina": 194
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha verificado el origen y la autenticidad de las aplicaciones instaladas en un equipo, así como el estado de actualización del sistema operativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio b",
+        "pagina": 194
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado la anatomía de los ataques más habituales, así como las medidas preventivas y paliativas disponibles",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio c",
+        "pagina": 194
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado diversos tipos de amenazas, ataques y software malicioso, en entornos de ejecución controlados.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio d",
+        "pagina": 194
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han implantado aplicaciones específicas para la detección de amenazas y la eliminación de software malicioso.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio e",
+        "pagina": 194
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado técnicas de cifrado, firmas y certificados digitales en un entorno de trabajo basado en el uso de redes públicas",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio f",
+        "pagina": 194
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han evaluado las medidas de seguridad de los protocolos usados en redes inalámbricas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio g",
+        "pagina": 194
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido la necesidad de inventariar y controlar los servicios de red que se ejecutan en un sistema.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio h",
+        "pagina": 194
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.2.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los tipos y características de los sistemas de detección de intrusiones",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 2, criterio i",
+        "pagina": 194
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.314.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Implanta técnicas seguras de acceso remoto a un sistema informático, interpretando y aplicando el plan de seguridad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3",
+        "pagina": 194
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito escenarios típicos de sistemas con conexión a redes públicas en los que se precisa fortificar la red interna.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3, criterio a",
+        "pagina": 194
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.314.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado las zonas de riesgo de un sistema, según criterios de seguridad perimetral.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3, criterio b",
+        "pagina": 194
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.314.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los protocolos seguros de comunicación y sus ámbitos de utilización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3, criterio c",
+        "pagina": 194
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.314.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado redes privadas virtuales mediante protocolos seguros a distintos niveles.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3, criterio d",
+        "pagina": 194
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.314.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha implantado un servidor como pasarela de acceso a la red interna desde ubicaciones remotas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3, criterio e",
+        "pagina": 194
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.314.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado y configurado los posibles métodos de autenticación en el acceso de usuarios remotos a través de la pasarela.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3, criterio f",
+        "pagina": 194
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.314.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha instalado, configurado e integrado en la pasarela un servidor remoto de autenticación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 3, criterio g",
+        "pagina": 195
+      },
+      "orden": 29,
+      "padre": "MAD.CMO.314.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Diseña planes de securización de sistemas e implanta sistemas de control de acceso y autenticación de personas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 4",
+        "pagina": 195
+      },
+      "orden": 30,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los activos, las amenazas y vulnerabilidades de la organización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 4, criterio a",
+        "pagina": 195
+      },
+      "orden": 31,
+      "padre": "MAD.CMO.314.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han evaluado las medidas de seguridad actuales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 4, criterio b",
+        "pagina": 195
+      },
+      "orden": 32,
+      "padre": "MAD.CMO.314.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha elaborado un análisis de riesgo de la situación actual en ciberseguridad de la organización",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 4, criterio c",
+        "pagina": 195
+      },
+      "orden": 33,
+      "padre": "MAD.CMO.314.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los mecanismos de autenticación en base a distintos / múltiples factores (físicos, inherentes y basados en el conocimiento), existentes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 4, criterio d",
+        "pagina": 195
+      },
+      "orden": 34,
+      "padre": "MAD.CMO.314.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido protocolos y políticas de autenticación basados en contraseñas y frases de paso, en base a las principales vulnerabilidades y tipos de ataques.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 4, criterio e",
+        "pagina": 195
+      },
+      "orden": 35,
+      "padre": "MAD.CMO.314.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido protocolos y políticas de autenticación basados en certificados digitales y tarjetas inteligentes, en base a las principales vulnerabilidades y tipos de ataques.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 4, criterio f",
+        "pagina": 195
+      },
+      "orden": 36,
+      "padre": "MAD.CMO.314.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Utiliza herramientas de monitorización para detectar vulnerabilidades y ataque y defensa en entornos de pruebas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5",
+        "pagina": 195
+      },
+      "orden": 37,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido la terminología esencial del hacking ético.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio a",
+        "pagina": 195
+      },
+      "orden": 38,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido el alcance y condiciones de un test de intrusión.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio b",
+        "pagina": 195
+      },
+      "orden": 39,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado y definido los tipos vulnerabilidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio c",
+        "pagina": 195
+      },
+      "orden": 40,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado y definido los tipos de ataque.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio d",
+        "pagina": 195
+      },
+      "orden": 41,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado y caracterizado las diferentes vulnerabilidades existentes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio e",
+        "pagina": 195
+      },
+      "orden": 42,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado las herramientas de monitorización disponibles en el mercado adecuadas en función del tipo de organización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio f",
+        "pagina": 195
+      },
+      "orden": 43,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado técnicas de “Equipo Rojo y Azul”.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio g",
+        "pagina": 195
+      },
+      "orden": 44,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.5.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado informes sobre las vulnerabilidades detectadas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 5, criterio h",
+        "pagina": 195
+      },
+      "orden": 45,
+      "padre": "MAD.CMO.314.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Reconoce la legislación y normativa sobre seguridad y protección de datos valorando su importancia.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6",
+        "pagina": 195
+      },
+      "orden": 46,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito la legislación sobre protección de datos de carácter personal.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6, criterio a",
+        "pagina": 195
+      },
+      "orden": 47,
+      "padre": "MAD.CMO.314.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha determinado la necesidad de controlar el acceso a la información personal almacenada.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6, criterio b",
+        "pagina": 195
+      },
+      "orden": 48,
+      "padre": "MAD.CMO.314.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las figuras legales que intervienen en el tratamiento y mantenimiento de los ficheros de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6, criterio c",
+        "pagina": 195
+      },
+      "orden": 49,
+      "padre": "MAD.CMO.314.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha contrastado el deber de poner a disposición de las personas los datos personales que les conciernen.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6, criterio d",
+        "pagina": 195
+      },
+      "orden": 50,
+      "padre": "MAD.CMO.314.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito la legislación actual sobre los servicios de la sociedad de la información y comercio electrónico.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6, criterio e",
+        "pagina": 195
+      },
+      "orden": 51,
+      "padre": "MAD.CMO.314.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han contrastado las normas sobre gestión de seguridad de la información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6, criterio f",
+        "pagina": 196
+      },
+      "orden": 52,
+      "padre": "MAD.CMO.314.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.RA.6.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha comprendido la necesidad de conocer y respetar la normativa legal aplicable.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, resultado de aprendizaje 6, criterio g",
+        "pagina": 196
+      },
+      "orden": 53,
+      "padre": "MAD.CMO.314.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.1",
+      "tipo": "contenido",
+      "texto": "Adopción de pautas de seguridad informática.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 54,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Fiabilidad, confidencialidad, integridad y disponibilidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 55,
+      "padre": "MAD.CMO.314.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Elementos vulnerables en el sistema informático: hardware, software y datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 56,
+      "padre": "MAD.CMO.314.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Análisis de las principales vulnerabilidades de un sistema informático.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 57,
+      "padre": "MAD.CMO.314.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Amenazas. Tipos:",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 58,
+      "padre": "MAD.CMO.314.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.1.4.1",
+      "tipo": "contenido",
+      "texto": "Amenazas físicas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 59,
+      "padre": "MAD.CMO.314.CO.1.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.1.4.2",
+      "tipo": "contenido",
+      "texto": "Amenazas lógicas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 60,
+      "padre": "MAD.CMO.314.CO.1.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.2",
+      "tipo": "contenido",
+      "texto": "Seguridad física y ambiental.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 61,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Ubicación y protección física de los equipos y servidores.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 62,
+      "padre": "MAD.CMO.314.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Sistemas de alimentación ininterrumpida.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 63,
+      "padre": "MAD.CMO.314.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.3",
+      "tipo": "contenido",
+      "texto": "Seguridad lógica.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 64,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Criptografía.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 65,
+      "padre": "MAD.CMO.314.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Listas de control de acceso.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 66,
+      "padre": "MAD.CMO.314.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Establecimiento de políticas de contraseñas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 67,
+      "padre": "MAD.CMO.314.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Políticas de almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 68,
+      "padre": "MAD.CMO.314.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Copias de seguridad e imágenes de respaldo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 69,
+      "padre": "MAD.CMO.314.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Medios de almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 70,
+      "padre": "MAD.CMO.314.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.4",
+      "tipo": "contenido",
+      "texto": "Análisis forense en sistemas informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 71,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Aplicación de metodologías de análisis forenses.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 72,
+      "padre": "MAD.CMO.314.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Documentación y elaboración de informes de análisis forenses.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 73,
+      "padre": "MAD.CMO.314.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5",
+      "tipo": "contenido",
+      "texto": "Implantación de mecanismos de seguridad activa.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 74,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Ataques y contramedidas en sistemas personales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 75,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Clasificación de los ataques.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 76,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Anatomía de ataques y análisis de software malicioso.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 77,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Herramientas preventivas. Instalación y configuración.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 78,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Herramientas paliativas. Instalación y configuración.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 79,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Actualización de sistemas y aplicaciones.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 80,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Seguridad en la conexión con redes públicas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 81,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Pautas y prácticas seguras.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 82,
+      "padre": "MAD.CMO.314.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.6",
+      "tipo": "contenido",
+      "texto": "Seguridad en la red corporativa.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 83,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Monitorización del tráfico en redes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 84,
+      "padre": "MAD.CMO.314.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Seguridad en los protocolos para comunicaciones inalámbricas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 196
+      },
+      "orden": 85,
+      "padre": "MAD.CMO.314.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.6.3",
+      "tipo": "contenido",
+      "texto": "Riesgos potenciales de los servicios de red.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 86,
+      "padre": "MAD.CMO.314.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.6.4",
+      "tipo": "contenido",
+      "texto": "Intentos de penetración.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 87,
+      "padre": "MAD.CMO.314.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7",
+      "tipo": "contenido",
+      "texto": "Implantación de técnicas de acceso remoto. Seguridad perimetral.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 88,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7.1",
+      "tipo": "contenido",
+      "texto": "Elementos básicos de la seguridad perimetral.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 89,
+      "padre": "MAD.CMO.314.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7.2",
+      "tipo": "contenido",
+      "texto": "Perímetros de red. Zonas desmilitarizadas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 90,
+      "padre": "MAD.CMO.314.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7.3",
+      "tipo": "contenido",
+      "texto": "Arquitectura débil de subred protegida.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 91,
+      "padre": "MAD.CMO.314.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7.4",
+      "tipo": "contenido",
+      "texto": "Arquitectura fuerte de subred protegida.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 92,
+      "padre": "MAD.CMO.314.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7.5",
+      "tipo": "contenido",
+      "texto": "Redes privadas virtuales. VPN.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 93,
+      "padre": "MAD.CMO.314.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7.6",
+      "tipo": "contenido",
+      "texto": "Beneficios y desventajas con respecto a las líneas dedicadas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 94,
+      "padre": "MAD.CMO.314.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.7.7",
+      "tipo": "contenido",
+      "texto": "Técnicas de cifrado. Clave pública y clave privada.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 95,
+      "padre": "MAD.CMO.314.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8",
+      "tipo": "contenido",
+      "texto": "Bastionado de redes y sistemas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 96,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8.1",
+      "tipo": "contenido",
+      "texto": "Diseño de planes de securización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 97,
+      "padre": "MAD.CMO.314.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8.2",
+      "tipo": "contenido",
+      "texto": "Configuración de sistemas de control de acceso y autenticación de personas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 98,
+      "padre": "MAD.CMO.314.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8.3",
+      "tipo": "contenido",
+      "texto": "Administración de credenciales de acceso a sistemas informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 99,
+      "padre": "MAD.CMO.314.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8.4",
+      "tipo": "contenido",
+      "texto": "Diseño de redes de computadores seguras.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 100,
+      "padre": "MAD.CMO.314.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8.5",
+      "tipo": "contenido",
+      "texto": "Configuración de dispositivos y sistemas informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 101,
+      "padre": "MAD.CMO.314.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8.6",
+      "tipo": "contenido",
+      "texto": "Configuración de dispositivos para la instalación de sistemas informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 102,
+      "padre": "MAD.CMO.314.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.8.7",
+      "tipo": "contenido",
+      "texto": "Configuración de los sistemas informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 103,
+      "padre": "MAD.CMO.314.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.9",
+      "tipo": "contenido",
+      "texto": "Hacking ético.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 104,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.9.1",
+      "tipo": "contenido",
+      "texto": "Determinación de las herramientas de monitorización para detectar vulnerabilidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 105,
+      "padre": "MAD.CMO.314.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.9.2",
+      "tipo": "contenido",
+      "texto": "Ataque y defensa en entorno de pruebas, de las comunicaciones inalámbricas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 106,
+      "padre": "MAD.CMO.314.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.9.3",
+      "tipo": "contenido",
+      "texto": "Ataque y defensa en entorno de pruebas, de redes y sistemas para acceder a sistemas de terceros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 107,
+      "padre": "MAD.CMO.314.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.9.4",
+      "tipo": "contenido",
+      "texto": "Consolidación y utilización de sistemas comprometidos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 108,
+      "padre": "MAD.CMO.314.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.9.5",
+      "tipo": "contenido",
+      "texto": "Ataque y defensa en entorno de pruebas, a aplicaciones web.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 109,
+      "padre": "MAD.CMO.314.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.10",
+      "tipo": "contenido",
+      "texto": "Normativa de ciberseguridad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 110,
+      "padre": "MAD.CMO.314"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.10.1",
+      "tipo": "contenido",
+      "texto": "Puntos principales de aplicación para un correcto cumplimiento normativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 111,
+      "padre": "MAD.CMO.314.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.10.2",
+      "tipo": "contenido",
+      "texto": "Diseño de sistemas de cumplimiento normativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 112,
+      "padre": "MAD.CMO.314.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.10.3",
+      "tipo": "contenido",
+      "texto": "Legislación para el cumplimiento de la responsabilidad penal.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 113,
+      "padre": "MAD.CMO.314.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.10.4",
+      "tipo": "contenido",
+      "texto": "Legislación y jurisprudencia en materia de protección de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 114,
+      "padre": "MAD.CMO.314.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.10.5",
+      "tipo": "contenido",
+      "texto": "Normativa vigente de ciberseguridad de ámbito nacional e internacional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 115,
+      "padre": "MAD.CMO.314.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.314.CO.10.6",
+      "tipo": "contenido",
+      "texto": "Ley PIC (Protección de infraestructuras críticas).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-314, contenidos",
+        "pagina": 197
+      },
+      "orden": 116,
+      "padre": "MAD.CMO.314.CO.10"
+    }
+  ]
+}

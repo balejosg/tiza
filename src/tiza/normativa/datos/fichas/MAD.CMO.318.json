@@ -1,0 +1,617 @@
+{
+  "codigo": "MAD.CMO.318",
+  "nombre": "Programación de videojuegos",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.318",
+      "tipo": "modulo",
+      "texto": "Programación de videojuegos",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318",
+        "pagina": 206
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 90
+      }
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica los principales referentes de la historia y la cultura del videojuego valorando su incidencia en la sociedad actual y las tendencias de desarrollo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 1",
+        "pagina": 206
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha situado el videojuego en el contexto de la creación audiovisual, reconociendo su importancia y potencial.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 1, criterio a",
+        "pagina": 206
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.318.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han conocido las características del mercado de videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 1, criterio b",
+        "pagina": 206
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.318.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los principales elementos de desarrollo de videojuegos y el state of the art de las tecnologías implicadas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 1, criterio c",
+        "pagina": 206
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.318.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las principales tendencias en el mundo de los videojuegos en relación con las tecnologías emergentes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 1, criterio d",
+        "pagina": 206
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.318.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Configura entornos de desarrollo, herramientas y motores de desarrollo de videojuegos, aplicando las técnicas necesarias y teniendo en cuenta los avances tecnológicos en el sector.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 2",
+        "pagina": 207
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha instalado y configurado el motor de desarrollo de videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 2, criterio a",
+        "pagina": 207
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.318.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado y conectado todos los tipos de recursos disponibles y necesarios para la elaboración del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 2, criterio b",
+        "pagina": 207
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.318.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido la estructura de un proyecto de videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 2, criterio c",
+        "pagina": 207
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.318.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado diferentes objetos del videojuego y componentes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 2, criterio d",
+        "pagina": 207
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.318.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado las interacciones entre los diferentes elementos y los conceptos básicos de iluminación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 2, criterio e",
+        "pagina": 207
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.318.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado y creado las diferentes interacciones del usuario con el videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 2, criterio f",
+        "pagina": 207
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.318.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Establece la arquitectura interna de videojuegos determinando la programación de scripts del motor de desarrollo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3",
+        "pagina": 207
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han manejado conceptos esenciales del lenguaje de programación, utilizado en el motor de desarrollo de videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3, criterio a",
+        "pagina": 207
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.318.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado los diferentes elementos que intervienen en la mecánica del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3, criterio b",
+        "pagina": 207
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.318.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado y usado scripts para la programación de los objetos del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3, criterio c",
+        "pagina": 207
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.318.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado funciones de eventos que ocurren durante el juego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3, criterio d",
+        "pagina": 207
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.318.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han administrado el tiempo de los eventos y acciones y el orden de ejecución.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3, criterio e",
+        "pagina": 207
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.318.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han verificado las herramientas de ayuda a la programación de scripts que permiten la depuración, testeo y desarrollo de los mismos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3, criterio f",
+        "pagina": 207
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.318.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.3.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha supervisado el sistema de eventos para comunicación entre los objetos de la aplicación basados en la entrada.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 3, criterio g",
+        "pagina": 207
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.318.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Define el interfaz de usuario del videojuego teniendo en cuenta su rapidez y la facilidad de utilización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 4",
+        "pagina": 207
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha determinado el orden de visualización de todos los objetos que contiene el juego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 4, criterio a",
+        "pagina": 207
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.318.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han ajustado los modos de renderizado de los objetos en la pantalla o contenedor del juego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 4, criterio b",
+        "pagina": 207
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.318.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han posicionado y establecido los tamaños y rotaciones de los elementos de la interfaz de usuario en la pantalla.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 4, criterio c",
+        "pagina": 207
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.318.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha proporcionado a los elementos del interfaz la interacción asociada a las acciones del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 4, criterio d",
+        "pagina": 207
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.318.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han configurado las animaciones del interfaz de usuario.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, resultado de aprendizaje 4, criterio e",
+        "pagina": 207
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.318.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.1",
+      "tipo": "contenido",
+      "texto": "Contexto del desarrollo de videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 207
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Historia y cultura del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 207
+      },
+      "orden": 29,
+      "padre": "MAD.CMO.318.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Importancia económica de los videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 207
+      },
+      "orden": 30,
+      "padre": "MAD.CMO.318.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Contexto tecnológico de los videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 31,
+      "padre": "MAD.CMO.318.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Prospectiva.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 32,
+      "padre": "MAD.CMO.318.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.2",
+      "tipo": "contenido",
+      "texto": "Configuración del motor de desarrollo de videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 33,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Motor de desarrollo de videojuegos: descarga, instalación y configuración.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 34,
+      "padre": "MAD.CMO.318.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Recursos necesarios para la elaboración del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 35,
+      "padre": "MAD.CMO.318.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Estructura de un proyecto de videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 36,
+      "padre": "MAD.CMO.318.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Objetos del videojuego y componentes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 37,
+      "padre": "MAD.CMO.318.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Interacciones entre los diferentes elementos del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 38,
+      "padre": "MAD.CMO.318.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Conceptos básicos de iluminación y texturas de videojuegos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 39,
+      "padre": "MAD.CMO.318.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.3",
+      "tipo": "contenido",
+      "texto": "Desarrollo de scripts del motor de videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 40,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Scripts básicos para la programación de los objetos del videojuego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 41,
+      "padre": "MAD.CMO.318.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Funciones de eventos durante el juego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 42,
+      "padre": "MAD.CMO.318.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Tiempo de los eventos y acciones. Orden de ejecución.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 43,
+      "padre": "MAD.CMO.318.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Herramientas de ayuda al scripting. Depuración, testeo y desarrollo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 44,
+      "padre": "MAD.CMO.318.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Sistema de eventos para comunicación entre los objetos de la aplicación basados en la entrada.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 45,
+      "padre": "MAD.CMO.318.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.4",
+      "tipo": "contenido",
+      "texto": "Definición y configuración de la interfaz de usuario.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 46,
+      "padre": "MAD.CMO.318"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Orden de visualización de todos los objetos que contiene el juego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 47,
+      "padre": "MAD.CMO.318.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Modos de renderizado de los objetos en la pantalla o contenedor del juego.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 48,
+      "padre": "MAD.CMO.318.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Tamaños y rotaciones de los elementos de la interfaz de usuario en la pantalla.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 49,
+      "padre": "MAD.CMO.318.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.318.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Animaciones del interfaz de usuario y su configuración.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-318, contenidos",
+        "pagina": 208
+      },
+      "orden": 50,
+      "padre": "MAD.CMO.318.CO.4"
+    }
+  ]
+}

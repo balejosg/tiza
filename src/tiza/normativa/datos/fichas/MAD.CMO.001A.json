@@ -1,0 +1,519 @@
+{
+  "codigo": "MAD.CMO.001A",
+  "nombre": "Habilidades comunicativas en lengua extranjera profesional",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.001A",
+      "tipo": "modulo",
+      "texto": "Habilidades comunicativas en lengua extranjera profesional",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001",
+        "pagina": 34
+      },
+      "orden": 1,
+      "datos": {}
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Reconoce y entiende el significado general de textos escritos sencillos relacionados con situaciones específicas de comunicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 1",
+        "pagina": 34
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.001A"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha extraído la idea principal de textos de índole profesional y cotidiana.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 1, criterio a",
+        "pagina": 34
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.001A.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado el propósito de diferentes textos escritos en diversos formatos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 1, criterio b",
+        "pagina": 34
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.001A.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha comprendido la necesidad de extraer las ideas principales y la información relevante de textos escritos sobre temas de interés personal y profesional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 1, criterio c",
+        "pagina": 34
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.001A.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han entendido de manera autónoma textos relacionados con situaciones concretas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 1, criterio d",
+        "pagina": 34
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.001A.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Entiende y deduce el sentido esencial de mensajes orales de extensión media y expresados en lengua estándar sobre temas cotidianos relacionados con el país de habla de la lengua extranjera y sus usos profesionales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 2",
+        "pagina": 34
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.001A"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido el propósito de mensajes concretos en diferentes formatos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 2, criterio a",
+        "pagina": 34
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.001A.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado estrategias de comprensión basadas en la identificación de las ideas principales de mensajes sencillos y se ha podido deducir el sentido global del mismo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 2, criterio b",
+        "pagina": 34
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.001A.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha tomado conciencia de la importancia de comprender textos orales de la lengua extranjera como herramienta esencial de comunicación tanto en el ámbito personal como en el profesional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 2, criterio c",
+        "pagina": 34
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.001A.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado indicaciones concretas en lengua estándar siendo capaz de responder de una manera acorde a la situación de comunicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 2, criterio d",
+        "pagina": 34
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.001A.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Produce textos escritos sencillos en lengua estándar relacionados con situaciones cotidianas y usando recursos lingüísticos que se adecuan a situaciones de comunicación concretas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 3",
+        "pagina": 34
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.001A"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha estructurado el mensaje de forma coherente permitiendo una comunicación eficaz.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 3, criterio a",
+        "pagina": 34
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.001A.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha servido del vocabulario y de las estructuras adecuadas al tipo de texto que se quiere producir.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 3, criterio b",
+        "pagina": 34
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.001A.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han tomado notas con información sencilla sobre aspectos concretos de su campo profesional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 3, criterio c",
+        "pagina": 34
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.001A.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha usado de manera efectiva un registro adecuado al contexto y a la intención del mensaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 3, criterio d",
+        "pagina": 35
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.001A.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Elabora mensajes orales expresando ideas de forma clara y organizada, y es capaz de participar activamente en conversaciones cotidianas en un puesto de trabajo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 4",
+        "pagina": 35
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.001A"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha hecho uso de las estrategias de comunicación necesarias para el tipo de mensaje que se quiere transmitir.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 4, criterio a",
+        "pagina": 35
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.001A.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha servido de todos los aspectos formales necesarios y que se adecuan al tipo de mensaje que se quiere transmitir.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 4, criterio b",
+        "pagina": 35
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.001A.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han respetado las normas de cortesía propias del país de la lengua extranjera.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 4, criterio c",
+        "pagina": 35
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.001A.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.001A.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha usado correctamente la terminología propia de la profesión.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, resultado de aprendizaje 4, criterio d",
+        "pagina": 35
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.001A.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.1",
+      "tipo": "contenido",
+      "texto": "Técnicas de comprensión oral/escrita.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.001A"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Uso de estrategias básicas que permiten deducir el significado de partes del mensaje que no se han entendido.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.001A.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Análisis de la estructura, el tono y la tipología de diferentes textos tanto profesionales como de carácter cotidiano.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.001A.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Comprensión del contenido básico de discursos orales y escritos de diferente naturaleza.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.001A.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Uso de fuentes de información variadas para la comprensión del mensaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.001A.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Reconocimiento del lenguaje técnico básico utilizado en el entorno laboral.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.001A.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Identificación del argumento de distintos mensajes y de determinadas informaciones del ámbito profesional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.001A.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.2",
+      "tipo": "contenido",
+      "texto": "Técnicas de producción oral/escrita.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 29,
+      "padre": "MAD.CMO.001A"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Uso de estrategias básicas para organizar de manera coherente la información que se quiere transmitir en interacciones tanto orales como escritas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 30,
+      "padre": "MAD.CMO.001A.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Reformulación de preguntas que permita verificar la comprensión global de mensajes sencillos durante la comunicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 31,
+      "padre": "MAD.CMO.001A.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Respeto de las normas de cortesía y uso de registros lingüísticos adecuados a la finalidad y al contexto en el que se produce el mensaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 32,
+      "padre": "MAD.CMO.001A.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Uso de estrategias de comunicación básicas que fomenten la participación en una situación de comunicación y contribuyan a la transmisión de un mensaje de manera efectiva.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 33,
+      "padre": "MAD.CMO.001A.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Uso de estrategias tales como la improvisación para responder a necesidades comunicativas concretas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 34,
+      "padre": "MAD.CMO.001A.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Redacción de documentación profesional básica conforme a los estándares internacionales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 35,
+      "padre": "MAD.CMO.001A.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.3",
+      "tipo": "contenido",
+      "texto": "Recursos comunicativos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 36,
+      "padre": "MAD.CMO.001A"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Utilización de léxico y expresiones de uso común necesarios para comunicarse en situaciones concretas de comunicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 35
+      },
+      "orden": 37,
+      "padre": "MAD.CMO.001A.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Uso de fórmulas de cortesía, de saludo y de despedida básicas para participar en una comunicación oral.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 36
+      },
+      "orden": 38,
+      "padre": "MAD.CMO.001A.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Introducción a las actividades propias del ámbito profesional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 36
+      },
+      "orden": 39,
+      "padre": "MAD.CMO.001A.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Iniciación al uso de diferentes fuentes de información para reconocer los distintos tipos de organizaciones internacionales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 36
+      },
+      "orden": 40,
+      "padre": "MAD.CMO.001A.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.3.5",
+      "tipo": "contenido",
+      "texto": "Introducción al uso de la entonación y del ritmo como elementos fundamentales para transmitir un mensaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 36
+      },
+      "orden": 41,
+      "padre": "MAD.CMO.001A.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.001A.CO.3.6",
+      "tipo": "contenido",
+      "texto": "Aplicación de estructuras gramaticales básicas para participar en una interacción sobre temas de diferente naturaleza.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-001, contenidos",
+        "pagina": 36
+      },
+      "orden": 42,
+      "padre": "MAD.CMO.001A.CO.3"
+    }
+  ]
+}

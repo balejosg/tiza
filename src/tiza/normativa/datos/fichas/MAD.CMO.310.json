@@ -1,0 +1,725 @@
+{
+  "codigo": "MAD.CMO.310",
+  "nombre": "Fundamentos de bases de datos",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.310",
+      "tipo": "modulo",
+      "texto": "Fundamentos de bases de datos",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310",
+        "pagina": 183
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 50
+      }
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Reconoce los elementos de las bases de datos analizando sus funciones y valorando la utilidad de los sistemas gestores.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 1",
+        "pagina": 183
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado los sistemas lógicos de almacenamiento y sus características.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 1, criterio a",
+        "pagina": 183
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.310.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha evaluado la utilidad de un sistema gestor de bases de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 1, criterio b",
+        "pagina": 183
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.310.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido la función de cada uno de los elementos de un sistema gestor de bases de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 1, criterio c",
+        "pagina": 183
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.310.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han clasificado los sistemas gestores de bases de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 1, criterio d",
+        "pagina": 183
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.310.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Crea bases de datos definiendo su estructura y las características de sus elementos según el modelo relacional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 2",
+        "pagina": 183
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado el formato de almacenamiento de la información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 2, criterio a",
+        "pagina": 183
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.310.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado las tablas y las relaciones entre ellas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 2, criterio b",
+        "pagina": 183
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.310.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han seleccionado los tipos de datos adecuados.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 2, criterio c",
+        "pagina": 183
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.310.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los campos clave en las tablas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 2, criterio d",
+        "pagina": 183
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.310.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han implantado las restricciones reflejadas en el diseño lógico.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 2, criterio e",
+        "pagina": 183
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.310.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado asistentes, herramientas gráficas y el lenguaje de definición de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 2, criterio f",
+        "pagina": 183
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.310.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Consulta la información almacenada en una base de datos empleando asistentes, herramientas gráficas y el lenguaje de manipulación de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 3",
+        "pagina": 184
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las herramientas y sentencias para realizar consultas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 3, criterio a",
+        "pagina": 184
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.310.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas simples sobre una tabla.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 3, criterio b",
+        "pagina": 184
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.310.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas sobre el contenido de varias tablas mediante composiciones internas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 3, criterio c",
+        "pagina": 184
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.310.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado consultas sobre el contenido de varias tablas mediante composiciones externas",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 3, criterio d",
+        "pagina": 184
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.310.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Modifica la información almacenada en la base de datos utilizando asistentes, herramientas gráficas y el lenguaje de manipulación de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 4",
+        "pagina": 184
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las herramientas y sentencias para modificar el contenido de la base de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 4, criterio a",
+        "pagina": 184
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.310.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han insertado, borrado y actualizado datos en las tablas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 4, criterio b",
+        "pagina": 184
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.310.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha incluido en una tabla la información resultante de la ejecución de una consulta.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 4, criterio c",
+        "pagina": 184
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.310.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han adoptado medidas para mantener la integridad y consistencia de la información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 4, criterio d",
+        "pagina": 184
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.310.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Diseña modelos relacionales interpretando diagramas entidad/relación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 5",
+        "pagina": 184
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado herramientas gráficas para representar el diseño lógico.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 5, criterio a",
+        "pagina": 184
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.310.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las tablas del diseño lógico.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 5, criterio b",
+        "pagina": 184
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.310.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los campos que forman parte de las tablas del diseño lógico.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 5, criterio c",
+        "pagina": 184
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.310.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las relaciones entre las tablas del diseño lógico.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 5, criterio d",
+        "pagina": 184
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.310.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los campos clave.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 5, criterio e",
+        "pagina": 184
+      },
+      "orden": 29,
+      "padre": "MAD.CMO.310.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado reglas de integridad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, resultado de aprendizaje 5, criterio f",
+        "pagina": 184
+      },
+      "orden": 30,
+      "padre": "MAD.CMO.310.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.1",
+      "tipo": "contenido",
+      "texto": "Almacenamiento de la información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 31,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Bases de datos (BD). Conceptos, usos y tipos según el modelo de datos, la ubicación de la información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 32,
+      "padre": "MAD.CMO.310.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Sistemas gestores de bases de datos (SGBD): funciones, componentes y tipos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 33,
+      "padre": "MAD.CMO.310.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.1.3",
+      "tipo": "contenido",
+      "texto": "SGBD comerciales vs. SGBD libres.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 34,
+      "padre": "MAD.CMO.310.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.2",
+      "tipo": "contenido",
+      "texto": "Bases de datos relacionales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 35,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Modelo de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 36,
+      "padre": "MAD.CMO.310.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Terminología del modelo relacional. Relaciones, atributos, tuplas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 37,
+      "padre": "MAD.CMO.310.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Tipos de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 38,
+      "padre": "MAD.CMO.310.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Claves primarias.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 39,
+      "padre": "MAD.CMO.310.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.2.5",
+      "tipo": "contenido",
+      "texto": "El valor NULL.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 40,
+      "padre": "MAD.CMO.310.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Claves ajenas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 41,
+      "padre": "MAD.CMO.310.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.3",
+      "tipo": "contenido",
+      "texto": "Lenguaje de definición de datos (DDL Data Definition Language).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 184
+      },
+      "orden": 42,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.4",
+      "tipo": "contenido",
+      "texto": "Lenguaje de manipulación de datos (DML Data Manipulation Language).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 43,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.5",
+      "tipo": "contenido",
+      "texto": "Realización de consultas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 44,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Consultas para extraer información: la sentencia SELECT.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 45,
+      "padre": "MAD.CMO.310.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Selección, filtrado y ordenación de registros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 46,
+      "padre": "MAD.CMO.310.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Operadores (combinación, precedencia): de comparación. Lógicos. Aritméticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 47,
+      "padre": "MAD.CMO.310.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Consultas de resumen.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 48,
+      "padre": "MAD.CMO.310.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Composiciones internas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 49,
+      "padre": "MAD.CMO.310.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Composiciones externas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 50,
+      "padre": "MAD.CMO.310.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.6",
+      "tipo": "contenido",
+      "texto": "Tratamiento de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 51,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Inserción, borrado y modificación de registros:",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 52,
+      "padre": "MAD.CMO.310.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.6.1.1",
+      "tipo": "contenido",
+      "texto": "A partir de datos proporcionados por el usuario.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 53,
+      "padre": "MAD.CMO.310.CO.6.1"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Borrados y modificaciones e integridad referencial.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 54,
+      "padre": "MAD.CMO.310.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.7",
+      "tipo": "contenido",
+      "texto": "Interpretación de diagramas entidad/relación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 55,
+      "padre": "MAD.CMO.310"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.7.1",
+      "tipo": "contenido",
+      "texto": "Entidades y relaciones. Atributos. Cardinalidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 56,
+      "padre": "MAD.CMO.310.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.7.2",
+      "tipo": "contenido",
+      "texto": "Entidades fuertes vs. entidades débiles. Relaciones de dependencia en existencia y en identificación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 57,
+      "padre": "MAD.CMO.310.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.7.3",
+      "tipo": "contenido",
+      "texto": "El modelo E/R ampliado. Generalizaciones.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 58,
+      "padre": "MAD.CMO.310.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.310.CO.7.4",
+      "tipo": "contenido",
+      "texto": "Paso del modelo E/R al modelo relacional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-310, contenidos",
+        "pagina": 185
+      },
+      "orden": 59,
+      "padre": "MAD.CMO.310.CO.7"
+    }
+  ]
+}

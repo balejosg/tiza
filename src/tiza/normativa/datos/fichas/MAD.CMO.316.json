@@ -1,0 +1,737 @@
+{
+  "codigo": "MAD.CMO.316",
+  "nombre": "Programación en Python",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.316",
+      "tipo": "modulo",
+      "texto": "Programación en Python",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316",
+        "pagina": 203
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 90
+      }
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Reconoce la estructura de un programa informático, identificando y relacionando los elementos propios del lenguaje de programación utilizado.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1",
+        "pagina": 203
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los bloques que componen la estructura de un programa informático.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio a",
+        "pagina": 203
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado proyectos de desarrollo de aplicaciones.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio b",
+        "pagina": 203
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado entornos integrados de desarrollo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio c",
+        "pagina": 203
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los distintos tipos de variables y la utilidad específica de cada uno.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio d",
+        "pagina": 203
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha modificado el código de un programa para crear y utilizar variables.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio e",
+        "pagina": 203
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado y utilizado constantes y literales. Se han clasificado, reconocido y utilizado en expresiones los operadores del lenguaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio f",
+        "pagina": 203
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha comprobado el funcionamiento de las conversiones de tipo explícitas e implícitas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio g",
+        "pagina": 203
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.1.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han introducido comentarios en el código.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 1, criterio h",
+        "pagina": 203
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.316.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Escribe y depura código, analizando y utilizando las estructuras de control del lenguaje.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 2",
+        "pagina": 203
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha escrito y probado código que haga uso de estructuras de selección.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 2, criterio a",
+        "pagina": 203
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.316.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado estructuras de repetición.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 2, criterio b",
+        "pagina": 203
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.316.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido las posibilidades de las sentencias de salto.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 2, criterio c",
+        "pagina": 203
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.316.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha escrito código utilizando control de excepciones.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 2, criterio d",
+        "pagina": 203
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.316.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado programas ejecutables utilizando diferentes estructuras de control.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 2, criterio e",
+        "pagina": 203
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.316.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han probado y depurado los programas. Se ha comentado y documentado el código.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 2, criterio f",
+        "pagina": 204
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.316.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Escribe código utilizando programación modular. Conoce la diferencia entre el paso de parámetros por valor y por referencia.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 3",
+        "pagina": 204
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han codificado funciones para resolver problemas de matemática elemental.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 3, criterio a",
+        "pagina": 204
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.316.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha utilizado el concepto de iteración y recursividad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 3, criterio b",
+        "pagina": 204
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.316.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Escribe programas que manipulen información, seleccionando y utilizando tipos avanzados de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 4",
+        "pagina": 204
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han escrito programas que utilizan cadenas, listas y diccionarios.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 4, criterio a",
+        "pagina": 204
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.316.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Realiza operaciones de entrada y salida de información, utilizando procedimientos específicos del lenguaje y librerías de clases.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 5",
+        "pagina": 204
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha utilizado la consola para realizar operaciones de entrada y salida de información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 5, criterio a",
+        "pagina": 204
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.316.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado formatos en la visualización de la información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 5, criterio b",
+        "pagina": 204
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.316.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido las posibilidades de entrada / salida del lenguaje y las librerías asociadas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 5, criterio c",
+        "pagina": 204
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.316.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado ficheros para almacenar y recuperar información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 5, criterio d",
+        "pagina": 204
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.316.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado programas que utilicen diversos métodos de acceso al contenido de los ficheros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 5, criterio e",
+        "pagina": 204
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.316.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla programas organizados en clases analizando y aplicando los principios de la programación orientada a objetos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 6",
+        "pagina": 204
+      },
+      "orden": 29,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido la sintaxis, estructura y componentes típicos de una clase.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 6, criterio a",
+        "pagina": 204
+      },
+      "orden": 30,
+      "padre": "MAD.CMO.316.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido clases.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 6, criterio b",
+        "pagina": 204
+      },
+      "orden": 31,
+      "padre": "MAD.CMO.316.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido propiedades y métodos. Se han creado constructores.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 6, criterio c",
+        "pagina": 204
+      },
+      "orden": 32,
+      "padre": "MAD.CMO.316.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado programas que instancien y utilicen objetos de las clases creadas anteriormente. Se han utilizado mecanismos para controlar la visibilidad de las clases y de sus miembros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 6, criterio d",
+        "pagina": 204
+      },
+      "orden": 33,
+      "padre": "MAD.CMO.316.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.316.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido y utilizado clases heredadas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, resultado de aprendizaje 6, criterio e",
+        "pagina": 204
+      },
+      "orden": 34,
+      "padre": "MAD.CMO.316.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1",
+      "tipo": "contenido",
+      "texto": "Identificación de los elementos de un programa informático.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 35,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Estructura y bloques fundamentales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 36,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Variables.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 37,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Tipos de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 38,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Literales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 39,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Constantes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 40,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Operadores y expresiones.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 41,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.7",
+      "tipo": "contenido",
+      "texto": "Conversiones de tipo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 42,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.1.8",
+      "tipo": "contenido",
+      "texto": "Comentarios.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 204
+      },
+      "orden": 43,
+      "padre": "MAD.CMO.316.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.2",
+      "tipo": "contenido",
+      "texto": "Uso de estructuras de control.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 44,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Estructuras de selección.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 45,
+      "padre": "MAD.CMO.316.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Estructuras de repetición.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 46,
+      "padre": "MAD.CMO.316.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Estructuras de salto.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 47,
+      "padre": "MAD.CMO.316.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Control de excepciones.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 48,
+      "padre": "MAD.CMO.316.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.3",
+      "tipo": "contenido",
+      "texto": "Funciones. Definición de funciones definidas por el programador. Recursividad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 49,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.4",
+      "tipo": "contenido",
+      "texto": "Cadenas de caracteres. Listas. Tuplas y Diccionarios.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 50,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5",
+      "tipo": "contenido",
+      "texto": "Lectura y escritura de información.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 51,
+      "padre": "MAD.CMO.316"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Entrada desde teclado.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 52,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Salida a pantalla.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 53,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Ficheros de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 54,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Registros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 55,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Apertura y cierre de ficheros. Modos de acceso.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 56,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Escritura y lectura de información en ficheros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 57,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.7",
+      "tipo": "contenido",
+      "texto": "Utilización de los sistemas de ficheros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 58,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.5.8",
+      "tipo": "contenido",
+      "texto": "Creación y eliminación de ficheros y directorios.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 59,
+      "padre": "MAD.CMO.316.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.316.CO.6",
+      "tipo": "contenido",
+      "texto": "Programación orientada a objetos. Encapsulación, herencia y polimorfismo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-316, contenidos",
+        "pagina": 205
+      },
+      "orden": 60,
+      "padre": "MAD.CMO.316"
+    }
+  ]
+}

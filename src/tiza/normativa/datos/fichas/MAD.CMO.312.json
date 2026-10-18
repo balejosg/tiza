@@ -1,0 +1,1505 @@
+{
+  "codigo": "MAD.CMO.312",
+  "nombre": "Fundamentos de computación en la nube",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.312",
+      "tipo": "modulo",
+      "texto": "Fundamentos de computación en la nube",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312",
+        "pagina": 187
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 50
+      }
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Define qué es la computación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 1",
+        "pagina": 187
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los diferentes modelos de computación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 1, criterio a",
+        "pagina": 187
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.312.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito las ventajas de la computación en la nube frente a la computación en las instalaciones.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 1, criterio b",
+        "pagina": 187
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.312.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los servicios esenciales de la computación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 1, criterio c",
+        "pagina": 187
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.312.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha revisado el marco de adopción de la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 1, criterio d",
+        "pagina": 187
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.312.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Describe la filosofía de precios en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 2",
+        "pagina": 187
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido las características fundamentales de los precios.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 2, criterio a",
+        "pagina": 187
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.312.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han indicado los factores que intervienen en el coste total de la propiedad (TCO).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 2, criterio b",
+        "pagina": 187
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.312.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado servicios para estimar el coste del despliegue de una infraestructura en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 2, criterio c",
+        "pagina": 187
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.312.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado los servicios para presupuestar y analizar costes de una infraestructura en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 2, criterio d",
+        "pagina": 187
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.312.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los diferentes planes de soporte de los proveedores de servicios en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 2, criterio e",
+        "pagina": 187
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.312.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los elementos de optimización de costes de las máquinas virtuales en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 2, criterio f",
+        "pagina": 188
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.312.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica los componentes de la infraestructura en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 3",
+        "pagina": 188
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las diferencias entre regiones, zonas de disponibilidad y zonas de borde.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 3, criterio a",
+        "pagina": 188
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.312.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las diferentes categorías y servicios en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 3, criterio b",
+        "pagina": 188
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.312.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Describe las medidas de seguridad y conformidad de la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4",
+        "pagina": 188
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido el modelo de responsabilidad compartida.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4, criterio a",
+        "pagina": 188
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.312.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las responsabilidades del cliente y del proveedor de servicios en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4, criterio b",
+        "pagina": 188
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.312.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido las entidades que intervienen en el proceso de autenticación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4, criterio c",
+        "pagina": 188
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.312.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los diferentes tipos de credenciales de seguridad en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4, criterio d",
+        "pagina": 188
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.312.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han creado usuarios, grupos y roles.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4, criterio e",
+        "pagina": 188
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.312.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reconocido cómo proteger los datos en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4, criterio f",
+        "pagina": 188
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.312.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los diferentes programas de conformidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 4, criterio g",
+        "pagina": 188
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.312.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Crea una nube privada virtual.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5",
+        "pagina": 188
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los conceptos básicos de redes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5, criterio a",
+        "pagina": 188
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.312.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito las redes virtuales en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5, criterio b",
+        "pagina": 188
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.312.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han diseñado arquitecturas básicas de redes privadas en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5, criterio c",
+        "pagina": 188
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.312.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han indicado los pasos para desplegar una red privada en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5, criterio d",
+        "pagina": 188
+      },
+      "orden": 29,
+      "padre": "MAD.CMO.312.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha creado una red privada en la nube y se han agregado los componentes necesarios para personalizarla.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5, criterio e",
+        "pagina": 188
+      },
+      "orden": 30,
+      "padre": "MAD.CMO.312.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los aspectos fundamentales de los servicios de nombres de dominio en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5, criterio f",
+        "pagina": 188
+      },
+      "orden": 31,
+      "padre": "MAD.CMO.312.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han reconocido los beneficios de utilizar redes de entrega de contenidos en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 5, criterio g",
+        "pagina": 188
+      },
+      "orden": 32,
+      "padre": "MAD.CMO.312.RA.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Describe los casos de uso de los diferentes servicios de computación en nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 6",
+        "pagina": 188
+      },
+      "orden": 33,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los diferentes servicios de cómputo en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 6, criterio a",
+        "pagina": 188
+      },
+      "orden": 34,
+      "padre": "MAD.CMO.312.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los casos de uso de las máquinas virtuales en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 6, criterio b",
+        "pagina": 188
+      },
+      "orden": 35,
+      "padre": "MAD.CMO.312.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han lanzado máquinas virtuales en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 6, criterio c",
+        "pagina": 188
+      },
+      "orden": 36,
+      "padre": "MAD.CMO.312.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los casos de uso de los servicios administrados de despliegue de aplicaciones web.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 6, criterio d",
+        "pagina": 188
+      },
+      "orden": 37,
+      "padre": "MAD.CMO.312.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los casos de uso de los servicios de funciones sin servidor.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 6, criterio e",
+        "pagina": 188
+      },
+      "orden": 38,
+      "padre": "MAD.CMO.312.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.6.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los casos de uso de los servicios de contenedorización en un clúster de servidores administrados.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 6, criterio f",
+        "pagina": 188
+      },
+      "orden": 39,
+      "padre": "MAD.CMO.312.RA.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.7",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Describe y diferencia los servicios de almacenamiento en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 7",
+        "pagina": 188
+      },
+      "orden": 40,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.7.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han diferenciado los tipos de servicios de almacenamiento en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 7, criterio a",
+        "pagina": 188
+      },
+      "orden": 41,
+      "padre": "MAD.CMO.312.RA.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.7.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los servicios de almacenamiento de objetos en la nube y se ha identificado sus funcionalidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 7, criterio b",
+        "pagina": 189
+      },
+      "orden": 42,
+      "padre": "MAD.CMO.312.RA.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.7.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los servicios de almacenamiento de bloques en la nube y se ha identificado sus funcionalidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 7, criterio c",
+        "pagina": 189
+      },
+      "orden": 43,
+      "padre": "MAD.CMO.312.RA.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.7.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los servicios de almacenamiento de ficheros en la nube y se ha identificado sus funcionalidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 7, criterio d",
+        "pagina": 189
+      },
+      "orden": 44,
+      "padre": "MAD.CMO.312.RA.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.7.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los servicios de archivado de datos en la nube y se han identificado sus funcionalidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 7, criterio e",
+        "pagina": 189
+      },
+      "orden": 45,
+      "padre": "MAD.CMO.312.RA.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.8",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Describe, diferencia y despliega bases de datos administradas en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 8",
+        "pagina": 189
+      },
+      "orden": 46,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.8.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito e identificado las funcionalidades de los servicios administrados de bases de datos relacionales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 8, criterio a",
+        "pagina": 189
+      },
+      "orden": 47,
+      "padre": "MAD.CMO.312.RA.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.8.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito e identificado las funcionalidades de los servicios administrados de bases de datos NoSQL.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 8, criterio b",
+        "pagina": 189
+      },
+      "orden": 48,
+      "padre": "MAD.CMO.312.RA.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.8.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito e identificado las funcionalidades de los servicios administrados de bases de datos analíticas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 8, criterio c",
+        "pagina": 189
+      },
+      "orden": 49,
+      "padre": "MAD.CMO.312.RA.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.8.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han desplegado bases de datos relacionales administradas en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 8, criterio d",
+        "pagina": 189
+      },
+      "orden": 50,
+      "padre": "MAD.CMO.312.RA.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.9",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Describe los principios arquitectónicos en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 9",
+        "pagina": 189
+      },
+      "orden": 51,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.9.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito el marco de la buena arquitectura en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 9, criterio a",
+        "pagina": 189
+      },
+      "orden": 52,
+      "padre": "MAD.CMO.312.RA.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.9.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los seis pilares de la buena arquitectura y se han identificado los principios de diseño.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 9, criterio b",
+        "pagina": 189
+      },
+      "orden": 53,
+      "padre": "MAD.CMO.312.RA.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.9.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha explicado la importancia de la fiabilidad y de la alta disponibilidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 9, criterio c",
+        "pagina": 189
+      },
+      "orden": 54,
+      "padre": "MAD.CMO.312.RA.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.9.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han utilizado los servicios administrados para obtener recomendaciones arquitectónicas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 9, criterio d",
+        "pagina": 189
+      },
+      "orden": 55,
+      "padre": "MAD.CMO.312.RA.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.10",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Entiende los conceptos de balanceado de carga, autoescalado y monitorización para el diseño de arquitecturas elásticas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 10",
+        "pagina": 189
+      },
+      "orden": 56,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.10.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha indicado cómo distribuir el tráfico entre diferentes máquinas virtuales utilizando balanceadores de carga.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 10, criterio a",
+        "pagina": 189
+      },
+      "orden": 57,
+      "padre": "MAD.CMO.312.RA.10"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.10.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los servicios de monitorización de recursos y aplicaciones en tiempo real.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 10, criterio b",
+        "pagina": 189
+      },
+      "orden": 58,
+      "padre": "MAD.CMO.312.RA.10"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.10.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha indicado el funcionamiento de los servicios de escalado automático en respuesta a cambios en las cargas de trabajo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 10, criterio c",
+        "pagina": 189
+      },
+      "orden": 59,
+      "padre": "MAD.CMO.312.RA.10"
+    },
+    {
+      "codigo": "MAD.CMO.312.RA.10.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado tareas de escalado y balanceo de carga para aumentar la elasticidad de una infraestructura.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, resultado de aprendizaje 10, criterio d",
+        "pagina": 189
+      },
+      "orden": 60,
+      "padre": "MAD.CMO.312.RA.10"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.1",
+      "tipo": "contenido",
+      "texto": "Conceptos de la computación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 189
+      },
+      "orden": 61,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Introducción a la computación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 189
+      },
+      "orden": 62,
+      "padre": "MAD.CMO.312.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Ventajas de la computación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 189
+      },
+      "orden": 63,
+      "padre": "MAD.CMO.312.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Migración a un proveedor de servicios de computación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 189
+      },
+      "orden": 64,
+      "padre": "MAD.CMO.312.CO.1"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2",
+      "tipo": "contenido",
+      "texto": "Economía y facturación en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 189
+      },
+      "orden": 65,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 189
+      },
+      "orden": 66,
+      "padre": "MAD.CMO.312.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Fundamentos de la facturación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 189
+      },
+      "orden": 67,
+      "padre": "MAD.CMO.312.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Coste total de la propiedad (TCO).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 68,
+      "padre": "MAD.CMO.312.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Modelos de precios.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 69,
+      "padre": "MAD.CMO.312.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Servicios de facturación consolidada.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 70,
+      "padre": "MAD.CMO.312.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2.6",
+      "tipo": "contenido",
+      "texto": "Servicios de monitorización de costes y presupuestos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 71,
+      "padre": "MAD.CMO.312.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.2.7",
+      "tipo": "contenido",
+      "texto": "Modelos de soporte técnico.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 72,
+      "padre": "MAD.CMO.312.CO.2"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.3",
+      "tipo": "contenido",
+      "texto": "Infraestructura de la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 73,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 74,
+      "padre": "MAD.CMO.312.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Infraestructura global.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 75,
+      "padre": "MAD.CMO.312.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Categorías de servicios ofrecidos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 76,
+      "padre": "MAD.CMO.312.CO.3"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.4",
+      "tipo": "contenido",
+      "texto": "Seguridad en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 77,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 78,
+      "padre": "MAD.CMO.312.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Modelo de responsabilidad compartida.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 79,
+      "padre": "MAD.CMO.312.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Control de la autenticación, autorización y federación.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 80,
+      "padre": "MAD.CMO.312.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Seguridad en las cuentas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 81,
+      "padre": "MAD.CMO.312.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Seguridad en los datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 82,
+      "padre": "MAD.CMO.312.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.4.6",
+      "tipo": "contenido",
+      "texto": "Seguridad en el cumplimiento normativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 83,
+      "padre": "MAD.CMO.312.CO.4"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.5",
+      "tipo": "contenido",
+      "texto": "Redes y entrega de contenidos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 84,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 85,
+      "padre": "MAD.CMO.312.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Principios de las redes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 86,
+      "padre": "MAD.CMO.312.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Nubes privadas virtuales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 87,
+      "padre": "MAD.CMO.312.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Seguridad en nubes privadas virtuales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 88,
+      "padre": "MAD.CMO.312.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Servicios de resolución de nombres de dominios en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 89,
+      "padre": "MAD.CMO.312.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Redes de entrega de contenidos (CDN).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 90,
+      "padre": "MAD.CMO.312.CO.5"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6",
+      "tipo": "contenido",
+      "texto": "Servicios de cómputo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 91,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 92,
+      "padre": "MAD.CMO.312.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Principios de los servicios de cómputo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 93,
+      "padre": "MAD.CMO.312.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6.3",
+      "tipo": "contenido",
+      "texto": "Máquinas virtuales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 94,
+      "padre": "MAD.CMO.312.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6.4",
+      "tipo": "contenido",
+      "texto": "Optimización de costes en máquinas virtuales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 95,
+      "padre": "MAD.CMO.312.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6.5",
+      "tipo": "contenido",
+      "texto": "Servicios de contenedorización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 96,
+      "padre": "MAD.CMO.312.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6.6",
+      "tipo": "contenido",
+      "texto": "Introducción a la computación sin servidor (serverless).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 97,
+      "padre": "MAD.CMO.312.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.6.7",
+      "tipo": "contenido",
+      "texto": "Introducción a los servicios administrados de cómputo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 98,
+      "padre": "MAD.CMO.312.CO.6"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.7",
+      "tipo": "contenido",
+      "texto": "Servicios de almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 99,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.7.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 100,
+      "padre": "MAD.CMO.312.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.7.2",
+      "tipo": "contenido",
+      "texto": "Servicios de almacenamiento de bloques.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 101,
+      "padre": "MAD.CMO.312.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.7.3",
+      "tipo": "contenido",
+      "texto": "Servicios de almacenamiento de objetos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 102,
+      "padre": "MAD.CMO.312.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.7.4",
+      "tipo": "contenido",
+      "texto": "Servicios de almacenamiento de ficheros.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 103,
+      "padre": "MAD.CMO.312.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.7.5",
+      "tipo": "contenido",
+      "texto": "Servicios de archivado de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 104,
+      "padre": "MAD.CMO.312.CO.7"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.8",
+      "tipo": "contenido",
+      "texto": "Servicios de bases de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 105,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.8.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 190
+      },
+      "orden": 106,
+      "padre": "MAD.CMO.312.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.8.2",
+      "tipo": "contenido",
+      "texto": "Servicios de bases de datos relacionales.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 107,
+      "padre": "MAD.CMO.312.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.8.3",
+      "tipo": "contenido",
+      "texto": "Servicios de bases de datos NoSQL.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 108,
+      "padre": "MAD.CMO.312.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.8.4",
+      "tipo": "contenido",
+      "texto": "Servicios de bases de datos analíticas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 109,
+      "padre": "MAD.CMO.312.CO.8"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9",
+      "tipo": "contenido",
+      "texto": "Arquitectura en la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 110,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 111,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.2",
+      "tipo": "contenido",
+      "texto": "Principios de diseño del marco de la buena arquitectura.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 112,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.3",
+      "tipo": "contenido",
+      "texto": "Excelencia operacional.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 113,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.4",
+      "tipo": "contenido",
+      "texto": "Seguridad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 114,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.5",
+      "tipo": "contenido",
+      "texto": "Fiabilidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 115,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.6",
+      "tipo": "contenido",
+      "texto": "Eficiencia en el rendimiento.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 116,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.7",
+      "tipo": "contenido",
+      "texto": "Optimización de costes.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 117,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.8",
+      "tipo": "contenido",
+      "texto": "Fiabilidad y alta disponibilidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 118,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.9.9",
+      "tipo": "contenido",
+      "texto": "Servicios para el diseño de arquitecturas.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 119,
+      "padre": "MAD.CMO.312.CO.9"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.10",
+      "tipo": "contenido",
+      "texto": "Escalado automático y monitorización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 120,
+      "padre": "MAD.CMO.312"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.10.1",
+      "tipo": "contenido",
+      "texto": "Introducción.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 121,
+      "padre": "MAD.CMO.312.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.10.2",
+      "tipo": "contenido",
+      "texto": "Balanceadores de carga.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 122,
+      "padre": "MAD.CMO.312.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.10.3",
+      "tipo": "contenido",
+      "texto": "Servicios de monitorización.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 123,
+      "padre": "MAD.CMO.312.CO.10"
+    },
+    {
+      "codigo": "MAD.CMO.312.CO.10.4",
+      "tipo": "contenido",
+      "texto": "Servicios de escalado automático.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-312, contenidos",
+        "pagina": 191
+      },
+      "orden": 124,
+      "padre": "MAD.CMO.312.CO.10"
+    }
+  ]
+}

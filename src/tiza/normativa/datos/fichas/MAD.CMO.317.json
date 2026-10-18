@@ -1,0 +1,353 @@
+{
+  "codigo": "MAD.CMO.317",
+  "nombre": "Posicionamiento y optimización web",
+  "etapa": "fp_gs",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20250827-5",
+    "bocm-20260925-20"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.CMO.317",
+      "tipo": "modulo",
+      "texto": "Posicionamiento y optimización web",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317",
+        "pagina": 205
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 50
+      }
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Comprende los fundamentos del SEO.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 1",
+        "pagina": 205
+      },
+      "orden": 2,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han entendido los conceptos básicos de SEO y el marco en el que actúa.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 1, criterio a",
+        "pagina": 205
+      },
+      "orden": 3,
+      "padre": "MAD.CMO.317.RA.1"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica palabras claves y desarrolla estrategias de construcción de sitios webs.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 2",
+        "pagina": 205
+      },
+      "orden": 4,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han investigado, identificado y seleccionado las palabras clave y términos de búsqueda que generan tráfico orgánico hacia el sitio web corporativo, utilizando herramientas específicas de analítica digital para el SEO.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 2, criterio a",
+        "pagina": 205
+      },
+      "orden": 5,
+      "padre": "MAD.CMO.317.RA.2"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Implementa las estrategias de optimización de contenido técnico para mejorar la visibilidad en los resultados de búsqueda informáticos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 3",
+        "pagina": 205
+      },
+      "orden": 6,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha optimizado el contenido del sitio web para mejorar su visibilidad en los motores de búsqueda, incluyendo la redacción de títulos y descripciones META, la optimización de encabezados e imágenes y la estructuración de contenidos.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 3, criterio a",
+        "pagina": 205
+      },
+      "orden": 7,
+      "padre": "MAD.CMO.317.RA.3"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Se mantiene al día en las nuevas tendencias y actualizaciones de SEO. Ética y buenas prácticas en SEO.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 4",
+        "pagina": 205
+      },
+      "orden": 8,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha comprendido la naturaleza en constante evolución del SEO y se ha preparado para adaptarse a las actualizaciones del algoritmo de los motores de búsqueda y a las tendencias emergentes en la industria.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 4, criterio a",
+        "pagina": 206
+      },
+      "orden": 9,
+      "padre": "MAD.CMO.317.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.317.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha comprendido la importancia de practicar SEO ético y de seguir las directrices establecidas por los motores de búsqueda para evitar sanciones y mantener la integridad de su sitio web.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, resultado de aprendizaje 4, criterio b",
+        "pagina": 206
+      },
+      "orden": 10,
+      "padre": "MAD.CMO.317.RA.4"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.1",
+      "tipo": "contenido",
+      "texto": "Pilares en una estrategia SEO: SEO técnico, contenidos y autoridad.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 11,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.2",
+      "tipo": "contenido",
+      "texto": "El SEO dentro de la estrategia de Marketing online y su objetivo.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 12,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.3",
+      "tipo": "contenido",
+      "texto": "Evolución del SEO.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 13,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.4",
+      "tipo": "contenido",
+      "texto": "Conociendo a Google. Acciones que no funcionan.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 14,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.5",
+      "tipo": "contenido",
+      "texto": "Las Bases del SEO.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 15,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.6",
+      "tipo": "contenido",
+      "texto": "De la parte técnica a la parte estratégica.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 16,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.7",
+      "tipo": "contenido",
+      "texto": "Visibilidad y Estructura SEO. SEO Técnico. Cómo hacer una auditoría SEO.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 17,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.8",
+      "tipo": "contenido",
+      "texto": "Palabras claves de sitios webs.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 18,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.9",
+      "tipo": "contenido",
+      "texto": "Pasos para estructurar una web.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 19,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.10",
+      "tipo": "contenido",
+      "texto": "Práctica de la Unidad: RETO trabajando las palabras claves junto a estructura de web.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 20,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.11",
+      "tipo": "contenido",
+      "texto": "Etiquetas HTML.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 21,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.12",
+      "tipo": "contenido",
+      "texto": "Análisis de imágenes para el sitio web. Estudios de url.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 22,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.13",
+      "tipo": "contenido",
+      "texto": "WPO (Optimización del rendimiento web).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 23,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.14",
+      "tipo": "contenido",
+      "texto": "Javascript para SEO y Aplicaciones Web progresiva (PWA).",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 24,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.15",
+      "tipo": "contenido",
+      "texto": "Rastreo e indexación en sitios web. Sitemaps, robots.txt.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 25,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.16",
+      "tipo": "contenido",
+      "texto": "Optimización On-Page y Estrategias de redacción para SEO: cómo mejorar tu posicionamiento en motores de búsqueda.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 26,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.17",
+      "tipo": "contenido",
+      "texto": "Herramientas para el análisis.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 27,
+      "padre": "MAD.CMO.317"
+    },
+    {
+      "codigo": "MAD.CMO.317.CO.18",
+      "tipo": "contenido",
+      "texto": "Gestión SEO en CMSs.",
+      "procedencia": {
+        "norma": "bocm-20250827-5",
+        "ubicacion": "anexo II, módulo CMO-317, contenidos",
+        "pagina": 206
+      },
+      "orden": 28,
+      "padre": "MAD.CMO.317"
+    }
+  ]
+}
