@@ -393,8 +393,8 @@ def _leer(args) -> int:
     except ErrorLectura as error:
         documento = {"error": error.codigo, "detalle": _sin_control(error.detalle)}
         codigo = 2
-    except ErrorInforme:  # p. ej. un nombre de fichero con símbolos no permitidos
-        documento = {"error": "FORMATO_NO_ADMITIDO", "detalle": "El nombre del fichero no vale."}
+    except ErrorInforme:  # un nombre de fichero con símbolos no permitidos
+        documento = {"error": "NOMBRE_NO_VALIDO", "detalle": "El nombre del fichero no vale."}
         codigo = 2
     _escribir_json(documento)
     return codigo

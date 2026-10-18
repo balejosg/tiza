@@ -255,3 +255,17 @@ def test_tabla_anidada_y_campos(tmp_path):
     assert anidada.id == "t1.f1.c1.t1"
     assert anidada.hijos[0].hijos[0].hijos[0].texto == "dentro"
     assert lectura.bloques[1].texto == "7"
+
+
+def test_error_inesperado_al_interpretar_no_escapa(tmp_path, monkeypatch):
+    d = f.nuevo()
+    d.add_paragraph("x")
+
+    def roto(self, *_args, **_kw):
+        raise RecursionError("texto de la librería")
+
+    monkeypatch.setattr("tiza.lectura.word._Lector.contenido", roto)
+    with pytest.raises(ErrorLectura) as e:
+        leer(d, tmp_path)
+    assert e.value.codigo == "FORMATO_NO_ADMITIDO"
+    assert e.value.detalle == "No se puede interpretar el documento."

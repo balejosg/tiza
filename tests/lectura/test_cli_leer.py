@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 
 import pytest
 
@@ -124,6 +125,24 @@ def test_ruta_lectura_sanea_el_nombre(tmp_path):
     ruta = estado.ruta_lectura(tmp_path, tmp_path / "..x" / "a b..docx")
     assert ruta.parent == tmp_path / ".tiza" / "lecturas"
     assert ruta.name.endswith(".txt") and ".." not in ruta.name and "/" not in ruta.name
+
+
+def test_leer_nombre_realista_de_docente(carpeta, capsys):
+    nombre = "Programación DAM 1º (2026-27).docx"
+    docx(carpeta, nombre)
+    codigo, resumen = ejecutar(capsys, ["leer", nombre])
+    assert codigo == 0
+    assert resumen["lectura"] == f".tiza/lecturas/{nombre}.txt"
+    assert (carpeta / ".tiza" / "lecturas" / f"{nombre}.txt").is_file()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows no admite «<» en un nombre")
+def test_leer_nombre_con_simbolos_no_validos(carpeta, capsys):
+    docx(carpeta, "a<b>.docx")
+    codigo, salida = ejecutar(capsys, ["leer", "a<b>.docx"])
+    assert codigo == 2 and salida["error"] == "NOMBRE_NO_VALIDO"
+    assert ayuda.explicar("NOMBRE_NO_VALIDO")
+    assert not (carpeta / ".tiza").exists()  # nada escrito
 
 
 def test_agente_leer_es_publica(carpeta):

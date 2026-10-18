@@ -165,6 +165,7 @@ MENSAJES: dict[str, str] = {
     "FICHERO_BLOQUEADO": "El fichero está abierto en otro programa o bloqueado. Ciérralo en Word y repite el comando.",
     "FICHERO_FUERA": "El fichero no está dentro de la carpeta de la asignatura. Cópialo a esa carpeta y repite el comando con su nombre.",
     "FICHERO_TEMPORAL": "Ese fichero es oculto o es el temporal que Word deja mientras el documento está abierto (empieza por «~$»). Indica el documento de verdad.",
+    "NOMBRE_NO_VALIDO": "El nombre del fichero tiene símbolos que tiza no admite (los signos de menor y mayor que) o caracteres invisibles. Renómbralo sin ellos y repite el comando.",
     "DOCUMENTO_AUSENTE": "No existe ese documento. Revisa el nombre y que esté dentro de la carpeta de la asignatura.",
     "LECTURA_NO_ESCRIBIBLE": "No se pudo guardar el texto leído en la carpeta .tiza/lecturas. Comprueba que .tiza no sea un enlace y que puedas escribir en la carpeta de la asignatura.",
     "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",

@@ -424,14 +424,19 @@ def leer_docx(ruta: Path) -> Lectura:
             raise _fallo("DOCUMENTO_DEMASIADO_GRANDE", "El fichero pasa de 30 MB.") from None
         raise _fallo("FORMATO_NO_ADMITIDO", "No es un fichero normal.") from None
     _comprobar_zip(datos)
-    numeracion = _Numeracion.desde(_raiz(datos, "word/numbering.xml"))
-    estilos = _Estilos(_raiz(datos, "word/styles.xml"))
     try:
-        documento = Document(io.BytesIO(datos))
-    except Exception:
-        raise _fallo("FORMATO_NO_ADMITIDO", "No se puede abrir el documento.") from None
-    lector = _Lector(numeracion, estilos)
-    bloques = lector.contenido(documento.element.body, "")
+        numeracion = _Numeracion.desde(_raiz(datos, "word/numbering.xml"))
+        estilos = _Estilos(_raiz(datos, "word/styles.xml"))
+        try:
+            documento = Document(io.BytesIO(datos))
+        except Exception:
+            raise _fallo("FORMATO_NO_ADMITIDO", "No se puede abrir el documento.") from None
+        lector = _Lector(numeracion, estilos)
+        bloques = lector.contenido(documento.element.body, "")
+    except ErrorLectura:
+        raise
+    except Exception:  # XML raro, números que no lo son, recursión: nunca texto de la librería
+        raise _fallo("FORMATO_NO_ADMITIDO", "No se puede interpretar el documento.") from None
     return Lectura(
         fichero=ruta.name,
         formato="docx",

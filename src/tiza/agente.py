@@ -485,15 +485,8 @@ def leer(ruta: str | Path, carpeta: str | Path) -> informe.Lectura:
     except OSError:  # permisos, bloqueo u otro fallo del sistema que el lector no mapeó
         raise ErrorLectura("FICHERO_BLOQUEADO", "El fichero no se puede abrir.") from None
     destino = estado.ruta_lectura(base, origen)
-    try:
-        asegurar_directorio(base / rutas.CARPETA_TRABAJO)
-        asegurar_directorio(destino.parent)
-        escribir_texto(destino, a_texto(lectura))
-    except OSError:
-        raise ErrorLectura(
-            "LECTURA_NO_ESCRIBIBLE", f"No se pudo guardar en {rutas.CARPETA_TRABAJO}/lecturas."
-        ) from None
-    return informe.Lectura(
+    # Primero el resumen validado: si no vale, no se deja nada escrito.
+    resumen = informe.Lectura(
         fichero=lectura.fichero,
         formato=lectura.formato,
         lectura=destino.relative_to(base).as_posix(),
@@ -503,3 +496,12 @@ def leer(ruta: str | Path, carpeta: str | Path) -> informe.Lectura:
         avisos=tuple(lectura.avisos),
         sha256=lectura.sha256,
     )
+    try:
+        asegurar_directorio(base / rutas.CARPETA_TRABAJO)
+        asegurar_directorio(destino.parent)
+        escribir_texto(destino, a_texto(lectura))
+    except OSError:
+        raise ErrorLectura(
+            "LECTURA_NO_ESCRIBIBLE", f"No se pudo guardar en {rutas.CARPETA_TRABAJO}/lecturas."
+        ) from None
+    return resumen
