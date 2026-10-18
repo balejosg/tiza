@@ -489,7 +489,7 @@ def leer(ruta: str | Path, carpeta: str | Path) -> informe.Lectura:
     destino = estado.ruta_lectura(base, origen)
     # Primero el resumen validado: si no vale, no se deja nada escrito.
     resumen = informe.Lectura(
-        fichero=lectura.fichero,
+        fichero=origen.relative_to(base.resolve()).as_posix(),
         formato=lectura.formato,
         lectura=destino.relative_to(base).as_posix(),
         bloques=len(lectura.bloques),

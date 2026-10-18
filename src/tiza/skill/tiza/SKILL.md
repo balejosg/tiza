@@ -317,7 +317,7 @@ Si responden `SESION_INCOMPATIBLE`, la sesión abierta usa otra versión de tiza
 | Comando | Qué hace |
 |---|---|
 | `tiza normativa <consulta>` | Offline: consulta la normativa que trae tiza (`catalogo`, `ficha`, `elemento`, `norma`, `buscar`, `programacion`); JSON de esquema cerrado |
-| `tiza leer <fichero>` | Offline: convierte un `.docx` o `.pdf` de la carpeta en `.tiza/lecturas/<nombre>.txt` (con ids de bloque) y da un resumen JSON |
+| `tiza leer <fichero>` | Offline: convierte un `.docx` o `.pdf` de la carpeta en `.tiza/lecturas/<ruta>.txt` (la ruta con `__` en vez de `/`: `1DAM/Prog.docx` queda en `1DAM__Prog.docx.txt`) (con ids de bloque) y da un resumen JSON |
 | `tiza documento <md> [--salida <x.docx>]` | Offline: convierte un `.md` en un Word sencillo en la carpeta; nunca sobrescribe (`DOCUMENTO_EXISTE`) |
 | `tiza comprobar <md>…` | Offline: valida, genera la vista previa y comprueba la sección |
 | `tiza publicar <md>… --en pruebas` | Con sesión: publica y registra el hash verificado (si hay curso de pruebas) |

@@ -24,6 +24,7 @@ from . import (
     __version__,
     agente,
     aislamiento,
+    ayuda,
     buzon,
     config,
     contenido,
@@ -394,6 +395,15 @@ def _normativa(args) -> int:
     return codigo
 
 
+def _error_json(codigo: str, detalle: str) -> dict:
+    """El error de ``leer`` y ``documento``: código, detalle y qué hacer (texto de tiza)."""
+    return {
+        "error": codigo,
+        "detalle": _sin_control(detalle),
+        "que_hacer": _sin_control(ayuda.explicar(codigo) or ""),
+    }
+
+
 def _leer(args) -> int:
     """Lee un Word o PDF: un único JSON en stdout (resumen o error) y 0 o 2. No escribe informe."""
     from .lectura.modelo import ErrorLectura  # carga diferida: sin python-docx ni pypdf
@@ -402,10 +412,10 @@ def _leer(args) -> int:
         documento = agente.leer(args.fichero, Path.cwd()).a_dict()
         codigo = 0
     except ErrorLectura as error:
-        documento = {"error": error.codigo, "detalle": _sin_control(error.detalle)}
+        documento = _error_json(error.codigo, error.detalle)
         codigo = 2
     except ErrorInforme:  # un nombre de fichero con símbolos no permitidos
-        documento = {"error": "NOMBRE_NO_VALIDO", "detalle": "El nombre del fichero no vale."}
+        documento = _error_json("NOMBRE_NO_VALIDO", "El nombre del fichero no vale.")
         codigo = 2
     _escribir_json(documento)
     return codigo
@@ -419,10 +429,10 @@ def _documento(args) -> int:
         resultado = agente.documento(args.fuente, Path.cwd(), args.salida).a_dict()
         codigo = 0
     except ErrorEscritura as error:
-        resultado = {"error": error.codigo, "detalle": _sin_control(error.detalle)}
+        resultado = _error_json(error.codigo, error.detalle)
         codigo = 2
     except ErrorInforme:  # un nombre de fichero con símbolos no permitidos
-        resultado = {"error": "NOMBRE_NO_VALIDO", "detalle": "El nombre del fichero no vale."}
+        resultado = _error_json("NOMBRE_NO_VALIDO", "El nombre del fichero no vale.")
         codigo = 2
     _escribir_json(resultado)
     return codigo

@@ -247,13 +247,24 @@ def buscar_seccion(secciones: list[dict], clave: int | str) -> dict | None:
 
 
 def ruta_lectura(carpeta: str | Path, fichero: str | Path) -> Path:
-    """Dónde queda la lectura de ``fichero``: ``.tiza/lecturas/<nombre-saneado>.txt``.
+    """Dónde queda la lectura de ``fichero``: ``.tiza/lecturas/<ruta-saneada>.txt``.
 
-    Solo cuenta el nombre del fichero, con su extensión (así ``a.docx`` y ``a.pdf`` no se
-    pisan); se quitan separadores, caracteres de control y ``..``. Dos ficheros con el mismo
-    nombre en carpetas distintas comparten lectura: la última sobrescribe.
+    Se nombra con la ruta del fichero relativa a ``carpeta``, con los separadores cambiados
+    por ``__`` (``1DAM/Prog.docx`` da ``1DAM__Prog.docx.txt``); un fichero en la raíz
+    conserva su nombre. La extensión cuenta (``a.docx`` y ``a.pdf`` no se pisan) y se quitan
+    caracteres de control y ``..``. Un fichero fuera de ``carpeta`` solo aporta su nombre.
     """
-    nombre = Path(str(fichero).replace("\\", "/")).name
-    nombre = "".join(c for c in nombre if c.isprintable() and c not in '<>:"/\\|?*')
-    nombre = nombre.replace("..", "_").strip(". ") or "lectura"
+    ruta = Path(str(fichero).replace("\\", "/"))
+    try:
+        partes = ruta.resolve().relative_to(Path(carpeta).resolve()).parts
+    except (ValueError, OSError, RuntimeError):
+        partes = ()
+    if not partes:
+        partes = (ruta.name,)
+
+    def sanear(parte: str) -> str:
+        parte = "".join(c for c in parte if c.isprintable() and c not in '<>:"/\\|?*')
+        return parte.replace("..", "_").strip(". ")
+
+    nombre = "__".join(p for p in map(sanear, partes) if p) or "lectura"
     return Path(carpeta) / rutas.CARPETA_TRABAJO / CARPETA_LECTURAS / f"{nombre}.txt"
