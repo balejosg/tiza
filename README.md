@@ -41,8 +41,8 @@ programación, sin datos del alumnado.
   de qué competencias específicas, criterios de evaluación y saberes básicos sale
   cada una, citando el documento y el apartado. Antes de escribir nada, te
   pregunta lo que le falta: sesiones, fechas o producto final.
-- *«En la tarea final, pon los criterios que evalúa y una rúbrica con cuatro
-  niveles.»* Tu alumnado ve en el aula qué se le pide y cómo se valora, con el
+- *«En la tarea final, pon los criterios que evalúa y cuatro niveles de
+  logro.»* Tu alumnado ve en el aula qué se le pide y cómo se valora, con el
   lenguaje del currículo traducido a su edad.
 - *«¿Qué criterios de mi programación del primer trimestre aún no tienen ninguna
   actividad en esta carpeta?»* El agente cruza tu programación con lo que ya ha

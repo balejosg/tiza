@@ -50,7 +50,7 @@ trabajo de tu alumnado.
 > | 3 | Fracciones equivalentes y comparación | página | CE 1.1, CE 2.2 | Decreto, anexo II |
 > | 4 | Práctica: completa las frases (numerador, denominador…) | H5P | CE 1.1 | — (práctica sin nota) |
 > | 5 | Comprobación | cuestionario, 10 preguntas | CE 1.1, CE 2.2 | Programación, instrumentos de evaluación |
-> | 6 | Producto final: presupuesto de la compra | tarea con rúbrica | CE 2.2, CE 6.1 | Programación, SA 3 |
+> | 6 | Producto final: presupuesto de la compra | tarea con niveles de logro | CE 2.2, CE 6.1 | Programación, SA 3 |
 > | 7 | Refuerzo y ampliación | 2 H5P opcionales | CE 1.1 | Programación, atención a la diversidad |
 >
 > Cada actividad se abre al completar la anterior. La tarea se abre el 12 de
@@ -58,8 +58,8 @@ trabajo de tu alumnado.
 > sobre todo los códigos de criterio: los he copiado de tus documentos, pero
 > `tiza` no los comprueba. ¿Lo preparo así?
 
-> **Docente:** Sí, pero en la tarea pon la rúbrica en lenguaje para alumnos de
-> 12 años.
+> **Docente:** Sí, pero en la tarea escribe los niveles de logro en lenguaje
+> para alumnos de 12 años.
 
 > **Agente:** Hecho. He escrito los siete ficheros, los he comprobado con
 > `tiza comprobar` y los he publicado en tu curso de pruebas. Tienes el enlace
@@ -96,7 +96,7 @@ publica, en qué cursos y con qué fechas, y confirmas con `s`.
   convierten en actividades de refuerzo o ampliación para quien las necesite,
   nunca en actividades con nombres de alumnos o grupos. Mira
   [Protección de datos](proteccion-de-datos.md).
-- **La rúbrica es texto.** La rúbrica va en la descripción de la tarea para que
-  tu alumnado la lea. `tiza` no configura la calificación avanzada de Moodle.
+- **Los niveles de logro son texto.** Van en la descripción de la tarea para
+  que tu alumnado los lea. `tiza` no configura la evaluación avanzada de Moodle.
 - **Un cuestionario con intentos ya no se cambia.** Revisa bien las respuestas
   correctas en pruebas antes de publicarlo en real.
