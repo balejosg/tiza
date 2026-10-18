@@ -32,6 +32,9 @@ from typing import Any
 from . import comun
 from .extraer_lomloe import escribir_ficha
 
+# Un ancla de fin más corta que esto (un «a.», un «el») casaría en cualquier sitio de la
+# región (la página del requisito y la siguiente) y recortaría el apartado sin avisar.
+MINIMO_ANCLA_FIN = 10
 RUTA_REQUISITOS = Path(__file__).with_name("requisitos.toml")
 TIPO = "requisito_programacion"
 ETAPAS = ("eso", "bachillerato", "fp_gs")
@@ -84,12 +87,18 @@ def extraer_texto(entrada: Entrada, fuente: Fuente) -> str:
         paginas = {l.pagina for l in fuente.lineas}
         if entrada.pagina not in paginas:
             raise ValueError(f"{donde}: la norma no tiene la página {entrada.pagina}")
-        # el apartado puede acabar en la página siguiente
+        # el apartado puede acabar en la página siguiente, y no más allá: el fin tiene que estar
+        # en la página del inicio o en la siguiente
         region = comun.unir(
             l.texto for l in fuente.lineas if l.pagina in (entrada.pagina, entrada.pagina + 1)
         )
     inicio = _una_vez(region, entrada.inicio, donde, "inicio")
     fin = _normal(entrada.fin)
+    if len(fin) < MINIMO_ANCLA_FIN:
+        raise ValueError(
+            f"{donde}: el ancla de fin es demasiado corta (menos de {MINIMO_ANCLA_FIN} "
+            f"caracteres): «{fin}»"
+        )
     ultimo = region.find(fin, max(inicio, inicio + len(_normal(entrada.inicio)) - len(fin)))
     if ultimo < 0:
         antes = region.find(fin)

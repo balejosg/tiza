@@ -328,7 +328,7 @@ def comprobar_datos(
             # el módulo es la propia ficha; los descriptores y los contenidos básicos
             # estatales tienen el prefijo EST.
             if (
-                elemento.codigo != ficha.codigo
+                not (elemento.codigo == ficha.codigo and elemento.tipo == "modulo")
                 and not elemento.codigo.startswith(ficha.codigo + ".")
                 and not elemento.codigo.startswith("EST.")
             ):

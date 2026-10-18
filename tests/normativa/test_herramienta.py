@@ -9,12 +9,15 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import shutil
 from pathlib import Path
 from types import ModuleType
 
 import pytest
 
 from tiza.normativa import Elemento, Procedencia, cargar, limpiar_cache
+
+SINTETICOS = Path(__file__).parent / "datos_sinteticos"
 
 FUENTES = Path(__file__).parents[2] / "herramientas" / "normativa" / "fuentes"
 BOCM = "bocm-20230531-18"
@@ -891,3 +894,72 @@ def test_normas_exigen_una_fecha_de_revision_valida(tmp_path):
     argumentos = ["--revisada", "18/10/2026", "--fuentes", str(fuentes), "--salida", str(tmp_path)]
     with pytest.raises(SystemExit):
         normas.main(argumentos)
+
+
+# --- pendientes de la revisión de la tarea 5 ------------------------------------------
+
+
+def test_normas_orden_cubre_las_claves_que_pasan_al_paquete():
+    comun = herramienta("comun")
+    normas = herramienta("normas")
+    for registro in comun.leer_fuentes().values():
+        assert set(normas.ORDEN) == set(comun.norma_para_el_paquete(registro)) | {"revisada"}
+
+
+def test_textos_de_xml_celdas_con_y_sin_parrafo():
+    comun = herramienta("comun")
+    xml = (
+        "<texto><table><tr>"
+        "<td><p>Con párrafo.</p></td>"
+        "<td>Sin   párrafo.</td>"
+        "<th><p>Otro</p><p>párrafo.</p></th>"
+        "</tr></table><p>Suelto.</p></texto>"
+    )
+    # la celda con <p> sale una sola vez, por su párrafo; la que no lo tiene, por su texto
+    assert comun.textos_de_xml(xml) == [
+        "Con párrafo.",
+        "Sin párrafo.",
+        "Otro",
+        "párrafo.",
+        "Suelto.",
+    ]
+
+
+def test_lomloe_curso_unico_sin_bloques_de_criterios_dice_que_no_los_tiene():
+    texto = DIG_ESO.read_text(encoding="utf-8")
+    sin = "\n".join(l for l in texto.split("\n") if "Criterios de evaluación." not in l)
+    with pytest.raises(ValueError, match="no tiene «Criterios de evaluación.»"):
+        dig_eso(sin)
+
+
+def test_comprobar_solo_exime_del_codigo_de_la_ficha_a_los_modulos(tmp_path):
+    comprobar = herramienta("comprobar")
+
+    def codigos(raiz):
+        return [d.donde for d in comprobar.comprobar_datos(raiz, {}, {}) if d.tipo == "CODIGO"]
+
+    # los datos reales: cada módulo se llama como su ficha y no hay discrepancias
+    limpiar_cache()
+    assert codigos(None) == []
+    # un elemento que no es un módulo y se llama como la ficha, sí
+    destino = tmp_path / "datos"
+    shutil.copytree(SINTETICOS, destino)
+    ruta = destino / "fichas" / "materia_ccomp_1.json"
+    ficha = json.loads(ruta.read_text(encoding="utf-8"))
+    ficha["elementos"].append(
+        {
+            "codigo": ficha["codigo"],
+            "tipo": "competencia_especifica",
+            "texto": "Un elemento con el código de la ficha.",
+            "procedencia": {"norma": "bocm-20250101-1", "ubicacion": "anexo II", "pagina": 12},
+            "orden": 99,
+        }
+    )
+    ruta.write_text(json.dumps(ficha, ensure_ascii=False), encoding="utf-8")
+    limpiar_cache()
+    assert codigos(destino) == [ficha["codigo"]]
+    # y el mismo código como módulo vale
+    ficha["elementos"][-1].update(tipo="modulo", datos={"horas": 50, "curso": "1"})
+    ruta.write_text(json.dumps(ficha, ensure_ascii=False), encoding="utf-8")
+    limpiar_cache()
+    assert codigos(destino) == []

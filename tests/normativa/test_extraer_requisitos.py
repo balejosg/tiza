@@ -310,3 +310,8 @@ def test_requisitos_toml_se_lee_y_sus_fichas_son_las_tres():
     for f in fichas:
         assert f["requisitos"], f["codigo"]
         assert all(r["codigo"].startswith(f["codigo"] + ".") for r in f["requisitos"])
+
+
+def test_un_ancla_de_fin_demasiado_corta_es_error():
+    with pytest.raises(ValueError, match="demasiado corta"):
+        texto(entrada(fin="a."), decreto())

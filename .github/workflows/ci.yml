@@ -47,6 +47,15 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$USERPROFILE/.local/bin:$PATH"
           tiza --help
+      - name: Comprobar que el wheel trae los datos de normativa
+        shell: bash
+        env:
+          PYTHONUTF8: "1"
+        run: |
+          export PATH="$HOME/.local/bin:$USERPROFILE/.local/bin:$PATH"
+          # la salida se guarda antes de buscar en ella: así un fallo de tiza no lo tapa la tubería
+          tiza normativa catalogo > catalogo.txt
+          grep -q "MAD.DAM.0485" catalogo.txt
       - name: Comprobar la ventana de entrada (Windows y macOS)
         if: runner.os != 'Linux'
         shell: bash

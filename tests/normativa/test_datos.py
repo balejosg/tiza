@@ -248,6 +248,26 @@ def test_numero_de_una_resolucion_puede_ser_un_titulo_corto(raiz):
     invalido(raiz, "bocm-20250101-1.json", "numero")
 
 
+def test_numero_basura_de_una_resolucion_se_rechaza(raiz):
+    ruta = "normas/cm-resolucion-3-2025.json"
+    for basura in ("xyz", "", "x/y", "de"):
+        modificar(raiz, ruta, lambda d, basura=basura: d.update(numero=basura))
+        invalido(raiz, "cm-resolucion-3-2025.json", "numero")
+
+
+@pytest.mark.parametrize("invisible", ["\u200b", "\u00ad", "\u202e", "\u2066", "\ufeff", "\x07"])
+def test_rechaza_caracteres_invisibles_en_texto_y_nombre(raiz, invisible):
+    modificar(
+        raiz,
+        FICHA,
+        lambda d: elemento(d, f"{MATERIA}.CE.1").update(texto=f"Entender{invisible} algoritmos"),
+    )
+    invalido(raiz, "materia_ccomp_1.json", "texto", "invisible")
+    modificar(raiz, FICHA, lambda d: elemento(d, f"{MATERIA}.CE.1").update(texto="Entender"))
+    modificar(raiz, FICHA, lambda d: d.update(nombre=f"Ciencias{invisible} de la Computación"))
+    invalido(raiz, "materia_ccomp_1.json", "nombre", "invisible")
+
+
 def test_rechaza_estado_incoherente(raiz):
     modificar(raiz, "normas/boe-a-2020-50.json", lambda d: d.pop("derogada_por"))
     invalido(raiz, "boe-a-2020-50.json", "derogada_por")

@@ -714,6 +714,10 @@ sustituciones = [["Phyton", "Python"], ["Phython", "Python"]]
 # 133-136, 151, 152, 187, 188, 190, 394, 395, 412-414, 435-441) y su «Tres» reescribe
 # CMO-392; su anexo I da el catálogo vigente, de donde salen el curso de los transversales y
 # las horas, que el extractor cruza con las del encabezado de cada módulo.
+#
+# El nombre de CMO-315 sale del anexo II («Arquitectura en la nube»; el catálogo de la
+# Orden 3822/2026 dice «Arquitecturas») y el curso de CMO-002x («2º curso») lo dan los
+# anexos I de la Orden 3536/2025 y de la 3822/2026, no el anexo II que cita la procedencia.
 
 [norma.recuentos."MAD.CMO.001F"]
 resultados = 4

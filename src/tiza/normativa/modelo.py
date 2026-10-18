@@ -39,6 +39,8 @@ ETAPAS = ("eso", "bachillerato", "fp_gs")
 
 # Los datos de cada tipo de elemento son un dict cerrado: aquí, la tabla única de
 # las claves permitidas y del tipo de su valor. Un tipo sin datos propios queda vacío.
+# Un campo ausente significa «sin dato» en el boletín, no cero (los optativos transversales
+# no traen horas): nunca se rellena con un valor inventado.
 DATOS_POR_TIPO: dict[str, dict[str, type]] = {
     "competencia_especifica": {},
     "descriptor": {},

@@ -187,6 +187,13 @@ class _Lector:
             raise self.fallo(campo, "debe ser un texto no vacío, sin espacios sobrantes")
         if unicodedata.normalize("NFC", valor) != valor:
             raise self.fallo(campo, "el texto debe estar en forma NFC")
+        # Cf (cero ancho, guion blando, marcas bidi) y Cc (control): invisibles que
+        # cambiarían lo que se ve sin cambiar lo que se cita.
+        for caracter in valor:
+            if unicodedata.category(caracter) in ("Cf", "Cc"):
+                raise self.fallo(
+                    campo, f"el texto lleva un carácter invisible (U+{ord(caracter):04X})"
+                )
         return valor
 
     def patron(self, valor: Any, campo: str, patron: re.Pattern[str]) -> str:

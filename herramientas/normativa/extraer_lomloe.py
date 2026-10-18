@@ -240,7 +240,10 @@ def extraer_materia(
                 f"«{nombre}»: no marca el curso; si es de un solo curso, pasa --curso-unico"
             )
         seccion = region[fin:]  # una materia de un solo curso: no marca el curso
-        if sum(1 for l in seccion if _CRITERIOS.match(l.texto)) != 1:
+        bloques = sum(1 for l in seccion if _CRITERIOS.match(l.texto))
+        if bloques == 0:
+            raise ValueError(f"«{nombre}»: la materia no tiene «Criterios de evaluación.»")
+        if bloques > 1:
             raise ValueError(
                 f"«{nombre}»: la materia tiene varios bloques de criterios y ninguna marca de curso"
             )
