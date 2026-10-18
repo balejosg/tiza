@@ -15,7 +15,8 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
 1. **Descargar**: `descargar --cache <dir>` baja cada `url_pdf` y comprueba su `sha256`; si
    no coincide, para y no sobrescribe nada. Las normas con `url_api` bajan también su XML
    consolidado. La caché (`<id>.pdf`, `<id>.txt`, `<id>.xml`) **va fuera del repositorio**
-   y **nunca se commitean los PDF**.
+   y **nunca se commitean los PDF**
+   (salvo el PDF mínimo de `fuentes/bocm-20250827-6_cifrado.pdf`, para los tests).
 2. **Normas**: `normas --revisada AAAA-MM-DD [--salida <datos>]` escribe `normas/<id>.json`
    de cada norma de `fuentes.toml` (sin `recuentos` ni `sustituciones`, con la fecha de la
    revisión). Se repite cuando cambia `fuentes.toml`.
@@ -119,6 +120,29 @@ plaza menos desde las comillas, porque esta Arial no trae el espacio duro): á �
 entran los glifos que se compararon con la imagen de la página (`pdftoppm -r 100`); un glifo
 nuevo se añade tras mirar dónde se usa. Otro PDF del BOCM con el mismo problema solo
 necesita la misma línea en `fuentes.toml`, y si su fuente usa más glifos, ampliar la tabla.
+
+## Qué garantiza `comprobar` y qué no
+
+`comprobar` comprueba que el texto de cada elemento aparece **literal** en la página que cita
+(y que recuentos, vigencias y relaciones cuadran). Sirve para cazar una extracción rota, no para
+certificar el boletín. Sus límites:
+
+- **Normaliza antes de comparar**, igual que el extractor: espacios y saltos de línea, NFC (y
+  la marca combinante que repite el acento de su letra), espacios duros, viñetas (guiones,
+  `•`, el glifo de apartado), un `»` de cierre al final de la unidad y los guiones de
+  partición de palabra. El guion
+  a final de línea tiene dos lecturas posibles y `comprobar` acepta las dos (con y sin guion).
+  Consecuencia: un guion real de palabra compuesta que `unir` perdiera al juntar líneas **no
+  lo detectaría**, porque la lectura sin guion también vale.
+- **Las `sustituciones` de `fuentes.toml`** son correcciones de errores oficiales declaradas
+  («Phyton» por «Python»): el texto guardado difiere a propósito de la página y `comprobar`
+  aplica el par a la página antes de comparar. Lo que no está declarado ahí no se perdona.
+- **El descifrado de la Orden 3537/2025** (`cifrado.py`) lo comparten el extractor y
+  `comprobar`: leen el mismo PDF por el mismo descifrado, así que un glifo mal traducido sale
+  igual en los dos y la comparación no lo ve. Su única salvaguarda independiente es la
+  comparación visual del mantenedor con la imagen de la página (`pdftoppm`).
+- **La revisión independiente** es el doble chequeo con otro modelo (tarea 7): `comprobar`
+  no lo sustituye ni lo reduce.
 
 ## Los fragmentos de `fuentes/`
 

@@ -39,7 +39,9 @@ FP, el título y los módulos de Desarrollo de Aplicaciones Multiplataforma (té
 transversales y los optativos del catálogo que caben en él, como `MAD.CMO.316`);
 los descriptores del perfil de salida; y lo que la normativa exige de la programación
 (`tiza normativa programacion eso|bachillerato|fp`). El texto es el literal del
-boletín y cada elemento lleva su código y su procedencia. Lo que no está responde
+boletín, con las correcciones de errores oficiales de su norma ya aplicadas
+(`tiza normativa norma "<cita>"` las lista), y cada elemento lleva su código y su
+procedencia. Lo que no está responde
 `NORMATIVA_SIN_DATOS`; un curso sin datos, `CURSO_SIN_DATOS` (prueba `tiza actualizar`).
 El agente no busca normativa en internet: si necesitas una norma que no está,
 déjale su PDF en la carpeta.
