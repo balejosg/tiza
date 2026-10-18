@@ -155,6 +155,12 @@ MENSAJES: dict[str, str] = {
     "CALENDARIO_INVALIDO": "calendario.toml no se puede usar: no es TOML válido, tiene un campo desconocido, una fecha mal escrita, un día de clase que no existe o pesa más de 64 KB. Corrígelo o bórralo; los documentos se comprueban igual, sin avisos de festivos.",
     "VISIBILIDAD_NO_CONSERVADA": "Al republicar, el aula cambió la visibilidad de la actividad. Revisa en el aula si debe verse y avisa a quien mantiene tiza con este código.",
     "ERROR_CURSOS": "No se pudo leer la lista de tus cursos. Puedes escribir el id del curso; lo ves en su URL: course/view.php?id=1234.",
+    # Lectura de documentos
+    "FORMATO_NO_ADMITIDO": "tiza solo lee documentos .docx. Si es un Word antiguo (.doc) u otro formato, ábrelo en Word o LibreOffice y guárdalo como .docx.",
+    "DOCUMENTO_PROTEGIDO": "El documento está protegido con contraseña. Quítale la contraseña en Word, guarda una copia sin ella y vuelve a intentarlo.",
+    "DOCUMENTO_DEMASIADO_GRANDE": "El documento es demasiado grande para leerlo (más de 30 MB, o mucho más al descomprimirlo). Guarda una copia sin imágenes pesadas y vuelve a intentarlo.",
+    "FICHERO_BLOQUEADO": "El fichero está abierto en otro programa o bloqueado. Ciérralo en Word y repite el comando.",
+    "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
     "UV_NO_ENCONTRADO": "No se encuentra uv. Vuelve a ejecutar el instalador del README.",
