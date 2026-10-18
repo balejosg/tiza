@@ -254,13 +254,18 @@ def test_los_nombres_de_cmo_315_y_316_citan_el_catalogo_vigente_con_el_anexo_ii_
 def test_todo_texto_que_una_norma_posterior_corrige_lleva_via(indice, fuentes):
     # lo que cita una corrección declarada (`correccion_en`) es lo que ésta cambia: el
     # original queda en `via`; y lo que cita la norma original no puede traer ya su error
-    correctoras = {
+    normas_que_corrigen = {
         r["correccion_en"]["norma"]: id_ for id_, r in fuentes.items() if r["correccion_en"]
     }
     for ficha in indice.fichas.values():
         for e in ficha.elementos:
-            if e.procedencia.norma in correctoras and e.procedencia.norma != "bocm-20260925-20":
-                assert [v.norma for v in e.procedencia.via] == [correctoras[e.procedencia.norma]]
+            if (
+                e.procedencia.norma in normas_que_corrigen
+                and e.procedencia.norma != "bocm-20260925-20"
+            ):
+                assert [v.norma for v in e.procedencia.via] == [
+                    normas_que_corrigen[e.procedencia.norma]
+                ]
     for id_, registro in fuentes.items():
         for incorrecto, _ in registro["sustituciones"]:
             for ficha in indice.fichas.values():

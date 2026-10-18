@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.23.0 — 2026-10-18
 
 ### Añadido
 - **`tiza normativa`**: el agente consulta, sin red, la normativa de la Comunidad de Madrid del curso 2026-27 (ESO, Bachillerato y FP de Desarrollo de Aplicaciones Multiplataforma) y lo que exige de la programación, con código, texto literal y procedencia. La skill le obliga a consultarla antes de citar el currículo. Lo que una norma posterior corrige o renombra (p. ej. STEM4, «Arquitecturas en la nube») cita esa norma y deja el original en `via`.
