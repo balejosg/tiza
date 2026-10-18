@@ -12,7 +12,7 @@ from __future__ import annotations
 import io
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -85,7 +85,7 @@ def _plantilla_en_espanol() -> Any:
         for atributo in ("w:val", "w:eastAsia", "w:bidi"):
             if lang.get(qn(atributo)) is not None:
                 lang.set(qn(atributo), IDIOMA)
-    ahora = datetime.now(timezone.utc).replace(microsecond=0)
+    ahora = datetime.now(UTC).replace(microsecond=0)
     propiedades = documento.core_properties
     propiedades.author = "tiza"
     propiedades.last_modified_by = "tiza"

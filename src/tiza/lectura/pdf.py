@@ -22,12 +22,10 @@ MAXIMO_FICHERO = 30 * 1024 * 1024
 MAXIMO_PAGINAS = 400
 
 
-def _fallo(codigo: str, detalle: str = "") -> ErrorLectura:
-    return ErrorLectura(codigo, detalle)
-
-
 def _no_es_pdf() -> ErrorLectura:
-    return _fallo("FORMATO_NO_ADMITIDO", "No se puede leer el PDF: está dañado o no es un PDF.")
+    return ErrorLectura(
+        "FORMATO_NO_ADMITIDO", "No se puede leer el PDF: está dañado o no es un PDF."
+    )
 
 
 def leer_pdf(ruta: Path) -> Lectura:
@@ -36,20 +34,20 @@ def leer_pdf(ruta: Path) -> Lectura:
     try:
         datos = leer_bytes_acotado(ruta, MAXIMO_FICHERO)
     except PermissionError:
-        raise _fallo("FICHERO_BLOQUEADO", "El fichero está abierto o bloqueado.") from None
+        raise ErrorLectura("FICHERO_BLOQUEADO", "El fichero está abierto o bloqueado.") from None
     except FicheroNoSeguro as exc:
         if exc.motivo == "grande":
-            raise _fallo("DOCUMENTO_DEMASIADO_GRANDE", "El fichero pasa de 30 MB.") from None
-        raise _fallo("FORMATO_NO_ADMITIDO", "No es un fichero normal.") from None
+            raise ErrorLectura("DOCUMENTO_DEMASIADO_GRANDE", "El fichero pasa de 30 MB.") from None
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", "No es un fichero normal.") from None
     bloques: list[Bloque] = []
     try:
         lector = PdfReader(io.BytesIO(datos))
         if lector.is_encrypted and not lector.decrypt(""):
-            raise _fallo("PDF_PROTEGIDO", "El PDF está protegido con contraseña.")
+            raise ErrorLectura("PDF_PROTEGIDO", "El PDF está protegido con contraseña.")
         paginas = lector.pages
         total = len(paginas)
         if total > MAXIMO_PAGINAS:
-            raise _fallo(
+            raise ErrorLectura(
                 "DOCUMENTO_DEMASIADO_GRANDE", f"El PDF tiene más de {MAXIMO_PAGINAS} páginas."
             )
         for numero in range(total):
@@ -64,11 +62,13 @@ def leer_pdf(ruta: Path) -> Lectura:
     except ErrorLectura:
         raise
     except DependencyError:  # cifrado AES: pypdf necesitaría cryptography, que no se instala
-        raise _fallo("PDF_PROTEGIDO", "El PDF está cifrado y tiza no puede abrirlo.") from None
+        raise ErrorLectura(
+            "PDF_PROTEGIDO", "El PDF está cifrado y tiza no puede abrirlo."
+        ) from None
     except Exception:  # pypdf lanza errores muy variados con entrada mal formada
         raise _no_es_pdf() from None
     if not bloques:
-        raise _fallo("PDF_SIN_TEXTO", "El PDF no tiene texto: parece un escaneado.")
+        raise ErrorLectura("PDF_SIN_TEXTO", "El PDF no tiene texto: parece un escaneado.")
     return Lectura(
         fichero=ruta.name,
         formato="pdf",

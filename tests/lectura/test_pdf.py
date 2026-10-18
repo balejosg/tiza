@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from pypdf import PdfReader
-from pypdf._page import PageObject
+from pypdf import PageObject, PdfReader
 from pypdf.errors import DependencyError
 
 from lectura import fabrica as f

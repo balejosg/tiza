@@ -31,11 +31,6 @@ _PARTES_XML = ("word/document.xml", "word/numbering.xml", "word/styles.xml")
 _NOMBRE_TITULO = re.compile(r"^(?:heading|t[ií]tulo)\s*([1-9])$", re.IGNORECASE)
 _DESCARTADOS = {"del", "moveFrom"}  # lo borrado con el control de cambios no cuenta
 _CAMBIOS = {"ins", "del", "moveFrom", "moveTo"}
-_FORMATOS_DECIMAL = {"decimal", "decimalZero", "ordinal", "cardinalText", "ordinalText"}
-
-
-def _fallo(codigo: str, detalle: str = "") -> ErrorLectura:
-    return ErrorLectura(codigo, detalle)
 
 
 def _val(elemento: Any, nombre: str) -> str | None:
@@ -383,19 +378,19 @@ class _Lector:
 def _comprobar_zip(datos: bytes) -> None:
     if datos[:4] == _CABECERA_OLE:
         if "EncryptedPackage".encode("utf-16-le") in datos:
-            raise _fallo("DOCUMENTO_PROTEGIDO", "El documento está cifrado con contraseña.")
-        raise _fallo("FORMATO_NO_ADMITIDO", "Es un Word antiguo (.doc), no un .docx.")
+            raise ErrorLectura("DOCUMENTO_PROTEGIDO", "El documento está cifrado con contraseña.")
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", "Es un Word antiguo (.doc), no un .docx.")
     try:
         with zipfile.ZipFile(io.BytesIO(datos)) as zf:
             info = {i.filename: i for i in zf.infolist()}
     except (zipfile.BadZipFile, ValueError, NotImplementedError, OSError):
-        raise _fallo("FORMATO_NO_ADMITIDO", "No es un documento .docx.") from None
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", "No es un documento .docx.") from None
     if "word/document.xml" not in info:
-        raise _fallo("FORMATO_NO_ADMITIDO", "Falta word/document.xml: no es un .docx.")
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", "Falta word/document.xml: no es un .docx.")
     xml = sum(info[n].file_size for n in _PARTES_XML if n in info)
     total = sum(i.file_size for i in info.values())
     if xml > MAXIMO_XML or total > MAXIMO_TOTAL:
-        raise _fallo(
+        raise ErrorLectura(
             "DOCUMENTO_DEMASIADO_GRANDE", "El documento descomprimido es demasiado grande."
         )
 
@@ -407,9 +402,9 @@ def _raiz(datos: bytes, miembro: str) -> Any:
                 return None
             return parse_xml(zf.read(miembro))
     except (zipfile.BadZipFile, ValueError, KeyError):
-        raise _fallo("FORMATO_NO_ADMITIDO", f"No se puede leer {miembro}.") from None
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", f"No se puede leer {miembro}.") from None
     except Exception:
-        raise _fallo("FORMATO_NO_ADMITIDO", f"{miembro} no es XML válido.") from None
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", f"{miembro} no es XML válido.") from None
 
 
 def leer_docx(ruta: Path) -> Lectura:
@@ -418,11 +413,11 @@ def leer_docx(ruta: Path) -> Lectura:
     try:
         datos = leer_bytes_acotado(ruta, MAXIMO_FICHERO)
     except PermissionError:
-        raise _fallo("FICHERO_BLOQUEADO", "El fichero está abierto o bloqueado.") from None
+        raise ErrorLectura("FICHERO_BLOQUEADO", "El fichero está abierto o bloqueado.") from None
     except FicheroNoSeguro as exc:
         if exc.motivo == "grande":
-            raise _fallo("DOCUMENTO_DEMASIADO_GRANDE", "El fichero pasa de 30 MB.") from None
-        raise _fallo("FORMATO_NO_ADMITIDO", "No es un fichero normal.") from None
+            raise ErrorLectura("DOCUMENTO_DEMASIADO_GRANDE", "El fichero pasa de 30 MB.") from None
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", "No es un fichero normal.") from None
     _comprobar_zip(datos)
     try:
         numeracion = _Numeracion.desde(_raiz(datos, "word/numbering.xml"))
@@ -430,13 +425,13 @@ def leer_docx(ruta: Path) -> Lectura:
         try:
             documento = Document(io.BytesIO(datos))
         except Exception:
-            raise _fallo("FORMATO_NO_ADMITIDO", "No se puede abrir el documento.") from None
+            raise ErrorLectura("FORMATO_NO_ADMITIDO", "No se puede abrir el documento.") from None
         lector = _Lector(numeracion, estilos)
         bloques = lector.contenido(documento.element.body, "")
     except ErrorLectura:
         raise
     except Exception:  # XML raro, números que no lo son, recursión: nunca texto de la librería
-        raise _fallo("FORMATO_NO_ADMITIDO", "No se puede interpretar el documento.") from None
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", "No se puede interpretar el documento.") from None
     return Lectura(
         fichero=ruta.name,
         formato="docx",
