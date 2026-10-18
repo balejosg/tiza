@@ -1,0 +1,47 @@
+     BOCM                                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 120                                             VIERNES 15 DE NOVIEMBRE DE 2024                                                       B.O.C.M. Núm. 273
+
+
+           46. Modificación del anexo III del Decreto 3/2011, de 13 de enero, del Consejo de Gobierno,
+               por el que se establece para la Comunidad de Madrid el currículo del ciclo formativo de
+               grado superior correspondiente al título de Técnico Superior en Desarrollo de
+               Aplicaciones Multiplataforma.
+                                                                        ANEXO II
+                                      Organización académica y distribución horaria semanal
+             Familia profesional: INFORMÁTICA Y COMUNICACIONES
+
+             Ciclo Formativo: DESARROLLO DE APLICACIONES MULTIPLATAFORMA
+             Grado: Superior                                                    Duración: 2000 horas           Código: IFCS02
+
+                               MÓDULOS PROFESIONALES
+                                                                                Duración del   Equivalencias    Curso 1º        Curso 2º
+                                                                                 currículo      en créditos      (horas       (horas
+            Código                            Denominación                         (horas)        ECTS         semanales)   semanales)
+
+
+            0484     Bases de datos                                                 205             12             6
+
+            0487     Entornos de desarrollo                                          60             6              2
+            0373     Lenguajes de marcas y sistemas de gestión de información       110             7              3
+            0485     Programación                                                   270             15             8
+            0483     Sistemas informáticos                                          205             11             6
+            CMO      Módulo profesional optativo                                     50              -             2
+            1709     Itinerario personal para la empleabilidad I                    100             5              3
+            0486     Acceso a datos                                                 165             10                             5
+            0488     Desarrollo de interfaces                                       150             10                             5
+            0490     Programación de servicios y procesos                           135             5                              4
+            0489     Programación multimedia y dispositivos móviles                 135             7                              4
+            0491     Sistemas de gestión empresarial                                 95             6                              3
+            0179     Inglés profesional (GS)                                         50             5                              2
+            1710     Itinerario personal para la empleabilidad II                    70             5                              2
+            1665     Digitalización aplicada a los sectores productivos (GS)         30             3                              1
+            1708     Sostenibilidad aplicada al sistema productivo                   30             3                              1
+            CMO      Módulo profesional optativo                                     90             5                              3
+            0492     Proyecto intermodular de desarrollo de aplicaciones             50             5
+                     multiplataforma
+                                      HORAS TOTALES                                 2000                           30             30
+
+
+
+
+                                                                                                                                                               BOCM-20241115-2

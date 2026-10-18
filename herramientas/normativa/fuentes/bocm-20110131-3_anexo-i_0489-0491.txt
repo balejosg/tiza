@@ -1,0 +1,275 @@
+BOCM                       BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 25                             LUNES 31 DE ENERO DE 2011                                     Pág. 87
+
+
+                    Módulo profesional 12: Programación multimedia y dispositivos móviles
+                                               (código: 0489)
+                                          Contenidos (duración: 80 horas)
+                   Análisis de tecnologías para aplicaciones en dispositivos móviles:
+                   — Limitaciones que plantea la ejecución de aplicaciones en los dispositivos móviles:
+                        desconexión, seguridad, memoria, consumo batería, almacenamiento.
+                   — Tecnologías disponibles.
+                   — Entornos integrados de trabajo.
+                   — Módulos para el desarrollo de aplicaciones móviles.
+                   — Emuladores.
+                   — Integración en el entorno de desarrollo.
+                   — Configuraciones. Tipos y características. Dispositivos soportados.
+                   — Perfiles. Características. Arquitectura y requerimientos. Dispositivos soportados.
+                   — Jerarquía de clases del perfil.
+                   — Modelo de estados de una aplicación para dispositivos móviles. Activo, pausa y
+                   — destruido.
+                   — Ciclo de vida de una aplicación: descubrimiento, instalación, ejecución, actualiza-
+                        ción y borrado.
+                   — Modificación de aplicaciones existentes.
+                   — Compilación.
+                   — Utilización del entorno de ejecución del administrador de aplicaciones.
+                   Programación de aplicaciones para dispositivos móviles:
+                   — Herramientas y fases de construcción.
+                   — Desarrollo del código.
+                   — Compilación, preverificación, empaquetado y ejecución.
+                   — Depuración.
+                   — Interfaces de usuario. Clases asociadas.
+                   — Contexto gráfico. Imágenes.
+                   — Eventos del teclado.
+                   — Técnicas de animación y sonido.
+                   — Descubrimiento de servicios.
+                   — Bases de datos y almacenamiento.
+                   — Persistencia.
+                   — Modelo de hilos.
+                   — Comunicaciones: Clases asociadas. Tipos de conexiones.
+                   — Gestión de la comunicación inalámbrica.
+                   — Búsqueda de dispositivos.
+                   — Búsqueda de servicios.
+                   — Establecimiento de la conexión. Cliente y servidor.
+                   — Envío y recepción de mensajes texto. Seguridad y permisos.
+                   — Envío y recepción de mensajería multimedia. Sincronización de contenido. Segu-
+                        ridad y permisos.
+                   — Manejo de conexiones HTTP y HTTPS.
+                   — Complementos de los navegadores para visualizar el aspecto de un sitio web en un
+                        dispositivo móvil.
+                   — Pruebas y documentación.
+                   Utilización de librerías multimedia integradas:
+                   — Conceptos sobre aplicaciones multimedia.
+                   — Arquitectura del API utilizado.
+                   — Descripción e instalación de las librerías multimedia.
+                   — Fuentes de datos multimedia. Clases.
+                                                                                                                     BOCM-20110131-3
+
+
+
+
+                   — Datos basados en el tiempo.
+                   — Clips de audio, secuencias MIDI, clips de vídeo, entre otros.
+                   — Procesamiento de objetos multimedia. Clases. Estados, métodos y eventos.
+                   — Reproducción de objetos multimedia. Clases. Estados, métodos y eventos.
+                   — Protocolo de transmisión en tiempo real RTP.
+                   — Control y monitorización de la transmisión.
+                   — Pruebas y documentación.
+BOCM                  BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 88                                 LUNES 31 DE ENERO DE 2011                                B.O.C.M. Núm. 25
+
+
+              Análisis de motores de juegos:
+              — Conceptos de animación.
+              — Arquitectura del juego. Componentes.
+              — Motores de juegos: tipos y utilización.
+              — Áreas de especialización, librerías utilizadas y lenguajes de programación.
+              — Componentes de un motor de juegos.
+              — Motor gráfico o de renderizado (2D/3D).
+              — Grafo de escena.
+              — Detector de colisiones.
+              — Motor de físicas.
+              — Motor de Inteligencia Artificial.
+              — Motor de Sonidos.
+              — Gestión de Redes.
+              — Librerías que proporcionan las funciones básicas de un Motor 2D/3D.
+              — APIs gráficos 3D.
+              — Ventajas de la utilización de un motor de juegos.
+              — Estudio de juegos existentes.
+              — Aplicación de modificaciones sobre juegos existentes.
+              Desarrollo de juegos 2D y 3D:
+              — Entornos de desarrollo para juegos.
+              — Motores comerciales y Open Source.
+              — Integración del motor de juegos en entornos de desarrollo.
+              — Conceptos avanzados de programación 3D.
+              — Sistemas de coordenadas.
+              — Modelos 3D.
+              — Formas 3D.
+              — Transformaciones. Renderización.
+              — Fases de desarrollo:
+                  Diseño: modelos, escenarios, efectos visuales, edición de sonidos, creación de
+                     la historia, animación, texturización.
+                  Producción con motores de juegos.
+                  Post-producción: optimización y pruebas.
+
+              — Propiedades de los objetos: luz, texturas, reflejos, sombras.
+              — Utilización de shaders. Tipos y funciones.
+              — Aplicación de las funciones del motor gráfico. Renderización.
+              — Aplicación de las funciones del grafo de escena. Tipos de nodos y su utilización.
+              — Análisis de ejecución. Optimización del código.
+
+                 Módulo profesional 13: Sistemas de gestión empresarial (código: 0491)
+                                      Contenidos (duración: 95 horas)
+               Identificación de sistemas ERP-CRM (Enterprise resource planning-Customer rela-
+          tionship management):
+               — Historia evolución de la informática enfocada a la gestión empresarial.
+               — Organización de una empresa. Relaciones externas.
+               — Arquitectura de un sistema ERP-CRM. Arquitectura orientada a servicios (SOA,
+                   Services oriented architecture). Modular, flexible y abierto.
+               — Concepto de ERP (Sistemas de planificación de recursos empresariales).
+               — Principales módulos de un ERP:
+                    Sistemas financieros: contabilidad general, analítica, tesorería, gestión de
+                       acreedores, deudores y activos.
+                    Ventas: gestión de órdenes, pedidos de ventas y clientes.
+                                                                                                                    BOCM-20110131-3
+
+
+
+
+                    Logística: gestión de compras, proveedores y materiales.
+                    Recursos humanos: la gestión de los datos del personal.
+                    Sistemas productivos: gestión del producto/servicio y la planificación necesa-
+                       ria para su aprovisionamiento.
+BOCM                       BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 25                             LUNES 31 DE ENERO DE 2011                                       Pág. 89
+
+
+                   —    Revisión de ERPs actuales. ERPs libres y propietarios.
+                   —    Concepto de CRM (Sistemas de gestión de relaciones con clientes).
+                   —    Revisión de CRMs actuales. CRMs independientes o integrados en ERPs.
+                   —    Características de un ERP-CRM: Integrales, modulares y adaptables.
+                   —    Sistemas operativos libres o propietarios compatibles con el software.
+                   —    Sistemas gestores de bases de datos compatibles con el software.
+                   —    Configuración de la plataforma. Software, hardware y RR HH para la consultoría
+                        e implantación.
+                   — Verificación de la instalación y configuración de los sistemas operativos y de ges-
+                        tión de datos.
+                   Instalación y configuración de sistemas ERP-CRM:
+                   — Modelos de sistemas atendiendo a la adaptabilidad: cerrados, parametrizables y
+                        programables.
+                   — Tipos de licencia.
+                   — Tipos de instalación. Monopuesto. Cliente/servidor.
+                   — Módulos básicos. Funcionalidades operacionales.
+                   — Módulos de un sistema ERP-CRM: descripción, tipología e interconexión entre
+                        módulos.
+                   — Procesos genéricos de instalación del sistema ERP-CRM:
+                         Auditoría inicial: definición de los resultados a obtener con la implantación de
+                           un ERP, definición del modelo de negocio, definición del modelo de gestión,
+                           definición de la estrategia de implantación.
+                         Evaluación de la necesidad de software complementario al producto ERP.
+                         Alineamiento de la estructura y plataformas tecnológicas.
+                         Análisis del cambio organizativo.
+                         Entrega de una visión completa de la solución a implantar.
+                         Implantación del sistema.
+                         Controles de calidad.
+                         Auditoría del entorno técnico y del entorno de desarrollo.
+
+                   — Parámetros de configuración del sistema ERP-CRM: descripción, tipología y uso.
+                   — Actualización del sistema ERP-CRM y aplicación de actualizaciones.
+                   — Servicios de acceso al sistema ERP-CRM: características y parámetros de confi-
+                        guración, instalación.
+                   — Entornos de desarrollo, pruebas y explotación.
+                   Organización y consulta de la información:
+                   — Bases de datos soporte de la información.
+                   — Tablas y vistas de la base de datos.
+                   — Definición de campos.
+                   — Consultas de acceso a datos.
+                   — Interfaces de entrada de datos y de procesos. Formularios.
+                   — Informes y listados de la aplicación.
+                   — Procedimientos almacenados de servidor.
+                   — Cálculos de pedidos, albaranes, facturas, asientos predefinidos, trazabilidad, pro-
+                        ducción, entre otros.
+                   — Búsqueda de información.
+                   — Gráficos.
+                   — Herramientas de monitorización y de evaluación del rendimiento.
+                   — Auditorías de control de acceso a los datos. Trazas del sistema (logs).
+                   — Incidencias: Identificación y resolución.
+                   — Procesos de extracción de datos en sistemas de ERP-CRM y almacenes de datos.
+                   — Exportación de datos.
+                   Implantación de sistemas ERP-CRM en una empresa:
+                                                                                                                       BOCM-20110131-3
+
+
+
+
+                   — Tipos de empresa. Necesidades de la empresa.
+                   — Selección de los módulos del sistema ERP-CRM.
+                   — Tablas y vistas que es preciso adaptar.
+                   — Consultas necesarias para obtener información.
+                   — Creación de formularios personalizados.
+                   — Creación de informes personalizados.
+                   — Cuadro de mando. Creación de gráficos personalizados.
+BOCM              BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 90                             LUNES 31 DE ENERO DE 2011                               B.O.C.M. Núm. 25
+
+
+          Desarrollo de componentes:
+          — Técnicas y estándares.
+          — Especificaciones funcionales para el desarrollo de componentes.
+          — Técnicas de optimización de consultas y acceso a grandes volúmenes de informa-
+             ción.
+          — Lenguaje proporcionado por los sistemas ERP-CRM. Características y sintaxis
+             del lenguaje. Declaración de datos. Estructuras de programación. Sentencias del
+             lenguaje.
+          — Entornos de desarrollo y herramientas de desarrollo en sistemas ERP y CRM.
+          — Inserción, modificación y eliminación de datos en los objetos.
+          — Operaciones de consulta. Herramientas.
+          — Formularios e informes en sistemas ERP-CRM.
+          — Diseño de informes. Elementos principales.
+          — Herramientas para la creación de formularios e informes.
+          — Generación de programas de extracción de datos entre sistemas (batch inputs).
+          — Extracciones de informaciones contenidas en sistemas ERP-CRM, procesamiento
+             de datos.
+          — Llamadas a funciones, librerías de funciones (APIs-Application program interface).
+          — Depuración de un programa.
+          — Manejo de errores.
+
+
+
+
+                                                                                                               BOCM-20110131-3
+BOCM                          BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 25                                    LUNES 31 DE ENERO DE 2011                                                       Pág. 91
+
+
+                                                             ANEXO II
+                          Módulos profesionales incorporados por la Comunidad de Madrid
+
+
+                Módulo profesional 10: INGLÉS TÉCNICO PARA GRADO SUPERIOR (CÓDIGO: CM14)
+
+           Resultados de aprendizaje                                             Criterios de evaluación
+
+  Reconoce información profesional y cotidiana        x Se ha situado el mensaje en su contexto.
+  contenida en discursos orales emitidos por          x Se ha identificado la idea principal del mensaje.
+  cualquier medio de comunicación en lengua
+  estándar, interpretando con precisión el            x Se ha reconocido la finalidad del mensaje directo, telefónico o por otro
+  contenido del mensaje.                                medio auditivo.
+                                                      x Se ha extraído información específica en mensajes relacionados con
+                                                        aspectos habituales de la vida profesional y cotidiana.
+                                                      x Se han secuenciado los elementos constituyentes del mensaje.
+                                                      x Se han identificado las ideas principales de un discurso sobre temas
+                                                        conocidos, transmitidos por los medios de comunicación y emitidos en
+                                                        lengua estándar y articuladas con claridad.
+                                                      x Se han reconocido las instrucciones orales y se han seguido las
+                                                        indicaciones.
+                                                      x Se ha tomado conciencia de la importancia de comprender globalmente
+                                                        un mensaje, sin entender todos y cada uno de los elementos del mismo.
+
+  Interpreta información profesional contenida en     x Se ha leído con un alto grado de independencia, adaptando el estilo y la
+  textos escritos, analizando de forma                  velocidad de la lectura a distintos textos y finalidades y utilizando fuentes
+  comprensiva sus contenidos.                           de referencia apropiadas de forma selectiva.
+                                                      x Se ha interpretado la correspondencia relativa a su especialidad, captando
+                                                        fácilmente el significado esencial.
+                                                      x Se han interpretado textos de relativa complejidad, relacionados o no con
+                                                        su especialidad.
+                                                      x Se ha relacionado el texto con el ámbito del sector a que se refiere.
+                                                      x Se ha identificado el contenido y la importancia de noticias, artículos e
+                                                        informes sobre temas profesionales.
+                                                      x Se han realizado traducciones de textos de relativa complejidad utilizando
+                                                        material de apoyo en caso necesario.
+                                                      x Se han interpretado mensajes técnicos recibidos a través de soportes
+                                                        telemáticos: correo electrónico, fax.
+                                                      x Se han interpretado instrucciones sobre procesos propios de su
+                                                        especialidad.
+                                                                                                                                              BOCM-20110131-3

@@ -1,0 +1,256 @@
+              BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                          Sábado 3 de junio de 2023                              Sec. I. Pág. 79048
+
+
+               Las líneas de actuación en el proceso de enseñanza-aprendizaje que permiten
+           alcanzar los objetivos del módulo están relacionadas con:
+
+               − La identificación del hardware necesario.
+               − El análisis de los cambios y novedades que se producen en los sistemas de
+           gestión empresarial.
+               − La interpretación de documentación técnica.
+               − La instalación y actualización de sistemas ERP-CRM.
+               − La selección e instalación de módulos en función de las necesidades
+           planteadas.
+               − La adaptación de sistemas ERP-CRM a las necesidades de un supuesto
+           planteado.
+               − La verificación de la seguridad de acceso.
+               − La elaboración de documentación técnica.
+               − El desarrollo de nuevos componentes.
+
+              El módulo profesional 0492. Proyecto de desarrollo de aplicaciones
+           multiplataforma queda redactado como sigue:
+
+              Módulo profesional: Proyecto de desarrollo de aplicaciones multiplataforma.
+              Equivalencia en créditos ECTS: 5.
+              Código: 0492.
+
+              Resultados de aprendizaje y criterios de evaluación.
+
+               1. Identifica necesidades del sector      productivo,   relacionándolas   con
+           proyectos tipo que puedan satisfacerlas.
+
+              Criterios de evaluación:
+
+               a) Se han clasificado las empresas del sector por sus características
+           organizativas y el tipo de producto o servicio que ofrecen.
+               b) Se han caracterizado las empresas tipo indicando la estructura
+           organizativa y las funciones de cada departamento.
+               c) Se han identificado las necesidades más demandadas a las empresas.
+               d) Se han valorado las oportunidades de negocio previsibles en el sector.
+               e) Se ha identificado el tipo de proyecto requerido para dar respuesta a las
+           demandas previstas.
+               f) Se han determinado las características específicas del proyecto según los
+           requerimientos.
+               g) Se han determinado las obligaciones fiscales, laborales y de prevención
+           de riesgos y sus condiciones de aplicación.
+               h) Se han identificado posibles ayudas o subvenciones para la incorporación
+           de las nuevas tecnologías de producción o de servicio propuestas.
+               i) Se ha elaborado el guión de trabajo que se va a seguir para la elaboración
+           del proyecto.
+
+                2. Diseña proyectos relacionados con las competencias expresadas en el
+           título, desarrollando explícitamente las fases que lo componen.
+                                                                                                          Verificable en https://www.boe.es
+
+
+
+
+              Criterios de evaluación:
+
+               a) Se ha recopilado información relativa a los aspectos que van a ser
+                                                                                                          cve: BOE-A-2023-13221
+
+
+
+
+           tratados en el proyecto.
+               b) Se ha realizado el estudio de viabilidad técnica del proyecto.
+               c) Se han identificado las fases del proyecto especificando su contenido y
+           plazos de ejecución.
+              BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                          Sábado 3 de junio de 2023                             Sec. I. Pág. 79049
+
+
+               d) Se han establecido los objetivos que se pretenden conseguir identificando
+           su alcance.
+               e) Se han determinado las actividades necesarias para el desarrollo del
+           proyecto.
+               f) Se han previsto los recursos materiales y personales necesarios para
+           realizar el proyecto.
+               g) Se han identificado las necesidades de financiación para la puesta en
+           marcha del proyecto.
+               h) Se ha definido y elaborado la documentación necesaria para su diseño.
+               i) Se han identificado los aspectos que se deben controlar para garantizar la
+           calidad del proyecto.
+
+               3. Planifica la ejecución del proyecto, determinando el plan de intervención y
+           la documentación asociada.
+
+              Criterios de evaluación:
+
+                a) Se han secuenciado las tareas en función de las necesidades de
+           implementación.
+                b) Se han determinado los recursos y la logística necesaria para cada tarea.
+                c) Se han identificado las necesidades de permisos y autorizaciones para
+           llevar a cabo las tareas.
+                d) Se han determinado los procedimientos para ejecución de las tareas.
+                e) Se han identificado los riesgos inherentes a la ejecución del proyecto,
+           definiendo el plan de prevención de riesgos y los medios necesarios.
+                f) Se ha planificado la asignación de recursos materiales y humanos según
+           los tiempos de ejecución.
+                g) Se ha hecho la valoración económica que da respuesta a las condiciones
+           de la ejecución del proyecto.
+                h) Se ha definido y elaborado la documentación necesaria para la ejecución
+           del proyecto.
+
+               4. Define los procedimientos para el seguimiento y control en la ejecución del
+           proyecto, justificando la selección de variables e instrumentos empleados.
+
+              Criterios de evaluación:
+
+               a) Se ha definido el procedimiento de evaluación de las actividades o
+           intervenciones realizadas durante la ejecución del proyecto.
+               b) Se han definido los indicadores de calidad para realizar la evaluación del
+           proyecto.
+               c) Se ha definido el procedimiento para el registro y evaluación de las
+           incidencias que puedan presentarse durante la ejecución del proyecto.
+               d) Se ha definido el procedimiento para la solución de las incidencias
+           registradas.
+               e) Se ha definido el procedimiento para la gestión y registro de los cambios
+           en los recursos y en las tareas.
+               f) Se ha establecido el procedimiento para la participación en la evaluación
+           de los usuarios y se han elaborado documentos específicos.
+               g) Se ha establecido un sistema para garantizar el cumplimiento del pliego de
+                                                                                                         Verificable en https://www.boe.es
+
+
+
+
+           condiciones del proyecto cuando este existe.
+                                                                                                         cve: BOE-A-2023-13221
+               BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                            Sábado 3 de junio de 2023                                 Sec. I. Pág. 79050
+
+
+               Duración: 25 horas.
+
+               Orientaciones pedagógicas.
+
+               Este módulo profesional complementa la formación de otros módulos
+           profesionales en las funciones de análisis del contexto, diseño y organización de la
+           intervención y planificación de la evaluación de la misma.
+
+               La función de análisis del contexto incluye aspectos como:
+
+              − La recopilación de información.
+              − La identificación y priorización de necesidades.
+              − La identificación de los aspectos que facilitan o dificultan el desarrollo de la
+           posible intervención.
+
+               La función de diseño de la intervención incluye aspectos como:
+
+               − La definición o adaptación de la intervención.
+               − La priorización y secuenciación de las acciones.
+               − La planificación de la intervención.
+               − La determinación de recursos.
+               − La planificación de la evaluación.
+               − El diseño de documentación.
+               − El plan de atención al cliente.
+
+               La función de organización de la intervención incluye aspectos como:
+
+               − La detección de demandas y necesidades.
+               − La programación.
+               − La gestión.
+               − La coordinación y supervisión de la intervención.
+               − La elaboración de informes.
+
+               Las actividades profesionales asociadas a esta función se aplican en:
+
+                − Áreas de sistemas y departamentos de informática en cualquier sector de
+           actividad.
+                − Sector de servicios tecnológicos y comunicaciones.
+                − Área comercial con gestión de transacciones por Internet.
+                La formación del módulo contribuye a alcanzar los objetivos generales b), c),
+           e), f), g), l), t) e y) del ciclo formativo y las competencias profesionales, personales
+           y sociales b), c), e), f), g), l), t) e y) del título.
+                Las líneas de actuación en el proceso de enseñanza aprendizaje que permiten
+           alcanzar los objetivos del módulo versarán sobre:
+
+               − La ejecución de trabajos en equipo.
+               − La autoevaluación del trabajo realizado.
+               − La autonomía y la iniciativa.
+               − El uso de las TIC.»
+                                                                                                               Verificable en https://www.boe.es
+                                                                                                               cve: BOE-A-2023-13221
+                     BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                                   Sábado 3 de junio de 2023                              Sec. I. Pág. 79051
+
+
+           Artículo tercero. Actualización del Real Decreto 686/2010, de 20 de mayo, por el que
+               se establece el título de Técnico Superior en Desarrollo de Aplicaciones Web y se
+               fijan sus enseñanzas mínimas.
+
+              El Real Decreto 686/2010, de 20 de mayo, por el que se establece el título de
+           Técnico Superior en Desarrollo de Aplicaciones Web y se fijan sus enseñanzas mínimas
+           se modifica en los siguientes términos:
+
+              Uno.   El artículo 2 queda redactado del siguiente modo:
+
+                 «Artículo 2.   Identificación.
+
+                     El título de Técnico Superior en Desarrollo de Aplicaciones Web queda
+                 identificado por los siguientes elementos:
+
+                     Denominación: Desarrollo de Aplicaciones Web.
+                     Nivel: Formación Profesional de Grado Superior.
+                     Duración: 2000 horas.
+                     Equivalencia en créditos ECTS: 120.
+                     Familia profesional: Informática y Comunicaciones.
+                     Ramas de conocimiento: Ciencias. Ingeniería y Arquitectura.
+                     Referente en la Clasificación Internacional Normalizada de la Educación:
+                 P-5.5.4.
+                     Nivel del Marco Español de Cualificaciones para la Educación Superior: Nivel 1
+                 Técnico Superior.»
+
+              Dos.   El artículo 5 queda redactado como sigue:
+
+                 «Artículo 5.   Competencias profesionales, personales y sociales.
+
+                    Las competencias profesionales, personales y sociales de este título son las
+                 que se relacionan a continuación:
+
+                      a) Configurar y explotar sistemas informáticos, adaptando la configuración
+                 lógica del sistema según las necesidades de uso y los criterios establecidos.
+                      b) Aplicar técnicas y procedimientos relacionados con la seguridad en
+                 sistemas, servicios y aplicaciones, cumpliendo el plan de seguridad.
+                      c) Gestionar servidores en distintos ámbitos de implantación adaptando su
+                 configuración en cada caso para permitir el despliegue de aplicaciones web.
+                      d) Gestionar bases de datos, interpretando su diseño lógico y verificando
+                 integridad, consistencia, seguridad y accesibilidad de los datos.
+                      e) Desarrollar aplicaciones web con acceso a bases de datos utilizando
+                 lenguajes, objetos de acceso y herramientas de mapeo adecuados a las
+                 especificaciones.
+                      f) Integrar contenidos en la lógica de una aplicación web, desarrollando
+                 componentes de acceso a datos adecuados a las especificaciones.
+                      g) Desarrollar interfaces en aplicaciones web de acuerdo con un manual de
+                 estilo, utilizando lenguajes de marcas y estándares web.
+                      h) Desarrollar componentes multimedia para su integración en aplicaciones
+                 web, empleando herramientas específicas y siguiendo las especificaciones
+                                                                                                                   Verificable en https://www.boe.es
+
+
+
+
+                 establecidas.
+                      i) Integrar componentes multimedia en la interface de una aplicación web,
+                                                                                                                   cve: BOE-A-2023-13221
+
+
+
+
+                 realizando el análisis de interactividad, accesibilidad y usabilidad de la aplicación.
+                      j) Desarrollar e integrar componentes software en el entorno del servidor
+                 web, empleando herramientas y lenguajes específicos, para cumplir las
+                 especificaciones de la aplicación.

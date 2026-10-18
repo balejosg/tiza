@@ -23,7 +23,6 @@ __all__ = [
     "lineas_limpias",
     "norma_para_el_paquete",
     "paginas_limpias",
-    "parrafos_de_xml",
     "texto_de_norma",
     "textos_de_xml",
     "unir",
@@ -141,8 +140,9 @@ def unir(lineas: Iterable[str]) -> str:
     """Une líneas de un mismo párrafo: espacios simples, NFC y palabras partidas recompuestas.
 
     Si una línea acaba en letra y guion y la siguiente empieza en minúscula, es una
-    partición de palabra («infor-» «mático»): se junta sin guion. El PDF manda, así que
-    el texto guardado sale de aquí y no se corrige a mano.
+    partición de palabra («infor-» «mático»): se junta sin guion. Si empieza en mayúscula es
+    un compuesto con guion que salta de línea («ERP-» «CRM»): se junta sin espacio y con el
+    guion. El PDF manda, así que el texto guardado sale de aquí y no se corrige a mano.
     """
     texto = ""
     for linea in (l.strip() for l in lineas):
@@ -152,6 +152,8 @@ def unir(lineas: Iterable[str]) -> str:
             texto = linea
         elif re.search(r"[^\W\d_]-$", texto) and linea[:1].islower():
             texto = texto[:-1] + linea
+        elif re.search(r"[^\W\d_]-$", texto) and linea[:1].isupper():
+            texto += linea
         else:
             texto += " " + linea
     return unicodedata.normalize("NFC", " ".join(texto.replace("\xa0", " ").split()))
@@ -181,16 +183,6 @@ def texto_de_norma(cache: Path, id_: str) -> str:
             raise FileNotFoundError(f"no hay {txt.name} ni {pdf.name} en {cache}; ¿descargar.py?")
         txt.write_text(convertir_pdf(pdf), encoding="utf-8")
     return txt.read_text(encoding="utf-8")
-
-
-def parrafos_de_xml(xml: str) -> list[str]:
-    """Los párrafos (``<p>``) de un XML del BOE, en orden y con los espacios normalizados.
-
-    El XML sale de la API de datos abiertos del BOE y lo lee el mantenedor, no un docente.
-    """
-    raiz = ET.fromstring(xml)
-    parrafos = (unir(["".join(p.itertext())]) for p in raiz.iter("p"))
-    return [p for p in parrafos if p]
 
 
 def textos_de_xml(xml: str) -> list[str]:

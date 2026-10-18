@@ -322,6 +322,24 @@ def test_rechaza_codigo_duplicado(raiz):
     invalido(raiz, "MAD.ESO.CCOMP.1.CE.2")
 
 
+def test_un_codigo_puede_llevar_la_enie_de_una_lista_de_letras(raiz):
+    # la competencia «ñ» del título (art. 5 del RD 450/2010): MAD.DAM.CP.ñ
+    modificar(
+        raiz,
+        "fichas/modulo_0485.json",
+        lambda d: elemento(d, "MAD.DAM.0485.RA.1").update(codigo="MAD.DAM.0485.RA.1.ñ"),
+    )
+    limpiar_cache()
+    assert "MAD.DAM.0485.RA.1.ñ" in cargar(raiz).elementos
+    # y una letra cualquiera fuera del alfabeto de las listas, no
+    modificar(
+        raiz,
+        "fichas/modulo_0485.json",
+        lambda d: elemento(d, "MAD.DAM.0485.RA.1.ñ").update(codigo="MAD.DAM.0485.RA.1.ç"),
+    )
+    invalido(raiz, "MAD.DAM.0485.RA.1.ç", "formato no válido")
+
+
 def test_rechaza_codigo_duplicado_entre_fichas(raiz):
     modificar(
         raiz,

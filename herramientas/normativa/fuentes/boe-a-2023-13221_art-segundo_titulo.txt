@@ -1,0 +1,345 @@
+                     BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                                  Sábado 3 de junio de 2023                            Sec. I. Pág. 79002
+
+
+           Superior en Desarrollo de Aplicaciones Multiplataforma y se fijan sus enseñanzas
+           mínimas.
+              2. Técnico Superior en Desarrollo de Aplicaciones Web, establecido por Real
+           Decreto 686/2010, de 20 de mayo, por el que se establece el título de Técnico Superior
+           en Desarrollo de Aplicaciones Web y se fijan sus enseñanzas mínimas.
+
+           Artículo segundo. Actualización del Real Decreto 450/2010, de 16 de abril, por el que
+               se establece el título de Técnico Superior en Desarrollo de Aplicaciones
+               Multiplataforma y se fijan sus enseñanzas mínimas.
+
+              El Real Decreto 450/2010, de 16 de abril, por el que se establece el título de Técnico
+           Superior en Desarrollo de Aplicaciones Multiplataforma y se fijan sus enseñanzas
+           mínimas se modifica en los siguientes términos:
+
+              Uno.   El artículo 2 queda redactado del siguiente modo:
+
+                 «Artículo 2. Identificación.
+
+                    El título de Técnico Superior en Desarrollo de Aplicaciones Multiplataforma
+                 queda identificado por los siguientes elementos:
+
+                     Denominación: Desarrollo de Aplicaciones Multiplataforma.
+                     Nivel: Formación Profesional de Grado Superior.
+                     Duración: 2000 horas.
+                     Equivalencia en créditos ECTS: 120.
+                     Familia profesional: Informática y Comunicaciones.
+                     Ramas de conocimiento: Ciencias. Ingeniería y Arquitectura.
+                     Referente en la Clasificación Internacional Normalizada de la Educación:
+                 P-5.5.4.
+                     Nivel del Marco Español de Cualificaciones para la Educación Superior: Nivel 1
+                 Técnico Superior.»
+
+              Dos.   El artículo 5 queda redactado como sigue:
+
+                 «Artículo 5.   Competencias profesionales, personales y sociales.
+
+                    Las competencias profesionales, personales y sociales de este título son las
+                 que se relacionan a continuación:
+
+                      a) Configurar y explotar sistemas informáticos, adaptando la configuración
+                 lógica del sistema según las necesidades de uso y los criterios establecidos.
+                      b) Aplicar técnicas y procedimientos relacionados con la seguridad en
+                 sistemas, servicios y aplicaciones, cumpliendo el plan de seguridad.
+                      c) Gestionar bases de datos, interpretando su diseño lógico y verificando
+                 integridad, consistencia, seguridad y accesibilidad de los datos.
+                      d) Gestionar entornos de desarrollo adaptando su configuración en cada
+                 caso para permitir el desarrollo y despliegue de aplicaciones.
+                      e) Desarrollar aplicaciones multiplataforma con acceso a bases de datos
+                 utilizando lenguajes, librerías y herramientas adecuados a las especificaciones.
+                      f) Desarrollar aplicaciones implementando un sistema completo de
+                                                                                                                Verificable en https://www.boe.es
+
+
+
+
+                 formularios e informes que permitan gestionar de forma integral la información
+                 almacenada.
+                                                                                                                cve: BOE-A-2023-13221
+
+
+
+
+                      g) Integrar contenidos gráficos y componentes multimedia en aplicaciones
+                 multiplataforma, empleando herramientas específicas y cumpliendo los
+                 requerimientos establecidos.
+                   BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                               Sábado 3 de junio de 2023                            Sec. I. Pág. 79003
+
+
+                  h) Desarrollar interfaces gráficos de usuario interactivos y con la usabilidad
+             adecuada, empleando componentes visuales estándar o implementando
+             componentes visuales específicos.
+                  i) Participar en el desarrollo de juegos y aplicaciones en el ámbito del
+             entretenimiento y la educación empleando técnicas, motores y entornos de
+             desarrollo específicos.
+                  j) Desarrollar aplicaciones para teléfonos móviles, tabletas y otros
+             dispositivos inteligentes empleando técnicas y entornos de desarrollo específicos.
+                  k) Crear ayudas generales y sensibles al contexto, empleando herramientas
+             específicas e integrándolas en sus correspondientes aplicaciones.
+                  l) Crear tutoriales, manuales de usuario, de instalación, de configuración y de
+             administración, empleando herramientas específicas.
+                  m) Empaquetar aplicaciones para su distribución preparando paquetes auto
+             instalables con asistentes incorporados.
+                  n) Desarrollar aplicaciones multiproceso y multihilo empleando librerías y
+             técnicas de programación específicas.
+                  ñ) Desarrollar aplicaciones capaces de ofrecer servicios en red empleando
+             mecanismos de comunicación.
+                  o) Participar en la implantación de sistemas ERP-CRM evaluando la utilidad
+             de cada uno de sus módulos.
+                  p) Gestionar la información almacenada en sistemas ERP-CRM garantizando
+             su integridad.
+                  q) Desarrollar componentes personalizados para un sistema ERP-CRM
+             atendiendo a los requerimientos.
+                  r) Realizar planes de pruebas verificando el funcionamiento de los
+             componentes software desarrollados, según las especificaciones.
+                  s) Desplegar y distribuir aplicaciones en distintos ámbitos de implantación
+             verificando su comportamiento y realizando las modificaciones necesarias.
+                  t) Establecer vidas eficaces de relación profesional y comunicación con sus
+             superiores, compañeros y subordinados, respetando la autonomía y competencias
+             de las distintas personas.
+                  u) Liderar situaciones colectivas que se puedan producir, mediando en
+             conflictos personales y laborales, contribuyendo al establecimiento de un ambiente
+             de trabajo agradable, actuando en todo momento de forma respetuosa y tolerante.
+                  v) Gestionar su carrera profesional, analizando las oportunidades de empleo,
+             autoempleo y de aprendizaje.
+                  w) Mantener el espíritu de innovación y actualización en el ámbito de su
+             trabajo para adaptarse a los cambios tecnológicos y organizativos de su entorno
+             profesional.
+                  x) Crear y gestionar una pequeña empresa, realizando un estudio de
+             viabilidad de productos, de planificación de la producción y de comercialización.
+                  y) Participar de forma activa en la vida económica, social y cultural, con una
+             actitud crítica y responsable.»
+
+           Tres.   El artículo 6 queda redactado como sigue:
+
+             «Artículo 6. Relación de cualificaciones y unidades de competencia del Catálogo
+                 Nacional de Cualificaciones Profesionales incluidas en el título.
+                                                                                                             Verificable en https://www.boe.es
+
+
+
+
+                   1.   Cualificaciones profesionales completas:
+                                                                                                             cve: BOE-A-2023-13221
+
+
+
+
+                a) Programación en lenguajes estructurados de aplicaciones de gestión
+             IFC155_3 (Real Decreto 1087/2005, de 16 de septiembre, modificada por Orden
+             PRE/1636/2015, de 23 de julio, actualizada por Orden PCI/479/2019, de 12 de
+                 BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                               Sábado 3 de junio de 2023                            Sec. I. Pág. 79004
+
+
+             abril, modificada por Real Decreto 150/2022, de 22 de febrero), que comprende
+             las siguientes unidades de competencia:
+
+                 UC0223_3: Configurar y explotar sistemas informáticos.
+                 UC0226_3: Programar bases de datos relacionales.
+                 UC0494_3: Desarrollar componentes software en lenguajes de programación
+             estructurada.
+
+                 b) Programación con lenguajes orientados a objetos y bases de datos
+             relacionales IFC080_3 (Real Decreto 295/2004, de 20 de febrero, modificada
+             parcialmente por Orden PRE/1636/2015, de 23 de julio, modificada parcialmente
+             por Orden PCI/479/2019, de 12 de abril, actualizada por Orden EFP/1208/2021,
+             de 2 de noviembre, modificada parcialmente por Real Decreto 150/2022, de 22 de
+             febrero), que comprende las siguientes unidades de competencia:
+
+                 UC0223_3: Configurar y explotar sistemas informáticos.
+                 UC0226_3: Programar bases de datos relacionales.
+                 UC0227_3: Desarrollar componentes software en lenguajes de programación
+             orientados a objetos.
+
+                 2.   Cualificaciones profesionales incompletas:
+
+                 a) Administración y programación en sistemas de planificación de recursos
+             empresariales y de gestión de relaciones con clientes IFC363_3 (Real
+             Decreto 1701/2007, de 14 de diciembre, actualizada por Orden PRE/1636/2015,
+             de 23 de julio):
+
+                UC1213_3: Instalar y configurar sistemas de planificación de recursos
+             empresariales y de gestión de relaciones con clientes.
+
+                 b) Programación         de    sistemas     informáticos    IFC303_3 (Real
+             Decreto 1201/2007, de 14 de septiembre, actualizada por orden PRE/1636/2015,
+             de 23 de julio, actualizada por Real Decreto 616/2020, de 30 de junio):
+
+                 UC0964_3: Crear elementos software para la gestión del sistema y sus
+             recursos.»
+
+           Cuatro.    El artículo 8 queda redactado como sigue:
+
+             «Artículo 8.   Prospectiva del título en el sector o sectores.
+
+                 Las administraciones educativas tendrán en cuenta, al desarrollar el currículo
+             correspondiente, las siguientes consideraciones:
+
+                  a) Dirigirnos hacia una sociedad del conocimiento, en la que el recurso
+             básico es el saber, y donde la voluntad de aplicar conocimiento se dirige a generar
+             más conocimiento, obliga a realizar un elevado esfuerzo de sistematización y
+             organización de la información, y poder compartir esta de forma adecuada.
+                  b) En esta línea, el desarrollo de plataformas multidisciplinares adquiere cada
+             vez más importancia, y en estas plataformas el modelo para compartir y organizar
+             la información contenida de forma segura es fundamental.
+                                                                                                             Verificable en https://www.boe.es
+
+
+
+
+                  c) Cada vez es más necesario para las empresas el acceso a información
+             contenida en bases de datos mediante aplicaciones que, además, permitan
+                                                                                                             cve: BOE-A-2023-13221
+
+
+
+
+             gestionar de forma integral la información almacenada.
+                  d) La formación adquiere cada vez más importancia en sociedades altamente
+             desarrolladas, y los rápidos avances y cambios tecnológicos del sector hacen que
+             se demanden profesionales con una actitud favorable hacia la autoformación.
+                  e) Una característica fundamental de este perfil contemplaría la integración
+             de contenidos gráficos y componentes multimedia en aplicaciones desarrolladas
+                    BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                                Sábado 3 de junio de 2023                          Sec. I. Pág. 79005
+
+
+             en diferentes plataformas, así como el desarrollo de interfaces gráficos de usuario
+             interactivos.
+                 f) Igualmente, en el desarrollo de aplicaciones no debe olvidarse la
+             importancia que ha adquirido, y que aumenta constantemente, el concepto de
+             usabilidad, y que fomenta el empleo adecuado de los componentes visuales.
+                 g) El perfil profesional de este título evoluciona hacia una mayor integración
+             de los sistemas de gestión e intercambio de información basados en diferentes
+             plataformas y tecnologías, siendo preciso que cada vez sean más estables y
+             seguros.
+                 h) Otra característica cada vez más importante para este perfil se basa en
+             asegurar la integridad, consistencia y accesibilidad de los datos.
+                 i) Asegurar la funcionalidad y rentabilidad del sistema informático, sirviendo
+             de apoyo al resto de departamentos de una organización, es un aspecto cada vez
+             más relevante para este perfil profesional.
+                 j) Las tareas de tratamiento y transferencia de datos e información deberán
+             realizarse conforme a la normativa legal que regula tales aspectos.
+                 k) La tele-operación, asistencia técnica remota y asistencia «on line» se
+             configuran como un elemento imprescindible en la respuesta a la demanda de
+             asistencia técnica.
+                 l) El consumo generalizado de dispositivos inteligentes, el auge de la
+             inteligencia artificial (IA) y la realidad aumentada (RA) con la consiguiente
+             demanda de soluciones específicas, implica la necesaria reorientación de los
+             desarrolladores hacia las nuevas tendencias tecnológicas y la adaptación a
+             técnicas y entornos de desarrollo muy especializados.
+                 m) De la misma forma, el consumo de aplicaciones para el entretenimiento y
+             toda la cultura dirigida hacia el ocio electrónico, hace necesario el empleo de
+             técnicas y entornos de desarrollo muy especializados y específicos.»
+
+           Cinco.     El artículo 9 queda redactado como sigue:
+
+             «Artículo 9.    Objetivos generales.
+
+                    Los objetivos generales de este ciclo formativo son los siguientes:
+
+                  a) Ajustar la configuración lógica del sistema analizando las necesidades y
+             criterios establecidos para configurar y explotar sistemas informáticos.
+                  b) Identificar las necesidades de seguridad analizando vulnerabilidades y
+             verificando el plan preestablecido para aplicar técnicas y procedimientos
+             relacionados con la seguridad en el sistema.
+                  c) Interpretar el diseño lógico de bases de datos, analizando y cumpliendo
+             las especificaciones relativas a su aplicación, para gestionar bases de datos.
+                  d) Instalar y configurar módulos y complementos, evaluando su
+             funcionalidad, para gestionar entornos de desarrollo.
+                  e) Seleccionar y emplear lenguajes, herramientas y librerías, interpretando
+             las especificaciones para desarrollar aplicaciones multiplataforma con acceso a
+             bases de datos.
+                  f) Gestionar la información almacenada, planificando e implementando
+             sistemas de formularios e informes para desarrollar aplicaciones de gestión.
+                  g) Seleccionar y utilizar herramientas específicas, lenguajes y librerías,
+                                                                                                            Verificable en https://www.boe.es
+
+
+
+
+             evaluando sus posibilidades y siguiendo un manual de estilo, para manipular e
+             integrar en aplicaciones multiplataforma contenidos gráficos y componentes
+                                                                                                            cve: BOE-A-2023-13221
+
+
+
+
+             multimedia.
+                  h) Emplear herramientas de desarrollo, lenguajes y componentes visuales,
+             siguiendo las especificaciones y verificando interactividad y usabilidad, para
+             desarrollar interfaces gráficos de usuario en aplicaciones multiplataforma.
+                   BOLETÍN OFICIAL DEL ESTADO
+Núm. 132                               Sábado 3 de junio de 2023                              Sec. I. Pág. 79006
+
+
+                  i) Seleccionar y emplear técnicas, motores y entornos de desarrollo,
+             evaluando sus posibilidades, para participar en el desarrollo de juegos y
+             aplicaciones en el ámbito del entretenimiento.
+                  j) Seleccionar y emplear técnicas, lenguajes y entornos de desarrollo,
+             evaluando sus posibilidades, para desarrollar aplicaciones en teléfonos móviles,
+             tabletas y otros dispositivos inteligentes.
+                  k) Valorar y emplear herramientas específicas, atendiendo a la estructura de
+             los contenidos, para crear ayudas generales y sensibles al contexto.
+                  l) Valorar y emplear herramientas específicas, atendiendo a la estructura de
+             los contenidos, para crear tutoriales, manuales de usuario y otros documentos
+             asociados a una aplicación.
+                  m) Seleccionar y emplear técnicas y herramientas, evaluando la utilidad de
+             los asistentes de instalación generados, para empaquetar aplicaciones.
+                  n) Analizar y aplicar técnicas y librerías específicas, simulando diferentes
+             escenarios, para desarrollar aplicaciones capaces de ofrecer servicios en red.
+                  ñ) Analizar y aplicar técnicas y librerías de programación, evaluando su
+             funcionalidad para desarrollar aplicaciones multiproceso y multihilo.
+                  o) Reconocer la estructura de los sistemas ERP-CRM, identificando la
+             utilidad de cada uno de sus módulos, para participar en su implantación.
+                  p) Realizar consultas, analizando y evaluando su alcance, para gestionar la
+             información almacenada en sistemas ERP-CRM.
+                  q) Seleccionar y emplear lenguajes y herramientas, atendiendo a los
+             requerimientos, para desarrollar componentes personalizados en sistemas ERP-
+             CRM.
+                  r) Verificar los componentes software desarrollados, analizando las
+             especificaciones, para completar un plan de pruebas.
+                  s) Establecer procedimientos, verificando su funcionalidad, para desplegar y
+             distribuir aplicaciones.
+                  t) Describir los roles de cada uno de los componentes del grupo de trabajo,
+             identificando en cada caso la responsabilidad asociada, para establecer las
+             relaciones profesionales más convenientes.
+                  u) Identificar formas de intervención ante conflictos de tipo personal y laboral,
+             teniendo en cuenta las decisiones más convenientes, para garantizar un entorno
+             de trabajo satisfactorio.
+                  v) Identificar y valorar las oportunidades de promoción profesional y de
+             aprendizaje, analizando el contexto del sector, para elegir el itinerario laboral y
+             formativo más conveniente.
+                  w) Identificar los cambios tecnológicos, organizativos, económicos y
+             laborales en su actividad, analizando sus implicaciones en el ámbito de trabajo,
+             para mantener el espíritu de innovación.
+                  x) Reconocer las oportunidades de negocio, identificando y analizando
+             demandas del mercado para crear y gestionar una pequeña empresa.
+                  y) Reconocer sus derechos y deberes como agente activo en la sociedad,
+             analizando el marco legal que regula las condiciones sociales y laborales para
+             participar como ciudadano democrático.»
+
+           Seis.   Se modifica el anexo I en los siguientes términos:
+                                                                                                               Verificable en https://www.boe.es
+
+
+
+
+                                                   «ANEXO I
+                                                                                                               cve: BOE-A-2023-13221
+
+
+
+
+                                            Módulos Profesionales
+
+                   El módulo profesional 0483. Sistemas informáticos queda redactado como sigue:
+
+                   Módulo Profesional: Sistemas informáticos.
+                   Equivalencia en créditos ECTS: 10.

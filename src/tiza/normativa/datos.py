@@ -50,7 +50,7 @@ _DOMINIOS = frozenset({"www.boe.es", "www.bocm.es"})
 _DOMINIO_COMUNIDAD = "www.comunidad.madrid"  # solo para las normas con boletín CM
 _ID_NORMA = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _FRAGMENTO = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
-_CODIGO = re.compile(r"[A-Z][A-Z0-9]*(?:\.[A-Za-z0-9]+)*")
+_CODIGO = re.compile(r"[A-Z][A-Z0-9]*(?:\.[A-Za-z0-9ñ]+)*")  # la ñ: letra de una lista (CP.ñ)
 _RELACION = re.compile(r"[a-z][a-z_]*")
 _NUMERO = re.compile(r"[0-9A-Za-z.-]+/\d{4}")
 # Una corrección de errores se numera por la norma que corrige («del Decreto 27/2025») y una

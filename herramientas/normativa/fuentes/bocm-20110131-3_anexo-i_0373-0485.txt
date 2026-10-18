@@ -1,0 +1,333 @@
+BOCM                       BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 25                             LUNES 31 DE ENERO DE 2011                                      Pág. 73
+
+
+                   — Determinación de los posibles daños a la salud del trabajador que pueden derivar-
+                       se de las situaciones de riesgo detectadas: accidentes de trabajo, enfermedades
+                       profesionales, otras patologías derivadas del trabajo.
+                   — Marco normativo básico de la prevención: derechos y deberes en materia de pre-
+                       vención de riesgos laborales.
+                   — Principios y técnicas de prevención de riesgos laborales.
+                   — Responsabilidades y sanciones.
+                   Evaluación de riesgos profesionales: riesgos generales y riesgos específicos:
+                   — La evaluación de riesgos en la empresa como elemento básico de la actividad pre-
+                       ventiva.
+                   — Los riesgos generales:
+                        Análisis de riesgos ligados a las condiciones de seguridad.
+                        Análisis de riesgos ligados a las condiciones ambientales.
+                        Análisis de riesgos ligados a las condiciones ergonómicas y psico-sociales.
+
+                   — Los riesgos específicos:
+                        Riesgos específicos en el sector profesional en el que se ubica el título.
+                        Consideración de los posibles daños a la salud del trabajador que pueden deri-
+                           varse de los riesgos específicos del sector profesional.
+                   Aplicación de medidas de prevención y protección en la empresa:
+                   — Aplicación de las medidas de prevención.
+                   — Medidas de protección:
+                        Medidas de protección colectiva. La señalización de seguridad.
+                        Medidas de protección individual. Los equipos de protección individual.
+                        Especial protección a colectivos específicos: maternidad, lactancia, trabajado-
+                           res de una empresa de trabajo temporal, trabajadores temporales.
+                   Planificación de la prevención de riesgos en la empresa:
+                   — El Plan de prevención de riesgos laborales:
+                        Evaluación de riesgos.
+                        Organización y planificación de la prevención en la empresa:
+
+                           – El control de la salud de los trabajadores.
+                           – El Plan de autoprotección: plan de emergencia y de evacuación en entornos
+                              de trabajo.
+                           – Elaboración de un plan de emergencia en una pyme.
+                           – Protocolo de actuación ante una situación de emergencia.
+                   — Elementos básicos de la gestión de la prevención en la empresa:
+                        La gestión de la prevención en la empresa: definición conceptual.
+                        Organismos públicos relacionados con la prevención de riesgos laborales.
+                        Representación de los trabajadores en materia preventiva.
+                        Funciones del prevencionista de nivel básico.
+
+                   Primeros auxilios:
+                   — Urgencia médica y primeros auxilios: conceptos básicos.
+                   — Clasificación de los heridos según su gravedad.
+                   — Aplicación de las técnicas de primeros auxilios según el tipo de lesión del acciden-
+                       tado.
+
+               Módulo profesional 04: Lenguajes de marcas y sistemas de gestión de información
+                                               (código: 0373)
+                                          Contenidos (duración 140 horas)
+                                                                                                                      BOCM-20110131-3
+
+
+
+
+                   Reconocimiento de las características de lenguajes de marcas:
+                   — Conceptos.
+                   — Etiquetas, elementos, atributos.
+                   — Orígenes. SGML (Standard Generalized Markup Language).
+                   — Organizaciones desarrolladoras: ISO (International Standard Organization), W3C
+                      (World Wide Web Consortium).
+BOCM             BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 74                           LUNES 31 DE ENERO DE 2011                            B.O.C.M. Núm. 25
+
+
+          — Clasificación.
+          — Utilización de lenguajes de marcas en entornos web.
+          — Gramáticas.
+          Lenguajes para la visualización de información:
+          — Modelo de objetos del documento DOM (Document Object Model).
+          — Identificación de etiquetas y atributos de HTML (Hyper Text Markup Language).
+          — Estructura de documentos HTML. Partes del documento.
+          — Etiquetas de contenido: títulos, párrafos, listas.
+          — Elementos de formulario: campos de texto, botones, desplegables.
+          — Otros elementos de formato y agrupamiento: tablas, marcos, capas
+          — XHTML (eXtended HTML): diferencias sintácticas y estructurales con HTML.
+          — Versiones de HTML y XHTML.
+          — Herramientas de diseño web.
+          — Hojas de estilo en cascada. CSS (Cascading Style Sheets):
+               Selectores.
+               Diferentes tipos de elementos. Atributos.
+
+          Lenguajes para el almacenamiento y transmisión de información:
+          — Tipos de lenguajes:
+               De marcas: XML (eXtended Markup Language).
+               De listas: JSON (JavaScript Object Notation).
+
+          — XML: Estructura y sintaxis.
+          — Etiquetas.
+          — Herramientas de edición.
+          — Elaboración de documentos XML bien formados:
+               Definición de tipo de documento (DTD, Document Type Definition).
+               Esquema XML (XSD, XML Schema Definition).
+
+          — Utilización de espacios de nombres en XML.
+          Definición de esquemas y vocabularios en XML:
+          — Utilización de métodos de definición de documentos XML.
+          — Creación de descripciones.
+          — Asociación con documentos XML.
+          — Validación.
+          — Herramientas de creación y validación.
+          — Documentación de especificaciones.
+          Conversión y adaptación de documentos XML:
+          — Técnicas de transformación de documentos XML.
+          — Lenguajes de transformaciones.
+          — Formatos de salida: HTML, XML, PDF (Portable Document Format), texto.
+          — Descripción de la estructura y de la sintaxis.
+          — Utilización de plantillas.
+          — Utilización de herramientas de procesamiento:
+               DOM.
+               SAX (Simple Application programming interface for XML).
+
+          — Elaboración de documentación.
+          Almacenamiento de información:
+          — Sistemas de almacenamiento de información.
+          — Manipulación de información en documentos XML: inserción y extracción.
+          — Técnicas de búsqueda de información en documentos XML.
+                                                                                                          BOCM-20110131-3
+
+
+
+
+          — Lenguajes de consulta y manipulación.
+          — Almacenamiento XML nativo.
+          — Herramientas de tratamiento y almacenamiento de información en formato XML.
+          Aplicación de los lenguajes de marcas a la sindicación de contenidos:
+          — Descripción y características de la sindicación de contenidos.
+          — Estándares y formatos de redifusión. RSS (Really Simple Syndication), Atom.
+BOCM                      BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 25                            LUNES 31 DE ENERO DE 2011                                   Pág. 75
+
+
+                   — Ámbitos de aplicación.
+                   — Estructura de los canales de contenidos.
+                   — Tecnologías de creación de canales de contenidos.
+                   — Validación.
+                   — Directorios de canales de contenidos.
+                   — Agregación.
+                   — Utilización de herramientas.
+                   Sistemas de gestión empresarial:
+                   — Conceptos generales de ERP (Enterprise Resource Planning).
+                   — Instalación.
+                   — Identificación de flujos de información.
+                   — Adaptación y configuración. Programación.
+                   — Seguridad.
+                   — Integración de módulos.
+                   — Diseño de formularios.
+                   — Elaboración de informes.
+                   — Integración con aplicaciones informáticas.
+                   — Exportación de información.
+                   — Gestores de relaciones con clientes CRM (Customer Relationship Management).
+
+                              Módulo profesional 05: Programación (código: 0485)
+                                         Contenidos (duración 270 horas)
+                   Introducción a la programación:
+                   — Datos, algoritmos y programas.
+                   — Paradigmas de programación.
+                   — Lenguajes de programación.
+                   — Herramientas y entornos para el desarrollo de programas.
+                   — Errores y calidad de los programas.
+                   Introducción a la orientación a objetos:
+                   — Clases. Atributos, métodos y visibilidad
+                   — Objetos. Estado, comportamiento e identidad. Mensajes.
+                   — Encapsulado. Visibilidad.
+                   — Relaciones entre clases.
+                   — Principios básicos de la orientación a objetos.
+                   Identificación de los elementos de un programa informático:
+                   — Estructura y bloques fundamentales.
+                   — Identificadores.
+                   — Palabras reservadas.
+                   — Variables. Declaración, inicialización y utilización. Almacenamiento en memoria.
+                   — Tipos de datos.
+                   — Literales.
+                   — Constantes.
+                   — Operadores y expresiones. Precedencia de operadores
+                   — Conversiones de tipo. Implícitas y explicitas (casting).
+                   — Comentarios.
+                   Utilización de objetos:
+                   — Características de los objetos.
+                   — Constructores.
+                   — Instanciación de objetos. Declaración y creación.
+                   — Utilización de métodos. Parámetros y valores de retorno.
+                                                                                                                  BOCM-20110131-3
+
+
+
+
+                   — Utilización de propiedades.
+                   — Utilización de métodos estáticos.
+                   — Almacenamiento en memoria. Tipos básicos vs objetos.
+                   — Destrucción de objetos y liberación de memoria.
+                   Uso de estructuras de control:
+                   — Estructuras de selección.
+BOCM             BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 76                            LUNES 31 DE ENERO DE 2011                             B.O.C.M. Núm. 25
+
+
+          — Estructuras de repetición.
+          — Estructuras de salto.
+          Desarrollo de clases:
+          — Concepto de clase.
+          — Estructura y miembros de una clase.
+          — Creación de atributos. Declaración e inicialización.
+          — Creación de métodos. Declaración, argumentos y valores de retorno.
+          — Creación de constructores.
+          — Ámbito de atributos y variables.
+          — Sobrecarga de métodos.
+          — Visibilidad. Modificadores de clase, de atributos y de métodos.
+          — Paso de parámetros. Paso por valor y paso por referencia.
+          — Utilización de clases y objetos.
+          — Utilización de clases heredadas.
+          — Librerías y paquetes de clases. Utilización y creación.
+          — Documentación sobre librerías y paquetes de clases.
+          Aplicación de las estructuras de almacenamiento:
+          — Estructuras.
+          — Arrays unidimensionales y multidimensionales:
+                Declaración.
+                Creación de arrays unidimensionales y multidimensionales.
+                Inicialización
+                Acceso a elementos.
+                Recorridos, búsquedas y ordenaciones.
+
+          — Cadenas de caracteres:
+                Declaración.
+                Creación de cadenas de caracteres.
+                Inicialización
+                Operaciones. Acceso a elementos, conversiones, concatenación.
+
+          Utilización avanzada de clases:
+          — Relaciones entre clases. Composición de clases.
+          — Herencia. Concepto y tipos (simple y múltiple).
+          — Superclases y subclases.
+          — Constructores y herencia.
+          — Modificadores en clases, atributos y métodos.
+          — Sobreescritura de métodos.
+          — Clases y métodos abstractos y finales.
+          — Interfaces. Clases abstractas vs. Interfaces.
+          — Polimorfismo:
+                Concepto.
+                Polimorfismo en tiempo de compilación (sobrecarga) y polimorfismo en tiem-
+                 po de ejecución (ligadura dinámica).
+                Comprobación estática y dinámica de tipos.
+
+          — Conversiones de tipos entre objetos (casting).
+          — Clases y tipos genéricos o parametrizados.
+          Control y manejo de excepciones:
+          — Excepciones. Concepto.
+          — Jerarquías de excepciones.
+          — Manejo de excepciones:
+                Captura de excepciones.
+                                                                                                            BOCM-20110131-3
+
+
+
+
+                Propagar excepciones.
+                Lanzar excepciones.
+                Crear clases de excepciones.
+
+          Colecciones de datos:
+          — Tipos de colecciones (listas, pilas, colas, tablas).
+          — Jerarquías de colecciones.
+BOCM                       BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 25                             LUNES 31 DE ENERO DE 2011                                      Pág. 77
+
+
+                   — Operaciones con colecciones. Acceso a elementos y recorridos.
+                   — Uso de clases y métodos genéricos.
+                   Lectura y escritura de información:
+                   — Flujos (streams):
+                        Tipos de flujos. Flujos de bytes y de caracteres.
+                        Clases relativas a flujos. Jerarquías de clases.
+                        Utilización de flujos.
+
+                   — Entrada/salida estándar:
+                        Entrada desde teclado.
+                        Salida a pantalla.
+
+                   — Almacenamiento de información en ficheros:
+                        Ficheros de datos. Registros.
+                        Apertura y cierre de ficheros. Modos de acceso.
+                        Escritura y lectura de información en ficheros.
+                        Almacenamiento de objetos en ficheros. Persistencia. Serialización.
+                        Utilización de los sistemas de ficheros.
+                        Creación y eliminación de ficheros y directorios.
+
+                   — Interfaces gráficos de usuario simples. Concepto de evento. Creación de controla-
+                       dores de eventos.
+                   Gestión de bases de datos relacionales:
+                   — Interfaces de programación de acceso a bases de datos.
+                   — Establecimiento de conexiones.
+                   — Recuperación de información.
+                   — Manipulación de la información.
+                   — Ejecución de consultas sobre la base de datos.
+                   Mantenimiento de la persistencia de los objetos:
+                   — Bases de datos orientadas a objetos.
+                   — Características de las bases de datos orientadas a objetos.
+                   — Instalación del gestor de bases de datos.
+                   — Creación de bases de datos.
+                   — Mecanismos de consulta.
+                   — El lenguaje de consultas: sintaxis, expresiones, operadores.
+                   — Recuperación, modificación y borrado de información.
+                   — Tipos de datos objeto; atributos y métodos.
+                   — Tipos de datos colección.
+
+                          Módulo profesional 06: Sistemas informáticos (código: 0483)
+                                          Contenidos (duración 205 horas)
+                   Explotación de Sistemas microinformáticos:
+                   — Arquitectura de ordenadores. Máquina de Turing, arquitectura Harvard y arquitec-
+                      tura de von Neumann. Programa almacenado.
+                   — Componentes de un sistema informático. Hardware, software y componente hu-
+                      mano. Estructura y clasificación.
+                   — Periféricos. Adaptadores para la conexión de dispositivos.
+                   — Normas de seguridad y prevención de riesgos laborales.
+                   — Medios de transmisión. Guiados y no guiados.
+                   — Características de las redes. Ventajas e inconvenientes.
+                                                                                                                      BOCM-20110131-3
+
+
+
+
+                   — Tipos de redes. Clasificación por alcance, por topología de red y por la direcciona-
+                      lidad de los datos: Simplex, half-duplex y full-duplex.
+                   — Componentes de una red informática.
+                   — Topologías de red. Bus, estrella, anillo, árbol, malla y mixtas.
+                   — Protocolos. Estándares IEEE.
+                   — Tipos de cableado. Conectores.
+                   — Mapa físico y lógico de una red local.

@@ -46,14 +46,14 @@ TIPOS_DE_DISCREPANCIA = (
     "SIN_FUENTE",
 )
 
-_VINETA = re.compile(r"^(?:[-–—•·▪●]|x)\s+")
+_VINETA = re.compile(r"^(?:[-–—−•·▪●\x02]|x)\s+")
 _PARTICION = re.compile(r"(?<=\w)-\n(?=\w)")
 # Marca que deja el lugar de una viñeta del PDF: una línea que empieza por viñeta es
 # siempre el principio de otra unidad, aunque su texto empiece en minúscula.
 _MARCA = "\x01"
 # Tras el final de lo guardado, la unidad debe acabar: fin de línea y que la línea
 # siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)»).
-_BORDE = r"[ ]*(?:\n(?!(?![a-z]\))[a-záéíóúüñ])|$)"
+_BORDE = r"[ ]*»?[ ]*(?:\n(?!(?![a-zñ]\))[a-záéíóúüñ])|$)"
 # Los elementos que salen de una fila de tabla (el nombre del módulo, seguido de horas y
 # créditos en la misma línea) no acaban donde acaba una línea: se buscan salteando cifras.
 TIPOS_DE_TABLA = frozenset({"modulo"})
@@ -321,9 +321,13 @@ def comprobar_datos(
     problemas: list[Discrepancia] = []
     for ficha in indice.fichas.values():
         for elemento in ficha.elementos:
-            if not elemento.codigo.startswith(
-                ficha.codigo + "."
-            ) and not elemento.codigo.startswith("EST."):
+            # el módulo es la propia ficha; los descriptores y los contenidos básicos
+            # estatales tienen el prefijo EST.
+            if (
+                elemento.codigo != ficha.codigo
+                and not elemento.codigo.startswith(ficha.codigo + ".")
+                and not elemento.codigo.startswith("EST.")
+            ):
                 problemas.append(
                     Discrepancia("CODIGO", elemento.codigo, f"no cuelga de la ficha {ficha.codigo}")
                 )

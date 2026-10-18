@@ -38,10 +38,29 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      (Digitalización, solo 4.º ESO) solo se extrae con `--curso-unico`: sus criterios y
      contenidos van tras las competencias y debe haber un único bloque de criterios; sin esa
      opción es un error.
-   - `extraer_fp --ficha <código> --modulo <código> --ciclo <nombre> --boe <id> --madrid <id>
-     --horas <id> --cursos-academicos … --cache <dir>` (la ficha es el módulo, p. ej.
-     `MAD.DAM.0485`). Quedan pendientes los módulos transversales y los optativos de FP:
-     la Orden 3537/2025 sale cifrada de `pdftotext` y hay que resolver antes cómo se lee.
+   - `extraer_fp modulo --ficha <código> --modulo <código> --ciclo <nombre> --boe <id>
+     --ubicacion-boe <lugar> [--via <id>] --madrid <id> --horas <id> --cursos-academicos …
+     --cache <dir>` (la ficha es el módulo, p. ej. `MAD.DAM.0485`). Los resultados, criterios,
+     contenidos básicos (estatales, `EST.…CB.n`) y orientaciones salen del **PDF** de la norma
+     `--boe`, limitado a su `--articulo` (por defecto el «segundo»): el RD 450/2010 no tiene
+     texto consolidado, su anexo I vigente es el que reescribe el artículo segundo del RD
+     405/2023 («queda redactado como sigue»; el artículo tercero repite módulos para otro
+     título y no se toca). La procedencia es esa norma y su página; `--via` pone el real
+     decreto original y `--ubicacion-via` el lugar de su anexo. Los contenidos de Madrid salen
+     de `--madrid`; `--sin-contenidos-madrid` es para el módulo que el decreto no desarrolla
+     (el proyecto). Las horas y el curso, de la tabla de `--horas`; si la tabla no pone el
+     curso (el proyecto intermodular se desarrolla en los dos), hay que decidirlo con
+     `--curso` y explicar la decisión en `fuentes.toml`. Un módulo sin ficha en alguna de las
+     fuentes, una letra de criterio fuera de orden o una línea sin lugar son errores, no se
+     omiten.
+   - `extraer_fp titulo --ficha <código> --nombre <nombre del título> --boe <id> --original
+     <id> [--adicion <id>] --cursos-academicos … --cache <dir>` (la ficha es el título, p. ej.
+     `MAD.DAM`): los datos de identificación (`TIT.n`, uno por dato), las competencias
+     profesionales (`CP.a`…) y los objetivos generales (`OG.a`…) en la redacción de `--boe`,
+     con `via` al real decreto original, y la competencia general (`CG`) del PDF de
+     `--original`. `--adicion` es la norma que añade un párrafo final al artículo 2.
+   - Quedan pendientes los módulos transversales y los optativos de FP: la Orden 3537/2025
+     sale cifrada de `pdftotext` y hay que resolver antes cómo se lee.
 4. **Comprobar**: `comprobar --cache <dir>` revisa todas las fichas. Sale con código distinto
    de 0 y una línea por discrepancia: `TEXTO`, `PROCEDENCIA`, `RELACION`, `CODIGO`,
    `VIGENCIA`, `FALTA`, `SOBRA` o `SIN_FUENTE`.

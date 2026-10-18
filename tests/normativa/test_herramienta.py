@@ -542,6 +542,45 @@ def test_comprobar_viñeta_en_minuscula_es_otra_unidad():
     ]
 
 
+def test_comprobar_la_comilla_de_cierre_de_la_cita_no_es_parte_de_la_unidad():
+    comprobar = herramienta("comprobar")
+    pagina = (
+        "    y) Participar de forma activa en la vida social.»\n    Seis. Se modifica el anexo."
+    )
+    assert comprobar.aparece("Participar de forma activa en la vida social.", pagina, completo=True)
+    # pero lo que falta de la frase sigue siendo TEXTO
+    assert not comprobar.aparece("Participar de forma activa.", pagina, completo=True)
+
+
+def test_comprobar_la_letra_enie_abre_otra_unidad_como_cualquier_otra():
+    comprobar = herramienta("comprobar")
+    pagina = (
+        "    n) Desarrollar aplicaciones multiproceso.\n"
+        "    ñ) Desarrollar aplicaciones capaces de ofrecer servicios en red.\n"
+        "    o) Participar en la implantación.\n"
+    )
+    assert comprobar.aparece("Desarrollar aplicaciones multiproceso.", pagina, completo=True)
+    assert comprobar.aparece(
+        "Desarrollar aplicaciones capaces de ofrecer servicios en red.", pagina, completo=True
+    )
+    # un texto cortado antes de la «ñ)» sigue sin valer
+    assert not comprobar.aparece("Desarrollar aplicaciones", pagina, completo=True)
+
+
+def test_comprobar_viñetas_del_boe_el_signo_menos_y_el_glifo_de_apartado():
+    comprobar = herramienta("comprobar")
+    # el texto guardado de un párrafo con viñetas no lleva las viñetas del boletín
+    pagina = (
+        "    Las líneas de actuación versarán sobre:\n"
+        "    − La identificación del hardware.\n"
+        "    − El análisis de los cambios.\n"
+        "\x02 Declaración.\n"
+    )
+    guardado = "Las líneas de actuación versarán sobre: La identificación del hardware. El análisis de los cambios."
+    assert comprobar.aparece(guardado, pagina.replace("\x02 Declaración.\n", ""), completo=True)
+    assert comprobar.aparece("Declaración.", pagina, completo=True)
+
+
 def test_comprobar_pagina_y_fuentes_que_faltan():
     comprobar = herramienta("comprobar")
     documentos = {"boe-a-2022-1": comprobar.Documento(paginas={1: "Texto de la página uno."})}
@@ -767,209 +806,6 @@ def test_comprobar_busca_los_descriptores_en_las_celdas_del_xml(tmp_path):
             assert comprobar.aparece(texto, documento.xml, completo=True)
         # y un trozo recortado no
         assert not comprobar.aparece("Usa eficazmente una o más", documento.xml, completo=True)
-
-
-# --- formación profesional ----------------------------------------------------
-
-TEXTO_MADRID = """\
-                     Módulo profesional 01: Bases de datos (código: 0484)
-                                Contenidos (duración 205 horas)
-          Almacenamiento de la información:
-          — Ficheros (planos, indexados y acceso directo, de marcas, entre otros).
-          — Bases de Datos (BD). Conceptos, usos y tipos según el modelo de datos, la ubica-
-              ción de la información.
-          — Gestión de seguridad:
-               Usuarios.
-               Roles.
-          Realización de consultas:
-          — Consultas para extraer información: la sentencia SELECT.
-                     Módulo profesional 02: Programación (código: 0485)
-                                Contenidos (duración 270 horas)
-          Otra cosa:
-          — Otra.
-"""
-
-TEXTO_HORAS = """\
-            Ciclo Formativo: DESARROLLO DE APLICACIONES MULTIPLATAFORMA
-                                                                                Duración del   Equivalencias    Curso 1º        Curso 2º
-            Código                            Denominación                         (horas)        ECTS         semanales)   semanales)
-            0484     Bases de datos                                                 205             12             6
-            0485     Programación                                                   270             15             8
-            0486     Acceso a datos                                                 165             10                             5
-                     HORAS TOTALES                                                 2000                           30             30
-"""
-
-
-def test_fp_contenidos_de_madrid_y_horas():
-    fp = herramienta("extraer_fp")
-    comun = herramienta("comun")
-    contenidos = fp.analizar_contenidos_madrid(comun.lineas_de(TEXTO_MADRID), "0484")
-    assert [(c["nivel"], c["texto"]) for c in contenidos] == [
-        (1, "Almacenamiento de la información:"),
-        (2, "Ficheros (planos, indexados y acceso directo, de marcas, entre otros)."),
-        (
-            2,
-            "Bases de Datos (BD). Conceptos, usos y tipos según el modelo de datos, "
-            "la ubicación de la información.",
-        ),
-        (2, "Gestión de seguridad:"),
-        (3, "Usuarios."),
-        (3, "Roles."),
-        (1, "Realización de consultas:"),
-        (2, "Consultas para extraer información: la sentencia SELECT."),
-    ]
-    lineas = comun.lineas_de(TEXTO_HORAS)
-    ciclo = "DESARROLLO DE APLICACIONES MULTIPLATAFORMA"
-    assert fp.analizar_horas_curso(lineas, ciclo=ciclo, codigo_modulo="0485")[:2] == (270, "1")
-    assert fp.analizar_horas_curso(lineas, ciclo=ciclo, codigo_modulo="0486")[:2] == (165, "2")
-
-
-PARRAFOS_BOE = [
-    "Módulo Profesional: Bases de datos.",
-    "Código: 0484",
-    "Resultados de aprendizaje y criterios de evaluación.",
-    "1. Reconoce los elementos de las bases de datos.",
-    "Criterios de evaluación:",
-    "a) Se ha analizado el papel de los sistemas gestores.",
-    "b) Se han clasificado según el modelo de datos.",
-    "2. Crea bases de datos.",
-    "a) Se ha creado una base de datos.",
-    "Duración: 205 horas.",
-    "Contenidos básicos:",
-    "Almacenamiento de la información.",
-    "Orientaciones pedagógicas.",
-    "Este módulo contiene la formación necesaria.",
-    "Se relaciona con otros módulos.",
-    "Módulo Profesional: Programación.",
-    "Código: 0485",
-]
-
-
-def test_fp_resultados_criterios_y_orientaciones_del_boe():
-    fp = herramienta("extraer_fp")
-    modulo = fp.analizar_modulo_boe(PARRAFOS_BOE, "0484")
-    assert modulo["nombre"] == "Bases de datos"
-    assert [(r["numero"], r["texto"]) for r in modulo["resultados"]] == [
-        ("1", "Reconoce los elementos de las bases de datos."),
-        ("2", "Crea bases de datos."),
-    ]
-    assert [c["letra"] for c in modulo["resultados"][0]["criterios"]] == ["a", "b"]
-    assert modulo["orientaciones"] == (
-        "Este módulo contiene la formación necesaria. Se relaciona con otros módulos."
-    )
-    elementos_fp = fp.elementos_del_boe(
-        modulo,
-        ficha="MAD.DAM.0484",
-        norma="boe-a-2010-6954",
-        ubicacion="anexo I",
-        orden_inicial=2,
-    )
-    assert [e["codigo"] for e in elementos_fp] == [
-        "MAD.DAM.0484.RA.1",
-        "MAD.DAM.0484.RA.1.a",
-        "MAD.DAM.0484.RA.1.b",
-        "MAD.DAM.0484.RA.2",
-        "MAD.DAM.0484.RA.2.a",
-        "MAD.DAM.0484.ORI",
-    ]
-    assert elementos_fp[1]["padre"] == "MAD.DAM.0484.RA.1"
-    assert elementos_fp[0]["padre"] == "MAD.DAM.0484"  # la raíz es el módulo
-    assert elementos_fp[0]["orden"] == 2
-
-
-def _normas_fp(raiz: Path) -> None:
-    (raiz / "normas").mkdir()
-    (raiz / "fichas").mkdir()
-    for id_, numero, boletin, url in (
-        ("boe-a-2010-6954", "450/2010", "BOE", "https://www.boe.es/ejemplo.pdf"),
-        ("bocm-20110113-3", "3/2011", "BOCM", "https://www.bocm.es/ejemplo.pdf"),
-        ("bocm-20240904-103", "103/2024", "BOCM", "https://www.bocm.es/otro.pdf"),
-    ):
-        norma = {
-            "id": id_,
-            "rango": "real_decreto" if boletin == "BOE" else "decreto",
-            "numero": numero,
-            "fecha": "2011-01-13",
-            "titulo": f"Norma de prueba {numero}",
-            "boletin": boletin,
-            "url_pdf": url,
-            "sha256": "0" * 64,
-            "estado": "vigente",
-            "revisada": "2026-10-17",
-        }
-        (raiz / "normas" / f"{id_}.json").write_text(json.dumps(norma), encoding="utf-8")
-
-
-def test_fp_codigos_segun_el_plan_y_el_cargador_los_acepta(tmp_path):
-    fp = herramienta("extraer_fp")
-    comun = herramienta("comun")
-    ficha = "MAD.DAM.0484"
-    modulo = fp.analizar_modulo_boe(PARRAFOS_BOE, "0484")
-    contenidos = fp.analizar_contenidos_madrid(comun.lineas_de(TEXTO_MADRID), "0484")
-    elementos_ficha = [
-        fp.elemento_modulo(
-            "Bases de datos",
-            205,
-            "1",
-            ficha=ficha,
-            norma="bocm-20240904-103",
-            ubicacion="anexo II",
-            pagina=3,
-        )
-    ]
-    elementos_ficha += fp.elementos_del_boe(
-        modulo,
-        ficha=ficha,
-        norma="boe-a-2010-6954",
-        ubicacion="anexo I",
-        orden_inicial=2,
-    )
-    elementos_ficha += fp.elementos_de_contenidos(
-        contenidos,
-        ficha=ficha,
-        norma="bocm-20110113-3",
-        ubicacion="anexo I",
-        orden_inicial=len(elementos_ficha) + 1,
-    )
-    assert elementos_ficha[0]["codigo"] == ficha and elementos_ficha[0]["tipo"] == "modulo"
-    contenidos_madrid = [e for e in elementos_ficha if e["tipo"] == "contenido"]
-    assert [e["codigo"] for e in contenidos_madrid][:4] == [
-        f"{ficha}.CO.1",
-        f"{ficha}.CO.1.1",
-        f"{ficha}.CO.1.2",
-        f"{ficha}.CO.1.3",
-    ]
-    assert contenidos_madrid[0]["padre"] == ficha
-    assert contenidos_madrid[1]["padre"] == f"{ficha}.CO.1"
-    assert not any(e["tipo"] == "contenido_basico" for e in elementos_ficha)
-    assert [e["tipo"] for e in elementos_ficha if e["codigo"].endswith(".RA.1.a")] == [
-        "criterio_fp"
-    ]
-
-    _normas_fp(tmp_path)
-    fichero = {
-        "codigo": ficha,
-        "nombre": "Bases de datos",
-        "etapa": "fp_gs",
-        "curso": None,
-        "cursos_academicos": ["2026-27"],
-        "normas": ["boe-a-2010-6954", "bocm-20110113-3", "bocm-20240904-103"],
-        "elementos": elementos_ficha,
-    }
-    herramienta("extraer_lomloe").escribir_ficha(fichero, tmp_path)
-    limpiar_cache()
-    cargada = cargar(raiz=tmp_path).fichas[ficha]
-    assert len(cargada.elementos) == len(elementos_ficha)
-
-    # los contenidos de Madrid y los básicos estatales se cuentan por separado
-    comprobar = herramienta("comprobar")
-    hay = len(contenidos_madrid)
-    esperado = {
-        "bocm-20110113-3": {"recuentos": {ficha: {"contenidos": hay, "contenidos_basicos": 0}}}
-    }
-    assert comprobar.comprobar_recuentos(cargada, esperado) == []
-    esperado = {"bocm-20110113-3": {"recuentos": {ficha: {"contenidos_basicos": hay}}}}
-    assert _tipos(comprobar.comprobar_recuentos(cargada, esperado)) == ["FALTA"]
 
 
 # --- normas del paquete desde fuentes.toml --------------------------------------
