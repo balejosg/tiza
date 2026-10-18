@@ -20,6 +20,9 @@ FUENTES = Path(__file__).parents[2] / "herramientas" / "normativa" / "fuentes"
 BOCM = "bocm-20230531-18"
 FRAGMENTO = FUENTES / "bocm-20230531-18_anexo-iv_ccomp-bach-1.txt"
 MATERIA = "MAD.BACH.CCOMP.1"
+DECRETO = "bocm-20220726-2"
+CCOMP_ESO = FUENTES / "bocm-20220726-2_anexo-ii_ccomp-eso.txt"
+DIG_ESO = FUENTES / "bocm-20220726-2_anexo-ii_dig-eso-4.txt"
 
 
 @pytest.fixture(autouse=True)
@@ -136,6 +139,159 @@ def test_lomloe_subviñeta_tras_la_cabecera_de_un_bloque_no_cuelga_del_bloque_an
     )
     assert primero["codigo"] == f"{MATERIA}.CO.B.2"
     assert primero["padre"] == f"{MATERIA}.CO.B"
+
+
+# --- materias de ESO: título del boletín, curso con y sin marca, límite de la materia ----
+
+
+def extraer_eso(fragmento: Path, sigla: str, curso: str, titulo: str, nombre: str, texto=None):
+    """Extrae una materia de ESO del fragmento del Decreto 65/2022 (o de ``texto``)."""
+    return herramienta("extraer_lomloe").extraer_materia(
+        texto if texto is not None else fragmento.read_text(encoding="utf-8"),
+        norma=DECRETO,
+        nombre=nombre,
+        titulo=titulo,
+        sigla=sigla,
+        etapa="eso",
+        curso=curso,
+        cursos_academicos=["2026-27"],
+        anexo="anexo II",  # el fragmento no trae la cabecera del anexo
+    )
+
+
+def ccomp_eso(curso: str, texto=None) -> dict:
+    return extraer_eso(
+        CCOMP_ESO,
+        "CCOMP",
+        curso,
+        "CIENCIAS DE LA COMPUTACIÓN",
+        "Ciencias de la Computación",
+        texto,
+    )
+
+
+def dig_eso(texto=None) -> dict:
+    return extraer_eso(DIG_ESO, "DIG", "4", "DIGITALIZACIÓN", "Digitalización", texto)
+
+
+def de_tipo(ficha: dict[str, dict], tipo: str) -> list[str]:
+    return [e["texto"] for e in ficha.values() if e["tipo"] == tipo]
+
+
+def test_lomloe_el_titulo_del_boletin_no_es_el_nombre_de_la_ficha():
+    ficha = ccomp_eso("1")
+    assert ficha["codigo"] == "MAD.ESO.CCOMP.1"
+    assert ficha["nombre"] == "Ciencias de la Computación, primer curso"
+    # sin título aparte se busca el nombre, que en el decreto está en mayúsculas
+    texto = CCOMP_ESO.read_text(encoding="utf-8")
+    with pytest.raises(ValueError, match="no encuentro la materia"):
+        herramienta("extraer_lomloe").extraer_materia(
+            texto,
+            norma=DECRETO,
+            nombre="Ciencias de la Computación",
+            sigla="CCOMP",
+            etapa="eso",
+            curso="1",
+            cursos_academicos=["2026-27"],
+        )
+
+
+def test_lomloe_la_linea_de_comandos_acepta_un_titulo_aparte(tmp_path):
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    (cache / f"{DECRETO}.txt").write_text(CCOMP_ESO.read_text(encoding="utf-8"), "utf-8")
+    argumentos = ["--norma", DECRETO, "--materia", "CCOMP", "--curso", "2", "--etapa", "eso"]
+    argumentos += ["--nombre", "Ciencias de la Computación", "--cursos-academicos", "2026-27"]
+    argumentos += ["--cache", str(cache), "--salida", str(tmp_path / "datos")]
+    argumentos += ["--titulo", "CIENCIAS DE LA COMPUTACIÓN", "--anexo", "anexo II"]
+    assert herramienta("extraer_lomloe").main(argumentos) == 0
+    ficha = json.loads((tmp_path / "datos" / "fichas" / "MAD.ESO.CCOMP.2.json").read_text("utf-8"))
+    assert ficha["nombre"] == "Ciencias de la Computación, segundo curso"
+
+
+def test_lomloe_eso_cada_curso_lleva_sus_criterios_y_contenidos_y_las_competencias_comunes():
+    primero = elementos(ccomp_eso("1"))
+    segundo = elementos(ccomp_eso("2"))
+    for ficha, curso in ((primero, "1"), (segundo, "2")):
+        competencias = [c for c, e in ficha.items() if e["tipo"] == "competencia_especifica"]
+        assert competencias == [f"MAD.ESO.CCOMP.{curso}.CE.{n}" for n in (1, 2, 3, 4)]
+    # las competencias son las mismas y los descriptores son los de la ESO
+    assert primero["MAD.ESO.CCOMP.1.CE.1"]["texto"] == segundo["MAD.ESO.CCOMP.2.CE.1"]["texto"]
+    assert primero["MAD.ESO.CCOMP.1.CE.2"]["relaciones"]["descriptores"] == [
+        f"EST.ESO.DESC.{c}" for c in ("CP2", "STEM1", "STEM2", "STEM3", "CD5", "CPSAA5")
+    ]
+    # criterios: 3+5+6+3 en 1.º y 7+4+2+2 en 2.º; sin los del otro curso
+    assert len(de_tipo(primero, "criterio")) == 17 and len(de_tipo(segundo, "criterio")) == 15
+    assert primero["MAD.ESO.CCOMP.1.CR.1.1"]["texto"].startswith("Comprender qué es un algoritmo")
+    assert segundo["MAD.ESO.CCOMP.2.CR.1.1"]["texto"].startswith("Entender el funcionamiento")
+    assert primero["MAD.ESO.CCOMP.1.CR.3.4"]["procedencia"]["ubicacion"] == (
+        "anexo II, 1.º, criterio 3.4"
+    )
+    # el criterio que cruza una página sale entero y con la página en la que empieza
+    cruza = segundo["MAD.ESO.CCOMP.2.CR.3.2"]
+    assert cruza["texto"].endswith("o los servicios de almacenamiento en la nube.")
+    assert cruza["procedencia"]["pagina"] == 439
+    # contenidos: las viñetas «−» y «–» son contenidos y las «x», subcontenidos
+    algoritmos = primero["MAD.ESO.CCOMP.1.CO.A.1"]
+    assert algoritmos["texto"] == "Algoritmos:" and algoritmos["padre"] == "MAD.ESO.CCOMP.1.CO.A"
+    assert primero["MAD.ESO.CCOMP.1.CO.A.1.1"]["texto"] == "Definición y ejemplos sencillos."
+    assert primero["MAD.ESO.CCOMP.1.CO.A.2"]["texto"].startswith("Detección y corrección")
+    bloques = de_tipo(primero, "bloque_contenidos")
+    assert bloques == ["Pensamiento computacional.", "Programación.", "Computadores.", "Redes."]
+    assert de_tipo(segundo, "bloque_contenidos") == bloques
+    assert segundo["MAD.ESO.CCOMP.2.CO.A.1"]["texto"] == "Algoritmos de ordenación y de búsqueda."
+    for ficha in (primero, segundo):
+        assert not any(e["texto"].startswith(("−", "–", "x ")) for e in ficha.values())
+    # el último contenido del curso es el último de la materia, no el título que sigue
+    assert segundo["MAD.ESO.CCOMP.2.CO.D.2.4"]["texto"] == (
+        "Software para la protección frente a ciberataques."
+    )
+    assert not any("CULTURA" in e["texto"] for e in segundo.values())
+
+
+def test_lomloe_materia_de_un_solo_curso_sin_marca_de_curso():
+    ficha = elementos(dig_eso())
+    assert ficha["MAD.ESO.DIG.4.CE.1"]["texto"].startswith(
+        "Identificar y resolver problemas técnicos"
+    )
+    assert ficha["MAD.ESO.DIG.4.CE.1"]["relaciones"]["descriptores"] == [
+        f"EST.ESO.DESC.{c}" for c in ("STEM1", "STEM2", "CD4", "CD5", "CPSAA1", "CPSAA5", "CE3")
+    ]
+    # los criterios llevan un punto tras el número («1.1.»)
+    criterios = [c for c, e in ficha.items() if e["tipo"] == "criterio"]
+    assert len(criterios) == 3 + 4 + 4 + 5
+    assert ficha["MAD.ESO.DIG.4.CR.1.1"]["texto"].startswith("Conectar dispositivos y gestionar")
+    assert ficha["MAD.ESO.DIG.4.CR.4.5"]["padre"] == "MAD.ESO.DIG.4.CE.4"
+    assert ficha["MAD.ESO.DIG.4.CR.4.4"]["texto"].endswith(
+        "accesibilidad, sostenibilidad e impacto."
+    )
+    # las viñetas «•» (con o sin espacio) cuelgan del contenido «–» que las precede
+    edicion = ficha["MAD.ESO.DIG.4.CO.B.2"]
+    assert edicion["texto"] == "Edición y creación de contenidos:"
+    hijos = [e["texto"] for e in ficha.values() if e.get("padre") == edicion["codigo"]]
+    assert hijos[0] == "Aplicaciones de productividad."
+    assert hijos[-1] == "Realidad virtual, aumentada y mixta."
+    assert len(hijos) == 4
+    bloques = [e["texto"] for e in ficha.values() if e["tipo"] == "bloque_contenidos"]
+    assert bloques[0] == "Dispositivos digitales, sistemas operativos y de comunicación."
+    assert bloques[-1] == "Ciudadanía digital crítica."
+    assert not any(e["texto"].startswith(("•", "–")) for e in ficha.values())
+
+
+def test_lomloe_la_busqueda_se_queda_dentro_de_la_materia():
+    ajena = (
+        "    4º ESO.\n    Criterios de evaluación.\n    Competencia específica 1.\n"
+        "    1.1. Criterio de otra materia.\n    Contenidos.\n    A. Bloque de otra materia.\n"
+    )
+    texto = DIG_ESO.read_text(encoding="utf-8")
+    # la materia siguiente (ECONOMÍA Y EMPRENDIMIENTO) tiene marca de curso y la de DIG no
+    ficha = elementos(dig_eso(texto + ajena))
+    assert "MAD.ESO.DIG.4.CR.4.5" in ficha
+    assert not any("de otra materia" in e["texto"] for e in ficha.values())
+    # y un curso que la materia no tiene no se busca en la siguiente
+    texto = CCOMP_ESO.read_text(encoding="utf-8")
+    with pytest.raises(ValueError, match="no encuentro el apartado del curso 3"):
+        ccomp_eso("3", texto + ajena.replace("4º", "3º"))
 
 
 def escribir_datos(raiz: Path, ficha: dict) -> None:

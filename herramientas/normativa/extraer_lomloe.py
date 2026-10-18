@@ -5,6 +5,11 @@ lo explica), los descriptores con los que se conectan, los criterios de evaluaci
 curso agrupados por «Competencia específica N.» y los contenidos de ese curso por bloques
 (letra y título) y viñetas. Escribe ``fichas/<código>.json``.
 
+La búsqueda se queda dentro de la materia: acaba en el título de la siguiente (una línea en
+mayúsculas, como en el decreto de la ESO) o en el siguiente anexo. Una materia que no marca
+sus cursos (Digitalización, de un solo curso) lleva sus criterios y contenidos justo tras
+las competencias; el nombre de la ficha puede diferir del título del boletín (``--titulo``).
+
 Uso::
 
     python -m herramientas.normativa.extraer_lomloe --norma bocm-20230531-18 \\
@@ -38,10 +43,14 @@ _CONTENIDOS = re.compile(r"^\s*Contenidos\.?\s*$")
 _GRUPO = re.compile(r"^\s*Competencia espec[ií]fica (\d+)\.?\s*$")
 _CURSO_CUALQUIERA = re.compile(r"^\s*\d\s*\.?\s*[º°]\s*\.?\s*[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚ ]*\.?\s*$")
 _NUMERADA = re.compile(r"^\s*(\d+)\.\s+(\S.*)$")
-_CRITERIO = re.compile(r"^\s*(\d+)\.(\d+)\s+(\S.*)$")
+_CRITERIO = re.compile(r"^\s*(\d+)\.(\d+)\.?\s+(\S.*)$")  # «1.1 Texto» o «1.1. Texto»
 _BLOQUE = re.compile(r"^\s*([A-Z])\.\s+(\S.*)$")
-_VINETA = re.compile(r"^\s*[-–—•]\s+(\S.*)$")
-_SUBVINETA = re.compile(r"^\s*x\s+(\S.*)$")
+_VINETA = re.compile(r"^\s*[-–—−]\s+(\S.*)$")  # guion, raya y signo menos (U+2212)
+_SUBVINETA = re.compile(r"^\s*(?:x\s+|•\s*)(\S.*)$")  # «x» o «•», este a veces pegado al texto
+# El título de la materia siguiente (en mayúsculas, sin cifras ni «º») o el siguiente anexo.
+_FIN_DE_MATERIA = re.compile(
+    r"^\s*(?:ANEXO\s+[IVXLC]+|(?=.{5,}$)[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ ,]*[A-ZÁÉÍÓÚÜÑ])\s*$"
+)
 _DESCRIPTORES_FRASE = "Esta competencia específica se conecta"
 _DESCRIPTOR = re.compile(r"\b[A-Z]{2,6}\d+(?:\.\d+)?\b")
 
@@ -174,17 +183,26 @@ def extraer_materia(
     cursos_academicos: Sequence[str],
     anexo: str | None = None,
     desde: str | None = None,
+    titulo: str | None = None,
 ) -> dict[str, Any]:
-    """La ficha (``dict`` listo para ``fichas/<código>.json``) de una materia y un curso."""
+    """La ficha (``dict`` listo para ``fichas/<código>.json``) de una materia y un curso.
+
+    ``nombre`` es el de la ficha; ``titulo``, el que lleva la materia en el boletín (por
+    defecto, el mismo).
+    """
     abreviatura = ETAPAS[etapa]
     lineas = comun.lineas_limpias(texto)
-    titulo = next((i for i, l in enumerate(lineas) if l.texto.strip() == nombre), None)
-    if titulo is None:
-        raise ValueError(f"no encuentro la materia «{nombre}» en el texto de {norma}")
-    anexo = anexo or _buscar_anexo(lineas, titulo)
+    buscado = titulo or nombre
+    donde = next((i for i, l in enumerate(lineas) if l.texto.strip() == buscado), None)
+    if donde is None:
+        raise ValueError(f"no encuentro la materia «{buscado}» en el texto de {norma}")
+    anexo = anexo or _buscar_anexo(lineas, donde)
     if anexo is None:
         raise ValueError("no encuentro el anexo de la materia: indícalo con --anexo")
-    region = lineas[titulo + 1 :]
+    region = lineas[donde + 1 :]
+    siguiente = _indice(region, _FIN_DE_MATERIA)
+    if siguiente is not None:
+        region = region[:siguiente]
 
     inicio = _indice(region, _COMPETENCIAS)
     if inicio is None:
@@ -204,10 +222,13 @@ def extraer_materia(
     if not competencias:
         raise ValueError(f"«{nombre}»: no hay competencias específicas")
 
-    marca = _indice(region, _marca_de_curso(curso), inicio + 1)
-    if marca is None:
-        raise ValueError(f"«{nombre}»: no encuentro el apartado del curso {curso}")
-    seccion = region[marca + 1 :]
+    if _indice(region, _CURSO_CUALQUIERA, inicio + 1) is None:
+        seccion = region[fin:]  # una materia de un solo curso: no marca el curso
+    else:
+        marca = _indice(region, _marca_de_curso(curso), inicio + 1)
+        if marca is None:
+            raise ValueError(f"«{nombre}»: no encuentro el apartado del curso {curso}")
+        seccion = region[marca + 1 :]
     cr = _indice(seccion, _CRITERIOS)
     co = _indice(seccion, _CONTENIDOS)
     if cr is None or co is None or co < cr:
@@ -333,8 +354,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--norma", required=True, help="id de la norma, p. ej. bocm-20230531-18")
     ap.add_argument("--materia", required=True, help="sigla de la materia, p. ej. CCOMP")
     ap.add_argument("--curso", required=True, help="curso de la etapa (1, 2…)")
+    ap.add_argument("--nombre", required=True, help="nombre de la materia en la ficha")
     ap.add_argument(
-        "--nombre", required=True, help="título de la materia tal como está en el anexo"
+        "--titulo",
+        help="título de la materia en el boletín, si difiere de --nombre (p. ej. mayúsculas)",
     )
     ap.add_argument("--etapa", required=True, choices=sorted(ETAPAS))
     ap.add_argument(
@@ -349,6 +372,7 @@ def main(argv: list[str] | None = None) -> int:
         comun.texto_de_norma(args.cache, args.norma),
         norma=args.norma,
         nombre=args.nombre,
+        titulo=args.titulo,
         sigla=args.materia,
         etapa=args.etapa,
         curso=args.curso,

@@ -26,8 +26,14 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      **primero**, antes de cualquier materia. Las relaciones entre fichas (los descriptores
      que cita cada competencia) se validan entre fichas al cargar, y una materia sin la
      ficha de descriptores de su etapa no carga.
-   - `extraer_lomloe --norma <id> --materia <sigla> --curso <n> --nombre <título> --etapa
-     <eso|bachillerato> --cursos-academicos 2023-24,2024-25 --cache <dir>`
+   - `extraer_lomloe --norma <id> --materia <sigla> --curso <n> --nombre <nombre de la ficha>
+     [--titulo <título en el boletín>] --etapa <eso|bachillerato> --cursos-academicos
+     2023-24,2024-25 --cache <dir>`. El título que se busca en el boletín es el de la materia
+     tal cual (en el decreto de la ESO, en mayúsculas: `--titulo "DIGITALIZACIÓN"`); si la ficha
+     la nombra distinto (Bachillerato: «Ciencias de la Computación I»), `--nombre` es el de la
+     ficha. La búsqueda acaba en el título de la materia siguiente. Una materia que no marca
+     el curso (Digitalización, solo 4.º ESO) lleva sus criterios y contenidos tras las
+     competencias.
    - `extraer_fp --ficha <código> --modulo <código> --ciclo <nombre> --boe <id> --madrid <id>
      --horas <id> --cursos-academicos … --cache <dir>` (la ficha es el módulo, p. ej.
      `MAD.DAM.0485`). Quedan pendientes los módulos transversales y los optativos de FP:
