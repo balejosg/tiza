@@ -1,0 +1,224 @@
+{
+  "codigo": "MAD.BACH.PROG",
+  "nombre": "Requisitos de la programación didáctica, Bachillerato",
+  "etapa": "bachillerato",
+  "curso": null,
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20230621-14",
+    "bocm-20220726-1",
+    "boe-a-1996-3834"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.BACH.PROG.1",
+      "tipo": "requisito_programacion",
+      "texto": "La evaluación continua del alumnado requiere su asistencia regular a las clases y a las actividades programadas para las distintas materias que constituyen el plan de estudios. De conformidad con el artículo 36.2 del Decreto 32/2019, de 9 de abril, los procedimientos extraordinarios de evaluación para los alumnos que superen el máximo de faltas de asistencia fijado en el plan de convivencia para la pérdida del derecho a la evaluación continua se concretarán para cada materia en la correspondiente programación didáctica.",
+      "procedencia": {
+        "norma": "bocm-20230621-14",
+        "ubicacion": "art. 17.2",
+        "pagina": 58
+      },
+      "orden": 1
+    },
+    {
+      "codigo": "MAD.BACH.PROG.2",
+      "tipo": "requisito_programacion",
+      "texto": "Una vez concluido el proceso ordinario de evaluación, los alumnos que hayan obtenido en la evaluación final ordinaria resultados negativos en alguna materia podrán presentarse a las actividades de evaluación programadas al efecto, que tendrán lugar en el plazo establecido para ello por el calendario escolar aprobado para ese curso. Estas actividades de evaluación, así como los criterios generales de calificación de las mismas, que se concretarán en la programación didáctica de la materia, serán elaboradas por los departamentos didácticos responsables de cada materia.",
+      "procedencia": {
+        "norma": "bocm-20230621-14",
+        "ubicacion": "art. 23.1",
+        "pagina": 61
+      },
+      "orden": 2
+    },
+    {
+      "codigo": "MAD.BACH.PROG.3",
+      "tipo": "requisito_programacion",
+      "texto": "Adecuación de las competencias, criterios de evaluación y contenidos sobre los que se ha llevado a cabo la evaluación del proceso de aprendizaje del alumno con los recogidos en la correspondiente programación didáctica.",
+      "procedencia": {
+        "norma": "bocm-20230621-14",
+        "ubicacion": "art. 38.4.a",
+        "pagina": 67
+      },
+      "orden": 3
+    },
+    {
+      "codigo": "MAD.BACH.PROG.4",
+      "tipo": "requisito_programacion",
+      "texto": "Adecuación de los procedimientos e instrumentos de evaluación aplicados con lo señalado en la programación didáctica.",
+      "procedencia": {
+        "norma": "bocm-20230621-14",
+        "ubicacion": "art. 38.4.b",
+        "pagina": 67
+      },
+      "orden": 4
+    },
+    {
+      "codigo": "MAD.BACH.PROG.5",
+      "tipo": "requisito_programacion",
+      "texto": "Correcta aplicación de los criterios de calificación establecidos en la programación didáctica para la superación del ámbito o materia.",
+      "procedencia": {
+        "norma": "bocm-20230621-14",
+        "ubicacion": "art. 38.4.c",
+        "pagina": 67
+      },
+      "orden": 5
+    },
+    {
+      "codigo": "MAD.BACH.PROG.6",
+      "tipo": "requisito_programacion",
+      "texto": "Para la adquisición y desarrollo, tanto de las competencias clave como de las competencias específicas, en las programaciones didácticas de las materias se planificarán actividades que pongan en contexto los procesos de enseñanza y aprendizaje. Los preámbulos de las diferentes materias recogidas en el anexo II incorporan orientaciones para ello.",
+      "procedencia": {
+        "norma": "bocm-20220726-1",
+        "ubicacion": "art. 16.3",
+        "pagina": 21
+      },
+      "orden": 6
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7",
+      "tipo": "requisito_programacion",
+      "texto": "La programación didáctica de los departamentos incluirá, necesariamente, los siguientes aspectos para cada una de las áreas, materias y módulos asignados al mismo o integrados en él, como consecuencia de lo establecido en los apartados 3 y 4 del artículo 48 de este Reglamento:",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2",
+        "pagina": null
+      },
+      "orden": 7
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.b",
+      "tipo": "requisito_programacion",
+      "texto": "En el caso del bachillerato y de los ciclos formativos, los objetivos, los contenidos y los criterios de evaluación para cada curso.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.b",
+        "pagina": null
+      },
+      "orden": 8,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.c",
+      "tipo": "requisito_programacion",
+      "texto": "En la programación de los distintos aspectos que se señalan en los párrafos a) y b) de este artículo deberá aparecer la forma en que se incorporan los temas transversales.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.c",
+        "pagina": null
+      },
+      "orden": 9,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.d",
+      "tipo": "requisito_programacion",
+      "texto": "La distribución temporal de los contenidos en el ciclo o curso correspondiente.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.d",
+        "pagina": null
+      },
+      "orden": 10,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.e",
+      "tipo": "requisito_programacion",
+      "texto": "La metodología didáctica que se va a aplicar.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.e",
+        "pagina": null
+      },
+      "orden": 11,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.f",
+      "tipo": "requisito_programacion",
+      "texto": "Los procedimientos de evaluación del aprendizaje de los alumnos.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.f",
+        "pagina": null
+      },
+      "orden": 12,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.g",
+      "tipo": "requisito_programacion",
+      "texto": "Los criterios de calificación que se vayan a aplicar.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.g",
+        "pagina": null
+      },
+      "orden": 13,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.h",
+      "tipo": "requisito_programacion",
+      "texto": "Las actividades de recuperación para los alumnos de bachillerato con asignaturas pendientes y las profundizaciones y refuerzos para lograr dicha recuperación.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.h",
+        "pagina": null
+      },
+      "orden": 14,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.i",
+      "tipo": "requisito_programacion",
+      "texto": "Los materiales y recursos didácticos que se vayan a utilizar, incluidos los libros para uso de los alumnos.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.i",
+        "pagina": null
+      },
+      "orden": 15,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.j",
+      "tipo": "requisito_programacion",
+      "texto": "Las actividades complementarias y extraescolares que se pretenden realizar desde el departamento.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.j",
+        "pagina": null
+      },
+      "orden": 16,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.7.k",
+      "tipo": "requisito_programacion",
+      "texto": "Las medidas de atención a la diversidad y las adaptaciones curriculares para los alumnos que las precisen.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.2.k",
+        "pagina": null
+      },
+      "orden": 17,
+      "padre": "MAD.BACH.PROG.7"
+    },
+    {
+      "codigo": "MAD.BACH.PROG.8",
+      "tipo": "requisito_programacion",
+      "texto": "Los profesores desarrollarán su actividad docente de acuerdo con las programaciones didácticas de los departamentos a los que pertenezcan. En caso de que algún profesor decida incluir en su actividad docente alguna variación respecto de la programación del departamento consensuada por el conjunto de sus miembros, dicha variación, y su justificación, deberán ser incluidas en la programación didáctica del departamento. En todo caso, las variaciones que se incluyan deberán respetar las decisiones generales adoptadas en el proyecto curricular de la etapa correspondiente.",
+      "procedencia": {
+        "norma": "boe-a-1996-3834",
+        "ubicacion": "art. 68.3",
+        "pagina": null
+      },
+      "orden": 18
+    }
+  ]
+}

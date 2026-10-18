@@ -83,6 +83,10 @@ correcciones = ["bocm-20230915-1"]
 modificada_por = ["bocm-20240613-2"]
 estado = "vigente"
 
+# Requisitos de la programación (tarea 5.6): solo el art. 16.3, contado en el boletín.
+[norma.recuentos."MAD.BACH.PROG"]
+requisito_programacion = 1
+
 [[norma]]
 id = "bocm-20230915-1"
 rango = "correccion"
@@ -185,6 +189,11 @@ url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2023/05/31/BOCM-20230531-17
 sha256 = "52b2229ffc16926e5e2bfed986f395063217b6b782059c692dbdf247ea9f3511"
 estado = "vigente"
 
+# Requisitos de la programación (tarea 5.6): los apartados de esta orden que dicen qué debe
+# recoger la programación (art. 19.3 y art. 46.4, letras a a c), contados en el boletín.
+[norma.recuentos."MAD.ESO.PROG"]
+requisito_programacion = 4
+
 [[norma]]
 id = "bocm-20230621-14"
 rango = "orden"
@@ -195,6 +204,11 @@ boletin = "BOCM"
 url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2023/06/21/BOCM-20230621-14.PDF"
 sha256 = "4cb4bc57181f3e68d5a868ca28a83e5749c4be40899f7bd891650b9e8abf0e0e"
 estado = "vigente"
+
+# Requisitos de la programación (tarea 5.6): art. 17.2, art. 23.1 y art. 38.4, letras a a c,
+# contados en el boletín.
+[norma.recuentos."MAD.BACH.PROG"]
+requisito_programacion = 5
 
 [[norma]]
 id = "bocm-20220520-1"
@@ -316,6 +330,18 @@ url_pdf = "https://www.boe.es/boe/dias/1996/02/21/pdfs/A06306-06324.pdf"
 url_api = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1996-3834"
 sha256 = "c32607fa89b96f4fd6662ecb6a3289c7e9e3ecd1762bbda43c185ea12560c26b"
 estado = "vigente"
+
+# Requisitos de la programación (tarea 5.6): art. 68.2 (frase y las letras que valen para la
+# etapa: ESO a, c-g, i-k; Bachillerato b-k; FP b-g, i-k) y 68.3, contados en el XML consolidado.
+# Las letras a y h no valen donde el propio texto las limita a otra etapa.
+[norma.recuentos."MAD.ESO.PROG"]
+requisito_programacion = 11
+
+[norma.recuentos."MAD.BACH.PROG"]
+requisito_programacion = 12
+
+[norma.recuentos."MAD.FP.PROG"]
+requisito_programacion = 11
 
 # --- DAM: título estatal ------------------------------------------------------------------
 
@@ -799,6 +825,12 @@ correcciones = ["bocm-20250526-1"]
 estado = "vigente"
 citas = ["Decreto 21/2025"]
 
+# Requisitos de la programación (tarea 5.6): art. 63.4; art. 67.1 (frase y letras a a i), 67.2,
+# 67.3 (dos párrafos), 67.4 y 67.5 (frase y letras a a h), contados en el boletín. El art. 66
+# es de los grados A, B y C y no cuenta.
+[norma.recuentos."MAD.FP.PROG"]
+requisito_programacion = 24
+
 [[norma]]
 id = "bocm-20250526-1"
 rango = "correccion"
@@ -821,6 +853,11 @@ boletin = "CM"
 url_pdf = "https://www.comunidad.madrid/docs/2026-06/resolucion_intrucciones_ordenacion_fp_dgesfpre_26-27.pdf"
 sha256 = "b9e7914b7e633613ade23673d34da0b33abeb70c5c736553ad5a4c13a0e8a6a5"
 estado = "vigente"
+
+# Requisitos de la programación (tarea 5.6): instrucción segunda 1 (frase y letras a a d) y 2,
+# quinta 3 y sexta 4, contadas en el texto.
+[norma.recuentos."MAD.FP.PROG"]
+requisito_programacion = 8
 
 # --- Derogadas: solo metadatos, para responder «derogada por…» (caso A2) --------------
 
