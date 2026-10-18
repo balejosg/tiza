@@ -1,0 +1,322 @@
+     BOCM                          BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 280                            MIÉRCOLES 27 DE AGOSTO DE 2025                               B.O.C.M. Núm. 204
+
+
+
+            c) Sistemas digitalizados reales. Sistemas de almacenamiento de datos no
+               convencionales.
+            5. Plan de transformación digital.
+            a) Análisis de necesidades digitales. Coste de oportunidad y alternativas.
+            b) Plan de formación digital. Objetivos y resultados.
+            c) THD implicadas en la digitalización de las etapas. Relación entre etapas.
+               Configuración de la empresa digitalizada.
+            d) Recursos empleados. Selección de los recursos digitales y humanos
+               necesarios.
+
+
+
+
+                                                 ANEXO V
+                  Módulo profesional 1665. Digitalización aplicada a los sectores
+                                        productivos (GS)
+                                        Elementos curriculares
+           Resultados de aprendizaje y criterios de evaluación:
+           1. Analiza el concepto de digitalización y su repercusión en los sectores
+            productivos teniendo en cuenta la actividad de la empresa e identificando
+            entornos IT (Information Technology: tecnología de la información) y OT
+            (Operation Technology: tecnología de operación) característicos.
+            a) Se ha descrito en qué consiste el concepto de digitalización.
+            b) Se ha relacionado la implantación de la tecnología digital con la organización
+               de las empresas.
+            c) Se han establecido las diferencias y similitudes entre los entornos IT y OT.
+            d) Se han identificado los departamentos típicos de las empresas que pueden
+               constituir entornos IT.
+            e) Se han seleccionado las tecnologías típicas de la digitalización en planta y en
+               negocio.
+            f) Se ha analizado la importancia de la conexión entre entornos IT y OT.
+            g) Se han analizado las ventajas de digitalizar una empresa industrial de extremo
+               a extremo.
+           2. Caracteriza las tecnologías habilitadoras digitales necesarias para la
+            adecuación o transformación de las empresas a entornos digitales describiendo
+            sus características y aplicaciones.
+                                                                                                                     BOCM-20250827-6
+     BOCM                                   BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                            MIÉRCOLES 27 DE AGOSTO DE 2025                            Pág. 281
+
+
+
+                    a) Se han identificado las principales tecnologías habilitadoras digitales.
+                    b) Se han relacionado las THD con el desarrollo de productos y servicios.
+                    c) Se ha relacionado la importancia de las THD con la economía sostenible y
+                       eficiente.
+                    d) Se han identificado nuevos mercados generados por las THD.
+                    e) Se ha analizado la implicación de THD tanto en la parte de negocio como en
+                       la parte de planta.
+                    f) Se han identificado las mejoras producidas debido a la implantación de las
+                       tecnologías habilitadoras en relación con los entornos IT y OT.
+                    g) Se ha elaborado un informe que relacione, las tecnologías con sus
+                       características y áreas de aplicación.
+                3. Identifica sistemas basados en cloud o nube y su influencia en el desarrollo de
+                 los sistemas digitales.
+                    a) Se han identificado los diferentes niveles de la cloud o nube.
+                    b) Se han identificado las principales funciones de la cloud o nube
+                       (procesamiento de datos, intercambio de información, ejecución de
+                       aplicaciones, entre otros).
+                    c) Se ha descrito el concepto de edge computing y su relación con la cloud o
+                       nube.
+                    d) Se han definido los conceptos de fog y mist y sus zonas de aplicación en el
+                       conjunto.
+                    e) Se han identificado las ventajas que proporciona la utilización de la cloud o
+                       nube en los sistemas conectados.
+                4. Identifica aplicaciones de la IA (inteligencia artificial) en entornos del sector
+                 donde está enmarcado el título describiendo las mejoras implícitas en su
+                 implementación.
+                    a) Se ha identificado la importancia de la IA en la automatización de procesos y
+                       su optimización.
+                    b) Se ha relacionado la IA con la recogida masiva de datos (Big Data) y su
+                       tratamiento (análisis) con la rentabilidad de las empresas.
+                    c) Se ha valorado la importancia presente y futura de la IA.
+                    d) Se han identificado los sectores con implantación más relevante de IA.
+                    e) Se han identificado los lenguajes de programación en IA.
+                    f) Se ha descrito como influye la IA en el sector del título.
+                                                                                                                  BOCM-20250827-6
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 282                            MIÉRCOLES 27 DE AGOSTO DE 2025                             B.O.C.M. Núm. 204
+
+
+
+           5. Evalúa la importancia de los datos, así como su protección en una economía
+            digital globalizada, definiendo sistemas de seguridad y ciberseguridad tanto a
+            nivel de equipo o sistema, como globales.
+            a) Se ha establecido la diferencia entre dato e información.
+            b) Se ha descrito el ciclo de vida del dato.
+            c) Se ha identificado la relación entre Big Data, análisis de datos, machine o
+               deep learning e inteligencia artificial.
+            d) Se han descrito las características que definen Big Data.
+            e) Se han descrito las etapas típicas de la ciencia de datos y su relación en el
+               proceso.
+            f) Se han descrito los procedimientos de almacenaje de datos en la cloud o
+               nube.
+            g) Se ha descrito la importancia del cloud computing.
+            h) Se han identificado los principales objetivos de la ciencia de datos en las
+               diferentes empresas.
+            i) Se ha valorado la importancia de la seguridad y su regulación en relación con
+               los datos.
+           6. Desarrolla un proyecto de transformación digital de una empresa de un sector
+            relacionado con el título, teniendo en cuenta los cambios que se deben producir
+            en función de los objetivos de la empresa.
+            a) Se han identificado los objetivos estratégicos de la empresa.
+            b) Se han identificado y alineado las áreas de producción o negocio y de
+               comunicaciones.
+            c) Se han identificado las áreas susceptibles de ser digitalizadas.
+            d) Se ha analizado el encaje de AD (áreas digitalizadas) entre sí y con las que
+               no lo están.
+            e) Se han tenido en cuenta las necesidades presentes y futuras de la empresa.
+            f) Se han relacionado cada una de las áreas con la implantación de las
+               tecnologías.
+            g) Se han analizado las posibles brechas de seguridad en cada una de las áreas.
+            h) Se ha definido el tratamiento de los datos y su análisis.
+            i) Se ha tenido en cuenta la integración entre datos, aplicaciones, plataformas
+               que los soportan, entre otros.
+            j) Se han documentado los cambios realizados en función de la estrategia.
+                                                                                                                   BOCM-20250827-6
+     BOCM                                    BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                             MIÉRCOLES 27 DE AGOSTO DE 2025                              Pág. 283
+
+
+
+                    k) Se han tenido en cuenta la idoneidad de los recursos humanos.
+
+
+                    Contenidos:
+                    1. Digitalización en los sectores productivos.
+                    a) Cronología de las revoluciones industriales. Cuarta revolución.
+                    b) Digitalización. Elementos que la definen.
+                    c) Entorno de tecnología de la información (IT) y tecnología de operación (OT).
+                    d) Estructura digital de la empresa.
+                    2. Tecnologías habilitadoras digitales (THD).
+                    a) Tecnologías habilitadoras (THD). Características y aplicaciones de Internet de
+                       las cosas (IoT), Inteligencian artificial (IA), Big Data y tratamiento de datos,
+                       entre otras.
+                    b) Ciberseguridad. La huella digital.
+                    c) Derechos y deberes de las empresas y la ciudadanía en relación al uso de la
+                       de las THD.
+                    d) Mejoras con la implantación de THD.
+                    e) Sistemas digitalizados y datos.
+                    3. Sistemas basados en la nube (Cloud) y sistemas conectados.
+                    a) Cloud. Definición y niveles de trabajo. Sistemas conectados.
+                    b) Edge computing y su relación con la nube.
+                    c) Fog y Mist. Relación con la nube.
+                    d) Recursos de la nube y rentabilidad empresarial.
+                    4. Aplicación de la Inteligencia Artificial (IA).
+                    a) Inteligencia Artificial. Tipos y ejemplos de aplicación.
+                    b) La IA y los datos. Tratamiento de datos y su protección.
+                    c) Relación de la IA con los sectores productivos o áreas de aplicación del ciclo
+                       formativo.
+                    d) Principios éticos de la IA en la actividad profesional, cultural y social.
+                    5. Evaluación de datos.
+                    a) Dato versus Información. Ciclo de vida del dato. Almacenamiento.
+                    b) Análisis de datos. Big data.
+                                                                                                                     BOCM-20250827-6
+     BOCM                          BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 284                            MIÉRCOLES 27 DE AGOSTO DE 2025                                B.O.C.M. Núm. 204
+
+
+
+            c) Aplicación a las empresas de tratamiento de datos. Seguridad.
+            6. Desarrollo de un proyecto de trasformación digital.
+            a) Objetivos de la empresa. Áreas de la empresa y estrategia de digitalización.
+            b) Implantación de tecnologías. Integración en el conjunto.
+            c) Documentos de seguimiento. Medidas.
+            d) Recursos humanos.
+
+
+
+
+                                               ANEXO VI
+             Módulo profesional 1708. Sostenibilidad aplicada al sistema productivo
+                                        Elementos curriculares
+           Resultados de aprendizaje y criterios de evaluación:
+           1. Identifica los aspectos ambientales, sociales y de gobernanza (ASG) relativos
+            a la sostenibilidad teniendo en cuenta el concepto de desarrollo sostenible y los
+            marcos internacionales que contribuyen a su consecución.
+            a) Se ha descrito el concepto de sostenibilidad, estableciendo los marcos
+               internacionales asociados al desarrollo sostenible.
+            b) Se han identificado los asuntos ambientales, sociales y de gobernanza que
+               influyen en el desarrollo sostenible de las organizaciones empresariales.
+            c) Se han relacionado los Objetivos de Desarrollo Sostenible (ODS) con su
+               importancia para la consecución de la Agenda 2030.
+            d) Se ha analizado la importancia de identificar los aspectos ASG más relevantes
+               para los grupos de interés de las organizaciones relacionándolos con los
+               riesgos y oportunidades que suponen para la propia organización.
+            e) Se han identificado los principales estándares de métricas para la evaluación
+               del desempeño en sostenibilidad y su papel en la rendición de cuentas que
+               marca la legislación vigente y las futuras regulaciones en desarrollo.
+            f) Se ha descrito la inversión socialmente responsable y el papel de los analistas,
+               inversores, agencias e índices de sostenibilidad en el fomento de la
+               sostenibilidad.
+           2. Caracteriza los retos ambientales y sociales a los que se enfrenta la sociedad,
+            describiendo los impactos sobre las personas y los sectores productivos y
+            proponiendo acciones para minimizarlos.
+            a) Se han identificado los principales retos ambientales y sociales.
+                                                                                                                      BOCM-20250827-6
+     BOCM                                  BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                           MIÉRCOLES 27 DE AGOSTO DE 2025                                Pág. 285
+
+
+
+                    b) Se han relacionado los retos ambientales y sociales con el desarrollo de la
+                       actividad económica.
+                    c) Se ha analizado el efecto de los impactos ambientales y sociales sobre las
+                       personas y los sectores productivos.
+                    d) Se han identificado las medidas y acciones encaminadas a minimizar los
+                       impactos ambientales y sociales.
+                    e) Se ha analizado la importancia de establecer alianzas y trabajar de manera
+                       transversal y coordinada para abordar con éxito los retos ambientales y
+                       sociales.
+                3. Establece la aplicación de criterios de sostenibilidad en el desempeño
+                 profesional y personal, identificando los elementos necesarios.
+                    a) Se han identificado los ODS más relevantes para la actividad profesional que
+                       realiza.
+                    b) Se han analizado los riesgos y oportunidades que representan los ODS.
+                    c) Se han identificado las acciones necesarias para atender algunos de los retos
+                       ambientales y sociales desde la actividad profesional y el entorno personal.
+                4. Propone productos y servicios responsables teniendo en cuenta los principios
+                 de la economía circular.
+                    a) Se ha caracterizado el modelo de producción y consumo actual.
+                    b) Se han identificado los principios de la economía verde y circular.
+                    c) Se han contrastado los beneficios de la economía verde y circular frente al
+                       modelo clásico de producción.
+                    d) Se han aplicado principios de ecodiseño.
+                    e) Se ha analizado el ciclo de vida del producto.
+                    f) Se han identificado los procesos de producción y los criterios de sostenibilidad
+                       aplicados.
+                5. Realiza actividades sostenibles minimizando el impacto de las mismas en el
+                 medio ambiente.
+                    a) Se ha caracterizado el modelo de producción y consumo actual.
+                    b) Se han identificado los principios de la economía verde y circular.
+                    c) Se han contrastado los beneficios de la economía verde y circular frente al
+                       modelo clásico de producción.
+                    d) Se ha evaluado el impacto de las actividades personales y profesionales.
+                    e) Se han aplicado principios de ecodiseño.
+                                                                                                                     BOCM-20250827-6
+     BOCM                           BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+Pág. 286                            MIÉRCOLES 27 DE AGOSTO DE 2025                                B.O.C.M. Núm. 204
+
+
+
+            f) Se han aplicado estrategias sostenibles.
+            g) Se ha analizado el ciclo de vida del producto.
+            h) Se han identificado los procesos de producción y los criterios de sostenibilidad
+               aplicados.
+            i) Se ha aplicado la normativa ambiental.
+           6. Analiza un plan de sostenibilidad de una empresa del sector, identificando sus
+            grupos de interés, los aspectos ASG materiales y justificando acciones para su
+            gestión y medición. Se han identificado los principales grupos de interés de la
+            empresa.
+            a) Se han identificado los principales grupos de interés de la empresa.
+            b) Se han analizado los aspectos ASG materiales, las expectativas de los grupos
+               de interés y la importancia de los aspectos ASG en relación con los objetivos
+               empresariales.
+            c) Se han definido acciones encaminadas a minimizar los impactos negativos y
+               aprovechar las oportunidades que plantean los principales aspectos ASG
+               identificados.
+            d) Se han determinado las métricas de evaluación del desempeño de la empresa
+               de acuerdo con los estándares de sostenibilidad más ampliamente utilizados.
+            e) Se ha elaborado un informe de sostenibilidad con el plan y los indicadores
+               propuestos.
+
+
+           Contenidos:
+           1. La sostenibilidad en el entorno actual.
+            a) La sostenibilidad: definición e importancia en la economía globalizada.
+            b) Objetivos para el desarrollo de la sostenibilidad            y   los   aspectos
+               medioambientales en los sectores empresariales.
+            c) Marco internacional. Acuerdos e instituciones.
+           2. Principales retos ambientales y sociales en el desarrollo sostenible.
+            a) Retos ambientales y sociales en el desarrollo de la actividad económica.
+            b) Acciones que favorecen la conservación del medio                       ambiente,
+               descarbonización y protección de ecosistemas. La cooperación.
+           3. Criterios de sostenibilidad.
+            a) Concreción de los objetivos de sostenibilidad relacionados con el sector
+               productivo.
+                                                                                                                      BOCM-20250827-6
+     BOCM                                   BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID
+B.O.C.M. Núm. 204                           MIÉRCOLES 27 DE AGOSTO DE 2025                              Pág. 287
+
+
+
+                    b) Análisis de los riesgos y beneficios de la aplicación de la sostenibilidad.
+                    c) El papel de la responsabilidad social corporativa (RSC).
+                4. La transformación a una Economía Circular.
+                    a) Proceso de implantación de la economía circular. Objetivos.
+                    b) La economía verde. La huella ecológica. El consumo responsable.
+                5. Estrategias sostenibles.
+                    a) Diseño de actividades para mejorar la conservación del medio ambiente.
+                    b) Estrategias para mejorar el diseño de productos y servicios. El proceso
+                       productivo y la sostenibilidad.
+                    c) Normativa medioambiental.
+                6. Plan de sostenibilidad empresarial.
+                    a) Concreción de los objetivos de sostenibilidad en la actividad de la empresa.
+                       Estrategias de sostenibilidad.
+                    b) Elaboración del informe de sostenibilidad. Determinación de los indicadores
+                       de logro.
+                    c) Plan de formación de los empleados en las estrategias de sostenibilidad.
+                    d) La evaluación y medidas de control.
+
+
+
+
+                                                        ANEXO VII
+                        Módulo profesional 1709. Itinerario personal para la empleabilidad I
+                                                Elementos curriculares
+                    Resultados de aprendizaje y criterios de evaluación:
+                    1. Adquiere las competencias necesarias para el desempeño de las funciones
+                    de nivel básico en Prevención de Riesgos Laborales.
+                    a) Se ha valorado la importancia de la cultura preventiva en todos los ámbitos y
+                    actividades de la empresa u organismo equiparado, relacionando las
+                    condiciones laborales con la salud de la persona trabajadora e identificando y
+                    clasificando los factores de riesgo en la actividad, así como los daños derivados
+                    de los mismos, especialmente las situaciones de riesgo más habituales en los
+                    entornos de trabajo del sector profesional relacionados con el título.
+                                                                                                                   BOCM-20250827-6

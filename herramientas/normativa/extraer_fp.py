@@ -16,9 +16,12 @@ objetivos generales (art. 9) en la redacción del mismo artículo, y la competen
 (art. 4, sin reescribir) del PDF del real decreto original. Un párrafo que otra norma añade al
 artículo 2 (RD 500/2024: el nivel del Marco Español de Cualificaciones) es un dato más.
 
-No hay aquí la extracción de los módulos transversales ni de los optativos de las
-órdenes de 2025: el texto de ``pdftotext`` de la Orden 3537/2025 sale cifrado (la fuente
-del PDF no trae mapa de caracteres) y hay que resolver primero cómo se lee.
+``transversal`` extrae un módulo transversal (Itinerario, Inglés, Digitalización,
+Sostenibilidad): resultados y criterios del texto consolidado (XML) del RD 659/2023, con la
+última versión de cada anexo; contenidos de Madrid de la Orden 3537/2025, cuyo PDF sale
+cifrado de ``pdftotext`` y se lee descifrado (:mod:`.cifrado`, declarado en ``fuentes.toml``);
+y horas y curso de la tabla del decreto de planes de estudios. Los optativos de las órdenes
+de 2025 quedan para otra orden.
 
 Las funciones de análisis trabajan sobre texto o líneas; solo :func:`main` toca ficheros.
 """
@@ -28,6 +31,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import xml.etree.ElementTree as ET
 from collections.abc import Callable, Mapping, Sequence
 from importlib.resources import files
 from pathlib import Path
@@ -310,6 +314,7 @@ def elementos_del_modulo(
     norma: str,
     ubicacion: str,
     via: Mapping[str, str] | None = None,
+    reforma: Mapping[str, Any] | None = None,
     orden_inicial: int = 1,
 ) -> list[dict[str, Any]]:
     """Elementos ``RA.n``, ``RA.n.a`` (criterio), ``EST.….CB.n`` (contenido básico) y ``ORI``.
@@ -322,6 +327,11 @@ def elementos_del_modulo(
     ``via``, si la norma modifica el anexo de otra («queda redactado como sigue»), da la
     norma original (``norma``) y el lugar de su anexo (``ubicacion``): la procedencia pasa a
     ser la de la norma que modifica y el original queda en ``via``.
+
+    ``reforma`` (``norma``, ``ubicacion``, ``resultado``, ``texto``, ``pagina``) es otra
+    norma que reescribe un resultado de ``norma`` (el consolidado ya trae su texto): ese
+    resultado cita a la reforma, con su página, y deja el lugar del original en ``via``. El
+    texto de la reforma tiene que ser el del consolidado; si no, es un ``ValueError``.
     """
     base = f"{ubicacion}, módulo {modulo['codigo']}"
 
@@ -336,14 +346,21 @@ def elementos_del_modulo(
     for resultado in modulo["resultados"]:
         codigo = f"{ficha}.RA.{resultado['numero']}"
         sufijo = f", resultado de aprendizaje {resultado['numero']}"
+        dato = procedencia(sufijo, resultado["pagina"])
+        if reforma is not None and reforma["resultado"] == resultado["numero"]:
+            if reforma["texto"] != resultado["texto"]:
+                raise ValueError(
+                    f"{codigo}: la reforma de «{reforma['norma']}» no dice lo mismo que el "
+                    "texto consolidado"
+                )
+            dato = {
+                "norma": reforma["norma"],
+                "ubicacion": f"{reforma['ubicacion']}, módulo {modulo['codigo']}{sufijo}",
+                "pagina": reforma["pagina"],
+                "via": [{"norma": norma, "ubicacion": base + sufijo, "pagina": None}],
+            }
         elementos.append(
-            _elemento(
-                codigo,
-                "resultado_aprendizaje",
-                resultado["texto"],
-                procedencia(sufijo, resultado["pagina"]),
-                ficha,
-            )
+            _elemento(codigo, "resultado_aprendizaje", resultado["texto"], dato, ficha)
         )
         for criterio in resultado["criterios"]:
             elementos.append(
@@ -379,6 +396,121 @@ def elementos_del_modulo(
     for i, elemento in enumerate(elementos, start=orden_inicial):
         elemento["orden"] = i
     return elementos
+
+
+# --- resultados y criterios del texto consolidado del BOE (XML) ---------------------------
+
+
+_MODULO_XML = re.compile(r"^M[óo]dulo [Pp]rofesional:")
+_CODIGO_XML = re.compile(r"^C[óo]digo:\s*(\d{4})\b")
+_ETIQUETA_CRITERIOS = re.compile(r"\s*Criterios de evaluaci[óo]n:\s*$")
+
+
+def _parrafos_de_la_ultima_version(xml: str) -> list[list[tuple[str, str]]]:
+    """Por cada bloque del texto consolidado, los ``(clase, texto)`` de su última versión.
+
+    Cada bloque (un anexo) trae una versión completa por cada reforma que lo toca; la vigente
+    es la última.
+    """
+    bloques = []
+    for bloque in ET.fromstring(xml).iter("bloque"):
+        versiones = bloque.findall("version")
+        if versiones:
+            bloques.append(
+                [
+                    (p.get("class", ""), comun.unir(["".join(p.itertext())]))
+                    for p in versiones[-1].iter("p")
+                ]
+            )
+    return bloques
+
+
+def analizar_modulo_xml(xml: str, codigo_modulo: str) -> dict[str, Any]:
+    """El módulo ``codigo_modulo`` de los anexos del texto consolidado: resultados con sus
+    criterios, con la misma forma que :func:`analizar_modulo` (sin páginas, sin contenidos
+    básicos ni orientaciones: el consolidado no tiene páginas y el currículo básico de los
+    módulos transversales es solo resultados y criterios).
+
+    Un módulo empieza en su «Módulo Profesional: …» y trae su «Código: NNNN.»; un anexo puede
+    traer dos. La etiqueta «Criterios de evaluación:» que el BOE pega al final de algunos
+    resultados es un encabezado y no forma parte del resultado. Un párrafo que no es de
+    ningún tipo (salvo la nota al pie que anuncia una reforma) o una letra fuera de orden es
+    un ``ValueError``.
+    """
+    encontrados: list[list[tuple[str, str]]] = []
+    for parrafos in _parrafos_de_la_ultima_version(xml):
+        inicios = [i for i, (_, t) in enumerate(parrafos) if _MODULO_XML.match(t)]
+        for n, inicio in enumerate(inicios):
+            fin = inicios[n + 1] if n + 1 < len(inicios) else len(parrafos)
+            trozo = parrafos[inicio:fin]
+            codigo = next((m[1] for _, t in trozo[:6] if (m := _CODIGO_XML.match(t))), None)
+            if codigo == codigo_modulo:
+                encontrados.append(trozo)
+    if not encontrados:
+        raise ValueError(f"no encuentro el módulo {codigo_modulo} en los anexos")
+    if len(encontrados) > 1:
+        raise ValueError(f"el módulo {codigo_modulo} aparece más de una vez en los anexos")
+    resultados: list[dict[str, Any]] = []
+    dentro = False
+    for clase, texto in encontrados[0]:
+        if _SECCION_RA.match(texto):
+            dentro = True
+        elif not dentro or clase == "nota_pie":
+            continue
+        elif (ra := _RA.match(texto)) is not None and int(ra[1]) == len(resultados) + 1:
+            resultados.append(
+                {
+                    "numero": ra[1],
+                    "texto": comun.unir([_ETIQUETA_CRITERIOS.sub("", ra[2])]),
+                    "pagina": None,
+                    "criterios": [],
+                }
+            )
+        elif (criterio := _CRITERIO.match(texto)) is not None and resultados:
+            previos = resultados[-1]["criterios"]
+            esperada = _LETRAS[len(previos)]
+            if criterio[1] != esperada:
+                raise ValueError(
+                    f"{codigo_modulo}: criterio {criterio[1]} fuera de orden (iba el {esperada})"
+                )
+            previos.append({"letra": criterio[1], "texto": criterio[2], "pagina": None})
+        else:
+            raise ValueError(
+                f"{codigo_modulo}: párrafo que no es un resultado ni un criterio: «{texto[:60]}»"
+            )
+    if not resultados:
+        raise ValueError(f"{codigo_modulo}: no hay resultados de aprendizaje")
+    return {"codigo": codigo_modulo, "resultados": resultados, "basicos": [], "orientaciones": None}
+
+
+def parrafo_reescrito(lineas: Sequence[Linea], apartado: str) -> dict[str, Any]:
+    """El resultado que el apartado ``apartado`` («Veintiséis») de un real decreto reescribe.
+
+    Es el texto entre comillas que sigue a «… queda redactado como sigue:», con su número
+    delante («2. Adquiere…»): ``{numero, texto, pagina}``, sin comillas ni número en el texto.
+    """
+    inicio = next(
+        (i for i, l in enumerate(lineas) if re.match(rf"^\s*{re.escape(apartado)}\.\s", l.texto)),
+        None,
+    )
+    if inicio is None:
+        raise ValueError(f"no encuentro el apartado {apartado}")
+    cita = next(
+        (k for k in range(inicio, len(lineas)) if lineas[k].texto.strip().startswith("«")),
+        None,
+    )
+    if cita is None or "redactado" not in " ".join(l.texto for l in lineas[inicio:cita]):
+        raise ValueError(f"el apartado {apartado} no trae un texto redactado entre comillas")
+    cuerpo: list[str] = []
+    for linea in lineas[cita:]:
+        cuerpo.append(linea.texto.strip())
+        if linea.texto.rstrip().endswith("»"):
+            texto = comun.unir(cuerpo).removeprefix("«").removesuffix("»").strip()
+            m = re.match(r"^(\d+)\.\s+(\S.*)$", texto)
+            if m is None:
+                raise ValueError(f"el apartado {apartado} no reescribe un resultado numerado")
+            return {"numero": m[1], "texto": m[2], "pagina": lineas[cita].pagina}
+    raise ValueError(f"el texto del apartado {apartado} no acaba en «»»")
 
 
 # --- contenidos de Madrid (PDF del decreto del ciclo) -------------------------------------
@@ -499,6 +631,68 @@ def elementos_de_contenidos(
     for i, elemento in enumerate(elementos, start=orden_inicial):
         elemento["orden"] = i
     return elementos
+
+
+_ESTRUCTURA_FIN_ORDEN = re.compile(r"^\s*(?:ANEXO\s+[IVX]+\s*$|\(\d{2}/\d+\.\d+/\d{2}\)\s*$)")
+_MODULO_ORDEN = r"^\s*M[óo]dulo profesional\s+{codigo}\."
+_APARTADO_ORDEN = re.compile(r"^\s*(\d+)\.\s+(\S.*)$")
+_LETRA_ORDEN = re.compile(r"^\s*([a-zñ])\)\s*(\S.*)$")
+
+
+def analizar_contenidos_orden(lineas: Sequence[Linea], codigo_modulo: str) -> list[dict[str, Any]]:
+    """Los contenidos de un módulo transversal en la Orden 3537/2025: apartados «1. …» (nivel 1)
+    y sus letras «a) …» (nivel 2, a veces pegada al texto: «m)Gustos»).
+
+    El módulo empieza en su «Módulo profesional NNNN. …» y el bloque, en «Contenidos:»; acaba
+    en el siguiente anexo o en el sello final del boletín («(03/13.366/25)»). Los números y
+    las letras van por orden: lo que no encaja es un ``ValueError``, no se interpreta a medias.
+    La sangría de ``pdftotext`` cambia de una página a otra y no se usa.
+    """
+    patron = re.compile(_MODULO_ORDEN.format(codigo=re.escape(codigo_modulo)))
+    inicio = next((i for i, l in enumerate(lineas) if patron.match(l.texto)), None)
+    if inicio is None:
+        raise ValueError(f"no encuentro el módulo {codigo_modulo} en la orden")
+    fin = next(
+        (i for i in range(inicio + 1, len(lineas)) if _ESTRUCTURA_FIN_ORDEN.match(lineas[i].texto)),
+        len(lineas),
+    )
+    cuerpo = lineas[inicio + 1 : fin]
+    titulo = next(
+        (i for i, l in enumerate(cuerpo) if re.match(r"^\s*Contenidos:\s*$", l.texto)), None
+    )
+    if titulo is None:
+        raise ValueError(f"{codigo_modulo}: no encuentro «Contenidos:»")
+    items: list[dict[str, Any]] = []
+    apartados = letras = 0
+    for linea in cuerpo[titulo + 1 :]:
+        if not linea.texto.strip():
+            continue
+        apartado = _APARTADO_ORDEN.match(linea.texto)
+        letra = _LETRA_ORDEN.match(linea.texto)
+        if apartado is not None:
+            if int(apartado[1]) != apartados + 1:
+                raise ValueError(
+                    f"{codigo_modulo}: apartado {apartado[1]} fuera de orden (iba el {apartados + 1})"
+                )
+            apartados, letras = apartados + 1, 0
+            items.append({"nivel": 1, "lineas": [apartado[2]], "pagina": linea.pagina})
+        elif letra is not None and apartados:
+            if letra[1] != _LETRAS[letras]:
+                raise ValueError(
+                    f"{codigo_modulo}: letra {letra[1]} fuera de orden (iba la {_LETRAS[letras]})"
+                )
+            letras += 1
+            items.append({"nivel": 2, "lineas": [letra[2]], "pagina": linea.pagina})
+        elif items:
+            items[-1]["lineas"].append(linea.texto.strip())
+        else:
+            raise ValueError(f"{codigo_modulo}: texto antes del primer apartado: «{linea.texto}»")
+    if not items:
+        raise ValueError(f"{codigo_modulo}: «Contenidos:» está vacío")
+    return [
+        {"nivel": i["nivel"], "texto": comun.unir(i["lineas"]), "pagina": i["pagina"]}
+        for i in items
+    ]
 
 
 # --- horas y curso (tabla del anexo II) -------------------------------------------------------
@@ -930,6 +1124,68 @@ def _extraer_modulo(args: argparse.Namespace) -> dict[str, Any]:
     return _ficha_de_fp(args.ficha, fila.nombre, curso, args.cursos_academicos, normas, elementos)
 
 
+def _texto(cache: Path, id_: str) -> str:
+    """El texto de una norma, descifrado si ``fuentes.toml`` lo declara."""
+    return comun.texto_de_norma(cache, id_, comun.leer_fuentes()[id_]["cifrado"])
+
+
+def _extraer_transversal(args: argparse.Namespace) -> dict[str, Any]:
+    xml = (args.cache / f"{args.estatal}.xml").read_text(encoding="utf-8")
+    modulo = analizar_modulo_xml(xml, args.modulo)
+    fila = analizar_horas_curso(
+        comun.lineas_limpias(_texto(args.cache, args.horas)),
+        ciclo=args.ciclo,
+        codigo_modulo=args.modulo,
+    )
+    if fila.curso is None:
+        raise SystemExit(f"{args.modulo}: la tabla no le pone curso")
+    reforma = None
+    if args.reforma:
+        parrafo = parrafo_reescrito(
+            comun.lineas_limpias(_texto(args.cache, args.reforma)), args.reforma_apartado
+        )
+        reforma = {
+            "norma": args.reforma,
+            "ubicacion": args.reforma_ubicacion,
+            "resultado": parrafo["numero"],
+            "texto": parrafo["texto"],
+            "pagina": parrafo["pagina"],
+        }
+    elementos = [
+        elemento_modulo(
+            fila.nombre,
+            fila.horas,
+            fila.curso,
+            ficha=args.ficha,
+            norma=args.horas,
+            ubicacion=args.ubicacion_horas,
+            pagina=fila.pagina,
+        )
+    ]
+    elementos += elementos_del_modulo(
+        modulo,
+        ficha=args.ficha,
+        norma=args.estatal,
+        ubicacion=args.ubicacion_estatal,
+        reforma=reforma,
+        orden_inicial=len(elementos) + 1,
+    )
+    contenidos = analizar_contenidos_orden(
+        comun.lineas_limpias(_texto(args.cache, args.madrid)), args.modulo
+    )
+    elementos += elementos_de_contenidos(
+        contenidos,
+        ficha=args.ficha,
+        norma=args.madrid,
+        ubicacion=args.ubicacion_madrid,
+        orden_inicial=len(elementos) + 1,
+    )
+    normas = [args.estatal, *([args.reforma] if args.reforma else []), args.madrid, args.horas]
+    return _ficha_de_fp(
+        args.ficha, fila.nombre, fila.curso, args.cursos_academicos, normas, elementos
+    )
+
+
 def _extraer_titulo(args: argparse.Namespace) -> dict[str, Any]:
     articulo = recortar_articulo(
         comun.lineas_limpias(comun.texto_de_norma(args.cache, args.boe)), args.articulo
@@ -970,21 +1226,20 @@ def _letras(articulo: Sequence[Linea], numero: int) -> tuple[str, list[dict[str,
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        description="Extrae un módulo, o el título, de un ciclo de FP de grado superior."
+        description="Extrae un módulo (técnico o transversal), o el título, de un ciclo de FP de grado superior."
     )
     sub = ap.add_subparsers(dest="orden", required=True)
 
-    comunes = argparse.ArgumentParser(add_help=False)
-    comunes.add_argument("--ficha", required=True, help="código de la ficha, p. ej. MAD.DAM.0485")
-    comunes.add_argument("--cursos-academicos", required=True, help="separados por comas")
-    comunes.add_argument("--cache", type=Path, required=True)
+    base = argparse.ArgumentParser(add_help=False)
+    base.add_argument("--ficha", required=True, help="código de la ficha, p. ej. MAD.DAM.0485")
+    base.add_argument("--cursos-academicos", required=True, help="separados por comas")
+    base.add_argument("--cache", type=Path, required=True)
+    base.add_argument("--salida", type=Path, help="carpeta de datos (por defecto, la del paquete)")
+    comunes = argparse.ArgumentParser(add_help=False, parents=[base])
     comunes.add_argument(
         "--boe", required=True, help="id de la norma que reescribe el título (RD 405/2023)"
     )
     comunes.add_argument("--articulo", default="segundo", help="ordinal del artículo que lo hace")
-    comunes.add_argument(
-        "--salida", type=Path, help="carpeta de datos (por defecto, la del paquete)"
-    )
 
     m = sub.add_parser("modulo", parents=[comunes], help="un módulo profesional")
     m.add_argument("--modulo", required=True, help="código del módulo, p. ej. 0485")
@@ -1016,8 +1271,35 @@ def main(argv: list[str] | None = None) -> int:
         "--adicion", help="id de la norma que añade un párrafo final al artículo 2 (RD 500/2024)"
     )
 
+    x = sub.add_parser(
+        "transversal",
+        parents=[base],
+        help="un módulo transversal (RD 659/2023 y su orden de Madrid)",
+    )
+    x.add_argument("--modulo", required=True, help="código del módulo, p. ej. 1709")
+    x.add_argument("--ciclo", required=True, help="nombre del ciclo en la tabla de horas")
+    x.add_argument("--estatal", required=True, help="id del real decreto con el currículo básico")
+    x.add_argument("--ubicacion-estatal", required=True, help="p. ej. «anexo V»")
+    x.add_argument("--madrid", required=True, help="id de la orden con los contenidos de Madrid")
+    x.add_argument("--ubicacion-madrid", required=True, help="p. ej. «anexo VII»")
+    x.add_argument("--horas", required=True, help="id de la norma con la tabla de horas")
+    x.add_argument("--ubicacion-horas", default="anexo II")
+    x.add_argument("--reforma", help="id de la norma que reescribe un resultado del consolidado")
+    x.add_argument("--reforma-apartado", help="apartado de la reforma, p. ej. «Veintiséis»")
+    x.add_argument("--reforma-ubicacion", help="p. ej. «artículo segundo, apartado Veintiséis»")
+
     args = ap.parse_args(argv)
-    ficha = _extraer_modulo(args) if args.orden == "modulo" else _extraer_titulo(args)
+    if (
+        args.orden == "transversal"
+        and args.reforma
+        and not (args.reforma_apartado and args.reforma_ubicacion)
+    ):
+        ap.error("--reforma necesita --reforma-apartado y --reforma-ubicacion")
+    ficha = {
+        "modulo": _extraer_modulo,
+        "titulo": _extraer_titulo,
+        "transversal": _extraer_transversal,
+    }[args.orden](args)
     raiz = args.salida or Path(str(files("tiza.normativa").joinpath("datos")))
     print(escribir_ficha(ficha, raiz))
     return 0

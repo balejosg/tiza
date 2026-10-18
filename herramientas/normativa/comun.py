@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import tempfile
 import tomllib
 import unicodedata
 import xml.etree.ElementTree as ET
@@ -16,6 +17,8 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 from tiza.normativa.modelo import TIPOS_ELEMENTO
+
+from .cifrado import CIFRADOS, comprobar_descifrado, parchear_pdf
 
 __all__ = [
     "Linea",
@@ -53,7 +56,7 @@ _OPCIONALES_LISTA = (
     "derogaciones_parciales",
     "citas",
 )
-SOLO_MANTENEDOR = ("recuentos", "sustituciones")
+SOLO_MANTENEDOR = ("recuentos", "sustituciones", "cifrado")
 
 # Los recuentos se nombran como se habla del anexo; cualquier tipo de elemento vale tal cual.
 RECUENTOS = {
@@ -164,8 +167,20 @@ def unir(lineas: Iterable[str]) -> str:
 # --- texto de las normas en la caché ------------------------------------------------
 
 
-def convertir_pdf(pdf: Path) -> str:
-    """``pdftotext -layout`` de un PDF. Es la única función que lanza el programa."""
+def convertir_pdf(pdf: Path, cifrado: str | None = None) -> str:
+    """``pdftotext -layout`` de un PDF. Es la única función que lanza el programa.
+
+    Con ``cifrado`` (el de la norma en ``fuentes.toml``), el PDF se descifra antes en una
+    copia temporal (:mod:`.cifrado`) y el texto resultante se comprueba: ni un glifo sin
+    tabla ni un carácter de control.
+    """
+    if cifrado is not None:
+        with tempfile.TemporaryDirectory() as carpeta:
+            copia = Path(carpeta) / "descifrado.pdf"
+            copia.write_bytes(parchear_pdf(pdf.read_bytes(), cifrado))
+            texto = convertir_pdf(copia)
+        comprobar_descifrado(texto)
+        return texto
     proceso = subprocess.run(
         ["pdftotext", "-layout", str(pdf), "-"],
         check=True,
@@ -176,15 +191,22 @@ def convertir_pdf(pdf: Path) -> str:
     return proceso.stdout
 
 
-def texto_de_norma(cache: Path, id_: str) -> str:
-    """El texto de ``pdftotext`` de una norma: ``<id>.txt`` en la caché o, si no, el del PDF."""
+def texto_de_norma(cache: Path, id_: str, cifrado: str | None = None) -> str:
+    """El texto de ``pdftotext`` de una norma: ``<id>.txt`` en la caché o, si no, el del PDF.
+
+    ``cifrado``: el de la norma en ``fuentes.toml``; el texto de la caché se comprueba igual
+    (un ``.txt`` sacado sin descifrar se rechaza: bórralo para que se vuelva a sacar).
+    """
     txt = cache / f"{id_}.txt"
     if not txt.is_file():
         pdf = cache / f"{id_}.pdf"
         if not pdf.is_file():
             raise FileNotFoundError(f"no hay {txt.name} ni {pdf.name} en {cache}; ¿descargar.py?")
-        txt.write_text(convertir_pdf(pdf), encoding="utf-8")
-    return txt.read_text(encoding="utf-8")
+        txt.write_text(convertir_pdf(pdf, cifrado), encoding="utf-8")
+    texto = txt.read_text(encoding="utf-8")
+    if cifrado is not None:
+        comprobar_descifrado(texto)
+    return texto
 
 
 def textos_de_xml(xml: str) -> list[str]:
@@ -248,6 +270,10 @@ def _leer_registro(id_: str, entrada: Any) -> dict[str, Any]:
         registro[clave] = list(valor)
     if not registro["url_pdf"].startswith("https://"):
         raise ValueError(f"{id_}: «url_pdf» debe ser https")
+    cifrado = entrada.get("cifrado")
+    if cifrado is not None and cifrado not in CIFRADOS:
+        raise ValueError(f"{id_}: cifrado desconocido «{cifrado}»")
+    registro["cifrado"] = cifrado
     registro["recuentos"] = _leer_recuentos(id_, entrada.get("recuentos", {}))
     registro["sustituciones"] = _leer_sustituciones(id_, entrada.get("sustituciones", []))
     return registro

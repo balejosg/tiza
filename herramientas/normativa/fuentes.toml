@@ -468,6 +468,92 @@ url_pdf = "https://www.boe.es/boe/dias/2025/05/23/pdfs/BOE-A-2025-10205.pdf"
 sha256 = "3339ec7c1281b12e53dd0a7389710c47282aef2f10c69a90ed50958806d2de98"
 estado = "vigente"
 
+# --- DAM: módulos transversales (currículo básico estatal) ---------------------------------
+
+[[norma]]
+id = "boe-a-2023-16889"
+rango = "real_decreto"
+numero = "659/2023"
+fecha = "2023-07-18"
+titulo = "Real Decreto 659/2023, de 18 de julio, por el que se desarrolla la ordenación del Sistema de Formación Profesional"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2023/07/22/pdfs/BOE-A-2023-16889.pdf"
+url_api = "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2023-16889"
+sha256 = "b7407d2e0333732c5a7abac10ecdb8c185e5e769620ad066ac63cd8395a585eb"
+correcciones = ["boe-a-2025-10203"]
+modificada_por = ["boe-a-2024-14079"]
+estado = "vigente"
+
+# Currículo básico (código, duración, ECTS, resultados de aprendizaje y criterios de evaluación)
+# de los módulos transversales de DAM: anexo V (1709 y 1710), VII (1665), VIII (1708) y X
+# (0179); el RD 500/2024 (art. séptimo, Uno.b) remite a ellos. Se extraen del texto
+# consolidado de la API (XML), no del PDF: la versión vigente de los anexos V y VII no es la
+# del PDF original. Cada bloque del XML trae una versión por cada reforma; se toma la última.
+#  - RD 658/2024 (art. segundo, apartados Veintiséis a Veintiocho): reescribe el primer
+#    párrafo del apartado 2 del anexo V («Itinerario personal para la empleabilidad I»: el
+#    resultado de aprendizaje 2 de 1709, ahora «Adquiere las competencias necesarias para el
+#    desempeño de las funciones de nivel básico en Prevención de Riesgos Laborales»; antes
+#    «Alcanza las competencias necesarias para la obtención del título de Técnico Básico…») y
+#    las cabeceras de los anexos VI y VII (nombre, ECTS, duración y código), que no se
+#    guardan: el nombre del módulo sale de la tabla del Decreto 103/2024. Ese resultado de 1709
+#    cita al RD 658/2024 (PDF, con su página) y, en `via`, al anexo V del RD 659/2023.
+#  - La corrección BOE-A-2025-10203 solo toca el art. 168.1 y la disposición transitoria
+#    octava: ninguno de estos anexos. Su texto ya está en el consolidado.
+#  - Sentencia del TC 82/2025: afecta a artículos (166, 203…) y al anexo IV, no a los
+#    anexos V, VII, VIII ni X.
+# Los recuentos los contó el mantenedor en el XML con una regex por párrafo, sin el
+# extractor: resultados = párrafos «N. …», criterios_fp = párrafos «a) …».
+# El resultado 2 de 1709 es del RD 658/2024 (cuenta en su norma, no aquí).
+
+[norma.recuentos."MAD.DAM.1709"]
+resultados = 4
+criterios_fp = 39
+
+[norma.recuentos."MAD.DAM.1710"]
+resultados = 5
+criterios_fp = 35
+
+[norma.recuentos."MAD.DAM.1665"]
+resultados = 6
+criterios_fp = 45
+
+[norma.recuentos."MAD.DAM.1708"]
+resultados = 6
+criterios_fp = 34
+
+[norma.recuentos."MAD.DAM.0179"]
+resultados = 5
+criterios_fp = 43
+
+[[norma]]
+id = "boe-a-2024-14079"
+rango = "real_decreto"
+numero = "658/2024"
+fecha = "2024-07-09"
+titulo = "Real Decreto 658/2024, de 9 de julio, por el que se modifican el Real Decreto 132/2010, de 12 de febrero, por el que se establecen los requisitos mínimos de los centros que impartan las enseñanzas del segundo ciclo de la educación infantil, la educación primaria y la educación secundaria, y el Real Decreto 659/2023, de 18 de julio, por el que se desarrolla la ordenación del Sistema de Formación Profesional"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2024/07/10/pdfs/BOE-A-2024-14079.pdf"
+sha256 = "29742757e5fc0c5076b64fc400b57ef4f459e94fa70ec5183d4dd0400f181a1d"
+modifica = ["boe-a-2023-16889"]
+estado = "vigente"
+
+# Art. segundo, apartado Veintiséis: reescribe el primer párrafo del apartado 2 del anexo V
+# (resultado de aprendizaje 2 de 1709). Los apartados Veinticuatro, Veinticinco, Veintisiete y
+# Veintiocho tocan solo cabeceras (código, duración, ECTS) y la estructura modular (anexo IV).
+[norma.recuentos."MAD.DAM.1709"]
+resultados = 1
+
+[[norma]]
+id = "boe-a-2025-10203"
+rango = "correccion"
+numero = "del Real Decreto 659/2023"
+fecha = "2025-05-23"
+titulo = "Corrección de errores del Real Decreto 659/2023, de 18 de julio, por el que se desarrolla la ordenación del Sistema de Formación Profesional"
+boletin = "BOE"
+url_pdf = "https://www.boe.es/boe/dias/2025/05/23/pdfs/BOE-A-2025-10203.pdf"
+sha256 = "dcd833f25db40214d0d678e3a7ec0f8f26e84d94cb8133acb1c20e3e8b5d2747"
+estado = "vigente"
+
 # --- DAM: currículo y plan de estudios de Madrid ------------------------------------------
 
 [[norma]]
@@ -558,6 +644,33 @@ boletin = "BOCM"
 url_pdf = "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/08/27/BOCM-20250827-6.PDF"
 sha256 = "60cb736cb6b42cba70badaaf17ae3ee7cc1288c14738e7650659b2c9f7180fa5"
 estado = "vigente"
+# El PDF sale cifrado de `pdftotext` (la fuente del cuerpo no trae mapa de Unicode: nombra
+# sus glifos /g38, /g50… y los paréntesis desaparecen). `cifrado` le dice a la herramienta
+# que lo descifre (ver `herramientas/normativa/cifrado.py` y el README); es solo del
+# mantenedor.
+cifrado = "glifos-arial"
+
+# Contenidos de Madrid de los módulos transversales de DAM: anexos III (0179), V (1665), VI
+# (1708), VII (1709) y VIII (1710). Un apartado «N. …» y cada letra «a) …» son un contenido
+# (la letra a veces va pegada al texto: «m)Léxico»). Los contó el mantenedor con una regex por
+# línea en el texto descifrado, sin el extractor, y los comparó con la imagen de las páginas.
+# Los resultados y criterios de la orden no se guardan: los de las fichas son los del
+# RD 659/2023 (la orden difiere en detalles y, en 1709, en el orden; ver el informe de 5.4).
+
+[norma.recuentos."MAD.DAM.0179"]
+contenidos = 59
+
+[norma.recuentos."MAD.DAM.1665"]
+contenidos = 30
+
+[norma.recuentos."MAD.DAM.1708"]
+contenidos = 23
+
+[norma.recuentos."MAD.DAM.1709"]
+contenidos = 34
+
+[norma.recuentos."MAD.DAM.1710"]
+contenidos = 33
 
 [[norma]]
 id = "bocm-20250827-5"

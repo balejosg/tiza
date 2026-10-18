@@ -52,8 +52,10 @@ _PARTICION = re.compile(r"(?<=\w)-\n(?=\w)")
 # siempre el principio de otra unidad, aunque su texto empiece en minúscula.
 _MARCA = "\x01"
 # Tras el final de lo guardado, la unidad debe acabar: fin de línea y que la línea
-# siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)»).
-_BORDE = r"[ ]*»?[ ]*(?:\n(?!(?![a-zñ]\))[a-záéíóúüñ])|$)"
+# siguiente no sea la continuación de la frase (empieza en minúscula, salvo «b)»). Lo único
+# que puede quedar pegado al final es la etiqueta «Criterios de evaluación:» que el BOE deja
+# en el mismo párrafo que el resultado de aprendizaje.
+_BORDE = r"[ ]*»?[ ]*(?:Criterios de evaluaci[óo]n:[ ]*)?(?:\n(?!(?![a-zñ]\))[a-záéíóúüñ])|$)"
 # Los elementos que salen de una fila de tabla (el nombre del módulo, seguido de horas y
 # créditos en la misma línea) no acaban donde acaba una línea: se buscan salteando cifras.
 TIPOS_DE_TABLA = frozenset({"modulo"})
@@ -354,13 +356,17 @@ def _tipo_de_error(detalle: str) -> str:
 # --- caché y línea de órdenes ---------------------------------------------------------------
 
 
-def cargar_documentos(cache: Path, ids: list[str]) -> dict[str, Documento]:
+def cargar_documentos(
+    cache: Path, ids: list[str], cifrados: Mapping[str, str | None] | None = None
+) -> dict[str, Documento]:
     """Lee de la caché el texto de cada norma que esté (``<id>.txt`` o ``.pdf``, y ``<id>.xml``)."""
     documentos: dict[str, Documento] = {}
     for id_ in ids:
         documento = Documento()
         try:
-            documento.paginas = comun.paginas_limpias(comun.texto_de_norma(cache, id_))
+            documento.paginas = comun.paginas_limpias(
+                comun.texto_de_norma(cache, id_, (cifrados or {}).get(id_))
+            )
         except FileNotFoundError:
             pass
         xml = cache / f"{id_}.xml"
@@ -381,7 +387,8 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     fuentes = comun.leer_fuentes(args.fuentes)
     raiz = args.datos or files("tiza.normativa").joinpath("datos")
-    documentos = cargar_documentos(args.cache, list(fuentes))
+    cifrados = {id_: r.get("cifrado") for id_, r in fuentes.items()}
+    documentos = cargar_documentos(args.cache, list(fuentes), cifrados)
     problemas = comprobar_datos(raiz, documentos, fuentes)
     for problema in problemas:
         print(problema)

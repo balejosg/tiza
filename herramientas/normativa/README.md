@@ -6,8 +6,8 @@ guardado aparece literal en la página que cita. **Es solo para quien mantiene l
 ni los docentes ni sus agentes la usan.** Necesita `pdftotext` (poppler) para los PDF.
 
 Se ejecuta desde la raíz del repositorio, con `uv run python -m herramientas.normativa.<módulo>`.
-La lista de normas (`fuentes.toml`: id, URL, `sha256`, correcciones, `recuentos` y
-`sustituciones`) vive en esta carpeta; sus comentarios explican cada decisión (qué toca
+La lista de normas (`fuentes.toml`: id, URL, `sha256`, correcciones, `recuentos`,
+`sustituciones` y `cifrado`) vive en esta carpeta; sus comentarios explican cada decisión (qué toca
 cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve).
 
 ## Orden de trabajo: descargar, extraer, comprobar
@@ -59,8 +59,21 @@ cada corrección o modificación, de dónde sale el texto cuando el PDF no sirve
      profesionales (`CP.a`…) y los objetivos generales (`OG.a`…) en la redacción de `--boe`,
      con `via` al real decreto original, y la competencia general (`CG`) del PDF de
      `--original`. `--adicion` es la norma que añade un párrafo final al artículo 2.
-   - Quedan pendientes los módulos transversales y los optativos de FP: la Orden 3537/2025
-     sale cifrada de `pdftotext` y hay que resolver antes cómo se lee.
+   - `extraer_fp transversal --ficha <código> --modulo <código> --ciclo <nombre> --estatal <id>
+     --ubicacion-estatal <anexo> --madrid <id> --ubicacion-madrid <anexo> --horas <id>
+     [--reforma <id> --reforma-apartado <apartado> --reforma-ubicacion <lugar>]
+     --cursos-academicos … --cache <dir>` (Itinerario I y II, Inglés, Digitalización y
+     Sostenibilidad: `MAD.DAM.1709`…). Resultados y criterios, del **texto consolidado (XML)**
+     del real decreto `--estatal` (RD 659/2023, anexos V, VII, VIII y X), en la última versión
+     de cada anexo (una por reforma); sin página. La etiqueta «Criterios de evaluación:» que
+     el BOE pega a algunos resultados no es del resultado. Si una reforma reescribe un
+     resultado (el RD 658/2024, apartado «Veintiséis», el 2 de 1709), `--reforma` lo cita a
+     ella, con la página de su PDF, y deja el anexo del consolidado en `via`; tiene que decir
+     lo mismo que el consolidado. Los contenidos son los de la orden de Madrid `--madrid`
+     (Orden 3537/2025): apartados «1. …» y letras «a) …», por orden y sin interpretar la
+     sangría. Las horas y el curso, de la tabla de `--horas`, como en `modulo`. Los optativos
+     de la Orden 3536/2025 quedan pendientes.
+
 4. **Comprobar**: `comprobar --cache <dir>` revisa todas las fichas. Sale con código distinto
    de 0 y una línea por discrepancia: `TEXTO`, `PROCEDENCIA`, `RELACION`, `CODIGO`,
    `VIGENCIA`, `FALTA`, `SOBRA` o `SIN_FUENTE`.
@@ -69,9 +82,34 @@ Lo extraído se revisa a mano antes de commitear: el PDF manda, así que el text
 tal como sale de `pdftotext` y un error del boletín se declara en `sustituciones` (la
 corrección de errores que lo enmienda), no se arregla en el JSON.
 
+## La Orden 3537/2025 sale cifrada: `cifrado.py`
+
+La fuente del cuerpo de su PDF (un subconjunto de Arial sin mapa `ToUnicode`) nombra cada
+glifo por su número en la fuente original (`/g3`, `/g38`…), y `pdftotext` los saca como el
+carácter U+00NN: «competencias» sale «FRPSHWHQFLDV» y los paréntesis desaparecen (los
+glifos 11 y 12 son para Unicode un espacio). `fuentes.toml` lo declara con
+`cifrado = "glifos-arial"` (clave solo del mantenedor) y `comun.convertir_pdf` /
+`comun.texto_de_norma` hacen lo siguiente, sin tocar el PDF original:
+
+1. `cifrado.parchear_pdf` añade al final una actualización incremental que redeclara la
+   codificación de esa fuente con `/uniXXXX` (el carácter ya descifrado) y un xref nuevo;
+2. `pdftotext -layout` lee la copia temporal como cualquier otro PDF;
+3. `cifrado.comprobar_descifrado` rechaza el resultado si queda un carácter de control o un
+   glifo sin tabla (se pone en el área privada de Unicode, U+E000 + glifo). Se aplica
+   también a un `.txt` ya en la caché: uno sacado sin descifrar se rechaza (bórralo).
+
+La tabla (`GLIFOS_ARIAL`) es una biyección: el ASCII imprimible es el glifo 3 (el espacio) a
+97 (`carácter = glifo + 29`) y los demás son los de Arial en el orden «Macintosh» (con una
+plaza menos desde las comillas, porque esta Arial no trae el espacio duro): á é í ñ ó ú ü
+(105, 112, 116, 120, 121, 126, 129), ª « » (157, 169, 170), “ ” (179, 180) y Á (200). Solo
+entran los glifos que se compararon con la imagen de la página (`pdftoppm -r 100`); un glifo
+nuevo se añade tras mirar dónde se usa. Otro PDF del BOCM con el mismo problema solo
+necesita la misma línea en `fuentes.toml`, y si su fuente usa más glifos, ampliar la tabla.
+
 ## Los fragmentos de `fuentes/`
 
-`fuentes/*.txt` son trozos de texto de boletín ya extraído, con sus cabeceras de página, y
-`fuentes/*.xml` trozos del XML consolidado del BOE (una tabla del anexo I), para los tests (`tests/normativa/test_herramienta.py`). Junto con los
+`fuentes/*.txt` son trozos de texto de boletín ya extraído, con sus cabeceras de página,
+`fuentes/*.xml` trozos del XML consolidado del BOE (tablas y anexos) y `bocm-20250827-6_cifrado.pdf`
+un PDF mínimo con los objetos reales de la fuente cifrada, para los tests (`tests/normativa/test_herramienta.py`). Junto con los
 datos de `src/tiza/normativa/datos/`, es el único sitio del repositorio donde puede aparecer
 texto de boletín literal.
