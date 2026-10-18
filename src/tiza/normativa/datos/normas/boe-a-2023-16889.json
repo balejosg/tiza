@@ -1,0 +1,19 @@
+{
+  "id": "boe-a-2023-16889",
+  "rango": "real_decreto",
+  "numero": "659/2023",
+  "fecha": "2023-07-18",
+  "titulo": "Real Decreto 659/2023, de 18 de julio, por el que se desarrolla la ordenación del Sistema de Formación Profesional",
+  "boletin": "BOE",
+  "url_pdf": "https://www.boe.es/boe/dias/2023/07/22/pdfs/BOE-A-2023-16889.pdf",
+  "url_api": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2023-16889",
+  "sha256": "b7407d2e0333732c5a7abac10ecdb8c185e5e769620ad066ac63cd8395a585eb",
+  "correcciones": [
+    "boe-a-2025-10203"
+  ],
+  "modificada_por": [
+    "boe-a-2024-14079"
+  ],
+  "estado": "vigente",
+  "revisada": "2026-10-18"
+}

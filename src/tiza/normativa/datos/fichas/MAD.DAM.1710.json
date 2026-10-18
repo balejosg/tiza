@@ -1,0 +1,907 @@
+{
+  "codigo": "MAD.DAM.1710",
+  "nombre": "Itinerario personal para la empleabilidad II",
+  "etapa": "fp_gs",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-16889",
+    "bocm-20250827-6",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.1710",
+      "tipo": "modulo",
+      "texto": "Itinerario personal para la empleabilidad II",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 70,
+        "curso": "2"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Planifica y pone en marcha estrategias en los diferentes procesos selectivos de empleo que le permiten mejorar sus posibilidades de inserción laboral.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1",
+        "pagina": null
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han determinado las técnicas utilizadas actualmente en el sector para el proceso de selección de personal.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio a",
+        "pagina": null
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.1710.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado estrategias para la búsqueda de empleo relacionadas con las técnicas actuales más utilizadas contextualizadas al sector.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio b",
+        "pagina": null
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.1710.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han valorado las actitudes y aptitudes que permiten superar procesos selectivos en el sector privado y en el sector público.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio c",
+        "pagina": null
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.1710.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha construido una marca personal identificando las necesidades del mercado actual, sus habilidades, destrezas y su aporte de valor.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 1, criterio d",
+        "pagina": null
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.1710.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Aplica estrategias relacionadas con las competencias personales, sociales y emocionales para el empleo en búsqueda de la mejora de su empleabilidad.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2",
+        "pagina": null
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha valorado la importancia de las competencias personales y sociales en la empleabilidad en el sector de referencia.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio a",
+        "pagina": null
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.1710.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha participado activamente en el establecimiento de los objetivos del equipo y en la toma de decisiones del mismo y asumido la responsabilidad de las acciones y decisiones del grupo, participando activamente en el logro de unos objetivos compartidos cooperando con otras personas y compartiendo el liderazgo.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio b",
+        "pagina": null
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.1710.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han incorporado al propio proceso de aprendizaje las técnicas y recursos de presentación y comunicación, tanto orales como escritos, adecuados para una comunicación efectiva y afectiva siendo capaz de adaptarlos a cada situación y circunstancias, valorando las oportunidades y dificultades que ofrece cada una de ellas.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio c",
+        "pagina": null
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.1710.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado técnicas y estrategias para la gestión del tiempo disponible para alcanzar los objetivos tanto individuales como del equipo y programado las actividades necesarias.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio d",
+        "pagina": null
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.1710.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado estrategias para canalizar las emociones mostrando una actitud flexible en las relaciones con otras personas.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio e",
+        "pagina": null
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.1710.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han desarrollado estrategias para la programación de actividades atendiendo a criterios de organización eficiente y previendo las posibles dificultades.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio f",
+        "pagina": null
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.1710.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reaccionado de forma flexible y positiva ante conflictos y situaciones nuevas, aprovechando las oportunidades y gestionando las dificultades haciendo uso de estrategias relacionadas con la inteligencia emocional.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 2, criterio g",
+        "pagina": null
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.1710.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Pone en práctica las habilidades emprendedoras necesarias para el desarrollo de procesos de innovación e investigación aplicadas que promuevan la modernización del sector productivo hacia un modelo sostenible.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3",
+        "pagina": null
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado el concepto de innovación y su relación con la construcción de una sociedad más sostenible que mejore en el bienestar de los individuos.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio a",
+        "pagina": null
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.1710.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las distintas metodologías para emprender y su importancia para favorecer la innovación y como fuente de creación de empleo y bienestar social.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio b",
+        "pagina": null
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.1710.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado las habilidades emprendedoras necesarias para promover el emprendimiento y el intraemprendimiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio c",
+        "pagina": null
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.1710.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha puesto en práctica el trabajo colaborativo como requisito para el desarrollo de procesos de innovación.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio d",
+        "pagina": null
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.1710.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha desarrollado la competencia digital necesaria para la mejora de los procesos de innovación e investigación aplicadas que promuevan la modernización del sector productivo.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio e",
+        "pagina": null
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.1710.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.3.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han incorporado los objetivos de las políticas e iniciativas relacionadas con la sostenibilidad y el medio ambiente a la estrategia empresarial enfocada al desarrollo de un modelo económico y social sostenible.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 3, criterio f",
+        "pagina": null
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.1710.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica, define y valida ideas de emprendimiento generadoras de nuevas oportunidades a partir de estrategias de análisis del entorno socio productivo utilizando metodologías ágiles para el emprendimiento.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4",
+        "pagina": null
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los problemas de las personas destinatarias potenciales del proyecto emprendedor como paso previo a la propuesta de soluciones que se conviertan en oportunidades.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio a",
+        "pagina": null
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha puesto en práctica el proceso creativo con el fin de conseguir una idea emprendedora que aporte valor económico, social y/o cultural.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio b",
+        "pagina": null
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha diseñado un modelo de negocio y/o gestión derivado de la idea emprendedora.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio c",
+        "pagina": null
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han incorporado valores éticos y sociales a la idea emprendedora analizando modelos de balance social.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio d",
+        "pagina": null
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado la contribución de la Economía Circular y la Economía del Bien Común al desarrollo de un modelo económico y social basado en la equidad, la justicia social y la sostenibilidad.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio e",
+        "pagina": null
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado los principales componentes del entorno general y específico, y su impacto en la idea emprendedora.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio f",
+        "pagina": null
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han realizado entrevistas de problema para validar el perfil y el problema de las personas destinatarias de la idea emprendedora.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio g",
+        "pagina": null
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha validado la solución mediante la creación de prototipos buscando el encaje problema-solución.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio h",
+        "pagina": null
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.4.i",
+      "tipo": "criterio_fp",
+      "texto": "Se ha experimentado con la puesta en práctica de estrategias de marketing para desarrollar destrezas en técnicas de comunicación y venta.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 4, criterio i",
+        "pagina": null
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.1710.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla un proyecto emprendedor de innovación social y/o tecnológica aplicada en colaboración con el entorno.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5",
+        "pagina": null
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado los conceptos básicos del emprendimiento y la innovación social.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio a",
+        "pagina": null
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reflexionado sobre la necesidad del liderazgo ético y sostenible en las organizaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio b",
+        "pagina": null
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha reflexionado sobre la tecnología como base para el cambio del modelo productivo.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio c",
+        "pagina": null
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han puesto en marcha las estrategias propias del pensamiento de diseño para detectar necesidades sociales y medioambientales.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio d",
+        "pagina": null
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado los elementos del diseño de modelos de negocio ecosociales y/o de base tecnológica.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio e",
+        "pagina": null
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han alineado metas de desarrollo sostenible con el diseño de modelos de negocio ecosociales y/o de base tecnológica.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio f",
+        "pagina": null
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han aplicado las estrategias necesarias para analizar la viabilidad del proyecto emprendedor.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio g",
+        "pagina": null
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han investigado las opciones financieras socialmente responsables.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio h",
+        "pagina": null
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.RA.5.i",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los agentes implicados en el proyecto, así como su participación en el mismo.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo V, módulo 1710, resultado de aprendizaje 5, criterio i",
+        "pagina": null
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.1710.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.1",
+      "tipo": "contenido",
+      "texto": "Los procesos selectivos de empleo: estrategias para la inserción laboral.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 296
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Estrategias de búsqueda de empleo. Recursos. Fuentes.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 296
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.1710.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Análisis y selección de ofertas según el perfil profesional personal. Marca personal y las redes de contactos. Protección de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 296
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.1710.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Actualización del curriculum vitae y de la carta de motivación.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 296
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.1710.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.1.4",
+      "tipo": "contenido",
+      "texto": "La marca personal. Autoanálisis, valor diferencial, objetivos y estrategias de difusión en redes sociales. La protección de datos personales y garantías de los derechos digitales.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.1710.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.1.5",
+      "tipo": "contenido",
+      "texto": "Técnicas de reclutamiento y selección de personal que marcan tendencia. Estrategias para la superación de un proceso selectivo. La entrevista de trabajo. Fases y preparación.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 47,
+      "padre": "MAD.DAM.1710.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.1.6",
+      "tipo": "contenido",
+      "texto": "Oportunidades de empleo en Europa. Pasaporte Europeo de Competencias Europass.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 48,
+      "padre": "MAD.DAM.1710.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.2",
+      "tipo": "contenido",
+      "texto": "Competencias personales y sociales. Estrategias para la mejora de la empleabilidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 49,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Identificación de las competencias personales y sociales más demandadas en el sector profesional del título del ciclo formativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 50,
+      "padre": "MAD.DAM.1710.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Estrategias para el aprendizaje y desarrollo de habilidades sociales y de comunicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 51,
+      "padre": "MAD.DAM.1710.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Técnicas de comunicación. Expresión oral en situaciones relacionales específicas. Técnicas de comunicación asertiva. La comunicación verbal y no verbal.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 52,
+      "padre": "MAD.DAM.1710.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Construcción y desarrollo de un equipo de trabajo. Herramientas de trabajo colaborativo. Evaluación de la participación en los equipos de trabajo. Resolución de conflictos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 53,
+      "padre": "MAD.DAM.1710.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Principales estrategias para la gestión eficaz del tiempo y mejora de la productividad. Métodos para la optimización del tiempo en la gestión de proyectos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 54,
+      "padre": "MAD.DAM.1710.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.3",
+      "tipo": "contenido",
+      "texto": "Las habilidades emprendedoras: modernización y sostenibilidad del sector productivo.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 55,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Creatividad e innovación. Concepto, características y tipos. Relación con el emprendimiento y el intraemprendimiento.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 56,
+      "padre": "MAD.DAM.1710.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.3.2",
+      "tipo": "contenido",
+      "texto": "El proceso de innovación. Importancia en el sector del título del ciclo formativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 57,
+      "padre": "MAD.DAM.1710.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Análisis de las diferentes metodologías para el fomento de la creatividad, el emprendimiento y la innovación. Las competencias relacionadas con el emprendimiento, la competencia digital.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 58,
+      "padre": "MAD.DAM.1710.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Identificación, autoanálisis y desarrollo de las principales competencias y habilidades emprendedoras.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 59,
+      "padre": "MAD.DAM.1710.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.3.5",
+      "tipo": "contenido",
+      "texto": "El trabajo colaborativo como estrategia para el desarrollo de la innovación.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 60,
+      "padre": "MAD.DAM.1710.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.4",
+      "tipo": "contenido",
+      "texto": "Ideas de emprendimiento generadoras de nuevas oportunidades.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 297
+      },
+      "orden": 61,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Análisis de las mejoras que favorecen la consecución de los objetivos de sostenibilidad relacionadas con el sector profesional, a través de metodologías ágiles. Selección de retos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 62,
+      "padre": "MAD.DAM.1710.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.4.2",
+      "tipo": "contenido",
+      "texto": "Investigación y obtención de conclusiones.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 63,
+      "padre": "MAD.DAM.1710.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Definición y selección del reto a resolver.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 64,
+      "padre": "MAD.DAM.1710.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Utilización de diferentes técnicas para el fomento de ideas creativas e innovadoras.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 65,
+      "padre": "MAD.DAM.1710.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.4.5",
+      "tipo": "contenido",
+      "texto": "Creación y desarrollo de un modelo de negocio basado en la idea seleccionada. Cultura empresarial, imagen y responsabilidad social corporativa. Análisis del entorno. Estudio e investigación de mercado. Prototipado: realización y validación. La propiedad intelectual industrial.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 66,
+      "padre": "MAD.DAM.1710.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.4.6",
+      "tipo": "contenido",
+      "texto": "El marketing como herramienta comercial y de validación. El marketing digital actual. Impacto positivo en el entorno.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 67,
+      "padre": "MAD.DAM.1710.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.5",
+      "tipo": "contenido",
+      "texto": "El proyecto emprendedor.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 68,
+      "padre": "MAD.DAM.1710"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Modelo de negocio basado en un proyecto emprendedor.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 69,
+      "padre": "MAD.DAM.1710.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Objetivos. Fundamentos basados en valores éticos, sostenibilidad, impacto medioambiental y recursos digitales.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 70,
+      "padre": "MAD.DAM.1710.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Desarrollo del proyecto emprendedor tomando como referencia el modelo de negocio.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 71,
+      "padre": "MAD.DAM.1710.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.5.4",
+      "tipo": "contenido",
+      "texto": "Trámites para la constitución de la empresa. Servicios públicos y privados de asesoramiento en la gestión y puesta en marcha de una empresa. Elección de la forma jurídica.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 72,
+      "padre": "MAD.DAM.1710.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.5.5",
+      "tipo": "contenido",
+      "texto": "Análisis de la viabilidad económica y financiera del modelo de negocio. Incentivos y ayudas para emprendedores y autónomos. Fiscalidad.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 73,
+      "padre": "MAD.DAM.1710.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1710.CO.5.6",
+      "tipo": "contenido",
+      "texto": "Gestión administrativa y contable de la empresa en el sector profesional del título del ciclo formativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo VIII",
+        "pagina": 298
+      },
+      "orden": 74,
+      "padre": "MAD.DAM.1710.CO.5"
+    }
+  ]
+}

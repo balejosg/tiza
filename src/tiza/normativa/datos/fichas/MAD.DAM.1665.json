@@ -1,0 +1,1003 @@
+{
+  "codigo": "MAD.DAM.1665",
+  "nombre": "Digitalización aplicada a los sectores productivos (GS)",
+  "etapa": "fp_gs",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "boe-a-2023-16889",
+    "bocm-20250827-6",
+    "bocm-20241115-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.DAM.1665",
+      "tipo": "modulo",
+      "texto": "Digitalización aplicada a los sectores productivos (GS)",
+      "procedencia": {
+        "norma": "bocm-20241115-2",
+        "ubicacion": "anexo II",
+        "pagina": 120
+      },
+      "orden": 1,
+      "datos": {
+        "horas": 30,
+        "curso": "2"
+      }
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Analiza el concepto de digitalización y su repercusión en los sectores productivos teniendo en cuenta la actividad de la empresa e identificando entornos IT (Information Technology: tecnología de la información) y OT (Operation Technology: tecnología de operación) característicos.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1",
+        "pagina": null
+      },
+      "orden": 2,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito en qué consiste el concepto de digitalización.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1, criterio a",
+        "pagina": null
+      },
+      "orden": 3,
+      "padre": "MAD.DAM.1665.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha relacionado la implantación de la tecnología digital con la organización de las empresas.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1, criterio b",
+        "pagina": null
+      },
+      "orden": 4,
+      "padre": "MAD.DAM.1665.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han establecido las diferencias y similitudes entre los entornos IT y OT.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1, criterio c",
+        "pagina": null
+      },
+      "orden": 5,
+      "padre": "MAD.DAM.1665.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los departamentos típicos de las empresas que pueden constituir entornos IT.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1, criterio d",
+        "pagina": null
+      },
+      "orden": 6,
+      "padre": "MAD.DAM.1665.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han seleccionado las tecnologías típicas de la digitalización en planta y en negocio.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1, criterio e",
+        "pagina": null
+      },
+      "orden": 7,
+      "padre": "MAD.DAM.1665.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado la importancia de la conexión entre entornos IT y OT.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1, criterio f",
+        "pagina": null
+      },
+      "orden": 8,
+      "padre": "MAD.DAM.1665.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.1.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las ventajas de digitalizar una empresa industrial de extremo a extremo.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 1, criterio g",
+        "pagina": null
+      },
+      "orden": 9,
+      "padre": "MAD.DAM.1665.RA.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Caracteriza las tecnologías habilitadoras digitales necesarias para la adecuación/transformación de las empresas a entornos digitales describiendo sus características y aplicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2",
+        "pagina": null
+      },
+      "orden": 10,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las principales tecnologías habilitadoras digitales.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2, criterio a",
+        "pagina": null
+      },
+      "orden": 11,
+      "padre": "MAD.DAM.1665.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han relacionado las THD con el desarrollo de productos y servicios.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2, criterio b",
+        "pagina": null
+      },
+      "orden": 12,
+      "padre": "MAD.DAM.1665.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha relacionado la importancia de las THD con la economía sostenible y eficiente.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2, criterio c",
+        "pagina": null
+      },
+      "orden": 13,
+      "padre": "MAD.DAM.1665.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado nuevos mercados generados por las THD.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2, criterio d",
+        "pagina": null
+      },
+      "orden": 14,
+      "padre": "MAD.DAM.1665.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2.e",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado la implicación de THD tanto en la parte de negocio como en la parte de planta.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2, criterio e",
+        "pagina": null
+      },
+      "orden": 15,
+      "padre": "MAD.DAM.1665.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las mejoras producidas debido a la implantación de las tecnologías habilitadoras en relación con los entornos IT y OT.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2, criterio f",
+        "pagina": null
+      },
+      "orden": 16,
+      "padre": "MAD.DAM.1665.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.2.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha elaborado un informe que relacione, las tecnologías con sus características y áreas de aplicación.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 2, criterio g",
+        "pagina": null
+      },
+      "orden": 17,
+      "padre": "MAD.DAM.1665.RA.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.3",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica sistemas basados en cloud/nube y su influencia en el desarrollo de los sistemas digitales.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 3",
+        "pagina": null
+      },
+      "orden": 18,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.3.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los diferentes niveles de la cloud/nube.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 3, criterio a",
+        "pagina": null
+      },
+      "orden": 19,
+      "padre": "MAD.DAM.1665.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.3.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las principales funciones de la cloud/nube (procesamiento de datos, intercambio de información, ejecución de aplicaciones, entre otros).",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 3, criterio b",
+        "pagina": null
+      },
+      "orden": 20,
+      "padre": "MAD.DAM.1665.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.3.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito el concepto de edge computing y su relación con la cloud/nube.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 3, criterio c",
+        "pagina": null
+      },
+      "orden": 21,
+      "padre": "MAD.DAM.1665.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.3.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han definido los conceptos de fog y mist y sus zonas de aplicación en el conjunto.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 3, criterio d",
+        "pagina": null
+      },
+      "orden": 22,
+      "padre": "MAD.DAM.1665.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.3.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las ventajas que proporciona la utilización de la cloud/nube en los sistemas conectados.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 3, criterio e",
+        "pagina": null
+      },
+      "orden": 23,
+      "padre": "MAD.DAM.1665.RA.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.4",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Identifica aplicaciones de la IA (inteligencia artificial) en entornos del sector donde está enmarcado el título describiendo las mejoras implícitas en su implementación.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 4",
+        "pagina": null
+      },
+      "orden": 24,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.4.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado la importancia de la IA en la automatización de procesos y su optimización.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 4, criterio a",
+        "pagina": null
+      },
+      "orden": 25,
+      "padre": "MAD.DAM.1665.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.4.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha relacionado la IA con la recogida masiva de datos (Big Data) y su tratamiento (análisis) con la rentabilidad de las empresas.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 4, criterio b",
+        "pagina": null
+      },
+      "orden": 26,
+      "padre": "MAD.DAM.1665.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.4.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha valorado la importancia presente y futura de la IA.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 4, criterio c",
+        "pagina": null
+      },
+      "orden": 27,
+      "padre": "MAD.DAM.1665.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.4.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los sectores con implantación más relevante de IA.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 4, criterio d",
+        "pagina": null
+      },
+      "orden": 28,
+      "padre": "MAD.DAM.1665.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.4.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los lenguajes de programación en IA.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 4, criterio e",
+        "pagina": null
+      },
+      "orden": 29,
+      "padre": "MAD.DAM.1665.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.4.f",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito como influye la IA en el sector del título.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 4, criterio f",
+        "pagina": null
+      },
+      "orden": 30,
+      "padre": "MAD.DAM.1665.RA.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Evalúa la importancia de los datos, así como su protección en una economía digital globalizada, definiendo sistemas de seguridad y ciberseguridad tanto a nivel de equipo/sistema, como globales.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5",
+        "pagina": null
+      },
+      "orden": 31,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.a",
+      "tipo": "criterio_fp",
+      "texto": "Se ha establecido la diferencia entre dato e información.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio a",
+        "pagina": null
+      },
+      "orden": 32,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.b",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito el ciclo de vida del dato.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio b",
+        "pagina": null
+      },
+      "orden": 33,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.c",
+      "tipo": "criterio_fp",
+      "texto": "Se ha identificado la relación entre Big Data, análisis de datos, machine/ deep learning e inteligencia artificial.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio c",
+        "pagina": null
+      },
+      "orden": 34,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.d",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito las características que definen Big Data.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio d",
+        "pagina": null
+      },
+      "orden": 35,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito las etapas típicas de la ciencia de datos y su relación en el proceso.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio e",
+        "pagina": null
+      },
+      "orden": 36,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han descrito los procedimientos de almacenaje de datos en la cloud/nube.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio f",
+        "pagina": null
+      },
+      "orden": 37,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.g",
+      "tipo": "criterio_fp",
+      "texto": "Se ha descrito la importancia del cloud computing.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio g",
+        "pagina": null
+      },
+      "orden": 38,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.h",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los principales objetivos de la ciencia de datos en las diferentes empresas.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio h",
+        "pagina": null
+      },
+      "orden": 39,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.5.i",
+      "tipo": "criterio_fp",
+      "texto": "Se ha valorado la importancia de la seguridad y su regulación en relación con los datos.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 5, criterio i",
+        "pagina": null
+      },
+      "orden": 40,
+      "padre": "MAD.DAM.1665.RA.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6",
+      "tipo": "resultado_aprendizaje",
+      "texto": "Desarrolla un proyecto de transformación digital de una empresa de un sector relacionado con el título, teniendo en cuenta los cambios que se deben producir en función de los objetivos de la empresa.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6",
+        "pagina": null
+      },
+      "orden": 41,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.a",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado los objetivos estratégicos de la empresa.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio a",
+        "pagina": null
+      },
+      "orden": 42,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.b",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado y alineado las áreas de producción/negocio y de comunicaciones.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio b",
+        "pagina": null
+      },
+      "orden": 43,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.c",
+      "tipo": "criterio_fp",
+      "texto": "Se han identificado las áreas susceptibles de ser digitalizadas.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio c",
+        "pagina": null
+      },
+      "orden": 44,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.d",
+      "tipo": "criterio_fp",
+      "texto": "Se ha analizado el encaje de AD (áreas digitalizadas) entre sí y con las que no lo están.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio d",
+        "pagina": null
+      },
+      "orden": 45,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.e",
+      "tipo": "criterio_fp",
+      "texto": "Se han tenido en cuenta las necesidades presentes y futuras de la empresa.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio e",
+        "pagina": null
+      },
+      "orden": 46,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.f",
+      "tipo": "criterio_fp",
+      "texto": "Se han relacionado cada una de las áreas con la implantación de las tecnologías.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio f",
+        "pagina": null
+      },
+      "orden": 47,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.g",
+      "tipo": "criterio_fp",
+      "texto": "Se han analizado las posibles brechas de seguridad en cada una de las áreas.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio g",
+        "pagina": null
+      },
+      "orden": 48,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.h",
+      "tipo": "criterio_fp",
+      "texto": "Se ha definido el tratamiento de los datos y su análisis.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio h",
+        "pagina": null
+      },
+      "orden": 49,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.i",
+      "tipo": "criterio_fp",
+      "texto": "Se ha tenido en cuenta la integración entre datos, aplicaciones, plataformas que los soportan, entre otros.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio i",
+        "pagina": null
+      },
+      "orden": 50,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.j",
+      "tipo": "criterio_fp",
+      "texto": "Se han documentado los cambios realizados en función de la estrategia.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio j",
+        "pagina": null
+      },
+      "orden": 51,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.RA.6.k",
+      "tipo": "criterio_fp",
+      "texto": "Se han tenido en cuenta la idoneidad de los recursos humanos.",
+      "procedencia": {
+        "norma": "boe-a-2023-16889",
+        "ubicacion": "anexo VII, módulo 1665, resultado de aprendizaje 6, criterio k",
+        "pagina": null
+      },
+      "orden": 52,
+      "padre": "MAD.DAM.1665.RA.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.1",
+      "tipo": "contenido",
+      "texto": "Digitalización en los sectores productivos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 53,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.1.1",
+      "tipo": "contenido",
+      "texto": "Cronología de las revoluciones industriales. Cuarta revolución.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 54,
+      "padre": "MAD.DAM.1665.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.1.2",
+      "tipo": "contenido",
+      "texto": "Digitalización. Elementos que la definen.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 55,
+      "padre": "MAD.DAM.1665.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.1.3",
+      "tipo": "contenido",
+      "texto": "Entorno de tecnología de la información (IT) y tecnología de operación (OT).",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 56,
+      "padre": "MAD.DAM.1665.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.1.4",
+      "tipo": "contenido",
+      "texto": "Estructura digital de la empresa.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 57,
+      "padre": "MAD.DAM.1665.CO.1"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.2",
+      "tipo": "contenido",
+      "texto": "Tecnologías habilitadoras digitales (THD).",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 58,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.2.1",
+      "tipo": "contenido",
+      "texto": "Tecnologías habilitadoras (THD). Características y aplicaciones de Internet de las cosas (IoT), Inteligencian artificial (IA), Big Data y tratamiento de datos, entre otras.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 59,
+      "padre": "MAD.DAM.1665.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.2.2",
+      "tipo": "contenido",
+      "texto": "Ciberseguridad. La huella digital.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 60,
+      "padre": "MAD.DAM.1665.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.2.3",
+      "tipo": "contenido",
+      "texto": "Derechos y deberes de las empresas y la ciudadanía en relación al uso de la de las THD.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 61,
+      "padre": "MAD.DAM.1665.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.2.4",
+      "tipo": "contenido",
+      "texto": "Mejoras con la implantación de THD.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 62,
+      "padre": "MAD.DAM.1665.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.2.5",
+      "tipo": "contenido",
+      "texto": "Sistemas digitalizados y datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 63,
+      "padre": "MAD.DAM.1665.CO.2"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.3",
+      "tipo": "contenido",
+      "texto": "Sistemas basados en la nube (Cloud) y sistemas conectados.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 64,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.3.1",
+      "tipo": "contenido",
+      "texto": "Cloud. Definición y niveles de trabajo. Sistemas conectados.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 65,
+      "padre": "MAD.DAM.1665.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.3.2",
+      "tipo": "contenido",
+      "texto": "Edge computing y su relación con la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 66,
+      "padre": "MAD.DAM.1665.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.3.3",
+      "tipo": "contenido",
+      "texto": "Fog y Mist. Relación con la nube.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 67,
+      "padre": "MAD.DAM.1665.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.3.4",
+      "tipo": "contenido",
+      "texto": "Recursos de la nube y rentabilidad empresarial.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 68,
+      "padre": "MAD.DAM.1665.CO.3"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.4",
+      "tipo": "contenido",
+      "texto": "Aplicación de la Inteligencia Artificial (IA).",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 69,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.4.1",
+      "tipo": "contenido",
+      "texto": "Inteligencia Artificial. Tipos y ejemplos de aplicación.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 70,
+      "padre": "MAD.DAM.1665.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.4.2",
+      "tipo": "contenido",
+      "texto": "La IA y los datos. Tratamiento de datos y su protección.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 71,
+      "padre": "MAD.DAM.1665.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.4.3",
+      "tipo": "contenido",
+      "texto": "Relación de la IA con los sectores productivos o áreas de aplicación del ciclo formativo.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 72,
+      "padre": "MAD.DAM.1665.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.4.4",
+      "tipo": "contenido",
+      "texto": "Principios éticos de la IA en la actividad profesional, cultural y social.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 73,
+      "padre": "MAD.DAM.1665.CO.4"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.5",
+      "tipo": "contenido",
+      "texto": "Evaluación de datos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 74,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.5.1",
+      "tipo": "contenido",
+      "texto": "Dato versus Información. Ciclo de vida del dato. Almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 75,
+      "padre": "MAD.DAM.1665.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.5.2",
+      "tipo": "contenido",
+      "texto": "Análisis de datos. Big data.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 283
+      },
+      "orden": 76,
+      "padre": "MAD.DAM.1665.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.5.3",
+      "tipo": "contenido",
+      "texto": "Aplicación a las empresas de tratamiento de datos. Seguridad.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 284
+      },
+      "orden": 77,
+      "padre": "MAD.DAM.1665.CO.5"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.6",
+      "tipo": "contenido",
+      "texto": "Desarrollo de un proyecto de trasformación digital.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 284
+      },
+      "orden": 78,
+      "padre": "MAD.DAM.1665"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.6.1",
+      "tipo": "contenido",
+      "texto": "Objetivos de la empresa. Áreas de la empresa y estrategia de digitalización.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 284
+      },
+      "orden": 79,
+      "padre": "MAD.DAM.1665.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.6.2",
+      "tipo": "contenido",
+      "texto": "Implantación de tecnologías. Integración en el conjunto.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 284
+      },
+      "orden": 80,
+      "padre": "MAD.DAM.1665.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.6.3",
+      "tipo": "contenido",
+      "texto": "Documentos de seguimiento. Medidas.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 284
+      },
+      "orden": 81,
+      "padre": "MAD.DAM.1665.CO.6"
+    },
+    {
+      "codigo": "MAD.DAM.1665.CO.6.4",
+      "tipo": "contenido",
+      "texto": "Recursos humanos.",
+      "procedencia": {
+        "norma": "bocm-20250827-6",
+        "ubicacion": "anexo V",
+        "pagina": 284
+      },
+      "orden": 82,
+      "padre": "MAD.DAM.1665.CO.6"
+    }
+  ]
+}
