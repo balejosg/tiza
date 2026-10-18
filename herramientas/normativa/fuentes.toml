@@ -34,6 +34,40 @@ sha256 = "fba12d2dd0a19cb11cd670a922213aac5acdfb82db774dea187ed481430ffb53"
 modificada_por = ["bocm-20240613-2"]
 estado = "vigente"
 
+# Materias del lote en el anexo II, contadas a mano en el texto del PDF (criterios y
+# contenidos de su curso; las competencias son comunes a todos los cursos). Contenidos
+# = viñetas «–» y subviñetas «x» o «•». Tecnología y Digitalización no tiene 1.º (0 horas
+# en el anexo I) y Digitalización es solo de 4.º.
+[norma.recuentos."MAD.ESO.CCOMP.1"]
+competencias = 4
+criterios = 17
+bloques = 4
+contenidos = 34
+
+[norma.recuentos."MAD.ESO.CCOMP.2"]
+competencias = 4
+criterios = 15
+bloques = 4
+contenidos = 21
+
+[norma.recuentos."MAD.ESO.TECDIG.2"]
+competencias = 7
+criterios = 15
+bloques = 5
+contenidos = 41
+
+[norma.recuentos."MAD.ESO.TECDIG.3"]
+competencias = 7
+criterios = 15
+bloques = 5
+contenidos = 29
+
+[norma.recuentos."MAD.ESO.DIG.4"]
+competencias = 4
+criterios = 16
+bloques = 4
+contenidos = 37
+
 [[norma]]
 id = "bocm-20220726-1"
 rango = "decreto"
@@ -99,6 +133,20 @@ sha256 = "a1d3970f53965fed66546235c705229b55817f8a473ac9970eaf03df444f5079"
 # anexo IV: reescriben los catálogos (anexos I y III) y añaden currículos de otras materias.
 modificada_por = ["bocm-20250131-18", "bocm-20250917-45"]
 estado = "vigente"
+
+# Ciencias de la Computación I y II (anexo IV), contadas a mano en el texto del PDF. Los
+# contenidos son las viñetas «-» de cada bloque.
+[norma.recuentos."MAD.BACH.CCOMP.1"]
+competencias = 4
+criterios = 10
+bloques = 5
+contenidos = 68
+
+[norma.recuentos."MAD.BACH.CCOMP.2"]
+competencias = 4
+criterios = 10
+bloques = 4
+contenidos = 42
 
 [[norma]]
 id = "bocm-20250131-18"

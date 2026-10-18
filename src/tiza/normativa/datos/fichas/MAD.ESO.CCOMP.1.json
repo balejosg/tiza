@@ -1,0 +1,758 @@
+{
+  "codigo": "MAD.ESO.CCOMP.1",
+  "nombre": "Ciencias de la Computación, primer curso",
+  "etapa": "eso",
+  "curso": "1",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20220726-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CE.1",
+      "tipo": "competencia_especifica",
+      "texto": "Entender y utilizar algoritmos que lleven a la resolución de problemas concretos, aplicando los principios del pensamiento computacional y el razonamiento lógico.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 1",
+        "pagina": 436
+      },
+      "orden": 1,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL2",
+          "EST.ESO.DESC.STEM1",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.1.1",
+      "tipo": "criterio",
+      "texto": "Comprender qué es un algoritmo, hacer uso de ellos para la resolución de problemas simples y representarlos mediante diagramas de flujo.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 1.1",
+        "pagina": 437
+      },
+      "orden": 2,
+      "padre": "MAD.ESO.CCOMP.1.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.1.2",
+      "tipo": "criterio",
+      "texto": "Utilizar el razonamiento lógico para explicar cómo funcionan algunos algoritmos básicos y también para detectar y corregir errores en ellos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 1.2",
+        "pagina": 437
+      },
+      "orden": 3,
+      "padre": "MAD.ESO.CCOMP.1.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.1.3",
+      "tipo": "criterio",
+      "texto": "Usar secuencias, selecciones y repeticiones en algoritmos que lleven a la resolución de problemas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 1.3",
+        "pagina": 437
+      },
+      "orden": 4,
+      "padre": "MAD.ESO.CCOMP.1.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CE.2",
+      "tipo": "competencia_especifica",
+      "texto": "Diseñar, escribir y depurar aplicaciones informáticas, en entornos de programación gráfica y textual, que den solución a problemas concretos, incluyendo el control de sistemas físicos y robóticos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 2",
+        "pagina": 436
+      },
+      "orden": 5,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CP2",
+          "EST.ESO.DESC.STEM1",
+          "EST.ESO.DESC.STEM2",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA5"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.2.1",
+      "tipo": "criterio",
+      "texto": "Diseñar e implementar mediante un lenguaje de programación por bloques, programas que realicen tareas diversas como animaciones, historias, juegos de preguntas y respuestas o videojuegos simples, que incluyan interacción con el usuario.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 2.1",
+        "pagina": 437
+      },
+      "orden": 6,
+      "padre": "MAD.ESO.CCOMP.1.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.2.2",
+      "tipo": "criterio",
+      "texto": "Usar las secuencias, la selección y la repetición en programas, trabajando con objetos, variables, y diversas formas de entrada y salida.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 2.2",
+        "pagina": 437
+      },
+      "orden": 7,
+      "padre": "MAD.ESO.CCOMP.1.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.2.3",
+      "tipo": "criterio",
+      "texto": "Coordinar la ejecución de tareas diferentes en un programa mediante eventos y mensajes a objetos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 2.3",
+        "pagina": 437
+      },
+      "orden": 8,
+      "padre": "MAD.ESO.CCOMP.1.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.2.4",
+      "tipo": "criterio",
+      "texto": "Elaborar aplicaciones para dispositivos móviles haciendo uso de la programación por bloques y utilizando las posibilidades que ofrecen en cuanto a comunicaciones y al uso de los sensores que incorporan, valorando especialmente el diseño de la interfaz de usuario para lograr una experiencia accesible y segura.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 2.4",
+        "pagina": 437
+      },
+      "orden": 9,
+      "padre": "MAD.ESO.CCOMP.1.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.2.5",
+      "tipo": "criterio",
+      "texto": "Integrar gráficos, sonidos y otros elementos multimedia en los programas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 2.5",
+        "pagina": 437
+      },
+      "orden": 10,
+      "padre": "MAD.ESO.CCOMP.1.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CE.3",
+      "tipo": "competencia_especifica",
+      "texto": "Conocer los elementos componentes, tanto hardware como software, de los distintos sistemas informáticos, valorando la importancia de su mantenimiento y actualización, así como la manera en la que la información es tratada y almacenada en ellos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 3",
+        "pagina": 436
+      },
+      "orden": 11,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL3",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA4",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE1",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.3.1",
+      "tipo": "criterio",
+      "texto": "Describir la función de los principales elementos componentes de un ordenador, valorando la importancia de una correcta elección de los mismos en función del uso que se les vaya a dar.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 3.1",
+        "pagina": 437
+      },
+      "orden": 12,
+      "padre": "MAD.ESO.CCOMP.1.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.3.2",
+      "tipo": "criterio",
+      "texto": "Comprender cómo se conectan los componentes de un ordenador y cómo se procesa y almacena la información.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 3.2",
+        "pagina": 438
+      },
+      "orden": 13,
+      "padre": "MAD.ESO.CCOMP.1.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.3.3",
+      "tipo": "criterio",
+      "texto": "Describir las funciones principales de los sistemas operativos, así como valorar la elección del mismo entre las diferentes opciones disponibles, prestando especial atención a factores como su facilidad de instalación, su mantenimiento y su uso seguro, protegiendo la privacidad de las personas y datos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 3.3",
+        "pagina": 438
+      },
+      "orden": 14,
+      "padre": "MAD.ESO.CCOMP.1.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.3.4",
+      "tipo": "criterio",
+      "texto": "Organizar la información de manera segura dentro de dispositivos de almacenamiento y en la nube, haciendo un uso adecuado de operaciones como mover, copiar o cortar archivos, así como guardándola en el formato más adecuado para cada tipo de documento.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 3.4",
+        "pagina": 438
+      },
+      "orden": 15,
+      "padre": "MAD.ESO.CCOMP.1.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.3.5",
+      "tipo": "criterio",
+      "texto": "Conocer la existencia de diferentes tipos de software para la realización de tareas tales como el tratamiento de imágenes, ofimáticas, entretenimiento y comunicaciones.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 3.5",
+        "pagina": 438
+      },
+      "orden": 16,
+      "padre": "MAD.ESO.CCOMP.1.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.3.6",
+      "tipo": "criterio",
+      "texto": "Utilizar software de edición de imágenes para crear y modificar gráficos vectoriales y de mapas de bits.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 3.6",
+        "pagina": 438
+      },
+      "orden": 17,
+      "padre": "MAD.ESO.CCOMP.1.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CE.4",
+      "tipo": "competencia_especifica",
+      "texto": "Comprender cómo los equipos informáticos se comunican entre sí formando redes, desde las más pequeñas hasta internet, para compartir información, servicios y recursos, siendo conscientes de las amenazas que esto conlleva y de la importancia de la ciberseguridad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 4",
+        "pagina": 437
+      },
+      "orden": 18,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL2",
+          "EST.ESO.DESC.STEM5",
+          "EST.ESO.DESC.CD1",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD3",
+          "EST.ESO.DESC.CD4"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.4.1",
+      "tipo": "criterio",
+      "texto": "Reconocer los elementos y componentes de las redes informáticas, incluido los de Internet.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 4.1",
+        "pagina": 438
+      },
+      "orden": 19,
+      "padre": "MAD.ESO.CCOMP.1.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.4.2",
+      "tipo": "criterio",
+      "texto": "Conectar equipos informáticos a todo tipo de redes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 4.2",
+        "pagina": 438
+      },
+      "orden": 20,
+      "padre": "MAD.ESO.CCOMP.1.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CR.4.3",
+      "tipo": "criterio",
+      "texto": "Conocer y utilizar de forma segura los diferentes servicios que ofrecen las redes, así como las oportunidades que ofrecen para la comunicación y el trabajo colaborativo.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, criterio 4.3",
+        "pagina": 438
+      },
+      "orden": 21,
+      "padre": "MAD.ESO.CCOMP.1.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A",
+      "tipo": "bloque_contenidos",
+      "texto": "Pensamiento computacional.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 22
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.1",
+      "tipo": "contenido",
+      "texto": "Algoritmos:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 23,
+      "padre": "MAD.ESO.CCOMP.1.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.1.1",
+      "tipo": "contenido",
+      "texto": "Definición y ejemplos sencillos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 24,
+      "padre": "MAD.ESO.CCOMP.1.CO.A.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.1.2",
+      "tipo": "contenido",
+      "texto": "Análisis de problemas simples y diseño de algoritmos para su resolución.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 25,
+      "padre": "MAD.ESO.CCOMP.1.CO.A.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.1.3",
+      "tipo": "contenido",
+      "texto": "Representación de algoritmos mediante diagramas de flujo.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 26,
+      "padre": "MAD.ESO.CCOMP.1.CO.A.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.2",
+      "tipo": "contenido",
+      "texto": "Detección y corrección de errores en algoritmos haciendo uso del razonamiento lógico.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 27,
+      "padre": "MAD.ESO.CCOMP.1.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.3",
+      "tipo": "contenido",
+      "texto": "Pensamiento computacional:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 28,
+      "padre": "MAD.ESO.CCOMP.1.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.3.1",
+      "tipo": "contenido",
+      "texto": "Concepto y fundamentos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 29,
+      "padre": "MAD.ESO.CCOMP.1.CO.A.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.A.3.2",
+      "tipo": "contenido",
+      "texto": "Técnicas de resolución de problemas: descomposición de problemas complejos en otros más pequeños, identificación de patrones repetitivos y secuenciación de operaciones.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque A",
+        "pagina": 438
+      },
+      "orden": 30,
+      "padre": "MAD.ESO.CCOMP.1.CO.A.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B",
+      "tipo": "bloque_contenidos",
+      "texto": "Programación.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 31
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.1",
+      "tipo": "contenido",
+      "texto": "Lenguajes de programación: definición.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 32,
+      "padre": "MAD.ESO.CCOMP.1.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.2",
+      "tipo": "contenido",
+      "texto": "Tipos de lenguajes de programación. Características.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 33,
+      "padre": "MAD.ESO.CCOMP.1.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.3",
+      "tipo": "contenido",
+      "texto": "Fundamentos de la programación por bloques:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 34,
+      "padre": "MAD.ESO.CCOMP.1.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.3.1",
+      "tipo": "contenido",
+      "texto": "Uso de variables (tipos y operaciones).",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 35,
+      "padre": "MAD.ESO.CCOMP.1.CO.B.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.3.2",
+      "tipo": "contenido",
+      "texto": "Estructuras de control (secuencias de instrucciones, bucles, condicionales y eventos).",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 36,
+      "padre": "MAD.ESO.CCOMP.1.CO.B.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.3.3",
+      "tipo": "contenido",
+      "texto": "Integración de gráficos y sonidos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 37,
+      "padre": "MAD.ESO.CCOMP.1.CO.B.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.3.4",
+      "tipo": "contenido",
+      "texto": "Ejecución simultánea de varios objetos, clones y comunicación entre ellos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 38,
+      "padre": "MAD.ESO.CCOMP.1.CO.B.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.4",
+      "tipo": "contenido",
+      "texto": "Programación por bloques de animaciones, presentaciones y videojuegos sencillos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 39,
+      "padre": "MAD.ESO.CCOMP.1.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.5",
+      "tipo": "contenido",
+      "texto": "Programación por bloques de aplicaciones para dispositivos móviles:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 40,
+      "padre": "MAD.ESO.CCOMP.1.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.5.1",
+      "tipo": "contenido",
+      "texto": "Programación orientada a eventos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 41,
+      "padre": "MAD.ESO.CCOMP.1.CO.B.5"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.5.2",
+      "tipo": "contenido",
+      "texto": "Diseño de la interfaz de usuario.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 42,
+      "padre": "MAD.ESO.CCOMP.1.CO.B.5"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.B.5.3",
+      "tipo": "contenido",
+      "texto": "Uso de sensores de los dispositivos móviles.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque B",
+        "pagina": 438
+      },
+      "orden": 43,
+      "padre": "MAD.ESO.CCOMP.1.CO.B.5"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C",
+      "tipo": "bloque_contenidos",
+      "texto": "Computadores.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 438
+      },
+      "orden": 44
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.1",
+      "tipo": "contenido",
+      "texto": "Hardware de sistemas informáticos:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 438
+      },
+      "orden": 45,
+      "padre": "MAD.ESO.CCOMP.1.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.1.1",
+      "tipo": "contenido",
+      "texto": "Componentes (procesador, memoria, unidades de almacenamiento, periféricos).",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 438
+      },
+      "orden": 46,
+      "padre": "MAD.ESO.CCOMP.1.CO.C.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.1.2",
+      "tipo": "contenido",
+      "texto": "Conexiones entre ellos y flujo de la información.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 438
+      },
+      "orden": 47,
+      "padre": "MAD.ESO.CCOMP.1.CO.C.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.2",
+      "tipo": "contenido",
+      "texto": "Software de sistemas informáticos: sistemas operativos, software de utilidad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 438
+      },
+      "orden": 48,
+      "padre": "MAD.ESO.CCOMP.1.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.3",
+      "tipo": "contenido",
+      "texto": "Organización de la información en el almacenamiento secundario. Operaciones básicas con archivos y carpetas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 439
+      },
+      "orden": 49,
+      "padre": "MAD.ESO.CCOMP.1.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.4",
+      "tipo": "contenido",
+      "texto": "La imagen digital:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 439
+      },
+      "orden": 50,
+      "padre": "MAD.ESO.CCOMP.1.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.4.1",
+      "tipo": "contenido",
+      "texto": "Tipos de imágenes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 439
+      },
+      "orden": 51,
+      "padre": "MAD.ESO.CCOMP.1.CO.C.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.4.2",
+      "tipo": "contenido",
+      "texto": "El píxel.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 439
+      },
+      "orden": 52,
+      "padre": "MAD.ESO.CCOMP.1.CO.C.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.4.3",
+      "tipo": "contenido",
+      "texto": "Propiedades de la imagen: resolución, dimensión, profundidad y modo de color.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 439
+      },
+      "orden": 53,
+      "padre": "MAD.ESO.CCOMP.1.CO.C.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.C.4.4",
+      "tipo": "contenido",
+      "texto": "Formatos de imagen.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque C",
+        "pagina": 439
+      },
+      "orden": 54,
+      "padre": "MAD.ESO.CCOMP.1.CO.C.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.D",
+      "tipo": "bloque_contenidos",
+      "texto": "Redes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque D",
+        "pagina": 439
+      },
+      "orden": 55
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.D.1",
+      "tipo": "contenido",
+      "texto": "Redes de computadores: elementos componentes, usos y topología.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque D",
+        "pagina": 439
+      },
+      "orden": 56,
+      "padre": "MAD.ESO.CCOMP.1.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.D.2",
+      "tipo": "contenido",
+      "texto": "Conexión segura de equipos informáticos a redes de área local y a internet.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque D",
+        "pagina": 439
+      },
+      "orden": 57,
+      "padre": "MAD.ESO.CCOMP.1.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.D.3",
+      "tipo": "contenido",
+      "texto": "Internet: estructura y funcionamiento. Servicios de internet, incluida la World Wide Web.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque D",
+        "pagina": 439
+      },
+      "orden": 58,
+      "padre": "MAD.ESO.CCOMP.1.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.1.CO.D.4",
+      "tipo": "contenido",
+      "texto": "Prácticas de uso seguro y responsable de internet.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 1.º, contenidos, bloque D",
+        "pagina": 439
+      },
+      "orden": 59,
+      "padre": "MAD.ESO.CCOMP.1.CO.D"
+    }
+  ]
+}

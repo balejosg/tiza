@@ -1,0 +1,744 @@
+{
+  "codigo": "MAD.ESO.TECDIG.3",
+  "nombre": "Tecnología y Digitalización, tercer curso",
+  "etapa": "eso",
+  "curso": "3",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20220726-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CE.1",
+      "tipo": "competencia_especifica",
+      "texto": "Buscar y seleccionar la información adecuada proveniente de diversas fuentes, de manera crítica y segura, aplicando procesos de investigación, métodos de análisis de productos y experimentando con herramientas de simulación, para definir problemas tecnológicos e iniciar procesos de creación de soluciones a partir de la información obtenida.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 1",
+        "pagina": 667
+      },
+      "orden": 1,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL3",
+          "EST.ESO.DESC.STEM2",
+          "EST.ESO.DESC.CD1",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CPSAA4",
+          "EST.ESO.DESC.CE1"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.1.1",
+      "tipo": "criterio",
+      "texto": "Analizar problemas o necesidades planteadas, buscando y contrastando información procedente de diferentes fuentes de manera crítica y segura, evaluando su fiabilidad y pertinencia.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 1.1",
+        "pagina": 672
+      },
+      "orden": 2,
+      "padre": "MAD.ESO.TECDIG.3.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.1.2",
+      "tipo": "criterio",
+      "texto": "Comprender y examinar productos tecnológicos de uso habitual a través del análisis de objetos y sistemas de diversa índole, empleando el método científico y utilizando herramientas de simulación en la construcción de conocimiento.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 1.2",
+        "pagina": 672
+      },
+      "orden": 3,
+      "padre": "MAD.ESO.TECDIG.3.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.1.3",
+      "tipo": "criterio",
+      "texto": "Adoptar medidas preventivas para la protección de los dispositivos, los datos y la salud personal, identificando problemas y riesgos relacionados con el uso de la tecnología.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 1.3",
+        "pagina": 672
+      },
+      "orden": 4,
+      "padre": "MAD.ESO.TECDIG.3.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CE.2",
+      "tipo": "competencia_especifica",
+      "texto": "Abordar problemas tecnológicos con autonomía y actitud creativa, aplicando conocimientos interdisciplinares y trabajando en grupo, para diseñar y planificar soluciones a un problema o necesidad de forma eficaz e innovadora.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 2",
+        "pagina": 667
+      },
+      "orden": 5,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL1",
+          "EST.ESO.DESC.STEM1",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD3",
+          "EST.ESO.DESC.CPSAA3",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE1",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.2.1",
+      "tipo": "criterio",
+      "texto": "Idear y diseñar soluciones eficaces e innovadoras a problemas definidos, aplicando conceptos, técnicas y procedimientos interdisciplinares.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 2.1",
+        "pagina": 672
+      },
+      "orden": 6,
+      "padre": "MAD.ESO.TECDIG.3.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.2.2",
+      "tipo": "criterio",
+      "texto": "Seleccionar, planificar y organizar los materiales y herramientas necesarios, así como secuenciar las tareas necesarias para la construcción de una solución a un problema planteado con previsión de los tiempos necesarios para el desempeño de cada tarea, trabajando individualmente o en grupo.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 2.2",
+        "pagina": 672
+      },
+      "orden": 7,
+      "padre": "MAD.ESO.TECDIG.3.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CE.3",
+      "tipo": "competencia_especifica",
+      "texto": "Aplicar de forma apropiada y segura distintas técnicas y conocimientos interdisciplinares utilizando operadores, sistemas tecnológicos y herramientas, teniendo en cuenta la planificación y el diseño previo para construir o fabricar soluciones tecnológicas adecuadas que den respuesta a necesidades en diferentes contextos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 3",
+        "pagina": 668
+      },
+      "orden": 8,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.STEM2",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.STEM5",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA1",
+          "EST.ESO.DESC.CE3",
+          "EST.ESO.DESC.CCEC3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.3.1",
+      "tipo": "criterio",
+      "texto": "Fabricar objetos o modelos mediante la manipulación y conformación de materiales, empleando herramientas y máquinas adecuadas, incluidas máquinas de fabricación digital como las impresoras 3D, aplicando los fundamentos de estructuras, mecanismos, electricidad y electrónica y respetando las normas de seguridad y salud correspondientes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 3.1",
+        "pagina": 672
+      },
+      "orden": 9,
+      "padre": "MAD.ESO.TECDIG.3.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.3.2",
+      "tipo": "criterio",
+      "texto": "Medir y realizar cálculos de magnitudes eléctricas en circuitos sencillos, comprobando la coherencia de los datos obtenidos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 3.2",
+        "pagina": 672
+      },
+      "orden": 10,
+      "padre": "MAD.ESO.TECDIG.3.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.3.3",
+      "tipo": "criterio",
+      "texto": "Estimar cualitativamente el consumo de dispositivos eléctricos y electrónicos, valorando medidas de ahorro energético y el consumo responsable.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 3.3",
+        "pagina": 672
+      },
+      "orden": 11,
+      "padre": "MAD.ESO.TECDIG.3.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CE.4",
+      "tipo": "competencia_especifica",
+      "texto": "Describir, representar e intercambiar ideas o soluciones a problemas tecnológicos o digitales, utilizando medios de representación, simbología y vocabulario adecuados, así como los instrumentos y recursos disponibles y valorando la utilidad de las herramientas digitales para comunicar y difundir información y propuestas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 4",
+        "pagina": 668
+      },
+      "orden": 12,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL1",
+          "EST.ESO.DESC.STEM4",
+          "EST.ESO.DESC.CD3",
+          "EST.ESO.DESC.CCEC3",
+          "EST.ESO.DESC.CCEC4"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.4.1",
+      "tipo": "criterio",
+      "texto": "Representar y comunicar el proceso de creación de un producto desde su diseño hasta su difusión, elaborando documentación técnica y gráfica con la ayuda de herramientas digitales, empleando los formatos, la simbología y el vocabulario técnico adecuados, de manera colaborativa, tanto presencialmente como en remoto.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 4.1",
+        "pagina": 672
+      },
+      "orden": 13,
+      "padre": "MAD.ESO.TECDIG.3.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.4.2",
+      "tipo": "criterio",
+      "texto": "Difundir la información de un proyecto a través de internet, mediante páginas web sencillas, blogs, wikis u otras herramientas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 4.2",
+        "pagina": 673
+      },
+      "orden": 14,
+      "padre": "MAD.ESO.TECDIG.3.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CE.5",
+      "tipo": "competencia_especifica",
+      "texto": "Desarrollar algoritmos y aplicaciones informáticas en distintos entornos, aplicando los principios del pensamiento computacional e incorporando las tecnologías emergentes, para crear soluciones a problemas concretos, automatizar procesos y aplicarlos en sistemas de control o en robótica.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 5",
+        "pagina": 668
+      },
+      "orden": 15,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CP2",
+          "EST.ESO.DESC.STEM1",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.5.1",
+      "tipo": "criterio",
+      "texto": "Programar aplicaciones sencillas para distintos dispositivos (ordenadores, dispositivos móviles y otros) empleando, los elementos de programación por bloques de manera apropiada y aplicando herramientas de edición así como módulos de inteligencia artificial que añadan funcionalidades.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 5.1",
+        "pagina": 673
+      },
+      "orden": 16,
+      "padre": "MAD.ESO.TECDIG.3.CE.5"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.5.2",
+      "tipo": "criterio",
+      "texto": "Automatizar procesos, máquinas y objetos de manera autónoma, con conexión a internet, mediante el análisis, construcción y programación por bloques de robots y sistemas de control.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 5.2",
+        "pagina": 673
+      },
+      "orden": 17,
+      "padre": "MAD.ESO.TECDIG.3.CE.5"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CE.6",
+      "tipo": "competencia_especifica",
+      "texto": "Comprender los fundamentos del funcionamiento de los dispositivos y aplicaciones habituales de su entorno digital de aprendizaje, analizando sus componentes y funciones y ajustándolos a sus necesidades para hacer un uso más eficiente y seguro de los mismos y para detectar y resolver problemas técnicos sencillos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 6",
+        "pagina": 669
+      },
+      "orden": 18,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CP2",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA4",
+          "EST.ESO.DESC.CPSAA5"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.6.1",
+      "tipo": "criterio",
+      "texto": "Usar de manera eficiente y segura los dispositivos digitales de uso cotidiano en la resolución de problemas sencillos, analizando los componentes y los sistemas de comunicación, conociendo los riesgos y adoptando medidas de seguridad para la protección de datos y equipos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 6.1",
+        "pagina": 673
+      },
+      "orden": 19,
+      "padre": "MAD.ESO.TECDIG.3.CE.6"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.6.2",
+      "tipo": "criterio",
+      "texto": "Crear contenidos, elaborar materiales y difundirlos en distintas plataformas, configurando correctamente las herramientas digitales habituales del entorno de aprendizaje, ajustándolas a sus necesidades y respetando los derechos de autor y la etiqueta digital.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 6.2",
+        "pagina": 673
+      },
+      "orden": 20,
+      "padre": "MAD.ESO.TECDIG.3.CE.6"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CE.7",
+      "tipo": "competencia_especifica",
+      "texto": "Hacer un uso responsable de la tecnología, mostrando interés por un desarrollo equilibrado, identificando sus repercusiones y valorando la contribución de las tecnologías emergentes, para identificar las aportaciones y el impacto del desarrollo tecnológico.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 7",
+        "pagina": 669
+      },
+      "orden": 21,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.STEM2",
+          "EST.ESO.DESC.STEM5",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CC4"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CR.7.1",
+      "tipo": "criterio",
+      "texto": "Identificar las aportaciones de las tecnologías emergentes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, criterio 7.1",
+        "pagina": 673
+      },
+      "orden": 22,
+      "padre": "MAD.ESO.TECDIG.3.CE.7"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A",
+      "tipo": "bloque_contenidos",
+      "texto": "Proceso de resolución de problemas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 23
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.1",
+      "tipo": "contenido",
+      "texto": "Estrategias, técnicas y marcos de resolución de problemas en diferentes contextos y sus fases.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 24,
+      "padre": "MAD.ESO.TECDIG.3.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.2",
+      "tipo": "contenido",
+      "texto": "Estrategias de búsqueda crítica de información para la investigación y definición de problemas planteados.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 25,
+      "padre": "MAD.ESO.TECDIG.3.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.3",
+      "tipo": "contenido",
+      "texto": "Análisis de productos y de sistemas tecnológicos: construcción de conocimiento desde distintos enfoques y ámbitos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 26,
+      "padre": "MAD.ESO.TECDIG.3.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.4",
+      "tipo": "contenido",
+      "texto": "Electricidad y electrónica básica para el montaje de esquemas y circuitos físicos o simulados:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 27,
+      "padre": "MAD.ESO.TECDIG.3.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.4.1",
+      "tipo": "contenido",
+      "texto": "Funciones básicas de los principales componentes de circuito electrónico: diodos y transistores, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 28,
+      "padre": "MAD.ESO.TECDIG.3.CO.A.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.4.2",
+      "tipo": "contenido",
+      "texto": "Simbología e interpretación. Conexiones básicas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 29,
+      "padre": "MAD.ESO.TECDIG.3.CO.A.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.4.3",
+      "tipo": "contenido",
+      "texto": "Cálculo de magnitudes fundamentales y asociación de resistencias. Aplicación de la Ley de Ohm.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 30,
+      "padre": "MAD.ESO.TECDIG.3.CO.A.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.4.4",
+      "tipo": "contenido",
+      "texto": "Medida de magnitudes eléctricas fundamentales con el polímetro.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 31,
+      "padre": "MAD.ESO.TECDIG.3.CO.A.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.4.5",
+      "tipo": "contenido",
+      "texto": "Diseño y aplicación en proyectos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 32,
+      "padre": "MAD.ESO.TECDIG.3.CO.A.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.4.6",
+      "tipo": "contenido",
+      "texto": "Cálculo de los valores de consumo y potencia eléctrica en proyectos y situaciones cotidianas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 33,
+      "padre": "MAD.ESO.TECDIG.3.CO.A.4"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.5",
+      "tipo": "contenido",
+      "texto": "Introducción a la fabricación digital. Diseño e impresión 3D. Respeto de las normas de seguridad e higiene.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 34,
+      "padre": "MAD.ESO.TECDIG.3.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.A.6",
+      "tipo": "contenido",
+      "texto": "Emprendimiento, perseverancia y creatividad para abordar problemas desde una perspectiva interdisciplinar.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque A",
+        "pagina": 673
+      },
+      "orden": 35,
+      "padre": "MAD.ESO.TECDIG.3.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.B",
+      "tipo": "bloque_contenidos",
+      "texto": "Comunicación y difusión de ideas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque B",
+        "pagina": 673
+      },
+      "orden": 36
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.B.1",
+      "tipo": "contenido",
+      "texto": "Vocabulario técnico apropiado.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque B",
+        "pagina": 673
+      },
+      "orden": 37,
+      "padre": "MAD.ESO.TECDIG.3.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.B.2",
+      "tipo": "contenido",
+      "texto": "Introducción al manejo de aplicaciones CAD (Computer Aided Desing) en dos dimensiones y en tres dimensiones para la representación de esquemas, circuitos, planos y objetos sencillos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque B",
+        "pagina": 674
+      },
+      "orden": 38,
+      "padre": "MAD.ESO.TECDIG.3.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.B.3",
+      "tipo": "contenido",
+      "texto": "Acotación normalizada y escalas más habituales en el plano de taller.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque B",
+        "pagina": 674
+      },
+      "orden": 39,
+      "padre": "MAD.ESO.TECDIG.3.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.B.4",
+      "tipo": "contenido",
+      "texto": "Herramientas digitales para la publicación y difusión de documentación técnica e información multimedia relativa a proyectos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque B",
+        "pagina": 674
+      },
+      "orden": 40,
+      "padre": "MAD.ESO.TECDIG.3.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C",
+      "tipo": "bloque_contenidos",
+      "texto": "Pensamiento computacional, programación y robótica.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 41
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.1",
+      "tipo": "contenido",
+      "texto": "Introducción a la inteligencia artificial:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 42,
+      "padre": "MAD.ESO.TECDIG.3.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.1.1",
+      "tipo": "contenido",
+      "texto": "Sistemas de control programado. Computación física.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 43,
+      "padre": "MAD.ESO.TECDIG.3.CO.C.1"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.1.2",
+      "tipo": "contenido",
+      "texto": "Montaje físico y/o uso de simuladores y programación sencilla de dispositivos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 44,
+      "padre": "MAD.ESO.TECDIG.3.CO.C.1"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.1.3",
+      "tipo": "contenido",
+      "texto": "Sistemas de control en lazo abierto y en lazo cerrado.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 45,
+      "padre": "MAD.ESO.TECDIG.3.CO.C.1"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.1.4",
+      "tipo": "contenido",
+      "texto": "Internet de las cosas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 46,
+      "padre": "MAD.ESO.TECDIG.3.CO.C.1"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.2",
+      "tipo": "contenido",
+      "texto": "Fundamentos de la robótica:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 47,
+      "padre": "MAD.ESO.TECDIG.3.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.2.1",
+      "tipo": "contenido",
+      "texto": "Componentes básicos: sensores, microcontroladores y actuadores.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 48,
+      "padre": "MAD.ESO.TECDIG.3.CO.C.2"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.C.2.2",
+      "tipo": "contenido",
+      "texto": "Montaje y control programado de robots de manera física y/o por medio de simuladores.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque C",
+        "pagina": 674
+      },
+      "orden": 49,
+      "padre": "MAD.ESO.TECDIG.3.CO.C.2"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.D",
+      "tipo": "bloque_contenidos",
+      "texto": "Digitalización del entorno personal de aprendizaje.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque D",
+        "pagina": 674
+      },
+      "orden": 50
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.D.1",
+      "tipo": "contenido",
+      "texto": "Conceptos básicos en la transmisión de datos: componentes (emisor, canal y receptor), ancho de banda (velocidad de transmisión) e interferencias (ruido).",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque D",
+        "pagina": 674
+      },
+      "orden": 51,
+      "padre": "MAD.ESO.TECDIG.3.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.D.2",
+      "tipo": "contenido",
+      "texto": "Principales tecnologías inalámbricas para la comunicación.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque D",
+        "pagina": 674
+      },
+      "orden": 52,
+      "padre": "MAD.ESO.TECDIG.3.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.D.3",
+      "tipo": "contenido",
+      "texto": "Herramientas de edición y creación de contenidos multimedia: instalación, configuración y uso responsable.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque D",
+        "pagina": 674
+      },
+      "orden": 53,
+      "padre": "MAD.ESO.TECDIG.3.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.D.4",
+      "tipo": "contenido",
+      "texto": "Respeto a la propiedad intelectual y a los derechos de autor.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque D",
+        "pagina": 674
+      },
+      "orden": 54,
+      "padre": "MAD.ESO.TECDIG.3.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.E",
+      "tipo": "bloque_contenidos",
+      "texto": "Tecnología sostenible.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque E",
+        "pagina": 674
+      },
+      "orden": 55
+    },
+    {
+      "codigo": "MAD.ESO.TECDIG.3.CO.E.1",
+      "tipo": "contenido",
+      "texto": "Tecnología sostenible. Valoración crítica.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 3.º, contenidos, bloque E",
+        "pagina": 674
+      },
+      "orden": 56,
+      "padre": "MAD.ESO.TECDIG.3.CO.E"
+    }
+  ]
+}

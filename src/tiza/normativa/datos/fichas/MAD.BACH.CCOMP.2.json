@@ -1,0 +1,775 @@
+{
+  "codigo": "MAD.BACH.CCOMP.2",
+  "nombre": "Ciencias de la Computación II, segundo curso",
+  "etapa": "bachillerato",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20230531-18"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CE.1",
+      "tipo": "competencia_especifica",
+      "texto": "Reconocer y analizar los elementos físicos que componen un sistema informático, estudiando su evolución histórica y las ventajas que ha supuesto la implementación de los avances tecnológicos en estos sistemas, para identificar las posibilidades y funcionalidades de la informática y su presencia en la actividad cotidiana.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, competencia específica 1",
+        "pagina": 115
+      },
+      "orden": 1,
+      "relaciones": {
+        "descriptores": [
+          "EST.BACH.DESC.CCL3",
+          "EST.BACH.DESC.STEM4",
+          "EST.BACH.DESC.CD1",
+          "EST.BACH.DESC.CD2",
+          "EST.BACH.DESC.CD3",
+          "EST.BACH.DESC.CC1",
+          "EST.BACH.DESC.CE1"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.1.1",
+      "tipo": "criterio",
+      "texto": "Identificar los componentes de un sistema informático destinados a establecer conexiones y transmisión de datos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 1.1",
+        "pagina": 118
+      },
+      "orden": 2,
+      "padre": "MAD.BACH.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.1.2",
+      "tipo": "criterio",
+      "texto": "Conocer los medios de transmisión utilizados en redes y los distintos tipos de conectores, identificando los espacios físicos de la red.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 1.2",
+        "pagina": 118
+      },
+      "orden": 3,
+      "padre": "MAD.BACH.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CE.2",
+      "tipo": "competencia_especifica",
+      "texto": "Identificar las características y funciones de los diferentes componentes de un sistema informático y la interrelación entre los mismos, así como los sistemas de comunicación para la conexión entre diferentes dispositivos y las redes de comunicación estableciendo configuraciones seguras, analizando el impacto social, económico y cultural que han tenido los sistemas de comunicación y trasmisión de la información en la historia reciente.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, competencia específica 2",
+        "pagina": 115
+      },
+      "orden": 4,
+      "relaciones": {
+        "descriptores": [
+          "EST.BACH.DESC.CCL3",
+          "EST.BACH.DESC.STEM4",
+          "EST.BACH.DESC.CD1",
+          "EST.BACH.DESC.CD2",
+          "EST.BACH.DESC.CD3",
+          "EST.BACH.DESC.CC1",
+          "EST.BACH.DESC.CE1"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.2.1",
+      "tipo": "criterio",
+      "texto": "Valorar la influencia en la historia reciente de los avances tecnológicos en la transmisión de datos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 2.1",
+        "pagina": 118
+      },
+      "orden": 5,
+      "padre": "MAD.BACH.CCOMP.2.CE.2"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.2.2",
+      "tipo": "criterio",
+      "texto": "Identificar las funciones de los elementos de la electrónica de red y las conexiones entre ellos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 2.2",
+        "pagina": 118
+      },
+      "orden": 6,
+      "padre": "MAD.BACH.CCOMP.2.CE.2"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.2.3",
+      "tipo": "criterio",
+      "texto": "Analizar los principales riesgos derivados del malware y utilizar herramientas y sistemas para dotar de seguridad una red.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 2.3",
+        "pagina": 118
+      },
+      "orden": 7,
+      "padre": "MAD.BACH.CCOMP.2.CE.2"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CE.3",
+      "tipo": "competencia_especifica",
+      "texto": "Conocer y utilizar a nivel de usuario las aplicaciones informáticas de uso más frecuente; ofimáticas, de edición de imagen, sonido y vídeo, valorando las posibilidades que ofrecen estas herramientas en la difusión del conocimiento y la promoción profesional, para integrar el uso de las aplicaciones informáticas en las diferentes actividades académicas, profesionales, personales y sociales.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, competencia específica 3",
+        "pagina": 115
+      },
+      "orden": 8,
+      "relaciones": {
+        "descriptores": [
+          "EST.BACH.DESC.CCL1",
+          "EST.BACH.DESC.CCL3",
+          "EST.BACH.DESC.STEM1",
+          "EST.BACH.DESC.STEM4",
+          "EST.BACH.DESC.CD1",
+          "EST.BACH.DESC.CD2",
+          "EST.BACH.DESC.CD3",
+          "EST.BACH.DESC.CPSAA4",
+          "EST.BACH.DESC.CPSAA5",
+          "EST.BACH.DESC.CC1",
+          "EST.BACH.DESC.CCEC4.1",
+          "EST.BACH.DESC.CCEC4.2"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.3.1",
+      "tipo": "criterio",
+      "texto": "Conocer los diferentes formatos digitales de imagen, audio y vídeo, utilizando las aplicaciones adecuadas para crear, comprimir y exportar archivos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 3.1",
+        "pagina": 118
+      },
+      "orden": 9,
+      "padre": "MAD.BACH.CCOMP.2.CE.3"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.3.2",
+      "tipo": "criterio",
+      "texto": "Realizar modificaciones básicas en imágenes, audios y vídeos con diferentes programas, utilizando los elementos de lenguaje audiovisual de forma intencionada.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 3.2",
+        "pagina": 119
+      },
+      "orden": 10,
+      "padre": "MAD.BACH.CCOMP.2.CE.3"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CE.4",
+      "tipo": "competencia_especifica",
+      "texto": "Diseñar y crear aplicaciones y programas informáticos con diversas finalidades para dar respuesta a problemas y situaciones que puedan producirse en el ámbito académico y profesional, estructurando y aplicando los algoritmos necesarios, así como realizando las operaciones de compilación y depuración necesarias, valorando la incidencia de la programación y su impacto en la sociedad actual.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, competencia específica 4",
+        "pagina": 116
+      },
+      "orden": 11,
+      "relaciones": {
+        "descriptores": [
+          "EST.BACH.DESC.CCL1",
+          "EST.BACH.DESC.CCL3",
+          "EST.BACH.DESC.STEM3",
+          "EST.BACH.DESC.CD3",
+          "EST.BACH.DESC.CD4",
+          "EST.BACH.DESC.CD5",
+          "EST.BACH.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.4.1",
+      "tipo": "criterio",
+      "texto": "Utilizar diferentes entornos de programación para la creación de programas o aplicaciones sencillas.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 4.1",
+        "pagina": 119
+      },
+      "orden": 12,
+      "padre": "MAD.BACH.CCOMP.2.CE.4"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.4.2",
+      "tipo": "criterio",
+      "texto": "Desarrollar programas, planificando y estructurando la secuencia de tareas e instrucciones que deben ejecutarse.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 4.2",
+        "pagina": 119
+      },
+      "orden": 13,
+      "padre": "MAD.BACH.CCOMP.2.CE.4"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CR.4.3",
+      "tipo": "criterio",
+      "texto": "Conocer diferentes entornos de programación y entornos para la creación de aplicaciones para móviles, valorando las posibilidades que ofrecen en cada caso.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, criterio 4.3",
+        "pagina": 119
+      },
+      "orden": 14,
+      "padre": "MAD.BACH.CCOMP.2.CE.4"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A",
+      "tipo": "bloque_contenidos",
+      "texto": "Las redes informáticas.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 15
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.1",
+      "tipo": "contenido",
+      "texto": "Componentes básicos de una red:",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 16,
+      "padre": "MAD.BACH.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.1.1",
+      "tipo": "contenido",
+      "texto": "Software: sistema operativo de red y software de aplicación.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 17,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.1"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.1.2",
+      "tipo": "contenido",
+      "texto": "Hardware: estaciones y puestos de trabajo, tarjetas y adaptadores de red, servidores (de archivos, de correo, de impresión, de telefonía, web, proxy, de acceso remoto, de aplicaciones, entre otros).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 18,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.1"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.1.3",
+      "tipo": "contenido",
+      "texto": "Elementos de la electrónica de red: conmutador de red, enrutador, puente de red, punto de acceso inalámbrico, entre otros.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 19,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.1"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.2",
+      "tipo": "contenido",
+      "texto": "Topología de red: malla, estrella, árbol, bus, anillo.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 20,
+      "padre": "MAD.BACH.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.3",
+      "tipo": "contenido",
+      "texto": "Redes cableadas, redes inalámbricas.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 21,
+      "padre": "MAD.BACH.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.4",
+      "tipo": "contenido",
+      "texto": "Tipos de redes: red de área local (LAN), red de área metropolitana (MAN), red de área amplia (WAN).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 22,
+      "padre": "MAD.BACH.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.5",
+      "tipo": "contenido",
+      "texto": "Configuración de sistemas en la red local.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 23,
+      "padre": "MAD.BACH.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.6",
+      "tipo": "contenido",
+      "texto": "Protocolos de redes:",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 24,
+      "padre": "MAD.BACH.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.6.1",
+      "tipo": "contenido",
+      "texto": "El modelo de interconexión de sistemas abiertos (modelo OSI). Capas. Proceso de transmisión de datos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 25,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.6"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.6.2",
+      "tipo": "contenido",
+      "texto": "Modelo TCP/IP. Capas.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 26,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.6"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.6.3",
+      "tipo": "contenido",
+      "texto": "Otros estándares: IEEE 802.3 (Ethernet), IEEE 802.11 (WLAN), IEEE 802.15 (Bluethoot), entre otros.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 27,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.6"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.7",
+      "tipo": "contenido",
+      "texto": "Evolución cronológica y avances tecnológicos más representativos:",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 28,
+      "padre": "MAD.BACH.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.7.1",
+      "tipo": "contenido",
+      "texto": "Primeras redes locales: terminales y máquina central, con cableado estructurado (cable coaxial).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 29,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.7"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.7.2",
+      "tipo": "contenido",
+      "texto": "Advance Research Projects Agency (ARPA) y ARPANET. Primera transferencia de datos entre ordenadores a gran distancia (1969).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 30,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.7"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.7.3",
+      "tipo": "contenido",
+      "texto": "Primer tráfico de e-mails (1971). Primera red internacional SATNET (1973).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 31,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.7"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.7.4",
+      "tipo": "contenido",
+      "texto": "El protocolo TCP/IP para redes (1978) y el protocolo IPv4 para Internet (1981).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 32,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.7"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.7.5",
+      "tipo": "contenido",
+      "texto": "Transición de ARPANET a TCP/IP (1983)",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 33,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.7"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.A.7.6",
+      "tipo": "contenido",
+      "texto": "Tecnología WaveLAN (1988). Protocolo IPv6 (1996). Estándar IEEE 802.11a para Wi-Fi (1999), WPA2 (2003), protocolo IEEE 802.11n para Wi-Fi (2009), WPA3 para Wi-Fi (2018).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque A",
+        "pagina": 119
+      },
+      "orden": 34,
+      "padre": "MAD.BACH.CCOMP.2.CO.A.7"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B",
+      "tipo": "bloque_contenidos",
+      "texto": "Seguridad en sistemas informáticos y redes.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 35
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B.1",
+      "tipo": "contenido",
+      "texto": "Conceptos básicos de criptografía. Protocolos seguros. Uso de claves. Protección de documentos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 36,
+      "padre": "MAD.BACH.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B.2",
+      "tipo": "contenido",
+      "texto": "Seguridad en lenguajes y aplicaciones.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 37,
+      "padre": "MAD.BACH.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B.3",
+      "tipo": "contenido",
+      "texto": "Sistemas de verificación e identificación.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 38,
+      "padre": "MAD.BACH.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B.4",
+      "tipo": "contenido",
+      "texto": "Técnicas contra el malware.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 39,
+      "padre": "MAD.BACH.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B.5",
+      "tipo": "contenido",
+      "texto": "Seguridad perimetral. Firewalls, VPN.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 40,
+      "padre": "MAD.BACH.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B.6",
+      "tipo": "contenido",
+      "texto": "Verificadores de Integridad y Sistemas de detección de intrusos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 41,
+      "padre": "MAD.BACH.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.B.7",
+      "tipo": "contenido",
+      "texto": "El hacking ético.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque B",
+        "pagina": 119
+      },
+      "orden": 42,
+      "padre": "MAD.BACH.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C",
+      "tipo": "bloque_contenidos",
+      "texto": "Software: herramientas y aplicaciones.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 119
+      },
+      "orden": 43
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C.1",
+      "tipo": "contenido",
+      "texto": "La imagen digital: tipos, resolución, tamaño, profundidad del color, formatos gráficos, digitalización de imágenes.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 119
+      },
+      "orden": 44,
+      "padre": "MAD.BACH.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C.2",
+      "tipo": "contenido",
+      "texto": "Modos del color: escala de grises, indexado, RGB (Red Green Blue), HSV (Hue Saturation Value), CYMK (Cyan, Magenta, Yellow, Key).",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 119
+      },
+      "orden": 45,
+      "padre": "MAD.BACH.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C.3",
+      "tipo": "contenido",
+      "texto": "Software para la edición y tratamiento de imágenes rasterizadas y vectoriales.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 119
+      },
+      "orden": 46,
+      "padre": "MAD.BACH.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C.4",
+      "tipo": "contenido",
+      "texto": "Modificaciones básicas en imágenes rasterizadas: filtros, composiciones, recortes, tamaños, resolución, ajustes, reparaciones, transformaciones, filtros y efectos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 119
+      },
+      "orden": 47,
+      "padre": "MAD.BACH.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C.5",
+      "tipo": "contenido",
+      "texto": "Creación y edición de imágenes vectoriales.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 119
+      },
+      "orden": 48,
+      "padre": "MAD.BACH.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C.6",
+      "tipo": "contenido",
+      "texto": "Software para la edición de audio: formatos y conversión de archivos de audio, digitalización, grabación, edición y mezcla de varias pistas, sincronización, volumen, tono, efectos, velocidad.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 120
+      },
+      "orden": 49,
+      "padre": "MAD.BACH.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.C.7",
+      "tipo": "contenido",
+      "texto": "Software para la edición de vídeos: recortes, sonido, títulos, filtros, transiciones y efectos especiales.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque C",
+        "pagina": 120
+      },
+      "orden": 50,
+      "padre": "MAD.BACH.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D",
+      "tipo": "bloque_contenidos",
+      "texto": "Programación.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 51
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.1",
+      "tipo": "contenido",
+      "texto": "Programación de aplicaciones sencillas.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 52,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.2",
+      "tipo": "contenido",
+      "texto": "Conceptos de clases y objetos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 53,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.3",
+      "tipo": "contenido",
+      "texto": "Lectura y escritura de datos.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 54,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.4",
+      "tipo": "contenido",
+      "texto": "Estructuras de almacenamiento.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 55,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.5",
+      "tipo": "contenido",
+      "texto": "Entornos de programación.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 56,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.6",
+      "tipo": "contenido",
+      "texto": "Entornos para la creación de aplicaciones para móviles.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 57,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.7",
+      "tipo": "contenido",
+      "texto": "Elaboración de programas.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 58,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.8",
+      "tipo": "contenido",
+      "texto": "Depuración de programas.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 59,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.BACH.CCOMP.2.CO.D.9",
+      "tipo": "contenido",
+      "texto": "Fundamentos del software adaptativo.",
+      "procedencia": {
+        "norma": "bocm-20230531-18",
+        "ubicacion": "anexo IV, 2.º, contenidos, bloque D",
+        "pagina": 120
+      },
+      "orden": 60,
+      "padre": "MAD.BACH.CCOMP.2.CO.D"
+    }
+  ]
+}

@@ -1,0 +1,784 @@
+{
+  "codigo": "MAD.ESO.DIG.4",
+  "nombre": "Digitalización, cuarto curso",
+  "etapa": "eso",
+  "curso": "4",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20220726-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.ESO.DIG.4.CE.1",
+      "tipo": "competencia_especifica",
+      "texto": "Identificar y resolver problemas técnicos sencillos, conectar y configurar ordenadores y dispositivos móviles a redes domésticas, aplicando los conocimientos de hardware y sistemas operativos para gestionar las herramientas e instalaciones informáticas y de comunicación de uso cotidiano.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 1",
+        "pagina": 449
+      },
+      "orden": 1,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.STEM1",
+          "EST.ESO.DESC.STEM2",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA1",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.1.1",
+      "tipo": "criterio",
+      "texto": "Conectar dispositivos y gestionar redes locales aplicando los conocimientos y procesos asociados a sistemas de comunicación alámbrica e inalámbrica con una actitud proactiva.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 1.1",
+        "pagina": 451
+      },
+      "orden": 2,
+      "padre": "MAD.ESO.DIG.4.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.1.2",
+      "tipo": "criterio",
+      "texto": "Instalar y mantener sistemas operativos configurando sus características en función de sus necesidades personales.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 1.2",
+        "pagina": 451
+      },
+      "orden": 3,
+      "padre": "MAD.ESO.DIG.4.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.1.3",
+      "tipo": "criterio",
+      "texto": "Identificar y resolver problemas técnicos sencillos analizando componentes y funciones de los dispositivos digitales, evaluando las soluciones de manera crítica y reformulando el procedimiento, en caso necesario.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 1.3",
+        "pagina": 451
+      },
+      "orden": 4,
+      "padre": "MAD.ESO.DIG.4.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CE.2",
+      "tipo": "competencia_especifica",
+      "texto": "Configurar el entorno personal de aprendizaje, interactuando y aprovechando los recursos del ámbito digital, para optimizar y gestionar el aprendizaje permanente.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 2",
+        "pagina": 449
+      },
+      "orden": 5,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CD1",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD3",
+          "EST.ESO.DESC.CPSAA1",
+          "EST.ESO.DESC.CPSAA4",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.2.1",
+      "tipo": "criterio",
+      "texto": "Gestionar el aprendizaje en el ámbito digital, configurando el entorno personal de aprendizaje mediante la integración de recursos digitales de manera autónoma.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 2.1",
+        "pagina": 451
+      },
+      "orden": 6,
+      "padre": "MAD.ESO.DIG.4.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.2.2",
+      "tipo": "criterio",
+      "texto": "Buscar, seleccionar y archivar información relevante y fiable en función de sus necesidades haciendo uso de las herramientas del entorno personal de aprendizaje con sentido crítico y siguiendo normas básicas de seguridad en la red.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 2.2",
+        "pagina": 451
+      },
+      "orden": 7,
+      "padre": "MAD.ESO.DIG.4.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.2.3",
+      "tipo": "criterio",
+      "texto": "Crear, programar, integrar y reelaborar contenidos digitales de forma individual o colectiva, seleccionando las herramientas más apropiadas para generar nuevo conocimiento y contenidos digitales de manera creativa, respetando derechos de autor y licencias de uso.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 2.3",
+        "pagina": 451
+      },
+      "orden": 8,
+      "padre": "MAD.ESO.DIG.4.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.2.4",
+      "tipo": "criterio",
+      "texto": "Interactuar en espacios virtuales de comunicación y plataformas de aprendizaje colaborativo, haciendo uso de herramientas colaborativas, compartiendo y publicando información y datos, adaptándose a diferentes audiencias con una actitud participativa y respetuosa.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 2.4",
+        "pagina": 451
+      },
+      "orden": 9,
+      "padre": "MAD.ESO.DIG.4.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CE.3",
+      "tipo": "competencia_especifica",
+      "texto": "Desarrollar hábitos que fomenten el bienestar digital aplicando medidas preventivas y correctivas, para proteger dispositivos, datos personales y la propia salud.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 3",
+        "pagina": 450
+      },
+      "orden": 10,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL3",
+          "EST.ESO.DESC.STEM5",
+          "EST.ESO.DESC.CD1",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CPSAA2",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CC2",
+          "EST.ESO.DESC.CC3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.3.1",
+      "tipo": "criterio",
+      "texto": "Proteger los datos personales y la huella digital generada en internet, configurando las condiciones de privacidad de las redes sociales y espacios virtuales de trabajo.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 3.1",
+        "pagina": 451
+      },
+      "orden": 11,
+      "padre": "MAD.ESO.DIG.4.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.3.2",
+      "tipo": "criterio",
+      "texto": "Configurar y actualizar, contraseñas, sistemas operativos, antivirus y copias de seguridad de forma periódica en los distintos dispositivos digitales de uso habitual.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 3.2",
+        "pagina": 451
+      },
+      "orden": 12,
+      "padre": "MAD.ESO.DIG.4.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.3.3",
+      "tipo": "criterio",
+      "texto": "Identificar y saber reaccionar ante situaciones que representan una amenaza en la red escogiendo la mejor solución entre diversas opciones, desarrollando prácticas saludables y seguras, y valorando el bienestar físico y mental, tanto personal como colectivo.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 3.3",
+        "pagina": 451
+      },
+      "orden": 13,
+      "padre": "MAD.ESO.DIG.4.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.3.4",
+      "tipo": "criterio",
+      "texto": "Valorar la importancia creciente de la ciberseguridad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 3.4",
+        "pagina": 451
+      },
+      "orden": 14,
+      "padre": "MAD.ESO.DIG.4.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CE.4",
+      "tipo": "competencia_especifica",
+      "texto": "Ejercer una ciudadanía digital crítica conociendo las posibles acciones que realizar en la red, e identificando sus repercusiones, para hacer un uso activo, responsable y ético de la tecnología.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 4",
+        "pagina": 450
+      },
+      "orden": 15,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CD3",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CPSAA1",
+          "EST.ESO.DESC.CC1",
+          "EST.ESO.DESC.CC2",
+          "EST.ESO.DESC.CC3",
+          "EST.ESO.DESC.CC4",
+          "EST.ESO.DESC.CE1"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.4.1",
+      "tipo": "criterio",
+      "texto": "Hacer un uso ético de los datos y las herramientas digitales, aplicando las normas de etiqueta digital y respetando la privacidad y las licencias de uso y propiedad intelectual en la comunicación, colaboración y participación activa en la red.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 4.1",
+        "pagina": 451
+      },
+      "orden": 16,
+      "padre": "MAD.ESO.DIG.4.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.4.2",
+      "tipo": "criterio",
+      "texto": "Reconocer las aportaciones de las tecnologías digitales en las gestiones administrativas y el comercio electrónico, siendo consciente de la brecha social de acceso, uso y aprovechamiento de dichas tecnologías para diversos colectivos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 4.2",
+        "pagina": 451
+      },
+      "orden": 17,
+      "padre": "MAD.ESO.DIG.4.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.4.3",
+      "tipo": "criterio",
+      "texto": "Valorar la importancia de la oportunidad, facilidad y libertad de expresión que suponen los medios digitales conectados, analizando de forma crítica los mensajes que se reciben y transmiten teniendo en cuenta su objetividad, ideología, intencionalidad, sesgos y caducidad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 4.3",
+        "pagina": 451
+      },
+      "orden": 18,
+      "padre": "MAD.ESO.DIG.4.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.4.4",
+      "tipo": "criterio",
+      "texto": "Analizar la necesidad y los beneficios globales de un uso y desarrollo responsable de las tecnologías digitales, teniendo en cuenta criterios de accesibilidad, sostenibilidad e impacto.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 4.4",
+        "pagina": 451
+      },
+      "orden": 19,
+      "padre": "MAD.ESO.DIG.4.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CR.4.5",
+      "tipo": "criterio",
+      "texto": "Conocer cómo autentificar la identidad en el mundo digital, seleccionando los medios más adecuados en función del entorno en que deba practicarse.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, criterio 4.5",
+        "pagina": 451
+      },
+      "orden": 20,
+      "padre": "MAD.ESO.DIG.4.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A",
+      "tipo": "bloque_contenidos",
+      "texto": "Dispositivos digitales, sistemas operativos y de comunicación.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 21
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A.1",
+      "tipo": "contenido",
+      "texto": "Arquitectura de ordenadores: elementos, montaje, configuración y resolución de problemas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 22,
+      "padre": "MAD.ESO.DIG.4.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A.2",
+      "tipo": "contenido",
+      "texto": "Dispositivos móviles: elementos, configuración y resolución de problemas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 23,
+      "padre": "MAD.ESO.DIG.4.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A.3",
+      "tipo": "contenido",
+      "texto": "Sistemas operativos: instalación y configuración de usuario. Sistemas operativos libres: MAX",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 24,
+      "padre": "MAD.ESO.DIG.4.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A.4",
+      "tipo": "contenido",
+      "texto": "Sistemas de comunicación e internet.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 25,
+      "padre": "MAD.ESO.DIG.4.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A.5",
+      "tipo": "contenido",
+      "texto": "Dispositivos de red y funcionamiento.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 26,
+      "padre": "MAD.ESO.DIG.4.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A.6",
+      "tipo": "contenido",
+      "texto": "Procedimiento de configuración de una red doméstica y conexión de dispositivos. Comunicaciones inalámbricas entre dispositivos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 27,
+      "padre": "MAD.ESO.DIG.4.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.A.7",
+      "tipo": "contenido",
+      "texto": "Dispositivos conectados (IoT y wearables): configuración y conexión de dispositivos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque A",
+        "pagina": 452
+      },
+      "orden": 28,
+      "padre": "MAD.ESO.DIG.4.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B",
+      "tipo": "bloque_contenidos",
+      "texto": "Digitalización del entorno personal de aprendizaje.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 29
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.1",
+      "tipo": "contenido",
+      "texto": "Búsqueda, selección y archivo de información relevante y fiable.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 30,
+      "padre": "MAD.ESO.DIG.4.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.2",
+      "tipo": "contenido",
+      "texto": "Edición y creación de contenidos:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 31,
+      "padre": "MAD.ESO.DIG.4.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.2.1",
+      "tipo": "contenido",
+      "texto": "Aplicaciones de productividad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 32,
+      "padre": "MAD.ESO.DIG.4.CO.B.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.2.2",
+      "tipo": "contenido",
+      "texto": "Fundamentos de HTML y CSS.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 33,
+      "padre": "MAD.ESO.DIG.4.CO.B.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.2.3",
+      "tipo": "contenido",
+      "texto": "Conceptos básicos de lenguajes de programación para el desarrollo de aplicaciones sencillas para dispositivos móviles y web: variables, operadores, condicionales y eventos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 34,
+      "padre": "MAD.ESO.DIG.4.CO.B.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.2.4",
+      "tipo": "contenido",
+      "texto": "Realidad virtual, aumentada y mixta.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 35,
+      "padre": "MAD.ESO.DIG.4.CO.B.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.3",
+      "tipo": "contenido",
+      "texto": "Comunicación y colaboración en red. Herramientas colaborativas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 36,
+      "padre": "MAD.ESO.DIG.4.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.B.4",
+      "tipo": "contenido",
+      "texto": "Publicación y difusión responsable en redes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque B",
+        "pagina": 452
+      },
+      "orden": 37,
+      "padre": "MAD.ESO.DIG.4.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C",
+      "tipo": "bloque_contenidos",
+      "texto": "Seguridad y bienestar digital.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 38
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.1",
+      "tipo": "contenido",
+      "texto": "Introducción a la ciberseguridad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 39,
+      "padre": "MAD.ESO.DIG.4.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.2",
+      "tipo": "contenido",
+      "texto": "Seguridad de dispositivos:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 40,
+      "padre": "MAD.ESO.DIG.4.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.2.1",
+      "tipo": "contenido",
+      "texto": "Medidas preventivas y correctivas para hacer frente a riesgos, amenazas y ataques a dispositivos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 41,
+      "padre": "MAD.ESO.DIG.4.CO.C.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.2.2",
+      "tipo": "contenido",
+      "texto": "Software antivirus.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 42,
+      "padre": "MAD.ESO.DIG.4.CO.C.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.2.3",
+      "tipo": "contenido",
+      "texto": "Copias de seguridad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 43,
+      "padre": "MAD.ESO.DIG.4.CO.C.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.2.4",
+      "tipo": "contenido",
+      "texto": "Seguridad de dispositivos conectados.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 44,
+      "padre": "MAD.ESO.DIG.4.CO.C.2"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.3",
+      "tipo": "contenido",
+      "texto": "Seguridad y protección de datos:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 45,
+      "padre": "MAD.ESO.DIG.4.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.3.1",
+      "tipo": "contenido",
+      "texto": "Identidad, reputación, privacidad y huella digital.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 46,
+      "padre": "MAD.ESO.DIG.4.CO.C.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.3.2",
+      "tipo": "contenido",
+      "texto": "Medidas preventivas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 47,
+      "padre": "MAD.ESO.DIG.4.CO.C.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.3.3",
+      "tipo": "contenido",
+      "texto": "Configuración en redes sociales.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 48,
+      "padre": "MAD.ESO.DIG.4.CO.C.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.3.4",
+      "tipo": "contenido",
+      "texto": "Gestión de identidades virtuales.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 49,
+      "padre": "MAD.ESO.DIG.4.CO.C.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.3.5",
+      "tipo": "contenido",
+      "texto": "Legislación en materia de Protección de Datos (LOPD): derechos y deberes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 50,
+      "padre": "MAD.ESO.DIG.4.CO.C.3"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.4",
+      "tipo": "contenido",
+      "texto": "Seguridad en la salud física (ergonomía) y mental. Riesgos, amenazas al bienestar personal. Opciones de respuesta y prácticas de uso saludable.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 51,
+      "padre": "MAD.ESO.DIG.4.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.C.5",
+      "tipo": "contenido",
+      "texto": "Situaciones de violencia y de riesgo en la red (ciberacoso, sextorsión, acceso a contenidos inadecuados, dependencia tecnológica, etc.).",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque C",
+        "pagina": 452
+      },
+      "orden": 52,
+      "padre": "MAD.ESO.DIG.4.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D",
+      "tipo": "bloque_contenidos",
+      "texto": "Ciudadanía digital crítica.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 53
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.1",
+      "tipo": "contenido",
+      "texto": "Interactividad en la red:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 54,
+      "padre": "MAD.ESO.DIG.4.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.1.1",
+      "tipo": "contenido",
+      "texto": "El derecho a la libertad de expresión. Límites de la libertad de expresión y delitos de expresión en la red.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 55,
+      "padre": "MAD.ESO.DIG.4.CO.D.1"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.1.2",
+      "tipo": "contenido",
+      "texto": "Etiqueta digital.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 56,
+      "padre": "MAD.ESO.DIG.4.CO.D.1"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.1.3",
+      "tipo": "contenido",
+      "texto": "Propiedad intelectual: derechos de autor, licencias de uso y creative commons.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 57,
+      "padre": "MAD.ESO.DIG.4.CO.D.1"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.2",
+      "tipo": "contenido",
+      "texto": "Educación mediática: periodismo digital, blogosfera, estrategias comunicativas y uso crítico de la red, herramientas para detectar noticias falsas y fraudes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 58,
+      "padre": "MAD.ESO.DIG.4.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.3",
+      "tipo": "contenido",
+      "texto": "Gestiones administrativas: servicios públicos en línea, registros digitales y certificados oficiales. El DNI electrónico. El Código Seguro de Verificación (CSV). La firma electrónica. Los metadatos en los documentos electrónicos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 59,
+      "padre": "MAD.ESO.DIG.4.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.4",
+      "tipo": "contenido",
+      "texto": "Comercio electrónico: compras seguras, facturas digitales, formas de pago y criptomonedas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 452
+      },
+      "orden": 60,
+      "padre": "MAD.ESO.DIG.4.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.DIG.4.CO.D.5",
+      "tipo": "contenido",
+      "texto": "Ética en el uso de datos y herramientas digitales: inteligencia artificial, sesgos, obsolescencia programada, soberanía tecnológica y digitalización sostenible.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 4.º, contenidos, bloque D",
+        "pagina": 453
+      },
+      "orden": 61,
+      "padre": "MAD.ESO.DIG.4.CO.D"
+    }
+  ]
+}

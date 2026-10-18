@@ -1,0 +1,578 @@
+{
+  "codigo": "MAD.ESO.CCOMP.2",
+  "nombre": "Ciencias de la Computación, segundo curso",
+  "etapa": "eso",
+  "curso": "2",
+  "cursos_academicos": [
+    "2026-27"
+  ],
+  "normas": [
+    "bocm-20220726-2"
+  ],
+  "elementos": [
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CE.1",
+      "tipo": "competencia_especifica",
+      "texto": "Entender y utilizar algoritmos que lleven a la resolución de problemas concretos, aplicando los principios del pensamiento computacional y el razonamiento lógico.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 1",
+        "pagina": 436
+      },
+      "orden": 1,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL2",
+          "EST.ESO.DESC.STEM1",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.1.1",
+      "tipo": "criterio",
+      "texto": "Entender el funcionamiento de algoritmos sencillos para la búsqueda y ordenación de datos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 1.1",
+        "pagina": 439
+      },
+      "orden": 2,
+      "padre": "MAD.ESO.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.1.2",
+      "tipo": "criterio",
+      "texto": "Diseñar y representar algoritmos que resuelvan problemas sencillos y que incluyan secuencias, decisiones e iteraciones.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 1.2",
+        "pagina": 439
+      },
+      "orden": 3,
+      "padre": "MAD.ESO.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.1.3",
+      "tipo": "criterio",
+      "texto": "Entender los fundamentos de la lógica booleana, utilizar tablas de verdad y funciones lógicas con los operadores lógicos AND, OR y NOT para resolver problemas sencillos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 1.3",
+        "pagina": 439
+      },
+      "orden": 4,
+      "padre": "MAD.ESO.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.1.4",
+      "tipo": "criterio",
+      "texto": "Implementar funciones lógicas sencillas mediante puertas AND, OR y NOT.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 1.4",
+        "pagina": 439
+      },
+      "orden": 5,
+      "padre": "MAD.ESO.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.1.5",
+      "tipo": "criterio",
+      "texto": "Ser capaz de transformar números naturales en el sistema decimal a los sistemas de numeración binario y hexadecimal, así como convertirlos de un sistema a otro.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 1.5",
+        "pagina": 439
+      },
+      "orden": 6,
+      "padre": "MAD.ESO.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.1.6",
+      "tipo": "criterio",
+      "texto": "Conocer cómo cualquier tipo de información puede ser codificada en binario: números, píxeles e imágenes, caracteres de la tabla ASCII (American Standard Code for Information Interchange).",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 1.6",
+        "pagina": 439
+      },
+      "orden": 7,
+      "padre": "MAD.ESO.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.1.7",
+      "tipo": "criterio",
+      "texto": "Reconocer aplicaciones de la Inteligencia Artificial en el día a día, citando ejemplos y valorando, con actitud crítica, las aportaciones y problemas que plantea su presencia creciente.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 1.7",
+        "pagina": 439
+      },
+      "orden": 8,
+      "padre": "MAD.ESO.CCOMP.2.CE.1"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CE.2",
+      "tipo": "competencia_especifica",
+      "texto": "Diseñar, escribir y depurar aplicaciones informáticas, en entornos de programación gráfica y textual, que den solución a problemas concretos, incluyendo el control de sistemas físicos y robóticos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 2",
+        "pagina": 436
+      },
+      "orden": 9,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CP2",
+          "EST.ESO.DESC.STEM1",
+          "EST.ESO.DESC.STEM2",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA5"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.2.1",
+      "tipo": "criterio",
+      "texto": "Utilizar un lenguaje de programación textual para resolver problemas variados, haciendo un uso correcto de los tipos de datos y seleccionando las estructuras apropiadas, así como valorando la importancia de documentarlos suficientemente para facilitar la depuración de errores y la reusabilidad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 2.1",
+        "pagina": 439
+      },
+      "orden": 10,
+      "padre": "MAD.ESO.CCOMP.2.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.2.2",
+      "tipo": "criterio",
+      "texto": "Distinguir la función de cada uno de los elementos de un sistema de control programado (sensores, microcontrolador y actuadores), seleccionando los que resulten más apropiados para proyectos sencillos de computación física.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 2.2",
+        "pagina": 439
+      },
+      "orden": 11,
+      "padre": "MAD.ESO.CCOMP.2.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.2.3",
+      "tipo": "criterio",
+      "texto": "Programar tarjetas programables para controlar el comportamiento de dispositivos electrónicos y electromecánicos como diodos leds, zumbadores, relés basándose en los datos obtenidos a partir de sensores de todo tipo.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 2.3",
+        "pagina": 439
+      },
+      "orden": 12,
+      "padre": "MAD.ESO.CCOMP.2.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.2.4",
+      "tipo": "criterio",
+      "texto": "Ser capaz de programar los movimientos de un robot móvil para que se desplace evitando obstáculos o siguiendo una línea.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 2.4",
+        "pagina": 439
+      },
+      "orden": 13,
+      "padre": "MAD.ESO.CCOMP.2.CE.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CE.3",
+      "tipo": "competencia_especifica",
+      "texto": "Conocer los elementos componentes, tanto hardware como software, de los distintos sistemas informáticos, valorando la importancia de su mantenimiento y actualización, así como la manera en la que la información es tratada y almacenada en ellos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 3",
+        "pagina": 436
+      },
+      "orden": 14,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL3",
+          "EST.ESO.DESC.STEM3",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD4",
+          "EST.ESO.DESC.CD5",
+          "EST.ESO.DESC.CPSAA4",
+          "EST.ESO.DESC.CPSAA5",
+          "EST.ESO.DESC.CE1",
+          "EST.ESO.DESC.CE3"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.3.1",
+      "tipo": "criterio",
+      "texto": "Describir los elementos del modelo de Von Neumann de una computadora y conocer cómo es tratada la información en él.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 3.1",
+        "pagina": 439
+      },
+      "orden": 15,
+      "padre": "MAD.ESO.CCOMP.2.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.3.2",
+      "tipo": "criterio",
+      "texto": "Ser capaz de estimar el volumen de datos que ocupan los distintos tipos de archivos, así como la capacidad de almacenamiento de dispositivos como discos duros, pendrives, o los servicios de almacenamiento en la nube.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 3.2",
+        "pagina": 439
+      },
+      "orden": 16,
+      "padre": "MAD.ESO.CCOMP.2.CE.3"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CE.4",
+      "tipo": "competencia_especifica",
+      "texto": "Comprender cómo los equipos informáticos se comunican entre sí formando redes, desde las más pequeñas hasta internet, para compartir información, servicios y recursos, siendo conscientes de las amenazas que esto conlleva y de la importancia de la ciberseguridad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, competencia específica 4",
+        "pagina": 437
+      },
+      "orden": 17,
+      "relaciones": {
+        "descriptores": [
+          "EST.ESO.DESC.CCL2",
+          "EST.ESO.DESC.STEM5",
+          "EST.ESO.DESC.CD1",
+          "EST.ESO.DESC.CD2",
+          "EST.ESO.DESC.CD3",
+          "EST.ESO.DESC.CD4"
+        ]
+      }
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.4.1",
+      "tipo": "criterio",
+      "texto": "Conocer el significado de dirección IP (Internet Protocol) de una computadora conectada a una red, cuál es su estructura y cómo es asignada; obtener la dirección IP de un dispositivo conectado a una red.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 4.1",
+        "pagina": 440
+      },
+      "orden": 18,
+      "padre": "MAD.ESO.CCOMP.2.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CR.4.2",
+      "tipo": "criterio",
+      "texto": "Conocer y entender los peligros a los que están expuestos los sistemas informáticos y la información que procesan y almacenan, haciendo un uso seguro de los mismos y valorando la importancia de la ciberseguridad.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, criterio 4.2",
+        "pagina": 440
+      },
+      "orden": 19,
+      "padre": "MAD.ESO.CCOMP.2.CE.4"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.A",
+      "tipo": "bloque_contenidos",
+      "texto": "Pensamiento computacional.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque A",
+        "pagina": 440
+      },
+      "orden": 20
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.A.1",
+      "tipo": "contenido",
+      "texto": "Algoritmos de ordenación y de búsqueda.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque A",
+        "pagina": 440
+      },
+      "orden": 21,
+      "padre": "MAD.ESO.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.A.2",
+      "tipo": "contenido",
+      "texto": "Elección entre algoritmos alternativos para la resolución de un mismo problema.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque A",
+        "pagina": 440
+      },
+      "orden": 22,
+      "padre": "MAD.ESO.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.A.3",
+      "tipo": "contenido",
+      "texto": "Lógica booleana: puertas lógicas AND, OR y NOT, circuitos lógicos simples, tablas de verdad. Aplicación de operadores lógicos en tablas de verdad para la resolución de problemas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque A",
+        "pagina": 440
+      },
+      "orden": 23,
+      "padre": "MAD.ESO.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.A.4",
+      "tipo": "contenido",
+      "texto": "Representación binaria de datos de todo tipo: numéricos, texto, sonido e imágenes. Conversión entre binario, decimal y hexadecimal. Tabla ASCII de caracteres.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque A",
+        "pagina": 440
+      },
+      "orden": 24,
+      "padre": "MAD.ESO.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.A.5",
+      "tipo": "contenido",
+      "texto": "Introducción a la Inteligencia Artificial: concepto de IA; diferencias entre IA, Machine Learning y Deep Learning; ejemplos de IA en actividades cotidianas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque A",
+        "pagina": 440
+      },
+      "orden": 25,
+      "padre": "MAD.ESO.CCOMP.2.CO.A"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B",
+      "tipo": "bloque_contenidos",
+      "texto": "Programación.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 26
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B.1",
+      "tipo": "contenido",
+      "texto": "Lenguajes de programación de alto y de bajo nivel. Código máquina y compiladores: definición y fundamentos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 27,
+      "padre": "MAD.ESO.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B.2",
+      "tipo": "contenido",
+      "texto": "Lenguajes de programación textuales. Estructura, tipos y estructuras de datos (enteros, booleanos, reales, carácter, cadenas, arrays, listas), sintaxis.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 28,
+      "padre": "MAD.ESO.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B.3",
+      "tipo": "contenido",
+      "texto": "Resolución de problemas haciendo uso de un lenguaje de programación textual.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 29,
+      "padre": "MAD.ESO.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B.4",
+      "tipo": "contenido",
+      "texto": "Documentación de programas: importancia para la depuración y corrección de errores.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 30,
+      "padre": "MAD.ESO.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B.5",
+      "tipo": "contenido",
+      "texto": "Programación modular y reusabilidad de procedimientos o funciones. Programación de subrutinas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 31,
+      "padre": "MAD.ESO.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B.6",
+      "tipo": "contenido",
+      "texto": "Computación física: sensores, actuadores y microcontroladores. Uso de tarjetas programables para el control de proyectos sencillos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 32,
+      "padre": "MAD.ESO.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.B.7",
+      "tipo": "contenido",
+      "texto": "Programación de robots para tareas básicas como desplazamientos, detección de obstáculos, seguimiento de líneas o resolución de laberintos.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque B",
+        "pagina": 440
+      },
+      "orden": 33,
+      "padre": "MAD.ESO.CCOMP.2.CO.B"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.C",
+      "tipo": "bloque_contenidos",
+      "texto": "Computadores.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque C",
+        "pagina": 440
+      },
+      "orden": 34
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.C.1",
+      "tipo": "contenido",
+      "texto": "Hardware: arquitectura de computadoras, modelo de Von Neumann.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque C",
+        "pagina": 440
+      },
+      "orden": 35,
+      "padre": "MAD.ESO.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.C.2",
+      "tipo": "contenido",
+      "texto": "Almacenamiento de la información en los sistemas informáticos y en la nube.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque C",
+        "pagina": 440
+      },
+      "orden": 36,
+      "padre": "MAD.ESO.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.C.3",
+      "tipo": "contenido",
+      "texto": "Cálculo de capacidades de almacenamiento para distintos tipos de información.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque C",
+        "pagina": 440
+      },
+      "orden": 37,
+      "padre": "MAD.ESO.CCOMP.2.CO.C"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.D",
+      "tipo": "bloque_contenidos",
+      "texto": "Redes.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque D",
+        "pagina": 440
+      },
+      "orden": 38
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.D.1",
+      "tipo": "contenido",
+      "texto": "Protocolos de redes: Ethernet, TCP (Transmission Control Protocol), IP.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque D",
+        "pagina": 440
+      },
+      "orden": 39,
+      "padre": "MAD.ESO.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.D.2",
+      "tipo": "contenido",
+      "texto": "Ciberseguridad:",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque D",
+        "pagina": 440
+      },
+      "orden": 40,
+      "padre": "MAD.ESO.CCOMP.2.CO.D"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.D.2.1",
+      "tipo": "contenido",
+      "texto": "Seguridad en internet.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque D",
+        "pagina": 440
+      },
+      "orden": 41,
+      "padre": "MAD.ESO.CCOMP.2.CO.D.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.D.2.2",
+      "tipo": "contenido",
+      "texto": "Tipos de ataques.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque D",
+        "pagina": 440
+      },
+      "orden": 42,
+      "padre": "MAD.ESO.CCOMP.2.CO.D.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.D.2.3",
+      "tipo": "contenido",
+      "texto": "Identificación de vulnerabilidades y amenazas.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque D",
+        "pagina": 440
+      },
+      "orden": 43,
+      "padre": "MAD.ESO.CCOMP.2.CO.D.2"
+    },
+    {
+      "codigo": "MAD.ESO.CCOMP.2.CO.D.2.4",
+      "tipo": "contenido",
+      "texto": "Software para la protección frente a ciberataques.",
+      "procedencia": {
+        "norma": "bocm-20220726-2",
+        "ubicacion": "anexo II, 2.º, contenidos, bloque D",
+        "pagina": 440
+      },
+      "orden": 44,
+      "padre": "MAD.ESO.CCOMP.2.CO.D.2"
+    }
+  ]
+}
