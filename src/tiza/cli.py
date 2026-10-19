@@ -98,6 +98,12 @@ def _parser() -> argparse.ArgumentParser:
         "--salida", help="el .docx de salida (por defecto, el nombre del .md con .docx)"
     )
 
+    rellenar = sub.add_parser(
+        "rellenar",
+        help="rellena una copia de una plantilla Word (.docx) según un relleno.yaml (offline)",
+    )
+    rellenar.add_argument("relleno", help="el relleno .yaml, dentro de la carpeta de la asignatura")
+
     estructura = sub.add_parser("estructura", help="lee las secciones de los cursos (autenticado)")
     estructura.add_argument("--debug", action="store_true")
 
@@ -299,6 +305,8 @@ def _despachar(args) -> int:
         return _leer(args)
     if args.comando == "documento":
         return _documento(args)
+    if args.comando == "rellenar":
+        return _rellenar(args)
     return 2
 
 
@@ -429,6 +437,24 @@ def _documento(args) -> int:
         resultado = agente.documento(args.fuente, Path.cwd(), args.salida).a_dict()
         codigo = 0
     except ErrorEscritura as error:
+        resultado = _error_json(error.codigo, error.detalle)
+        codigo = 2
+    except ErrorInforme:  # un nombre de fichero con símbolos no permitidos
+        resultado = _error_json("NOMBRE_NO_VALIDO", "El nombre del fichero no vale.")
+        codigo = 2
+    _escribir_json(resultado)
+    return codigo
+
+
+def _rellenar(args) -> int:
+    """Rellena una plantilla Word: un único JSON en stdout (resumen o error) y 0 o 2."""
+    from .escritura import ErrorEscritura  # carga diferida
+    from .lectura.modelo import ErrorLectura
+
+    try:
+        resultado = agente.rellenar(args.relleno, Path.cwd()).a_dict()
+        codigo = 0
+    except (ErrorEscritura, ErrorLectura) as error:
         resultado = _error_json(error.codigo, error.detalle)
         codigo = 2
     except ErrorInforme:  # un nombre de fichero con símbolos no permitidos

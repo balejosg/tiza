@@ -525,3 +525,26 @@ def documento(
     informe.Documento(fuente=fuente_rel, documento=documento_rel, bloques=0)
     bloques = escribir_docx(texto, destino)
     return informe.Documento(fuente=fuente_rel, documento=documento_rel, bloques=bloques)
+
+
+def rellenar(relleno: str | Path, carpeta: str | Path) -> informe.Relleno:
+    """Aplica un ``relleno.yaml`` sobre una copia de la plantilla Word de la asignatura.
+
+    Offline. Nunca sobrescribe un Word y solo escribe dentro de la carpeta. Lanza
+    ``ErrorEscritura`` o ``ErrorLectura`` con un código estable; las librerías del Word y
+    del YAML se importan aquí.
+    """
+    from .escritura import rellenar as aplicador
+    from .escritura import relleno as lector
+
+    base = Path(carpeta)
+    origen = fichero_en_carpeta(relleno, base, {".yaml", ".yml"})
+    datos = lector.cargar_relleno(origen, base)
+    resultado = aplicador.rellenar(base, datos)
+    raiz = base.resolve()
+    return informe.Relleno(
+        plantilla=datos.plantilla.resolve().relative_to(raiz).as_posix(),
+        salida=resultado.salida.resolve().relative_to(raiz).as_posix(),
+        operaciones=resultado.operaciones,
+        avisos=resultado.avisos,
+    )

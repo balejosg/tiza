@@ -435,6 +435,49 @@ def validar_documento(datos: Any) -> None:
     _exigir_entero(datos["bloques"], "bloques")
 
 
+_CAMPOS_RELLENO = {"plantilla", "salida", "operaciones", "avisos"}
+
+
+@dataclass(frozen=True)
+class Relleno:
+    """El resumen que imprime ``tiza rellenar``: qué plantilla, qué Word nuevo y cuántas operaciones.
+
+    Las rutas son relativas a la carpeta de la asignatura y los avisos, códigos estables.
+    Se valida al construirlo.
+    """
+
+    plantilla: str
+    salida: str
+    operaciones: int
+    avisos: Sequence[str]
+
+    def __post_init__(self) -> None:
+        validar_relleno(self.a_dict())
+
+    def a_dict(self) -> dict:
+        return {
+            "plantilla": self.plantilla,
+            "salida": self.salida,
+            "operaciones": self.operaciones,
+            "avisos": list(self.avisos),
+        }
+
+
+def validar_relleno(datos: Any) -> None:
+    """Esquema cerrado del resumen de ``tiza rellenar``."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "el relleno debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_RELLENO, "relleno")
+    for campo in ("plantilla", "salida"):
+        if not isinstance(datos[campo], str) or not datos[campo]:
+            raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
+        _exigir_texto(datos[campo], campo)
+    _exigir_entero(datos["operaciones"], "operaciones")
+    for aviso in _exigir_lista(datos["avisos"], "avisos"):
+        if not isinstance(aviso, str) or not _CODIGO.match(aviso):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "los avisos deben ser códigos")
+
+
 _CAMPOS_ESTRUCTURA = {"version", "generado", "cursos"}
 _CAMPOS_CURSO = {"id", "secciones"}
 _CAMPOS_SECCION = {"numero", "nombre", "id"}

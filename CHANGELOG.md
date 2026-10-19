@@ -8,6 +8,7 @@ se avisa aquí con **Cambia**.
 
 ### Añadido
 - **`tiza leer` y `tiza documento`**: el agente lee, sin red, el Word o el PDF de tu programación y escribe un Word sencillo con la unidad. Nunca sobrescribe un Word tuyo.
+- **`tiza rellenar`**: el agente rellena una copia de la plantilla Word de tu departamento sin tocar tus estilos, encabezados ni numeración, y el índice se actualiza al abrir el Word nuevo. Nunca sobrescribe un Word tuyo.
 - **Guía del agente para pasar de tu programación a la unidad**: pide lo que falta en un solo mensaje, contrasta tu programación con la normativa y dice de dónde sale cada referencia.
 
 ### Cambia

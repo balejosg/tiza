@@ -537,6 +537,65 @@ def _fuera_de_la_carpeta(ruta: Path, carpeta: Path) -> Path:
         raise ErrorEscritura(error.codigo, error.detalle) from None
 
 
+_SIGUIENTES_A_UPDATE_FIELDS = tuple(
+    qn(f"w:{n}")
+    for n in (
+        "hdrShapeDefaults",
+        "footnotePr",
+        "endnotePr",
+        "compat",
+        "docVars",
+        "rsids",
+        "mathPr",
+        "attachedSchema",
+        "themeFontLang",
+        "clrSchemeMapping",
+        "doNotIncludeSubdocsInStats",
+        "doNotAutoCompressPictures",
+        "forceUpgrade",
+        "captions",
+        "readModeInkLockDown",
+        "smartTagType",
+        "schemaLibrary",
+        "shapeDefaults",
+        "doNotEmbedSmartTags",
+        "decimalSymbol",
+        "listSeparator",
+    )
+)
+
+
+_CAMPO_INDICE = "TO" + "C"  # partido: test_ayuda lo tomaría por un código de error
+
+
+def _tiene_indice(raiz: Any) -> bool:
+    """Un ``w:sdt`` de galería «Table of Contents» o un campo ``TOC`` en el cuerpo."""
+    for galeria in raiz.iter(qn("w:docPartGallery")):
+        if (galeria.get(qn("w:val")) or "").strip().lower() == "table of contents":
+            return True
+    for instruccion in raiz.iter(qn("w:instrText")):
+        if (instruccion.text or "").split(None, 1)[:1] == [_CAMPO_INDICE]:
+            return True
+    for simple in raiz.iter(qn("w:fldSimple")):
+        if (simple.get(qn("w:instr")) or "").split(None, 1)[:1] == [_CAMPO_INDICE]:
+            return True
+    return False
+
+
+def _marcar_actualizar_campos(documento: Any) -> None:
+    """``w:updateFields = true`` en ``word/settings.xml`` (python-docx lo crea si falta)."""
+    ajustes = documento.settings.element
+    for previo in ajustes.findall(qn("w:updateFields")):
+        ajustes.remove(previo)
+    marca = OxmlElement("w:updateFields")
+    marca.set(qn("w:val"), "true")
+    siguiente = next((h for h in ajustes if h.tag in _SIGUIENTES_A_UPDATE_FIELDS), None)
+    if siguiente is None:
+        ajustes.append(marca)
+    else:
+        siguiente.addprevious(marca)
+
+
 def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
     """Escribe ``relleno.salida``: la plantilla con las operaciones aplicadas.
 
@@ -568,6 +627,7 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
         analisis = analizar_docx(datos, plantilla.name)
     except ErrorLectura as error:
         raise ErrorEscritura(error.codigo, error.detalle) from None
+    indice = _tiene_indice(analisis.documento.element)
     estilos = _Estilos(analisis.documento)
     ids = _Ids(analisis.documento.element)
     acciones = [
@@ -577,6 +637,7 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
     try:
         for accion in acciones:
             accion()
+        _marcar_actualizar_campos(analisis.documento)
         memoria = io.BytesIO()
         analisis.documento.save(memoria)
     except ErrorEscritura:
@@ -586,4 +647,7 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
             "FORMATO_NO_ADMITIDO", "No se pudo aplicar el relleno sobre esta plantilla."
         ) from error
     escribir_sin_sobrescribir(memoria.getvalue(), salida)
-    return ResultadoRelleno(salida, len(acciones), tuple(analisis.lectura.avisos))
+    avisos = list(analisis.lectura.avisos)
+    if indice:
+        avisos.append("INDICE_SE_ACTUALIZA_AL_ABRIR")
+    return ResultadoRelleno(salida, len(acciones), tuple(avisos))
