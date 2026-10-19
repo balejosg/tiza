@@ -144,8 +144,10 @@ def test_leer_bytes_acotado_rechaza_lo_que_pasa_del_limite(tmp_path):
 def test_leer_bytes_acotado_no_se_fia_del_tamano_declarado(tmp_path, monkeypatch):
     ruta = tmp_path / "a.bin"
     ruta.write_bytes(b"x" * 100)
-    # Un fichero que crece mientras se lee: fstat dice 1 byte y hay 100.
-    pequeno = os.stat_result((stat.S_IFREG | 0o644, 0, 0, 1, 0, 0, 1, 0, 0, 0))
+    # Un fichero que crece mientras se lee: fstat dice 1 byte y hay 100 (el mismo
+    # fichero: en Windows se comprueba que lo abierto es lo mirado).
+    real = os.stat(ruta)
+    pequeno = os.stat_result((stat.S_IFREG | 0o644, real.st_ino, real.st_dev, 1, 0, 0, 1, 0, 0, 0))
     monkeypatch.setattr(ficheros.os, "fstat", lambda _descriptor: pequeno)
     with pytest.raises(ficheros.FicheroNoSeguro) as exc:
         ficheros.leer_bytes_acotado(ruta, 10)
