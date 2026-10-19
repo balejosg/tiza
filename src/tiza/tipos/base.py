@@ -354,7 +354,10 @@ def _ficheros_del_aula(html: str) -> str:
     return "".join(salida)
 
 
-def huella_aula(nombre: str, html: str, fechas: Mapping[str, datetime | None] | None = None) -> str:
+Momento = datetime | tuple[int, int, int, int, int] | None
+
+
+def huella_aula(nombre: str, html: str, fechas: Mapping[str, Momento] | None = None) -> str:
     """El sha256 de lo que tiza sobrescribe al publicar una actividad: nombre, texto y fechas.
 
     Es la misma cuenta para la copia (``tiza importar``), el formulario del aula y lo que
@@ -362,13 +365,17 @@ def huella_aula(nombre: str, html: str, fechas: Mapping[str, datetime | None] | 
 
     - cada URL de fichero del aula pasa a ``@@PLUGINFILE@@/<f>``;
     - ``fechas`` (campo de Moodle -> momento) se guardan como (año, mes, día, hora, minuto) en
-      Europe/Madrid; una fecha sin poner (``None``) es lo mismo que no estar;
+      Europe/Madrid; una fecha sin poner (``None``) es lo mismo que no estar. Un momento puede
+      venir ya como esa tupla (la que lee el formulario del aula);
     - el JSON compacto de ``[nombre, html, fechas]`` (claves ordenadas) se pasa por sha256.
     """
     texto = _ficheros_del_aula(html)
     puestas: dict[str, list[int]] = {}
     for campo, momento in (fechas or {}).items():
         if momento is None:
+            continue
+        if isinstance(momento, tuple):
+            puestas[campo] = list(momento)
             continue
         if momento.tzinfo is None:
             momento = momento.replace(tzinfo=_ZONA_AULA)
@@ -377,6 +384,37 @@ def huella_aula(nombre: str, html: str, fechas: Mapping[str, datetime | None] | 
         [nombre, texto, puestas], ensure_ascii=False, sort_keys=True, separators=(",", ":")
     )
     return hashlib.sha256(serie.encode("utf-8")).hexdigest()
+
+
+def _campos_de_huella(tipo: Tipo, doc: Documento) -> list[FechaActividad]:
+    """Las fechas que cubre la huella: las de ``tipo.fechas`` menos el recordatorio.
+
+    Son las mismas que lee ``tiza importar`` de la copia (tarea: apertura, entrega y límite;
+    cuestionario: apertura y cierre), con los mismos nombres de campo de Moodle.
+    """
+    return [fecha for fecha in tipo.fechas(doc) if fecha.campo != CAMPO_RECORDATORIO]
+
+
+def huella_de_lo_enviado(tipo: Tipo, doc: Documento, html: str) -> str:
+    """La huella de lo que tiza escribe en el aula al publicar ``doc`` (sin releer el aula).
+
+    ``html`` es el texto que se envía (``contenido.html_para_moodle``). La espiga 5 comprobó
+    que el aula lo guarda igual tras la normalización de :func:`huella_aula`.
+    """
+    fechas = {fecha.campo_moodle: fecha.momento for fecha in _campos_de_huella(tipo, doc)}
+    return huella_aula(doc.nombre, html, fechas)
+
+
+def huella_del_formulario(tipo: Tipo, doc: Documento, leido: Mapping[str, Any]) -> str:
+    """La huella de lo que hay en el aula, de ``AulaVirtual.leer_modulo`` (nombre, texto y fechas).
+
+    Solo mira las fechas que cubre la huella de ``tipo``; el resultado nunca sale de ``publicar``.
+    """
+    leidas = leido.get("fechas") or {}
+    fechas = {
+        fecha.campo_moodle: leidas.get(fecha.campo_moodle) for fecha in _campos_de_huella(tipo, doc)
+    }
+    return huella_aula(leido.get("nombre") or "", leido.get("texto") or "", fechas)
 
 
 def verificar(

@@ -23,6 +23,7 @@ from .informe import ErrorInforme
 from .publicacion import (
     CAMPO_RECORDATORIO,
     Aviso,
+    CambioNombre,
     CambioSeccion,
     DocumentoBreve,
     DocumentoResumen,
@@ -256,6 +257,7 @@ def detalle_real(resumen: ResumenPublicacion) -> DetalleReal:
         for nombre in resumen.secciones_nuevas
     ]
     finales += _lineas_de_movimientos(resumen.movimientos)
+    finales += _lineas_de_nombres(resumen.nombres)
     finales.append(SOLO_FECHAS_TEXTO if solo else VISIBILIDAD[resumen.visible])
     aviso = None
     if resumen.aviso_calendario is not None:
@@ -333,7 +335,8 @@ def detalle_corto(resumen: ResumenSinPruebas) -> DetalleCorto:
             f"Se creará la sección «{texto_seguro(nombre)}» (oculta)."
             for nombre in resumen.secciones_nuevas
         )
-        + tuple(_lineas_de_movimientos(resumen.movimientos)),
+        + tuple(_lineas_de_movimientos(resumen.movimientos))
+        + tuple(_lineas_de_nombres(resumen.nombres)),
     )
 
 
@@ -343,6 +346,15 @@ def _lineas_de_movimientos(movimientos: tuple[CambioSeccion, ...]) -> list[str]:
         f"«{texto_seguro(cambio.fichero)}»: se moverá de la sección «{texto_seguro(cambio.origen)}» "
         f"a «{texto_seguro(cambio.destino)}» (no se duplica)."
         for cambio in movimientos
+    ]
+
+
+def _lineas_de_nombres(cambios: tuple[CambioNombre, ...]) -> list[str]:
+    """Una línea por actividad importada que se llama distinto en el aula: se actualiza por su origen."""
+    return [
+        f"Se cambia el nombre de «{texto_seguro(cambio.antes)}» a «{texto_seguro(cambio.despues)}» "
+        f"(fichero {texto_seguro(cambio.fichero)})."
+        for cambio in cambios
     ]
 
 
@@ -455,6 +467,17 @@ def _autoprueba_fallida(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("No se abre la sesión porque la autoprueba ha fallado.", error=True),)
 
 
+def _cambiada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"Ha cambiado «{texto_seguro(datos['nombre'])}» en el aula desde la copia. "
+            "No la publico para no perder ese cambio. "
+            "Pide al agente una copia nueva del curso.",
+            error=True,
+        ),
+    )
+
+
 def _cancelada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("Operación cancelada.", error=True),)
 
@@ -561,6 +584,7 @@ def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 
 _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
+    "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
     "CANCELADA": _cancelada,
     "COPIA_QUEDA_EN_EL_AULA": _copia_queda_en_el_aula,
     "CREANDO_SECCION": _creando_seccion,

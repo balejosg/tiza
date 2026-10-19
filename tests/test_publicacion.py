@@ -10,6 +10,7 @@ de fechas de la confirmación.
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from pathlib import Path
 
@@ -24,7 +25,17 @@ from dobles import (
     fecha_en_formulario,
     tarea_en,
 )
-from tiza import calendario, config, contenido, estado, informe, publicacion, publicar
+from tiza import (
+    calendario,
+    config,
+    contenido,
+    estado,
+    informe,
+    mensajes,
+    publicacion,
+    publicar,
+    tipos,
+)
 from tiza.copia import abrir_copia
 
 PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
@@ -538,3 +549,309 @@ def test_una_copia_fallida_gasta_cupo_pero_negarse_o_retirarla_no(tmp_path):
     # Una copia que no vale (con usuarios) sí gasta.
     _copiar(tmp_path, MoodleFalso(copia=copia_sintetica(users=1)), cupo=cupo)
     assert cupo["copias"] == 1
+
+
+# --- Publicar por origen: cmid, huella del aula y lotes ----------------------------------
+
+TEXTO_DEL_AULA = "<p>SECRETO-DEL-AULA</p>"
+
+
+def _aula_importada(modulo="pagina", texto=TEXTO_DEL_AULA) -> MoodleFalso:
+    """El curso real 5678 con la actividad 501 «Viejo» en la sección 2, como la dejó la copia."""
+    moodle = MoodleFalso(
+        # El curso de pruebas (1234): sin la actividad 501, con las mismas secciones.
+        secciones=[
+            {"numero": 2, "nombre": "Tema 2", "id": 21, "modulos": []},
+            {"numero": 3, "nombre": "Tema 3", "id": 31, "modulos": []},
+        ],
+        secciones_por_curso={
+            5678: [
+                {
+                    "numero": 2,
+                    "nombre": "Tema 2",
+                    "id": 20,
+                    "modulos": [{"cmid": 501, "nombre": "Viejo", "tipo": modulo}],
+                },
+                {"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []},
+            ]
+        },
+    )
+    moodle.formularios[501] = {"visible": "1", "name": "Viejo", "page[text]": texto}
+    return moodle
+
+
+def _fichero_importado(carpeta: Path, nombre="importada.md", titulo="Nuevo", cmid=501) -> None:
+    (carpeta / nombre).write_text(
+        f"---\ntipo: pagina\nnombre: {titulo}\nseccion: 2\n"
+        f"origen:\n  curso: 5678\n  cmid: {cmid}\n---\n\nTexto nuevo.\n",
+        encoding="utf-8",
+    )
+
+
+def _fichero_normal(carpeta: Path, nombre="otra.md") -> None:
+    (carpeta / nombre).write_text(
+        "---\ntipo: pagina\nnombre: Otra\nseccion: 3\n---\n\nOtra página.\n", encoding="utf-8"
+    )
+
+
+def _escribir_copia(carpeta: Path, huella: str | None, curso=5678, cmid=501) -> None:
+    """``copia.json`` con una actividad del curso ``curso``, importada con esa huella."""
+    entrada = {
+        "moodle": "https://aula.ejemplo.org/centro",
+        "fecha_importacion": "2026-10-19T10:00:00+00:00",
+        "secciones": [{"numero": 2, "nombre": "Tema 2", "resumen_html_presente": False}],
+        "actividades": [
+            {
+                "cmid": cmid,
+                "modulo": "page",
+                "seccion": 2,
+                "nombre": "Viejo",
+                "fichero": "importada.md",
+                "estado": "IMPORTADA",
+                "detalle": None,
+                "huella_aula": huella,
+            }
+        ],
+    }
+    estado.escribir_copia(
+        carpeta / ".tiza", {"version": 1, "cursos": {str(curso): entrada}, "como_nuevas": None}
+    )
+
+
+def _huella_del_aula(texto=TEXTO_DEL_AULA) -> str:
+    return tipos.huella_aula("Viejo", texto)
+
+
+def _publicar_real(carpeta: Path, moodle, ficheros, presencia=None) -> dict:
+    documentos = [contenido.cargar(carpeta / f) for f in ficheros]
+    registro: dict = {}
+    for doc in documentos:
+        estado.anotar_verificado(registro, contenido.hash_documento(doc), doc.ruta.name, 100)
+    return publicacion.publicar_en_cursos(
+        moodle,
+        CFG,
+        documentos,
+        carpeta,
+        presencia or PresenciaFalsa(),
+        entorno="real",
+        verificados=registro,
+    )
+
+
+def test_publicar_por_origen_actualiza_la_actividad_y_renueva_la_huella(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert documento["errores"] == []
+    assert [(f["nombre"], f["cmid"], f["accion"]) for f in documento["ficheros"]] == [
+        ("importada.md", 501, "actualizada")
+    ]
+    assert [c[1] for c in moodle.llamadas if c[0] == "actualizar"] == [501]
+    assert not any(c[0] == "crear" for c in moodle.llamadas)
+    doc = contenido.cargar(carpeta / "importada.md")
+    esperada = tipos.huella_de_lo_enviado(
+        tipos.obtener("pagina"), doc, contenido.html_para_moodle(doc)
+    )
+    guardada = estado.huellas_de_copia(carpeta / ".tiza", 5678)
+    assert guardada == {501: esperada}
+    # Lo que quedó en el aula da esa misma huella: la siguiente publicación no salta.
+    assert tipos.huella_del_formulario(tipos.obtener("pagina"), doc, moodle.leer_modulo(501)) == (
+        esperada
+    )
+    segunda = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert segunda["errores"] == [] and segunda["resultado"] == "ok"
+
+
+def test_la_huella_se_renueva_solo_en_la_entrada_de_su_curso(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    datos = estado.cargar_copia(carpeta / ".tiza")
+    otra = {
+        **datos["cursos"]["5678"],
+        "actividades": [dict(datos["cursos"]["5678"]["actividades"][0])],
+    }
+    otra["actividades"][0]["huella_aula"] = "b" * 64
+    datos["cursos"]["9999"] = otra
+    estado.escribir_copia(carpeta / ".tiza", datos)
+    _publicar_real(carpeta, _aula_importada(), ["importada.md"])
+    ahora = estado.cargar_copia(carpeta / ".tiza")
+    assert ahora["cursos"]["9999"]["actividades"][0]["huella_aula"] == "b" * 64
+    assert ahora["cursos"]["5678"]["actividades"][0]["huella_aula"] != _huella_del_aula()
+
+
+def test_cambiada_en_el_aula_no_publica_y_las_demas_siguen(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _fichero_normal(carpeta)
+    _escribir_copia(carpeta, tipos.huella_aula("Viejo", "<p>Como estaba en la copia</p>"))
+    moodle = _aula_importada()
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(carpeta, moodle, ["importada.md", "otra.md"], presencia)
+    assert documento["resultado"] == "error"
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+    assert not any(c[0] in ("mover", "subir") for c in moodle.llamadas)
+    assert 501 not in [c[1] for c in moodle.llamadas if c[0] == "actualizar"]
+    assert moodle.formularios[501]["name"] == "Viejo"
+    assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+    # La huella de la copia no se renueva: no se publicó.
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678)[501] != _huella_del_aula()
+
+
+def test_cambiada_no_saca_texto_del_aula(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, tipos.huella_aula("Viejo", "<p>Como estaba en la copia</p>"))
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(carpeta, _aula_importada(), ["importada.md"], presencia)
+    informe.validar(documento)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert "SECRETO-DEL-AULA" not in json.dumps(documento, ensure_ascii=False)
+    assert "SECRETO-DEL-AULA" not in repr(presencia.avisos)
+    assert "SECRETO-DEL-AULA" not in "\n".join(informe.resumen(documento))
+
+
+def test_el_origen_no_encontrado_solo_para_su_fichero(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, cmid=999)
+    _fichero_normal(carpeta)
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md", "otra.md"])
+    assert documento["errores"] == ["ORIGEN_NO_ENCONTRADO"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+    assert [c[0] for c in moodle.llamadas if c[0] == "crear"] == ["crear"]  # solo «Otra»
+
+
+def test_dos_ficheros_con_el_mismo_origen_no_se_publican(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, "uno.md", "Uno")
+    _fichero_importado(carpeta, "dos.md", "Dos")
+    _fichero_normal(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["uno.md", "dos.md", "otra.md"])
+    assert documento["errores"] == ["ORIGEN_DUPLICADO", "ORIGEN_DUPLICADO"]
+    fallos = [p["detalle"] for p in documento["pasos"] if p["resultado"] == "fallo"]
+    assert sorted(fallos) == ["dos.md", "uno.md"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+    assert 501 not in [c[1] for c in moodle.llamadas if c[0] == "actualizar"]
+    assert moodle.formularios[501]["name"] == "Viejo"
+
+
+def test_sin_copia_json_se_publica_por_origen_y_se_dice(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert documento["errores"] == []
+    assert {"codigo": "ORIGEN_SIN_HUELLA", "resultado": "ok", "detalle": "importada.md"} in (
+        documento["pasos"]
+    )
+    assert [f["cmid"] for f in documento["ficheros"]] == [501]
+    assert not (carpeta / ".tiza" / "copia.json").exists()  # no se inventa una entrada
+
+
+def test_actividad_sin_huella_se_publica_y_queda_protegida_despues(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, None)
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert documento["errores"] == []
+    assert "ORIGEN_SIN_HUELLA" in [p["codigo"] for p in documento["pasos"]]
+    assert 501 in estado.huellas_de_copia(carpeta / ".tiza", 5678)
+
+
+def test_un_copia_json_invalido_para_la_publicacion_por_origen(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    (carpeta / ".tiza").mkdir()
+    (carpeta / ".tiza" / "copia.json").write_text('{"version": 7}', encoding="utf-8")
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert documento["errores"] == ["COPIA_INVALIDA"]
+    assert not any(c[0] in ("actualizar", "crear", "mover") for c in moodle.llamadas)
+
+
+def test_en_pruebas_el_origen_no_cuenta(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, tipos.huella_aula("Viejo", "<p>Otra cosa</p>"))
+    moodle = _aula_importada()
+    documento = publicacion.publicar_en_cursos(
+        moodle,
+        CFG,
+        [contenido.cargar(carpeta / "importada.md")],
+        carpeta,
+        PresenciaFalsa(),
+        entorno="pruebas",
+    )
+    assert documento["errores"] == [] and documento["ficheros"][0]["accion"] == "creada"
+    assert documento["ficheros"][0]["cmid"] != 501
+    # Y nada se renueva en copia.json: no es el curso del origen.
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678)[501] == tipos.huella_aula(
+        "Viejo", "<p>Otra cosa</p>"
+    )
+
+
+def test_el_resumen_de_real_ensena_el_cambio_de_nombre(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    presencia = PresenciaFalsa()
+    _publicar_real(carpeta, _aula_importada(), ["importada.md"], presencia)
+    [resumen] = presencia.resumenes
+    assert resumen.nombres == (publicacion.CambioNombre("importada.md", "Viejo", "Nuevo"),)
+    assert resumen.movimientos == ()
+    detalle = mensajes.detalle_real(resumen)
+    assert any("Se cambia el nombre de «Viejo» a «Nuevo»" in linea for linea in detalle.finales)
+
+
+def test_el_resumen_corto_tambien_ensena_el_cambio_de_nombre(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    sin_pruebas = config.Config(
+        url="https://aula.ejemplo.org/centro", usuario="profe", cursos={}, reales=(5678,)
+    )
+    presencia = PresenciaFalsa()
+    publicacion.publicar_en_cursos(
+        _aula_importada(),
+        sin_pruebas,
+        [contenido.cargar(carpeta / "importada.md")],
+        carpeta,
+        presencia,
+        entorno="real",
+        visible=False,
+    )
+    [corto] = presencia.resumenes_cortos
+    assert corto.documentos[0].existe is True
+    assert any(
+        "Se cambia el nombre de «Viejo» a «Nuevo»" in linea
+        for linea in mensajes.detalle_corto(corto).finales
+    )
+
+
+def test_solo_fechas_busca_por_origen_y_si_no_esta_no_cambia_nada(tmp_path):
+    carpeta = tmp_path.resolve()
+    (carpeta / "t.md").write_text(
+        "---\ntipo: tarea\nnombre: Otro nombre\nseccion: 3\napertura: 2026-10-01\n"
+        "entrega: 2026-10-12\norigen:\n  curso: 5678\n  cmid: 601\n---\n\nResuelve.\n",
+        encoding="utf-8",
+    )
+    doc = contenido.cargar(carpeta / "t.md")
+    secciones = [
+        {
+            "numero": 2,
+            "nombre": "T2",
+            "id": 20,
+            "modulos": [{"cmid": 601, "nombre": "Vieja", "tipo": "tarea"}],
+        }
+    ]
+    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) is None
+    assert publicacion.codigo_solo_fechas(secciones, [doc], 1234) == "MODULO_AUSENTE"
+    secciones[0]["modulos"][0]["cmid"] = 602
+    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "ORIGEN_NO_ENCONTRADO"

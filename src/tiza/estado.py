@@ -56,8 +56,10 @@ __all__ = [
     "comprobar_puerta_real",
     "escribir_copia",
     "escribir_estructura",
+    "guardar_huella_de_copia",
     "guardar_verificado",
     "guardar_version_de_copia",
+    "huellas_de_copia",
     "nombre_de_copia",
     "nombre_de_seccion",
     "reservar_copia",
@@ -174,6 +176,52 @@ def cargar_copia(dir_tiza: str | Path) -> dict:
         raise ErrorEstado("IMPORTACION_ILEGIBLE") from exc
     _validar_copia(datos)
     return datos
+
+
+def huellas_de_copia(dir_tiza: str | Path, curso: int) -> dict[int, str]:
+    """La ``huella_aula`` de cada actividad del ``curso`` en ``copia.json`` (cmid -> huella).
+
+    Solo las que la tienen. Sin ``copia.json`` o sin entrada para el curso, ``{}``: no hay nada
+    que comparar. Un ``copia.json`` fuera del esquema o ilegible da ``ErrorEstado``.
+    """
+    try:
+        datos = cargar_copia(dir_tiza)
+    except ErrorEstado as exc:
+        if exc.codigo == "IMPORTACION_AUSENTE":
+            return {}
+        raise
+    entrada = datos["cursos"].get(str(curso))
+    if entrada is None:
+        return {}
+    return {
+        actividad["cmid"]: actividad["huella_aula"]
+        for actividad in entrada["actividades"]
+        if actividad["huella_aula"] is not None
+    }
+
+
+def guardar_huella_de_copia(dir_tiza: str | Path, curso: int, cmid: int, huella: str) -> bool:
+    """Renueva la ``huella_aula`` de una actividad, solo en la entrada de su curso.
+
+    Devuelve ``False`` si ``copia.json`` no existe o la actividad no está en la entrada de ese
+    curso (no se inventan entradas). Lo demás de ``copia.json`` queda igual.
+    """
+    try:
+        datos = cargar_copia(dir_tiza)
+    except ErrorEstado as exc:
+        if exc.codigo == "IMPORTACION_AUSENTE":
+            return False
+        raise
+    entrada = datos["cursos"].get(str(curso))
+    if entrada is None:
+        return False
+    hechas = [a for a in entrada["actividades"] if a["cmid"] == cmid]
+    if not hechas:
+        return False
+    for actividad in hechas:
+        actividad["huella_aula"] = huella
+    escribir_copia(dir_tiza, datos)
+    return True
 
 
 def guardar_version_de_copia(dir_tiza: str | Path, cmid: int, html: str) -> Path:

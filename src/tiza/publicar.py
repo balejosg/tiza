@@ -60,7 +60,9 @@ __all__ = [
     "fechas_esperadas",
     "es_disponibilidad_de_tiza",
     "Movimiento",
+    "aplica_origen",
     "modulo_de",
+    "modulo_por_origen",
     "modulos_de",
     "modulos_fuera",
     "ordenar_documentos",
@@ -1686,6 +1688,7 @@ def publicar_documento(
     *,
     visible: bool | None,
     dependencias: dict[str, int] | None = None,
+    huella_aula: str | None = None,
 ) -> informe.Fichero:
     """Crea o actualiza un documento y lo verifica releyendo el módulo.
 
@@ -1693,6 +1696,10 @@ def publicar_documento(
     Los recursos se copian una sola vez y se comprueba que siguen siendo los que
     el docente confirmó (``hash_cargado``): sustituirlos después no sirve.
     ``dependencias``: el cmid, en este curso, de cada fichero de ``restricciones.completar``.
+
+    Con ``origen`` en este curso (``curso_id``), la actividad se busca por su ``cmid`` (aunque
+    haya cambiado de nombre o de sección) y, si hay ``huella_aula``, solo se actualiza si el aula
+    sigue como estaba en la copia: si no, ``CAMBIADA_EN_EL_AULA`` y no se toca nada.
     """
     with tempfile.TemporaryDirectory(prefix="tiza-recursos-") as temporal:
         copia = _congelar_recursos(doc, Path(temporal))
@@ -1704,6 +1711,7 @@ def publicar_documento(
             visible=visible,
             original=doc,
             dependencias=dependencias or {},
+            huella_aula=huella_aula,
         )
 
 
@@ -1731,21 +1739,37 @@ def _publicar_congelado(
     visible: bool | None,
     original: Documento,
     dependencias: dict[str, int],
+    huella_aula: str | None = None,
 ) -> informe.Fichero:
     seccion = buscar_seccion(secciones, doc.seccion)
     if seccion is None:
         raise ErrorPublicacion("SECCION_AUSENTE", doc.ruta.name)
-    existente = modulo_de(secciones, doc)
+    por_origen = aplica_origen(doc, curso_id)
+    existente: dict | None
     movido = False
-    if existente is None:
-        # Sin actividad en su sección, la de otra sección es la misma: cambió ``seccion:``.
-        fuera = modulos_fuera(secciones, doc)
-        if len(fuera) > 1:
-            raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
-        if fuera:
-            existente, movido = fuera[0][1], True
+    leido: dict | None = None
+    if por_origen:
+        # La actividad de la copia, con el nombre y en la sección que tenga ahora.
+        donde, encontrado = modulo_por_origen(secciones, doc)
+        existente = encontrado
+        movido = donde.get("id") != seccion.get("id")
+        if huella_aula is not None:
+            # El formulario de edición que se carga para actualizar: lo que hay en el aula
+            # se compara aquí y no sale; solo llega un código.
+            leido = moodle.leer_modulo(encontrado["cmid"])
+            if tipos.huella_del_formulario(tipos.obtener(doc.tipo), doc, leido) != huella_aula:
+                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
+    else:
+        existente = modulo_de(secciones, doc)
+        if existente is None:
+            # Sin actividad en su sección, la de otra sección es la misma: cambió ``seccion:``.
+            fuera = modulos_fuera(secciones, doc)
+            if len(fuera) > 1:
+                raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
+            if fuera:
+                existente, movido = fuera[0][1], True
     # Antes de escribir nada: una restricción ajena o una finalización bloqueada paran todo.
-    envio = preparar_itinerario(moodle, doc, existente, dependencias)
+    envio = preparar_itinerario(moodle, doc, existente, dependencias, leido)
     if movido and existente is not None:
         moodle.mover(curso_id, existente["cmid"], seccion["id"], None)
 
@@ -1950,11 +1974,16 @@ class EnvioItinerario:
 
 
 def preparar_itinerario(
-    moodle: AulaVirtual, doc: Documento, existente: dict | None, dependencias: dict[str, int]
+    moodle: AulaVirtual,
+    doc: Documento,
+    existente: dict | None,
+    dependencias: dict[str, int],
+    leido: dict | None = None,
 ) -> EnvioItinerario:
     """Decide qué se enviará y, antes de escribir nada, rechaza lo que no se puede aplicar.
 
     Lo que el aula ya tiene se examina aquí dentro y no sale: solo se devuelve un código.
+    ``leido``: el formulario de la actividad si quien llama ya lo cargó (no se carga otra vez).
     """
     if doc.finalizacion is None and doc.restricciones is None:
         return EnvioItinerario({}, False, None)
@@ -1971,7 +2000,9 @@ def preparar_itinerario(
     finalizacion = payload_finalizacion(doc)
     actual: dict | None = None
     if existente is not None:
-        actual = moodle.leer_modulo(existente["cmid"]).get("itinerario") or {}
+        if leido is None:
+            leido = moodle.leer_modulo(existente["cmid"])
+        actual = leido.get("itinerario") or {}
         if doc.restricciones is not None and not es_disponibilidad_de_tiza(
             actual.get("disponibilidad", "")
         ):
@@ -2043,12 +2074,44 @@ def modulos_de(secciones: list[dict], doc: Documento) -> list[dict]:
     ]
 
 
-def modulo_de(secciones: list[dict], doc: Documento) -> dict | None:
-    """El módulo del aula que actualizaría ``doc``: misma sección, tipo y nombre.
+def aplica_origen(doc: Documento, curso: int | None) -> bool:
+    """Si ``doc`` se busca en el aula por su ``origen``: solo en el curso del que viene.
 
-    Mismo criterio que usa ``publicar_documento``; ``None`` si no existe (o si
-    la estructura no permite comprobarlo).
+    En el curso de pruebas o en otro curso real (``curso`` distinto o desconocido) se busca como
+    siempre: sección, tipo y nombre.
     """
+    return doc.origen is not None and curso is not None and doc.origen.curso == curso
+
+
+def modulo_por_origen(secciones: list[dict], doc: Documento) -> tuple[dict, dict]:
+    """(sección, módulo) del aula con el ``cmid`` del ``origen`` de ``doc`` y el tipo de ``doc``.
+
+    ``ErrorPublicacion("ORIGEN_NO_ENCONTRADO")`` si ya no existe o es de otro tipo: no se crea
+    nada en su lugar. El nombre y la sección no cuentan: pueden haber cambiado.
+    """
+    assert doc.origen is not None
+    for seccion in secciones:
+        modulos = seccion.get("modulos") if isinstance(seccion, dict) else None
+        if not isinstance(modulos, list):
+            continue
+        for modulo in modulos:
+            if isinstance(modulo, dict) and modulo.get("cmid") == doc.origen.cmid:
+                if modulo.get("tipo") == doc.tipo:
+                    return seccion, modulo
+                break
+    raise ErrorPublicacion("ORIGEN_NO_ENCONTRADO", doc.ruta.name)
+
+
+def modulo_de(secciones: list[dict], doc: Documento, curso: int | None = None) -> dict | None:
+    """El módulo del aula que actualizaría ``doc``.
+
+    En el curso de su ``origen`` (``curso``), el que tiene ese ``cmid`` y el tipo de ``doc``, se
+    llame como se llame y esté en la sección que esté; si no hay, ``ORIGEN_NO_ENCONTRADO``. En
+    cualquier otro caso, misma sección, tipo y nombre, que es lo que usa ``publicar_documento``;
+    ``None`` si no existe (o si la estructura no permite comprobarlo).
+    """
+    if aplica_origen(doc, curso):
+        return modulo_por_origen(secciones, doc)[1]
     encontrados = modulos_de(secciones, doc)
     return encontrados[0] if encontrados else None
 
@@ -2076,11 +2139,26 @@ def modulos_fuera(secciones: list[dict], doc: Documento) -> list[tuple[dict, dic
     return salida
 
 
-def origen_de_movimiento(secciones: list[dict], doc: Documento) -> str | None:
+def origen_de_movimiento(
+    secciones: list[dict], doc: Documento, curso: int | None = None
+) -> str | None:
     """Nombre de la sección de la que se movería ``doc`` al publicarlo, o None si no se mueve.
 
-    Solo se mueve si no existe en su sección y hay exactamente uno en otra; solo lectura.
+    Solo se mueve si no existe en su sección y hay exactamente uno en otra; solo lectura. En el
+    curso de su ``origen`` se mueve la actividad de ese ``cmid`` si no está en su sección.
     """
+    if aplica_origen(doc, curso):
+        try:
+            donde, _modulo = modulo_por_origen(secciones, doc)
+        except ErrorPublicacion:
+            return None
+        try:
+            propia = buscar_seccion(secciones, doc.seccion)
+        except (TypeError, ValueError):
+            propia = None
+        if propia is not None and propia.get("id") == donde.get("id"):
+            return None
+        return str(donde.get("nombre") or "")
     if modulos_de(secciones, doc):
         return None
     fuera = modulos_fuera(secciones, doc)
@@ -2089,13 +2167,20 @@ def origen_de_movimiento(secciones: list[dict], doc: Documento) -> str | None:
     return str(fuera[0][0].get("nombre") or "")
 
 
-def ya_existe(secciones: list[dict], doc: Documento) -> bool | None:
+def ya_existe(secciones: list[dict], doc: Documento, curso: int | None = None) -> bool | None:
     """Si al publicar ``doc`` se actualizaría un módulo que ya existe.
 
     Solo lectura, con el mismo criterio que ``publicar_documento`` (misma
-    sección, tipo y nombre). ``None`` si la estructura del aula no permite
-    comprobarlo: quien lo muestre debe avisar de que puede existir, sin abortar.
+    sección, tipo y nombre; en el curso de su ``origen``, el ``cmid``). ``None`` si la
+    estructura del aula no permite comprobarlo (o el ``origen`` ya no está): quien lo muestre
+    debe avisar de que puede existir, sin abortar.
     """
+    if aplica_origen(doc, curso):
+        try:
+            modulo_por_origen(secciones, doc)
+        except ErrorPublicacion:
+            return None
+        return True
     try:
         seccion = buscar_seccion(secciones, doc.seccion)
     except (TypeError, ValueError):
@@ -2133,14 +2218,16 @@ def asegurar_secciones(
     return secciones, creadas
 
 
-def publicar_fechas(moodle: AulaVirtual, secciones: list[dict], doc: Documento) -> informe.Fichero:
+def publicar_fechas(
+    moodle: AulaVirtual, secciones: list[dict], doc: Documento, curso: int | None = None
+) -> informe.Fichero:
     """Cambia solo las fechas de una tarea o un cuestionario que ya está en el aula.
 
     No toca el contenido, los recursos, las preguntas, los intentos ni la
     visibilidad, así que no pasa por la puerta de pruebas ni sube nada. Si el
     módulo no existe, no envía nada.
     """
-    existente = modulo_de(secciones, doc)
+    existente = modulo_de(secciones, doc, curso)
     if existente is None:
         raise ErrorPublicacion("MODULO_AUSENTE", doc.ruta.name)
     cmid = existente["cmid"]

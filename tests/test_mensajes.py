@@ -206,6 +206,13 @@ class TestAvisos:
         assert lineas
         assert all(isinstance(linea, mensajes.Linea) for linea in lineas)
 
+    def test_cambiada_en_el_aula_dice_lo_acordado(self):
+        lineas = mensajes.lineas_de_aviso(publicacion.Aviso.cambiada_en_el_aula("Tema\x1b\u202e 1"))
+        assert [linea.texto for linea in lineas] == [
+            "Ha cambiado «Tema 1» en el aula desde la copia. No la publico para no perder "
+            "ese cambio. Pide al agente una copia nueva del curso."
+        ]
+
     def test_creando_seccion_sale_saneada(self):
         lineas = mensajes.lineas_de_aviso(publicacion.Aviso.creando_seccion("Tema\x1b\u202e"))
         assert [linea.texto for linea in lineas] == ["Creando la sección «Tema» (oculta)..."]

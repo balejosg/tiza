@@ -209,6 +209,9 @@ MENSAJES: dict[str, str] = {
     "PREGUNTAS_NO_ADMITIDAS": "El cuestionario tiene preguntas de un tipo que tiza no admite (el detalle dice cuáles), así que no se ha importado. Tiza solo importa verdadero/falso, opción múltiple, respuesta corta y numérica.",
     "AJUSTES_NO_ADMITIDOS": "La actividad tiene ajustes que tiza no puede publicar sin cambiarlos (el detalle dice cuáles: más de 10 intentos, un tiempo límite que no son minutos enteros, adjuntos de una tarea), así que no se ha importado.",
     "TIPO_NO_GESTIONADO": "Este tipo de actividad (foro, URL, recurso, lección…) no lo gestiona tiza y no se ha importado.",
+    "ORIGEN_NO_ENCONTRADO": "La actividad de la que viene este fichero (su «origen») ya no existe en el aula o ahora es de otro tipo, y no se ha publicado nada. Pide una copia nueva del curso y vuelve a importar, o publícalo como actividad nueva quitando «origen».",
+    "CAMBIADA_EN_EL_AULA": "Alguien cambió esta actividad en el aula después de la copia, y no se ha publicado para no perder ese cambio. Pide al agente una copia nueva del curso y junta los cambios en tu fichero.",
+    "ORIGEN_DUPLICADO": "Dos ficheros de esta publicación vienen de la misma actividad del aula (mismo «origen») y no se ha publicado ninguno de los dos. Deja uno solo, o quita «origen» al que sea una actividad nueva.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
     "UV_NO_ENCONTRADO": "No se encuentra uv. Vuelve a ejecutar el instalador del README.",

@@ -49,6 +49,7 @@ __all__ = [
     "ActividadOrden",
     "CambioFecha",
     "CUPO_COPIAS",
+    "CambioNombre",
     "CambioSeccion",
     "DocumentoBreve",
     "DocumentoResumen",
@@ -60,6 +61,7 @@ __all__ = [
     "ResumenSinPruebas",
     "SeccionOrden",
     "cambios_de_fechas",
+    "cambios_de_nombre",
     "cambios_de_seccion",
     "cargar_calendario",
     "codigo_solo_fechas",
@@ -89,6 +91,7 @@ CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
 AVISOS = frozenset(
     {
         "AUTOPRUEBA_FALLIDA",
+        "CAMBIADA_EN_EL_AULA",
         "CANCELADA",
         "COPIA_QUEDA_EN_EL_AULA",
         "CREANDO_SECCION",
@@ -128,6 +131,10 @@ class Aviso:
     @classmethod
     def autoprueba_fallida(cls) -> Aviso:
         return cls("AUTOPRUEBA_FALLIDA")
+
+    @classmethod
+    def cambiada_en_el_aula(cls, nombre: str) -> Aviso:
+        return cls("CAMBIADA_EN_EL_AULA", {"nombre": nombre})
 
     @classmethod
     def cancelada(cls) -> Aviso:
@@ -280,6 +287,17 @@ class ResumenPublicacion:
     total: int = 1
     # Actividades que cambian de sección al cambiar su ``seccion:`` (se mueven, no se duplican).
     movimientos: tuple[CambioSeccion, ...] = ()
+    # Actividades importadas que cambian de nombre al publicarse (se actualizan por su origen).
+    nombres: tuple[CambioNombre, ...] = ()
+
+
+@dataclass(frozen=True)
+class CambioNombre:
+    """Una actividad importada que ya está en el aula con otro nombre. La ve solo el docente."""
+
+    fichero: str
+    antes: str  # el nombre que tiene en el aula
+    despues: str  # el nombre del fichero
 
 
 @dataclass(frozen=True)
@@ -318,6 +336,7 @@ class ResumenSinPruebas:
     posicion: int = 1
     total: int = 1
     movimientos: tuple[CambioSeccion, ...] = ()
+    nombres: tuple[CambioNombre, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -512,6 +531,7 @@ def cambios_de_fechas(
     cal: calendario.Calendario | None,
     *,
     debug: bool = False,
+    curso: int | None = None,
 ) -> tuple[CambioFecha, ...]:
     """Las fechas que se publicarían frente a las que tiene el aula, con sus avisos.
 
@@ -524,7 +544,11 @@ def cambios_de_fechas(
         return ()
     esperadas = publicar.fechas_esperadas(doc)
     avisos_de = calendario.avisos_por_campo(cal, doc)
-    existente = publicar.modulo_de(secciones, doc)
+    huerfana = False  # su ``origen`` ya no está en el aula: se negará al publicar
+    try:
+        existente = publicar.modulo_de(secciones, doc, curso)
+    except ErrorPublicacion:
+        existente, huerfana = None, True
     actuales: dict | None = None
     if existente is not None:
         try:
@@ -538,7 +562,7 @@ def cambios_de_fechas(
         if existente is None or actuales is None:
             if despues is None:
                 continue
-            estado = "nueva" if existente is None else "desconocida"
+            estado = "nueva" if existente is None and not huerfana else "desconocida"
             cambios.append(CambioFecha(fecha.campo, None, despues, estado, avisos))
             continue
         antes = actuales.get(fecha.campo_moodle)
@@ -597,12 +621,18 @@ def _resolver_dependencias(
     return None
 
 
-def codigo_solo_fechas(secciones: list[dict], documentos: list[Documento]) -> str | None:
+def codigo_solo_fechas(
+    secciones: list[dict], documentos: list[Documento], curso: int | None = None
+) -> str | None:
     """Por qué «--solo-fechas» no se puede aplicar a estos documentos, o None si sí."""
     for doc in documentos:
         if tipos.obtener(doc.tipo).payload_solo_fechas(doc) is None:
             return "SOLO_FECHAS_NO_APLICA"
-        if publicar.modulo_de(secciones, doc) is None:
+        try:
+            existente = publicar.modulo_de(secciones, doc, curso)
+        except ErrorPublicacion as exc:  # ``origen`` que ya no está en el aula
+            return exc.codigo
+        if existente is None:
             return "MODULO_AUSENTE"
     return None
 
@@ -628,7 +658,7 @@ def resumen_solo_fechas(
             DocumentoResumen.de(
                 doc,
                 carpeta,
-                cambios=cambios_de_fechas(aula, secciones, doc, cal, debug=debug),
+                cambios=cambios_de_fechas(aula, secciones, doc, cal, debug=debug, curso=curso),
             )
             for doc in documentos
         ),
@@ -661,6 +691,12 @@ def publicar_con(
     borrador = informe.Borrador("publicar", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
     base = Path(carpeta).resolve()
+    paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
+    # Dos ficheros del mismo origen pisarían dos veces la misma actividad: ninguno se publica.
+    documentos, repetidos = _sin_origen_repetido(documentos)
+    for doc in repetidos:
+        borrador.fallo(paso, doc.ruta.name)
+        borrador.error("ORIGEN_DUPLICADO")
     if not solo_fechas:
         ordenados = ordenar_por_dependencias(documentos, base)
         if ordenados is None:
@@ -684,7 +720,7 @@ def publicar_con(
             return borrador.documento("error")
     if solo_fechas:
         # Todo o nada: si alguno de los documentos no se puede cambiar, no se cambia ninguno.
-        codigo = codigo_solo_fechas(secciones, documentos)
+        codigo = codigo_solo_fechas(secciones, documentos, curso)
         if codigo is not None:
             borrador.fallo("SOLO_FECHAS", codigo)
             borrador.error(codigo)
@@ -701,21 +737,40 @@ def publicar_con(
             return borrador.documento("error")
         for nombre in creadas:
             borrador.paso("CREAR_SECCION", detalle=nombre)
-    paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
+    dir_tiza = Path(carpeta) / rutas.CARPETA_TRABAJO
+    huellas: dict[int, str] = {}  # de cada actividad importada, el aula tal como la dejó la copia
+    if not solo_fechas and any(publicar.aplica_origen(doc, curso) for doc in documentos):
+        try:
+            huellas = estado.huellas_de_copia(dir_tiza, curso)
+        except estado.ErrorEstado as exc:
+            borrador.fallo("PREPARAR", exc.codigo)
+            borrador.error(exc.codigo)
+            return borrador.documento("error")
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
     motor: bool | None = None  # ¿dibuja el aula las fórmulas? Se mira una vez por curso
     for doc in documentos:
         try:
             if solo_fechas:
-                resultado = publicar.publicar_fechas(aula, secciones, doc)
+                resultado = publicar.publicar_fechas(aula, secciones, doc, curso)
             else:
+                huella = None
+                if doc.origen is not None and publicar.aplica_origen(doc, curso):
+                    huella = huellas.get(doc.origen.cmid)
+                    if huella is None:  # sin copia o sin huella: se publica sin esa protección
+                        borrador.paso("ORIGEN_SIN_HUELLA", detalle=doc.ruta.name)
                 dependencias = {
                     fichero: cmids[fichero]
                     for fichero in (doc.restricciones.completar if doc.restricciones else ())
                     if fichero in cmids
                 }
                 resultado = publicar.publicar_documento(
-                    aula, curso, secciones, doc, visible=visible, dependencias=dependencias
+                    aula,
+                    curso,
+                    secciones,
+                    doc,
+                    visible=visible,
+                    dependencias=dependencias,
+                    huella_aula=huella,
                 )
                 assert resultado.cmid is not None  # acaba de crearla o actualizarla
                 cmids[_relativa(doc.ruta, base)] = resultado.cmid
@@ -723,7 +778,14 @@ def publicar_con(
             borrador.fallo(paso, doc.ruta.name)
             depurar(exc, debug)
             borrador.error(exc.codigo)
-            return borrador.documento("error")
+            if exc.codigo not in ERRORES_POR_FICHERO:
+                return borrador.documento("error")
+            # Esta actividad no se toca; las demás del lote siguen.
+            if exc.codigo == "CAMBIADA_EN_EL_AULA":
+                presencia.informar(Aviso.cambiada_en_el_aula(doc.nombre))
+            continue
+        if not solo_fechas and publicar.aplica_origen(doc, curso):
+            _renovar_huella(dir_tiza, curso, doc, borrador)
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None
             estado.guardar_verificado(
@@ -745,6 +807,57 @@ def publicar_con(
             if not motor:
                 borrador.paso("FORMULAS_NO_DIBUJADAS", detalle=doc.ruta.name)
     return borrador.documento()
+
+
+# Fallos que paran solo a su fichero: la actividad no se toca y el resto del lote sigue.
+ERRORES_POR_FICHERO = frozenset({"CAMBIADA_EN_EL_AULA", "ORIGEN_NO_ENCONTRADO"})
+
+
+def _sin_origen_repetido(documentos: list[Documento]) -> tuple[list[Documento], list[Documento]]:
+    """(los documentos sin otro del mismo ``origen``, los que lo comparten), en su orden."""
+    cuantos = Counter((doc.origen.curso, doc.origen.cmid) for doc in documentos if doc.origen)
+    repetido = [
+        doc.origen is not None and cuantos[(doc.origen.curso, doc.origen.cmid)] > 1
+        for doc in documentos
+    ]
+    return (
+        [doc for doc, rep in zip(documentos, repetido, strict=True) if not rep],
+        [doc for doc, rep in zip(documentos, repetido, strict=True) if rep],
+    )
+
+
+def _renovar_huella(dir_tiza: Path, curso: int, doc: Documento, borrador: informe.Borrador) -> None:
+    """Guarda en ``copia.json`` la huella de lo que tiza acaba de enviar, para el siguiente lote.
+
+    Se calcula con lo enviado, sin releer el aula (espiga 5). Si no se puede guardar, la
+    publicación sigue siendo buena; solo se avisa de que la próxima saltará.
+    """
+    assert doc.origen is not None
+    try:
+        nueva = tipos.huella_de_lo_enviado(
+            tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
+        )
+        estado.guardar_huella_de_copia(dir_tiza, curso, doc.origen.cmid, nueva)
+    except (estado.ErrorEstado, OSError):
+        borrador.fallo("HUELLA_NO_GUARDADA", doc.ruta.name)
+
+
+def cambios_de_nombre(
+    secciones: list[dict], documentos: list[Documento], curso: int
+) -> tuple[CambioNombre, ...]:
+    """Las actividades importadas que se llaman distinto en el aula y en su fichero."""
+    cambios: list[CambioNombre] = []
+    for doc in documentos:
+        if not publicar.aplica_origen(doc, curso):
+            continue
+        try:
+            modulo = publicar.modulo_de(secciones, doc, curso)
+        except ErrorPublicacion:
+            continue
+        antes = modulo.get("nombre") if modulo is not None else None
+        if isinstance(antes, str) and antes != doc.nombre:
+            cambios.append(CambioNombre(doc.ruta.name, antes, doc.nombre))
+    return tuple(cambios)
 
 
 def _nombres_de_vista(documentos: list[Documento]) -> list[str | None]:
@@ -841,7 +954,7 @@ def _en_pruebas(
             secciones = aula.estructura(curso)
         except ErrorPublicacion as exc:
             return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
-        codigo = codigo_solo_fechas(secciones, documentos)
+        codigo = codigo_solo_fechas(secciones, documentos, curso)
         if codigo is not None:
             return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
     if cupo is not None:
@@ -933,7 +1046,7 @@ def _en_real(
             break
         nombre_curso = nombres.get(curso)
         if solo_fechas:
-            codigo = codigo_solo_fechas(secciones, documentos)
+            codigo = codigo_solo_fechas(secciones, documentos, curso)
             if codigo is not None:
                 registro.append((posicion, curso, fallo(codigo, curso)))
                 break
@@ -958,7 +1071,7 @@ def _en_real(
                         fichero=doc.ruta.name,
                         tipo=doc.tipo,
                         nombre=doc.nombre,
-                        existe=publicar.ya_existe(secciones, doc),
+                        existe=publicar.ya_existe(secciones, doc, curso),
                         itinerario=itinerario_de(doc, base),
                     )
                     for doc in documentos
@@ -966,7 +1079,8 @@ def _en_real(
                 secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
                 posicion=posicion,
                 total=total,
-                movimientos=cambios_de_seccion(secciones, documentos),
+                movimientos=cambios_de_seccion(secciones, documentos, curso),
+                nombres=cambios_de_nombre(secciones, documentos, curso),
             )
             confirmado = presencia.confirmar_real_sin_pruebas(corto)
         else:
@@ -978,7 +1092,9 @@ def _en_real(
                         doc,
                         base,
                         vista,
-                        cambios=cambios_de_fechas(aula, secciones, doc, cal, debug=debug),
+                        cambios=cambios_de_fechas(
+                            aula, secciones, doc, cal, debug=debug, curso=curso
+                        ),
                     )
                     for doc, vista in zip(documentos, vistas, strict=True)
                 ),
@@ -987,7 +1103,8 @@ def _en_real(
                 aviso_calendario=aviso_calendario,
                 posicion=posicion,
                 total=total,
-                movimientos=cambios_de_seccion(secciones, documentos),
+                movimientos=cambios_de_seccion(secciones, documentos, curso),
+                nombres=cambios_de_nombre(secciones, documentos, curso),
             )
             confirmado = presencia.confirmar_real(resumen)
         if not confirmado:
@@ -1015,12 +1132,12 @@ def _en_real(
 
 
 def cambios_de_seccion(
-    secciones: list[dict], documentos: list[Documento]
+    secciones: list[dict], documentos: list[Documento], curso: int | None = None
 ) -> tuple[CambioSeccion, ...]:
     """Las actividades que ``publicar`` movería de sección por haber cambiado su ``seccion:``."""
     cambios: list[CambioSeccion] = []
     for doc in documentos:
-        origen = publicar.origen_de_movimiento(secciones, doc)
+        origen = publicar.origen_de_movimiento(secciones, doc, curso)
         if origen is None:
             continue
         destino = estado.buscar_seccion(secciones, doc.seccion)

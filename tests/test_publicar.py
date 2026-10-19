@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import types
 import urllib.request
+from datetime import datetime
 
 import pytest
 import requests
@@ -13,8 +14,8 @@ from py_moodle.draftfile import MoodleDraftFileError
 from py_moodle.module import MoodleModuleError
 from py_moodle.session import MoodleSessionError
 
-from dobles import MoodleFalso
-from tiza import config, contenido, publicar
+from dobles import MoodleFalso, fecha_en_formulario
+from tiza import config, contenido, publicar, tipos
 from tiza.publicar import ErrorPublicacion
 
 
@@ -3498,3 +3499,197 @@ class TestAutopruebaYCopia:
         assert "COPIA_NO_PERMITIDA" in paso.detalle
         sin_aviso = publicar.autoprueba(MoodleFalso(), 1234)
         assert "COPIA_A_MANO" not in [p.codigo for p in sin_aviso["pasos"]]
+
+
+# --------------------------------------------------------------------------- #
+# Publicar por origen: una actividad importada se actualiza por su cmid
+# --------------------------------------------------------------------------- #
+
+
+def _aula_con_origen(modulo="pagina", seccion_del_modulo=2):
+    """Un aula de 'curso 3' con la actividad 501 «Viejo» (en la sección 2 o en la 3)."""
+    secciones = [
+        {"numero": 2, "nombre": "Tema 2", "id": 20, "modulos": []},
+        {"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []},
+    ]
+    destino = next(s for s in secciones if s["numero"] == seccion_del_modulo)
+    destino["modulos"].append({"cmid": 501, "nombre": "Viejo", "tipo": modulo})
+    moodle = MoodleFalso(secciones=secciones)
+    moodle.formularios[501] = {
+        "visible": "1",
+        "name": "Viejo",
+        "page[text]": "<p>Texto del aula</p>",
+    }
+    return moodle
+
+
+def _documento_con_origen(tmp_path, nombre="Nuevo", seccion="2", curso=3, cmid=501):
+    ruta = tmp_path / "importada.md"
+    ruta.write_text(
+        f"---\ntipo: pagina\nnombre: {nombre}\nseccion: {seccion}\n"
+        f"origen:\n  curso: {curso}\n  cmid: {cmid}\n---\n\nTexto nuevo.\n",
+        encoding="utf-8",
+    )
+    return contenido.cargar(ruta)
+
+
+def _llamadas(moodle, *nombres):
+    return [llamada for llamada in moodle.llamadas if llamada[0] in nombres]
+
+
+class TestPublicarPorOrigen:
+    def test_origen_actualiza_por_cmid_con_otro_nombre(self, tmp_path):
+        moodle = _aula_con_origen()
+        doc = _documento_con_origen(tmp_path)
+        resultado = publicar.publicar_documento(moodle, 3, moodle.estructura(3), doc, visible=None)
+        assert (resultado.accion, resultado.cmid) == ("actualizada", 501)
+        assert [llamada[1] for llamada in _llamadas(moodle, "actualizar")] == [501]
+        assert _llamadas(moodle, "crear", "mover") == []
+        assert moodle.formularios[501]["name"] == "Nuevo"
+
+    def test_origen_mueve_de_seccion(self, tmp_path):
+        moodle = _aula_con_origen(seccion_del_modulo=3)
+        doc = _documento_con_origen(tmp_path, seccion='"Tema 2"')
+        resultado = publicar.publicar_documento(moodle, 3, moodle.estructura(3), doc, visible=None)
+        assert (resultado.accion, resultado.cmid) == ("movida", 501)
+        assert _llamadas(moodle, "mover") == [("mover", 3, 501, 20, None)]
+        assert _llamadas(moodle, "crear") == []
+        assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [501]
+        assert moodle.secciones[1]["modulos"] == []
+
+    def test_origen_inexistente(self, tmp_path):
+        moodle = _aula_con_origen()
+        doc = _documento_con_origen(tmp_path, cmid=999)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(moodle, 3, moodle.estructura(3), doc, visible=None)
+        assert exc.value.codigo == "ORIGEN_NO_ENCONTRADO"
+        assert _llamadas(moodle, "crear", "actualizar", "mover") == []
+
+    def test_origen_de_otro_tipo(self, tmp_path):
+        moodle = _aula_con_origen(modulo="foro")
+        doc = _documento_con_origen(tmp_path)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(moodle, 3, moodle.estructura(3), doc, visible=None)
+        assert exc.value.codigo == "ORIGEN_NO_ENCONTRADO"
+        assert _llamadas(moodle, "crear", "actualizar", "mover") == []
+
+    def test_origen_en_pruebas_busca_por_nombre(self, tmp_path):
+        # El curso de pruebas (2) no es el del origen (3): sección, tipo y nombre, como hoy.
+        moodle = _aula_con_origen()
+        doc = _documento_con_origen(tmp_path)
+        resultado = publicar.publicar_documento(moodle, 2, moodle.estructura(2), doc, visible=None)
+        assert resultado.accion == "creada" and resultado.cmid != 501
+        assert [llamada[0] for llamada in _llamadas(moodle, "crear", "mover")] == ["crear"]
+        # Y si ya hay una con ese nombre en su sección, la actualiza por nombre.
+        otra = publicar.publicar_documento(moodle, 2, moodle.estructura(2), doc, visible=None)
+        assert (otra.accion, otra.cmid) == ("actualizada", resultado.cmid)
+
+    def test_modulo_de_y_ya_existe_siguen_el_curso_del_origen(self, tmp_path):
+        moodle = _aula_con_origen()
+        doc = _documento_con_origen(tmp_path)
+        assert publicar.modulo_de(moodle.secciones, doc, 3)["cmid"] == 501
+        assert publicar.modulo_de(moodle.secciones, doc, 2) is None  # otro curso: por nombre
+        assert publicar.ya_existe(moodle.secciones, doc, 3) is True
+        assert publicar.ya_existe(moodle.secciones, doc, 2) is False
+        assert (
+            publicar.ya_existe(moodle.secciones, _documento_con_origen(tmp_path, cmid=9), 3) is None
+        )
+        with pytest.raises(ErrorPublicacion):
+            publicar.modulo_de(moodle.secciones, _documento_con_origen(tmp_path, cmid=9), 3)
+
+    def test_cambiada_en_el_aula_no_toca_la_actividad(self, tmp_path):
+        moodle = _aula_con_origen()
+        doc = _documento_con_origen(tmp_path, seccion='"Tema 3"')
+        huella_de_la_copia = tipos.huella_aula("Viejo", "<p>Otro texto</p>")
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle, 3, moodle.estructura(3), doc, visible=None, huella_aula=huella_de_la_copia
+            )
+        assert exc.value.codigo == "CAMBIADA_EN_EL_AULA"
+        assert _llamadas(moodle, "crear", "actualizar", "mover", "subir") == []
+
+    def test_con_la_huella_de_la_copia_se_actualiza(self, tmp_path):
+        moodle = _aula_con_origen()
+        doc = _documento_con_origen(tmp_path)
+        igual = tipos.huella_aula("Viejo", "<p>Texto del aula</p>")
+        resultado = publicar.publicar_documento(
+            moodle, 3, moodle.estructura(3), doc, visible=None, huella_aula=igual
+        )
+        assert resultado.accion == "actualizada"
+        # El formulario se carga una sola vez antes de escribir: la huella lo aprovecha.
+        antes = [i for i, llamada in enumerate(moodle.llamadas) if llamada[0] == "leer_modulo"]
+        assert antes[0] < next(
+            i for i, llamada in enumerate(moodle.llamadas) if llamada[0] == "actualizar"
+        )
+
+    def test_huella_aula_normaliza_urls(self):
+        base = '<p>Mira <img src="{}"> esto</p>'
+        borrador = base.format("https://x/draftfile.php/5/user/draft/123/punto.png")
+        copia = base.format("@@PLUGINFILE@@/punto.png")
+        pluginfile = base.format(
+            "https://x/pluginfile.php/8/mod_page/content/0/punto.png?forcedownload=1"
+        )
+        assert tipos.huella_aula("N", borrador) == tipos.huella_aula("N", copia)
+        assert tipos.huella_aula("N", pluginfile) == tipos.huella_aula("N", copia)
+        assert tipos.huella_aula("N", copia.replace("esto", "esta")) != tipos.huella_aula(
+            "N", copia
+        )
+        assert tipos.huella_aula("M", copia) != tipos.huella_aula("N", copia)
+        fecha = {"duedate": datetime(2026, 10, 12, 23, 59)}
+        otra = {"duedate": datetime(2026, 10, 13, 0, 0)}
+        un_minuto = {"duedate": datetime(2026, 10, 12, 23, 58)}
+        assert tipos.huella_aula("N", copia, fecha) != tipos.huella_aula("N", copia)
+        assert tipos.huella_aula("N", copia, fecha) != tipos.huella_aula("N", copia, otra)
+        assert tipos.huella_aula("N", copia, fecha) != tipos.huella_aula("N", copia, un_minuto)
+
+    def test_la_huella_de_lo_enviado_es_la_del_formulario_que_deja_el_aula(self, tmp_path):
+        # Lo que tiza envía y lo que el formulario del aula devuelve dan la misma huella, en
+        # una tarea (con fechas) y con el recordatorio sin poner.
+        ruta = tmp_path / "tarea.md"
+        ruta.write_text(
+            "---\ntipo: tarea\nnombre: Problemas\nseccion: 3\napertura: 2026-10-01\n"
+            "entrega: 2026-10-12\n---\n\nResuelve.\n",
+            encoding="utf-8",
+        )
+        doc = contenido.cargar(ruta)
+        moodle = MoodleFalso()
+        resultado = publicar.publicar_documento(moodle, 3, moodle.estructura(3), doc, visible=None)
+        tipo = tipos.obtener("tarea")
+        enviada = tipos.huella_de_lo_enviado(tipo, doc, contenido.html_para_moodle(doc))
+        assert tipos.huella_del_formulario(tipo, doc, moodle.leer_modulo(resultado.cmid)) == enviada
+        # Cambiar un minuto de la entrega en el aula la cambia.
+        moodle.formularios[resultado.cmid].update(
+            fecha_en_formulario("duedate", (2026, 10, 12, 23, 58))
+        )
+        assert tipos.huella_del_formulario(tipo, doc, moodle.leer_modulo(resultado.cmid)) != enviada
+
+    def test_cuestionario_con_intentos_sigue_protegido(self, tmp_path):
+        moodle = MoodleFalso()
+        primero = publicar.publicar_documento(
+            moodle, 3, moodle.estructura(3), documento_cuestionario(tmp_path), visible=False
+        )
+        cmid = primero.cmid
+        moodle.intentos[cmid] = True
+        antes = (
+            {clave: dict(banco) for clave, banco in moodle.bancos.items()},
+            list(moodle.huecos(cmid)),
+            dict(moodle.formularios[cmid]),
+        )
+        doc = documento_cuestionario(
+            tmp_path,
+            preguntas=PREGUNTAS_V2,
+            origen=f"{{curso: 3, cmid: {cmid}}}",
+        )
+        huella = tipos.huella_del_formulario(
+            tipos.obtener("cuestionario"), doc, moodle.leer_modulo(cmid)
+        )
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle, 3, moodle.estructura(3), doc, visible=None, huella_aula=huella
+            )
+        assert exc.value.codigo == "CUESTIONARIO_CON_INTENTOS"
+        assert (
+            {clave: dict(banco) for clave, banco in moodle.bancos.items()},
+            list(moodle.huecos(cmid)),
+            dict(moodle.formularios[cmid]),
+        ) == antes
