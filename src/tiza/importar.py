@@ -292,8 +292,8 @@ def _recursos(actividad: ActividadCopia, html: str) -> tuple[str, list[_Recurso]
             continue
         carpeta = fichero.ruta.strip("/")
         propios.setdefault(f"{carpeta}/{fichero.nombre}" if carpeta else fichero.nombre, fichero)
-    usados: dict[str, str] = {}  # clave -> nombre limpio
-    ocupados: dict[str, str] = {}  # nombre limpio (sin mayúsculas) -> contenthash
+    usados: dict[str, str] = {}  # clave -> nombre con el que se escribe
+    ocupados: dict[str, tuple[str, str]] = {}  # nombre sin mayúsculas -> (contenthash, nombre)
     recursos: list[_Recurso] = []
     faltan = False
 
@@ -307,14 +307,18 @@ def _recursos(actividad: ActividadCopia, html: str) -> tuple[str, list[_Recurso]
         if clave not in usados:
             base = nombre_de_recurso(fichero.nombre)
             nombre, n = base, 1
-            while ocupados.get(nombre.casefold(), fichero.contenthash) != fichero.contenthash:
+            # Dos nombres que solo difieren en mayúsculas son el mismo fichero en Windows y macOS.
+            while ocupados.get(nombre.casefold(), (fichero.contenthash, nombre))[0] != (
+                fichero.contenthash
+            ):
                 n += 1
                 cuerpo, punto, extension = base.rpartition(".")
                 nombre = f"{cuerpo}-{n}.{extension}" if punto else f"{base}-{n}"
-            usados[clave] = nombre
             if nombre.casefold() not in ocupados:
-                ocupados[nombre.casefold()] = fichero.contenthash
+                ocupados[nombre.casefold()] = (fichero.contenthash, nombre)
                 recursos.append(_Recurso(fichero.contenthash, nombre))
+            # Mismo contenido con otras mayúsculas: se usa el nombre con el que se escribió.
+            usados[clave] = ocupados[nombre.casefold()][1]
         return f"recursos/{actividad.cmid}/{usados[clave]}"
 
     return _REFERENCIA.sub(cambiar, html), recursos, faltan

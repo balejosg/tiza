@@ -326,7 +326,12 @@ _URL_DE_FICHERO = re.compile(
     r"""/(?:draftfile|pluginfile)\.php/\d+/(?:[^\s"'<>?#]*/)?"""
     r"""([^\s"'<>?#/]+)(?:\?[^\s"'<>#]*)?"""
 )
-_FIN_DE_URL = frozenset(" \t\r\n\f\"'<>=")
+_SEPARADORES_DE_URL = "\"'<>="
+
+
+def _corta_la_url(caracter: str) -> bool:
+    """Lo que no puede estar en una URL: un espacio (``\\s`` de ``re``), comillas, ``<``, ``>``, ``=``."""
+    return caracter.isspace() or caracter in _SEPARADORES_DE_URL
 
 
 def _ficheros_del_aula(html: str) -> str:
@@ -340,7 +345,7 @@ def _ficheros_del_aula(html: str) -> str:
     fin_anterior = 0
     for m in _URL_DE_FICHERO.finditer(html):
         inicio = m.start()
-        while inicio > fin_anterior and html[inicio - 1] not in _FIN_DE_URL:
+        while inicio > fin_anterior and not _corta_la_url(html[inicio - 1]):
             inicio -= 1
         salida.append(html[fin_anterior:inicio])
         salida.append(f"@@PLUGINFILE@@/{m.group(1)}")

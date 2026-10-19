@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import os
 import re
+import stat
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -142,12 +144,18 @@ def escribir_copia(dir_tiza: str | Path, datos: Mapping[str, Any]) -> Path:
 def cargar_copia(dir_tiza: str | Path) -> dict:
     """Lee ``copia.json`` validado; un fichero fuera del esquema es ``COPIA_INVALIDA``.
 
-    ``IMPORTACION_AUSENTE`` si no existe (no hay importación) e ``IMPORTACION_ILEGIBLE`` si no
-    se puede leer.
+    ``IMPORTACION_AUSENTE`` si no existe (no hay importación), ``COPIA_INVALIDA`` si existe y no es
+    un fichero normal (directorio, FIFO, enlace) e ``IMPORTACION_ILEGIBLE`` si no se puede leer.
     """
     ruta = Path(dir_tiza) / FICHERO_COPIA
-    if not ruta.is_file():
-        raise ErrorEstado("IMPORTACION_AUSENTE")
+    try:
+        modo = os.lstat(ruta).st_mode
+    except FileNotFoundError:
+        raise ErrorEstado("IMPORTACION_AUSENTE") from None
+    except OSError as exc:
+        raise ErrorEstado("IMPORTACION_ILEGIBLE") from exc
+    if not stat.S_ISREG(modo):  # un directorio, una FIFO o un enlace: no es el de tiza
+        raise ErrorEstado("COPIA_INVALIDA")
     try:
         datos = json.loads(leer_bytes_acotado(ruta, MAX_COPIA_JSON).decode("utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:

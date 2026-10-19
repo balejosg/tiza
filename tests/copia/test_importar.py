@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -1220,6 +1221,113 @@ def test_cuestionario_ya_importado_que_ahora_no_se_admite_conserva_fichero_y_hue
     ahora = actividades_de(carpeta)[510]
     assert ahora["estado"] == "PREGUNTAS_NO_ADMITIDAS"
     assert ahora["fichero"] == antes["fichero"] and ahora["huella_aula"] == antes["huella_aula"]
+
+
+# --- Ronda de arreglos 2 -----------------------------------------------------------------
+
+_URL_ANTIGUA = re.compile(
+    r"""[^\s"'<>=]*?/(?:draftfile|pluginfile)\.php/\d+/(?:[^\s"'<>?#]*/)?"""
+    r"""([^\s"'<>?#/]+)(?:\?[^\s"'<>#]*)?"""
+)
+
+
+def antigua(html: str) -> str:
+    """Lo que daba la expresión regular de antes (cuadrática, pero con el corte de URL exacto)."""
+    return _URL_ANTIGUA.sub(lambda m: f"@@PLUGINFILE@@/{m.group(1)}", html)
+
+
+@pytest.mark.parametrize(
+    "separador",
+    [" ", "\t", "\n", "\r", "\f", "\v", "\x1c", "\x1d", "\x1e", "\x1f", "\x85", "\xa0"]
+    + [chr(0x2003), chr(0x2028), chr(0x3000), chr(0x1680), chr(0x202F)],
+)
+def test_la_url_del_aula_se_corta_como_antes_en_cualquier_espacio(separador):
+    from tiza.tipos.base import _ficheros_del_aula
+
+    html = f"texto{separador}https://x/pluginfile.php/1/f/a.png"
+    assert _ficheros_del_aula(html) == antigua(html) == f"texto{separador}@@PLUGINFILE@@/a.png"
+
+
+def test_la_url_del_aula_igual_que_la_expresion_antigua_en_azar():
+    import random
+
+    from tiza.tipos.base import _ficheros_del_aula
+
+    azar = random.Random(20261019)
+    trozos = [
+        "https://x/pluginfile.php/1/mod/a.png",
+        "/draftfile.php/5/user/draft/9/b.jpg?x=1",
+        "pluginfile.php/2/",
+        "/pluginfile.php/3/f/",
+        "a",
+        "b/",
+        "?",
+        "#",
+        "=",
+        '"',
+        "'",
+        "<",
+        ">",
+        " ",
+        "\n",
+        "\xa0",
+        chr(0x2003),
+        "\x1f",
+        "\x85",
+        "src=",
+        "@@PLUGINFILE@@/c.png",
+    ]
+    for _ in range(3000):
+        html = "".join(azar.choice(trozos) for _ in range(azar.randint(1, 12)))
+        assert _ficheros_del_aula(html) == antigua(html), repr(html)
+
+
+def test_mismo_contenido_con_otras_mayusculas_apunta_a_un_fichero_que_existe(carpeta):
+    html = '<img src="@@PLUGINFILE@@/Foto.png" alt="a"><img src="@@PLUGINFILE@@/foto.png" alt="b">'
+    ficheros = [f.FicheroFalso("Foto.png", PNG), f.FicheroFalso("foto.png", PNG)]
+    importar_en(carpeta, [pagina(html, ficheros=ficheros)])
+    seccion = carpeta / "aula" / "02-tema-1-intro"
+    cuerpo = (seccion / "una-pagina-501.html").read_text(encoding="utf-8")
+    referencias = re.findall(r'src="(recursos/501/[^"]+)"', cuerpo)
+    assert len(referencias) == 2 and referencias[0] == referencias[1]
+    for referencia in referencias:
+        assert (
+            seccion / referencia
+        ).is_file()  # el nombre exacto, también donde importan las mayúsculas
+    assert len(list((seccion / "recursos" / "501").iterdir())) == 1
+    assert actividades_de(carpeta)[501]["estado"] == "IMPORTADA"
+    contenido.cargar(seccion / "una-pagina-501.html", raiz=carpeta.resolve())
+
+
+def hacer_copia_json_raro(tipo, carpeta, tmp_path):
+    ruta = carpeta / ".tiza" / "copia.json"
+    ruta.parent.mkdir(exist_ok=True)
+    if tipo == "directorio":
+        ruta.mkdir()
+    elif tipo == "fifo":
+        if not hasattr(os, "mkfifo"):
+            pytest.skip("sin FIFO")
+        os.mkfifo(ruta)
+    else:
+        destino = tmp_path / "carpeta"
+        destino.mkdir()
+        try:
+            ruta.symlink_to(destino, target_is_directory=True)
+        except OSError:
+            pytest.skip("sin enlaces simbólicos")
+
+
+@pytest.mark.parametrize("tipo", ["directorio", "fifo", "enlace_a_directorio"])
+def test_copia_json_que_no_es_un_fichero_normal_es_invalido(carpeta, tmp_path, tipo):
+    hacer_copia_json_raro(tipo, carpeta, tmp_path)
+    with pytest.raises(estado.ErrorEstado) as info:
+        estado.cargar_copia(carpeta / ".tiza")
+    assert info.value.codigo == "COPIA_INVALIDA"
+    copia_en(carpeta, [pagina()])
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("copia.mbz", carpeta)
+    assert info.value.codigo == "COPIA_INVALIDA"
+    assert not (carpeta / "aula").exists()
 
 
 # --- Huella --------------------------------------------------------------------------------
