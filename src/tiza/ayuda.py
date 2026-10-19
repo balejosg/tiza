@@ -10,6 +10,7 @@ from __future__ import annotations
 __all__ = ["MENSAJES", "explicar"]
 
 MENSAJES: dict[str, str] = {
+    "ORIGEN_INVALIDO": "El campo «origen» del fichero no es válido: debe tener solo «curso» y «cmid», con números enteros positivos. Lo escribe «tiza importar»; no lo cambies a mano.",
     # Sesión y buzón
     "SIN_SESION": "No hay ninguna sesión abierta. En tu terminal, dentro de la carpeta de la asignatura, ejecuta «tiza empezar» y déjala abierta.",
     "SESION_CERRADA": "La sesión del docente se ha cerrado. Vuelve a abrir «tiza empezar» en la carpeta de la asignatura.",

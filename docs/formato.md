@@ -136,6 +136,9 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   No uses el id que aparece en la URL del aula: `tiza comprobar` lo detecta.
   El nombre se pone con el editor del formato del curso (Temas, Semanas…);
   `tiza autoprueba` comprueba que funciona en tu curso de pruebas.
+- `origen: {curso: 3, cmid: 501}` (opcional, en cualquier tipo) vincula el fichero con
+  la actividad del aula de la que salió (`tiza importar` lo escribe; no lo cambies a mano).
+  Los dos son enteros positivos; si no, `ORIGEN_INVALIDO`.
 - Si el `nombre` contiene `: ` (dos puntos y espacio), escríbelo entre comillas:
   `nombre: "Ejemplo: repaso"`.
 - Las fechas aceptan `AAAA-MM-DD` o `AAAA-MM-DD HH:MM` (hora del aula, con

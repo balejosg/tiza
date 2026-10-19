@@ -280,3 +280,20 @@ class TestHash:
         for tipo in tipos.TODOS:
             doc = cargar(tipo.nombre)
             assert contenido.hash_documento(doc) == self._de_siempre(doc), tipo.nombre
+
+    def test_hash_con_origen_distinto(self, cargar, tmp_path):
+        """Con «origen» el hash cambia (y con otro cmid, también); sin él, no."""
+        for tipo in tipos.TODOS:
+            sin = cargar(tipo.nombre)
+            texto = EJEMPLOS[tipo.nombre].replace(
+                "seccion: 1\n", "seccion: 1\norigen: {curso: 3, cmid: 501}\n", 1
+            )
+            ruta = tmp_path / f"{tipo.nombre}-origen.md"
+            ruta.write_text(texto, encoding="utf-8")
+            con = contenido.cargar(ruta, raiz=tmp_path)
+            assert con.origen == contenido.Origen(curso=3, cmid=501), tipo.nombre
+            assert contenido.hash_documento(con) != contenido.hash_documento(sin), tipo.nombre
+            otro = texto.replace("cmid: 501", "cmid: 502")
+            ruta.write_text(otro, encoding="utf-8")
+            distinto = contenido.cargar(ruta, raiz=tmp_path)
+            assert contenido.hash_documento(distinto) != contenido.hash_documento(con)

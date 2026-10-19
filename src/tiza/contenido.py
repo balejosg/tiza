@@ -41,6 +41,7 @@ __all__ = [
     "Finalizacion",
     "MarcaH5P",
     "Opcion",
+    "Origen",
     "PaqueteH5P",
     "Pregunta",
     "Recurso",
@@ -62,7 +63,8 @@ _EXTENSIONES_HTML = frozenset({".html", ".htm"})
 # se separan (aquí no se puede importar el registro: el registro importa este módulo).
 TTIPOS = ("pagina", "tarea", "cuestionario", "etiqueta", "h5p")
 CAMPOS_ITINERARIO = {"finalizacion", "fecha_esperada", "restricciones"}
-CAMPOS_COMUNES = {"tipo", "nombre", "seccion"} | CAMPOS_ITINERARIO
+CAMPOS_COMUNES = {"tipo", "nombre", "seccion", "origen"} | CAMPOS_ITINERARIO
+CAMPOS_ORIGEN = ("curso", "cmid")
 CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
 MAX_DEPENDENCIAS = 10
 MAX_PAQUETE_H5P_BYTES = 64 * 1024 * 1024  # el .h5p subido
@@ -137,6 +139,17 @@ class Restricciones:
     hasta: datetime | None = None
     completar: tuple[str, ...] = ()  # ficheros .md de la carpeta, normalizados (con «/»)
     ocultar: bool = False  # sin cumplirse: oculta (por defecto, en gris con la condición)
+
+
+@dataclass(frozen=True)
+class Origen:
+    """Actividad del aula de la que sale un fichero importado (``tiza importar``).
+
+    Ambos son enteros positivos; un ``bool`` no cuenta como entero.
+    """
+
+    curso: int
+    cmid: int
 
 
 @dataclass(frozen=True)
@@ -271,6 +284,7 @@ class Documento:
     # None: el .md no lo declara y lo que haya en el aula se conserva.
     finalizacion: Finalizacion | None = None
     restricciones: Restricciones | None = None
+    origen: Origen | None = None  # None: el documento no viene de una importación
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
     enlaces_externos: list[str] = field(default_factory=list)  # los ve el docente antes de real
     incrustados: list[str] = field(default_factory=list)  # URL de los iframes, también las ve
@@ -417,6 +431,7 @@ def _validar(
 
     finalizacion = _validar_finalizacion(datos, adapter, zona)
     restricciones = _validar_restricciones(datos, ruta, zona, raiz)
+    origen = _validar_origen(datos)
     ctx = tipos.Contexto(
         zona=zona,
         ruta=ruta,
@@ -441,6 +456,7 @@ def _validar(
         paquete=extras.paquete,
         finalizacion=finalizacion,
         restricciones=restricciones,
+        origen=origen,
     )
 
 
@@ -535,6 +551,26 @@ def _validar_dependencias(valor: Any, ruta: Path, raiz: Path | None) -> tuple[st
             raise ErrorContenido("RESTRICCION_INVALIDA", f"«{destino.name}» está repetido")
         salida.append(relativa)
     return tuple(salida)
+
+
+def _validar_origen(datos: dict[str, Any]) -> Origen | None:
+    if "origen" not in datos:
+        return None
+    valor = datos["origen"]
+    if not isinstance(valor, dict):
+        raise ErrorContenido("ORIGEN_INVALIDO", "origen debe ser un mapa con curso y cmid")
+    for clave in valor:
+        if clave not in CAMPOS_ORIGEN:
+            raise ErrorContenido("ORIGEN_INVALIDO", f"«{clave}» no es una clave de origen")
+    for clave in CAMPOS_ORIGEN:
+        if clave not in valor:
+            raise ErrorContenido("ORIGEN_INVALIDO", f"falta «{clave}» en origen")
+        numero = valor[clave]
+        if isinstance(numero, bool) or not isinstance(numero, int) or numero < 1:
+            raise ErrorContenido(
+                "ORIGEN_INVALIDO", f"«{clave}» en origen debe ser un entero positivo"
+            )
+    return Origen(curso=valor["curso"], cmid=valor["cmid"])
 
 
 _MODOS_LLANOS = {
@@ -1000,6 +1036,8 @@ def hash_documento(doc: Documento) -> str:
         resumen.update(repr(doc.finalizacion).encode("utf-8"))
         resumen.update(repr(doc.restricciones).encode("utf-8"))
     tipo.hash_extra(doc, resumen)
+    if doc.origen is not None:  # solo si está: un documento sin «origen» hashea como antes
+        resumen.update(f"origen:{doc.origen.curso}:{doc.origen.cmid}".encode())
     for recurso in sorted(doc.recursos, key=lambda item: item.nombre):
         resumen.update(b"\n--recurso--\n")
         resumen.update(recurso.nombre.encode("utf-8"))

@@ -2133,3 +2133,45 @@ class TestImagenesEnPreguntas:
         texto = previsualizar(doc, tmp_path / ".tiza").read_text(encoding="utf-8")
         assert "data:image/png;base64," in texto
         assert "tiza-imagen:" not in texto
+
+
+RAIZ = Path(__file__).resolve().parents[1]
+# Hash de ejemplos/pagina.md antes de existir «origen»: un documento sin «origen» no cambia.
+HASH_PAGINA_EJEMPLO = "df20536131cb9749bc394484113b2612cddd901fc06932e88b32d3acb79a4527"
+
+
+class TestOrigen:
+    def test_origen_valido(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina(origen="{curso: 3, cmid: 501}")))
+        assert doc.origen == contenido.Origen(curso=3, cmid=501)
+
+    def test_sin_origen_es_none(self, tmp_path):
+        assert cargar(escribir(tmp_path, pagina())).origen is None
+
+    @pytest.mark.parametrize(
+        "valor",
+        [
+            '{curso: 3, cmid: "501"}',
+            "{curso: 3}",
+            "{cmid: 501}",
+            "{curso: 3, cmid: 501, extra: 1}",
+            "{curso: 0, cmid: 501}",
+            "{curso: -1, cmid: 501}",
+            "{curso: 3, cmid: 2.5}",
+            "{curso: 3.0, cmid: 501}",
+            "{curso: true, cmid: 501}",
+            "{curso: 3, cmid: null}",
+            "[3, 501]",
+            "3",
+        ],
+    )
+    def test_origen_invalido(self, tmp_path, valor):
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, pagina(origen=valor)))
+        assert exc.value.codigo == "ORIGEN_INVALIDO"
+        assert exc.value.detalle
+
+    def test_hash_sin_origen_no_cambia(self):
+        doc = cargar(RAIZ / "ejemplos" / "pagina.md")
+        assert doc.origen is None
+        assert hash_documento(doc) == HASH_PAGINA_EJEMPLO
