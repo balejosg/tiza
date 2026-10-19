@@ -289,7 +289,8 @@ Orden y conflictos:
 
 - Las operaciones se aplican en el orden del fichero, pero todos los ids se resuelven
   contra la plantilla original. Así, un `duplicar_tabla` copia lo que le hayas cambiado
-  antes en esa tabla.
+  antes en esa tabla. Varias operaciones que insertan tras la misma ancla (`insertar_despues`
+  y `duplicar_tabla`) quedan en el orden del fichero: la segunda va detrás de la primera.
 - `OPERACIONES_EN_CONFLICTO`, con las dos posiciones (p. ej. `operaciones[1]` y
   `operaciones[4]`), si: se borra un bloque y otra operación lo toca, lo usa como
   referencia (`tabla`, `despues_de`, `modelo`, `antes_de`) o lo tiene dentro; se borra un
@@ -298,8 +299,12 @@ Orden y conflictos:
   es conflicto, siempre que la fila modelo y la de `antes_de` sean otras.
 
 Límites: el YAML pesa como mucho 2 MB, no admite anclas ni alias
-(`&` y `*`) ni claves repetidas. Una clave desconocida da `RELLENO_INVALIDO` con su ruta
-(`operaciones[2].colour`). Los índices de las rutas empiezan en 0.
+(`&` y `*`) ni claves repetidas. Una clave desconocida da `RELLENO_INVALIDO` con su ruta y las
+claves válidas (`operaciones[2].colour: clave desconocida; válidas: id, texto`). Los índices de las rutas empiezan en 0.
+
+Cosas que tiza no hace o no comprueba: «nunca la fila de total» es un consejo para elegir la
+fila modelo, no una comprobación. Un salto de línea final en un texto se quita. Al reemplazar
+no se admiten los campos que cruzan párrafos ni el texto dentro de cuadros de texto.
 
 Salida: `tiza rellenar relleno.yaml` imprime un JSON en la pantalla. Si sale bien (código 0):
 `plantilla`, `salida`, `operaciones` (cuántas se aplicaron) y `avisos`. Si falla (código 2):
@@ -320,7 +325,8 @@ Códigos de error:
 | `CELDAS_NO_COINCIDEN` | Una fila nueva no tiene las celdas de la fila modelo |
 | `FILA_MODELO_FUSIONADA`, `FILA_FUSIONADA` | Una fila con celdas fusionadas no se puede copiar ni borrar |
 | `ESTILO_INEXISTENTE` | La plantilla no tiene ese estilo de párrafo |
+| `DOCUMENTO_PROTEGIDO`, `DOCUMENTO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `DOCUMENTO_NO_ESCRIBIBLE`, `NOMBRE_NO_VALIDO` | Los mismos que `tiza leer` y `tiza documento`: la plantilla está protegida o es demasiado grande, un fichero está bloqueado, no se puede escribir la salida o el nombre no vale |
 
-Avisos: `INDICE_SE_ACTUALIZA_AL_ABRIR` (la plantilla tiene índice: Word lo actualiza al
-abrir la copia, y puede preguntarlo) y `CAMBIOS_SIN_ACEPTAR` (la plantilla tiene cambios
+Avisos: `INDICE_SE_ACTUALIZA_AL_ABRIR` (la plantilla tiene índice: al abrir la copia, Word
+pregunta si actualizar los campos y, si se dice que no, el índice queda sin actualizar) y `CAMBIOS_SIN_ACEPTAR` (la plantilla tiene cambios
 sin aceptar, que se leen como aceptados).

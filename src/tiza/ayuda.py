@@ -181,7 +181,7 @@ MENSAJES: dict[str, str] = {
     "FILA_FUSIONADA": "No se puede borrar una fila con celdas fusionadas en vertical: se rompería la tabla. Cambia su texto con «reemplazar» en vez de borrarla.",
     "ESTILO_INEXISTENTE": "La plantilla no tiene ese estilo de párrafo. Usa uno de la lista del mensaje, con el nombre que ves en Word o con su identificador.",
     "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",
-    "INDICE_SE_ACTUALIZA_AL_ABRIR": "La plantilla tiene índice de contenidos. El Word nuevo lo actualizará al abrirlo (Word puede preguntar si actualizar los campos: di que sí) y quedará al día.",
+    "INDICE_SE_ACTUALIZA_AL_ABRIR": "La plantilla tiene índice de contenidos. Al abrir el Word nuevo, Word preguntará si actualizar los campos: di que sí y el índice quedará al día; si dices que no, quedará sin actualizar.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
     "UV_NO_ENCONTRADO": "No se encuentra uv. Vuelve a ejecutar el instalador del README.",
