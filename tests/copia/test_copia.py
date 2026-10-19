@@ -209,6 +209,25 @@ def test_cualquier_doctype_se_rechaza(tmp_path, doctype):
     assert error_de(tmp_path, secciones, actividades).codigo == "COPIA_NO_VALIDA"
 
 
+def test_ruta_con_barra_invertida_ignorada_o_rechazada(tmp_path):
+    """Con ``\\`` en el nombre: tar y zip en POSIX la ignoran; ``zipfile`` en Windows la
+    convierte en ``/`` (``ZipInfo`` cambia ``os.sep``) y ya no se distingue de una ruta normal:
+    la copia se rechaza entera (falla cerrado) en vez de aceptar la sección colada."""
+    secciones, actividades = f.copia_basica()
+    cuerpo = f._seccion(f.SeccionFalsa(id=996, numero=9, nombre="Colada"), [])
+    extras = {"sections\\section_996\\section.xml": cuerpo}
+    for formato in FORMATOS:
+        if formato == "zip" and os.sep == "\\":
+            assert (
+                error_de(tmp_path, secciones, actividades, formato=formato, extras=extras).codigo
+                == "COPIA_NO_VALIDA"
+            )
+        else:
+            c = abrir(tmp_path, secciones, actividades, formato=formato, extras=extras)
+            assert [s.id for s in c.secciones] == [7]
+            assert "Colada" not in "".join(textos(c))
+
+
 @pytest.mark.parametrize("formato", FORMATOS)
 def test_ruta_con_puntos_ignorada(tmp_path, formato):
     secciones, actividades = f.copia_basica()
@@ -217,7 +236,6 @@ def test_ruta_con_puntos_ignorada(tmp_path, formato):
         "../../sections/section_999/section.xml": cuerpo,
         "/sections/section_998/section.xml": cuerpo,
         "sections/../sections/section_997/section.xml": cuerpo,
-        "sections\\section_996\\section.xml": cuerpo,
         "C:/sections/section_995/section.xml": cuerpo,
         "../../evil.xml": b"<evil/>",
     }

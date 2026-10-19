@@ -20,6 +20,7 @@ y ``modifiedby``: ningún objeto leído de la copia debe contenerlos.
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import io
 import tarfile
@@ -378,18 +379,26 @@ def empaquetar(
     """Empaqueta ``entradas`` (nombre -> bytes, o pares si hay repetidos) en tar.gz o zip.
 
     Los nombres se escriben tal cual, también los peligrosos (``../x``, rutas absolutas).
+    Los bytes salen siempre iguales (sin fechas), para que reescribir una copia no la cambie.
     """
     pares = list(entradas.items()) if isinstance(entradas, Mapping) else list(entradas)
     salida = io.BytesIO()
     if formato == "zip":
         with zipfile.ZipFile(salida, "w", zipfile.ZIP_DEFLATED) as archivo:
             for nombre, datos in pares:
-                archivo.writestr(nombre, datos)
+                info = zipfile.ZipInfo(nombre, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archivo.writestr(info, datos)
     elif formato == "tar.gz":
-        with tarfile.open(fileobj=salida, mode="w:gz") as tar:
+        # Bytes deterministas: sin la hora en la cabecera del gzip ni en los miembros del tar.
+        with (
+            gzip.GzipFile(fileobj=salida, mode="wb", mtime=0) as comprimido,
+            tarfile.open(fileobj=comprimido, mode="w") as tar,
+        ):
             for nombre, datos in pares:
                 info = tarfile.TarInfo(nombre)
                 info.size = len(datos)
+                info.mtime = 0
                 tar.addfile(info, io.BytesIO(datos))
     else:
         raise ValueError(f"formato desconocido: {formato}")

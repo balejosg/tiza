@@ -2185,7 +2185,12 @@ class TestImagenesEnPreguntas:
 
 RAIZ = Path(__file__).resolve().parents[1]
 # Hash de ejemplos/pagina.md antes de existir «origen»: un documento sin «origen» no cambia.
-HASH_PAGINA_EJEMPLO = "df20536131cb9749bc394484113b2612cddd901fc06932e88b32d3acb79a4527"
+HASH_PAGINA_EJEMPLO = "7b67ccb390a394a7470ab9bb6f96fc247c47b5c0bfa0d8c070b33f23144c0b91"
+# Contenido exacto (bytes con \n) de una página sin recursos: no depende del checkout (CRLF).
+PAGINA_EJEMPLO = (
+    '---\ntipo: pagina\nnombre: "Ejemplo: repaso de fracciones"\nseccion: 0\n---\n\n'
+    "## Repaso de fracciones\n\nPractica con **fracciones** antes de la tarea.\n"
+)
 
 
 class TestOrigen:
@@ -2220,7 +2225,9 @@ class TestOrigen:
         assert exc.value.codigo == "ORIGEN_INVALIDO"
         assert exc.value.detalle
 
-    def test_hash_sin_origen_no_cambia(self):
-        doc = cargar(RAIZ / "ejemplos" / "pagina.md")
+    def test_hash_sin_origen_no_cambia(self, tmp_path):
+        ruta = tmp_path / "pagina.md"
+        ruta.write_bytes(PAGINA_EJEMPLO.encode("utf-8"))
+        doc = cargar(ruta)
         assert doc.origen is None
         assert hash_documento(doc) == HASH_PAGINA_EJEMPLO

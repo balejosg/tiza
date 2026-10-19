@@ -210,7 +210,9 @@ def test_juntar_el_cambio_y_publicar_de_punta_a_punta(carpeta):
     assert moodle.formularios[503]["introeditor[text]"] == "<p>Aviso nuevo</p>\n"
     # El docente junta los cambios en su fichero: ahora se publica con normalidad.
     ruta = carpeta / ficheros[2]
-    ruta.write_text(ruta.read_text(encoding="utf-8").replace("Aviso", "Aviso (juntado)"))
+    ruta.write_text(
+        ruta.read_text(encoding="utf-8").replace("Aviso", "Aviso (juntado)"), encoding="utf-8"
+    )
     documento = _publicar(carpeta, moodle, ficheros)
     assert documento["errores"] == [], documento
     assert sorted(x["cmid"] for x in documento["ficheros"]) == [501, 502, 503]

@@ -841,7 +841,9 @@ def test_con_el_fichero_ya_juntado_se_publica_y_se_borra_la_marca(tmp_path):
     _escribir_copia(carpeta, _huella_del_aula(), huella_fichero=_marca_del_fichero(carpeta))
     # El docente junta los cambios: el fichero ya no es el que se marcó.
     ruta = carpeta / "importada.md"
-    ruta.write_text(ruta.read_text(encoding="utf-8") + "\nCon lo que cambió en el aula.\n")
+    ruta.write_text(
+        ruta.read_text(encoding="utf-8") + "\nCon lo que cambió en el aula.\n", encoding="utf-8"
+    )
     moodle = _aula_importada()
     documento = _publicar_real(carpeta, moodle, ["importada.md"])
     assert documento["errores"] == []
