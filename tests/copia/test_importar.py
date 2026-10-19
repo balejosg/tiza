@@ -12,9 +12,20 @@ import pytest
 import yaml
 
 from copia import fabrica as f
-from tiza import agente, ayuda, cli, config, contenido, estado, importar, informe
+from tiza import (
+    agente,
+    ayuda,
+    cli,
+    config,
+    contenido,
+    estado,
+    importar,
+    importar_cuestionario,
+    informe,
+)
 from tiza.copia import ErrorCopia
 from tiza.importar import ErrorImportar, nombre_de_recurso, nombre_seguro
+from tiza.importar_cuestionario import html_como_markdown
 from tiza.lectura.modelo import ErrorLectura
 from tiza.tipos import huella_aula
 
@@ -33,6 +44,12 @@ def carpeta(tmp_path):
     asignatura.mkdir()
     (asignatura / "tiza.toml").write_text("[cursos]\nreal = 3\n", encoding="utf-8")
     return asignatura
+
+
+def pregunta(*args, **opciones):
+    """Una pregunta del banco con un punto, que es lo que tiza escribe (la fábrica pone 2)."""
+    opciones.setdefault("puntos", 1.0)
+    return f.PreguntaFalsa(*args, **opciones)
 
 
 def una_seccion():
@@ -55,9 +72,14 @@ def importar_en(carpeta, actividades, secciones=None, **opciones):
     return agente.importar("copia.mbz", carpeta, destino, como_nuevas)
 
 
-def actividades_de(carpeta) -> dict[int, dict]:
+def entrada_de(carpeta, curso=3, como_nuevas=False) -> dict:
     datos = estado.cargar_copia(carpeta / ".tiza")
-    return {a["cmid"]: a for a in datos["actividades"]}
+    return datos["como_nuevas"] if como_nuevas else datos["cursos"][str(curso)]
+
+
+def actividades_de(carpeta, curso=3, como_nuevas=False) -> dict[int, dict]:
+    entrada = entrada_de(carpeta, curso, como_nuevas)
+    return {a["cmid"]: a for a in entrada["actividades"]}
 
 
 def frontmatter(ruta: Path) -> dict:
@@ -104,7 +126,6 @@ def test_importar_reescribe_pluginfile(carpeta):
 
 
 def test_importar_otro_curso(carpeta):
-    antes = ficheros_de(carpeta)
     copia_en(carpeta, [pagina()], curso=9)
     antes = ficheros_de(carpeta)
     with pytest.raises(ErrorImportar) as info:
@@ -169,14 +190,14 @@ def test_importar_html_no_admitido(carpeta):
 
 def preguntas_basicas():
     return [
-        f.PreguntaFalsa(
+        pregunta(
             101,
             "P1",
             ((1, "<p>Uno es uno</p>"),),
             "truefalse",
             (("Verdadero", 1.0), ("Falso", 0.0)),
         ),
-        f.PreguntaFalsa(
+        pregunta(
             102,
             "P2",
             ((1, "<p>¿Qué fracción es 1/2?</p>"),),
@@ -211,7 +232,7 @@ def test_importar_cuestionario_admitido(carpeta):
 
 def test_importar_cuestionario_otros_tipos_admitidos(carpeta):
     preguntas = [
-        f.PreguntaFalsa(
+        pregunta(
             101,
             "P1",
             ((1, "<p>Falso seguro</p>"),),
@@ -219,15 +240,15 @@ def test_importar_cuestionario_otros_tipos_admitidos(carpeta):
             (("Verdadero", 0.0), ("Falso", 1.0)),
             ajustes={"trueanswer": "1", "falseanswer": "2"},
         ),
-        f.PreguntaFalsa(
+        pregunta(
             102,
             "P2",
             ((1, "<p>Nombre del número de abajo</p>"),),
             "shortanswer",
-            (("denominador", 1.0), ("el denominador", 1.0), ("*", 0.0)),
+            (("denominador", 1.0), ("el denominador", 1.0)),
             ajustes={"usecase": "1"},
         ),
-        f.PreguntaFalsa(
+        pregunta(
             103,
             "P3",
             ((1, "<p>3/4 en decimal</p>"),),
@@ -235,7 +256,7 @@ def test_importar_cuestionario_otros_tipos_admitidos(carpeta):
             (("0.75", 1.0),),
             tolerancia=0.001,
         ),
-        f.PreguntaFalsa(
+        pregunta(
             104,
             "P4",
             ((1, "<p>Varias</p>"),),
@@ -255,7 +276,7 @@ def test_importar_cuestionario_otros_tipos_admitidos(carpeta):
 
 
 def test_importar_cuestionario_no_admitido(carpeta):
-    preguntas = [*preguntas_basicas(), f.PreguntaFalsa(103, "P3", ((1, "Redacta"),), "essay", ())]
+    preguntas = [*preguntas_basicas(), pregunta(103, "P3", ((1, "Redacta"),), "essay", ())]
     importar_en(carpeta, [f.ActividadFalsa(510, "quiz", 7, "Con redacción", preguntas=preguntas)])
     entrada = actividades_de(carpeta)[510]
     assert entrada["estado"] == "PREGUNTAS_NO_ADMITIDAS"
@@ -265,8 +286,8 @@ def test_importar_cuestionario_no_admitido(carpeta):
 
 def test_importar_cuestionario_aleatorio_o_sin_resolver(carpeta):
     preguntas = [
-        f.PreguntaFalsa(101, "A", modo="aleatoria"),
-        f.PreguntaFalsa(102, "B", modo="ausente"),
+        pregunta(101, "A", modo="aleatoria"),
+        pregunta(102, "B", modo="ausente"),
     ]
     importar_en(carpeta, [f.ActividadFalsa(510, "quiz", 7, "Raro", preguntas=preguntas)])
     entrada = actividades_de(carpeta)[510]
@@ -341,15 +362,19 @@ def test_copia_json_esquema_cerrado(carpeta):
     importar_en(carpeta, [pagina()])
     ruta = carpeta / ".tiza" / "copia.json"
     datos = json.loads(ruta.read_text(encoding="utf-8"))
-    assert estado.cargar_copia(carpeta / ".tiza")["curso"] == 3
+    assert estado.cargar_copia(carpeta / ".tiza")["cursos"]["3"]["moodle"]
     for cambio in (
         lambda d: d.update(extra=1),
-        lambda d: d["actividades"][0].update(extra=1),
-        lambda d: d["secciones"][0].update(extra=1),
-        lambda d: d["actividades"][0].update(estado="OTRO"),
-        lambda d: d["actividades"][0].update(fichero="../fuera.html"),
-        lambda d: d["actividades"][0].update(huella_aula="abc"),
-        lambda d: d.pop("curso"),
+        lambda d: d["cursos"]["3"].update(extra=1),
+        lambda d: d["cursos"]["3"]["actividades"][0].update(extra=1),
+        lambda d: d["cursos"]["3"]["secciones"][0].update(extra=1),
+        lambda d: d["cursos"]["3"]["actividades"][0].update(estado="OTRO"),
+        lambda d: d["cursos"]["3"]["actividades"][0].update(fichero="../fuera.html"),
+        lambda d: d["cursos"]["3"]["actividades"][0].update(huella_aula="abc"),
+        lambda d: d["cursos"]["3"].pop("moodle"),
+        lambda d: d["cursos"].update({"tres": d["cursos"]["3"]}),
+        lambda d: d.update(como_nuevas={"curso": 3}),
+        lambda d: d.pop("cursos"),
         lambda d: d.update(nombre_raro="<b>"),
     ):
         malo = json.loads(json.dumps(datos))
@@ -373,7 +398,7 @@ def test_copia_json_nombres_con_simbolos(carpeta):
     importar_en(carpeta, [pagina(nombre="Una <i>cosa</i>")], secciones)
     datos = estado.cargar_copia(carpeta / ".tiza")
     assert "<" not in json.dumps(datos, ensure_ascii=False)
-    assert datos["secciones"][0]["resumen_html_presente"] is False
+    assert datos["cursos"]["3"]["secciones"][0]["resumen_html_presente"] is False
 
 
 def test_importar_como_nuevas(carpeta):
@@ -382,9 +407,10 @@ def test_importar_como_nuevas(carpeta):
     assert "origen" not in frontmatter(ruta)
     assert contenido.cargar(ruta, raiz=carpeta.resolve()).origen is None
     datos = estado.cargar_copia(carpeta / ".tiza")
-    assert datos["como_nuevas"] is True and resumen.como_nuevas is True
-    assert datos["actividades"][0]["huella_aula"] is None
-    assert datos["actividades"][0]["estado"] == "IMPORTADA"
+    assert resumen.como_nuevas is True and datos["cursos"] == {}
+    assert datos["como_nuevas"]["curso"] == 9
+    assert datos["como_nuevas"]["actividades"][0]["huella_aula"] is None
+    assert datos["como_nuevas"]["actividades"][0]["estado"] == "IMPORTADA"
 
 
 def test_reimportar_cambiada(carpeta):
@@ -615,11 +641,26 @@ def test_ajustes_del_cuestionario_ida_y_vuelta(carpeta, ajustes, intentos, limit
     assert actividades_de(carpeta)[510]["detalle"] is None
 
 
-def test_ajustes_del_cuestionario_que_tiza_no_puede_decir(carpeta):
-    ajustes = {"attempts_number": 25, "timelimit": 90, "shuffleanswers": 1}
+@pytest.mark.parametrize(
+    ("ajustes", "dice"),
+    [
+        ({"attempts_number": 25}, "10 intentos"),
+        ({"timelimit": 90}, "minutos enteros"),
+        ({"timelimit": 36060}, "minutos enteros"),
+        ({"timelimit": 30}, "minutos enteros"),
+    ],
+)
+def test_ajustes_del_cuestionario_que_tiza_no_puede_decir(carpeta, ajustes, dice):
     importar_en(carpeta, [quiz_con(ajustes)])
-    doc = contenido.cargar(carpeta / "aula" / "02-tema-1-intro" / "ajustes-510.md", raiz=carpeta)
-    assert doc.cuestionario.intentos == 10 and doc.cuestionario.tiempo_limite == 2
+    entrada = actividades_de(carpeta)[510]
+    assert entrada["estado"] == "AJUSTES_NO_ADMITIDOS" and entrada["fichero"] is None
+    assert dice in entrada["detalle"]
+    assert not (carpeta / "aula").exists() or not list((carpeta / "aula").rglob("*.md"))
+    assert ayuda.explicar("AJUSTES_NO_ADMITIDOS")
+
+
+def test_dos_ajustes_no_admitidos_se_dicen_los_dos(carpeta):
+    importar_en(carpeta, [quiz_con({"attempts_number": 25, "timelimit": 90})])
     detalle = actividades_de(carpeta)[510]["detalle"]
     assert "10 intentos" in detalle and "minutos enteros" in detalle
 
@@ -673,7 +714,7 @@ def quiz_de(preguntas):
 
 
 def multichoice(respuestas, **ajustes):
-    return f.PreguntaFalsa(
+    return pregunta(
         101,
         "P",
         ((1, "<p>Elige</p>"),),
@@ -719,9 +760,9 @@ def test_fracciones_que_tiza_no_generaria_no_se_admiten(carpeta, respuestas, sin
 
 def test_fracciones_en_verdadero_falso_corta_y_numerica(carpeta):
     malas = [
-        f.PreguntaFalsa(1, "A", ((1, "<p>a</p>"),), "truefalse", (("V", 0.5), ("F", 0.0))),
-        f.PreguntaFalsa(2, "B", ((1, "<p>b</p>"),), "shortanswer", (("x", 0.5), ("y", 1.0))),
-        f.PreguntaFalsa(3, "C", ((1, "<p>c</p>"),), "numerical", (("2", 0.8), ("3", 1.0))),
+        pregunta(1, "A", ((1, "<p>a</p>"),), "truefalse", (("V", 0.5), ("F", 0.0))),
+        pregunta(2, "B", ((1, "<p>b</p>"),), "shortanswer", (("x", 0.5), ("y", 1.0))),
+        pregunta(3, "C", ((1, "<p>c</p>"),), "numerical", (("2", 0.8), ("3", 1.0))),
     ]
     for n, mala in enumerate(malas):
         mala.entrada = 200 + n
@@ -767,14 +808,14 @@ def test_republicar_no_cambia_la_puntuacion(carpeta):
 )
 def test_el_html_de_la_copia_llega_sin_que_un_asterisco_cambie_su_sentido(carpeta, texto):
     preguntas = [
-        f.PreguntaFalsa(
+        pregunta(
             101,
             "P1",
             ((1, texto),),
             "multichoice",
             ((texto, 1.0), ("<p>otra</p>", 0.0)),
         ),
-        f.PreguntaFalsa(102, "P2", ((1, texto),), "truefalse", (("V", 1.0), ("F", 0.0))),
+        pregunta(102, "P2", ((1, texto),), "truefalse", (("V", 1.0), ("F", 0.0))),
     ]
     cuerpo = f.ActividadFalsa(510, "quiz", 7, "Marcas", texto, preguntas=preguntas)
     importar_en(carpeta, [cuerpo])
@@ -794,6 +835,391 @@ def test_el_html_de_la_copia_llega_sin_que_un_asterisco_cambie_su_sentido(carpet
             assert "a_b_c" in html
     if "<pre>" in texto:
         assert "x = 2*3*4\n\ny = a_b_c" in doc.html
+
+
+# --- Ronda de arreglos 1 --------------------------------------------------------------------
+
+
+def con_retro(tipo, respuestas, retros, **opciones):
+    return pregunta(101, "P", ((1, "<p>q</p>"),), tipo, respuestas, retros=retros, **opciones)
+
+
+@pytest.mark.parametrize(
+    ("preguntas", "dice"),
+    [
+        (
+            lambda: con_retro("truefalse", (("V", 1.0), ("F", 0.0)), ("", "Mal")),
+            "retroalimentación",
+        ),
+        (lambda: con_retro("shortanswer", (("x", 1.0),), ("Bien",)), "retroalimentación"),
+        (lambda: con_retro("numerical", (("2", 1.0),), ("Bien",)), "retroalimentación"),
+        (
+            lambda: pregunta(101, "P", ((1, "<p>q</p>"),), "shortanswer", (("x", 1.0), ("*", 0.0))),
+            "fracción 0",
+        ),
+        (
+            lambda: pregunta(101, "P", ((1, "<p>q</p>"),), "numerical", (("2", 1.0), ("3", 0.0))),
+            "fracción 0",
+        ),
+        (
+            lambda: pregunta(
+                101, "P", ((1, "<p>q</p>"),), "shortanswer", (("x", 1.0),), puntos=2.0
+            ),
+            "puntos",
+        ),
+        (
+            lambda: pregunta(
+                101,
+                "P",
+                ((1, "<p>q</p>"),),
+                "multichoice",
+                (("a", 1.0), ("b", 0.0)),
+                ajustes={"single": "1", "shuffleanswers": "0"},
+            ),
+            "sin mezclar",
+        ),
+        (
+            lambda: pregunta(
+                101,
+                "P",
+                ((1, "<p>q</p>"),),
+                "multichoice",
+                (("a", 1.0), ("b", 0.0)),
+                penalizacion=0.5,
+            ),
+            "penalización",
+        ),
+        (
+            lambda: pregunta(
+                101,
+                "P",
+                ((1, "<p>q</p>"),),
+                "truefalse",
+                (("V", 1.0), ("F", 0.0)),
+                penalizacion=0.3333333,
+            ),
+            "penalización",
+        ),
+        (
+            lambda: pregunta(
+                101, "P", ((1, "<p>q</p>"),), "numerical", (("2", 1.0),), unidades=True
+            ),
+            "unidades",
+        ),
+    ],
+)
+def test_preguntas_que_tiza_no_reescribiria_igual(carpeta, preguntas, dice):
+    importar_en(carpeta, [quiz_de([preguntas()])])
+    entrada = actividades_de(carpeta)[510]
+    assert entrada["estado"] == "PREGUNTAS_NO_ADMITIDAS" and entrada["fichero"] is None
+    assert dice in entrada["detalle"]
+
+
+def test_penalizaciones_de_tiza_se_aceptan(carpeta):
+    preguntas = [
+        pregunta(
+            101, "A", ((1, "<p>a</p>"),), "truefalse", (("V", 1.0), ("F", 0.0)), penalizacion=1.0
+        ),
+        pregunta(
+            102,
+            "B",
+            ((1, "<p>b</p>"),),
+            "multichoice",
+            (("a", 1.0), ("b", 0.0)),
+            penalizacion=0.3333333,
+        ),
+        pregunta(103, "C", ((1, "<p>c</p>"),), "numerical", (("2", 1.0),), penalizacion=0.3333333),
+    ]
+    importar_en(carpeta, [quiz_de(preguntas)])
+    assert actividades_de(carpeta)[510]["estado"] == "IMPORTADA"
+
+
+def test_ajustes_y_preguntas_se_cuentan_por_separado(carpeta):
+    malo = quiz_con({"attempts_number": 25})
+    importar_en(carpeta, [malo])
+    assert actividades_de(carpeta)[510]["estado"] == "AJUSTES_NO_ADMITIDOS"
+
+
+def test_formato_de_texto_no_html_en_la_actividad(carpeta):
+    for formato in (0, 2, 4):
+        shutil_rm(carpeta)
+        importar_en(carpeta, [pagina("Texto *plano*", formato=formato)])
+        entrada = actividades_de(carpeta)[501]
+        assert entrada["estado"] == "HTML_NO_ADMITIDO" and entrada["fichero"]
+        assert "formato de texto no HTML" in entrada["detalle"]
+        assert (carpeta / entrada["fichero"]).is_file()
+    shutil_rm(carpeta)
+    importar_en(carpeta, [pagina("<p>x</p>", formato=1)])
+    assert actividades_de(carpeta)[501]["estado"] == "IMPORTADA"
+
+
+def test_formato_de_texto_no_html_en_una_pregunta(carpeta):
+    mala = pregunta(101, "P", ((1, "Texto"),), "truefalse", (("V", 1.0), ("F", 0.0)), formato=4)
+    importar_en(carpeta, [quiz_de([mala])])
+    entrada = actividades_de(carpeta)[510]
+    assert (
+        entrada["estado"] == "PREGUNTAS_NO_ADMITIDAS" and "formato de texto" in entrada["detalle"]
+    )
+    shutil_rm(carpeta)
+    # En una multichoice cuenta también el formato de cada respuesta.
+    mala = pregunta(
+        101, "P", ((1, "<p>q</p>"),), "multichoice", (("a", 1.0), ("b", 0.0)), formato=0
+    )
+    importar_en(carpeta, [quiz_de([mala])])
+    assert actividades_de(carpeta)[510]["estado"] == "PREGUNTAS_NO_ADMITIDAS"
+    shutil_rm(carpeta)
+    buena = pregunta(
+        101, "P", ((1, "<p>q</p>"),), "multichoice", (("a", 1.0), ("b", 0.0)), formato=1
+    )
+    importar_en(carpeta, [quiz_de([buena])])
+    assert actividades_de(carpeta)[510]["estado"] == "IMPORTADA"
+
+
+def test_tarea_con_adjuntos_no_se_importa(carpeta):
+    tarea = f.ActividadFalsa(
+        502,
+        "assign",
+        7,
+        "Con adjunto",
+        "<p>x</p>",
+        fechas={"allowsubmissionsfromdate": 1792447200, "duedate": 1795215540},
+        ficheros=[f.FicheroFalso("guia.pdf", b"%PDF", filearea="introattachment")],
+    )
+    importar_en(carpeta, [tarea])
+    entrada = actividades_de(carpeta)[502]
+    assert entrada["estado"] == "AJUSTES_NO_ADMITIDOS" and entrada["fichero"] is None
+    assert "adjuntos de la tarea" in entrada["detalle"]
+
+
+def test_los_avisos_se_acumulan(carpeta):
+    tarea = f.ActividadFalsa(
+        502,
+        "assign",
+        7,
+        "Aviso <b>y</b> más",
+        "<p>x</p><script>1</script>",
+        formato=0,
+        fechas={
+            "allowsubmissionsfromdate": 1792447200,
+            "duedate": 1795215540,
+            "gradingduedate": 1795300000,
+        },
+    )
+    importar_en(carpeta, [tarea])
+    entrada = actividades_de(carpeta)[502]
+    assert entrada["estado"] == "HTML_NO_ADMITIDO"
+    for frase in ("formato de texto no HTML", "script", "recordatorio de calificar", "nombre"):
+        assert frase in entrada["detalle"], frase
+
+
+def test_tarea_con_recordatorio_avisa_pero_se_importa(carpeta):
+    tarea = f.ActividadFalsa(
+        502,
+        "assign",
+        7,
+        "Recordada",
+        "<p>x</p>",
+        fechas={
+            "allowsubmissionsfromdate": 1792447200,
+            "duedate": 1795215540,
+            "gradingduedate": 1795300000,
+        },
+    )
+    importar_en(carpeta, [tarea])
+    entrada = actividades_de(carpeta)[502]
+    assert entrada["estado"] == "IMPORTADA" and "recordatorio" in entrada["detalle"]
+
+
+def test_nombre_que_cambia_al_sanearlo_se_avisa(carpeta):
+    importar_en(carpeta, [pagina(nombre="Uno <i>dos</i>"), pagina(nombre="Limpio", cmid=502)])
+    actividades = actividades_de(carpeta)
+    assert "nombre" in actividades[501]["detalle"]
+    assert actividades[502]["detalle"] is None
+
+
+def test_huella_aula_valor_fijo():
+    madrid = datetime.fromisoformat("2026-10-20T23:59:00+02:00")
+    esperada = "91b80b137b949583729f684be2c83e80f5c5e2b6f454f5034e34d841d5e95aa0"
+    html = '<p>Haz <img src="@@PLUGINFILE@@/a.png"></p>'
+    assert huella_aula("Entrega", html, {"duedate": madrid, "cutoffdate": None}) == esperada
+    aula = html.replace(
+        "@@PLUGINFILE@@/", "https://aula.example.org/pluginfile.php/9/mod_assign/intro/"
+    )
+    assert huella_aula("Entrega", aula, {"duedate": madrid}) == esperada
+
+
+# --- Tiempo lineal ---
+
+
+def test_huella_aula_y_html_como_markdown_no_son_cuadraticos():
+    import time
+
+    casos = [
+        lambda: huella_aula("N", "a" * 300_000),
+        lambda: huella_aula("N", "/pluginfile.php/1/" * 20_000),
+        lambda: huella_aula("N", "x=" * 150_000),
+        lambda: html_como_markdown("<pre" * 40_000),
+        lambda: html_como_markdown("<pre>" * 40_000),
+        lambda: html_como_markdown("\n \n" * 100_000),
+        lambda: html_como_markdown("a" * 300_000),
+    ]
+    for caso in casos:
+        inicio = time.perf_counter()
+        caso()
+        assert time.perf_counter() - inicio < 1.0
+
+
+def test_html_como_markdown_conserva_los_pre():
+    assert html_como_markdown("<pre>a\n\nb</pre>\n\n\nx") == "<div><pre>a\n\nb</pre>\nx</div>"
+    assert html_como_markdown("<PRE>a</PRE>").startswith("<div>")
+    sin_cierre = html_como_markdown("<pre>a\n\nb")
+    assert "\n\n" not in sin_cierre
+
+
+# --- copia.json: una entrada por curso ---
+
+
+def test_dos_cursos_seguidos_conservan_las_dos_entradas(carpeta):
+    (carpeta / "tiza.toml").write_text("[cursos]\nreal = [3, 4]\n", encoding="utf-8")
+    importar_en(carpeta, [pagina()], curso=3)
+    primera = entrada_de(carpeta, 3)
+    importar_en(carpeta, [pagina(nombre="Otra", cmid=601)], curso=4, destino="otro")
+    datos = estado.cargar_copia(carpeta / ".tiza")
+    assert set(datos["cursos"]) == {"3", "4"}
+    assert datos["cursos"]["3"] == primera
+    assert [a["cmid"] for a in datos["cursos"]["4"]["actividades"]] == [601]
+    # Volver a importar el curso 3 no toca el 4.
+    cuatro = datos["cursos"]["4"]
+    importar_en(carpeta, [pagina()], curso=3)
+    assert entrada_de(carpeta, 4) == cuatro
+
+
+def test_actividad_que_ya_no_esta_en_la_copia_conserva_su_entrada(carpeta):
+    importar_en(carpeta, [pagina(), pagina(nombre="Dos", cmid=502)])
+    antes = actividades_de(carpeta)[502]
+    resumen = importar_en(carpeta, [pagina()])
+    assert resumen.actividades == 1
+    assert actividades_de(carpeta)[502] == antes
+    assert set(actividades_de(carpeta)) == {501, 502}
+
+
+def test_como_nuevas_va_aparte_y_no_toca_las_huellas(carpeta):
+    importar_en(carpeta, [pagina()])
+    antes = entrada_de(carpeta, 3)
+    importar_en(carpeta, [pagina(nombre="Nueva", cmid=777)], curso=9, como_nuevas=True)
+    datos = estado.cargar_copia(carpeta / ".tiza")
+    assert datos["cursos"]["3"] == antes
+    assert datos["como_nuevas"]["curso"] == 9
+    assert [a["cmid"] for a in datos["como_nuevas"]["actividades"]] == [777]
+
+
+def test_copia_json_corrupto_no_se_sobrescribe(carpeta):
+    importar_en(carpeta, [pagina()])
+    ruta = carpeta / ".tiza" / "copia.json"
+    for contenido_malo in ("no es json", json.dumps({"version": 1, "cursos": {}, "extra": 1})):
+        ruta.write_text(contenido_malo, encoding="utf-8")
+        antes = ficheros_de(carpeta)
+        copia_en(carpeta, [pagina(nombre="Nueva", cmid=888)])
+        with pytest.raises(ErrorImportar) as info:
+            agente.importar("copia.mbz", carpeta)
+        assert info.value.codigo == "COPIA_INVALIDA"
+        assert ruta.read_text(encoding="utf-8") == contenido_malo
+        assert ficheros_de(carpeta) == antes  # tampoco se escribió ninguna actividad
+
+
+def test_cli_copia_json_corrupto(carpeta, capsys, monkeypatch):
+    monkeypatch.chdir(carpeta)
+    (carpeta / ".tiza").mkdir()
+    (carpeta / ".tiza" / "copia.json").write_text("{", encoding="utf-8")
+    copia_en(carpeta, [pagina()])
+    codigo, salida = ejecutar(capsys, ["importar", "copia.mbz"])
+    assert (codigo, salida["error"]) == (2, "COPIA_INVALIDA")
+
+
+# --- Recursos y nombres ---
+
+
+def test_recursos_que_solo_difieren_en_mayusculas(carpeta):
+    html = '<img src="@@PLUGINFILE@@/Foto.png" alt="a"><img src="@@PLUGINFILE@@/foto.png" alt="b">'
+    ficheros = [f.FicheroFalso("Foto.png", PNG), f.FicheroFalso("foto.png", PNG + b"2")]
+    importar_en(carpeta, [pagina(html, ficheros=ficheros)])
+    carpeta_recursos = carpeta / "aula" / "02-tema-1-intro" / "recursos" / "501"
+    nombres = [p.name for p in carpeta_recursos.iterdir()]
+    assert len(nombres) == 2 and len({n.casefold() for n in nombres}) == 2
+    assert sorted(p.read_bytes() for p in carpeta_recursos.iterdir()) == sorted([PNG, PNG + b"2"])
+    assert actividades_de(carpeta)[501]["estado"] == "IMPORTADA"
+
+
+def test_recurso_que_ya_existia_no_se_pisa_ni_se_calla(carpeta, monkeypatch):
+    html = '<img src="@@PLUGINFILE@@/foto.png" alt="a">'
+    original = importar._crear
+
+    def crear(ruta, datos, base):
+        if ruta.name == "foto.png":
+            return False  # como si otro proceso (o un disco sin mayúsculas) ya la hubiera creado
+        return original(ruta, datos, base)
+
+    monkeypatch.setattr(importar, "_crear", crear)
+    importar_en(carpeta, [pagina(html, ficheros=[f.FicheroFalso("foto.png", PNG)])])
+    assert "ya existía otro" in actividades_de(carpeta)[501]["detalle"]
+
+
+def test_nombres_reservados_con_varios_puntos():
+    assert nombre_de_recurso("con.tar.gz") == "_con.tar.gz"
+    assert nombre_de_recurso("NUL.backup.txt") == "_NUL.backup.txt"
+    assert nombre_de_recurso("console.txt") == "console.txt"
+
+
+def test_crear_comprueba_el_destino_antes_de_crear_carpetas(carpeta, tmp_path):
+    fuera = tmp_path / "fuera"
+    fuera.mkdir()
+    try:
+        (carpeta / "enlace").symlink_to(fuera, target_is_directory=True)
+    except OSError:
+        pytest.skip("sin enlaces simbólicos")
+    with pytest.raises(ErrorImportar):
+        importar._crear(carpeta / "enlace" / "nueva" / "x.html", b"x", carpeta.resolve())
+    assert list(fuera.iterdir()) == []
+
+
+def test_moodle_de_copia_json_solo_lleva_caracteres_seguros(carpeta):
+    copia_en(carpeta, [pagina()])
+    mbz = carpeta / "copia.mbz"
+    from copia import fabrica as fab
+
+    entradas = fab.entradas_de_copia(una_seccion(), [pagina()], curso=3)
+    entradas["moodle_backup.xml"] = entradas["moodle_backup.xml"].replace(
+        b"4.5.15 (Build: 20261005)", f"4.5 {chr(0x202E)} &amp; {'a' * 200}".encode()
+    )
+    mbz.write_bytes(fab.empaquetar(entradas))
+    agente.importar("copia.mbz", carpeta)
+    moodle = entrada_de(carpeta)["moodle"]
+    assert re.fullmatch(r"[0-9A-Za-z.() +-]{1,60}", moodle)
+
+
+def test_fichero_previo_fuera_del_destino_se_ignora(carpeta):
+    importar_en(carpeta, [pagina()])
+    ruta = carpeta / ".tiza" / "copia.json"
+    datos = json.loads(ruta.read_text(encoding="utf-8"))
+    (carpeta / "otro.html").write_text("mío", encoding="utf-8")
+    datos["cursos"]["3"]["actividades"][0]["fichero"] = "otro.html"
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+    resumen = importar_en(carpeta, [pagina()])
+    # El fichero apuntado está fuera del destino: no cuenta; el de siempre ya existía.
+    assert resumen.estados["YA_IMPORTADO"] == 1
+    assert (carpeta / "otro.html").read_text(encoding="utf-8") == "mío"
+    assert actividades_de(carpeta)[501]["fichero"] == "aula/02-tema-1-intro/una-pagina-501.html"
+
+
+def test_cuestionario_ya_importado_que_ahora_no_se_admite_conserva_fichero_y_huella(carpeta):
+    importar_en(carpeta, [quiz_de(preguntas_basicas())])
+    antes = actividades_de(carpeta)[510]
+    assert antes["fichero"] and antes["huella_aula"]
+    malo = [*preguntas_basicas(), pregunta(103, "P3", ((1, "x"),), "essay", ())]
+    importar_en(carpeta, [quiz_de(malo)])
+    ahora = actividades_de(carpeta)[510]
+    assert ahora["estado"] == "PREGUNTAS_NO_ADMITIDAS"
+    assert ahora["fichero"] == antes["fichero"] and ahora["huella_aula"] == antes["huella_aula"]
 
 
 # --- Huella --------------------------------------------------------------------------------
@@ -853,6 +1279,7 @@ def test_cli_importar_resumen(carpeta, capsys, monkeypatch):
         "CAMBIADA_DESDE_LA_IMPORTACION": 0,
         "HTML_NO_ADMITIDO": 0,
         "PREGUNTAS_NO_ADMITIDAS": 0,
+        "AJUSTES_NO_ADMITIDOS": 0,
         "TIPO_NO_GESTIONADO": 1,
     }
     informe.validar_importacion(resumen)
@@ -900,5 +1327,16 @@ def test_resumen_importacion_esquema_cerrado():
 
 
 def test_importar_no_importa_nada_del_aula():
-    texto = Path(importar.__file__).read_text(encoding="utf-8")
-    assert not re.search(r"^\s*(from \S* ?import .*\bpublicar\b|import .*publicar)", texto, re.M)
+    patron = re.compile(
+        r"^\s*(?:from\s+\S*\bpublicar\b\S*\s+import|import\s+.*\bpublicar\b|from\s+\.\s+import\s+.*\bpublicar\b)",
+        re.M,
+    )
+    for modulo in (importar, importar_cuestionario):
+        assert not patron.search(Path(modulo.__file__).read_text(encoding="utf-8"))
+    for ejemplo in (
+        "from .publicar import X",
+        "from tiza.publicar import X",
+        "import tiza.publicar",
+        "from . import config, publicar",
+    ):
+        assert patron.search(ejemplo)

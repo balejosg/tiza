@@ -192,7 +192,7 @@ MENSAJES: dict[str, str] = {
     "COPIA_AUSENTE": "No existe ese fichero .mbz. Comprueba el nombre y que está dentro de la carpeta de la asignatura o en .tiza/copias.",
     "DESTINO_NO_VALIDO": "El destino debe ser una carpeta de la asignatura, sin ruta absoluta, ni «..», ni carpetas ocultas (que empiezan por un punto), ni símbolos como dos puntos, asterisco o interrogación.",
     "IMPORTACION_NO_ESCRIBIBLE": "No se pudo escribir en la carpeta de la asignatura. Comprueba que tienes permiso y que .tiza no es un enlace, y repite el comando: lo ya importado no se toca.",
-    "COPIA_INVALIDA": "El fichero .tiza/copia.json no tiene la forma que escribe tiza. No lo edites a mano: vuelve a ejecutar «tiza importar» o bórralo.",
+    "COPIA_INVALIDA": "El fichero .tiza/copia.json no tiene la forma que escribe tiza y no se ha sobrescrito. No lo edites a mano: corrígelo o bórralo y vuelve a ejecutar «tiza importar».",
     "IMPORTACION_AUSENTE": "No hay ninguna importación en esta carpeta (falta .tiza/copia.json). Ejecuta antes «tiza importar» con la copia del curso.",
     "IMPORTACION_ILEGIBLE": "No se pudo leer .tiza/copia.json. Vuelve a ejecutar «tiza importar» o bórralo.",
     "IMPORTADA": "La actividad se ha importado a un fichero nuevo.",
@@ -200,6 +200,7 @@ MENSAJES: dict[str, str] = {
     "CAMBIADA_DESDE_LA_IMPORTACION": "La actividad cambió en el aula después de importarla. Tu fichero no se ha tocado; la versión nueva queda en .tiza/copia/ para juntar los cambios.",
     "HTML_NO_ADMITIDO": "El fichero se ha escrito, pero su HTML lleva algo que tiza no publica (el detalle dice qué). Si lo publicas, ese contenido se perdería: revísalo.",
     "PREGUNTAS_NO_ADMITIDAS": "El cuestionario tiene preguntas de un tipo que tiza no admite (el detalle dice cuáles), así que no se ha importado. Tiza solo importa verdadero/falso, opción múltiple, respuesta corta y numérica.",
+    "AJUSTES_NO_ADMITIDOS": "La actividad tiene ajustes que tiza no puede publicar sin cambiarlos (el detalle dice cuáles: más de 10 intentos, un tiempo límite que no son minutos enteros, adjuntos de una tarea), así que no se ha importado.",
     "TIPO_NO_GESTIONADO": "Este tipo de actividad (foro, URL, recurso, lección…) no lo gestiona tiza y no se ha importado.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",

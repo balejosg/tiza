@@ -135,6 +135,7 @@ class RespuestaCopia:
     retroalimentacion: str = ""
     id: int = 0
     tolerancia: float = 0.0
+    formato_html: bool = True  # el texto y su retroalimentación están en HTML (formato 1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,6 +153,10 @@ class PreguntaCopia:
 
     ``opciones``: los ajustes sencillos del tipo de pregunta que tiza usa (lista blanca
     ``_OPCIONES_ADMITIDAS``, por ejemplo ``single`` o ``shuffleanswers`` de una de opciones).
+
+    ``formato_html``: el enunciado y la retroalimentación general están en HTML (formato 1; un
+    formato que la copia no dice cuenta como HTML). ``penalizacion``: la ``penalty`` de la
+    pregunta, o ``None`` si la copia no la trae. ``con_unidades``: una numérica con unidades.
     """
 
     entrada: int
@@ -164,6 +169,9 @@ class PreguntaCopia:
     puntos: float
     respuestas: tuple[RespuestaCopia, ...] = ()
     opciones: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    formato_html: bool = True
+    penalizacion: float | None = None
+    con_unidades: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,6 +194,10 @@ class ActividadCopia:
     Solo en un cuestionario (``None`` en los demás o si la copia no lo dice): ``intentos``
     (``attempts_number``; 0 son ilimitados, como en tiza), ``tiempo_limite`` (``timelimit``, en
     segundos; ``None`` si no tiene) y ``mezclar_respuestas`` (``shuffleanswers``).
+
+    ``formato_html``: el texto (``content`` de una página, ``intro`` del resto) está en HTML
+    (formato 1; si la copia no dice el formato, cuenta como HTML). ``fecha_recordatorio``: el
+    «recordarme calificar antes de» de una tarea (``gradingduedate``), que tiza nunca pone.
     """
 
     cmid: int
@@ -201,6 +213,8 @@ class ActividadCopia:
     intentos: int | None = None
     tiempo_limite: int | None = None
     mezclar_respuestas: bool | None = None
+    formato_html: bool = True
+    fecha_recordatorio: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -656,6 +670,20 @@ def _hueco_sin_pregunta(tipo: str, hueco: int, maximo: str) -> PreguntaCopia:
     )
 
 
+def _es_html(formato: str) -> bool:
+    """El formato de texto de Moodle (1 es HTML); si la copia no lo dice, se da por bueno."""
+    return formato.strip() in ("", "1")
+
+
+def _con_unidades(elemento: Any) -> bool:
+    return any(
+        _texto(unidad, "unit").strip()
+        for plugin in elemento
+        if isinstance(plugin.tag, str) and plugin.tag.startswith("plugin_qtype_")
+        for unidad in plugin.findall("numerical_units/numerical_unit")
+    )
+
+
 def _respuestas_de(elemento: Any) -> tuple[RespuestaCopia, ...]:
     """Las respuestas de ``plugin_qtype_*_question/answers/answer``, con su tolerancia numérica.
 
@@ -685,6 +713,10 @@ def _respuestas_de(elemento: Any) -> tuple[RespuestaCopia, ...]:
                     retroalimentacion=_texto(r, "feedback"),
                     id=numero,
                     tolerancia=tolerancias.get(numero, 0.0),
+                    formato_html=_es_html(_texto(r, "answerformat"))
+                    and (
+                        not _texto(r, "feedback").strip() or _es_html(_texto(r, "feedbackformat"))
+                    ),
                 )
             )
     return tuple(respuestas)
@@ -702,6 +734,15 @@ def _pregunta(entrada: int, version: int, hueco: int, maximo: str, elemento: Any
         puntos=_decimal(maximo, _decimal(_texto(elemento, "defaultmark", "1"), 1.0)),
         respuestas=_respuestas_de(elemento),
         opciones=_opciones_de(elemento),
+        formato_html=_es_html(_texto(elemento, "questiontextformat"))
+        and (
+            not _texto(elemento, "generalfeedback").strip()
+            or _es_html(_texto(elemento, "generalfeedbackformat"))
+        ),
+        penalizacion=(
+            _decimal(_texto(elemento, "penalty")) if _texto(elemento, "penalty").strip() else None
+        ),
+        con_unidades=_con_unidades(elemento),
     )
 
 
@@ -827,6 +868,7 @@ def _leer_actividades(
         )
         paquete = next((f.contenthash for f in propios if f.filearea == "package"), None)
         ajustes = _ajustes_del_cuestionario(contenido) if modulo == "quiz" else {}
+        formato = _texto(contenido, "contentformat" if modulo == "page" else "introformat")
         actividades.append(
             ActividadCopia(
                 cmid=cmid,
@@ -843,6 +885,12 @@ def _leer_actividades(
                     else ()
                 ),
                 paquete_h5p=paquete if modulo == "h5pactivity" else None,
+                formato_html=_es_html(formato),
+                fecha_recordatorio=(
+                    _fecha(contenido, "gradingduedate")
+                    if modulo == "assign" and contenido is not None
+                    else None
+                ),
                 **ajustes,
             )
         )

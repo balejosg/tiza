@@ -17,12 +17,11 @@ campo ``origen: {curso, cmid}``, más el resumen ``.tiza/copia.json``. Reglas qu
 
 from __future__ import annotations
 
-import math
 import os
 import re
 import unicodedata
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -38,12 +37,14 @@ from .copia import (
     Copia,
     ErrorCopia,
     FicheroCopia,
-    PreguntaCopia,
-    RespuestaCopia,
     SeccionCopia,
 )
-from .cuestionario import fraccion_correcta
 from .ficheros import fichero_en_carpeta
+from .importar_cuestionario import (
+    ajustes_del_cuestionario,
+    convertir_preguntas,
+    html_como_markdown,
+)
 from .informe import ESTADOS_IMPORTACION, ResumenImportacion
 from .lectura.modelo import ErrorLectura
 
@@ -66,9 +67,6 @@ _RESERVADOS_WINDOWS = frozenset(
 )
 _NO_VALIDO_EN_WINDOWS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _REFERENCIA = re.compile(r"@@PLUGINFILE@@/([^\s\"'<>?#]+)")
-_TIPOS_PREGUNTA = ("truefalse", "multichoice", "shortanswer", "numerical")
-_MAX_PREGUNTAS = 100
-_MAX_ENUNCIADO = 5000
 
 
 class ErrorImportar(Exception):
@@ -111,7 +109,7 @@ def nombre_de_recurso(nombre: str) -> str:
     if not punto:
         cuerpo, extension = limpio, ""
     cuerpo = cuerpo.strip("._-") or "recurso"
-    if cuerpo.lower() in _RESERVADOS_WINDOWS:
+    if cuerpo.split(".")[0].lower() in _RESERVADOS_WINDOWS:
         cuerpo = f"_{cuerpo}"
     extension = extension.strip("._-")[:10]
     return cuerpo[:MAX_RECURSO] + (f".{extension}" if extension else "")
@@ -249,6 +247,7 @@ def _dentro(ruta: Path, base: Path) -> None:
 
 def _crear(ruta: Path, datos: bytes, base: Path) -> bool:
     """Crea ``ruta`` con ``datos``. ``False`` si ya existe: nunca se sobrescribe nada."""
+    _dentro(ruta, base)  # antes de crear nada
     ruta.parent.mkdir(parents=True, exist_ok=True)
     _dentro(ruta, base)
     try:
@@ -294,7 +293,7 @@ def _recursos(actividad: ActividadCopia, html: str) -> tuple[str, list[_Recurso]
         carpeta = fichero.ruta.strip("/")
         propios.setdefault(f"{carpeta}/{fichero.nombre}" if carpeta else fichero.nombre, fichero)
     usados: dict[str, str] = {}  # clave -> nombre limpio
-    ocupados: dict[str, str] = {}  # nombre limpio -> contenthash
+    ocupados: dict[str, str] = {}  # nombre limpio (sin mayúsculas) -> contenthash
     recursos: list[_Recurso] = []
     faltan = False
 
@@ -308,13 +307,13 @@ def _recursos(actividad: ActividadCopia, html: str) -> tuple[str, list[_Recurso]
         if clave not in usados:
             base = nombre_de_recurso(fichero.nombre)
             nombre, n = base, 1
-            while ocupados.get(nombre, fichero.contenthash) != fichero.contenthash:
+            while ocupados.get(nombre.casefold(), fichero.contenthash) != fichero.contenthash:
                 n += 1
                 cuerpo, punto, extension = base.rpartition(".")
                 nombre = f"{cuerpo}-{n}.{extension}" if punto else f"{base}-{n}"
             usados[clave] = nombre
-            if nombre not in ocupados:
-                ocupados[nombre] = fichero.contenthash
+            if nombre.casefold() not in ocupados:
+                ocupados[nombre.casefold()] = fichero.contenthash
                 recursos.append(_Recurso(fichero.contenthash, nombre))
         return f"recursos/{actividad.cmid}/{usados[clave]}"
 
@@ -353,206 +352,6 @@ def _sin_vacios(datos: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in datos.items() if v is not None}
 
 
-# Etiquetas que abren en CommonMark un bloque HTML que acaba en la primera línea en blanco
-# (tipo 6): dentro de él, el Markdown no se interpreta y ``2*3*4`` sigue siendo ``2*3*4``.
-_ES_BLOQUE = re.compile(
-    r"<(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|"
-    r"details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|"
-    r"h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|"
-    r"optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|"
-    r"track|ul)(?:[\s/>]|$)",
-    re.IGNORECASE,
-)
-_ES_PRE = re.compile(r"<pre(?:[\s/>]|$)", re.IGNORECASE)
-_PRE = re.compile(r"(<pre\b.*?</pre>)", re.DOTALL | re.IGNORECASE)
-_LINEAS_EN_BLANCO = re.compile(r"\n[ \t]*(?:\n[ \t]*)+")
-
-
-def html_como_markdown(html: str) -> str:
-    """El HTML de Moodle, listo para un campo que tiza lee como Markdown, con el mismo sentido.
-
-    tiza renderiza los textos de las preguntas y el cuerpo de un ``.md`` como Markdown con HTML
-    permitido; un ``*`` o un ``_`` fuera de un bloque HTML cambiaría el texto (``2*3*4`` pasaría a
-    llevar cursiva). Por eso el texto se deja como un único bloque HTML: sin líneas en blanco
-    (salvo dentro de ``<pre>``, que tiza ya protege) y, si no empieza por una etiqueta de bloque,
-    dentro de un ``<p>`` (o de un ``<div>`` si empieza por ``<pre>``).
-    """
-    texto = html.replace("\r\n", "\n").replace("\r", "\n").strip()
-    if not texto:
-        return ""
-    partes = _PRE.split(texto)
-    texto = "".join(
-        parte if i % 2 else _LINEAS_EN_BLANCO.sub("\n", parte) for i, parte in enumerate(partes)
-    )
-    if _ES_BLOQUE.match(texto):
-        return texto
-    return f"<div>{texto}</div>" if _ES_PRE.match(texto) else f"<p>{texto}</p>"
-
-
-# --- Cuestionarios ---------------------------------------------------------------------
-
-
-def _motivo(pregunta: PreguntaCopia, que: str = "") -> str:
-    tipo = re.sub(r"[^a-z0-9_]", "", pregunta.tipo.lower())[:30] or "desconocida"
-    return f"{tipo}({que})" if que else tipo
-
-
-def _es(valor: float, esperado: float) -> bool:
-    return math.isclose(valor, esperado, abs_tol=1e-6)
-
-
-def _fracciones_de_tiza(tipo: str, respuestas: Sequence[RespuestaCopia]) -> bool:
-    """¿Son las fracciones que tiza generaría al publicar la pregunta? Si no, puntuaría distinto.
-
-    Una única correcta: 1 y 0. Varias (de 2 a 10): ``cuestionario.fraccion_correcta(n)`` en las
-    correctas y su negativo en las incorrectas. Respuesta corta y numérica: 1 en las que cuentan
-    (las de 0 no puntúan y tiza no las escribe).
-    """
-    fracciones = [r.fraccion for r in respuestas]
-    if tipo == "multichoice":
-        correctas = sum(1 for x in fracciones if x > 0)
-        if correctas == 1:
-            return all(_es(x, 1.0) or _es(x, 0.0) for x in fracciones)
-        if not 2 <= correctas <= 10:
-            return False
-        valor = float(fraccion_correcta(correctas)) / 100
-        return all(_es(x, valor) if x > 0 else _es(x, -valor) for x in fracciones)
-    return all(_es(x, 1.0) or _es(x, 0.0) for x in fracciones)
-
-
-def _convertir(pregunta: PreguntaCopia) -> dict[str, Any] | str:
-    """La pregunta en el formato de tiza, o el motivo (texto de tiza) por el que no se puede."""
-    tipo = pregunta.tipo
-    if tipo not in _TIPOS_PREGUNTA:
-        return _motivo(pregunta)
-    textos = [pregunta.texto, pregunta.retroalimentacion]
-    textos += [r.texto for r in pregunta.respuestas]
-    textos += [r.retroalimentacion for r in pregunta.respuestas]
-    if any("@@PLUGINFILE@@" in t for t in textos):
-        return _motivo(pregunta, "con ficheros")
-    if not pregunta.texto.strip() or len(pregunta.texto) > _MAX_ENUNCIADO:
-        return _motivo(pregunta, "enunciado")
-    enunciado = html_como_markdown(pregunta.texto)
-    resultado: dict[str, Any] = {"enunciado": enunciado}
-    respuestas = pregunta.respuestas
-    if not _fracciones_de_tiza(tipo, respuestas):
-        return _motivo(pregunta, "fracciones parciales")
-    if tipo == "truefalse":
-        if len(respuestas) != 2:
-            return _motivo(pregunta, "respuestas")
-        verdadera, falsa = respuestas
-        por_id = {r.id: r for r in respuestas if r.id}
-        if (
-            pregunta.opciones.get("trueanswer", "").isdigit()
-            and pregunta.opciones.get("falseanswer", "").isdigit()
-        ):
-            verdadera = por_id.get(int(pregunta.opciones["trueanswer"]), verdadera)
-            falsa = por_id.get(int(pregunta.opciones["falseanswer"]), falsa)
-        if sorted((verdadera.fraccion, falsa.fraccion)) != [0.0, 1.0]:
-            return _motivo(pregunta, "respuestas")
-        resultado = {
-            "tipo": "verdadero_falso",
-            "enunciado": enunciado,
-            "respuesta": "verdadero" if verdadera.fraccion > falsa.fraccion else "falso",
-        }
-    elif tipo == "multichoice":
-        if not 2 <= len(respuestas) <= 10 or any(not r.texto.strip() for r in respuestas):
-            return _motivo(pregunta, "opciones")
-        correctas = sum(1 for r in respuestas if r.fraccion > 0)
-        # tiza publica «una sola respuesta» solo si hay exactamente una correcta.
-        if correctas == 0 or pregunta.opciones.get("single", "1" if correctas == 1 else "0") != (
-            "1" if correctas == 1 else "0"
-        ):
-            return _motivo(pregunta, "fracciones parciales")
-        opciones = []
-        for r in respuestas:
-            opcion: dict[str, Any] = {"texto": html_como_markdown(r.texto)}
-            if r.fraccion > 0:
-                opcion["correcta"] = True
-            if r.retroalimentacion.strip():
-                opcion["retro"] = html_como_markdown(r.retroalimentacion)
-            opciones.append(opcion)
-        resultado = {"tipo": "opcion_multiple", "enunciado": enunciado, "opciones": opciones}
-    else:
-        buenas = [r for r in respuestas if _es(r.fraccion, 1.0)]
-        if not buenas:
-            return _motivo(pregunta, "fracciones parciales")
-        if tipo == "shortanswer":
-            if any(not r.texto.strip() for r in buenas):
-                return _motivo(pregunta, "respuestas")
-            resultado = {
-                "tipo": "respuesta_corta",
-                "enunciado": enunciado,
-                "aceptadas": [r.texto.strip() for r in buenas],
-            }
-            if pregunta.opciones.get("usecase") == "1":
-                resultado["mayusculas"] = True
-        else:
-            if len(buenas) != 1:
-                return _motivo(pregunta, "respuestas")
-            try:
-                valor = float(buenas[0].texto.strip())
-            except ValueError:
-                return _motivo(pregunta, "valor")
-            if not math.isfinite(valor):
-                return _motivo(pregunta, "valor")
-            resultado = {"tipo": "numerica", "enunciado": enunciado, "valor": valor}
-            if buenas[0].tolerancia > 0:
-                resultado["tolerancia"] = buenas[0].tolerancia
-    if pregunta.retroalimentacion.strip():
-        resultado["retro"] = html_como_markdown(pregunta.retroalimentacion)
-    return resultado
-
-
-def _ajustes_del_cuestionario(actividad: ActividadCopia) -> tuple[dict[str, Any], str | None]:
-    """``intentos``, ``tiempo_limite`` (minutos) y ``mezclar_respuestas`` con la semántica de tiza.
-
-    tiza los manda siempre al publicar: sin ellos, republicar pisaría los del aula. Lo que tiza
-    no puede decir (más de 10 intentos, un tiempo que no son minutos enteros de 1 a 600) se
-    ajusta al valor más cercano y se avisa en el detalle.
-    """
-    ajustes: dict[str, Any] = {}
-    avisos = []
-    intentos = actividad.intentos
-    if intentos is not None and intentos >= 0:
-        if intentos > 10:
-            intentos = 10
-            avisos.append("más de 10 intentos")
-        ajustes["intentos"] = "ilimitados" if intentos == 0 else intentos
-    segundos = actividad.tiempo_limite
-    if segundos is not None:
-        minutos = min(max(-(-segundos // 60), 1), 600)
-        if minutos * 60 != segundos:
-            avisos.append("un tiempo límite que no son minutos enteros de 1 a 600")
-        ajustes["tiempo_limite"] = minutos
-    if actividad.mezclar_respuestas is not None:
-        ajustes["mezclar_respuestas"] = actividad.mezclar_respuestas
-    nota = None
-    if avisos:
-        nota = (
-            "Ajustes del cuestionario aproximados a los que admite tiza: " + ", ".join(avisos) + "."
-        )
-    return ajustes, nota
-
-
-def _preguntas(actividad: ActividadCopia) -> tuple[list[dict[str, Any]], list[str]]:
-    """Las preguntas convertidas y los motivos (sin repetir, en orden) de las que no se pueden."""
-    convertidas: list[dict[str, Any]] = []
-    motivos: list[str] = []
-    for pregunta in actividad.preguntas:
-        resultado = _convertir(pregunta)
-        if isinstance(resultado, str):
-            if resultado not in motivos:
-                motivos.append(resultado)
-        else:
-            convertidas.append(resultado)
-    if not actividad.preguntas:
-        motivos.append("sin_preguntas")
-    elif len(actividad.preguntas) > _MAX_PREGUNTAS:
-        motivos.append(f"más_de_{_MAX_PREGUNTAS}_preguntas")
-    return convertidas, motivos
-
-
 # --------------------------------------------------------------------------- #
 # El plan de cada actividad
 # --------------------------------------------------------------------------- #
@@ -568,7 +367,7 @@ class _Entrada:
     nombre: str
     fichero: str | None = None
     estado: str = "IMPORTADA"
-    detalle: str | None = None
+    avisos: list[str] = field(default_factory=list)
     huella_aula: str | None = None
 
     def a_dict(self) -> dict[str, Any]:
@@ -579,7 +378,7 @@ class _Entrada:
             "nombre": self.nombre,
             "fichero": self.fichero,
             "estado": self.estado,
-            "detalle": self.detalle,
+            "detalle": " ".join(self.avisos)[:1000] or None,
             "huella_aula": self.huella_aula,
         }
 
@@ -600,33 +399,24 @@ def _frontmatter(
     }
     if not como_nuevas:
         datos["origen"] = {"curso": curso, "cmid": actividad.cmid}
+    fechas = actividad.fechas
     if tipo == "tarea":
-        fechas = actividad.fechas
-        datos.update(
-            _sin_vacios(
-                {
-                    "apertura": _fecha(fechas.get("allowsubmissionsfromdate")),
-                    "entrega": _fecha(fechas.get("duedate")),
-                    "limite": _fecha(fechas.get("cutoffdate")),
-                }
-            )
-        )
+        campos = {
+            "apertura": fechas.get("allowsubmissionsfromdate"),
+            "entrega": fechas.get("duedate"),
+            "limite": fechas.get("cutoffdate"),
+        }
     elif tipo == "cuestionario":
-        fechas = actividad.fechas
-        datos.update(
-            _sin_vacios(
-                {
-                    "apertura": _fecha(fechas.get("timeopen")),
-                    "cierre": _fecha(fechas.get("timeclose")),
-                }
-            )
-        )
+        campos = {"apertura": fechas.get("timeopen"), "cierre": fechas.get("timeclose")}
+    else:
+        campos = {}
+    datos.update(_sin_vacios({k: _fecha(v) for k, v in campos.items()}))
     datos.update(extra)
     return datos
 
 
 def _detalle_de_carga(ruta: Path, raiz: Path) -> tuple[str, str | None]:
-    """(estado, detalle) de un fichero recién escrito, según lo que diga ``contenido.cargar``."""
+    """(estado, aviso) de un fichero recién escrito, según lo que diga ``contenido.cargar``."""
     try:
         contenido.cargar(ruta, raiz=raiz)
     except contenido.ErrorContenido as error:
@@ -639,17 +429,74 @@ def _detalle_de_carga(ruta: Path, raiz: Path) -> tuple[str, str | None]:
     return "IMPORTADA", None
 
 
-def _previa(dir_tiza: Path, curso: int, como_nuevas: bool) -> dict[int, dict]:
-    """Las actividades de la importación anterior de este mismo curso, por cmid."""
-    if como_nuevas:
-        return {}
+# --------------------------------------------------------------------------- #
+# copia.json: una entrada por curso
+# --------------------------------------------------------------------------- #
+
+
+def _leer_copia_json(dir_tiza: Path) -> dict | None:
+    """El ``copia.json`` de antes, o ``None`` si no hay. Uno que no vale no se sobrescribe."""
     try:
-        anterior = estado.cargar_copia(dir_tiza)
-    except estado.ErrorEstado:
+        return estado.cargar_copia(dir_tiza)
+    except estado.ErrorEstado as error:
+        if error.codigo == "IMPORTACION_AUSENTE":
+            return None
+        raise ErrorImportar(
+            "COPIA_INVALIDA",
+            "No se puede leer .tiza/copia.json y no se ha sobrescrito: corrígelo o bórralo.",
+        ) from None
+
+
+def _previa(anterior: dict | None, curso: int, como_nuevas: bool) -> dict[int, dict]:
+    """Las actividades de la importación anterior de este curso (o de «como nuevas»), por cmid."""
+    if anterior is None:
         return {}
-    if anterior["curso"] != curso or anterior["como_nuevas"]:
-        return {}
-    return {a["cmid"]: a for a in anterior["actividades"]}
+    if como_nuevas:
+        entrada = anterior["como_nuevas"]
+        if entrada is None or entrada["curso"] != curso:
+            return {}
+    else:
+        entrada = anterior["cursos"].get(str(curso))
+        if entrada is None:
+            return {}
+    return {a["cmid"]: a for a in entrada["actividades"]}
+
+
+def _datos_de_copia(
+    anterior: dict | None,
+    datos: Copia,
+    entradas: list[_Entrada],
+    previa: dict[int, dict],
+    como_nuevas: bool,
+) -> dict[str, Any]:
+    """``copia.json`` nuevo: solo cambia la entrada de este curso (o la de «como nuevas»).
+
+    Dentro del curso, una actividad que ya no está en la copia conserva su entrada.
+    """
+    vistas = {e.cmid for e in entradas}
+    actividades = [e.a_dict() for e in entradas]
+    actividades += [a for cmid, a in previa.items() if cmid not in vistas]
+    actividades.sort(key=lambda a: a["cmid"])
+    entrada: dict[str, Any] = {
+        "moodle": re.sub(r"[^0-9A-Za-z.() +-]", "", datos.moodle)[:60],
+        "fecha_importacion": datetime.now(UTC).isoformat(timespec="seconds"),
+        "secciones": [
+            {
+                "numero": s.numero,
+                "nombre": _texto_seguro(s.nombre),
+                "resumen_html_presente": bool(s.resumen_html.strip()),
+            }
+            for s in datos.secciones
+        ],
+        "actividades": actividades,
+    }
+    cursos = dict(anterior["cursos"]) if anterior else {}
+    nuevas = anterior["como_nuevas"] if anterior else None
+    if como_nuevas:
+        nuevas = {"curso": datos.curso_original, **entrada}
+    else:
+        cursos[str(datos.curso_original)] = entrada
+    return {"version": 1, "cursos": cursos, "como_nuevas": nuevas}
 
 
 # --------------------------------------------------------------------------- #
@@ -666,9 +513,10 @@ def importar(
     """Importa la copia ``copia`` a ficheros de tiza en ``<carpeta>/<destino>/``.
 
     Offline. Devuelve el resumen validado; el detalle de cada actividad queda en
-    ``.tiza/copia.json``. Lanza ``ErrorImportar``, ``ErrorCopia`` (la copia no vale),
-    ``ErrorLectura`` (la ruta de la copia no vale) o ``ErrorConfig`` (``tiza.toml`` no vale).
-    Todo lo que se comprueba antes de escribir (copia, curso, destino) falla sin escribir nada.
+    ``.tiza/copia.json``, que lleva una entrada por curso. Lanza ``ErrorImportar``,
+    ``ErrorCopia`` (la copia no vale), ``ErrorLectura`` (la ruta de la copia no vale) o
+    ``ErrorConfig`` (``tiza.toml`` no vale). Todo lo que se comprueba antes de escribir (copia,
+    curso, destino, ``copia.json`` anterior) falla sin escribir nada.
     """
     raiz = Path(carpeta).resolve()
     ruta_copia = _ruta_de_copia(raiz, copia)
@@ -682,7 +530,8 @@ def importar(
             raise ErrorCopia("COPIA_NO_VALIDA", "Una actividad apunta a una sección que no está.")
 
     dir_tiza = raiz / rutas.CARPETA_TRABAJO
-    previa = _previa(dir_tiza, datos.curso_original, como_nuevas)
+    anterior = _leer_copia_json(dir_tiza)
+    previa = _previa(anterior, datos.curso_original, como_nuevas)
     entradas = []
     try:
         for actividad in datos.actividades:
@@ -699,23 +548,7 @@ def importar(
                 )
             )
         escrito = estado.escribir_copia(
-            dir_tiza,
-            {
-                "version": 1,
-                "curso": datos.curso_original,
-                "moodle": _texto_seguro(datos.moodle),
-                "fecha_importacion": datetime.now(UTC).isoformat(timespec="seconds"),
-                "como_nuevas": como_nuevas,
-                "secciones": [
-                    {
-                        "numero": s.numero,
-                        "nombre": _texto_seguro(s.nombre),
-                        "resumen_html_presente": bool(s.resumen_html.strip()),
-                    }
-                    for s in datos.secciones
-                ],
-                "actividades": [e.a_dict() for e in entradas],
-            },
+            dir_tiza, _datos_de_copia(anterior, datos, entradas, previa, como_nuevas)
         )
     except (OSError, estado.ErrorEstado):
         raise ErrorImportar(
@@ -733,6 +566,28 @@ def importar(
     )
 
 
+def _rechazar(entrada: _Entrada, estado_: str, motivo: str, previa: dict | None) -> _Entrada:
+    """La actividad no se importa; si ya estaba importada, su entrada conserva fichero y huella."""
+    entrada.estado = estado_
+    entrada.avisos[:] = [_texto_seguro(motivo)]
+    if previa is not None:
+        entrada.fichero = previa["fichero"]
+        entrada.huella_aula = previa["huella_aula"]
+    return entrada
+
+
+def _fichero_previo(previa: dict | None, raiz: Path, base: Path) -> Path | None:
+    """El fichero de la importación anterior, si sigue ahí y está dentro del destino."""
+    if previa is None or not previa["fichero"]:
+        return None
+    ruta = raiz / previa["fichero"]
+    try:
+        ruta.parent.resolve().relative_to(base)
+    except (ValueError, OSError, RuntimeError):
+        return None
+    return ruta if os.path.lexists(ruta) else None
+
+
 def _importar_actividad(
     datos: Copia,
     actividad: ActividadCopia,
@@ -743,46 +598,62 @@ def _importar_actividad(
     previa: dict | None,
     como_nuevas: bool,
 ) -> _Entrada:
+    nombre = _texto_seguro(actividad.nombre, f"Actividad {actividad.cmid}")
     entrada = _Entrada(
-        cmid=actividad.cmid,
-        modulo=actividad.modulo,
-        seccion=seccion.numero,
-        nombre=_texto_seguro(actividad.nombre, f"Actividad {actividad.cmid}"),
+        cmid=actividad.cmid, modulo=actividad.modulo, seccion=seccion.numero, nombre=nombre
     )
     tipo = tipos.de_modulo(actividad.modulo)
     if tipo is None:
-        entrada.estado = "TIPO_NO_GESTIONADO"
-        entrada.detalle = "tiza no gestiona este tipo de actividad: no se importa."
-        return entrada
+        return _rechazar(
+            entrada,
+            "TIPO_NO_GESTIONADO",
+            "tiza no gestiona este tipo de actividad: no se importa.",
+            previa,
+        )
     extension = EXTENSION.get(tipo, ".md")
     carpeta_seccion = base / f"{seccion.numero:02d}-{nombre_seguro(seccion.nombre)}"
     ruta = carpeta_seccion / f"{nombre_seguro(actividad.nombre)}-{actividad.cmid}{extension}"
-    anterior = previa["fichero"] if previa and previa["fichero"] else None
-    if anterior is not None and os.path.lexists(raiz / anterior):
-        ruta = raiz / anterior
+    ruta = _fichero_previo(previa, raiz, base) or ruta
     existe = os.path.lexists(ruta)
 
     html, recursos, faltan = _recursos(actividad, actividad.html)
     extra: dict[str, Any] = {}
-    nota = None
     if tipo == "cuestionario":
-        preguntas, motivos = _preguntas(actividad)
+        preguntas, motivos = convertir_preguntas(actividad)
         if motivos:
-            entrada.estado = "PREGUNTAS_NO_ADMITIDAS"
-            entrada.detalle = _texto_seguro(
-                "Tipos de pregunta que tiza no admite: " + ", ".join(motivos)
+            return _rechazar(
+                entrada,
+                "PREGUNTAS_NO_ADMITIDAS",
+                "Preguntas que tiza no admite: " + ", ".join(motivos),
+                previa,
             )
-            return entrada
-        extra, nota = _ajustes_del_cuestionario(actividad)
+        extra, motivos = ajustes_del_cuestionario(actividad)
+        if motivos:
+            return _rechazar(
+                entrada,
+                "AJUSTES_NO_ADMITIDOS",
+                "Ajustes que tiza no puede publicar sin cambiarlos: " + ", ".join(motivos),
+                previa,
+            )
         extra["preguntas"] = preguntas
+    elif tipo == "tarea" and any(f.filearea == "introattachment" for f in actividad.ficheros):
+        return _rechazar(
+            entrada,
+            "AJUSTES_NO_ADMITIDOS",
+            "Ajustes que tiza no puede publicar sin cambiarlos: adjuntos de la tarea",
+            previa,
+        )
     elif tipo == "h5p":
         paquete = next(
             (f for f in actividad.ficheros if f.contenthash == actividad.paquete_h5p), None
         )
         if paquete is None or actividad.paquete_h5p not in datos.recursos:
-            entrada.estado = "TIPO_NO_GESTIONADO"
-            entrada.detalle = "La actividad H5P no trae su paquete .h5p en la copia."
-            return entrada
+            return _rechazar(
+                entrada,
+                "TIPO_NO_GESTIONADO",
+                "La actividad H5P no trae su paquete .h5p en la copia.",
+                previa,
+            )
         nombre_paquete = nombre_de_recurso(paquete.nombre)
         if not nombre_paquete.lower().endswith(".h5p"):
             nombre_paquete += ".h5p"
@@ -802,7 +673,7 @@ def _importar_actividad(
             entrada.estado = "CAMBIADA_DESDE_LA_IMPORTACION"
             _extraer(datos, recursos, ruta.parent, actividad.cmid, raiz)
             estado.guardar_version_de_copia(dir_tiza, actividad.cmid, html)
-            entrada.detalle = (
+            entrada.avisos.append(
                 "El nombre, el texto o las fechas cambiaron en el aula desde la importación. "
                 "Tu fichero no se ha tocado; la versión nueva está en "
                 f".tiza/copia/{actividad.cmid}.html."
@@ -810,42 +681,64 @@ def _importar_actividad(
         return entrada
 
     frontmatter = _frontmatter(actividad, tipo, seccion, datos.curso_original, como_nuevas, extra)
-    aviso = None
+    avisos = entrada.avisos
+    estado_final = "IMPORTADA"
+    if not actividad.formato_html:
+        estado_final = "HTML_NO_ADMITIDO"
+        avisos.append("Tiene un formato de texto no HTML: tiza solo publica HTML.")
+    filtrado = False
     try:
         filtro.analizar(html)
     except filtro.HtmlPeligroso as exc:
-        aviso = _texto_seguro(f"El filtro de tiza no admite: {exc.detalle}")
-    sin_fichero = _extraer(datos, recursos, ruta.parent, actividad.cmid, base)
+        filtrado = True
+        estado_final = "HTML_NO_ADMITIDO"
+        avisos.append(_texto_seguro(f"El filtro de tiza no admite: {exc.detalle}"))
+    problemas = _extraer(datos, recursos, ruta.parent, actividad.cmid, base)
     entrada.fichero = ruta.relative_to(raiz).as_posix()
     cuerpo = html if extension == ".html" else html_como_markdown(html)
     if not _crear(ruta, _documento(frontmatter, cuerpo).encode("utf-8"), base):
         entrada.estado = "YA_IMPORTADO"
+        avisos.clear()
         return entrada
-    if aviso is not None:
-        entrada.estado, entrada.detalle = "HTML_NO_ADMITIDO", aviso
-    else:
-        entrada.estado, entrada.detalle = _detalle_de_carga(ruta, raiz)
-    if (faltan or sin_fichero) and entrada.detalle is None:
-        entrada.detalle = "Falta en la copia algún fichero que la actividad usa."
-    if nota is not None and entrada.detalle is None:
-        entrada.detalle = nota
+    if not filtrado:
+        resultado, aviso = _detalle_de_carga(ruta, raiz)
+        if resultado == "HTML_NO_ADMITIDO":
+            estado_final = resultado
+        if aviso is not None:
+            avisos.append(aviso)
+    if faltan and "falta" not in problemas:
+        problemas.append("falta")
+    avisos += [_PROBLEMAS_DE_RECURSOS[p] for p in problemas]
+    if nombre != " ".join(actividad.nombre.split()):
+        avisos.append("El nombre tenía símbolos o era demasiado largo y se ha cambiado.")
+    if actividad.fecha_recordatorio is not None:
+        avisos.append("Tiene activado el recordatorio de calificar: tiza lo desactiva al publicar.")
+    entrada.estado = estado_final
     return entrada
+
+
+_PROBLEMAS_DE_RECURSOS = {
+    "falta": "Falta en la copia algún fichero que la actividad usa.",
+    "existia": "Un fichero de recursos no se escribió porque ya existía otro con ese nombre.",
+}
 
 
 def _extraer(
     datos: Copia, recursos: list[_Recurso], carpeta: Path, cmid: int, limite: Path
-) -> bool:
+) -> list[str]:
     """Escribe en ``recursos/<cmid>/`` lo que falte; un fichero que ya está no se toca.
 
-    Devuelve ``True`` si algún recurso no viene en la copia.
+    Devuelve los problemas (claves de ``_PROBLEMAS_DE_RECURSOS``): un recurso que no viene en la
+    copia, o que no se pudo crear porque ya había un fichero con ese nombre.
     """
-    faltan = False
+    problemas: list[str] = []
     for recurso in recursos:
         if recurso.contenthash not in datos.recursos:
-            faltan = True
+            problemas.append("falta")
             continue
         destino = carpeta / "recursos" / str(cmid) / recurso.nombre
         if os.path.lexists(destino):
             continue
-        _crear(destino, lector.leer_recurso(datos, recurso.contenthash), limite)
-    return faltan
+        if not _crear(destino, lector.leer_recurso(datos, recurso.contenthash), limite):
+            problemas.append("existia")
+    return list(dict.fromkeys(problemas))

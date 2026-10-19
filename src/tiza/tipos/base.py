@@ -323,9 +323,30 @@ _ZONA_AULA = ZoneInfo("Europe/Madrid")
 # con o sin «?…») es la referencia «@@PLUGINFILE@@/<f>» de la copia: el aula devuelve las
 # primeras en el formulario de edición y la copia trae las segundas.
 _URL_DE_FICHERO = re.compile(
-    r"""[^\s"'<>=]*?/(?:draftfile|pluginfile)\.php/\d+/(?:[^\s"'<>?#]*/)?"""
+    r"""/(?:draftfile|pluginfile)\.php/\d+/(?:[^\s"'<>?#]*/)?"""
     r"""([^\s"'<>?#/]+)(?:\?[^\s"'<>#]*)?"""
 )
+_FIN_DE_URL = frozenset(" \t\r\n\f\"'<>=")
+
+
+def _ficheros_del_aula(html: str) -> str:
+    """Cada URL de fichero del aula como ``@@PLUGINFILE@@/<f>``, en tiempo lineal.
+
+    Se busca la parte fija «/pluginfile.php/<n>/» y solo entonces se retrocede hasta el
+    principio de la URL (sin pasar de donde acabó la anterior); un texto enorme sin espacios no
+    cuesta más que su tamaño.
+    """
+    salida: list[str] = []
+    fin_anterior = 0
+    for m in _URL_DE_FICHERO.finditer(html):
+        inicio = m.start()
+        while inicio > fin_anterior and html[inicio - 1] not in _FIN_DE_URL:
+            inicio -= 1
+        salida.append(html[fin_anterior:inicio])
+        salida.append(f"@@PLUGINFILE@@/{m.group(1)}")
+        fin_anterior = m.end()
+    salida.append(html[fin_anterior:])
+    return "".join(salida)
 
 
 def huella_aula(nombre: str, html: str, fechas: Mapping[str, datetime | None] | None = None) -> str:
@@ -339,7 +360,7 @@ def huella_aula(nombre: str, html: str, fechas: Mapping[str, datetime | None] | 
       Europe/Madrid; una fecha sin poner (``None``) es lo mismo que no estar;
     - el JSON compacto de ``[nombre, html, fechas]`` (claves ordenadas) se pasa por sha256.
     """
-    texto = _URL_DE_FICHERO.sub(lambda m: f"@@PLUGINFILE@@/{m.group(1)}", html)
+    texto = _ficheros_del_aula(html)
     puestas: dict[str, list[int]] = {}
     for campo, momento in (fechas or {}).items():
         if momento is None:

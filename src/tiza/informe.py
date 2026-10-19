@@ -489,18 +489,14 @@ ESTADOS_IMPORTACION = (
     "CAMBIADA_DESDE_LA_IMPORTACION",
     "HTML_NO_ADMITIDO",
     "PREGUNTAS_NO_ADMITIDAS",
+    "AJUSTES_NO_ADMITIDOS",
     "TIPO_NO_GESTIONADO",
 )
 _CAMPOS_IMPORTACION = {"copia", "curso", "como_nuevas", "actividades", "estados"}
-_CAMPOS_COPIA = {
-    "version",
-    "curso",
-    "moodle",
-    "fecha_importacion",
-    "como_nuevas",
-    "secciones",
-    "actividades",
-}
+# ``copia.json``: una entrada por curso real y, aparte, la última importación «como nuevas».
+_CAMPOS_COPIA = {"version", "cursos", "como_nuevas"}
+_CAMPOS_ENTRADA_COPIA = {"moodle", "fecha_importacion", "secciones", "actividades"}
+_ID_DE_CURSO = re.compile(r"\A[1-9][0-9]{0,17}\Z")
 _CAMPOS_SECCION_COPIA = {"numero", "nombre", "resumen_html_presente"}
 _CAMPOS_ACTIVIDAD_COPIA = {
     "cmid",
@@ -567,13 +563,27 @@ def validar_copia(datos: Any) -> None:
     _exigir_campos(datos, _CAMPOS_COPIA, "copia")
     if datos["version"] != 1 or isinstance(datos["version"], bool):
         raise ErrorInforme("VALOR_NO_PERMITIDO", "version debe ser 1")
-    _exigir_entero(datos["curso"], "curso")
+    if not isinstance(datos["cursos"], dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "cursos debe ser un objeto")
+    for curso, entrada in datos["cursos"].items():
+        if not isinstance(curso, str) or not _ID_DE_CURSO.match(curso):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "el id de un curso no es válido")
+        _validar_entrada_copia(entrada, _CAMPOS_ENTRADA_COPIA)
+    nuevas = datos["como_nuevas"]
+    if nuevas is not None:
+        _validar_entrada_copia(nuevas, _CAMPOS_ENTRADA_COPIA | {"curso"})
+        _exigir_entero(nuevas["curso"], "curso")
+
+
+def _validar_entrada_copia(entrada: Any, campos: set[str]) -> None:
+    if not isinstance(entrada, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "cada importación debe ser un objeto")
+    _exigir_campos(entrada, campos, "importación")
     for campo in ("moodle", "fecha_importacion"):
-        if not isinstance(datos[campo], str):
+        if not isinstance(entrada[campo], str):
             raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
-        _exigir_texto(datos[campo], campo)
-    _exigir_bool(datos["como_nuevas"], "como_nuevas")
-    for seccion in _exigir_lista(datos["secciones"], "secciones"):
+        _exigir_texto(entrada[campo], campo)
+    for seccion in _exigir_lista(entrada["secciones"], "secciones"):
         if not isinstance(seccion, dict):
             raise ErrorInforme("TIPO_INCORRECTO", "cada sección debe ser un objeto")
         _exigir_campos(seccion, _CAMPOS_SECCION_COPIA, "sección")
@@ -582,7 +592,7 @@ def validar_copia(datos: Any) -> None:
             raise ErrorInforme("TIPO_INCORRECTO", "el nombre de la sección debe ser texto")
         _exigir_texto(seccion["nombre"], "nombre de sección")
         _exigir_bool(seccion["resumen_html_presente"], "resumen_html_presente")
-    for actividad in _exigir_lista(datos["actividades"], "actividades"):
+    for actividad in _exigir_lista(entrada["actividades"], "actividades"):
         if not isinstance(actividad, dict):
             raise ErrorInforme("TIPO_INCORRECTO", "cada actividad debe ser un objeto")
         _exigir_campos(actividad, _CAMPOS_ACTIVIDAD_COPIA, "actividad")

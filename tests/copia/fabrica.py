@@ -67,6 +67,11 @@ class PreguntaFalsa:
     modo: str = "normal"  # "aleatoria": hueco aleatorio; "ausente": no está en questions.xml
     ajustes: Mapping[str, str] | None = None  # ajustes del tipo (por defecto, single=1)
     tolerancia: float | None = None  # numérica: tolerancia de cada respuesta (numerical_answers)
+    puntos: float = 2.0  # maxmark del hueco
+    penalizacion: float | None = None  # penalty de la pregunta (None: no la escribe)
+    unidades: bool = False  # numérica con una unidad definida
+    formato: int | None = None  # questiontextformat y answerformat (None: no los escribe)
+    retros: Sequence[str] = ()  # feedback de cada respuesta, por orden
 
 
 @dataclass
@@ -83,6 +88,7 @@ class ActividadFalsa:
     module_id: int | None = None  # para forzar un module.xml que no coincide
     xml_propio: bytes | None = None  # sustituye a <módulo>.xml entero
     ajustes: Mapping[str, object] = field(default_factory=dict)  # attempts_number, timelimit…
+    formato: int | None = None  # introformat (contentformat en una página); None: no lo escribe
 
 
 def _e(texto: object) -> str:
@@ -172,7 +178,7 @@ def _instancias(actividad: ActividadFalsa) -> str:
         version = "$@NULL@$" if pregunta.fijada is None else str(pregunta.fijada)
         partes.append(
             f'<question_instance id="{hueco}"><slot>{hueco}</slot><page>1</page>'
-            "<maxmark>2.0000000</maxmark>"
+            f"<maxmark>{pregunta.puntos:.7f}</maxmark>"
             f'<question_reference id="{hueco}"><component>mod_quiz</component>'
             f"<questionbankentryid>{pregunta.entrada}</questionbankentryid>"
             f"<version>{version}</version></question_reference></question_instance>"
@@ -187,6 +193,9 @@ def _principal(actividad: ActividadFalsa) -> bytes:
         cuerpo = f"<intro></intro><content>{_e(actividad.html)}</content>"
     else:
         cuerpo = f"<intro>{_e(actividad.html)}</intro>"
+    if actividad.formato is not None:
+        etiqueta = "contentformat" if actividad.modulo == "page" else "introformat"
+        cuerpo += f"<{etiqueta}>{actividad.formato}</{etiqueta}>"
     cuerpo += f"<createdby>{USUARIO}</createdby><author>{AUTOR}</author>"
     cuerpo += "".join(f"<{k}>{v}</{k}>" for k, v in actividad.fechas.items())
     if actividad.modulo == "assign":
@@ -228,15 +237,33 @@ def _ajustes(pregunta: PreguntaFalsa) -> str:
     return "".join(f"<{k}>{_e(v)}</{k}>" for k, v in ajustes.items())
 
 
-def _numericas(pregunta: PreguntaFalsa) -> str:
-    if pregunta.tolerancia is None:
+def _formato_pregunta(pregunta: PreguntaFalsa) -> str:
+    if pregunta.formato is None:
         return ""
+    return f"<questiontextformat>{pregunta.formato}</questiontextformat>"
+
+
+def _penalizacion(pregunta: PreguntaFalsa) -> str:
+    if pregunta.penalizacion is None:
+        return ""
+    return f"<penalty>{pregunta.penalizacion:.7f}</penalty>"
+
+
+def _numericas(pregunta: PreguntaFalsa) -> str:
+    unidades = (
+        '<numerical_units><numerical_unit id="1"><multiplier>1.0</multiplier>'
+        "<unit>m</unit></numerical_unit></numerical_units>"
+        if pregunta.unidades
+        else ""
+    )
+    if pregunta.tolerancia is None:
+        return unidades
     partes = "".join(
         f'<numerical_answer id="{n}"><answer>{n}</answer>'
         f"<tolerance>{pregunta.tolerancia}</tolerance></numerical_answer>"
         for n, _ in enumerate(pregunta.respuestas, start=1)
     )
-    return f"<numerical_answers>{partes}</numerical_answers>"
+    return f"{unidades}<numerical_answers>{partes}</numerical_answers>"
 
 
 def _questions_xml(actividades: Sequence[ActividadFalsa]) -> bytes:
@@ -250,16 +277,25 @@ def _questions_xml(actividades: Sequence[ActividadFalsa]) -> bytes:
             for numero, texto, *resto in pregunta.versiones:
                 estado = resto[0] if resto else pregunta.estado
                 identificador += 1
+                formato_r = (
+                    ""
+                    if pregunta.formato is None
+                    else (f"<answerformat>{pregunta.formato}</answerformat>")
+                )
                 respuestas = "".join(
-                    f"<answer id='{n}'><answertext>{_e(t)}</answertext>"
-                    f"<fraction>{f}</fraction><feedback></feedback></answer>"
+                    f"<answer id='{n}'><answertext>{_e(t)}</answertext>{formato_r}"
+                    f"<fraction>{f}</fraction>"
+                    f"<feedback>{_e(pregunta.retros[n - 1]) if n <= len(pregunta.retros) else ''}"
+                    "</feedback></answer>"
                     for n, (t, f) in enumerate(pregunta.respuestas, start=1)
                 )
                 versiones.append(
                     f'<question_versions id="{identificador}"><version>{numero}</version>'
                     f'<status>{estado}</status><questions><question id="{identificador}">'
                     f"<name>{_e(pregunta.nombre)}</name><questiontext>{_e(texto)}</questiontext>"
+                    f"{_formato_pregunta(pregunta)}"
                     "<generalfeedback></generalfeedback><defaultmark>1.0000000</defaultmark>"
+                    f"{_penalizacion(pregunta)}"
                     f"<qtype>{_e(pregunta.tipo)}</qtype>"
                     f"<createdby>{USUARIO}</createdby><modifiedby>{USUARIO}</modifiedby>"
                     f"<plugin_qtype_{pregunta.tipo}_question><answers>{respuestas}</answers>"
