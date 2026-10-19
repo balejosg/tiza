@@ -13,7 +13,8 @@ Delegación de Protección de Datos te pide un resumen, pásale
 2. **Del aula solo sale lo mínimo hacia el agente**: el informe que lee solo
    contiene nombres de *tus* ficheros, cmid, códigos de resultado, fechas, URLs
    montadas por la herramienta y los nombres de las secciones. Nunca HTML ni
-   otros textos de Moodle.
+   otros textos de Moodle. La única excepción es la copia del curso que el
+   docente aporta como fichero (ver «Copias del curso» más abajo).
 
 La base es [python-moodle](https://pypi.org/project/python-moodle/) (MIT), que
 crea y edita actividades con la misma sesión web que usas en el navegador.
@@ -26,6 +27,14 @@ Delegación de Protección de Datos te pide un resumen, pásale
 
 - **`tiza leer` y `tiza documento` son offline**: solo leen y escriben dentro de la carpeta de la asignatura, con límite de tamaño, y `tiza documento` nunca sobrescribe un fichero. Lo que sale hacia el agente pasa por un esquema cerrado.
 - **`tiza normativa` es offline**: solo lee los datos que trae el paquete, no usa la red ni el aula, y su salida pasa por un esquema cerrado como el resto de lo que ve el agente.
+- **Copias del curso (`tiza importar`)**: la copia es un fichero que el docente aporta, no un canal del aula, y tiza la trata como hostil. Sus límites:
+  - **Sin usuarios**: una copia con datos de alumnado se rechaza (`COPIA_CON_USUARIOS`). Los ajustes de datos de usuario de la copia deben valer 0 (`users`, `anonymize`, `role_assignments`, `comments`, `userscompletion`, `logs`, `grade_histories`, `xapistate` y los `*_userinfo`). No se lleva a ningún fichero ni `author`, `userid`, `createdby`, `modifiedby`, `users.xml`, entregas, notas ni registros.
+  - **Límites de tamaño**: 2 GB el `.mbz`, 20 000 entradas, 50 MB por XML, 256 MB de XML en memoria, 4 GB descomprimidos en total y 100 MB por recurso. Lo que pasa de ahí da `COPIA_DEMASIADO_GRANDE`.
+  - **Sin entidades ni DTD**: un XML con declaración de tipo o de entidades da `COPIA_NO_VALIDA`. No se resuelve nada ni se pide nada por red.
+  - **Nada se extrae a disco**: cada entrada se lee del flujo. Las rutas absolutas, con `..` o con unidad se ignoran.
+  - **Solo ficheros destino**: escribe las actividades en la carpeta de destino (`aula/` por defecto), sus recursos en `recursos/<cmid>/` dentro de ella y `.tiza/copia.json` y `.tiza/copia/`. Nunca sobrescribe: un fichero que ya existe queda `YA_IMPORTADO`.
+  - **Lo que sale al agente**: nombres saneados, códigos y, para juntar cambios, el HTML de la versión del aula en `.tiza/copia/<cmid>.html`.
+  - **`tiza copia`**: pide la copia a la sesión del docente, que la confirma `[s/N]`. Son tres por sesión (`CUPO_COPIAS`). tiza la borra de la zona de copias de Moodle; si no puede, lo avisa (`COPIA_QUEDA_EN_EL_AULA`) y el docente la borra a mano.
 - **Sin secretos persistentes**: en Windows y macOS (y en Linux, si la instalas), `tiza` abre una ventana con la
   página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
   solo recoge las cookies de sesión del servidor del aula (las de cualquier otro

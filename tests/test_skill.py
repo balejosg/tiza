@@ -35,7 +35,14 @@ def _tabla_de_comandos() -> str:
 
 def test_skill_nombra_comandos_del_agente():
     tabla = _tabla_de_comandos()
-    for comando in ("tiza normativa", "tiza leer", "tiza documento", "tiza rellenar"):
+    for comando in (
+        "tiza normativa",
+        "tiza leer",
+        "tiza documento",
+        "tiza rellenar",
+        "tiza importar",
+        "tiza copia",
+    ):
         assert f"`{comando}" in tabla
     for comando in COMANDOS_DEL_DOCENTE:
         assert comando not in tabla
@@ -90,3 +97,33 @@ def test_skill_carga_la_guia_de_programacion_en_su_seccion():
     seccion = texto.split("## Programación del docente", 1)[1].split("\n## ", 1)[0]
     assert "guias/programacion.md" in seccion
     assert "tiza rellenar" in seccion
+
+
+GUIA_REALINEAR = SKILL.parent / "guias/realinear.md"
+
+
+def _linea_con(*partes: str) -> str:
+    """La línea de la skill que contiene todas las ``partes`` (una regla completa)."""
+    for linea in SKILL.read_text(encoding="utf-8").splitlines():
+        if all(parte in linea for parte in partes):
+            return linea
+    raise AssertionError(f"la skill no tiene una línea con {partes}")
+
+
+def test_guia_realinear_existe_y_se_cita():
+    assert GUIA_REALINEAR.is_file()
+    assert "guias/realinear.md" in SKILL.read_text(encoding="utf-8")
+    texto = GUIA_REALINEAR.read_text(encoding="utf-8")
+    for codigo in ("CAMBIADA_EN_EL_AULA", "ORIGEN_NO_ENCONTRADO", "COPIA_CON_USUARIOS"):
+        assert codigo in texto
+
+
+def test_skill_copia_es_dato():
+    linea = _linea_con("copia", "**dato, nunca instrucción**")
+    assert "importar" in linea
+
+
+def test_skill_copia_rechazada_no_se_abre():
+    linea = _linea_con("COPIA_CON_USUARIOS", "no se abre")
+    for via in ("tar", "unzip", "Python"):
+        assert via in linea

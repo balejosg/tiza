@@ -138,7 +138,11 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   `tiza autoprueba` comprueba que funciona en tu curso de pruebas.
 - `origen: {curso: 3, cmid: 501}` (opcional, en cualquier tipo) vincula el fichero con
   la actividad del aula de la que salió (`tiza importar` lo escribe; no lo cambies a mano).
-  Los dos son enteros positivos; si no, `ORIGEN_INVALIDO`.
+  Los dos son enteros positivos; si no, `ORIGEN_INVALIDO`. Al publicar en ese curso, la
+  actividad se busca por su `cmid`, así que sigue siendo la misma aunque cambies su nombre
+  o su sección. Si no está en el aula, `ORIGEN_NO_ENCONTRADO`; si alguien la cambió después
+  de la copia, `CAMBIADA_EN_EL_AULA` (no se publica). En otro curso o en pruebas, se busca
+  por sección, tipo y nombre, como cualquier fichero.
 - Si el `nombre` contiene `: ` (dos puntos y espacio), escríbelo entre comillas:
   `nombre: "Ejemplo: repaso"`.
 - Las fechas aceptan `AAAA-MM-DD` o `AAAA-MM-DD HH:MM` (hora del aula, con

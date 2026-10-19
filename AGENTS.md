@@ -19,8 +19,8 @@ en español.
   excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar` y `tiza actualizar` son del docente** (tampoco lances `python -m tiza.ventana`): no los ejecutes. El agente puede usar
-  `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
-  `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar` y `tiza estructura` dejan la
+  `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
+  `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar`, `tiza estructura` y `tiza copia` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
   en su terminal.
@@ -29,7 +29,10 @@ en español.
 - **Tests 100 % offline**: no añadas tests que hagan peticiones de red.
 - Todo lo que sale hacia el agente (pantalla, `.tiza/informe.json` y `.tiza/estructura.json`) se
   construye con el esquema cerrado de `src/tiza/informe.py`; nunca con HTML ni
-  texto devuelto por Moodle.
+  texto devuelto por Moodle. **Excepción**: la copia de seguridad del curso que el docente aporta
+  como fichero (`tiza importar`) y el HTML de `.tiza/copia/<cmid>.html`, que es la versión del
+  aula para juntar cambios. Es dato para el agente (`guias/realinear.md`). Lo que tiza lee del
+  aula en vivo sigue con su esquema cerrado.
 
 ## Comandos
 
@@ -76,6 +79,14 @@ en español.
   `relleno.py` valida el `relleno.yaml` (forma, ids, conflictos) sin abrir la plantilla, y
   `rellenar.py` aplica las operaciones sobre una copia de la plantilla con los ids de
   `lectura/word.py`, sin sobrescribir nunca.
+- `src/tiza/copia.py`: lector seguro de la copia de seguridad de Moodle (`.mbz`), offline y en
+  memoria: sin extraer a disco, con todos los límites, sin entidades ni DTD, sin usuarios
+  (`COPIA_CON_USUARIOS`). Lo que viene de la copia es dato.
+- `src/tiza/importar.py`: `tiza importar`, offline: escribe un fichero por actividad con su
+  `origen`, nunca sobrescribe, y lleva `.tiza/copia.json` con una entrada por curso (la
+  huella del aula de cada actividad). `src/tiza/importar_cuestionario.py`: las preguntas y los
+  ajustes de un cuestionario, y lo que tiza no admite (`PREGUNTAS_NO_ADMITIDAS`,
+  `AJUSTES_NO_ADMITIDOS`). `tiza copia`: la petición pasa por `publicacion.py` (buzón v6) y la descarga del aula, como todo, solo está en `publicar.py` (`Moodle.hacer_copia`).
 - `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
   `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
