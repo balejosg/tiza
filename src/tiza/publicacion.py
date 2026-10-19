@@ -803,7 +803,8 @@ def publicar_con(
             if exc.codigo == "CAMBIADA_EN_EL_AULA":
                 presencia.informar(Aviso.cambiada_en_el_aula(doc.nombre))
             continue
-        if publicar.aplica_origen(doc, curso):
+        # Con --solo-fechas la huella nueva la da publicar.py; sin ella, se deja la que había.
+        if publicar.aplica_origen(doc, curso) and (not solo_fechas or huella_nueva is not None):
             _renovar_huella(dir_tiza, curso, doc, borrador, presencia, huella_nueva)
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None

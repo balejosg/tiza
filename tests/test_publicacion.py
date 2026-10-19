@@ -1018,9 +1018,29 @@ def test_solo_fechas_con_origen_reintenta_si_las_fechas_ya_estan_puestas(tmp_pat
     moodle = _aula_con_tarea_importada(entrega=(2026, 10, 12, 23, 59))
     documento = _solo_fechas(carpeta, moodle)
     assert documento["errores"] == []
-    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {
-        601: _huella_de_la_tarea((2026, 10, 12, 23, 59))
-    }
+    # Aceptada por la segunda vía: no se renueva, se deja la huella que había.
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {601: _huella_de_la_tarea()}
+
+
+def test_solo_fechas_aceptada_por_la_segunda_via_no_bendice_un_cambio_de_texto(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea_importada(carpeta)
+    _copia_de_tarea(carpeta, _huella_de_la_tarea())
+    moodle = _aula_con_tarea_importada(entrega=(2026, 10, 12, 23, 59))  # fechas ya puestas
+    moodle.formularios[601]["introeditor[text]"] = "<p>Lo cambió el docente</p>"
+    documento = _solo_fechas(carpeta, moodle)
+    assert documento["errores"] == []
+    assert [c[1] for c in moodle.llamadas if c[0] == "actualizar"] == [601]
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {601: _huella_de_la_tarea()}
+    doc = contenido.cargar(carpeta / "tarea.md")
+    registro: dict = {}
+    estado.anotar_verificado(registro, contenido.hash_documento(doc), "tarea.md", 100)
+    llamadas = len(moodle.llamadas)
+    completa = publicacion.publicar_en_cursos(
+        moodle, CFG, [doc], carpeta, PresenciaFalsa(), entorno="real", verificados=registro
+    )
+    assert completa["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert not any(c[0] == "actualizar" for c in moodle.llamadas[llamadas:])
 
 
 # Lo que se rechaza por su origen no deja nada hecho ni se confirma
