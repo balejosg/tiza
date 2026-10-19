@@ -565,7 +565,7 @@ _SIGUIENTES_A_UPDATE_FIELDS = tuple(
 )
 
 
-_CAMPO_INDICE = "TO" + "C"  # partido: test_ayuda lo tomaría por un código de error
+_CAMPO_INDICE = "TOC"  # nombre del campo de índice de Word, no un código de error
 
 
 def _tiene_indice(raiz: Any) -> bool:

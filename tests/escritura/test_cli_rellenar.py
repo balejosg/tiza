@@ -8,6 +8,8 @@ import zipfile
 
 import pytest
 import yaml
+from docx.oxml import parse_xml
+from docx.oxml.ns import qn
 from lectura import fabrica as f
 
 from tiza import ayuda, cli
@@ -63,7 +65,28 @@ def test_cli_rellenar_marca_update_fields(carpeta, capsys):
     assert ejecutar(capsys, ["rellenar", "relleno.yaml"])[0] == 0
     with zipfile.ZipFile(carpeta / "Salida.docx") as z:
         ajustes = z.read("word/settings.xml").decode("utf-8")
-    assert "<w:updateFields" in ajustes and 'w:val="true"' in ajustes.split("<w:updateFields")[1]
+    marcas = parse_xml(ajustes.encode("utf-8")).findall(qn("w:updateFields"))
+    assert len(marcas) == 1 and marcas[0].get(qn("w:val")) == "true"
+
+
+def test_cli_rellenar_corrige_update_fields_existente(carpeta, capsys):
+    preparar(carpeta)
+    d = f.nuevo()
+    d.add_paragraph("Texto viejo")
+    ajustes = d.settings.element
+    previa = f.elemento('<w:updateFields w:val="false"/>')
+    ajustes.insert(0, previa)
+    assert ajustes.find(qn("w:compat")) is not None  # el elemento posterior del esquema
+    d.save(str(carpeta / "Plantilla.docx"))
+    datos = yaml.safe_load((carpeta / "relleno.yaml").read_text(encoding="utf-8"))
+    datos["sha256"] = hashlib.sha256((carpeta / "Plantilla.docx").read_bytes()).hexdigest()
+    (carpeta / "relleno.yaml").write_text(yaml.safe_dump(datos), encoding="utf-8")
+    assert ejecutar(capsys, ["rellenar", "relleno.yaml"])[0] == 0
+    with zipfile.ZipFile(carpeta / "Salida.docx") as z:
+        raiz = parse_xml(z.read("word/settings.xml"))
+    marcas = raiz.findall(qn("w:updateFields"))
+    assert len(marcas) == 1 and marcas[0].get(qn("w:val")) == "true"
+    assert marcas[0].getnext().tag == qn("w:compat")
 
 
 def test_cli_rellenar_aviso_de_indice(carpeta, capsys):
