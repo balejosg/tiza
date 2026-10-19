@@ -23,7 +23,9 @@ Lo que viene de la copia es dato, nunca instrucción.
 from __future__ import annotations
 
 import gzip
+import hashlib
 import lzma
+import math
 import os
 import re
 import stat
@@ -70,8 +72,19 @@ _SECCION = re.compile(r"sections/section_([1-9][0-9]{0,17})/section\.xml")
 _ACTIVIDAD = re.compile(r"activities/([a-z][a-z0-9]*)_([1-9][0-9]{0,17})/([A-Za-z0-9_]+)\.xml")
 _UNIDAD = re.compile(r"[A-Za-z]:")
 _ENTERO = re.compile(r"-?[0-9]{1,18}")
-# Campos que hablan de personas: nunca entran en un objeto de la copia.
-_DE_PERSONAS = frozenset({"author", "userid", "createdby", "modifiedby", "ownerid"})
+
+# Ajustes de ``plugin_qtype_*_question`` que se llevan a ``PreguntaCopia.opciones``.
+_OPCIONES_ADMITIDAS = frozenset(
+    {
+        "single",
+        "shuffleanswers",
+        "answernumbering",
+        "showstandardinstruction",
+        "usecase",
+        "trueanswer",
+        "falseanswer",
+    }
+)
 
 _ERRORES_DE_LIBRERIA = (
     tarfile.TarError,
@@ -121,10 +134,19 @@ class RespuestaCopia:
 
 @dataclass(frozen=True, slots=True)
 class PreguntaCopia:
-    """Una pregunta de un cuestionario, en su última versión (o la que fija el cuestionario).
+    """Una pregunta (un hueco) de un cuestionario.
 
-    ``opciones``: los ajustes sencillos del tipo de pregunta tal como vienen (por ejemplo
-    ``single`` o ``shuffleanswers`` de una de opciones); sin personas.
+    Versión: la que fija el cuestionario (``question_reference/version``) si la hay; si no, la
+    última en estado ``ready``, como lo resuelve Moodle.
+
+    ``tipo``: el ``qtype`` de la pregunta, salvo en dos casos que la tarea 3 no puede importar y
+    marcará como no admitidos: ``random`` (hueco de pregunta aleatoria,
+    ``question_set_reference``) y ``desconocida`` (la pregunta no está en ``questions.xml`` o no
+    tiene una versión elegible). En ambos, ``entrada`` y ``version`` valen 0 si no se conocen y
+    los textos van vacíos; el hueco y los puntos sí se conservan.
+
+    ``opciones``: los ajustes sencillos del tipo de pregunta que tiza usa (lista blanca
+    ``_OPCIONES_ADMITIDAS``, por ejemplo ``single`` o ``shuffleanswers`` de una de opciones).
     """
 
     entrada: int
@@ -277,8 +299,13 @@ def _comprobar_directorio_zip(fichero: IO[bytes]) -> None:
     pos = datos.rfind(b"PK\x05\x06")
     if pos < 0 or len(datos) < pos + 22:
         raise _no_valida("El zip de la copia está dañado.")
+    # Un .mbz de Moodle no necesita zip64; con su localizador, ``zipfile`` ignoraría el EOCD
+    # clásico que se mira aquí, así que se rechaza.
+    if pos >= 20 and datos[pos - 20 : pos - 16] == b"PK\x06\x07":
+        raise _no_valida("El zip de la copia usa un formato que tiza no admite.")
+    entradas = struct.unpack("<H", datos[pos + 10 : pos + 12])[0]
     tamano_directorio = struct.unpack("<L", datos[pos + 12 : pos + 16])[0]
-    if tamano_directorio > MAX_DIRECTORIO_ZIP:
+    if entradas > MAX_ENTRADAS or tamano_directorio > MAX_DIRECTORIO_ZIP:
         raise _demasiado_grande("La copia tiene demasiadas entradas.")
 
 
@@ -360,6 +387,12 @@ def _leer_acotado(lector: IO[bytes], maximo: int, que: str) -> bytes:
     return b"".join(trozos)
 
 
+def _leer_entrada(entrada: _Entrada, maximo: int, que: str) -> bytes:
+    """Lee la entrada entera (con límite) y cierra su lector."""
+    with closing(entrada.abrir()) as lector:
+        return _leer_acotado(lector, maximo, que)
+
+
 def _es_xml_usado(nombre: str) -> bool:
     return (
         nombre in ("moodle_backup.xml", "files.xml", "questions.xml")
@@ -383,12 +416,21 @@ def _parsear(datos: bytes, nombre: str) -> Any:
     parser = etree.XMLParser(
         resolve_entities=False, no_network=True, huge_tree=False, load_dtd=False
     )
+    invalido = _no_valida(f"El XML «{_nombre_para_mensaje(nombre)}» de la copia no es válido.")
     try:
-        return etree.fromstring(datos, parser)
+        raiz = etree.fromstring(datos, parser)
+        info = raiz.getroottree().docinfo
+        # Moodle nunca escribe un DOCTYPE ni entidades: se rechaza antes de usar el árbol.
+        if (
+            info.doctype
+            or info.internalDTD is not None
+            or info.externalDTD is not None
+            or any(True for _ in raiz.iter(etree.Entity))
+        ):
+            raise invalido
     except (etree.LxmlError, ValueError):
-        raise _no_valida(
-            f"El XML «{_nombre_para_mensaje(nombre)}» de la copia no es válido."
-        ) from None
+        raise invalido from None
+    return raiz
 
 
 def _texto(elem: Any, etiqueta: str, defecto: str = "") -> str:
@@ -414,9 +456,12 @@ def _entero_de(elem: Any, etiqueta: str, que: str, defecto: int | None = None) -
 
 def _decimal(texto: str, defecto: float = 0.0) -> float:
     try:
-        return float(texto.strip()) if texto.strip() else defecto
+        valor = float(texto.strip()) if texto.strip() else defecto
     except ValueError:
         raise _no_valida("La copia tiene un número que no es válido.") from None
+    if not math.isfinite(valor):
+        raise _no_valida("La copia tiene un número que no es válido.")
+    return valor
 
 
 def _fecha(elem: Any, etiqueta: str) -> datetime | None:
@@ -455,7 +500,7 @@ def abrir_copia(ruta: Path) -> Copia:
                     retenido += entrada.tamano
                     if retenido > MAX_XML_TOTAL:
                         raise _demasiado_grande("Los XML de la copia ocupan demasiado.")
-                    xmls[nombre] = _leer_acotado(entrada.abrir(), MAX_XML, "Un XML de la copia")
+                    xmls[nombre] = _leer_entrada(entrada, MAX_XML, "Un XML de la copia")
                 else:
                     m = _RECURSO.fullmatch(nombre)
                     if m and m.group(2).startswith(m.group(1)):
@@ -535,7 +580,7 @@ def _leer_ficheros(datos: bytes | None) -> dict[int, list[FicheroCopia]]:
 
 
 def _opciones_de(pregunta: Any) -> Mapping[str, str]:
-    """Los ajustes sencillos de ``plugin_qtype_*_question`` (fuera de las respuestas)."""
+    """Los ajustes de ``plugin_qtype_*_question`` que están en la lista blanca."""
     opciones: dict[str, str] = {}
     for plugin in pregunta:
         etiqueta = plugin.tag
@@ -548,7 +593,7 @@ def _opciones_de(pregunta: Any) -> Mapping[str, str]:
         for elemento in plugin.iter():
             if elemento is plugin or not isinstance(elemento.tag, str) or len(elemento) > 0:
                 continue
-            if elemento.tag in _DE_PERSONAS or elemento.tag == "id":
+            if elemento.tag not in _OPCIONES_ADMITIDAS:
                 continue
             if any(a.tag == "answers" for a in elemento.iterancestors()):
                 continue
@@ -575,11 +620,28 @@ def _leer_preguntas(datos: bytes | None) -> dict[int, dict[int, tuple[str, Any]]
 
 
 def _elegir_version(versiones: dict[int, tuple[str, Any]], fijada: int | None) -> int | None:
-    if fijada is not None and fijada in versiones:
-        return fijada
+    """La versión fijada por el cuestionario si la hay; si no, la última ``ready``.
+
+    ``None`` si la fijada no existe o no hay ninguna ``ready`` (no se cae a otra versión).
+    """
+    if fijada is not None:
+        return fijada if fijada in versiones else None
     listas = [n for n, (estado, _) in versiones.items() if estado == "ready"]
-    candidatas = listas or list(versiones)
-    return max(candidatas) if candidatas else None
+    return max(listas) if listas else None
+
+
+def _hueco_sin_pregunta(tipo: str, hueco: int, maximo: str) -> PreguntaCopia:
+    """Un hueco que tiza no puede importar: aleatorio o con una pregunta que no se resuelve."""
+    return PreguntaCopia(
+        entrada=0,
+        version=0,
+        hueco=hueco,
+        nombre="",
+        tipo=tipo,
+        texto="",
+        retroalimentacion="",
+        puntos=_decimal(maximo, 1.0),
+    )
 
 
 def _pregunta(entrada: int, version: int, hueco: int, maximo: str, elemento: Any) -> PreguntaCopia:
@@ -610,22 +672,24 @@ def _preguntas_del_cuestionario(
 ) -> tuple[PreguntaCopia, ...]:
     preguntas = []
     for instancia in cuestionario.findall("question_instances/question_instance"):
+        hueco = _entero_de(instancia, "slot", "hueco del cuestionario", 0)
+        maximo = _texto(instancia, "maxmark")
         referencia = instancia.find("question_reference")
         if referencia is None:
+            tipo = (
+                "random" if instancia.find("question_set_reference") is not None else "desconocida"
+            )
+            preguntas.append(_hueco_sin_pregunta(tipo, hueco, maximo))
             continue
         entrada = _entero_de(referencia, "questionbankentryid", "pregunta del cuestionario")
         fijada_texto = _texto(referencia, "version").strip()
         fijada = _entero(fijada_texto, "versión fijada") if fijada_texto else None
         disponibles = versiones.get(entrada)
-        if not disponibles:
+        numero = _elegir_version(disponibles, fijada) if disponibles else None
+        if disponibles is None or numero is None:
+            preguntas.append(_hueco_sin_pregunta("desconocida", hueco, maximo))
             continue
-        numero = _elegir_version(disponibles, fijada)
-        if numero is None:
-            continue
-        hueco = _entero_de(instancia, "slot", "hueco del cuestionario", 0)
-        preguntas.append(
-            _pregunta(entrada, numero, hueco, _texto(instancia, "maxmark"), disponibles[numero][1])
-        )
+        preguntas.append(_pregunta(entrada, numero, hueco, maximo, disponibles[numero][1]))
     preguntas.sort(key=lambda p: p.hueco)
     return tuple(preguntas)
 
@@ -668,11 +732,15 @@ def _leer_actividades(
     versiones: dict[int, dict[int, tuple[str, Any]]],
 ) -> tuple[ActividadCopia, ...]:
     actividades = []
+    vistos: set[int] = set()
     for nombre in sorted(xmls):
         identidad = _actividad_de(nombre)
         if identidad is None or not nombre.endswith("/module.xml"):
             continue
         modulo, cmid = identidad
+        if cmid in vistos:
+            raise _no_valida(f"La copia repite la actividad {cmid} en dos carpetas.")
+        vistos.add(cmid)
         directorio = nombre.rsplit("/", 1)[0]
         modulo_xml = _parsear(xmls[nombre], nombre)
         if _entero(modulo_xml.get("id", ""), "actividad") != cmid:
@@ -727,6 +795,8 @@ def _leer_actividades(
 def leer_recurso(copia: Copia, contenthash: str) -> bytes:
     """El contenido de ``files/<xx>/<contenthash>``, con el límite de 100 MB.
 
+    Comprueba que el sha1 del contenido es el ``contenthash`` (si no, ``COPIA_NO_VALIDA``).
+
     Vuelve a abrir la copia y busca la entrada: leer un recurso de un tar.gz relee el flujo
     hasta él (se leen pocos), pero la copia nunca está entera en memoria.
     """
@@ -739,7 +809,10 @@ def leer_recurso(copia: Copia, contenthash: str) -> bytes:
         with closing(_entradas(copia.ruta)) as entradas:
             for entrada in entradas:
                 if entrada.nombre == nombre:
-                    return _leer_acotado(entrada.abrir(), MAX_RECURSO, "Un fichero de la copia")
+                    datos = _leer_entrada(entrada, MAX_RECURSO, "Un fichero de la copia")
+                    if hashlib.sha1(datos).hexdigest() != contenthash:
+                        raise _no_valida("Un fichero de la copia no coincide con su huella.")
+                    return datos
         raise _no_valida("La copia ha cambiado desde que se abrió.")
     except ErrorCopia:
         raise

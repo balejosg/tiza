@@ -55,14 +55,16 @@ class FicheroFalso:
 
 @dataclass
 class PreguntaFalsa:
-    """Una pregunta del banco; ``versiones``: (número, texto) de cada versión."""
+    """Una pregunta del banco; ``versiones``: (número, texto[, estado]) de cada versión."""
 
     entrada: int
     nombre: str = "P01"
-    versiones: Sequence[tuple[int, str]] = ((1, "Uno es uno"),)
+    versiones: Sequence[tuple[int, str] | tuple[int, str, str]] = ((1, "Uno es uno"),)
     tipo: str = "truefalse"
     respuestas: Sequence[tuple[str, float]] = (("Verdadero", 1.0), ("Falso", 0.0))
     fijada: int | None = None  # versión que fija el cuestionario (None = la última)
+    estado: str = "ready"  # estado de todas sus versiones
+    modo: str = "normal"  # "aleatoria": hueco aleatorio; "ausente": no está en questions.xml
 
 
 @dataclass
@@ -155,6 +157,15 @@ def _module(actividad: ActividadFalsa) -> bytes:
 def _instancias(actividad: ActividadFalsa) -> str:
     partes = []
     for hueco, pregunta in enumerate(actividad.preguntas, start=1):
+        if pregunta.modo == "aleatoria":
+            partes.append(
+                f'<question_instance id="{hueco}"><slot>{hueco}</slot><page>1</page>'
+                "<maxmark>1.0000000</maxmark>"
+                f'<question_set_reference id="{hueco}"><component>mod_quiz</component>'
+                "<filtercondition>{}</filtercondition></question_set_reference>"
+                "</question_instance>"
+            )
+            continue
         version = "$@NULL@$" if pregunta.fijada is None else str(pregunta.fijada)
         partes.append(
             f'<question_instance id="{hueco}"><slot>{hueco}</slot><page>1</page>'
@@ -213,8 +224,11 @@ def _questions_xml(actividades: Sequence[ActividadFalsa]) -> bytes:
     identificador = 100
     for actividad in actividades:
         for pregunta in actividad.preguntas:
+            if pregunta.modo != "normal":
+                continue
             versiones = []
-            for numero, texto in pregunta.versiones:
+            for numero, texto, *resto in pregunta.versiones:
+                estado = resto[0] if resto else pregunta.estado
                 identificador += 1
                 respuestas = "".join(
                     f"<answer id='{n}'><answertext>{_e(t)}</answertext>"
@@ -223,7 +237,7 @@ def _questions_xml(actividades: Sequence[ActividadFalsa]) -> bytes:
                 )
                 versiones.append(
                     f'<question_versions id="{identificador}"><version>{numero}</version>'
-                    f'<status>ready</status><questions><question id="{identificador}">'
+                    f'<status>{estado}</status><questions><question id="{identificador}">'
                     f"<name>{_e(pregunta.nombre)}</name><questiontext>{_e(texto)}</questiontext>"
                     "<generalfeedback></generalfeedback><defaultmark>1.0000000</defaultmark>"
                     f"<qtype>{_e(pregunta.tipo)}</qtype>"

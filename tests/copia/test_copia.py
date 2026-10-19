@@ -5,8 +5,11 @@ from __future__ import annotations
 import dataclasses
 import io
 import os
+import stat
+import struct
 import tarfile
 import time
+import zipfile
 from datetime import UTC, datetime
 
 import pytest
@@ -125,7 +128,8 @@ def test_cmid_no_coincide(tmp_path):
     assert "page_501" in error.detalle
 
 
-def test_xml_con_entidades(tmp_path):
+@pytest.mark.parametrize("formato", FORMATOS)
+def test_xml_con_entidades(tmp_path, formato):
     secreto = tmp_path / "secreto.txt"
     secreto.write_text("CONTENIDO-SECRETO-DEL-FICHERO", encoding="utf-8")
     xml = (
@@ -136,11 +140,30 @@ def test_xml_con_entidades(tmp_path):
     ).encode()
     secciones, actividades = f.copia_basica()
     actividades[0].xml_propio = xml
-    c = abrir(tmp_path, secciones, actividades)
-    pagina = c.actividades[0]
-    assert pagina.nombre == "Con entidad"
-    assert "CONTENIDO-SECRETO" not in "".join(textos(c))
-    assert "lol" not in pagina.html
+    error = error_de(tmp_path, secciones, actividades, formato=formato)
+    assert error.codigo == "COPIA_NO_VALIDA"
+    assert "activities/page_501/page.xml" in error.detalle
+    visible = f"{error.codigo} {error.detalle} {error!r} {error}"
+    assert "SECRETO" not in visible and "lol" not in visible
+
+
+@pytest.mark.parametrize(
+    "doctype",
+    [
+        b'<!DOCTYPE a SYSTEM "http://example.invalid/a.dtd">',
+        b"<!DOCTYPE a>",
+        b'<!DOCTYPE a [<!ENTITY ll "lol">]>',
+    ],
+)
+def test_cualquier_doctype_se_rechaza(tmp_path, doctype):
+    secciones, actividades = f.copia_basica()
+    actividades[0].xml_propio = (
+        b'<?xml version="1.0"?>'
+        + doctype
+        + b'<activity id="9" moduleid="501" modulename="page" contextid="1501">'
+        b'<page id="9"><name>X</name><content>y</content></page></activity>'
+    )
+    assert error_de(tmp_path, secciones, actividades).codigo == "COPIA_NO_VALIDA"
 
 
 @pytest.mark.parametrize("formato", FORMATOS)
@@ -517,3 +540,211 @@ def test_actividad_sin_xml_propio_usa_el_titulo_de_la_copia(tmp_path):
     ruta.write_bytes(f.empaquetar(entradas))
     foro = next(a for a in abrir_copia(ruta).actividades if a.cmid == 504)
     assert (foro.nombre, foro.html) == ("Un foro", "")
+
+
+# --- Ronda de arreglos 1 -------------------------------------------------------------
+
+
+def _zip_con_directorio(n=300):
+    entradas = f.entradas_de_copia(*f.copia_basica())
+    entradas.update({f"extra/{i}.txt": b"" for i in range(n)})
+    return f.empaquetar(entradas, "zip")
+
+
+def _forjar_zip64(datos: bytes) -> bytes:
+    """Un zip cuyo EOCD clásico miente (directorio de 10 bytes) y cuyo registro zip64 dice la verdad."""
+    eocd = datos.rfind(b"PK\x05\x06")
+    cd_size, cd_off = struct.unpack("<LL", datos[eocd + 12 : eocd + 20])
+    entradas = struct.unpack("<H", datos[eocd + 10 : eocd + 12])[0]
+    registro = struct.pack(
+        "<LQHHLLQQQQ", 0x06064B50, 44, 45, 45, 0, 0, entradas, entradas, cd_size, cd_off
+    )
+    localizador = struct.pack("<LLQL", 0x07064B50, 0, cd_off + cd_size, 1)
+    falso = bytearray(datos[eocd:])
+    struct.pack_into("<L", falso, 12, 10)
+    return datos[:eocd] + registro + localizador + bytes(falso)
+
+
+def test_zip64_falso_no_salta_el_limite_del_directorio(tmp_path, monkeypatch):
+    datos = _zip_con_directorio()
+    monkeypatch.setattr(copia, "MAX_DIRECTORIO_ZIP", 1000)
+    # El zip normal pasa del límite del directorio...
+    ruta = tmp_path / "normal.mbz"
+    ruta.write_bytes(datos)
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(ruta)
+    assert info.value.codigo == "COPIA_DEMASIADO_GRANDE"
+    # ...y el forjado, que lo esconde tras un localizador zip64, también se rechaza.
+    forjado = tmp_path / "forjado.mbz"
+    forjado.write_bytes(_forjar_zip64(datos))
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(forjado)
+    assert info.value.codigo in ("COPIA_NO_VALIDA", "COPIA_DEMASIADO_GRANDE")
+    assert type(info.value) is ErrorCopia
+
+
+def test_zip64_se_rechaza_aunque_el_directorio_sea_pequeno(tmp_path):
+    ruta = tmp_path / "forjado.mbz"
+    ruta.write_bytes(_forjar_zip64(_zip_con_directorio(5)))
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(ruta)
+    assert info.value.codigo == "COPIA_NO_VALIDA"
+
+
+def test_zip_con_demasiadas_entradas_segun_el_eocd(tmp_path):
+    datos = bytearray(_zip_con_directorio(5))
+    eocd = datos.rfind(b"PK\x05\x06")
+    struct.pack_into("<H", datos, eocd + 10, copia.MAX_ENTRADAS + 1)
+    ruta = tmp_path / "mentira.mbz"
+    ruta.write_bytes(bytes(datos))
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(ruta)
+    assert info.value.codigo == "COPIA_DEMASIADO_GRANDE"
+
+
+def _con_preguntas(tmp_path, preguntas, formato="tar.gz"):
+    secciones, actividades = f.copia_basica()
+    actividades.append(f.ActividadFalsa(505, "quiz", 7, "Un test", preguntas=preguntas))
+    return abrir(tmp_path, secciones, actividades, formato=formato).actividades[-1].preguntas
+
+
+@pytest.mark.parametrize("formato", FORMATOS)
+def test_pregunta_aleatoria_queda_como_random(tmp_path, formato):
+    normal = f.PreguntaFalsa(entrada=111)
+    aleatoria = f.PreguntaFalsa(entrada=0, modo="aleatoria")
+    primera, segunda = _con_preguntas(tmp_path, [normal, aleatoria], formato)
+    assert primera.tipo == "truefalse"
+    assert (segunda.tipo, segunda.hueco, segunda.texto, segunda.entrada) == ("random", 2, "", 0)
+    assert segunda.puntos == 1.0
+
+
+def test_pregunta_que_no_esta_en_el_banco_queda_como_desconocida(tmp_path):
+    (p,) = _con_preguntas(tmp_path, [f.PreguntaFalsa(entrada=222, modo="ausente")])
+    assert (p.tipo, p.hueco, p.puntos) == ("desconocida", 1, 2.0)
+
+
+def test_pregunta_sin_version_elegible_queda_como_desconocida(tmp_path):
+    borrador = f.PreguntaFalsa(entrada=111, estado="draft")
+    fijada_inexistente = f.PreguntaFalsa(entrada=112, fijada=9)
+    primera, segunda = _con_preguntas(tmp_path, [borrador, fijada_inexistente])
+    assert (primera.tipo, segunda.tipo) == ("desconocida", "desconocida")
+    assert (primera.hueco, segunda.hueco) == (1, 2)
+
+
+def test_huecos_conservan_su_orden(tmp_path):
+    preguntas = [
+        f.PreguntaFalsa(entrada=111),
+        f.PreguntaFalsa(entrada=0, modo="aleatoria"),
+        f.PreguntaFalsa(entrada=333, modo="ausente"),
+    ]
+    resultado = _con_preguntas(tmp_path, preguntas)
+    assert [(p.hueco, p.tipo) for p in resultado] == [
+        (1, "truefalse"),
+        (2, "random"),
+        (3, "desconocida"),
+    ]
+
+
+def test_la_ultima_version_ready_gana_a_una_mas_nueva_en_borrador(tmp_path):
+    pregunta = f.PreguntaFalsa(
+        entrada=111, versiones=[(1, "Vieja"), (2, "Lista"), (3, "Borrador", "draft")]
+    )
+    (p,) = _con_preguntas(tmp_path, [pregunta])
+    assert (p.version, p.texto) == (2, "Lista")
+
+
+def test_version_fijada_aunque_sea_borrador(tmp_path):
+    pregunta = f.PreguntaFalsa(
+        entrada=111, versiones=[(1, "Vieja", "draft"), (2, "Lista")], fijada=1
+    )
+    (p,) = _con_preguntas(tmp_path, [pregunta])
+    assert (p.version, p.texto) == (1, "Vieja")
+
+
+@pytest.mark.parametrize("valor", ["nan", "inf", "-inf", "Infinity"])
+def test_numeros_no_finitos_se_rechazan(tmp_path, valor):
+    secciones, actividades = f.copia_basica()
+    entradas = f.entradas_de_copia(
+        secciones,
+        [*actividades, f.ActividadFalsa(505, "quiz", 7, "T", preguntas=[f.PreguntaFalsa(111)])],
+    )
+    entradas["questions.xml"] = entradas["questions.xml"].replace(
+        b"<fraction>1.0</fraction>", f"<fraction>{valor}</fraction>".encode()
+    )
+    ruta = tmp_path / "copia.mbz"
+    ruta.write_bytes(f.empaquetar(entradas))
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(ruta)
+    assert info.value.codigo == "COPIA_NO_VALIDA"
+
+
+def test_opciones_solo_de_la_lista_blanca(tmp_path):
+    secciones, actividades = f.copia_basica()
+    entradas = f.entradas_de_copia(
+        secciones,
+        [*actividades, f.ActividadFalsa(505, "quiz", 7, "T", preguntas=[f.PreguntaFalsa(111)])],
+    )
+    entradas["questions.xml"] = entradas["questions.xml"].replace(
+        b"<single>1</single>",
+        b"<single>1</single><usermodified>987654</usermodified><shuffleanswers>0</shuffleanswers>",
+    )
+    ruta = tmp_path / "copia.mbz"
+    ruta.write_bytes(f.empaquetar(entradas))
+    (pregunta,) = abrir_copia(ruta).actividades[-1].preguntas
+    assert dict(pregunta.opciones) == {"single": "1", "shuffleanswers": "0"}
+    assert "987654" not in repr(pregunta)
+
+
+def test_mismo_cmid_en_dos_carpetas(tmp_path):
+    secciones, actividades = f.copia_basica()
+    actividades.append(f.ActividadFalsa(501, "label", 7, "Repetida"))
+    error = error_de(tmp_path, secciones, actividades)
+    assert error.codigo == "COPIA_NO_VALIDA"
+    assert "501" in error.detalle
+
+
+@pytest.mark.parametrize("formato", FORMATOS)
+def test_recurso_que_no_coincide_con_su_huella(tmp_path, formato):
+    secciones, actividades = f.copia_basica()
+    actividades[0].ficheros = [f.FicheroFalso("a.png", b"verdadero")]
+    entradas = f.entradas_de_copia(secciones, actividades)
+    ruta_entrada = next(n for n in entradas if n.startswith("files/"))
+    entradas[ruta_entrada] = b"cambiado por el camino"
+    ruta = tmp_path / "copia.mbz"
+    ruta.write_bytes(f.empaquetar(entradas, formato))
+    c = abrir_copia(ruta)
+    with pytest.raises(ErrorCopia) as info:
+        leer_recurso(c, c.actividades[0].ficheros[0].contenthash)
+    assert info.value.codigo == "COPIA_NO_VALIDA"
+
+
+def test_enlace_simbolico_dentro_de_un_zip_se_ignora(tmp_path):
+    secciones, actividades = f.copia_basica()
+    entradas = f.entradas_de_copia(secciones, actividades)
+    salida = io.BytesIO()
+    with zipfile.ZipFile(salida, "w") as archivo:
+        for nombre, datos in entradas.items():
+            archivo.writestr(nombre, datos)
+        enlace = zipfile.ZipInfo("sections/section_55/section.xml")
+        enlace.external_attr = (stat.S_IFLNK | 0o777) << 16
+        archivo.writestr(enlace, entradas["sections/section_7/section.xml"])
+    ruta = tmp_path / "copia.mbz"
+    ruta.write_bytes(salida.getvalue())
+    assert [s.id for s in abrir_copia(ruta).secciones] == [7]
+
+
+def test_zip_con_file_size_falso(tmp_path):
+    secciones, actividades = f.copia_basica()
+    datos = bytearray(f.construir_mbz(secciones, actividades, formato="zip"))
+    nombre = b"activities/page_501/page.xml"
+    cabecera = datos.index(b"PK\x01\x02", datos.index(nombre) - 1000)
+    # Busca la cabecera central de esa entrada (la que lleva su nombre tras 46 bytes).
+    while datos[cabecera + 46 : cabecera + 46 + len(nombre)] != nombre:
+        cabecera = datos.index(b"PK\x01\x02", cabecera + 1)
+    struct.pack_into("<L", datos, cabecera + 24, 10)  # file_size: dice 10 bytes
+    ruta = tmp_path / "copia.mbz"
+    ruta.write_bytes(bytes(datos))
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(ruta)
+    assert info.value.codigo == "COPIA_NO_VALIDA"
+    assert type(info.value) is ErrorCopia
