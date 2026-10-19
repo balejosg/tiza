@@ -15,6 +15,7 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 | `tiza normativa <consulta>` | agente o docente | Offline: consulta la normativa que trae tiza y devuelve un JSON con código, texto literal y procedencia. Consultas: `catalogo`, `ficha <codigo>`, `elemento <codigo>`, `norma "<cita>"`, `buscar "<texto>" [--en <codigo>]` y `programacion eso\|bachillerato\|fp`; todas menos `norma` aceptan `--curso-academico AAAA-AA` (por defecto, el de hoy) |
 | `tiza leer <fichero>` | agente o docente | Offline: convierte un `.docx` o `.pdf` de la carpeta en `.tiza/lecturas/<ruta>.txt` (la ruta con `__` en vez de `/`: `1DAM/Prog.docx` queda en `1DAM__Prog.docx.txt`), con una marca por bloque (`[p12]`, `[t4.f2.c1]`; en PDF, `g<página>.<n>`), y da un resumen JSON. Avisos: `CAMBIOS_SIN_ACEPTAR`, `PDF_SIN_TABLAS`. Errores: `FICHERO_FUERA`, `FICHERO_TEMPORAL`, `FORMATO_NO_ADMITIDO`, `DOCUMENTO_PROTEGIDO`, `PDF_PROTEGIDO`, `PDF_SIN_TEXTO`, `DOCUMENTO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `DOCUMENTO_AUSENTE`, `NOMBRE_NO_VALIDO`, `LECTURA_NO_ESCRIBIBLE` |
 | `tiza documento <fuente.md> [--salida <x.docx>]` | agente o docente | Offline: convierte un `.md` en un Word sencillo (títulos 1-4, negrita, cursiva, listas de hasta 3 niveles, tablas, enlaces y `\pagebreak`); por defecto, el nombre del `.md` con `.docx`. Nunca sobrescribe. Errores: `MARKDOWN_NO_ADMITIDO` (HTML, imágenes, bloques de código, citas, frontmatter, títulos 5-6; dice la línea), `DOCUMENTO_EXISTE` (usa `--salida` con otro nombre), `DOCUMENTO_NO_ESCRIBIBLE`, `DOCUMENTO_AUSENTE`, `FICHERO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `FORMATO_NO_ADMITIDO` (no es `.md`/`.docx` o no está en UTF-8), `NOMBRE_NO_VALIDO`, `FICHERO_FUERA`, `FICHERO_TEMPORAL` |
+| `tiza rellenar <relleno.yaml>` | agente o docente | Offline: aplica un `relleno.yaml` de la carpeta sobre una copia de la plantilla Word (`.docx`) del departamento o de una programación de referencia, con los ids de `tiza leer`; conserva estilos, encabezados, pies y numeración, y el índice se actualiza al abrir el Word. Nunca sobrescribe (`DOCUMENTO_EXISTE`). Formato y errores en [formato.md](formato.md) |
 | `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json` |
 | `tiza sesion [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
 | `tiza ordenar <md>… --en pruebas\|real` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): deja las actividades de esos ficheros en ese orden dentro de su sección, sin mover nada más; en real, el docente confirma el orden curso a curso. Cambiar `seccion:` y publicar mueve la actividad en vez de duplicarla |
@@ -119,6 +120,18 @@ sin_pruebas = true
 ```
 
 Para recuperar el curso de pruebas, cambia esa línea por `pruebas = 1234`.
+
+## Programación en Word
+
+Pide al agente «prepárame la programación de DAM1 para el curso que viene a partir de la
+plantilla del departamento». La skill le indica que pida en un solo mensaje la plantilla,
+la programación de referencia y lo que falte; que lea ambos con `tiza leer`; que te señale
+lo que está desfasado y de dónde sale; y que te pregunte solo lo que decides tú (grupos,
+horas, temporalización y los criterios si el departamento no los da).
+
+El resultado es un Word nuevo en la carpeta, con los estilos y el encabezado de tu
+plantilla. Al abrirlo, di que sí a actualizar los campos: así el índice queda al día.
+Si tu plantilla es un PDF, el agente la rehace en Markdown y usa `tiza documento`.
 
 ## Varios cursos reales
 

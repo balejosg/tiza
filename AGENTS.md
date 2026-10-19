@@ -19,7 +19,7 @@ en español.
   excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar` y `tiza actualizar` son del docente** (tampoco lances `python -m tiza.ventana`): no los ejecutes. El agente puede usar
-  `tiza normativa`, `tiza leer`, `tiza documento` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
+  `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
   `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar` y `tiza estructura` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
@@ -72,7 +72,10 @@ en español.
   agente pasa por `informe.py`.
 - `src/tiza/escritura/`: `tiza documento`, offline: convierte el Markdown del agente en un Word
   sencillo (`word.py`). Solo admite el subconjunto documentado (`MARKDOWN_NO_ADMITIDO` con el
-  número de línea) y nunca sobrescribe (`DOCUMENTO_EXISTE`).
+  número de línea) y nunca sobrescribe (`DOCUMENTO_EXISTE`). `tiza rellenar`, también offline:
+  `relleno.py` valida el `relleno.yaml` (forma, ids, conflictos) sin abrir la plantilla, y
+  `rellenar.py` aplica las operaciones sobre una copia de la plantilla con los ids de
+  `lectura/word.py`, sin sobrescribir nunca.
 - `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
   `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los

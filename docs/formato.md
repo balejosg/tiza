@@ -217,3 +217,110 @@ simple no vale (`tiza comprobar` avisa con `FORMULA_DOLAR_SIMPLE`). Valen en pá
 etiquetas, tareas y cuestionarios, no en las actividades H5P (`FORMULA_EN_H5P`). La vista
 previa enseña la fuente LaTeX; el dibujo se revisa en el curso de pruebas. Mira
 [`ejemplos/formulas.md`](../ejemplos/formulas.md).
+
+## Programación en Word: `relleno.yaml`
+
+Lo escribe el agente para `tiza rellenar`, que cambia una **copia** de una plantilla Word
+(`.docx`) sin tocar sus estilos, encabezados, pies ni numeración. Los ids vienen de
+`tiza leer` sobre esa misma plantilla, y `tiza leer` da también su `sha256`. El fichero va
+en la carpeta de la asignatura, no en `.tiza/`, y sus rutas son relativas a esa carpeta.
+
+```yaml
+plantilla: Plantilla departamento.docx
+sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+salida: Programacion DAM1 2027-28.docx
+operaciones:
+  - op: reemplazar
+    id: p3
+    texto: Programación didáctica, curso 2027-28
+```
+
+Cabecera, toda obligatoria:
+
+- `plantilla`: el `.docx` de origen. Se lee y no se modifica. Si cambió desde la lectura,
+  `PLANTILLA_CAMBIADA`.
+- `sha256`: 64 caracteres hexadecimales en minúscula.
+- `salida`: el `.docx` nuevo. Si ya existe, o si es la plantilla, `DOCUMENTO_EXISTE`.
+- `operaciones`: una lista de 1 a 2000 operaciones, que se aplican en ese orden.
+
+Operaciones (`op`):
+
+| `op` | Claves | Qué hace |
+|---|---|---|
+| `reemplazar` | `id`, `texto` | Cambia el texto de un párrafo o de una celda |
+| `insertar_despues` | `id`, `parrafos`, `estilo` (opcional) | Añade párrafos tras un párrafo o una tabla |
+| `filas` | `tabla`, `modelo`, `antes_de`, `contenido` | Añade filas a una tabla, copiando el formato de una fila modelo |
+| `duplicar_tabla` | `tabla`, `despues_de`, `veces`, `celdas` | Copia una tabla tras un párrafo o tabla, una vez por copia |
+| `borrar` | `id` | Borra un párrafo, una tabla o una fila |
+
+Textos: una cadena es un párrafo; una lista de cadenas son varios párrafos. Una cadena no
+admite saltos de línea ni caracteres de control (`RELLENO_INVALIDO`): para varios
+párrafos, usa una lista. `duplicar_tabla` admite hasta 40 copias.
+
+Ids (los de `tiza leer`): `p<n>` párrafo, `t<n>` tabla, `t<n>.f<i>` fila y `t<n>.f<i>.c<j>`
+celda. En una tabla anidada, la ruta completa (`t1.f1.c1.t1.f2.c1.p1`). Filas y celdas
+empiezan en 1 y las combinadas desplazan los números. En `duplicar_tabla.celdas` las celdas
+van relativas a la tabla copiada (`f1.c1`), solo las de primer nivel.
+
+Detalles por operación:
+
+- **`reemplazar`** en un párrafo: el texto nuevo toma el formato del primer trozo de texto
+  del párrafo; el resto de trozos y los campos se quitan. Si el párrafo es un control de
+  contenido («Haga clic aquí…»), el control se conserva y deja de mostrar el texto de
+  ejemplo. En una celda se sustituye todo su contenido, incluida una tabla anidada: para
+  conservarla, usa sus ids. Para cambiar el texto de un control y conservarlo, reemplaza el
+  id del párrafo, no el de la celda.
+- **`insertar_despues`**: tras un párrafo copia su estilo y su formato; tras una tabla, el
+  estilo de párrafo normal. Con `estilo` (el nombre que ves en Word o su identificador)
+  usa ese estilo; si la plantilla no lo tiene, `ESTILO_INEXISTENTE` con la lista.
+- **`filas`**: `modelo` es el número de una fila normal, la que se copia; nunca la del
+  total. `antes_de` es el número de la fila ante la que se inserta, o `final`. `contenido`
+  es una lista de filas; cada fila, una lista de celdas, con el mismo número de celdas que
+  la fila modelo (`CELDAS_NO_COINCIDEN`). Cada celda es un texto o una lista de párrafos.
+  La fila modelo no puede tener celdas fusionadas (`FILA_MODELO_FUSIONADA`), ni `antes_de`
+  ser la continuación de una fusión vertical (`FILA_FUSIONADA`): insertar ahí la partiría.
+- **`duplicar_tabla`**: copia la tabla tras `despues_de`, una copia por elemento de
+  `celdas`. `veces` debe coincidir con el número de elementos (`{}` es una copia sin
+  cambios). Cada copia sale como está la tabla en ese momento.
+- **`borrar`**: un párrafo, una tabla o una fila (`t<n>.f<i>`). Una fila con celdas
+  fusionadas en vertical no se borra (`FILA_FUSIONADA`): reemplaza su texto.
+
+Orden y conflictos:
+
+- Las operaciones se aplican en el orden del fichero, pero todos los ids se resuelven
+  contra la plantilla original. Así, un `duplicar_tabla` copia lo que le hayas cambiado
+  antes en esa tabla.
+- `OPERACIONES_EN_CONFLICTO`, con las dos posiciones (p. ej. `operaciones[1]` y
+  `operaciones[4]`), si: se borra un bloque y otra operación lo toca, lo usa como
+  referencia (`tabla`, `despues_de`, `modelo`, `antes_de`) o lo tiene dentro; se borra un
+  bloque que está dentro de uno que otra operación reemplaza o borra; o se repite un
+  `reemplazar` o un `borrar` del mismo id. Añadir filas a una tabla cuya fila se borra no
+  es conflicto, siempre que la fila modelo y la de `antes_de` sean otras.
+
+Límites: el YAML pesa como mucho 2 MB, no admite anclas ni alias
+(`&` y `*`) ni claves repetidas. Una clave desconocida da `RELLENO_INVALIDO` con su ruta
+(`operaciones[2].colour`). Los índices de las rutas empiezan en 0.
+
+Salida: `tiza rellenar relleno.yaml` imprime un JSON en la pantalla. Si sale bien (código 0):
+`plantilla`, `salida`, `operaciones` (cuántas se aplicaron) y `avisos`. Si falla (código 2):
+`error`, `detalle` y `que_hacer`. El Word solo se crea al final: si algo falla antes, no queda
+nada escrito, y la plantilla nunca se toca.
+
+Códigos de error:
+
+| Código | Qué pasa |
+|---|---|
+| `RELLENO_INVALIDO` | El YAML no tiene la forma descrita; el mensaje dice dónde |
+| `OPERACIONES_EN_CONFLICTO` | Dos operaciones se contradicen sobre el mismo bloque |
+| `DOCUMENTO_EXISTE` | La salida ya existe o es la plantilla |
+| `DOCUMENTO_AUSENTE` | No existe la plantilla |
+| `FICHERO_FUERA`, `FICHERO_TEMPORAL`, `FORMATO_NO_ADMITIDO` | Una ruta sale de la carpeta, es oculta o un temporal de Word (`~$`), o no tiene la extensión que toca |
+| `PLANTILLA_CAMBIADA` | El `sha256` no coincide: vuelve a `tiza leer` |
+| `ID_DESCONOCIDO` | Un id no existe o no es del tipo que pide la operación |
+| `CELDAS_NO_COINCIDEN` | Una fila nueva no tiene las celdas de la fila modelo |
+| `FILA_MODELO_FUSIONADA`, `FILA_FUSIONADA` | Una fila con celdas fusionadas no se puede copiar ni borrar |
+| `ESTILO_INEXISTENTE` | La plantilla no tiene ese estilo de párrafo |
+
+Avisos: `INDICE_SE_ACTUALIZA_AL_ABRIR` (la plantilla tiene índice: Word lo actualiza al
+abrir la copia, y puede preguntarlo) y `CAMBIOS_SIN_ACEPTAR` (la plantilla tiene cambios
+sin aceptar, que se leen como aceptados).
