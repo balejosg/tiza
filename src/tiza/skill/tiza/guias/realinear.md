@@ -41,6 +41,9 @@ Pide copias **sin datos del alumnado**. Si la programación los trae, no los use
     pasado, por ejemplo) y el docente quiere reutilizarlo, impórtala con `--como-nuevas`: sale sin
     `origen` y se publica como actividades nuevas. `tiza copia` solo pide cursos de `tiza.toml`:
     esa copia la hace el docente a mano.
+  - `COPIA_DEL_MISMO_CURSO`: con `--como-nuevas`, la copia es de uno de los cursos de `tiza.toml`.
+    Impórtala sin `--como-nuevas`: así se publica sobre sus actividades y se comprueba lo que
+    cambió en el aula.
 - Cada actividad sale con un estado en `copia.json`:
   - `IMPORTADA`: fichero nuevo, listo para revisar.
   - `YA_IMPORTADO`: ya existía y no se ha tocado.
@@ -78,23 +81,37 @@ contestar, y todas juntas. No apliques nada hasta que responda.
 - **`CAMBIADA_DESDE_LA_IMPORTACION`**: antes de publicar, junta lo que el docente cambió en el aula
   con lo propuesto. Lo del aula está en `.tiza/copia/<cmid>.html`, en HTML.
   - Si el fichero es `.html` (página, tarea o etiqueta), junta HTML con HTML.
-  - Si es `.md` (cuestionario o H5P), deja el HTML del aula como bloque HTML, tal como lo escribe
-    `tiza importar`, y no lo conviertas a Markdown: un `*` o un `_` cambiaría el texto.
-  - Después, `tiza comprobar`, y enséñale el resultado al docente antes de publicar. Si no lo
-    juntas, pisas su cambio.
-- **Cuestionarios**: tiza no compara las preguntas ni los ajustes del cuestionario. Antes de
-  republicar uno, pregúntale si cambió preguntas o ajustes en el aula.
+  - Si es `.md` (cuestionario o H5P), deja el HTML del aula como bloque HTML y no lo conviertas a
+    Markdown: un `*` o un `_` cambiaría el texto.
+  - Después, `tiza comprobar`, y enséñale el resultado al docente antes de publicar. Mientras el
+    fichero siga como estaba al marcarse esta actividad, tiza no la publica
+    (`CAMBIADA_EN_EL_AULA`: «junta antes los cambios de `.tiza/copia/<cmid>.html`»). Para
+    descartar a propósito el cambio del aula, pregunta antes al docente: solo con su sí se toca
+    el fichero para publicarlo tal cual.
+- **Qué compara tiza y qué no**: la huella cubre **nombre, texto y fechas**. No cubre las
+  preguntas ni los ajustes de un cuestionario (intentos, tiempo, mezclar: tiza los manda siempre
+  al publicar), ni el paquete de una actividad H5P. Antes de republicar uno, pregúntale si cambió
+  preguntas o ajustes en el aula. Los archivos adicionales de una tarea no están en el fichero,
+  pero se conservan en el aula: el `detalle` de su entrada en `copia.json` lo dice.
 - **`HTML_NO_ADMITIDO`**: corrige lo que el filtro no admite (`tiza comprobar` dice qué) solo si el
   docente acepta perder ese contenido. Si no, no lo publiques.
 - **`PREGUNTAS_NO_ADMITIDAS`, `AJUSTES_NO_ADMITIDOS`, `TIPO_NO_GESTIONADO`**: tiza no los importa.
   Ponlos en la lista de cambios **a mano en el aula**, con lo que había y qué hacer. Por ejemplo:
-  foros, URL o recursos; tareas con adjuntos en el enunciado; cuestionarios con más de 10 intentos;
-  preguntas de un tipo que tiza no admite.
+  foros, URL o recursos; cuestionarios con más de 10 intentos; preguntas de un tipo que tiza no
+  admite (emparejamiento o imágenes en las preguntas, por ejemplo).
 
 ## 6. Al publicar
 
-- **`CAMBIADA_EN_EL_AULA`**: no insistas ni la publiques. Pide una copia nueva con `tiza copia`,
-  impórtala, junta lo que cambió (punto 5) y enséñale el resultado antes de publicar.
+- **`CAMBIADA_EN_EL_AULA`**: no insistas ni la publiques. Si ya importaste la copia nueva, junta
+  lo que cambió en tu fichero (punto 5); si no, pide una copia nueva con `tiza copia` e
+  impórtala primero. Enséñale el resultado al docente antes de publicar.
+- **`ORIGEN_SIN_HUELLA`**: tiza no sabe cómo estaba la actividad en la copia (falta
+  `.tiza/copia.json`, o la actividad no tiene huella: por ejemplo, el docente copió `aula/` a otro
+  ordenador). No se ha publicado esa actividad. Pide una copia nueva con `tiza copia`, impórtala
+  (así se crea la huella) y vuelve a publicar. No crees ni edites `.tiza/copia.json`.
+- **`HUELLA_NO_GUARDADA`** (paso del informe): la actividad se publicó bien, pero tiza no pudo
+  guardar lo que publicó para comprobar después los cambios. La próxima vez saltará
+  `CAMBIADA_EN_EL_AULA`: pide una copia nueva antes de volver a publicarla.
 - **`ORIGEN_NO_ENCONTRADO`**: la actividad ya no está en el aula, o ahora es de otro tipo. No se ha
   publicado nada. Pregúntale al docente si la creas de nuevo. Solo con su sí, quita la línea
   `origen:` del fichero y publícalo como nuevo. Sin su sí, no la publiques.

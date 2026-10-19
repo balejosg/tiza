@@ -141,8 +141,10 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   Los dos son enteros positivos; si no, `ORIGEN_INVALIDO`. Al publicar en ese curso, la
   actividad se busca por su `cmid`, así que sigue siendo la misma aunque cambies su nombre
   o su sección. Si no está en el aula, `ORIGEN_NO_ENCONTRADO`; solo con el sí del docente se
-  quita `origen:` para publicarla como nueva. Si alguien la cambió después
-  de la copia, `CAMBIADA_EN_EL_AULA` (no se publica). En otro curso o en pruebas, se busca
+  quita `origen:` para publicarla como nueva. Si alguien cambió su nombre, su texto o
+  sus fechas después de la copia, `CAMBIADA_EN_EL_AULA` (no se publica; las preguntas y
+  los ajustes de un cuestionario y el paquete H5P no se comparan). Sin la huella de la
+  copia en `.tiza/copia.json`, `ORIGEN_SIN_HUELLA` (tampoco se publica). En otro curso o en pruebas, se busca
   por sección, tipo y nombre, como cualquier fichero.
 - Si el `nombre` contiene `: ` (dos puntos y espacio), escríbelo entre comillas:
   `nombre: "Ejemplo: repaso"`.

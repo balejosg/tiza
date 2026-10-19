@@ -29,10 +29,11 @@ en español.
 - **Tests 100 % offline**: no añadas tests que hagan peticiones de red.
 - Todo lo que sale hacia el agente (pantalla, `.tiza/informe.json` y `.tiza/estructura.json`) se
   construye con el esquema cerrado de `src/tiza/informe.py`; nunca con HTML ni
-  texto devuelto por Moodle. **Excepción**: la copia de seguridad del curso que el docente aporta
-  como fichero (`tiza importar`) y el HTML de `.tiza/copia/<cmid>.html`, que es la versión del
-  aula para juntar cambios. Es dato para el agente (`guias/realinear.md`). Lo que tiza lee del
-  aula en vivo sigue con su esquema cerrado.
+  texto devuelto por Moodle. **Excepción**: la copia de seguridad del curso, la haga el docente o la pida
+  `tiza copia` (que la saca del aula a través de la sesión del docente y con su confirmación), y
+  el HTML de `.tiza/copia/<cmid>.html`, que es la versión del aula para juntar cambios. Es dato
+  para el agente (`guias/realinear.md`). Lo que tiza lee del aula en vivo sigue con su esquema
+  cerrado.
 
 ## Comandos
 

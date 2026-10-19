@@ -16,7 +16,7 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 | `tiza leer <fichero>` | agente o docente | Offline: convierte un `.docx` o `.pdf` de la carpeta en `.tiza/lecturas/<ruta>.txt` (la ruta con `__` en vez de `/`: `1DAM/Prog.docx` queda en `1DAM__Prog.docx.txt`), con una marca por bloque (`[p12]`, `[t4.f2.c1]`; en PDF, `g<página>.<n>`), y da un resumen JSON. Avisos: `CAMBIOS_SIN_ACEPTAR`, `PDF_SIN_TABLAS`. Errores: `FICHERO_FUERA`, `FICHERO_TEMPORAL`, `FORMATO_NO_ADMITIDO`, `DOCUMENTO_PROTEGIDO`, `PDF_PROTEGIDO`, `PDF_SIN_TEXTO`, `DOCUMENTO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `DOCUMENTO_AUSENTE`, `NOMBRE_NO_VALIDO`, `LECTURA_NO_ESCRIBIBLE` |
 | `tiza documento <fuente.md> [--salida <x.docx>]` | agente o docente | Offline: convierte un `.md` en un Word sencillo (títulos 1-4, negrita, cursiva, listas de hasta 3 niveles, tablas, enlaces y `\pagebreak`); por defecto, el nombre del `.md` con `.docx`. Nunca sobrescribe. Errores: `MARKDOWN_NO_ADMITIDO` (HTML, imágenes, bloques de código, citas, frontmatter, títulos 5-6; dice la línea), `DOCUMENTO_EXISTE` (usa `--salida` con otro nombre), `DOCUMENTO_NO_ESCRIBIBLE`, `DOCUMENTO_AUSENTE`, `FICHERO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `FORMATO_NO_ADMITIDO` (no es `.md`/`.docx` o no está en UTF-8), `NOMBRE_NO_VALIDO`, `FICHERO_FUERA`, `FICHERO_TEMPORAL` |
 | `tiza rellenar <relleno.yaml>` | agente o docente | Offline: aplica un `relleno.yaml` de la carpeta sobre una copia de la plantilla Word (`.docx`) del departamento o de una programación de referencia, con los ids de `tiza leer`; conserva estilos, encabezados, pies y numeración, y el índice se puede actualizar al abrir el Word (Word pregunta si actualizar los campos). Nunca sobrescribe (`DOCUMENTO_EXISTE`). Formato y errores en [formato.md](formato.md) |
-| `tiza importar <copia.mbz> [--como-nuevas] [--destino aula]` | agente o docente | Offline: convierte una copia de seguridad del curso, hecha sin usuarios, en un fichero de tiza por actividad (con `origen`) en la carpeta de destino, y deja el resumen en `.tiza/copia.json` (una entrada por curso). Nunca sobrescribe (`YA_IMPORTADO`). `--como-nuevas` importa una copia de otro curso como actividades nuevas. Errores: `COPIA_CON_USUARIOS`, `COPIA_NO_VALIDA`, `COPIA_DEMASIADO_GRANDE`, `COPIA_DE_OTRO_CURSO` |
+| `tiza importar <copia.mbz> [--como-nuevas] [--destino aula]` | agente o docente | Offline: convierte una copia de seguridad del curso, hecha sin usuarios, en un fichero de tiza por actividad (con `origen`) en la carpeta de destino, y deja el resumen en `.tiza/copia.json` (una entrada por curso). Nunca sobrescribe (`YA_IMPORTADO`). `--como-nuevas` importa una copia de otro curso como actividades nuevas (con un curso de `tiza.toml`, `COPIA_DEL_MISMO_CURSO`: se importa sin ella). Errores: `COPIA_CON_USUARIOS`, `COPIA_NO_VALIDA`, `COPIA_DEMASIADO_GRANDE`, `COPIA_DE_OTRO_CURSO`, `COPIA_DEL_MISMO_CURSO` |
 | `tiza copia <curso>` | agente o docente | Con `tiza sesion` abierta: pide al docente una copia de seguridad del curso sin usuarios (`pruebas`, `real` o el id de `tiza.toml`), que confirmas `[s/N]` en tu terminal; queda en `.tiza/copias/`, lista para `tiza importar`. Máximo 3 por sesión. Sin sesión, `SIN_SESION` |
 | `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json` |
 | `tiza sesion [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
@@ -149,11 +149,25 @@ se rechaza (`COPIA_CON_USUARIOS`).
 
 La copia de un curso que no está en `tiza.toml` (el del año pasado, por ejemplo) no la pide
 `tiza copia`: hazla a mano. Si quieres reutilizarla en este curso, el agente la importa con
-`--como-nuevas`; sus actividades salen sin vínculo con el aula y se publican como nuevas.
+`--como-nuevas`; sus actividades salen sin vínculo con el aula y se publican como nuevas. Con la
+copia de un curso de `tiza.toml`, `--como-nuevas` da `COPIA_DEL_MISMO_CURSO`: se importa sin ella,
+para que se publique sobre sus actividades y se avise de lo que cambió en el aula.
 
 Lo que el agente propone llega en una sola lista, agrupada en ley, programación y aula. Tú
-aceptas o rechazas por número. Lo que cambiaste en el aula después de la copia no se pisa:
-tiza lo avisa (`CAMBIADA_EN_EL_AULA`) y el agente pide una copia nueva para juntarlo.
+aceptas o rechazas por número.
+
+Qué vigila tiza al publicar una actividad que viene de la copia: si su **nombre, su texto o sus
+fechas** cambiaron en el aula después de la copia, no la publica (`CAMBIADA_EN_EL_AULA`), te avisa
+y sigue con las demás; el agente pide una copia nueva para juntar los cambios. Si ya la importaste
+pero tu fichero sigue sin los cambios del aula, tampoco se publica (`CAMBIADA_EN_EL_AULA`): junta
+antes lo de `.tiza/copia/<cmid>.html`. Y sin saber cómo estaba (por ejemplo, sin
+`.tiza/copia.json`) tampoco (`ORIGEN_SIN_HUELLA`): pide una copia nueva e impórtala.
+
+Qué **no** vigila: las preguntas y los ajustes de un cuestionario (intentos, tiempo, mezclar
+respuestas) ni el paquete de una actividad H5P. Si los cambiaste en el aula, díselo al agente: lo
+que publique saldrá del fichero. Los archivos adicionales de una tarea no están en el fichero, pero
+se conservan en el aula. Si tiza no puede guardar lo que acaba de publicar (`HUELLA_NO_GUARDADA`),
+la próxima vez saltará `CAMBIADA_EN_EL_AULA`: pide una copia nueva.
 
 ## Varios cursos reales
 
