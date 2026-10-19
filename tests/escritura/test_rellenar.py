@@ -12,6 +12,7 @@ from docx.oxml import parse_xml
 from docx.oxml.ns import qn
 from lectura import fabrica as f
 
+from dobles import enlace_simbolico
 from tiza import ayuda
 from tiza.escritura import ErrorEscritura
 from tiza.escritura.rellenar import rellenar
@@ -243,7 +244,7 @@ def test_estilo_por_styleid_y_por_nombre_en_ingles(tmp_path):
         InsertarDespues("p1", ("B",), estilo="Heading 1"),
     )
     _, nuevo = rellenar(tmp_path, relleno), Document(str(relleno.salida))
-    assert [p.style.name for p in nuevo.paragraphs] == ["Normal", "Heading 1", "Título 2"]
+    assert [p.style.name for p in nuevo.paragraphs] == ["Normal", "Título 2", "Heading 1"]
 
 
 def test_estilo_inexistente_con_la_lista(tmp_path):
@@ -769,3 +770,163 @@ def leer_docx_de(tmp_path, documento):
     ruta = tmp_path / "previa.docx"
     documento.save(str(ruta))
     return leer_docx(ruta)
+
+
+# --- ronda de arreglos de la revisión final ----------------------------------------------
+
+
+def _orden(nuevo):
+    return [p.text for p in nuevo.paragraphs]
+
+
+def test_dos_insertar_despues_sobre_la_misma_ancla_salen_en_el_orden_del_yaml(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Uno")
+    d.add_paragraph("Dos")
+    _, nuevo, _ = aplicar(
+        tmp_path,
+        d,
+        InsertarDespues("p1", ("A1", "A2")),
+        InsertarDespues("p1", ("B1",)),
+    )
+    assert _orden(nuevo) == ["Uno", "A1", "A2", "B1", "Dos"]
+
+
+def test_dos_duplicar_tabla_tras_la_misma_ancla_salen_en_el_orden_del_yaml(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Ancla")
+    f.tabla_unidad(d)
+    d.add_paragraph("Final")
+    _, _, lectura = aplicar(
+        tmp_path,
+        d,
+        DuplicarTabla("t1", "p1", 1, ({"f1.c1": ("PRIMERA",)},)),
+        DuplicarTabla("t1", "p1", 1, ({"f1.c1": ("SEGUNDA",)},)),
+    )
+    cabeceras = [b.hijos[0].hijos[0].hijos[0].texto for b in lectura.bloques if b.tipo == "tabla"]
+    assert cabeceras == ["PRIMERA", "SEGUNDA", "UNIDAD DE TRABAJO 1"]
+
+
+def test_insertar_despues_y_duplicar_tabla_tras_la_misma_ancla_en_orden(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Ancla")
+    f.tabla_unidad(d)
+    _, nuevo, _ = aplicar(
+        tmp_path,
+        d,
+        InsertarDespues("p1", ("Título",)),
+        DuplicarTabla("t1", "p1", 1, ({"f1.c1": ("COPIA",)},)),
+        InsertarDespues("p1", ("Cierre",)),
+    )
+    etiquetas = []
+    for hijo in nuevo.element.body:
+        if hijo.tag == qn("w:p"):
+            etiquetas.append("".join(t.text or "" for t in hijo.iter(qn("w:t"))))
+        elif hijo.tag == qn("w:tbl"):
+            etiquetas.append("tabla")
+    assert etiquetas[:6] == ["Ancla", "Título", "tabla", "Cierre", "", "tabla"]
+
+
+def test_borrar_el_parrafo_entre_dos_tablas_deja_un_parrafo_vacio(tmp_path):
+    d = f.nuevo()
+    f.tabla_unidad(d)
+    d.add_paragraph("Separador")
+    f.tabla_unidad(d)
+    d.add_paragraph("Final")
+    _, nuevo, _ = aplicar(tmp_path, d, Borrar("p1"))
+    etiquetas = [e.tag.rsplit("}", 1)[-1] for e in nuevo.element.body]
+    assert etiquetas[:4] == ["tbl", "p", "tbl", "p"]
+    assert "".join(t.text or "" for t in nuevo.element.body[1].iter(qn("w:t"))) == ""
+
+
+# --- enlaces simbólicos hacia fuera de la carpeta -----------------------------------------
+
+
+def _entorno_con_fuera(tmp_path):
+    carpeta = tmp_path / "asignatura"
+    carpeta.mkdir()
+    fuera = tmp_path / "fuera"
+    fuera.mkdir()
+    d = f.nuevo()
+    d.add_paragraph("Uno")
+    real = fuera / "Real.docx"
+    d.save(str(real))
+    return carpeta, fuera, real
+
+
+def _yaml_relleno(carpeta, plantilla, salida, sha):
+    ruta = carpeta / "relleno.yaml"
+    ruta.write_text(
+        f'plantilla: "{plantilla}"\nsha256: "{sha}"\nsalida: "{salida}"\n'
+        "operaciones:\n  - op: reemplazar\n    id: p1\n    texto: Dos\n",
+        encoding="utf-8",
+    )
+    return ruta
+
+
+def test_rellenar_plantilla_enlace_hacia_fuera_da_fichero_fuera(tmp_path):
+    carpeta, fuera, real = _entorno_con_fuera(tmp_path)
+    enlace = carpeta / "Plantilla.docx"
+    enlace_simbolico(enlace, real)
+    relleno = Relleno(
+        enlace,
+        hashlib.sha256(real.read_bytes()).hexdigest(),
+        carpeta / "Salida.docx",
+        (Reemplazar("p1", ("Dos",)),),
+    )
+    with pytest.raises(ErrorEscritura) as exc:
+        rellenar(carpeta, relleno)
+    assert exc.value.codigo == "FICHERO_FUERA"
+    assert not (carpeta / "Salida.docx").exists()
+
+
+def test_rellenar_salida_enlace_colgante_hacia_fuera_no_crea_nada_fuera(tmp_path):
+    carpeta, fuera, real = _entorno_con_fuera(tmp_path)
+    plantilla = carpeta / "Plantilla.docx"
+    plantilla.write_bytes(real.read_bytes())
+    enlace = carpeta / "Salida.docx"
+    enlace_simbolico(enlace, fuera / "Nuevo.docx")
+    relleno = Relleno(
+        plantilla,
+        hashlib.sha256(real.read_bytes()).hexdigest(),
+        enlace,
+        (Reemplazar("p1", ("Dos",)),),
+    )
+    with pytest.raises(ErrorEscritura) as exc:
+        rellenar(carpeta, relleno)
+    assert exc.value.codigo == "FICHERO_FUERA"
+    assert not (fuera / "Nuevo.docx").exists()
+    assert sorted(p.name for p in fuera.iterdir()) == ["Real.docx"]
+
+
+def test_agente_rellenar_con_enlaces_hacia_fuera_da_fichero_fuera(tmp_path):
+    from tiza import agente
+
+    carpeta, fuera, real = _entorno_con_fuera(tmp_path)
+    sha = hashlib.sha256(real.read_bytes()).hexdigest()
+
+    # El propio relleno.yaml es un enlace a un YAML de fuera.
+    externo = fuera / "relleno.yaml"
+    _yaml_relleno(fuera, "Plantilla.docx", "Salida.docx", sha).replace(externo)
+    enlace_yaml = carpeta / "relleno.yaml"
+    enlace_simbolico(enlace_yaml, externo)
+    with pytest.raises(Exception) as exc:
+        agente.rellenar("relleno.yaml", carpeta)
+    assert exc.value.codigo == "FICHERO_FUERA"
+    enlace_yaml.unlink()
+
+    # La plantilla es un enlace a un Word de fuera.
+    enlace_simbolico(carpeta / "Plantilla.docx", real)
+    _yaml_relleno(carpeta, "Plantilla.docx", "Salida.docx", sha)
+    with pytest.raises(Exception) as exc:
+        agente.rellenar("relleno.yaml", carpeta)
+    assert exc.value.codigo == "FICHERO_FUERA"
+    (carpeta / "Plantilla.docx").unlink()
+
+    # La salida es un enlace colgante hacia fuera.
+    (carpeta / "Plantilla.docx").write_bytes(real.read_bytes())
+    enlace_simbolico(carpeta / "Salida.docx", fuera / "Nuevo.docx")
+    with pytest.raises(Exception) as exc:
+        agente.rellenar("relleno.yaml", carpeta)
+    assert exc.value.codigo == "FICHERO_FUERA"
+    assert not (fuera / "Nuevo.docx").exists()

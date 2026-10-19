@@ -189,27 +189,33 @@ def _id(valor: Any, ruta: str, formas: tuple[re.Pattern[str], ...], ejemplo: str
 
 
 def _mapa(
-    valor: Any, ruta: str, permitidas: frozenset[str], requeridas: frozenset[str]
+    valor: Any,
+    ruta: str,
+    permitidas: tuple[str, ...],
+    requeridas: frozenset[str],
+    mostrar: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
+    """Un bloque de claves. El error de clave desconocida dice cuáles son las válidas."""
     if not isinstance(valor, dict):
         raise _error(ruta, "debe ser un bloque de claves («clave: valor»)")
     for clave in valor:
         if not isinstance(clave, str):
             raise _error(ruta, "tiene una clave que no es texto")
         if clave not in permitidas:
-            raise _error(_clave(ruta, clave), "clave desconocida")
+            validas = ", ".join(mostrar if mostrar is not None else permitidas)
+            raise _error(_clave(ruta, clave), f"clave desconocida; válidas: {validas}")
     for clave in sorted(requeridas):
         if clave not in valor:
             raise _error(ruta, f"falta la clave «{clave}»")
     return valor
 
 
-_CAMPOS: dict[str, frozenset[str]] = {
-    "reemplazar": frozenset({"id", "texto"}),
-    "insertar_despues": frozenset({"id", "parrafos", "estilo"}),
-    "filas": frozenset({"tabla", "modelo", "antes_de", "contenido"}),
-    "duplicar_tabla": frozenset({"tabla", "despues_de", "veces", "celdas"}),
-    "borrar": frozenset({"id"}),
+_CAMPOS: dict[str, tuple[str, ...]] = {
+    "reemplazar": ("id", "texto"),
+    "insertar_despues": ("id", "parrafos", "estilo"),
+    "filas": ("tabla", "modelo", "antes_de", "contenido"),
+    "duplicar_tabla": ("tabla", "despues_de", "veces", "celdas"),
+    "borrar": ("id",),
 }
 _FORMAS_REEMPLAZO = (_RE_PARRAFO, _RE_CELDA)
 _FORMAS_INSERTAR = (_RE_PARRAFO, _RE_TABLA)
@@ -244,7 +250,14 @@ def _operacion(valor: Any, ruta: str) -> Operacion:
             _clave(ruta, "op"),
             "operación no admitida: usa reemplazar, insertar_despues, filas, duplicar_tabla o borrar",
         )
-    datos = _mapa(valor, ruta, _CAMPOS[nombre] | {"op"}, (_CAMPOS[nombre] - {"estilo"}) | {"op"})
+    campos = _CAMPOS[nombre]
+    datos = _mapa(
+        valor,
+        ruta,
+        ("op", *campos),
+        frozenset(campos) - {"estilo"} | {"op"},
+        mostrar=campos,
+    )
 
     def campo(clave: str) -> str:
         return _clave(ruta, clave)
@@ -411,8 +424,9 @@ def _cargar_yaml(origen: Path) -> Any:
         texto = bruto.decode("utf-8-sig")
     except UnicodeDecodeError:
         raise _error("", f"{origen.name} no está en UTF-8.") from None
-    cargador = _CargadorSinAlias(texto)
+    cargador: _CargadorSinAlias | None = None
     try:
+        cargador = _CargadorSinAlias(texto)
         nodo = cargador.get_single_node()
         _sin_claves_repetidas(nodo, "")
         datos = cargador.construct_document(nodo) if nodo is not None else None
@@ -422,23 +436,29 @@ def _cargar_yaml(origen: Path) -> Any:
         marca = getattr(exc, "problem_mark", None)
         donde = f" (línea {marca.line + 1})" if marca is not None else ""
         raise _error("", f"no es YAML válido{donde}") from None
+    except (ValueError, OverflowError):
+        raise _error(
+            "", "no es YAML válido (¿una fecha sin comillas o un valor imposible?)"
+        ) from None
     except RecursionError:
         raise _error("", "está anidado demasiado") from None
     finally:
-        cargador.dispose()
+        if cargador is not None:
+            cargador.dispose()
     if datos is None:
         raise _error("", "el fichero está vacío")
     return datos
 
 
-def _dentro(valor: str | Path, base: Path, extensiones: frozenset[str]) -> Path:
+def dentro_de_la_carpeta(valor: str | Path, base: Path, extensiones: frozenset[str]) -> Path:
+    """Resuelve un fichero de la carpeta (``FICHERO_FUERA`` si se sale) con códigos de escritura."""
     try:
         return fichero_en_carpeta(valor, base, extensiones)
     except ErrorLectura as error:
         raise ErrorEscritura(error.codigo, error.detalle) from None
 
 
-_CLAVES_RAIZ = frozenset({"plantilla", "sha256", "salida", "operaciones"})
+_CLAVES_RAIZ = ("plantilla", "sha256", "salida", "operaciones")
 
 
 def cargar_relleno(ruta: Path, carpeta: Path) -> Relleno:
@@ -449,14 +469,14 @@ def cargar_relleno(ruta: Path, carpeta: Path) -> Relleno:
     ``ErrorEscritura`` con un código estable. No abre la plantilla ni mira si la salida existe.
     """
     base = Path(carpeta)
-    origen = _dentro(Path(ruta), base, EXTENSIONES_RELLENO)
-    datos = _mapa(_cargar_yaml(origen), "", _CLAVES_RAIZ, _CLAVES_RAIZ)
+    origen = dentro_de_la_carpeta(Path(ruta), base, EXTENSIONES_RELLENO)
+    datos = _mapa(_cargar_yaml(origen), "", _CLAVES_RAIZ, frozenset(_CLAVES_RAIZ))
     if not isinstance(datos["plantilla"], str):
         raise _error("plantilla", "debe ser la ruta de un .docx")
     if not isinstance(datos["salida"], str):
         raise _error("salida", "debe ser la ruta del .docx de salida")
-    plantilla = _dentro(datos["plantilla"], base, EXTENSIONES_PLANTILLA)
-    salida = _dentro(datos["salida"], base, EXTENSIONES_PLANTILLA)
+    plantilla = dentro_de_la_carpeta(datos["plantilla"], base, EXTENSIONES_PLANTILLA)
+    salida = dentro_de_la_carpeta(datos["salida"], base, EXTENSIONES_PLANTILLA)
     if plantilla == salida:
         raise ErrorEscritura(
             "DOCUMENTO_EXISTE",

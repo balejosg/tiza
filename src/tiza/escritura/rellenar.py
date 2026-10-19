@@ -29,15 +29,16 @@ from docx.oxml.ns import qn
 
 from tiza.escritura import ErrorEscritura
 from tiza.escritura.relleno import (
+    EXTENSIONES_PLANTILLA,
     DuplicarTabla,
     Filas,
     InsertarDespues,
     Operacion,
     Reemplazar,
     Relleno,
+    dentro_de_la_carpeta,
 )
 from tiza.escritura.word import escribir_sin_sobrescribir
-from tiza.ficheros import fichero_en_carpeta
 from tiza.lectura.modelo import ErrorLectura
 from tiza.lectura.word import analizar_docx, celdas_directas, leer_bytes_docx, mapa_de_tabla
 
@@ -356,10 +357,13 @@ def _asegurar_cierre(contenedor: Any) -> None:
 
 def _borrar(elemento: Any) -> None:
     padre = elemento.getparent()
+    antes, despues = elemento.getprevious(), elemento.getnext()
     padre.remove(elemento)
     if elemento.tag == _TR and padre.find(_TR) is None:  # una tabla sin filas no es válida
         _borrar(padre)
     elif padre.tag in (_TC, qn("w:body")):
+        if antes is not None and despues is not None and antes.tag == despues.tag == _TBL:
+            antes.addnext(OxmlElement("w:p"))  # sin un párrafo entre ellas, Word las funde
         _asegurar_cierre(padre)
 
 
@@ -411,7 +415,12 @@ def _continuacion(tr: Any) -> bool:
 
 
 def _preparar(
-    i: int, operacion: Operacion, mapa: dict[str, Any], estilos: _Estilos, ids: _Ids
+    i: int,
+    operacion: Operacion,
+    mapa: dict[str, Any],
+    estilos: _Estilos,
+    ids: _Ids,
+    ultimos: dict[Any, Any],
 ) -> Callable[[], None]:
     """Valida la operación con la plantilla y devuelve lo que la aplica sobre lo ya resuelto."""
     if isinstance(operacion, Reemplazar):
@@ -431,11 +440,12 @@ def _preparar(
                 ppr, formato = ref.find(_PPR), _formato(ref)
             elif estilos.defecto is not None:
                 ppr = _ppr_de_estilo(estilos.defecto)
-            anterior = ref
+            anterior = ultimos.get(ref, ref)  # tras lo ya insertado en esa ancla: orden del YAML
             for texto in operacion.parrafos:
                 nuevo = _parrafo(texto, ppr, formato)
                 anterior.addnext(nuevo)
                 anterior = nuevo
+            ultimos[ref] = anterior
 
         return insertar
 
@@ -491,7 +501,7 @@ def _preparar(
         ancla = _elemento(mapa, operacion.despues_de, _P, _TBL)
 
         def duplicar() -> None:
-            ultimo = ancla
+            ultimo = ultimos.get(ancla, ancla)  # tras lo ya insertado en esa ancla
             for cambios in operacion.celdas:
                 copia = copy.deepcopy(original)
                 ids.renovar(copia)
@@ -514,6 +524,7 @@ def _preparar(
             siguiente = ultimo.getnext()
             if siguiente is not None and siguiente.tag == _TBL:  # también por detrás
                 ultimo.addnext(OxmlElement("w:p"))
+            ultimos[ancla] = ultimo
 
         return duplicar
 
@@ -528,13 +539,6 @@ def _preparar(
 
 
 # --- Entrada ------------------------------------------------------------------------------
-
-
-def _fuera_de_la_carpeta(ruta: Path, carpeta: Path) -> Path:
-    try:
-        return fichero_en_carpeta(ruta, carpeta, frozenset({".docx"}))
-    except ErrorLectura as error:
-        raise ErrorEscritura(error.codigo, error.detalle) from None
 
 
 _SIGUIENTES_A_UPDATE_FIELDS = tuple(
@@ -603,8 +607,8 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
     plantilla no se toca.
     """
     carpeta = Path(carpeta)
-    plantilla = _fuera_de_la_carpeta(relleno.plantilla, carpeta)
-    salida = _fuera_de_la_carpeta(relleno.salida, carpeta)
+    plantilla = dentro_de_la_carpeta(relleno.plantilla, carpeta, EXTENSIONES_PLANTILLA)
+    salida = dentro_de_la_carpeta(relleno.salida, carpeta, EXTENSIONES_PLANTILLA)
     if os.path.lexists(salida):
         raise ErrorEscritura(
             "DOCUMENTO_EXISTE", f"Ya existe {salida.name}: tiza no sobrescribe un Word."
@@ -630,8 +634,9 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
     indice = _tiene_indice(analisis.documento.element)
     estilos = _Estilos(analisis.documento)
     ids = _Ids(analisis.documento.element)
+    ultimos: dict[Any, Any] = {}  # ancla -> último elemento insertado tras ella
     acciones = [
-        _preparar(i, operacion, analisis.mapa, estilos, ids)
+        _preparar(i, operacion, analisis.mapa, estilos, ids, ultimos)
         for i, operacion in enumerate(relleno.operaciones)
     ]
     try:

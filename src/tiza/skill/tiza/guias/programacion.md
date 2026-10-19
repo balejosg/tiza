@@ -28,6 +28,10 @@ Para lo que exige la normativa, consulta `tiza normativa programacion eso|bachil
 y, para cada elemento curricular, `tiza normativa ficha <codigo>`. Cita los textos literales
 y di de qué fecha son los datos (`version_datos`).
 
+Si `tiza normativa` da `CURSO_SIN_DATOS` para el curso siguiente, usa el último curso con
+datos y **díselo al docente**: marca como sin confirmar lo que dependa de las instrucciones
+del curso nuevo.
+
 ## 3. Señala lo que la referencia tiene desfasado
 
 Busca en la programación de referencia: normas derogadas, elementos que ya no existen y
@@ -55,33 +59,53 @@ plantilla: "Plantilla departamento.docx"
 sha256: "0000000000000000000000000000000000000000000000000000000000000000"  # el de tiza leer
 salida: "Programacion DAM1 2027-28.docx"
 operaciones:
-  - op: reemplazar                      # cambia el texto de un párrafo
+  - op: reemplazar                      # cambia el texto de un párrafo (o de una celda)
     id: p3
     texto: "Programación didáctica de Desarrollo de Aplicaciones Multiplataforma, curso 2027-28"
+  - op: insertar_despues                # añade párrafos tras un párrafo o una tabla
+    id: p5
+    estilo: "Título 2"                  # opcional; vale para todos los párrafos de la operación
+    parrafos: ["Unidades de trabajo nuevas"]
   - op: filas                           # añade filas antes del total
     tabla: t4
     modelo: 3                           # número de una fila normal, nunca la del total
-    antes_de: 6                         # número de la fila del total
+    antes_de: 6                         # número de la fila del total, o final
     contenido:
-      - ["UT 7", "Acceso a datos con ficheros", "12"]
+      - ["UT 7", "Acceso a datos con ficheros", ["12", "horas"]]  # celda: texto o lista
   - op: duplicar_tabla                  # copia una unidad de trabajo, una vez por copia
     tabla: t2
     despues_de: p10
-    veces: 2
+    veces: 2                            # igual al número de elementos de celdas
     celdas:
       - "f1.c1": "Unidad 2: Programación orientada a objetos"
+        "f2.c2": ""                     # celda vacía
       - "f1.c1": "Unidad 3: Interfaces gráficas"
+  - op: borrar                          # un párrafo (p7), una tabla (t3) o una fila (t4.f2)
+    id: p7
 ```
 
-Reglas que te ahorran un error:
+Reglas del formato (el agente no ve `docs/`):
 
+- Cada operación lleva solo sus claves; una clave desconocida da `RELLENO_INVALIDO` y dice
+  cuáles valen. `estilo` de `insertar_despues` es único por operación: para un título y su
+  cuerpo, haz dos operaciones sobre la misma ancla (salen en el orden del fichero).
+- Una celda (o un texto) es una cadena, un párrafo, o una lista de párrafos. `""` es una
+  celda vacía. Nada de saltos de línea dentro de una cadena.
+- En `duplicar_tabla`, `veces` es igual al número de elementos de `celdas`, y `{}` es una copia
+  sin cambios. **Las celdas que no cites se copian tal cual** de la tabla original: cita
+  todas las que cambian o déjalas en `""`.
+- Las operaciones se aplican en el orden del fichero, pero los ids son siempre los de la
+  lectura original. Tras `rellenar`, los ids del Word nuevo cambian: haz `tiza leer` del
+  resultado para revisarlo.
+- Un estilo de título puede traer numeración automática («1.8.1»): no la escribas en el texto.
+- Hasta 2000 operaciones y 40 copias por `duplicar_tabla`. Los índices de los errores
+  (`operaciones[2]`) empiezan en 0.
 - La **fila modelo** es una fila normal de la tabla, nunca la del total. Mira la tabla en el
   texto de la lectura y cuenta sus filas desde 1.
-- Cada texto de una sola línea. Si son varios párrafos, usa una lista; no pongas saltos de línea.
 - Para cambiar el texto de un control de contenido («Haga clic aquí…») y conservarlo,
   **reemplaza el id del párrafo, no el de la celda**: reemplazar la celda lo borra.
-- Un `borrar` de una fila no puede convivir con otra operación sobre esa fila. Las filas
-  con celdas fusionadas en vertical no se borran: cambia su texto.
+- Un `borrar` no puede convivir con otra operación sobre ese bloque. Las filas con celdas
+  fusionadas en vertical no se borran: cambia su texto.
 - Si la plantilla es un PDF, no hay `relleno`: rehaz la estructura en Markdown y usa
   `tiza documento`.
 
@@ -92,8 +116,8 @@ Si `tiza rellenar` responde un error, léelo y corrige solo eso:
 - `OPERACIONES_EN_CONFLICTO`, `FILA_FUSIONADA`, `FILA_MODELO_FUSIONADA`, `CELDAS_NO_COINCIDEN`,
   `ESTILO_INEXISTENTE`: el mensaje dice qué hacer.
 
-Al terminar, dile al docente que al abrir el Word puede preguntar si actualizar los campos:
-que diga que sí. El índice se pone al día entonces (`INDICE_SE_ACTUALIZA_AL_ABRIR`).
+Al terminar, dile al docente que Word le preguntará al abrir si actualiza los campos: que
+diga que sí o el índice quedará sin actualizar (`INDICE_SE_ACTUALIZA_AL_ABRIR`).
 
 ## 6. La programación queda en la carpeta
 

@@ -484,3 +484,30 @@ def test_clave_repetida_en_la_raiz(tmp_path):
         cargar_relleno(ruta, tmp_path)
     assert exc.value.codigo == "RELLENO_INVALIDO"
     assert exc.value.detalle.startswith("plantilla")
+
+
+def test_clave_desconocida_de_una_operacion_lista_las_validas(tmp_path):
+    ops = [{"op": "insertar_despues", "id": "p1", "texto": "a"}]
+    detalle = _invalido(tmp_path, ops)
+    assert detalle == "operaciones[0].texto: clave desconocida; válidas: id, parrafos, estilo"
+
+
+def test_clave_desconocida_en_la_raiz_lista_las_validas(tmp_path):
+    detalle = _invalido(tmp_path, [{"op": "borrar", "id": "p1"}], colour="red")
+    assert detalle == ("colour: clave desconocida; válidas: plantilla, sha256, salida, operaciones")
+
+
+@pytest.mark.parametrize(
+    "contenido",
+    [
+        "texto: " + chr(0xFFFE) + "\n",  # carácter no imprimible para el lector de YAML
+        "texto: \x07\n",
+        "fecha: 2026-02-30\n",  # fecha sin comillas que no existe
+    ],
+)
+def test_yaml_con_caracteres_o_fechas_imposibles_es_relleno_invalido(tmp_path, contenido):
+    ruta = tmp_path / "relleno.yaml"
+    ruta.write_text(contenido, encoding="utf-8")
+    with pytest.raises(ErrorEscritura) as exc:
+        cargar_relleno(ruta, tmp_path)
+    assert exc.value.codigo == "RELLENO_INVALIDO"
