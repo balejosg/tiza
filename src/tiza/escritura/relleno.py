@@ -21,8 +21,8 @@ from typing import Any, ClassVar
 import yaml
 
 from tiza import ficheros
-from tiza.agente import fichero_en_carpeta
 from tiza.escritura import ErrorEscritura
+from tiza.ficheros import fichero_en_carpeta
 from tiza.lectura.modelo import ErrorLectura
 
 __all__ = [
@@ -43,10 +43,12 @@ EXTENSIONES_RELLENO = frozenset({".yaml", ".yml"})
 EXTENSIONES_PLANTILLA = frozenset({".docx"})
 
 _N = r"[1-9][0-9]*"
-_RE_PARRAFO = re.compile(rf"p{_N}|t{_N}\.f{_N}\.c{_N}\.p{_N}")
-_RE_CELDA = re.compile(rf"t{_N}\.f{_N}\.c{_N}")
-_RE_TABLA = re.compile(rf"t{_N}")
-_RE_FILA = re.compile(rf"t{_N}\.f{_N}")
+# Un id absoluto puede pasar por celdas de tablas anidadas: «t1.f1.c1.t1.f2.c1.p1».
+_PREFIJO = rf"(?:t{_N}\.f{_N}\.c{_N}\.)*"
+_RE_PARRAFO = re.compile(rf"{_PREFIJO}p{_N}")
+_RE_CELDA = re.compile(rf"{_PREFIJO}t{_N}\.f{_N}\.c{_N}")
+_RE_TABLA = re.compile(rf"{_PREFIJO}t{_N}")
+_RE_FILA = re.compile(rf"{_PREFIJO}t{_N}\.f{_N}")
 _RE_CELDA_RELATIVA = re.compile(rf"f{_N}\.c{_N}")
 _RE_HASH = re.compile(r"[0-9a-f]{64}")
 
@@ -307,15 +309,19 @@ def _operacion(valor: Any, ruta: str) -> Operacion:
     )
 
 
-def _relacionados(a: str, b: str) -> bool:
-    """¿Son el mismo id, o uno contiene al otro? («t3» contiene a «t3.f2», no a «t31»)."""
-    return a == b or a.startswith(b + ".") or b.startswith(a + ".")
+def _dentro_de(hijo: str, padre: str) -> bool:
+    """¿Está «hijo» estrictamente dentro de «padre»? («t3.f2» sí en «t3»; «t31» no)."""
+    return hijo.startswith(padre + ".")
 
 
 def _referencias(operacion: Operacion) -> tuple[str, ...]:
-    """Los ids de la lectura original que una operación toca o usa como referencia."""
+    """Los ids de la lectura original que una operación toca o usa como referencia.
+
+    En ``filas`` cuentan la fila modelo y la de ``antes_de``, no solo la tabla: copiar o
+    insertar ante una fila que se borra es un choque; añadir filas a una tabla no lo es.
+    """
     if isinstance(operacion, Filas):
-        refs = [operacion.tabla, f"{operacion.tabla}.f{operacion.modelo}"]
+        refs = [f"{operacion.tabla}.f{operacion.modelo}"]
         if operacion.antes_de is not None:
             refs.append(f"{operacion.tabla}.f{operacion.antes_de}")
         return tuple(refs)
@@ -327,22 +333,35 @@ def _referencias(operacion: Operacion) -> tuple[str, ...]:
 
 
 def _conflicto(operaciones: tuple[Operacion, ...]) -> tuple[int, int, str] | None:
-    """El primer choque (por la operación más tardía): índices de las dos y el id en disputa."""
+    """El primer choque (por la operación más tardía): índices de las dos y el id en disputa.
+
+    Reglas: (a) un ``borrar`` de X choca con cualquier operación cuya referencia sea X o esté
+    dentro de X; (b) un ``borrar`` de X choca con un ``reemplazar`` o un ``borrar`` cuyo id
+    contiene a X («t3.f2.c1» frente a «t3.f2.c1.p1»); (c) dos ``reemplazar`` o dos ``borrar``
+    del mismo id.
+    """
     hallados: list[tuple[int, int, str]] = []
-    primeros: dict[str, int] = {}
+    primeros: dict[tuple[str, str], int] = {}
     for j, operacion in enumerate(operaciones):
-        if isinstance(operacion, Reemplazar):
-            if operacion.id in primeros:
-                hallados.append((primeros[operacion.id], j, operacion.id))
+        if isinstance(operacion, Reemplazar | Borrar):
+            clave = (operacion.op, operacion.id)
+            if clave in primeros:
+                hallados.append((primeros[clave], j, operacion.id))
             else:
-                primeros[operacion.id] = j
+                primeros[clave] = j
     refs = [_referencias(operacion) for operacion in operaciones]
     for i, operacion in enumerate(operaciones):
         if not isinstance(operacion, Borrar):
             continue
-        for j in range(len(operaciones)):
-            if j != i and any(_relacionados(operacion.id, ref) for ref in refs[j]):
-                hallados.append((min(i, j), max(i, j), operacion.id))
+        x = operacion.id
+        for j, otra in enumerate(operaciones):
+            if j == i:
+                continue
+            choca = any(ref == x or _dentro_de(ref, x) for ref in refs[j])
+            if not choca and isinstance(otra, Reemplazar | Borrar):
+                choca = _dentro_de(x, otra.id)
+            if choca:
+                hallados.append((min(i, j), max(i, j), x))
     if not hallados:
         return None
     return min(hallados, key=lambda hallado: (hallado[1], hallado[0]))
@@ -357,6 +376,24 @@ class _CargadorSinAlias(yaml.SafeLoader):
         if self.check_event(yaml.AliasEvent):
             raise _SinAlias()
         return super().compose_node(parent, index)
+
+
+def _sin_claves_repetidas(nodo: yaml.Node | None, ruta: str) -> None:
+    """Rechaza una clave que aparece dos veces en el mismo bloque, con su ruta YAML."""
+    if isinstance(nodo, yaml.MappingNode):
+        vistas: set[str] = set()
+        for clave_nodo, valor_nodo in nodo.value:
+            if isinstance(clave_nodo, yaml.ScalarNode):
+                clave = str(clave_nodo.value)
+                if clave in vistas:
+                    raise _error(_clave(ruta, clave), "la clave está repetida")
+                vistas.add(clave)
+                _sin_claves_repetidas(valor_nodo, _clave(ruta, clave))
+            else:
+                _sin_claves_repetidas(valor_nodo, ruta)
+    elif isinstance(nodo, yaml.SequenceNode):
+        for i, hijo in enumerate(nodo.value):
+            _sin_claves_repetidas(hijo, f"{ruta}[{i}]")
 
 
 def _cargar_yaml(origen: Path) -> Any:
@@ -374,8 +411,11 @@ def _cargar_yaml(origen: Path) -> Any:
         texto = bruto.decode("utf-8-sig")
     except UnicodeDecodeError:
         raise _error("", f"{origen.name} no está en UTF-8.") from None
+    cargador = _CargadorSinAlias(texto)
     try:
-        datos = yaml.load(texto, Loader=_CargadorSinAlias)  # noqa: S506 - cargador seguro
+        nodo = cargador.get_single_node()
+        _sin_claves_repetidas(nodo, "")
+        datos = cargador.construct_document(nodo) if nodo is not None else None
     except _SinAlias:
         raise _error("", "no admite anclas ni alias (&… o *…)") from None
     except yaml.YAMLError as exc:
@@ -384,6 +424,8 @@ def _cargar_yaml(origen: Path) -> Any:
         raise _error("", f"no es YAML válido{donde}") from None
     except RecursionError:
         raise _error("", "está anidado demasiado") from None
+    finally:
+        cargador.dispose()
     if datos is None:
         raise _error("", "el fichero está vacío")
     return datos

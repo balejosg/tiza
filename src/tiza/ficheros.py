@@ -12,14 +12,18 @@ import json
 import os
 import stat
 import uuid
+from collections.abc import Collection
 from pathlib import Path
 from typing import Any
+
+from tiza.lectura.modelo import ErrorLectura
 
 __all__ = [
     "FicheroNoSeguro",
     "asegurar_directorio",
     "escribir_json",
     "escribir_texto",
+    "fichero_en_carpeta",
     "leer_bytes_acotado",
 ]
 
@@ -118,6 +122,35 @@ def leer_bytes_acotado(ruta: str | Path, maximo: int, *, enlaces: bool = False) 
         return b"".join(trozos)
     finally:
         os.close(descriptor)
+
+
+def fichero_en_carpeta(ruta: str | Path, carpeta: str | Path, extensiones: Collection[str]) -> Path:
+    """La ruta resuelta de un fichero de la asignatura que el agente puede leer o crear.
+
+    Es la comprobación común de ``tiza leer`` y ``tiza documento``: resuelve enlaces
+    simbólicos y ``..`` y exige que quede dentro de la carpeta (``FICHERO_FUERA``), que ni él
+    ni ninguna carpeta del camino sea oculta (empiece por «.») ni el temporal ``~$…`` que deja
+    Word (``FICHERO_TEMPORAL``: así el agente no lee ``.tiza/`` ni ``.git/``) y que tenga una
+    de las ``extensiones`` (``FORMATO_NO_ADMITIDO``). No exige que exista.
+    """
+    raiz = Path(carpeta).resolve()
+    try:
+        destino = (raiz / ruta).resolve()
+        relativa = destino.relative_to(raiz)
+    except (ValueError, OSError, RuntimeError):
+        raise ErrorLectura(
+            "FICHERO_FUERA", "El fichero no está en la carpeta de la asignatura."
+        ) from None
+    if not relativa.parts:
+        raise ErrorLectura("FICHERO_FUERA", "Indica un fichero, no la carpeta de la asignatura.")
+    if destino.name.startswith("~$") or any(parte.startswith(".") for parte in relativa.parts):
+        raise ErrorLectura(
+            "FICHERO_TEMPORAL", "El fichero es oculto o es un temporal de Word (~$…)."
+        )
+    if destino.suffix.lower() not in extensiones:
+        permitidas = ", ".join(sorted(extensiones))
+        raise ErrorLectura("FORMATO_NO_ADMITIDO", f"Solo se admiten ficheros {permitidas}.")
+    return destino
 
 
 def _es_union(ruta: str | Path) -> bool:

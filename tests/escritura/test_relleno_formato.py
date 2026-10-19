@@ -359,3 +359,128 @@ def test_yaml_debe_estar_en_la_carpeta(tmp_path):
     with pytest.raises(ErrorEscritura) as exc:
         cargar_relleno(ruta, carpeta)
     assert exc.value.codigo == "FICHERO_FUERA"
+
+
+def _conflictivo(carpeta: Path, operaciones: list[Any]) -> str:
+    with pytest.raises(ErrorEscritura) as exc:
+        _cargar(carpeta, operaciones)
+    assert exc.value.codigo == "OPERACIONES_EN_CONFLICTO", exc.value.detalle
+    return exc.value.detalle
+
+
+def test_borrar_fila_no_choca_con_filas_insertar_ni_duplicar_de_su_tabla(tmp_path):
+    # Añadir filas, insertar o copiar la tabla es normal aunque se borre una fila suya.
+    ops = [
+        {"op": "borrar", "id": "t3.f2"},
+        {"op": "filas", "tabla": "t3", "modelo": 1, "antes_de": "final", "contenido": [["x"]]},
+        {"op": "insertar_despues", "id": "t3", "parrafos": ["nota"]},
+        {"op": "duplicar_tabla", "tabla": "t3", "despues_de": "p9", "veces": 1, "celdas": [{}]},
+    ]
+    assert len(_cargar(tmp_path, ops).operaciones) == 4
+
+
+def test_borrar_fila_choca_con_filas_que_la_usan_de_modelo(tmp_path):
+    ops = [
+        {"op": "borrar", "id": "t3.f2"},
+        {"op": "filas", "tabla": "t3", "modelo": 2, "antes_de": "final", "contenido": [["x"]]},
+    ]
+    detalle = _conflictivo(tmp_path, ops)
+    assert "operaciones[0]" in detalle and "operaciones[1]" in detalle
+
+
+def test_borrar_tabla_choca_con_reemplazar_dentro_de_ella(tmp_path):
+    ops = [
+        {"op": "reemplazar", "id": "t3.f2.c1", "texto": "x"},
+        {"op": "borrar", "id": "t3"},
+    ]
+    detalle = _conflictivo(tmp_path, ops)
+    assert "operaciones[0]" in detalle and "operaciones[1]" in detalle
+
+
+def test_reemplazar_padre_y_borrar_hijo_chocan_en_cualquier_orden(tmp_path):
+    ops_hijo_despues = [
+        {"op": "reemplazar", "id": "t3.f2.c1", "texto": "x"},
+        {"op": "borrar", "id": "t3.f2.c1.p1"},
+    ]
+    assert "operaciones[1]" in _conflictivo(tmp_path, ops_hijo_despues)
+    ops_hijo_antes = [
+        {"op": "borrar", "id": "t3.f2.c1.p1"},
+        {"op": "reemplazar", "id": "t3.f2.c1", "texto": "x"},
+    ]
+    assert "operaciones[1]" in _conflictivo(tmp_path, ops_hijo_antes)
+
+
+def test_borrar_de_un_hermano_no_choca(tmp_path):
+    ops = [
+        {"op": "reemplazar", "id": "t3.f2.c1", "texto": "x"},
+        {"op": "borrar", "id": "t3.f2.c2.p1"},
+        {"op": "borrar", "id": "t3.f2.c10.p1"},
+    ]
+    assert len(_cargar(tmp_path, ops).operaciones) == 3
+
+
+def test_ids_anidados_validos(tmp_path):
+    ops = [
+        {"op": "reemplazar", "id": "t1.f1.c1.t1.f2.c1.p1", "texto": "x"},
+        {"op": "insertar_despues", "id": "t1.f1.c1.t1", "parrafos": ["y"]},
+        {"op": "filas", "tabla": "t1.f1.c1.t1", "modelo": 1, "antes_de": 2, "contenido": [["z"]]},
+        {"op": "borrar", "id": "t1.f1.c1.t1.f3"},
+        {"op": "borrar", "id": "t1.f1.c1.t1.f2.c1.t1.f1.c1.p2"},
+        {
+            "op": "duplicar_tabla",
+            "tabla": "t1.f1.c1.t1",
+            "despues_de": "t1.f1.c1.t1.f2.c1.p1",
+            "veces": 1,
+            "celdas": [{"f1.c1": "copia"}],
+        },
+    ]
+    assert len(_cargar(tmp_path, ops).operaciones) == 6
+
+
+@pytest.mark.parametrize("id_anidado", ["t1.f0.c1.t1", "t1.f1.c1.t0", "f1.c1.t1", "t1.f1.c1.t1.c1"])
+def test_ids_anidados_con_forma_no_valida(tmp_path, id_anidado):
+    assert "operaciones[0]" in _invalido(tmp_path, [{"op": "borrar", "id": id_anidado}])
+
+
+def test_duplicar_celdas_siguen_siendo_solo_de_primer_nivel(tmp_path):
+    ops = [
+        {
+            "op": "duplicar_tabla",
+            "tabla": "t1",
+            "despues_de": "p2",
+            "veces": 1,
+            "celdas": [{"f1.c1.t1.f1.c1": "x"}],
+        }
+    ]
+    assert "celdas[0]" in _invalido(tmp_path, ops)
+
+
+def test_clave_repetida_en_el_yaml_se_rechaza_con_su_ruta(tmp_path):
+    ruta = tmp_path / "relleno.yaml"
+    ruta.write_text(
+        "plantilla: Plantilla.docx\n"
+        f"sha256: {HASH}\n"
+        "salida: Programacion.docx\n"
+        "operaciones:\n"
+        "  - op: reemplazar\n"
+        "    id: p1\n"
+        "    id: p2\n"
+        "    texto: x\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ErrorEscritura) as exc:
+        cargar_relleno(ruta, tmp_path)
+    assert exc.value.codigo == "RELLENO_INVALIDO"
+    assert exc.value.detalle.startswith("operaciones[0].id")
+
+
+def test_clave_repetida_en_la_raiz(tmp_path):
+    ruta = tmp_path / "relleno.yaml"
+    ruta.write_text(
+        f"plantilla: A.docx\nplantilla: B.docx\nsha256: {HASH}\nsalida: S.docx\noperaciones: []\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ErrorEscritura) as exc:
+        cargar_relleno(ruta, tmp_path)
+    assert exc.value.codigo == "RELLENO_INVALIDO"
+    assert exc.value.detalle.startswith("plantilla")
