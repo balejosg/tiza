@@ -172,6 +172,8 @@ MENSAJES: dict[str, str] = {
     "MARKDOWN_NO_ADMITIDO": "El Word sencillo no admite esa parte del Markdown (HTML, imágenes, bloques de código, citas, títulos de nivel 5 o 6, listas de más de 3 niveles). Quítala o cámbiala por texto normal en la línea indicada y repite el comando.",
     "DOCUMENTO_EXISTE": "Ya existe un Word con ese nombre y tiza nunca sobrescribe un Word. Elige otro nombre con «--salida» y repite el comando.",
     "DOCUMENTO_NO_ESCRIBIBLE": "No se pudo crear el Word. Comprueba que la carpeta de destino exista y que puedas escribir en ella, y repite el comando.",
+    "RELLENO_INVALIDO": "El fichero de relleno no es válido. El mensaje indica la clave o la operación que falla (por ejemplo, operaciones[2].op). Corrígela y repite el comando; un texto de varios párrafos va en una lista.",
+    "OPERACIONES_EN_CONFLICTO": "Dos operaciones del relleno se contradicen sobre el mismo bloque: por ejemplo, borrar una fila y tocar una celda suya, o dos reemplazos del mismo id. Deja solo una de ellas y repite el comando.",
     "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
