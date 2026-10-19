@@ -167,6 +167,7 @@ class MoodleFalso:
         self.borradas: list[tuple[str, int]] = []  # lo que ``borrar_copia`` recibió
         self.borrar_copia_falla = False
         self.copia_falla: str | None = None  # código con el que falla ``hacer_copia``
+        self.copia_falla_queda = False  # y, al fallar, la copia ya estaba en el aula
 
     def _de(self, curso_id):
         return self.secciones_por_curso.get(curso_id, self.secciones)
@@ -397,7 +398,9 @@ class MoodleFalso:
         if not self.copia_permitida:
             raise ErrorPublicacion("COPIA_NO_PERMITIDA")
         if self.copia_falla is not None:
-            raise ErrorPublicacion(self.copia_falla)
+            error = ErrorPublicacion(self.copia_falla)
+            error.queda_en_el_aula = self.copia_falla_queda
+            raise error
         datos = self.copia if self.copia is not None else copia_sintetica()
         if len(datos) > maximo:
             raise ErrorPublicacion("COPIA_DEMASIADO_GRANDE")

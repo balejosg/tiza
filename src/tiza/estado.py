@@ -19,6 +19,7 @@ import json
 import os
 import re
 import stat
+import time
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -65,6 +66,7 @@ __all__ = [
 ]
 
 MAX_COPIA_JSON = 16 * 1024 * 1024  # copia.json, al leerlo
+EDAD_MAXIMA_TEMPORAL = 24 * 60 * 60  # segundos que dura el temporal de una descarga
 FICHERO_INFORME = "informe.json"
 FICHERO_ESTRUCTURA = "estructura.json"
 FICHERO_VERIFICADOS = "verificados.json"
@@ -198,9 +200,25 @@ def _carpeta_de_copias(dir_tiza: str | Path) -> Path:
     return asegurar_directorio(directorio / CARPETA_COPIAS)
 
 
+def _quitar_temporales_viejos(carpeta: Path) -> None:
+    """Borra los ``.descarga-*.tmp`` de hace más de un día (una descarga que murió a medias)."""
+    limite = time.time() - EDAD_MAXIMA_TEMPORAL
+    for ruta in carpeta.glob(".descarga-*.tmp"):
+        try:
+            info = ruta.lstat()
+            if stat.S_ISREG(info.st_mode) and info.st_mtime < limite:
+                ruta.unlink()
+        except OSError:
+            pass
+
+
 def temporal_de_copia(dir_tiza: str | Path) -> Path:
-    """Un fichero temporal nuevo (``x``: nunca uno que ya exista) donde descargar la copia."""
+    """Un fichero temporal nuevo (``x``: nunca uno que ya exista) donde descargar la copia.
+
+    Antes borra los temporales de descargas que murieron hace más de un día.
+    """
     carpeta = _carpeta_de_copias(dir_tiza)
+    _quitar_temporales_viejos(carpeta)
     temporal = carpeta / f".descarga-{uuid.uuid4().hex}.tmp"
     descriptor = os.open(temporal, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     os.close(descriptor)

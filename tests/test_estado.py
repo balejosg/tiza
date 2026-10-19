@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from datetime import datetime
 
 import pytest
@@ -195,6 +197,21 @@ class TestCopiasDeTiza:
         uno = estado.temporal_de_copia(tmp_path / ".tiza")
         otro = estado.temporal_de_copia(tmp_path / ".tiza")
         assert uno != otro and uno.parent == tmp_path / ".tiza" / estado.CARPETA_COPIAS
+
+    def test_al_reservar_un_temporal_borra_los_de_mas_de_un_dia(self, tmp_path):
+        carpeta = tmp_path / ".tiza" / estado.CARPETA_COPIAS
+        carpeta.mkdir(parents=True)
+        viejo, reciente = carpeta / ".descarga-viejo.tmp", carpeta / ".descarga-reciente.tmp"
+        copia, ajeno = carpeta / "pruebas-20260101-1000.mbz", carpeta / "notas.tmp"
+        for ruta in (viejo, reciente, copia, ajeno):
+            ruta.write_bytes(b"x")
+        hace_dos_dias = time.time() - 2 * 24 * 3600
+        for ruta in (viejo, copia, ajeno):
+            os.utime(ruta, (hace_dos_dias, hace_dos_dias))
+        nuevo = estado.temporal_de_copia(tmp_path / ".tiza")
+        # Solo desaparece el temporal de una descarga vieja: nada de lo demás.
+        assert not viejo.exists()
+        assert reciente.exists() and copia.exists() and ajeno.exists() and nuevo.exists()
 
     def test_no_escribe_si_tiza_o_copias_son_enlaces(self, tmp_path):
         from dobles import enlace_simbolico

@@ -115,6 +115,48 @@ def test_copia_con_usuarios(tmp_path, formato):
     assert ayuda.explicar("COPIA_CON_USUARIOS")
 
 
+@pytest.mark.parametrize(
+    "ajuste",
+    [
+        ("root", "role_assignments", "1"),
+        ("root", "comments", "1"),
+        ("root", "userscompletion", "1"),
+        ("root", "logs", "1"),
+        ("root", "grade_histories", "1"),
+        ("root", "anonymize", "1"),
+        ("root", "xapistate", "1"),
+        ("activity", "page_1_userinfo", "1"),
+        ("section", "section_7_userinfo", "1"),
+        ("root", "logs", ""),
+    ],
+)
+def test_un_ajuste_de_datos_de_usuario_que_no_vale_cero_es_una_copia_con_usuarios(tmp_path, ajuste):
+    # Aunque ``users`` valga 0: cubre también la copia que el docente trae hecha a mano.
+    secciones, actividades = f.copia_basica()
+    error = error_de(tmp_path, secciones, actividades, users=0, ajustes=[ajuste])
+    assert error.codigo == "COPIA_CON_USUARIOS"
+
+
+def test_los_ajustes_a_cero_y_los_que_no_son_de_usuarios_no_molestan(tmp_path):
+    secciones, actividades = f.copia_basica()
+    ajustes = [
+        ("root", "role_assignments", "0"),
+        ("root", "logs", "0"),
+        ("activity", "page_1_userinfo", "0"),
+        # El formulario por defecto los trae a 1 y, sin ``users``, no llevan personas.
+        ("root", "badges", "1"),
+        ("root", "calendarevents", "1"),
+        ("root", "groups", "1"),
+    ]
+    assert len(abrir(tmp_path, secciones, actividades, ajustes=ajustes).actividades) == 4
+
+
+def test_los_ajustes_que_se_comprueban_estan_entre_los_que_publicar_fuerza_a_cero():
+    from tiza import publicar
+
+    assert copia.AJUSTES_CON_DATOS_DE_USUARIO <= publicar.AJUSTES_DE_USUARIO_COPIA
+
+
 def test_users_xml_con_users_cero_tambien_se_rechaza(tmp_path):
     secciones, actividades, opciones = con_extra({"users.xml": b"<users/>"})
     assert error_de(tmp_path, secciones, actividades, **opciones).codigo == "COPIA_CON_USUARIOS"

@@ -1376,14 +1376,25 @@ def copiar_curso(
     borrador = informe.Borrador(comando, entorno=entorno, curso=curso_id)
     borrador.paso("LOGIN")
 
+    nombre_en_el_aula: str | None = None
+
     def terminar(codigo: str, causa: BaseException | None = None) -> dict:
+        nonlocal nombre_en_el_aula
+        queda = bool(getattr(causa, "queda_en_el_aula", False))
+        if nombre_en_el_aula is not None:
+            # La copia ya estaba en el aula y no se queda: tampoco con sus datos en la zona del docente.
+            queda = not _borrar_del_aula(aula, nombre_en_el_aula, curso_id, presencia, debug)
+            nombre_en_el_aula = None
+        elif queda:
+            presencia.informar(Aviso.copia_queda_en_el_aula())
         borrador.fallo("COPIAR", codigo)
+        if queda:
+            borrador.fallo("BORRAR_COPIA", "COPIA_QUEDA_EN_EL_AULA")
         borrador.error(codigo)
         if causa is not None:
             depurar(causa, debug)
         return borrador.documento("error")
 
-    nombre_en_el_aula: str | None = None
     try:
         try:
             hecha = aula.hacer_copia(curso_id, temporal, MAX_COPIA)
@@ -1400,8 +1411,8 @@ def copiar_curso(
             destino = estado.reservar_copia(dir_tiza, curso, datetime.now(), temporal)
         except OSError as exc:
             return terminar("COPIA_NO_ESCRIBIBLE", exc)
-        nombre_en_el_aula = None  # ya se tratará más abajo
         borrada = _borrar_del_aula(aula, hecha.nombre, curso_id, presencia, debug)
+        nombre_en_el_aula = None
         copia_hecha = informe.CopiaHecha(
             curso=curso,
             fichero=f"{rutas.CARPETA_TRABAJO}/{estado.CARPETA_COPIAS}/{destino.name}",
@@ -1412,7 +1423,7 @@ def copiar_curso(
     finally:
         _quitar(temporal)  # tras renombrarla ya no existe; si algo falló, no queda a medias
         if nombre_en_el_aula is not None:
-            # La copia no se queda: tampoco debe quedarse, con sus datos, en la zona del docente.
+            # Un fallo inesperado: que la copia no se quede en la zona del docente.
             _borrar_del_aula(aula, nombre_en_el_aula, curso_id, presencia, debug)
     borrador.paso("COPIAR", detalle=f"{hecha.bytes} bytes")
     if borrada:

@@ -487,3 +487,54 @@ def test_copia_no_deja_ningun_texto_de_moodle_en_el_informe(tmp_path):
     moodle = MoodleFalso(cursos=[{"id": 1234, "nombre": "Curso <b>secreto</b>"}])
     _m, _p, documento = _copiar(tmp_path, moodle, nombres={1234: "Curso <b>secreto</b>"})
     assert "secreto" not in str(documento)
+
+
+def test_si_el_error_deja_la_copia_en_el_aula_el_informe_y_el_docente_lo_saben(tmp_path):
+    moodle = MoodleFalso()
+    moodle.copia_falla = "COPIA_FALLIDA"
+    moodle.copia_falla_queda = True
+    _m, presencia, documento = _copiar(tmp_path, moodle)
+    assert documento["errores"] == ["COPIA_FALLIDA"]
+    assert "COPIA_QUEDA_EN_EL_AULA" in presencia.codigos()
+    pasos = {p["codigo"]: p for p in documento["pasos"]}
+    assert (pasos["BORRAR_COPIA"]["resultado"], pasos["BORRAR_COPIA"]["detalle"]) == (
+        "fallo",
+        "COPIA_QUEDA_EN_EL_AULA",
+    )
+    # Si no queda, ni aviso ni paso.
+    moodle = MoodleFalso()
+    moodle.copia_falla = "COPIA_FALLIDA"
+    _m, presencia, documento = _copiar(tmp_path, moodle)
+    assert "COPIA_QUEDA_EN_EL_AULA" not in presencia.codigos()
+    assert "BORRAR_COPIA" not in [p["codigo"] for p in documento["pasos"]]
+
+
+def test_copia_con_usuarios_y_sin_poder_borrarla_del_aula_tambien_lo_dice(tmp_path):
+    moodle = MoodleFalso(copia=copia_sintetica(users=1))
+    moodle.borrar_copia_falla = True
+    _m, presencia, documento = _copiar(tmp_path, moodle)
+    assert documento["errores"] == ["COPIA_CON_USUARIOS"]
+    assert presencia.codigos().count("COPIA_QUEDA_EN_EL_AULA") == 1
+    assert ("BORRAR_COPIA", "fallo") in [(p["codigo"], p["resultado"]) for p in documento["pasos"]]
+    assert _copias_guardadas(tmp_path) == []
+
+
+def test_una_copia_fallida_gasta_cupo_pero_negarse_o_retirarla_no(tmp_path):
+    # Fijado: el cupo se gasta al confirmar el docente, haya salido bien o no (frena un bucle).
+    cupo = _cupo()
+    moodle = MoodleFalso()
+    moodle.copia_falla = "COPIA_FALLIDA"
+    for gastadas in (1, 2, 3):
+        _m, _p, documento = _copiar(tmp_path, moodle, cupo=cupo)
+        assert documento["errores"] == ["COPIA_FALLIDA"]
+        assert cupo["copias"] == gastadas
+    _m, presencia, documento = _copiar(tmp_path, moodle, cupo=cupo)
+    assert documento["errores"] == ["CUPO_COPIAS"] and len(presencia.resumenes_copia) == 0
+    # Negarse no gasta (ya cubierto en test_copia_pide_confirmacion); retirarla, tampoco.
+    cupo = _cupo()
+    _copiar(tmp_path, cupo=cupo, presencia=PresenciaFalsa(copia=False))
+    _copiar(tmp_path, cupo=cupo, vigente=lambda: False)
+    assert cupo["copias"] == 0
+    # Una copia que no vale (con usuarios) sí gasta.
+    _copiar(tmp_path, MoodleFalso(copia=copia_sintetica(users=1)), cupo=cupo)
+    assert cupo["copias"] == 1

@@ -16,6 +16,7 @@ import html
 import json
 import os
 import re
+import secrets
 import shutil
 import tempfile
 import time
@@ -111,6 +112,7 @@ AJUSTES_DE_USUARIO_COPIA = frozenset(
     }
 )
 _AJUSTE_RAIZ = "setting_root_"
+_CAMPO_NOMBRE_COPIA = "setting_root_filename"
 _USERINFO = re.compile(r"\Asetting_(?:section|activity)_.+_userinfo\Z")
 _ACCION_COPIA = re.compile(r"backup\.php")
 _ACCION_EDICION_COPIAS = re.compile(r"backupfilesedit\.php")
@@ -248,6 +250,13 @@ class _SesionQueAnota:
         return self.ultima
 
 
+def _error_con_copia_en_el_aula(codigo: str) -> ErrorPublicacion:
+    """El error de una copia que puede estar en el aula sin que tiza pueda encontrarla ni quitarla."""
+    error = ErrorPublicacion(codigo)
+    error.queda_en_el_aula = True
+    return error
+
+
 class CopiaDescargada(NamedTuple):
     """Lo que devuelve ``hacer_copia``: los bytes escritos y el nombre que tiene en el aula."""
 
@@ -263,6 +272,8 @@ class ErrorPublicacion(Exception):
         self.codigo = codigo
         self.detalle = detalle
         self.cmid: int | None = None  # módulo ya creado cuando falla la verificación
+        # Una copia de seguridad que Moodle ya creó y tiza no pudo quitar de la zona de copias.
+        self.queda_en_el_aula = False
 
 
 # --------------------------------------------------------------------------- #
@@ -1078,58 +1089,65 @@ class Moodle:
             if not self.sesion_viva():
                 raise ErrorPublicacion("SESION_CADUCADA")
             raise ErrorPublicacion("COPIA_NO_PERMITIDA")
-        for _ in range(MAX_ETAPAS_COPIA):
-            envio = _envio_de_copia(formulario, nombre)
-            if envio is None:
-                raise ErrorPublicacion("COPIA_FALLIDA")  # un formulario sin botón para seguir
-            self._esperar()
-            pagina = self._reducir(
-                "COPIA_FALLIDA",
-                self.sesion.post,
-                f"{self.base_url}/backup/backup.php",
-                data=envio,
-                timeout=ESPERA_COPIA,
-            )
-            if getattr(pagina, "status_code", 200) >= 400:
-                raise ErrorPublicacion("COPIA_FALLIDA")  # el aula respondió con una página de error
-            formulario = _formulario_de(getattr(pagina, "text", "") or "", _ACCION_COPIA)
-            if formulario is None:
-                break  # sin más etapas: la copia está hecha
-        else:
-            raise ErrorPublicacion("COPIA_FALLIDA")
-        enlace = None
-        for intento in range(int(ESPERA_COPIA / PASO_ESPERA_COPIA) + 1):
-            if intento:
-                self._dormir(PASO_ESPERA_COPIA)
-            enlace = next(
-                (url for n, url in self._copias_en_el_area(curso_id) if n == nombre), None
-            )
-            if enlace is not None:
-                break
-        if enlace is None:
-            raise ErrorPublicacion("COPIA_FALLIDA")
+        enviado = False  # ¿ya se mandó el nombre propio? Desde entonces la copia puede existir
         try:
+            for _ in range(MAX_ETAPAS_COPIA):
+                envio = _envio_de_copia(formulario, nombre)
+                if envio is None:
+                    raise ErrorPublicacion("COPIA_FALLIDA")  # un formulario sin botón para seguir
+                enviado = enviado or any(campo == _CAMPO_NOMBRE_COPIA for campo, _v in envio)
+                self._esperar()
+                pagina = self._reducir(
+                    "COPIA_FALLIDA",
+                    self.sesion.post,
+                    f"{self.base_url}/backup/backup.php",
+                    data=envio,
+                    timeout=ESPERA_COPIA,
+                )
+                if getattr(pagina, "status_code", 200) >= 400:
+                    raise ErrorPublicacion("COPIA_FALLIDA")  # una página de error del aula
+                formulario = _formulario_de(getattr(pagina, "text", "") or "", _ACCION_COPIA)
+                if formulario is None:
+                    break  # sin más etapas: la copia está hecha
+            else:
+                raise ErrorPublicacion("COPIA_FALLIDA")
+            if not enviado:
+                # Sin nombre propio la copia lleva el de Moodle y no se podría encontrar: no se
+                # espera a que aparezca (y puede haberse creado).
+                raise _error_con_copia_en_el_aula("COPIA_FALLIDA")
+            enlace = None
+            for intento in range(int(ESPERA_COPIA / PASO_ESPERA_COPIA) + 1):
+                if intento:
+                    self._dormir(PASO_ESPERA_COPIA)
+                enlace = next(
+                    (url for n, url in self._copias_en_el_area(curso_id) if n == nombre), None
+                )
+                if enlace is not None:
+                    break
+            if enlace is None:
+                raise _error_con_copia_en_el_aula("COPIA_FALLIDA")  # puede aparecer más tarde
             escritos = self._descargar_copia(enlace, Path(destino), maximo)
-        except BaseException:
-            # Una copia que no se pudo traer (demasiado grande, cortada…) no se queda en el aula.
-            try:
-                self.borrar_copia(nombre, curso_id)
-            except ErrorPublicacion:
-                pass
+        except BaseException as exc:
+            # Una copia que no se pudo traer (demasiado grande, cortada…) no se queda en el aula:
+            # si no se puede quitar, el error lo dice (``queda_en_el_aula``).
+            if enviado and not getattr(exc, "queda_en_el_aula", False):
+                try:
+                    self.borrar_copia(nombre, curso_id)
+                except ErrorPublicacion:
+                    exc.queda_en_el_aula = True  # type: ignore[attr-defined]
             raise
         return CopiaDescargada(escritos, nombre)
 
     def _nombre_unico_de_copia(self, curso_id: int, en_el_area: set[str]) -> str:
-        """``tiza-<curso>-<epoch>-nu.mbz``; con un sufijo si ya existe (dos en el mismo segundo).
+        """``tiza-<curso>-<epoch>-<aleatorio>-nu.mbz``, nuevo en el área y en esta sesión.
 
         Sin un nombre propio, Moodle nombra la copia con la hora y el minuto y dos copias seguidas
-        se pisan (espiga 7).
+        se pisan (espiga 7); el sufijo aleatorio evita pisar la de otro proceso en el mismo segundo.
         """
-        base = f"tiza-{curso_id}-{int(time.time())}"
-        nombre, repeticion = f"{base}-nu.mbz", 1
-        while nombre in en_el_area or nombre in self._nombres_de_copia:
-            repeticion += 1
-            nombre = f"{base}-{repeticion}-nu.mbz"
+        while True:
+            nombre = f"tiza-{curso_id}-{int(time.time())}-{secrets.token_hex(3)}-nu.mbz"
+            if nombre not in en_el_area and nombre not in self._nombres_de_copia:
+                break
         self._nombres_de_copia.add(nombre)
         return nombre
 
@@ -1161,7 +1179,14 @@ class Moodle:
         try:
             if getattr(respuesta, "status_code", 0) != 200:
                 raise ErrorPublicacion("COPIA_FALLIDA")
-            largo = (getattr(respuesta, "headers", None) or {}).get("Content-Length", "")
+            cabeceras = getattr(respuesta, "headers", None) or {}
+            if str(cabeceras.get("Content-Type", "")).lower().startswith("text/html") or (
+                "/login/" in str(getattr(respuesta, "url", ""))
+            ):
+                # Una página (la de entrada, o un error) donde debía venir la copia: la sesión
+                # ya no vale. No se escribe nada.
+                raise ErrorPublicacion("SESION_CADUCADA")
+            largo = cabeceras.get("Content-Length", "")
             if str(largo).isdigit() and int(largo) > maximo:
                 raise ErrorPublicacion("COPIA_DEMASIADO_GRANDE")
             limite = time.monotonic() + ESPERA_COPIA
@@ -1303,7 +1328,7 @@ def _envio_de_copia(formulario: Any, nombre_fichero: str) -> list[tuple[str, str
             if campo not in vistos:
                 pares.append((campo, "0"))
                 vistos.add(campo)
-        elif campo == f"{_AJUSTE_RAIZ}filename":
+        elif campo == _CAMPO_NOMBRE_COPIA:
             pares.append((campo, nombre_fichero))
         else:
             pares.append((campo, valor))

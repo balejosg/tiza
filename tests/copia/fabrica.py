@@ -109,7 +109,12 @@ def _moodle_backup(
     users: int,
     curso: int,
     servidor: str,
+    ajustes: Sequence[tuple[str, str, str]] = (),
 ) -> bytes:
+    extra = "".join(
+        f"<setting><level>{nivel}</level><name>{_e(nombre)}</name><value>{_e(valor)}</value></setting>"
+        for nivel, nombre, valor in ajustes
+    )
     acts = "".join(
         f"<activity><moduleid>{a.cmid}</moduleid><sectionid>{a.seccion_id}</sectionid>"
         f"<modulename>{_e(a.modulo)}</modulename><title>{_e(a.nombre)}</title>"
@@ -136,7 +141,7 @@ def _moodle_backup(
         "<setting><level>root</level><name>activities</name><value>1</value></setting>"
         "<setting><level>activity</level><activity>page_1</activity>"
         "<name>page_1_userinfo</name><value>0</value></setting>"
-        "</settings></information></moodle_backup>"
+        f"{extra}</settings></information></moodle_backup>"
     ).encode()
 
 
@@ -322,10 +327,13 @@ def entradas_de_copia(
     users: int = 0,
     curso: int = 2,
     servidor: str = "https://aula.example.org",
+    ajustes: Sequence[tuple[str, str, str]] = (),
 ) -> dict[str, bytes]:
     """Los ficheros de la copia (nombre en el archivo -> contenido), sin empaquetar."""
     entradas: dict[str, bytes] = {
-        "moodle_backup.xml": _moodle_backup(secciones, actividades, users, curso, servidor),
+        "moodle_backup.xml": _moodle_backup(
+            secciones, actividades, users, curso, servidor, ajustes
+        ),
         "files.xml": _files_xml(actividades),
         "questions.xml": _questions_xml(actividades),
     }
@@ -378,11 +386,12 @@ def construir_mbz(
     users: int = 0,
     curso: int = 2,
     servidor: str = "https://aula.example.org",
+    ajustes: Sequence[tuple[str, str, str]] = (),
     extras: Mapping[str, bytes] | Sequence[tuple[str, bytes]] = (),
 ) -> bytes:
     """Los bytes de un ``.mbz`` con esas secciones y actividades (más las ``extras`` crudas)."""
     entradas = entradas_de_copia(
-        secciones, actividades, users=users, curso=curso, servidor=servidor
+        secciones, actividades, users=users, curso=curso, servidor=servidor, ajustes=ajustes
     )
     pares = list(entradas.items())
     pares += list(extras.items()) if isinstance(extras, Mapping) else list(extras)

@@ -64,6 +64,23 @@ MAX_DESCOMPRIMIDO = 4 * 1024**3  # todo lo que se descomprime al recorrer la cop
 MAX_XML_TOTAL = 256 * 1024 * 1024  # los XML que se retienen en memoria, sumados
 MAX_DIRECTORIO_ZIP = 32 * 1024 * 1024  # el directorio central de un zip
 
+# Ajustes raíz de ``moodle_backup.xml`` que llevarían datos del alumnado: todos deben valer 0, igual
+# que los ``*_userinfo`` de secciones y actividades. No están ``badges``, ``calendarevents`` ni
+# ``groups``: el formulario los trae marcados por defecto y, sin ``users``, no llevan personas
+# (la copia que hace el docente a mano con los valores por defecto los tiene a 1).
+AJUSTES_CON_DATOS_DE_USUARIO = frozenset(
+    {
+        "users",
+        "anonymize",
+        "role_assignments",
+        "comments",
+        "userscompletion",
+        "logs",
+        "grade_histories",
+        "xapistate",
+    }
+)
+
 _NULO = "$@NULL@$"  # cómo escribe Moodle un valor nulo en sus XML
 _TROZO = 64 * 1024
 _HASH = re.compile(r"[0-9a-f]{40}")
@@ -551,12 +568,19 @@ def _construir(
     if raiz.tag != "moodle_backup" or informacion is None:
         raise _no_valida("moodle_backup.xml no tiene la forma de una copia de Moodle.")
     usuarios = None
+    con_datos = False
     for ajuste in informacion.findall("settings/setting"):
-        if _texto(ajuste, "level") == "root" and _texto(ajuste, "name") == "users":
-            usuarios = _texto(ajuste, "value").strip()
+        nombre, valor = _texto(ajuste, "name"), _texto(ajuste, "value").strip()
+        if _texto(ajuste, "level") == "root" and nombre == "users":
+            usuarios = valor
+        # Cualquier ajuste de datos de usuario presente que no valga 0 es una copia con personas.
+        if (
+            _texto(ajuste, "level") == "root" and nombre in AJUSTES_CON_DATOS_DE_USUARIO
+        ) or nombre.endswith("_userinfo"):
+            con_datos = con_datos or valor != "0"
     if usuarios is None:
         raise _no_valida("La copia no dice si lleva usuarios, así que no se puede abrir.")
-    if usuarios != "0" or con_usuarios:
+    if usuarios != "0" or con_usuarios or con_datos:
         raise ErrorCopia("COPIA_CON_USUARIOS", "La copia incluye datos de usuarios.")
 
     curso = _entero_de(informacion, "original_course_id", "curso de la copia")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import types
 import urllib.request
 
@@ -3129,12 +3130,14 @@ class _SesionCopia:
         no_aparece=False,
         cabeceras=None,
         al_borrar_queda=False,
+        sin_filename=False,
     ):
         self.cuerpo = cuerpo
         self.sin_formulario = sin_formulario
         self.no_aparece = no_aparece
         self.cabeceras = cabeceras
         self.al_borrar_queda = al_borrar_queda
+        self.sin_filename = sin_filename
         self.posts: list[tuple[str, list[tuple[str, str]]]] = []
         self.borrados_ajax: list[dict] = []
         self.guardado_edicion: list[tuple[str, str]] | None = None
@@ -3182,7 +3185,11 @@ class _SesionCopia:
                 return _RespuestaCopia(
                     _etapa(
                         '<input type="hidden" name="setting_root_users" value="1">'
-                        '<input type="text" name="setting_root_filename" value="copia.mbz">'
+                        + (
+                            ""
+                            if self.sin_filename
+                            else '<input type="text" name="setting_root_filename" value="c.mbz">'
+                        )
                     )
                 )
             nombre = dict(pares).get("setting_root_filename", "")
@@ -3240,18 +3247,32 @@ class TestHacerCopia:
     def test_copia_nombre_unico(self, tmp_path, monkeypatch):
         sesion = _SesionCopia()
         moodle = _moodle_de_copia(sesion, monkeypatch)
+        # Mismo segundo y, por casualidad, el mismo sufijo aleatorio: el nombre no se repite.
+        sufijos = iter(["aaaaaa", "aaaaaa", "bbbbbb", "aaaaaa", "cccccc"])
+        monkeypatch.setattr(
+            publicar, "secrets", types.SimpleNamespace(token_hex=lambda n: next(sufijos))
+        )
         primera = moodle.hacer_copia(2, tmp_path / "a.tmp", 1000)
-        # La segunda, en el mismo segundo y sin haber borrado la primera: otro nombre.
         sesion._etapa = 0
         segunda = moodle.hacer_copia(2, tmp_path / "b.tmp", 1000)
-        assert primera.nombre == "tiza-2-1792000000-nu.mbz"
-        assert segunda.nombre == "tiza-2-1792000000-2-nu.mbz"
+        assert primera.nombre == "tiza-2-1792000000-aaaaaa-nu.mbz"
+        assert segunda.nombre == "tiza-2-1792000000-bbbbbb-nu.mbz"
         ultimas = [dict(pares)["setting_root_filename"] for _u, pares in sesion.posts[2::3]]
         assert ultimas == [primera.nombre, segunda.nombre]
-        # Y aunque la primera ya no esté en el aula, esta sesión no repite su nombre.
+        # Aunque la primera ya no esté en el aula, esta sesión no repite su nombre.
         sesion.nombres_en_el_area.clear()
         sesion._etapa = 0
-        assert moodle.hacer_copia(2, tmp_path / "c.tmp", 1000).nombre.endswith("-3-nu.mbz")
+        assert moodle.hacer_copia(2, tmp_path / "c.tmp", 1000).nombre.endswith("-cccccc-nu.mbz")
+
+    def test_el_nombre_propio_tiene_el_patron_con_un_sufijo_aleatorio(self, tmp_path, monkeypatch):
+        sesion = _SesionCopia()
+        moodle = _moodle_de_copia(sesion, monkeypatch)
+        nombres = {moodle.hacer_copia(2, tmp_path / "x.tmp", 1000).nombre}
+        sesion._etapa = 0
+        nombres.add(moodle.hacer_copia(2, tmp_path / "y.tmp", 1000).nombre)
+        assert len(nombres) == 2
+        for nombre in nombres:
+            assert re.fullmatch(r"tiza-2-1792000000-[0-9a-f]{6}-nu\.mbz", nombre)
 
     def test_sin_formulario_no_hay_permiso(self, tmp_path):
         moodle = _moodle_de_copia(_SesionCopia(sin_formulario=True))
@@ -3315,6 +3336,65 @@ class TestHacerCopia:
             _moodle_de_copia(sesion).hacer_copia(2, tmp_path / "k.tmp", 1000)
         assert exc.value.codigo == "COPIA_FALLIDA"
         assert sesion.posts == []  # nunca se pulsa «cancelar» por error
+
+    def test_sin_nombre_propio_falla_en_el_momento_sin_esperar(self, tmp_path):
+        sesion = _SesionCopia(sin_filename=True)
+        esperas: list[float] = []
+        moodle = _moodle_de_copia(sesion)
+        moodle._dormir = esperas.append
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.hacer_copia(2, tmp_path / "l.tmp", 1000)
+        assert exc.value.codigo == "COPIA_FALLIDA"
+        assert esperas == []  # ni diez minutos ni una sola mirada al área
+        assert exc.value.queda_en_el_aula is True  # con el nombre de Moodle, no se puede quitar
+
+    def test_una_descarga_que_es_html_es_sesion_caducada_y_no_se_escribe(self, tmp_path):
+        cabeceras = {"Content-Type": "text/html; charset=utf-8"}
+        sesion = _SesionCopia(cuerpo=b"<html>entrada</html>", cabeceras=cabeceras)
+        destino = tmp_path / "m.tmp"
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(sesion).hacer_copia(2, destino, 1000)
+        assert exc.value.codigo == "SESION_CADUCADA"
+        assert not destino.exists()
+        assert sesion.nombres_en_el_area == []  # y la copia no se queda en el aula
+
+    def test_una_descarga_que_acaba_en_la_pagina_de_entrada_es_sesion_caducada(self, tmp_path):
+        sesion = _SesionCopia()
+        original = sesion.get
+
+        def get(url, **opciones):
+            respuesta = original(url, **opciones)
+            if "/user/backup/" in url:
+                respuesta.url = f"{URL_AULA}/login/index.php"
+            return respuesta
+
+        sesion.get = get
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(sesion).hacer_copia(2, tmp_path / "n.tmp", 1000)
+        assert exc.value.codigo == "SESION_CADUCADA"
+        assert not (tmp_path / "n.tmp").exists()
+
+    def test_el_error_dice_si_la_copia_queda_en_el_aula(self, tmp_path):
+        # Demasiado grande y se pudo quitar: no queda.
+        grande = _SesionCopia(cuerpo=b"x" * 5000)
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(grande).hacer_copia(2, tmp_path / "o.tmp", 1000)
+        assert (exc.value.codigo, exc.value.queda_en_el_aula) == ("COPIA_DEMASIADO_GRANDE", False)
+        # Demasiado grande y el borrado no surte efecto: queda.
+        rebelde = _SesionCopia(cuerpo=b"x" * 5000, al_borrar_queda=True)
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(rebelde).hacer_copia(2, tmp_path / "p.tmp", 1000)
+        assert (exc.value.codigo, exc.value.queda_en_el_aula) == ("COPIA_DEMASIADO_GRANDE", True)
+        # No aparece nunca en el área: no se puede quitar, y puede estar.
+        ausente = _SesionCopia(no_aparece=True)
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(ausente).hacer_copia(2, tmp_path / "q.tmp", 1000)
+        assert (exc.value.codigo, exc.value.queda_en_el_aula) == ("COPIA_FALLIDA", True)
+        # Falla antes de mandar el nombre: no hay copia.
+        sin_permiso = _SesionCopia(sin_formulario=True)
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(sin_permiso).hacer_copia(2, tmp_path / "r.tmp", 1000)
+        assert exc.value.queda_en_el_aula is False
 
     def test_corta_al_pasar_del_maximo_y_no_deja_nada(self, tmp_path):
         sesion = _SesionCopia(cuerpo=b"x" * 5000)

@@ -463,7 +463,7 @@ def _copia_queda_en_el_aula(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(
             "La copia también queda en tu zona de copias de Moodle "
-            '("Restaurar"): puedes borrarla allí'
+            "(«Restaurar»): puedes borrarla allí"
         ),
     )
 

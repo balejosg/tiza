@@ -416,6 +416,8 @@ def test_la_pregunta_de_la_copia_sin_nombre_usa_el_id_y_sanea():
 def test_el_aviso_de_que_la_copia_queda_en_el_aula():
     [linea] = mensajes.lineas_de_aviso(publicacion.Aviso.copia_queda_en_el_aula())
     assert linea.texto == (
-        'La copia también queda en tu zona de copias de Moodle ("Restaurar"): puedes borrarla allí'
+        "La copia también queda en tu zona de copias de Moodle («Restaurar»): puedes borrarla allí"
     )
     assert not linea.error
+    # La explicación del código dice lo mismo, con las mismas comillas.
+    assert ayuda.explicar("COPIA_QUEDA_EN_EL_AULA") == linea.texto
