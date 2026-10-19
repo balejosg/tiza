@@ -163,6 +163,33 @@ def test_leer_bytes_acotado_no_sigue_enlaces_por_defecto(tmp_path):
     assert exc.value.motivo == "enlace"
 
 
+def test_leer_bytes_acotado_sin_o_nofollow_tampoco_sigue_enlaces(tmp_path, monkeypatch):
+    """Como en Windows: sin O_NOFOLLOW, el enlace se mira antes de abrir."""
+    real = tmp_path / "real.json"
+    real.write_bytes(b"{}")
+    enlace = tmp_path / "enlace.json"
+    enlace_simbolico(enlace, real)
+    monkeypatch.delattr(os, "O_NOFOLLOW", raising=False)
+    with pytest.raises(ficheros.FicheroNoSeguro) as exc:
+        ficheros.leer_bytes_acotado(enlace, 100)
+    assert exc.value.motivo == "enlace"
+    assert ficheros.leer_bytes_acotado(real, 100) == b"{}"
+
+
+def test_leer_bytes_acotado_sin_o_nofollow_detecta_un_cambio_al_abrir(tmp_path, monkeypatch):
+    """Si entre mirar y abrir cambian el fichero por otro, lo abierto no es lo mirado."""
+    real = tmp_path / "real.json"
+    real.write_bytes(b"{}")
+    otro = tmp_path / "otro.json"
+    otro.write_bytes(b"[]")
+    monkeypatch.delattr(os, "O_NOFOLLOW", raising=False)
+    abrir = os.open
+    monkeypatch.setattr(ficheros.os, "open", lambda ruta, *a, **k: abrir(otro, *a, **k))
+    with pytest.raises(ficheros.FicheroNoSeguro) as exc:
+        ficheros.leer_bytes_acotado(real, 100)
+    assert exc.value.motivo == "enlace"
+
+
 def test_leer_bytes_acotado_sigue_enlaces_si_se_pide(tmp_path):
     real = tmp_path / "real.json"
     real.write_bytes(b"{}")

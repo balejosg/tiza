@@ -13,6 +13,9 @@ se avisa aquí con **Cambia**.
 ### Cambia
 - **Publicar muchas imágenes seguidas ya no acaba en `ERROR_SUBIDA`.** Cuando el aula frena las subidas (su límite de ficheros subidos en poco tiempo), tiza espera y reintenta sola; si no basta, responde `AULA_PIDE_ESPERA` y dice que esperes unos minutos.
 
+### Corregido
+- **En Windows, tiza ya no sigue un enlace simbólico** al leer `calendario.toml`, los ficheros de la asignatura o los documentos de `tiza leer`: se rechaza igual que en Linux y macOS.
+
 ## 0.23.0 — 2026-10-18
 
 ### Añadido

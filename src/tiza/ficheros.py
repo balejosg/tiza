@@ -77,13 +77,20 @@ def leer_bytes_acotado(ruta: str | Path, maximo: int, *, enlaces: bool = False) 
     Lanza ``FicheroNoSeguro`` si es una FIFO o un dispositivo (``O_NONBLOCK`` evita que abrir
     una FIFO bloquee), si pasa de ``maximo`` bytes (también si crece mientras se lee) o, con
     ``enlaces=False``, si el último tramo de la ruta es un enlace simbólico (``O_NOFOLLOW``; en
-    Windows no existe y el enlace se sigue). Los demás errores del sistema se propagan.
+    Windows no existe: se mira el enlace antes de abrir y se comprueba que lo abierto es lo
+    mirado). Los demás errores del sistema se propagan.
     """
     banderas = os.O_RDONLY
     for nombre in ("O_NONBLOCK", "O_CLOEXEC", "O_BINARY"):
         banderas |= getattr(os, nombre, 0)
+    sin_nofollow = not enlaces and not hasattr(os, "O_NOFOLLOW")
+    antes = None
     if not enlaces:
         banderas |= getattr(os, "O_NOFOLLOW", 0)
+    if sin_nofollow:
+        antes = os.lstat(ruta)
+        if stat.S_ISLNK(antes.st_mode) or _es_union(ruta):
+            raise FicheroNoSeguro("enlace")
     try:
         descriptor = os.open(ruta, banderas)
     except OSError as exc:
@@ -92,6 +99,8 @@ def leer_bytes_acotado(ruta: str | Path, maximo: int, *, enlaces: bool = False) 
         raise
     try:
         info = os.fstat(descriptor)
+        if antes is not None and not os.path.samestat(antes, info):
+            raise FicheroNoSeguro("enlace")  # cambiado por un enlace entre mirarlo y abrirlo
         if not stat.S_ISREG(info.st_mode):
             raise FicheroNoSeguro("no_regular")
         if info.st_size > maximo:
@@ -109,6 +118,12 @@ def leer_bytes_acotado(ruta: str | Path, maximo: int, *, enlaces: bool = False) 
         return b"".join(trozos)
     finally:
         os.close(descriptor)
+
+
+def _es_union(ruta: str | Path) -> bool:
+    """¿Es un punto de unión de Windows (junction), que ``lstat`` no marca como enlace?"""
+    es_union = getattr(Path(ruta), "is_junction", None)  # Python 3.12+
+    return bool(es_union and es_union())
 
 
 def asegurar_directorio(ruta: str | Path) -> Path:

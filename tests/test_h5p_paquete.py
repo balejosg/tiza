@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import warnings
 import zipfile
 from pathlib import Path
@@ -124,7 +125,19 @@ def test_reempaquetar_desecha_campos_desconocidos_de_h5p_json(tmp_path):
 
 @pytest.mark.parametrize(
     "ruta_interna",
-    ["../fuera.txt", "/absoluta.txt", "content/../../fuera.txt", "C:/windows.txt", "a\\b.txt"],
+    [
+        "../fuera.txt",
+        "/absoluta.txt",
+        "content/../../fuera.txt",
+        "C:/windows.txt",
+        pytest.param(
+            "a\\b.txt",
+            marks=pytest.mark.skipif(
+                os.sep == "\\",
+                reason="en Windows zipfile ya convierte «\\» en «/» al leer: la ruta llega normalizada",
+            ),
+        ),
+    ],
 )
 def test_rechaza_rutas_que_se_salen(tmp_path, ruta_interna):
     from tiza.h5p import validar_paquete
