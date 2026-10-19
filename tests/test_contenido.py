@@ -131,6 +131,54 @@ class TestCarga:
             cargar(escribir(tmp_path, tarea(apertura="el jueves"), "tarea.md"))
         assert exc.value.codigo == "FECHA_INVALIDA"
 
+    def test_la_hora_que_el_reloj_se_salta_no_existe(self, tmp_path):
+        # 2027-03-28: en Madrid el reloj pasa de las 02:00 a las 03:00.
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(
+                escribir(
+                    tmp_path, tarea(entrega="2027-03-28 02:30", limite="2028-01-01"), "tarea.md"
+                )
+            )
+        assert exc.value.codigo == "FECHA_INEXISTENTE"
+        assert "2027-03-28 02:30" in exc.value.detalle and "03:30" in exc.value.detalle
+
+    @pytest.mark.parametrize(
+        ("entrega", "hora"),
+        [
+            ("2027-03-28 03:00", (3, 0)),  # justo después del salto
+            ("2027-03-28 01:59", (1, 59)),  # justo antes
+            ("2027-03-28", (23, 59)),  # solo el día
+            ("2026-10-25 02:30", (2, 30)),  # otoño: la hora se repite y existe
+            ("2026-10-25 03:00", (3, 0)),
+        ],
+    )
+    def test_las_horas_que_existen_valen(self, tmp_path, entrega, hora):
+        doc = cargar(escribir(tmp_path, tarea(entrega=entrega, limite="2028-01-01"), "tarea.md"))
+        assert (doc.fechas.entrega.hour, doc.fechas.entrega.minute) == hora
+
+    def test_la_hora_inexistente_tambien_falla_en_la_fecha_esperada_y_las_restricciones(
+        self, tmp_path
+    ):
+        for campos in (
+            {"finalizacion": "ver", "fecha_esperada": "2027-03-28 02:15"},
+            {"restricciones": "{desde: '2027-03-28 02:15'}"},
+            {"restricciones": "{hasta: '2027-03-28 02:59'}"},
+        ):
+            with pytest.raises(ErrorContenido) as exc:
+                cargar(escribir(tmp_path, pagina("x", **campos)))
+            assert exc.value.codigo == "FECHA_INEXISTENTE", campos
+
+    def test_una_fecha_con_zona_no_se_toca(self, tmp_path):
+        # Con desplazamiento explícito no hay hora local que no exista: se convierte a Madrid.
+        doc = cargar(
+            escribir(
+                tmp_path,
+                tarea(entrega="2027-03-28T01:30:00+00:00", limite="2028-01-01"),
+                "tarea.md",
+            )
+        )
+        assert (doc.fechas.entrega.hour, doc.fechas.entrega.minute) == (3, 30)
+
     def test_fechas_incoherentes_fallan(self, tmp_path):
         with pytest.raises(ErrorContenido) as exc:
             cargar(escribir(tmp_path, tarea(apertura="2026-10-11"), "tarea.md"))

@@ -20,6 +20,7 @@ se avisa aquí con **Cambia**.
 - **Publicar muchas imágenes seguidas ya no acaba en `ERROR_SUBIDA`.** Cuando el aula frena las subidas (su límite de ficheros subidos en poco tiempo), tiza espera y reintenta sola; si no basta, responde `AULA_PIDE_ESPERA` y dice que esperes unos minutos.
 
 ### Corregido
+- **Una hora que no existe se rechaza al comprobar.** La que el reloj se salta en el cambio a la hora de verano (por ejemplo, las 02:30 del último domingo de marzo) da `FECHA_INEXISTENTE` antes de publicar; antes Moodle la movía a las 03:30 y la actividad quedaba creada con otro error. Las horas que se repiten en otoño siguen valiendo.
 - **Actualizar una tarea ya no borra sus archivos adicionales.** Antes, publicar de nuevo una tarea que tenía archivos en «Archivos adicionales» los quitaba; ahora tiza reenvía los que ya tiene.
 - **En Windows, tiza ya no sigue un enlace simbólico** al leer `calendario.toml`, los ficheros de la asignatura o los documentos de `tiza leer`: se rechaza igual que en Linux y macOS.
 

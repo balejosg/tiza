@@ -11,7 +11,7 @@ import html as _html
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlsplit
@@ -690,7 +690,17 @@ def _fecha(valor: Any, zona: ZoneInfo, hora_por_defecto: time) -> datetime:
     else:
         raise ErrorContenido("FECHA_INVALIDA", "la fecha debe ser texto ISO")
     if momento.tzinfo is None:
-        return momento.replace(tzinfo=zona)
+        local = momento.replace(tzinfo=zona)
+        # Una hora que el reloj se salta (el cambio de primavera) no existe: Moodle la desplazaría
+        # sin avisar. Las horas que se repiten en otoño sí existen y valen.
+        real = local.astimezone(UTC).astimezone(zona)
+        if real.replace(tzinfo=None) != momento:
+            raise ErrorContenido(
+                "FECHA_INEXISTENTE",
+                f"el {momento:%Y-%m-%d %H:%M} no existe en {zona.key} (el reloj se adelanta ese "
+                f"día); usa otra hora, por ejemplo las {real:%H:%M}",
+            )
+        return local
     return momento.astimezone(zona)
 
 

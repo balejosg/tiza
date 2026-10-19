@@ -57,6 +57,7 @@ MENSAJES: dict[str, str] = {
     "NOMBRE_INVALIDO": "El nombre debe tener entre 1 y 255 caracteres.",
     "SECCION_INVALIDA": "La sección debe ser su nombre (recomendado) o su número en .tiza/estructura.json.",
     "FECHA_INVALIDA": "Escribe las fechas como AAAA-MM-DD o AAAA-MM-DD HH:MM.",
+    "FECHA_INEXISTENTE": "Esa hora no existe: es la que el reloj se salta en el cambio a la hora de verano (en España, de las 02:00 a las 03:00 del último domingo de marzo). Pon otra hora y no se ha publicado nada.",
     "FECHAS_INCOHERENTES": "Las fechas deben cumplir apertura antes que entrega y entrega antes que limite; en un cuestionario, apertura antes que cierre.",
     # Itinerario: finalización y restricciones
     "FINALIZACION_NO_ADMITIDA": "«finalizacion» no vale para este tipo de actividad (o «fecha_esperada» no tiene finalización). Valores: ninguna, manual, ver, entregar (tarea) y calificar (tarea, cuestionario y H5P); la etiqueta solo admite ninguna y manual.",

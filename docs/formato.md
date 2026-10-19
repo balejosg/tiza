@@ -147,7 +147,9 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
 - Si el `nombre` contiene `: ` (dos puntos y espacio), escríbelo entre comillas:
   `nombre: "Ejemplo: repaso"`.
 - Las fechas aceptan `AAAA-MM-DD` o `AAAA-MM-DD HH:MM` (hora del aula, con
-  `Europe/Madrid` por defecto; sin hora,
+  `Europe/Madrid` por defecto; una hora que el reloj se salta en el cambio de
+  primavera, como las 02:30 del último domingo de marzo, no existe y da
+  `FECHA_INEXISTENTE`; sin hora,
   `apertura` empieza a las 00:00 y `entrega` y `limite` acaban a las 23:59) y
   deben cumplir `apertura < entrega < limite`. `entrega` es la «Fecha de
   entrega» de Moodle: después se siguen admitiendo entregas, marcadas con

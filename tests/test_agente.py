@@ -60,6 +60,21 @@ class TestComprobar:
         assert resultado.informe["errores"] == ["CAMPO_FALTANTE", "SECCION_ES_ID"]
         assert capsys.readouterr() == ("", "")
 
+    def test_una_hora_que_no_existe_se_rechaza_al_comprobar(self, tmp_path):
+        escribir(
+            tmp_path,
+            "t.md",
+            "---\ntipo: tarea\nnombre: Entrega\nseccion: 3\napertura: 2027-03-01\n"
+            "entrega: 2027-03-28 02:30\n---\n\nResuelve.\n",
+        )
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
+        resultado = agente.comprobar(tmp_path, ["t.md"])
+        [fichero] = resultado.ficheros
+        assert fichero.codigo == "FECHA_INEXISTENTE"
+        assert "2027-03-28 02:30" in fichero.detalle
+        assert resultado.informe["errores"] == ["FECHA_INEXISTENTE"]
+        informe.validar(resultado.informe)
+
     def test_seccion_por_nombre_que_falta_se_creara(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", 'seccion: "Fracciones"'))
         estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
