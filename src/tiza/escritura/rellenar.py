@@ -209,8 +209,11 @@ def _parrafo(texto: str, ppr: Any | None, formato: Any | None) -> Any:
     return p
 
 
-def _reemplazar_parrafo(p: Any, textos: tuple[str, ...]) -> None:
-    """El primer texto va al primer run con texto (con su formato); los demás, a párrafos nuevos."""
+def _reemplazar_parrafo(p: Any, textos: tuple[str, ...]) -> Any:
+    """El primer texto va al primer run con texto (con su formato); los demás, a párrafos nuevos.
+
+    Devuelve el último párrafo que ocupa el lugar de ``p`` (``p`` si no hay párrafos nuevos).
+    """
     formato = _formato(p)
     analisis = _analizar(p)
     # Un control que se vacía o se reescribe ya no enseña su texto de ejemplo.
@@ -239,6 +242,7 @@ def _reemplazar_parrafo(p: Any, textos: tuple[str, ...]) -> None:
     if salto is not None and anterior is not p:  # el salto de sección va en el último párrafo
         ppr.remove(salto)
         anterior.find(_PPR).append(salto)
+    return anterior
 
 
 def _poner_celda(tc: Any, textos: tuple[str, ...]) -> None:
@@ -425,8 +429,17 @@ def _preparar(
     """Valida la operación con la plantilla y devuelve lo que la aplica sobre lo ya resuelto."""
     if isinstance(operacion, Reemplazar):
         destino = _elemento(mapa, operacion.id, _P, _TC)
-        poner = _reemplazar_parrafo if destino.tag == _P else _poner_celda
-        return lambda: poner(destino, operacion.texto)
+        if destino.tag == _TC:
+            return lambda: _poner_celda(destino, operacion.texto)
+
+        def reemplazar() -> None:
+            ultimo = _reemplazar_parrafo(destino, operacion.texto)
+            # Los párrafos nuevos sustituyen al párrafo, así que van antes de lo ya insertado
+            # tras él; si no había nada insertado, lo que se inserte después va detrás.
+            if ultimo is not destino and destino not in ultimos:
+                ultimos[destino] = ultimo
+
+        return reemplazar
 
     if isinstance(operacion, InsertarDespues):
         ref = _elemento(mapa, operacion.id, _P, _TBL)

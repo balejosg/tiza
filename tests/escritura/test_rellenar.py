@@ -24,6 +24,7 @@ from tiza.escritura.relleno import (
     Reemplazar,
     Relleno,
 )
+from tiza.lectura.modelo import ErrorLectura
 from tiza.lectura.word import analizar_docx, leer_docx
 
 
@@ -910,7 +911,7 @@ def test_agente_rellenar_con_enlaces_hacia_fuera_da_fichero_fuera(tmp_path):
     _yaml_relleno(fuera, "Plantilla.docx", "Salida.docx", sha).replace(externo)
     enlace_yaml = carpeta / "relleno.yaml"
     enlace_simbolico(enlace_yaml, externo)
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ErrorLectura) as exc:
         agente.rellenar("relleno.yaml", carpeta)
     assert exc.value.codigo == "FICHERO_FUERA"
     enlace_yaml.unlink()
@@ -918,7 +919,7 @@ def test_agente_rellenar_con_enlaces_hacia_fuera_da_fichero_fuera(tmp_path):
     # La plantilla es un enlace a un Word de fuera.
     enlace_simbolico(carpeta / "Plantilla.docx", real)
     _yaml_relleno(carpeta, "Plantilla.docx", "Salida.docx", sha)
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ErrorEscritura) as exc:
         agente.rellenar("relleno.yaml", carpeta)
     assert exc.value.codigo == "FICHERO_FUERA"
     (carpeta / "Plantilla.docx").unlink()
@@ -926,7 +927,45 @@ def test_agente_rellenar_con_enlaces_hacia_fuera_da_fichero_fuera(tmp_path):
     # La salida es un enlace colgante hacia fuera.
     (carpeta / "Plantilla.docx").write_bytes(real.read_bytes())
     enlace_simbolico(carpeta / "Salida.docx", fuera / "Nuevo.docx")
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ErrorEscritura) as exc:
         agente.rellenar("relleno.yaml", carpeta)
     assert exc.value.codigo == "FICHERO_FUERA"
     assert not (fuera / "Nuevo.docx").exists()
+
+
+# --- reemplazar con varios párrafos y otras operaciones sobre el mismo id -----------------
+
+
+def test_reemplazar_con_lista_y_luego_insertar_en_el_mismo_id(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Uno")
+    d.add_paragraph("Dos")
+    _, nuevo, _ = aplicar(tmp_path, d, Reemplazar("p1", ("A", "B")), InsertarDespues("p1", ("C",)))
+    assert _orden(nuevo) == ["A", "B", "C", "Dos"]
+
+
+def test_insertar_y_luego_reemplazar_con_lista_en_el_mismo_id(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Uno")
+    d.add_paragraph("Dos")
+    _, nuevo, _ = aplicar(tmp_path, d, InsertarDespues("p1", ("C",)), Reemplazar("p1", ("A", "B")))
+    # Los párrafos nuevos sustituyen a p1, así que van antes de lo insertado tras él.
+    assert _orden(nuevo) == ["A", "B", "C", "Dos"]
+
+
+def test_reemplazar_con_lista_y_luego_duplicar_tabla_tras_el_mismo_id(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Uno")
+    f.tabla_unidad(d)
+    _, nuevo, _ = aplicar(
+        tmp_path,
+        d,
+        Reemplazar("p1", ("A", "B")),
+        DuplicarTabla("t1", "p1", 1, ({"f1.c1": ("COPIA",)},)),
+    )
+    cuerpo = [
+        "".join(t.text or "" for t in e.iter(qn("w:t"))) if e.tag == qn("w:p") else "tabla"
+        for e in nuevo.element.body
+    ]
+    assert cuerpo[:4] == ["A", "B", "tabla", ""]
+    assert "COPIA" in "".join(t.text or "" for t in nuevo.element.body[2].iter(qn("w:t")))

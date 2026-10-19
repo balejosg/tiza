@@ -325,7 +325,10 @@ Códigos de error:
 | `CELDAS_NO_COINCIDEN` | Una fila nueva no tiene las celdas de la fila modelo |
 | `FILA_MODELO_FUSIONADA`, `FILA_FUSIONADA` | Una fila con celdas fusionadas no se puede copiar ni borrar |
 | `ESTILO_INEXISTENTE` | La plantilla no tiene ese estilo de párrafo |
-| `DOCUMENTO_PROTEGIDO`, `DOCUMENTO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `DOCUMENTO_NO_ESCRIBIBLE`, `NOMBRE_NO_VALIDO` | Los mismos que `tiza leer` y `tiza documento`: la plantilla está protegida o es demasiado grande, un fichero está bloqueado, no se puede escribir la salida o el nombre no vale |
+| `DOCUMENTO_PROTEGIDO`, `DOCUMENTO_DEMASIADO_GRANDE` | Vienen de la lectura de la plantilla (la misma de `tiza leer`): cifrada con contraseña, o descomprimida o de más de 30 MB. (`tiza documento` usa `FICHERO_DEMASIADO_GRANDE` para su `.md`; aquí no sale) |
+| `FICHERO_BLOQUEADO` | La plantilla o el YAML están abiertos o bloqueados |
+| `DOCUMENTO_NO_ESCRIBIBLE` | No se pudo crear o escribir el Word de salida (el mismo código que `tiza documento`) |
+| `NOMBRE_NO_VALIDO` | Un nombre de fichero lleva símbolos que tiza no admite en su informe |
 
 Avisos: `INDICE_SE_ACTUALIZA_AL_ABRIR` (la plantilla tiene índice: al abrir la copia, Word
 pregunta si actualizar los campos y, si se dice que no, el índice queda sin actualizar) y `CAMBIOS_SIN_ACEPTAR` (la plantilla tiene cambios
