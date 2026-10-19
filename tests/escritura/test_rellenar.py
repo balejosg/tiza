@@ -728,3 +728,44 @@ def test_el_mapa_de_ids_coincide_con_los_bloques_de_la_lectura(tmp_path):
     for id_, elemento in analisis.mapa.items():
         ultimo = id_.rsplit(".", 1)[-1]
         assert elemento.tag == qn(f"w:{etiquetas[ultimo[0]]}"), id_
+
+
+def tabla_con_celda_en_control_de_fila(d):
+    """Tabla de una fila de dos celdas; la primera va dentro de un control de fila con marcador."""
+    t = d.add_table(rows=1, cols=2)
+    t.cell(0, 0).text = "Haga clic aquí"
+    t.cell(0, 1).text = "Fija"
+    tc = t._tbl.find(qn("w:tr")).find(qn("w:tc"))
+    control = f.elemento("<w:sdt><w:sdtPr><w:showingPlcHdr/></w:sdtPr><w:sdtContent/></w:sdt>")
+    tc.addprevious(control)
+    control.find(qn("w:sdtContent")).append(tc)
+    return t
+
+
+def test_reemplazar_celda_quita_el_marcador_del_control_de_fila(tmp_path):
+    d = f.nuevo()
+    tabla_con_celda_en_control_de_fila(d)
+    assert [c.id for c in leer_docx_de(tmp_path, d).bloques[0].hijos[0].hijos] == [
+        "t1.f1.c1",
+        "t1.f1.c2",
+    ]
+    _, nuevo, lectura = aplicar(tmp_path, d, Reemplazar("t1.f1.c1", ("Informática",)))
+    controles = list(nuevo.element.body.iter(qn("w:sdt")))
+    assert len(controles) == 1 and controles[0].find(".//" + qn("w:showingPlcHdr")) is None
+    assert textos(lectura)["t1.f1.c1.p1"] == "Informática"
+
+
+def test_filas_quitan_el_marcador_del_control_de_fila_copiado(tmp_path):
+    d = f.nuevo()
+    tabla_con_celda_en_control_de_fila(d)
+    _, nuevo, lectura = aplicar(tmp_path, d, Filas("t1", 1, None, (fila("A", "B"),)))
+    controles = list(nuevo.element.body.iter(qn("w:sdt")))
+    assert len(controles) == 2
+    assert [c.find(".//" + qn("w:showingPlcHdr")) is None for c in controles] == [False, True]
+    assert textos(lectura)["t1.f2.c1.p1"] == "A"
+
+
+def leer_docx_de(tmp_path, documento):
+    ruta = tmp_path / "previa.docx"
+    documento.save(str(ruta))
+    return leer_docx(ruta)

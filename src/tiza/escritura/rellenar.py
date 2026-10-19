@@ -246,6 +246,12 @@ def _poner_celda(tc: Any, textos: tuple[str, ...]) -> None:
     ppr = primero.find(_PPR) if primero is not None else None
     formato = _formato(primero) if primero is not None else None
     nuevos = [_parrafo(texto, ppr, formato) for texto in textos]
+    envoltorio = tc.getparent()  # un control de fila que envuelve la celda también se reescribe
+    while envoltorio is not None and envoltorio.tag in (qn("w:sdtContent"), qn("w:sdt")):
+        marca = _marcador(envoltorio) if envoltorio.tag == qn("w:sdt") else None
+        if marca is not None:
+            marca.getparent().remove(marca)
+        envoltorio = envoltorio.getparent()
     for hijo in list(tc):
         if hijo.tag != _TCPR:
             tc.remove(hijo)
