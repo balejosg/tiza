@@ -13,6 +13,7 @@ import json
 import re
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -665,6 +666,12 @@ def _validar_entrada_copia(entrada: Any, campos: set[str]) -> None:
         if not isinstance(entrada["fecha_copia"], str):
             raise ErrorInforme("TIPO_INCORRECTO", "fecha_copia debe ser texto o nulo")
         _exigir_texto(entrada["fecha_copia"], "fecha_copia")
+        try:
+            con_zona = datetime.fromisoformat(entrada["fecha_copia"]).tzinfo is not None
+        except ValueError:
+            con_zona = False
+        if not con_zona:
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "fecha_copia debe ser una fecha con zona")
     for campo in ("moodle", "fecha_importacion"):
         if not isinstance(entrada[campo], str):
             raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")

@@ -1667,3 +1667,42 @@ def test_publicar_bien_deja_la_entrada_importada_y_sin_el_aviso_de_cambio(carpet
     assert entrada["estado"] == "IMPORTADA"
     assert entrada["huella_fichero"] is None and entrada["huella_aula"] == "b" * 64
     assert entrada["detalle"] is None
+
+
+def test_una_copia_antigua_no_escribe_ficheros_de_actividades_nuevas(carpeta):
+    otra = pagina("<p>Solo en la vieja</p>", nombre="Otra", cmid=510)
+    importar_en(carpeta, [pagina("<p>Hola</p>")], fecha=FECHA_NUEVA)
+    antes = sorted(p.name for p in (carpeta / "aula").rglob("*") if p.is_file())
+    importar_en(carpeta, [pagina("<p>Hola</p>"), otra], fecha=FECHA_VIEJA)
+    despues = sorted(p.name for p in (carpeta / "aula").rglob("*") if p.is_file())
+    assert despues == antes
+    assert 510 not in actividades_de(carpeta)
+    assert entrada_de(carpeta)["fecha_copia"] == antes_fecha(FECHA_NUEVA)
+
+
+def test_una_copia_sin_fecha_conserva_la_linea_base(carpeta):
+    importar_en(carpeta, [pagina("<p>Hola</p>")], fecha=FECHA_NUEVA)
+    importar_en(carpeta, [pagina("<p>Hola</p>")])
+    assert entrada_de(carpeta)["fecha_copia"] == antes_fecha(FECHA_NUEVA)
+    # Con la línea base conservada, una copia vieja sigue sin pisar nada.
+    importar_en(carpeta, [pagina("<p>Viejo</p>")], fecha=FECHA_VIEJA)
+    assert actividades_de(carpeta)[501]["estado"] == "YA_IMPORTADO"
+
+
+def test_fecha_copia_sin_zona_es_copia_invalida(carpeta):
+    importar_en(carpeta, [pagina()], fecha=FECHA_NUEVA)
+    ruta = carpeta / ".tiza" / "copia.json"
+    datos = json.loads(ruta.read_text(encoding="utf-8"))
+    datos["cursos"]["3"]["fecha_copia"] = "2026-10-23T10:00:00"
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+    with pytest.raises(estado.ErrorEstado) as info:
+        estado.cargar_copia(carpeta / ".tiza")
+    assert info.value.codigo == "COPIA_INVALIDA"
+
+
+def test_el_aviso_de_cambio_solo_no_deja_un_espacio_delante(carpeta):
+    importar_en(carpeta, [pagina("<p>A</p>")])
+    importar_en(carpeta, [pagina("<p>B</p>")])
+    importar_en(carpeta, [pagina("<p>C</p>")])
+    detalle = actividades_de(carpeta)[501]["detalle"]
+    assert detalle == detalle.strip() and detalle.startswith("El nombre")

@@ -504,6 +504,16 @@ def _es_antigua(anterior: dict | None, datos: Copia, como_nuevas: bool) -> bool:
         return False
 
 
+def _fecha_de_copia(anterior: dict | None, datos: Copia, como_nuevas: bool) -> str | None:
+    """La fecha de esta copia; si no la dice, se conserva la de la importación anterior."""
+    if datos.fecha is not None:
+        return datos.fecha.isoformat(timespec="seconds")
+    if anterior is None or como_nuevas:
+        return None
+    ultima = anterior["cursos"].get(str(datos.curso_original))
+    return ultima.get("fecha_copia") if ultima else None
+
+
 def _datos_de_copia(
     anterior: dict | None,
     datos: Copia,
@@ -523,7 +533,7 @@ def _datos_de_copia(
     entrada: dict[str, Any] = {
         "moodle": re.sub(r"[^0-9A-Za-z.() +-]", "", datos.moodle)[:60],
         "fecha_importacion": datetime.now(UTC).isoformat(timespec="seconds"),
-        "fecha_copia": datos.fecha.isoformat(timespec="seconds") if datos.fecha else None,
+        "fecha_copia": _fecha_de_copia(anterior, datos, como_nuevas),
         "secciones": [
             {
                 "numero": s.numero,
@@ -588,19 +598,19 @@ def importar(
     entradas = []
     try:
         for actividad in datos.actividades:
-            entradas.append(
-                _importar_actividad(
-                    datos,
-                    actividad,
-                    secciones[actividad.seccion_id],
-                    raiz,
-                    base,
-                    dir_tiza,
-                    previa.get(actividad.cmid),
-                    como_nuevas,
-                    antigua,
-                )
+            hecha = _importar_actividad(
+                datos,
+                actividad,
+                secciones[actividad.seccion_id],
+                raiz,
+                base,
+                dir_tiza,
+                previa.get(actividad.cmid),
+                como_nuevas,
+                antigua,
             )
+            if hecha is not None:
+                entradas.append(hecha)
         escrito = estado.escribir_copia(
             dir_tiza,
             _datos_de_copia(anterior, datos, entradas, previa, como_nuevas, antigua),
@@ -688,13 +698,14 @@ def _importar_actividad(
     previa: dict | None,
     como_nuevas: bool,
     antigua: bool = False,
-) -> _Entrada:
+) -> _Entrada | None:
     nombre = _texto_seguro(actividad.nombre, f"Actividad {actividad.cmid}")
     entrada = _Entrada(
         cmid=actividad.cmid, modulo=actividad.modulo, seccion=seccion.numero, nombre=nombre
     )
-    if antigua and previa is not None:
-        return _conservar(entrada, previa)
+    if antigua:
+        # Una copia más antigua no escribe nada nuevo: solo conserva lo que ya estaba importado.
+        return _conservar(entrada, previa) if previa is not None else None
     tipo = tipos.de_modulo(actividad.modulo)
     if tipo is None:
         return _rechazar(
@@ -765,7 +776,8 @@ def _importar_actividad(
             entrada.huella_fichero = marca or estado.MARCA_ILEGIBLE
             _extraer(datos, recursos, ruta.parent, actividad.cmid, raiz)
             estado.guardar_version_de_copia(dir_tiza, actividad.cmid, html)
-            entrada.avisos += [estado.quitar_aviso_cambiada(previo)] if previo else []
+            if previo := estado.quitar_aviso_cambiada(previo):
+                entrada.avisos.append(previo)
             entrada.avisos.append(estado.AVISO_CAMBIADA.format(cmid=actividad.cmid))
             if marca is None:
                 entrada.avisos.append(_AVISO_FICHERO_ILEGIBLE)
