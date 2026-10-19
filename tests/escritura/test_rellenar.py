@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import zipfile
+from collections import Counter
 
 import pytest
 from docx import Document
+from docx.oxml import parse_xml
 from docx.oxml.ns import qn
 from lectura import fabrica as f
 
@@ -21,7 +23,7 @@ from tiza.escritura.relleno import (
     Reemplazar,
     Relleno,
 )
-from tiza.lectura.word import leer_docx
+from tiza.lectura.word import analizar_docx, leer_docx
 
 
 def preparar(tmp_path, documento, *operaciones):
@@ -578,3 +580,151 @@ def test_los_codigos_nuevos_tienen_su_texto():
         "ESTILO_INEXISTENTE",
     ):
         assert ayuda.explicar(codigo), codigo
+
+
+# --- ronda de arreglos 1 ------------------------------------------------------------------
+
+WORD = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+W14 = "http://schemas.microsoft.com/office/word/2010/wordml"
+WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+
+
+def test_reemplazar_deja_sin_marcador_de_ejemplo_a_todos_los_controles(tmp_path):
+    d = f.nuevo()
+    f.parrafo_xml(
+        d,
+        '<w:r><w:t xml:space="preserve">Módulo: </w:t></w:r>'
+        '<w:sdt><w:sdtPr><w:id w:val="5"/><w:showingPlcHdr/></w:sdtPr><w:sdtContent>'
+        '<w:r><w:rPr><w:rStyle w:val="PlaceholderText"/></w:rPr><w:t>Haga clic aquí</w:t></w:r>'
+        "</w:sdtContent></w:sdt>",
+    )
+    _, nuevo, lectura = aplicar(tmp_path, d, Reemplazar("p1", ("Módulo: Informática",)))
+    controles = list(nuevo.element.body.iter(qn("w:sdt")))
+    assert controles and all(c.find(".//" + qn("w:showingPlcHdr")) is None for c in controles)
+    assert textos(lectura)["p1"] == "Módulo: Informática"
+
+
+def plantilla_con_ids(d):
+    """Una tabla con paraId/textId, un control con id y una imagen con id (en celdas distintas)."""
+    t = f.tabla_unidad(d)
+    for n, p in enumerate(d.element.body.iter(qn("w:p")), start=1):
+        p.set(f"{{{W14}}}paraId", f"0000{n:04X}")
+        p.set(f"{{{W14}}}textId", "77777777")
+    for n, tr in enumerate(t._tbl.iter(qn("w:tr")), start=1):
+        tr.set(f"{{{W14}}}paraId", f"1000{n:04X}")
+    celda = t.cell(1, 1)._tc
+    celda.append(
+        f.elemento(
+            '<w:sdt><w:sdtPr><w:id w:val="41"/></w:sdtPr><w:sdtContent>'
+            "<w:p><w:r><w:t>Control</w:t></w:r></w:p></w:sdtContent></w:sdt>"
+        )
+    )
+    celda.append(
+        parse_xml(
+            f'<w:p xmlns:w="{WORD}" xmlns:wp="{WP}"><w:r><w:drawing><wp:inline>'
+            '<wp:docPr id="7" name="Imagen"/></wp:inline></w:drawing></w:r>'
+            '<w:bookmarkStart w:id="3" w:name="m"/><w:bookmarkEnd w:id="3"/></w:p>'
+        )
+    )
+    return t
+
+
+def comprobar_ids_unicos(documento):
+    cuerpo = documento.element.body
+    para = Counter(p.get(f"{{{W14}}}paraId") for p in cuerpo.iter() if p.get(f"{{{W14}}}paraId"))
+    assert [k for k, v in para.items() if v > 1] == []
+    sdt = Counter(i.get(qn("w:val")) for i in cuerpo.iter(qn("w:id")))
+    assert [k for k, v in sdt.items() if v > 1] == []
+    imagenes = Counter(i.get("id") for i in cuerpo.iter(f"{{{WP}}}docPr"))
+    assert [k for k, v in imagenes.items() if v > 1] == []
+
+
+def test_las_copias_no_repiten_ids(tmp_path):
+    d = f.nuevo()
+    plantilla_con_ids(d)
+    _, nuevo, _ = aplicar(
+        tmp_path,
+        d,
+        DuplicarTabla("t1", "t1", 2, ({}, {})),
+        Filas("t1", 3, None, (fila("a", "b"), fila("c", "d"))),
+    )
+    comprobar_ids_unicos(nuevo)
+    assert len(list(nuevo.element.body.iter(qn("w:sdt")))) == 3
+    assert len(list(nuevo.element.body.iter(f"{{{WP}}}docPr"))) == 3
+    # Lo copiado no lleva marcadores; el original conserva el suyo.
+    assert len(list(nuevo.element.body.iter(qn("w:bookmarkStart")))) == 1
+
+
+def test_filas_no_copian_marcadores(tmp_path):
+    d = f.nuevo()
+    t = f.tabla_unidad(d)
+    t.cell(1, 0).paragraphs[0]._p.append(f.elemento('<w:bookmarkStart w:id="3" w:name="m"/>'))
+    t.cell(1, 0).paragraphs[0]._p.append(f.elemento('<w:bookmarkEnd w:id="3"/>'))
+    _, nuevo, _ = aplicar(tmp_path, d, Filas("t1", 2, None, (fila("a", "b"),)))
+    assert len(list(nuevo.element.body.iter(qn("w:bookmarkStart")))) == 1
+
+
+def test_duplicar_separa_tambien_de_la_tabla_que_viene_detras(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Antes")
+    f.tabla_unidad(d)
+    _, nuevo, lectura = aplicar(tmp_path, d, DuplicarTabla("t1", "p1", 1, ({},)))
+    etiquetas = [e.tag.rsplit("}", 1)[-1] for e in nuevo.element.body][:5]
+    assert etiquetas == ["p", "tbl", "p", "tbl", "sectPr"]
+    assert [b.id for b in lectura.bloques] == ["p1", "t1", "t2"]
+
+
+def test_antes_de_una_continuacion_de_fusion_rechazado(tmp_path):
+    d = f.nuevo()
+    f.tabla_vmerge(d)
+    error = fallo(tmp_path, d, Filas("t1", 3, 2, (fila("a", "b"),)))
+    assert error.codigo == "FILA_FUSIONADA"
+    assert "operaciones[0]" in error.detalle
+
+
+def test_antes_del_inicio_de_una_fusion_vale(tmp_path):
+    d = f.nuevo()
+    f.tabla_vmerge(d)
+    _, _, lectura = aplicar(tmp_path, d, Filas("t1", 3, 1, (fila("a", "b"),)))
+    assert lectura.bloques[0].alto == 4
+
+
+def test_el_mapa_de_ids_coincide_con_los_bloques_de_la_lectura(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Uno")
+    d.add_paragraph("")
+    f.tabla_vmerge(d)
+    d.add_paragraph("")
+    d.element.body.insert(
+        3,
+        f.elemento(
+            "<w:sdt><w:sdtPr/><w:sdtContent><w:p><w:r><w:t>En el control</w:t></w:r></w:p>"
+            "</w:sdtContent></w:sdt>"
+        ),
+    )
+    anidada = d.add_table(rows=2, cols=2)
+    anidada.cell(0, 0).text = "Fuera"
+    interior = anidada.cell(0, 1).add_table(rows=1, cols=2)
+    interior.cell(0, 0).text = "Dentro"
+    anidada.cell(0, 1).add_paragraph("Tras la anidada")
+    d.add_paragraph("")
+    d.add_paragraph("Último")
+    ruta = tmp_path / "doc.docx"
+    d.save(str(ruta))
+    analisis = analizar_docx(ruta.read_bytes(), ruta.name)
+
+    ids = []
+
+    def recoger(bloque):
+        ids.append(bloque.id)
+        for hijo in bloque.hijos:
+            recoger(hijo)
+
+    for bloque in analisis.lectura.bloques:
+        recoger(bloque)
+    assert "t2.f1.c2.t1.f1.c1.p1" in ids and "p2" in ids and any(".c2" in i for i in ids)
+    assert set(analisis.mapa) == set(ids) and len(ids) == len(set(ids))
+    etiquetas = {"p": "p", "t": "tbl", "f": "tr", "c": "tc"}
+    for id_, elemento in analisis.mapa.items():
+        ultimo = id_.rsplit(".", 1)[-1]
+        assert elemento.tag == qn(f"w:{etiquetas[ultimo[0]]}"), id_

@@ -131,6 +131,14 @@ def _marcador(control: Any) -> Any | None:
     return control.find(qn("w:sdtPr") + "/" + qn("w:showingPlcHdr"))
 
 
+def _sin_marcador(nodo: Any) -> None:
+    """Quita ``w:showingPlcHdr`` de los controles que envuelven al nodo."""
+    for control in _controles(nodo):
+        marca = _marcador(control)
+        if marca is not None:
+            marca.getparent().remove(marca)
+
+
 def _rpr_limpio(origen: Any | None, es_marcador: bool = False) -> Any | None:
     """Una copia del ``w:rPr`` sin marcas de cambio ni (si era un marcador) su estilo."""
     if origen is None:
@@ -204,17 +212,17 @@ def _reemplazar_parrafo(p: Any, textos: tuple[str, ...]) -> None:
     """El primer texto va al primer run con texto (con su formato); los demás, a párrafos nuevos."""
     formato = _formato(p)
     analisis = _analizar(p)
+    # Un control que se vacía o se reescribe ya no enseña su texto de ejemplo.
+    if analisis.candidato is not None:
+        _sin_marcador(analisis.candidato)
     for nodo in analisis.quitar:
+        _sin_marcador(nodo)
         nodo.getparent().remove(nodo)
     run = analisis.candidato
     if run is None:
         run = OxmlElement("w:r")
         p.append(run)
     else:
-        for control in _controles(run):  # ya no es el texto de ejemplo del control
-            marca = _marcador(control)
-            if marca is not None:
-                marca.getparent().remove(marca)
         for hijo in list(run):
             run.remove(hijo)
     if formato is not None:
@@ -349,14 +357,55 @@ def _borrar(elemento: Any) -> None:
         _asegurar_cierre(padre)
 
 
-def _sin_marcadores(elemento: Any) -> None:
-    for etiqueta in ("w:bookmarkStart", "w:bookmarkEnd"):
-        for marca in list(elemento.iter(qn(etiqueta))):
+_W14 = "http://schemas.microsoft.com/office/word/2010/wordml"
+_ATRIBUTOS_DE_PARRAFO = (f"{{{_W14}}}paraId", f"{{{_W14}}}textId")
+_SDT_ID = qn("w:sdtPr") + "/" + qn("w:id")
+_DOCPR = qn("wp:docPr")
+
+
+class _Ids:
+    """Ids únicos para lo que se copia: mayores que el máximo del documento."""
+
+    def __init__(self, raiz: Any) -> None:
+        self.control = max(
+            (_entero(c.get(qn("w:val"))) for c in raiz.iterfind(".//" + _SDT_ID)), default=0
+        )
+        self.imagen = max((_entero(d.get("id")) for d in raiz.iter(_DOCPR)), default=0)
+
+    def renovar(self, elemento: Any) -> None:
+        """Quita lo que no puede repetirse en una copia y da ids nuevos a controles e imágenes."""
+        for nodo in elemento.iter():
+            if isinstance(nodo.tag, str):
+                for atributo in _ATRIBUTOS_DE_PARRAFO:
+                    nodo.attrib.pop(atributo, None)
+        for marca in list(elemento.iter(qn("w:bookmarkStart"), qn("w:bookmarkEnd"))):
             marca.getparent().remove(marca)
+        for identificador in elemento.iterfind(".//" + _SDT_ID):
+            self.control += 1
+            identificador.set(qn("w:val"), str(self.control))
+        for imagen in elemento.iter(_DOCPR):
+            self.imagen += 1
+            imagen.set("id", str(self.imagen))
+
+
+def _entero(texto: str | None) -> int:
+    try:
+        return max(int(texto), 0) if texto is not None else 0
+    except ValueError:
+        return 0
+
+
+def _continuacion(tr: Any) -> bool:
+    """¿Tiene la fila alguna celda que continúa una fusión vertical empezada más arriba?"""
+    for tc in celdas_directas(tr):
+        fusion = tc.find(_TCPR + "/" + qn("w:vMerge"))
+        if fusion is not None and fusion.get(qn("w:val")) in (None, "continue"):
+            return True
+    return False
 
 
 def _preparar(
-    i: int, operacion: Operacion, mapa: dict[str, Any], estilos: _Estilos
+    i: int, operacion: Operacion, mapa: dict[str, Any], estilos: _Estilos, ids: _Ids
 ) -> Callable[[], None]:
     """Valida la operación con la plantilla y devuelve lo que la aplica sobre lo ya resuelto."""
     if isinstance(operacion, Reemplazar):
@@ -396,7 +445,14 @@ def _preparar(
             )
         ante = None
         if operacion.antes_de is not None:
-            ante = _elemento(mapa, f"{operacion.tabla}.f{operacion.antes_de}", _TR)
+            id_ante = f"{operacion.tabla}.f{operacion.antes_de}"
+            ante = _elemento(mapa, id_ante, _TR)
+            if _continuacion(ante):
+                raise ErrorEscritura(
+                    "FILA_FUSIONADA",
+                    f"operaciones[{i}]: «antes_de» apunta a la fila «{id_ante}», que continúa una "
+                    "fusión vertical; insertar ahí partiría la fusión. Elige otra fila.",
+                )
         celdas = len(celdas_directas(modelo))
         for k, fila in enumerate(operacion.contenido):
             if len(fila) != celdas:
@@ -415,6 +471,7 @@ def _preparar(
                         marca.getparent().remove(marca)
                 for tc, textos in zip(celdas_directas(nueva), fila, strict=True):
                     _poner_celda(tc, textos)
+                ids.renovar(nueva)
                 if ante is not None:
                     ante.addprevious(nueva)
                 else:
@@ -431,7 +488,7 @@ def _preparar(
             ultimo = ancla
             for cambios in operacion.celdas:
                 copia = copy.deepcopy(original)
-                _sin_marcadores(copia)
+                ids.renovar(copia)
                 celdas = mapa_de_tabla(copia)
                 for relativo, textos in cambios.items():
                     tc = celdas.get(relativo)
@@ -448,6 +505,9 @@ def _preparar(
                     ultimo = separador
                 ultimo.addnext(copia)
                 ultimo = copia
+            siguiente = ultimo.getnext()
+            if siguiente is not None and siguiente.tag == _TBL:  # también por detrás
+                ultimo.addnext(OxmlElement("w:p"))
 
         return duplicar
 
@@ -503,8 +563,9 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
     except ErrorLectura as error:
         raise ErrorEscritura(error.codigo, error.detalle) from None
     estilos = _Estilos(analisis.documento)
+    ids = _Ids(analisis.documento.element)
     acciones = [
-        _preparar(i, operacion, analisis.mapa, estilos)
+        _preparar(i, operacion, analisis.mapa, estilos, ids)
         for i, operacion in enumerate(relleno.operaciones)
     ]
     try:
