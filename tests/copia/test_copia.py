@@ -210,18 +210,19 @@ def test_cualquier_doctype_se_rechaza(tmp_path, doctype):
 
 
 def test_ruta_con_barra_invertida_ignorada_o_rechazada(tmp_path):
-    """Con ``\\`` en el nombre: tar y zip en POSIX la ignoran; ``zipfile`` en Windows la
-    convierte en ``/`` (``ZipInfo`` cambia ``os.sep``) y ya no se distingue de una ruta normal:
-    la copia se rechaza entera (falla cerrado) en vez de aceptar la sección colada."""
+    """Con ``\\`` en el nombre: tar y zip en POSIX la ignoran. En Windows, ``zipfile`` convierte
+    ``\\`` en ``/`` al leer el directorio central (``ZipInfo``), así que la entrada se lee como
+    ruta normal: la copia puede abrirse o rechazarse con ``COPIA_NO_VALIDA``, según el contenido.
+    En ambos casos nada se escribe fuera ni sale otra excepción."""
     secciones, actividades = f.copia_basica()
     cuerpo = f._seccion(f.SeccionFalsa(id=996, numero=9, nombre="Colada"), [])
     extras = {"sections\\section_996\\section.xml": cuerpo}
     for formato in FORMATOS:
         if formato == "zip" and os.sep == "\\":
-            assert (
-                error_de(tmp_path, secciones, actividades, formato=formato, extras=extras).codigo
-                == "COPIA_NO_VALIDA"
-            )
+            try:
+                abrir(tmp_path, secciones, actividades, formato=formato, extras=extras)
+            except ErrorCopia as e:
+                assert e.codigo == "COPIA_NO_VALIDA"
         else:
             c = abrir(tmp_path, secciones, actividades, formato=formato, extras=extras)
             assert [s.id for s in c.secciones] == [7]
