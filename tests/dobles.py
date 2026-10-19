@@ -567,12 +567,14 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ERROR_INTERNO": publicacion.Aviso.error_interno("RuntimeError"),
         "ESTRUCTURA_NO_LEIDA": publicacion.Aviso.estructura_no_leida(),
         "FALLO": publicacion.Aviso.fallo("LOGIN_FALLIDO", ""),
+        "HUELLA_NO_GUARDADA": publicacion.Aviso.huella_no_guardada("T"),
         "INFORME_NO_ESCRITO": publicacion.Aviso.informe_no_escrito(),
         "MAXIMO_ALCANZADO": publicacion.Aviso.maximo_alcanzado(8),
         "NOMBRES_NO_DISPONIBLES": publicacion.Aviso.nombres_no_disponibles(),
         "ORDENANDO_EN_PRUEBAS": publicacion.Aviso.ordenando_en_pruebas(
             (publicacion.DocumentoBreve("t.md", "pagina", "T"),)
         ),
+        "ORIGEN_SIN_HUELLA": publicacion.Aviso.origen_sin_huella("T"),
         "PETICION_RETIRADA": publicacion.Aviso.peticion_retirada(),
         "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),
         "QUEDAN_MINUTOS": publicacion.Aviso.quedan_minutos(5),

@@ -478,6 +478,25 @@ def _cambiada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _huella_no_guardada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"No he podido guardar lo que acabo de publicar de «{texto_seguro(datos['nombre'])}» "
+            "para comprobar sus cambios después; la próxima vez pide una copia nueva.",
+            error=True,
+        ),
+    )
+
+
+def _origen_sin_huella(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"No he podido comprobar si «{texto_seguro(datos['nombre'])}» ha cambiado en el aula "
+            "desde la copia."
+        ),
+    )
+
+
 def _cancelada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("Operación cancelada.", error=True),)
 
@@ -592,10 +611,12 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ERROR_INTERNO": _error_interno,
     "ESTRUCTURA_NO_LEIDA": _estructura_no_leida,
     "FALLO": _fallo,
+    "HUELLA_NO_GUARDADA": _huella_no_guardada,
     "INFORME_NO_ESCRITO": _informe_no_escrito,
     "MAXIMO_ALCANZADO": _maximo_alcanzado,
     "NOMBRES_NO_DISPONIBLES": _nombres_no_disponibles,
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
+    "ORIGEN_SIN_HUELLA": _origen_sin_huella,
     "PETICION_RETIRADA": _peticion_retirada,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,
     "QUEDAN_MINUTOS": _quedan_minutos,

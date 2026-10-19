@@ -1757,7 +1757,13 @@ def _publicar_congelado(
             # El formulario de edición que se carga para actualizar: lo que hay en el aula
             # se compara aquí y no sale; solo llega un código.
             leido = moodle.leer_modulo(encontrado["cmid"])
-            if tipos.huella_del_formulario(tipos.obtener(doc.tipo), doc, leido) != huella_aula:
+            tipo = tipos.obtener(doc.tipo)
+            en_el_aula = tipos.huella_del_formulario(tipo, doc, leido)
+            # Como estaba en la copia, o ya con lo que tiza iba a escribir (un intento anterior
+            # escribió y falló al verificar): en los dos casos no hay cambio ajeno que perder.
+            if en_el_aula != huella_aula and en_el_aula != tipos.huella_de_lo_enviado(
+                tipo, doc, html_para_moodle(doc)
+            ):
                 raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
     else:
         existente = modulo_de(secciones, doc)
@@ -2219,7 +2225,11 @@ def asegurar_secciones(
 
 
 def publicar_fechas(
-    moodle: AulaVirtual, secciones: list[dict], doc: Documento, curso: int | None = None
+    moodle: AulaVirtual,
+    secciones: list[dict],
+    doc: Documento,
+    curso: int | None = None,
+    huella_aula: str | None = None,
 ) -> informe.Fichero:
     """Cambia solo las fechas de una tarea o un cuestionario que ya está en el aula.
 
@@ -2227,14 +2237,39 @@ def publicar_fechas(
     visibilidad, así que no pasa por la puerta de pruebas ni sube nada. Si el
     módulo no existe, no envía nada.
     """
+    return publicar_fechas_con_huella(moodle, secciones, doc, curso, huella_aula)[0]
+
+
+def publicar_fechas_con_huella(
+    moodle: AulaVirtual,
+    secciones: list[dict],
+    doc: Documento,
+    curso: int | None = None,
+    huella_aula: str | None = None,
+) -> tuple[informe.Fichero, str | None]:
+    """Como :func:`publicar_fechas`; devuelve además la huella nueva si ``doc`` tiene ``origen``.
+
+    En el curso del origen y con ``huella_aula``, antes de escribir se compara con el formulario
+    del aula: vale la guardada o que las fechas ya sean las pedidas (un intento anterior las
+    escribió y falló); si no, ``CAMBIADA_EN_EL_AULA`` y no se envía nada. La huella nueva (nombre
+    y texto del aula, fechas nuevas) se calcula aquí con el formulario que se relee al verificar:
+    solo sale el sha256.
+    """
     existente = modulo_de(secciones, doc, curso)
     if existente is None:
         raise ErrorPublicacion("MODULO_AUSENTE", doc.ruta.name)
     cmid = existente["cmid"]
+    por_origen = aplica_origen(doc, curso)
+    tipo = tipos.obtener(doc.tipo)
+    if por_origen and huella_aula is not None:
+        leido = moodle.leer_modulo(cmid)
+        en_el_aula = tipos.huella_del_formulario(tipo, doc, leido)
+        if en_el_aula not in (huella_aula, tipos.huella_con_las_fechas_de(tipo, doc, leido)):
+            raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
     moodle.actualizar(cmid, payload_solo_fechas(doc))
     info = _verificar_fechas(moodle, doc, cmid)
     seccion = buscar_seccion(secciones, doc.seccion) or {}
-    return informe.Fichero(
+    fichero = informe.Fichero(
         nombre=doc.ruta.name,
         tipo=doc.tipo,
         cmid=cmid,
@@ -2245,6 +2280,8 @@ def publicar_fechas(
         # El contenido no cambia: el hash es el que el docente ya vio al confirmar.
         hash=doc.hash_cargado or None,
     )
+    nueva = tipos.huella_del_formulario(tipo, doc, info) if por_origen else None
+    return fichero, nueva
 
 
 class Movimiento(NamedTuple):

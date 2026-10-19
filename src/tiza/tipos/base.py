@@ -417,6 +417,15 @@ def huella_del_formulario(tipo: Tipo, doc: Documento, leido: Mapping[str, Any]) 
     return huella_aula(leido.get("nombre") or "", leido.get("texto") or "", fechas)
 
 
+def huella_con_las_fechas_de(tipo: Tipo, doc: Documento, leido: Mapping[str, Any]) -> str:
+    """La huella del nombre y el texto que hay en el aula con las fechas que declara ``doc``.
+
+    Es lo que quedaría en el aula tras cambiar solo las fechas (``--solo-fechas``).
+    """
+    fechas = {fecha.campo_moodle: fecha.momento for fecha in _campos_de_huella(tipo, doc)}
+    return huella_aula(leido.get("nombre") or "", leido.get("texto") or "", fechas)
+
+
 def verificar(
     moodle: AulaVirtual,
     tipo: Tipo,

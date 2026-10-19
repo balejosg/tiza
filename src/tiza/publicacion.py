@@ -99,10 +99,12 @@ AVISOS = frozenset(
         "ERROR_INTERNO",
         "ESTRUCTURA_NO_LEIDA",
         "FALLO",
+        "HUELLA_NO_GUARDADA",
         "INFORME_NO_ESCRITO",
         "MAXIMO_ALCANZADO",
         "NOMBRES_NO_DISPONIBLES",
         "ORDENANDO_EN_PRUEBAS",
+        "ORIGEN_SIN_HUELLA",
         "PETICION_RETIRADA",
         "PUBLICANDO_EN_PRUEBAS",
         "QUEDAN_MINUTOS",
@@ -165,6 +167,10 @@ class Aviso:
         return cls("FALLO", {"codigo": codigo, "detalle": detalle})
 
     @classmethod
+    def huella_no_guardada(cls, nombre: str) -> Aviso:
+        return cls("HUELLA_NO_GUARDADA", {"nombre": nombre})
+
+    @classmethod
     def informe_no_escrito(cls) -> Aviso:
         return cls("INFORME_NO_ESCRITO")
 
@@ -179,6 +185,10 @@ class Aviso:
     @classmethod
     def ordenando_en_pruebas(cls, documentos: tuple[DocumentoBreve, ...]) -> Aviso:
         return cls("ORDENANDO_EN_PRUEBAS", {"documentos": documentos})
+
+    @classmethod
+    def origen_sin_huella(cls, nombre: str) -> Aviso:
+        return cls("ORIGEN_SIN_HUELLA", {"nombre": nombre})
 
     @classmethod
     def peticion_retirada(cls) -> Aviso:
@@ -600,6 +610,7 @@ def _resolver_dependencias(
     secciones: list[dict],
     documentos: list[Documento],
     existentes: dict[str, int],
+    curso: int | None = None,
 ) -> tuple[str, str] | None:
     """Rellena ``existentes`` con el cmid en este curso de cada dependencia que no se pide.
 
@@ -614,7 +625,10 @@ def _resolver_dependencias(
                 dep = contenido.cargar(base / fichero, raiz=base)
             except ErrorContenido:
                 return "DEPENDENCIA_INVALIDA", fichero
-            modulo = publicar.modulo_de(secciones, dep)
+            try:
+                modulo = publicar.modulo_de(secciones, dep, curso)
+            except ErrorPublicacion:  # su ``origen`` ya no está en el aula
+                modulo = None
             if modulo is None:
                 return "DEPENDENCIA_NO_PUBLICADA", fichero
             existentes[fichero] = modulo["cmid"]
@@ -692,11 +706,6 @@ def publicar_con(
     borrador.paso("LOGIN")
     base = Path(carpeta).resolve()
     paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
-    # Dos ficheros del mismo origen pisarían dos veces la misma actividad: ninguno se publica.
-    documentos, repetidos = _sin_origen_repetido(documentos)
-    for doc in repetidos:
-        borrador.fallo(paso, doc.ruta.name)
-        borrador.error("ORIGEN_DUPLICADO")
     if not solo_fechas:
         ordenados = ordenar_por_dependencias(documentos, base)
         if ordenados is None:
@@ -711,9 +720,24 @@ def publicar_con(
         borrador.error(exc.codigo)
         depurar(exc, debug)
         return borrador.documento("error")
+    # Lo que se rechaza por su origen se dice ya y no deja nada hecho (ni una sección creada).
+    aceptados, rechazados = _separar_rechazados(documentos, secciones, curso, base, solo_fechas)
+    for rechazado, motivo in rechazados:
+        borrador.fallo(paso, rechazado.ruta.name)
+        borrador.error(motivo)
+    documentos = aceptados
+    dir_tiza = Path(carpeta) / rutas.CARPETA_TRABAJO
+    huellas: dict[int, str] = {}  # de cada actividad importada, el aula tal como la dejó la copia
+    if any(publicar.aplica_origen(doc, curso) for doc in documentos):
+        try:
+            huellas = estado.huellas_de_copia(dir_tiza, curso)
+        except estado.ErrorEstado as exc:
+            borrador.fallo("PREPARAR", exc.codigo)
+            borrador.error(exc.codigo)
+            return borrador.documento("error")
     existentes: dict[str, int] = {}
     if not solo_fechas:
-        faltante = _resolver_dependencias(base, secciones, documentos, existentes)
+        faltante = _resolver_dependencias(base, secciones, documentos, existentes, curso)
         if faltante is not None:
             borrador.fallo("DEPENDENCIAS", faltante[1])
             borrador.error(faltante[0])
@@ -737,27 +761,22 @@ def publicar_con(
             return borrador.documento("error")
         for nombre in creadas:
             borrador.paso("CREAR_SECCION", detalle=nombre)
-    dir_tiza = Path(carpeta) / rutas.CARPETA_TRABAJO
-    huellas: dict[int, str] = {}  # de cada actividad importada, el aula tal como la dejó la copia
-    if not solo_fechas and any(publicar.aplica_origen(doc, curso) for doc in documentos):
-        try:
-            huellas = estado.huellas_de_copia(dir_tiza, curso)
-        except estado.ErrorEstado as exc:
-            borrador.fallo("PREPARAR", exc.codigo)
-            borrador.error(exc.codigo)
-            return borrador.documento("error")
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
     motor: bool | None = None  # ¿dibuja el aula las fórmulas? Se mira una vez por curso
     for doc in documentos:
         try:
+            huella = None
+            huella_nueva = None  # solo --solo-fechas: la calcula publicar.py con lo que relee
+            if doc.origen is not None and publicar.aplica_origen(doc, curso):
+                huella = huellas.get(doc.origen.cmid)
+                if huella is None:  # sin copia o sin huella: se publica sin esa protección
+                    borrador.paso("ORIGEN_SIN_HUELLA", detalle=doc.ruta.name)
+                    presencia.informar(Aviso.origen_sin_huella(doc.nombre))
             if solo_fechas:
-                resultado = publicar.publicar_fechas(aula, secciones, doc, curso)
+                resultado, huella_nueva = publicar.publicar_fechas_con_huella(
+                    aula, secciones, doc, curso, huella
+                )
             else:
-                huella = None
-                if doc.origen is not None and publicar.aplica_origen(doc, curso):
-                    huella = huellas.get(doc.origen.cmid)
-                    if huella is None:  # sin copia o sin huella: se publica sin esa protección
-                        borrador.paso("ORIGEN_SIN_HUELLA", detalle=doc.ruta.name)
                 dependencias = {
                     fichero: cmids[fichero]
                     for fichero in (doc.restricciones.completar if doc.restricciones else ())
@@ -784,8 +803,8 @@ def publicar_con(
             if exc.codigo == "CAMBIADA_EN_EL_AULA":
                 presencia.informar(Aviso.cambiada_en_el_aula(doc.nombre))
             continue
-        if not solo_fechas and publicar.aplica_origen(doc, curso):
-            _renovar_huella(dir_tiza, curso, doc, borrador)
+        if publicar.aplica_origen(doc, curso):
+            _renovar_huella(dir_tiza, curso, doc, borrador, presencia, huella_nueva)
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None
             estado.guardar_verificado(
@@ -810,7 +829,10 @@ def publicar_con(
 
 
 # Fallos que paran solo a su fichero: la actividad no se toca y el resto del lote sigue.
-ERRORES_POR_FICHERO = frozenset({"CAMBIADA_EN_EL_AULA", "ORIGEN_NO_ENCONTRADO"})
+# ``DEPENDENCIA_NO_PUBLICADA`` aquí es la de un fichero del lote que se quedó sin publicar.
+ERRORES_POR_FICHERO = frozenset(
+    {"CAMBIADA_EN_EL_AULA", "ORIGEN_NO_ENCONTRADO", "DEPENDENCIA_NO_PUBLICADA"}
+)
 
 
 def _sin_origen_repetido(documentos: list[Documento]) -> tuple[list[Documento], list[Documento]]:
@@ -826,20 +848,72 @@ def _sin_origen_repetido(documentos: list[Documento]) -> tuple[list[Documento], 
     )
 
 
-def _renovar_huella(dir_tiza: Path, curso: int, doc: Documento, borrador: informe.Borrador) -> None:
-    """Guarda en ``copia.json`` la huella de lo que tiza acaba de enviar, para el siguiente lote.
+def _separar_rechazados(
+    documentos: list[Documento],
+    secciones: list[dict],
+    curso: int,
+    base: Path,
+    solo_fechas: bool,
+) -> tuple[list[Documento], list[tuple[Documento, str]]]:
+    """(los que se pueden publicar, los rechazados con su código), mirando solo la estructura.
 
-    Se calcula con lo enviado, sin releer el aula (espiga 5). Si no se puede guardar, la
-    publicación sigue siendo buena; solo se avisa de que la próxima saltará.
+    Se rechazan antes de confirmar y de crear nada: dos ficheros del mismo ``origen``
+    (``ORIGEN_DUPLICADO``), un ``origen`` que ya no está en este curso (``ORIGEN_NO_ENCONTRADO``) y
+    quien depende de uno rechazado (``DEPENDENCIA_NO_PUBLICADA``). Con ``--solo-fechas`` solo
+    cuentan los duplicados: lo demás es todo o nada.
+    """
+    base = Path(base).resolve()
+    claves = [_relativa(doc.ruta, base) for doc in documentos]
+    cuantos = Counter((doc.origen.curso, doc.origen.cmid) for doc in documentos if doc.origen)
+    rechazados: dict[int, str] = {}
+    for indice, doc in enumerate(documentos):
+        if doc.origen is not None and cuantos[(doc.origen.curso, doc.origen.cmid)] > 1:
+            rechazados[indice] = "ORIGEN_DUPLICADO"
+    if not solo_fechas:
+        for indice, doc in enumerate(documentos):
+            if indice not in rechazados and publicar.aplica_origen(doc, curso):
+                try:
+                    publicar.modulo_por_origen(secciones, doc)
+                except ErrorPublicacion:
+                    rechazados[indice] = "ORIGEN_NO_ENCONTRADO"
+        crecio = True
+        while crecio:  # quien depende de un rechazado, también (de forma transitiva)
+            crecio = False
+            fuera = {claves[indice] for indice in rechazados}
+            for indice, doc in enumerate(documentos):
+                deps = doc.restricciones.completar if doc.restricciones else ()
+                if indice not in rechazados and any(dep in fuera for dep in deps):
+                    rechazados[indice] = "DEPENDENCIA_NO_PUBLICADA"
+                    crecio = True
+    return (
+        [doc for indice, doc in enumerate(documentos) if indice not in rechazados],
+        [(documentos[indice], rechazados[indice]) for indice in sorted(rechazados)],
+    )
+
+
+def _renovar_huella(
+    dir_tiza: Path,
+    curso: int,
+    doc: Documento,
+    borrador: informe.Borrador,
+    presencia: Presencia,
+    nueva: str | None = None,
+) -> None:
+    """Guarda en ``copia.json`` la huella de lo que se acaba de publicar, para el siguiente lote.
+
+    Sin ``nueva`` se calcula con lo que tiza envió, sin releer el aula (espiga 5). Si no se puede
+    guardar, la publicación sigue siendo buena; solo se avisa de que la próxima saltará.
     """
     assert doc.origen is not None
     try:
-        nueva = tipos.huella_de_lo_enviado(
-            tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
-        )
+        if nueva is None:
+            nueva = tipos.huella_de_lo_enviado(
+                tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
+            )
         estado.guardar_huella_de_copia(dir_tiza, curso, doc.origen.cmid, nueva)
     except (estado.ErrorEstado, OSError):
         borrador.fallo("HUELLA_NO_GUARDADA", doc.ruta.name)
+        presencia.informar(Aviso.huella_no_guardada(doc.nombre))
 
 
 def cambios_de_nombre(
@@ -957,13 +1031,15 @@ def _en_pruebas(
         codigo = codigo_solo_fechas(secciones, documentos, curso)
         if codigo is not None:
             return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+    # Los de un origen repetido no se publican: ni gastan cupo ni se anuncian.
+    validos, _repetidos = _sin_origen_repetido(documentos)
     if cupo is not None:
-        if cupo["pruebas"] + len(documentos) > MAX_PUBLICACIONES_PRUEBAS:
+        if cupo["pruebas"] + len(validos) > MAX_PUBLICACIONES_PRUEBAS:
             return informe.crear(comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso)
-        cupo["pruebas"] += len(documentos)
+        cupo["pruebas"] += len(validos)
     if avisar:
         presencia.informar(
-            Aviso.publicando_en_pruebas(tuple(DocumentoResumen.de(doc, base) for doc in documentos))
+            Aviso.publicando_en_pruebas(tuple(DocumentoResumen.de(doc, base) for doc in validos))
         )
     return publicar_con(
         aula,
@@ -1045,8 +1121,15 @@ def _en_real(
             registro.append((posicion, curso, fallo(exc.codigo, curso)))
             break
         nombre_curso = nombres.get(curso)
-        if solo_fechas:
-            codigo = codigo_solo_fechas(secciones, documentos, curso)
+        # Lo que se rechaza por su origen sale con su código y no entra en lo que se confirma.
+        a_publicar, _rechazados = _separar_rechazados(
+            documentos, secciones, curso, base, solo_fechas
+        )
+        ids = {id(doc) for doc in a_publicar}
+        if not a_publicar:
+            confirmado = True  # nada que confirmar: publicar_con solo informa de los rechazos
+        elif solo_fechas:
+            codigo = codigo_solo_fechas(secciones, a_publicar, curso)
             if codigo is not None:
                 registro.append((posicion, curso, fallo(codigo, curso)))
                 break
@@ -1054,7 +1137,7 @@ def _en_real(
                 aula,
                 curso,
                 nombre_curso,
-                documentos,
+                a_publicar,
                 base,
                 secciones,
                 debug=debug,
@@ -1074,13 +1157,13 @@ def _en_real(
                         existe=publicar.ya_existe(secciones, doc, curso),
                         itinerario=itinerario_de(doc, base),
                     )
-                    for doc in documentos
+                    for doc in a_publicar
                 ),
-                secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
+                secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, a_publicar)),
                 posicion=posicion,
                 total=total,
-                movimientos=cambios_de_seccion(secciones, documentos, curso),
-                nombres=cambios_de_nombre(secciones, documentos, curso),
+                movimientos=cambios_de_seccion(secciones, a_publicar, curso),
+                nombres=cambios_de_nombre(secciones, a_publicar, curso),
             )
             confirmado = presencia.confirmar_real_sin_pruebas(corto)
         else:
@@ -1097,14 +1180,15 @@ def _en_real(
                         ),
                     )
                     for doc, vista in zip(documentos, vistas, strict=True)
+                    if id(doc) in ids
                 ),
-                secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, documentos)),
+                secciones_nuevas=tuple(publicar.secciones_que_faltan(secciones, a_publicar)),
                 visible=visible,
                 aviso_calendario=aviso_calendario,
                 posicion=posicion,
                 total=total,
-                movimientos=cambios_de_seccion(secciones, documentos, curso),
-                nombres=cambios_de_nombre(secciones, documentos, curso),
+                movimientos=cambios_de_seccion(secciones, a_publicar, curso),
+                nombres=cambios_de_nombre(secciones, a_publicar, curso),
             )
             confirmado = presencia.confirmar_real(resumen)
         if not confirmado:
@@ -1152,6 +1236,7 @@ def _dependencias_invertidas(
     base: Path,
     pedidos: dict[str, int],
     finales: dict[int, list[int]],
+    curso: int | None = None,
 ) -> tuple[tuple[str, str], ...]:
     """Pares (fichero, dependencia) donde la actividad queda por encima de la que debe completarse antes."""
     posicion: dict[int, tuple[int, int]] = {}
@@ -1167,9 +1252,9 @@ def _dependencias_invertidas(
             if dependencia is None:
                 try:
                     modulo = publicar.modulo_de(
-                        secciones, contenido.cargar(base / fichero, raiz=base)
+                        secciones, contenido.cargar(base / fichero, raiz=base), curso
                     )
-                except ErrorContenido:
+                except (ErrorContenido, ErrorPublicacion):
                     continue
                 dependencia = modulo["cmid"] if modulo is not None else None
             if propio in posicion and dependencia in posicion:
@@ -1230,7 +1315,7 @@ def resumen_orden(
         curso=curso,
         nombre_curso=nombre_curso,
         secciones=tuple(vistas),
-        dependencias=_dependencias_invertidas(secciones, documentos, base, pedidos, finales),
+        dependencias=_dependencias_invertidas(secciones, documentos, base, pedidos, finales, curso),
         posicion=posicion,
         total=total,
     )

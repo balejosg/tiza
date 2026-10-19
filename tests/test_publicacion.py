@@ -37,6 +37,7 @@ from tiza import (
     tipos,
 )
 from tiza.copia import abrir_copia
+from tiza.publicar import ErrorPublicacion
 
 PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
 
@@ -580,10 +581,12 @@ def _aula_importada(modulo="pagina", texto=TEXTO_DEL_AULA) -> MoodleFalso:
     return moodle
 
 
-def _fichero_importado(carpeta: Path, nombre="importada.md", titulo="Nuevo", cmid=501) -> None:
+def _fichero_importado(
+    carpeta: Path, nombre="importada.md", titulo="Nuevo", cmid=501, seccion="2", extra=""
+) -> None:
     (carpeta / nombre).write_text(
-        f"---\ntipo: pagina\nnombre: {titulo}\nseccion: 2\n"
-        f"origen:\n  curso: 5678\n  cmid: {cmid}\n---\n\nTexto nuevo.\n",
+        f"---\ntipo: pagina\nnombre: {titulo}\nseccion: {seccion}\n"
+        f"origen:\n  curso: 5678\n  cmid: {cmid}\n{extra}---\n\nTexto nuevo.\n",
         encoding="utf-8",
     )
 
@@ -855,3 +858,347 @@ def test_solo_fechas_busca_por_origen_y_si_no_esta_no_cambia_nada(tmp_path):
     assert publicacion.codigo_solo_fechas(secciones, [doc], 1234) == "MODULO_AUSENTE"
     secciones[0]["modulos"][0]["cmid"] = 602
     assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "ORIGEN_NO_ENCONTRADO"
+
+
+# --- Ronda de arreglos 1 ------------------------------------------------------------------
+
+
+class _AulaQueFallaAlVerificar(MoodleFalso):
+    """Escribe en el aula y falla una vez después: el reintento ya la encuentra escrita."""
+
+    fallos_pendientes = 1
+
+    def actualizar(self, cmid, payload):
+        super().actualizar(cmid, payload)
+        if self.fallos_pendientes:
+            self.fallos_pendientes -= 1
+            raise ErrorPublicacion("ERROR_ACTUALIZACION")
+
+
+def _aula_que_falla(texto=TEXTO_DEL_AULA) -> _AulaQueFallaAlVerificar:
+    base = _aula_importada(texto=texto)
+    moodle = _AulaQueFallaAlVerificar(
+        secciones=base.secciones, secciones_por_curso=base.secciones_por_curso
+    )
+    moodle.formularios = base.formularios
+    return moodle
+
+
+def test_un_reintento_tras_un_fallo_parcial_no_da_cambiada_en_el_aula(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    moodle = _aula_que_falla()
+    primero = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert primero["errores"] == ["ERROR_ACTUALIZACION"]
+    assert moodle.formularios[501]["name"] == "Nuevo"  # escribió antes de fallar
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {501: _huella_del_aula()}
+    segundo = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert segundo["errores"] == [] and segundo["resultado"] == "ok"
+    doc = contenido.cargar(carpeta / "importada.md")
+    enviada = tipos.huella_de_lo_enviado(
+        tipos.obtener("pagina"), doc, contenido.html_para_moodle(doc)
+    )
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {501: enviada}  # renovada
+
+
+def test_un_cambio_del_docente_tras_el_fallo_sigue_dando_cambiada(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    moodle = _aula_que_falla()
+    _publicar_real(carpeta, moodle, ["importada.md"])
+    moodle.formularios[501]["page[text]"] = "<p>Lo cambió el docente</p>"
+    segundo = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert segundo["errores"] == ["CAMBIADA_EN_EL_AULA"]
+
+
+# --solo-fechas con origen
+
+
+def _aula_con_tarea_importada(entrega=(2026, 10, 10, 23, 59)) -> MoodleFalso:
+    moodle = MoodleFalso(
+        secciones_por_curso={
+            5678: [
+                {
+                    "numero": 2,
+                    "nombre": "Tema 2",
+                    "id": 20,
+                    "modulos": [{"cmid": 601, "nombre": "Vieja", "tipo": "tarea"}],
+                }
+            ]
+        }
+    )
+    moodle.formularios[601] = {
+        "visible": "1",
+        "name": "Vieja",
+        "introeditor[text]": "<p>Enunciado del aula</p>",
+        **fecha_en_formulario("allowsubmissionsfromdate", (2026, 10, 1, 0, 0)),
+        **fecha_en_formulario("duedate", entrega),
+    }
+    return moodle
+
+
+def _tarea_importada(carpeta: Path, entrega="2026-10-12") -> None:
+    (carpeta / "tarea.md").write_text(
+        "---\ntipo: tarea\nnombre: Otro nombre\nseccion: 2\napertura: 2026-10-01\n"
+        f"entrega: {entrega}\norigen:\n  curso: 5678\n  cmid: 601\n---\n\nResuelve.\n",
+        encoding="utf-8",
+    )
+
+
+def _huella_de_la_tarea(entrega=(2026, 10, 10, 23, 59)) -> str:
+    return tipos.huella_aula(
+        "Vieja",
+        "<p>Enunciado del aula</p>",
+        {
+            "allowsubmissionsfromdate": (2026, 10, 1, 0, 0),
+            "duedate": entrega,
+        },
+    )
+
+
+def _solo_fechas(carpeta: Path, moodle, presencia=None) -> dict:
+    return publicacion.publicar_en_cursos(
+        moodle,
+        CFG,
+        [contenido.cargar(carpeta / "tarea.md")],
+        carpeta,
+        presencia or PresenciaFalsa(),
+        entorno="real",
+        solo_fechas=True,
+    )
+
+
+def _copia_de_tarea(carpeta: Path, huella: str) -> None:
+    _escribir_copia(carpeta, huella, cmid=601)
+    datos = estado.cargar_copia(carpeta / ".tiza")
+    datos["cursos"]["5678"]["actividades"][0].update(modulo="assign", fichero="tarea.md")
+    estado.escribir_copia(carpeta / ".tiza", datos)
+
+
+def test_solo_fechas_con_origen_cambia_las_fechas_y_renueva_la_huella(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea_importada(carpeta)
+    _copia_de_tarea(carpeta, _huella_de_la_tarea())
+    moodle = _aula_con_tarea_importada()
+    documento = _solo_fechas(carpeta, moodle)
+    assert documento["errores"] == []
+    assert [c[1] for c in moodle.llamadas if c[0] == "actualizar"] == [601]
+    assert moodle.formularios[601]["name"] == "Vieja"  # solo las fechas
+    nueva = _huella_de_la_tarea((2026, 10, 12, 23, 59))
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {601: nueva}
+    # La siguiente publicación completa no salta.
+    doc = contenido.cargar(carpeta / "tarea.md")
+    registro: dict = {}
+    estado.anotar_verificado(registro, contenido.hash_documento(doc), "tarea.md", 100)
+    completa = publicacion.publicar_en_cursos(
+        moodle, CFG, [doc], carpeta, PresenciaFalsa(), entorno="real", verificados=registro
+    )
+    assert completa["errores"] == [] and completa["ficheros"][0]["accion"] == "actualizada"
+
+
+def test_solo_fechas_con_origen_no_pisa_unas_fechas_cambiadas_a_mano(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea_importada(carpeta)
+    _copia_de_tarea(carpeta, _huella_de_la_tarea())
+    moodle = _aula_con_tarea_importada(entrega=(2026, 10, 20, 8, 0))  # lo cambió el docente
+    presencia = PresenciaFalsa()
+    documento = _solo_fechas(carpeta, moodle, presencia)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert not any(c[0] == "actualizar" for c in moodle.llamadas)
+    assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {601: _huella_de_la_tarea()}
+
+
+def test_solo_fechas_con_origen_reintenta_si_las_fechas_ya_estan_puestas(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea_importada(carpeta)
+    _copia_de_tarea(carpeta, _huella_de_la_tarea())  # la de antes del intento que falló
+    moodle = _aula_con_tarea_importada(entrega=(2026, 10, 12, 23, 59))
+    documento = _solo_fechas(carpeta, moodle)
+    assert documento["errores"] == []
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {
+        601: _huella_de_la_tarea((2026, 10, 12, 23, 59))
+    }
+
+
+# Lo que se rechaza por su origen no deja nada hecho ni se confirma
+
+
+def test_un_fichero_rechazado_no_deja_una_seccion_creada(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, cmid=999, seccion='"Tema nuevo"')  # su origen ya no está
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert documento["errores"] == ["ORIGEN_NO_ENCONTRADO"]
+    assert not any(c[0] == "crear_seccion" for c in moodle.llamadas)
+    # Y con un copia.json que no vale, ni la sección ni nada.
+    _fichero_importado(carpeta, seccion='"Tema nuevo"')
+    (carpeta / ".tiza").mkdir(exist_ok=True)
+    (carpeta / ".tiza" / "copia.json").write_text("[]", encoding="utf-8")
+    documento = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert documento["errores"] == ["COPIA_INVALIDA"]
+    assert not any(c[0] == "crear_seccion" for c in moodle.llamadas)
+
+
+def test_origen_duplicado_no_deja_una_seccion_creada(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, "uno.md", "Uno", seccion='"Tema nuevo"')
+    _fichero_importado(carpeta, "dos.md", "Dos", seccion='"Tema nuevo"')
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["uno.md", "dos.md"])
+    assert documento["errores"] == ["ORIGEN_DUPLICADO", "ORIGEN_DUPLICADO"]
+    assert not any(c[0] == "crear_seccion" for c in moodle.llamadas)
+
+
+def test_lo_rechazado_por_su_origen_no_entra_en_la_confirmacion(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, "uno.md", "Uno")
+    _fichero_importado(carpeta, "dos.md", "Dos")  # mismo origen que uno.md
+    _fichero_importado(carpeta, "huerfano.md", "Huerfano", cmid=999)
+    _fichero_normal(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(
+        carpeta, _aula_importada(), ["uno.md", "dos.md", "huerfano.md", "otra.md"], presencia
+    )
+    [resumen] = presencia.resumenes
+    assert [d.fichero for d in resumen.documentos] == ["otra.md"]
+    assert sorted(documento["errores"]) == [
+        "ORIGEN_DUPLICADO",
+        "ORIGEN_DUPLICADO",
+        "ORIGEN_NO_ENCONTRADO",
+    ]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+
+
+def test_si_todo_se_rechaza_no_se_pide_confirmar(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, cmid=999)
+    presencia = PresenciaFalsa()
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md"], presencia)
+    assert presencia.resumenes == []
+    assert documento["errores"] == ["ORIGEN_NO_ENCONTRADO"]
+    assert not any(c[0] in ("crear", "actualizar") for c in moodle.llamadas)
+
+
+def test_el_resumen_corto_tampoco_presenta_lo_rechazado(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, cmid=999)
+    _fichero_normal(carpeta)
+    sin_pruebas = config.Config(
+        url="https://aula.ejemplo.org/centro", usuario="profe", cursos={}, reales=(5678,)
+    )
+    presencia = PresenciaFalsa()
+    documento = publicacion.publicar_en_cursos(
+        _aula_importada(),
+        sin_pruebas,
+        [contenido.cargar(carpeta / f) for f in ("importada.md", "otra.md")],
+        carpeta,
+        presencia,
+        entorno="real",
+        visible=False,
+    )
+    [corto] = presencia.resumenes_cortos
+    assert [d.fichero for d in corto.documentos] == ["otra.md"]
+    assert documento["errores"] == ["ORIGEN_NO_ENCONTRADO"]
+
+
+def test_el_origen_repetido_no_gasta_cupo_en_pruebas(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, "uno.md", "Uno")
+    _fichero_importado(carpeta, "dos.md", "Dos")
+    _fichero_normal(carpeta)
+    cupo = {"pruebas": 0}
+    documento = publicacion.publicar_en_cursos(
+        _aula_importada(),
+        CFG,
+        [contenido.cargar(carpeta / f) for f in ("uno.md", "dos.md", "otra.md")],
+        carpeta,
+        PresenciaFalsa(),
+        entorno="pruebas",
+        cupo=cupo,
+    )
+    assert cupo["pruebas"] == 1
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+
+
+# Avisos al docente
+
+
+def test_sin_huella_y_huella_no_guardada_llegan_al_docente(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    presencia = PresenciaFalsa()
+    _publicar_real(carpeta, _aula_importada(), ["importada.md"], presencia)
+    assert "ORIGEN_SIN_HUELLA" in presencia.codigos()
+    [aviso] = [a for a in presencia.avisos if a.codigo == "ORIGEN_SIN_HUELLA"]
+    [linea] = mensajes.lineas_de_aviso(aviso)
+    assert linea.texto == (
+        "No he podido comprobar si «Nuevo» ha cambiado en el aula desde la copia."
+    )
+    _escribir_copia(carpeta, _huella_del_aula())
+
+    def no_guarda(*_args, **_kwargs):
+        raise OSError("disco lleno")
+
+    monkeypatch.setattr(estado, "guardar_huella_de_copia", no_guarda)
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(carpeta, _aula_importada(), ["importada.md"], presencia)
+    assert documento["errores"] == []
+    assert "HUELLA_NO_GUARDADA" in [p["codigo"] for p in documento["pasos"]]
+    [aviso] = [a for a in presencia.avisos if a.codigo == "HUELLA_NO_GUARDADA"]
+    [linea] = mensajes.lineas_de_aviso(aviso)
+    assert "la próxima vez pide una copia nueva" in linea.texto and "«Nuevo»" in linea.texto
+
+
+# Dependencias entre ficheros del lote
+
+
+def _dependiente(carpeta: Path, nombre="siguiente.md", de="importada.md") -> None:
+    (carpeta / nombre).write_text(
+        f"---\ntipo: pagina\nnombre: Siguiente\nseccion: 3\nrestricciones:\n  completar: [{de}]\n"
+        "---\n\nDespués.\n",
+        encoding="utf-8",
+    )
+
+
+def test_quien_depende_de_un_fichero_cambiado_falla_solo_y_el_lote_sigue(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, extra="finalizacion: ver\n")
+    _dependiente(carpeta)
+    _fichero_normal(carpeta)
+    _escribir_copia(carpeta, tipos.huella_aula("Viejo", "<p>Como estaba</p>"))
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["importada.md", "siguiente.md", "otra.md"])
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA", "DEPENDENCIA_NO_PUBLICADA"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+
+
+def test_quien_depende_de_un_origen_rechazado_no_se_confirma_ni_se_publica(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, cmid=999, extra="finalizacion: ver\n")
+    _dependiente(carpeta)
+    _fichero_normal(carpeta)
+    presencia = PresenciaFalsa()
+    moodle = _aula_importada()
+    documento = _publicar_real(
+        carpeta, moodle, ["importada.md", "siguiente.md", "otra.md"], presencia
+    )
+    assert documento["errores"] == ["ORIGEN_NO_ENCONTRADO", "DEPENDENCIA_NO_PUBLICADA"]
+    assert [d.fichero for d in presencia.resumenes[0].documentos] == ["otra.md"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+
+
+def test_una_dependencia_importada_se_resuelve_por_su_origen(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, extra="finalizacion: ver\n")  # en el aula se llama «Viejo»
+    _dependiente(carpeta)
+    moodle = _aula_importada()
+    documento = _publicar_real(carpeta, moodle, ["siguiente.md"])
+    assert documento["errores"] == []
+    [fichero] = documento["ficheros"]
+    texto = moodle.formularios[fichero["cmid"]]["availabilityconditionsjson"]
+    assert json.loads(texto)["c"][0]["cm"] == 501
