@@ -12,11 +12,14 @@ campo ``origen: {curso, cmid}``, más el resumen ``.tiza/copia.json``. Reglas qu
   importaciones (la actividad lleva su ``cmid`` en el nombre).
 - Si el curso de la copia no es uno de los cursos reales de ``tiza.toml`` no se escribe nada
   (``COPIA_DE_OTRO_CURSO``), salvo con ``como_nuevas``: entonces los ficheros salen sin
-  ``origen`` y se publican como cualquier ``.md`` nuevo.
+  ``origen`` y se publican como cualquier ``.md`` nuevo. Al revés, con ``como_nuevas`` una copia
+  de uno de los cursos reales de este aula no se escribe (``COPIA_DEL_MISMO_CURSO``): sin
+  ``origen`` perdería la protección de lo que cambió en el aula.
 """
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import unicodedata
@@ -39,7 +42,7 @@ from .copia import (
     FicheroCopia,
     SeccionCopia,
 )
-from .ficheros import fichero_en_carpeta
+from .ficheros import fichero_en_carpeta, leer_bytes_acotado
 from .importar_cuestionario import (
     ajustes_del_cuestionario,
     convertir_preguntas,
@@ -216,6 +219,24 @@ def _aula_configurada() -> str | None:
     return url if isinstance(url, str) and url.strip() else None
 
 
+def _comprobar_como_nuevas(raiz: Path, copia: Copia) -> None:
+    """Con ``como_nuevas`` la copia no puede ser de uno de los cursos reales de este aula.
+
+    Sin ``origen`` ni huella se publicaría por nombre, sin la protección de lo que cambió en el
+    aula: para ese curso se importa sin ``como_nuevas``.
+    """
+    if copia.curso_original not in config.reales_de_carpeta(raiz):
+        return
+    url = _aula_configurada()
+    if url is not None and _servidor(url) != _servidor(copia.servidor):
+        return
+    raise ErrorImportar(
+        "COPIA_DEL_MISMO_CURSO",
+        "La copia es de uno de los cursos reales de tiza.toml. Impórtala sin --como-nuevas: "
+        "así se publica sobre sus actividades y se avisa de lo que cambió en el aula.",
+    )
+
+
 def _comprobar_curso(raiz: Path, copia: Copia) -> None:
     """La copia tiene que ser de uno de los cursos reales y, si hay aula configurada, de ella."""
     otro = copia.curso_original not in config.reales_de_carpeta(raiz)
@@ -373,6 +394,7 @@ class _Entrada:
     estado: str = "IMPORTADA"
     avisos: list[str] = field(default_factory=list)
     huella_aula: str | None = None
+    huella_fichero: str | None = None  # sha256 del fichero al marcarla cambiada en el aula
 
     def a_dict(self) -> dict[str, Any]:
         return {
@@ -384,6 +406,7 @@ class _Entrada:
             "estado": self.estado,
             "detalle": " ".join(self.avisos)[:1000] or None,
             "huella_aula": self.huella_aula,
+            "huella_fichero": self.huella_fichero,
         }
 
 
@@ -526,7 +549,9 @@ def importar(
     ruta_copia = _ruta_de_copia(raiz, copia)
     base = _carpeta_destino(raiz, destino)
     datos = lector.abrir_copia(ruta_copia)
-    if not como_nuevas:
+    if como_nuevas:
+        _comprobar_como_nuevas(raiz, datos)
+    else:
         _comprobar_curso(raiz, datos)
     secciones = {s.id: s for s in datos.secciones}
     for actividad in datos.actividades:
@@ -577,7 +602,17 @@ def _rechazar(entrada: _Entrada, estado_: str, motivo: str, previa: dict | None)
     if previa is not None:
         entrada.fichero = previa["fichero"]
         entrada.huella_aula = previa["huella_aula"]
+        entrada.huella_fichero = previa["huella_fichero"]
     return entrada
+
+
+def _huella_del_fichero(ruta: Path) -> str | None:
+    """El sha256 de los bytes del fichero del docente (los mismos que ve ``contenido.cargar``)."""
+    try:
+        datos = leer_bytes_acotado(ruta, contenido.MAX_DOCUMENTO_BYTES)
+    except OSError:  # incluye FicheroNoSeguro
+        return None
+    return hashlib.sha256(datos).hexdigest()
 
 
 def _fichero_previo(previa: dict | None, raiz: Path, base: Path) -> Path | None:
@@ -673,8 +708,12 @@ def _importar_actividad(
     if existe:
         entrada.estado = "YA_IMPORTADO"
         guardada = previa["huella_aula"] if previa else None
+        # Una marca anterior sigue valiendo hasta que el docente toque su fichero y publique.
+        entrada.huella_fichero = previa["huella_fichero"] if previa else None
         if huella is not None and guardada is not None and guardada != huella:
             entrada.estado = "CAMBIADA_DESDE_LA_IMPORTACION"
+            # El fichero tal como está ahora: si al publicar sigue igual, no se juntó el cambio.
+            entrada.huella_fichero = _huella_del_fichero(ruta)
             _extraer(datos, recursos, ruta.parent, actividad.cmid, raiz)
             estado.guardar_version_de_copia(dir_tiza, actividad.cmid, html)
             entrada.avisos.append(

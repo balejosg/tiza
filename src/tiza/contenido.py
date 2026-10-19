@@ -286,6 +286,9 @@ class Documento:
     restricciones: Restricciones | None = None
     origen: Origen | None = None  # None: el documento no viene de una importación
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
+    sha256_fichero: str = (
+        ""  # sha256 de los bytes del fichero tal como se leyó (no entra en el hash)
+    )
     enlaces_externos: list[str] = field(default_factory=list)  # los ve el docente antes de real
     incrustados: list[str] = field(default_factory=list)  # URL de los iframes, también las ve
     _mapa_recursos: dict[str, Recurso] = field(default_factory=dict, repr=False)
@@ -310,7 +313,8 @@ def cargar(
     if not ruta.is_file():
         raise ErrorContenido("FICHERO_AUSENTE", f"no existe el fichero {ruta.name}")
     try:
-        texto = leer_bytes_acotado(ruta, MAX_DOCUMENTO_BYTES, enlaces=True).decode("utf-8")
+        bruto = leer_bytes_acotado(ruta, MAX_DOCUMENTO_BYTES, enlaces=True)
+        texto = bruto.decode("utf-8")
     except FicheroNoSeguro as exc:
         if exc.motivo == "grande":
             raise ErrorContenido(
@@ -346,6 +350,7 @@ def cargar(
                 doc.enlaces_externos.append(url)
     doc.incrustados = _sin_repetir(analisis.incrustados, doc.cuestionario, externos=False)
     doc.hash_cargado = hash_documento(doc)
+    doc.sha256_fichero = hashlib.sha256(bruto).hexdigest()
     return doc
 
 

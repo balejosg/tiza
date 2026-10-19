@@ -2163,6 +2163,7 @@ class TestOrigen:
             "{curso: 3, cmid: null}",
             "[3, 501]",
             "3",
+            "",  # ``origen:`` sin valor
         ],
     )
     def test_origen_invalido(self, tmp_path, valor):

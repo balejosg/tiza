@@ -81,7 +81,6 @@ PASOS = (
             "LOGIN",
             "MOVER_SECCION",
             "ORDENAR",
-            "ORIGEN_SIN_HUELLA",
             "PREPARAR",
             "PUBLICAR",
             "SECCION_DISTINTA_ENTRE_CURSOS",
@@ -588,6 +587,7 @@ _CAMPOS_ACTIVIDAD_COPIA = {
     "estado",
     "detalle",
     "huella_aula",
+    "huella_fichero",
 }
 _MODULO = re.compile(r"\A[a-z][a-z0-9]{0,29}\Z")
 
@@ -693,6 +693,10 @@ def _validar_entrada_copia(entrada: Any, campos: set[str]) -> None:
         huella = actividad["huella_aula"]
         if huella is not None and (not isinstance(huella, str) or not _HASH.match(huella)):
             raise ErrorInforme("VALOR_NO_PERMITIDO", "huella_aula no es un sha256")
+        # El sha256 del fichero del docente cuando la actividad se marcó como cambiada en el aula.
+        marca = actividad["huella_fichero"]
+        if marca is not None and (not isinstance(marca, str) or not _HASH.match(marca)):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "huella_fichero no es un sha256")
 
 
 def _exigir_bool(valor: Any, nombre: str) -> None:

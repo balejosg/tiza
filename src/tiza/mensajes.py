@@ -468,6 +468,15 @@ def _autoprueba_fallida(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 
 
 def _cambiada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    if datos.get("cmid") is not None:
+        return (
+            Linea(
+                f"«{texto_seguro(datos['nombre'])}» cambió en el aula y tu fichero sigue como "
+                "cuando se importó. No la publico para no perder ese cambio: junta antes los "
+                f"cambios de .tiza/copia/{int(datos['cmid'])}.html en tu fichero.",
+                error=True,
+            ),
+        )
     return (
         Linea(
             f"Ha cambiado «{texto_seguro(datos['nombre'])}» en el aula desde la copia. "
@@ -484,15 +493,6 @@ def _huella_no_guardada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
             f"No he podido guardar lo que acabo de publicar de «{texto_seguro(datos['nombre'])}» "
             "para comprobar sus cambios después; la próxima vez pide una copia nueva.",
             error=True,
-        ),
-    )
-
-
-def _origen_sin_huella(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
-    return (
-        Linea(
-            f"No he podido comprobar si «{texto_seguro(datos['nombre'])}» ha cambiado en el aula "
-            "desde la copia."
         ),
     )
 
@@ -616,7 +616,6 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "MAXIMO_ALCANZADO": _maximo_alcanzado,
     "NOMBRES_NO_DISPONIBLES": _nombres_no_disponibles,
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
-    "ORIGEN_SIN_HUELLA": _origen_sin_huella,
     "PETICION_RETIRADA": _peticion_retirada,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,
     "QUEDAN_MINUTOS": _quedan_minutos,

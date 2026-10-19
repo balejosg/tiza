@@ -198,6 +198,7 @@ MENSAJES: dict[str, str] = {
     "COPIA_NO_ESCRIBIBLE": "No se pudo guardar la copia en .tiza/copias. Comprueba que .tiza no es un enlace, que hay espacio en disco y que puedes escribir en la carpeta de la asignatura.",
     "COPIA_QUEDA_EN_EL_AULA": "La copia también queda en tu zona de copias de Moodle («Restaurar»): puedes borrarla allí",
     "DESTINO_NO_VALIDO": "El destino debe ser una carpeta de la asignatura, sin ruta absoluta, ni «..», ni carpetas ocultas (que empiezan por un punto), ni símbolos como dos puntos, asterisco o interrogación.",
+    "COPIA_DEL_MISMO_CURSO": "La copia es de uno de los cursos reales de tiza.toml, y con --como-nuevas se publicaría sin comprobar lo que cambió en el aula. Impórtala sin --como-nuevas; esa opción es para reutilizar la copia de otro curso.",
     "IMPORTACION_NO_ESCRIBIBLE": "No se pudo escribir en la carpeta de la asignatura. Comprueba que tienes permiso y que .tiza no es un enlace, y repite el comando: lo ya importado no se toca.",
     "COPIA_INVALIDA": "El fichero .tiza/copia.json no tiene la forma que escribe tiza y no se ha sobrescrito. No lo edites a mano: corrígelo o bórralo y vuelve a ejecutar «tiza importar».",
     "IMPORTACION_AUSENTE": "No hay ninguna importación en esta carpeta (falta .tiza/copia.json). Ejecuta antes «tiza importar» con la copia del curso.",
@@ -210,7 +211,8 @@ MENSAJES: dict[str, str] = {
     "AJUSTES_NO_ADMITIDOS": "La actividad tiene ajustes que tiza no puede publicar sin cambiarlos (el detalle dice cuáles: más de 10 intentos, un tiempo límite que no son minutos enteros, adjuntos de una tarea), así que no se ha importado.",
     "TIPO_NO_GESTIONADO": "Este tipo de actividad (foro, URL, recurso, lección…) no lo gestiona tiza y no se ha importado.",
     "ORIGEN_NO_ENCONTRADO": "La actividad de la que viene este fichero (su «origen») ya no existe en el aula o ahora es de otro tipo, y no se ha publicado nada. Pide una copia nueva del curso y vuelve a importar, o publícalo como actividad nueva quitando «origen».",
-    "CAMBIADA_EN_EL_AULA": "Alguien cambió esta actividad en el aula después de la copia, y no se ha publicado para no perder ese cambio. Pide al agente una copia nueva del curso y junta los cambios en tu fichero.",
+    "CAMBIADA_EN_EL_AULA": "Alguien cambió esta actividad en el aula después de la copia, y no se ha publicado para no perder ese cambio. Pide al agente una copia nueva del curso y junta los cambios en tu fichero (si ya la importaste, los de la versión nueva están en la carpeta .tiza/copia).",
+    "ORIGEN_SIN_HUELLA": "No se sabe cómo estaba esta actividad en la copia (falta .tiza/copia.json o su huella), así que no se ha publicado para no pisar un cambio del aula. Pide una copia nueva del curso e impórtala.",
     "ORIGEN_DUPLICADO": "Dos ficheros de esta publicación vienen de la misma actividad del aula (mismo «origen») y no se ha publicado ninguno de los dos. Deja uno solo, o quita «origen» al que sea una actividad nueva.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",

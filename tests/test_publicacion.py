@@ -10,6 +10,7 @@ de fechas de la confirmación.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import date, datetime
 from pathlib import Path
@@ -597,8 +598,13 @@ def _fichero_normal(carpeta: Path, nombre="otra.md") -> None:
     )
 
 
-def _escribir_copia(carpeta: Path, huella: str | None, curso=5678, cmid=501) -> None:
-    """``copia.json`` con una actividad del curso ``curso``, importada con esa huella."""
+def _escribir_copia(
+    carpeta: Path, huella: str | None, curso=5678, cmid=501, huella_fichero: str | None = None
+) -> None:
+    """``copia.json`` con una actividad del curso ``curso``, importada con esa huella.
+
+    ``huella_fichero``: el sha256 que se guardó del fichero al marcarla cambiada en el aula.
+    """
     entrada = {
         "moodle": "https://aula.ejemplo.org/centro",
         "fecha_importacion": "2026-10-19T10:00:00+00:00",
@@ -613,6 +619,7 @@ def _escribir_copia(carpeta: Path, huella: str | None, curso=5678, cmid=501) -> 
                 "estado": "IMPORTADA",
                 "detalle": None,
                 "huella_aula": huella,
+                "huella_fichero": huella_fichero,
             }
         ],
     }
@@ -744,28 +751,125 @@ def test_dos_ficheros_con_el_mismo_origen_no_se_publican(tmp_path):
     assert moodle.formularios[501]["name"] == "Viejo"
 
 
-def test_sin_copia_json_se_publica_por_origen_y_se_dice(tmp_path):
+def test_sin_copia_json_no_se_publica_por_origen_y_las_demas_siguen(tmp_path):
     carpeta = tmp_path.resolve()
     _fichero_importado(carpeta)
+    _fichero_normal(carpeta)
     moodle = _aula_importada()
-    documento = _publicar_real(carpeta, moodle, ["importada.md"])
-    assert documento["errores"] == []
-    assert {"codigo": "ORIGEN_SIN_HUELLA", "resultado": "ok", "detalle": "importada.md"} in (
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(carpeta, moodle, ["importada.md", "otra.md"], presencia)
+    informe.validar(documento)
+    assert documento["errores"] == ["ORIGEN_SIN_HUELLA"]
+    assert documento["resultado"] == "error"
+    assert {"codigo": "PUBLICAR", "resultado": "fallo", "detalle": "importada.md"} in (
         documento["pasos"]
     )
-    assert [f["cmid"] for f in documento["ficheros"]] == [501]
+    assert "ORIGEN_SIN_HUELLA" not in [p["codigo"] for p in documento["pasos"]]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+    assert 501 not in [c[1] for c in moodle.llamadas if c[0] == "actualizar"]
+    assert moodle.formularios[501]["name"] == "Viejo"
     assert not (carpeta / ".tiza" / "copia.json").exists()  # no se inventa una entrada
+    # No es lo mismo que un aviso: no sale como aviso, y la confirmación no la incluye.
+    assert "ORIGEN_SIN_HUELLA" not in presencia.codigos()
+    assert [d.fichero for d in presencia.resumenes[0].documentos] == ["otra.md"]
 
 
-def test_actividad_sin_huella_se_publica_y_queda_protegida_despues(tmp_path):
+def test_actividad_sin_huella_no_se_publica(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta, seccion='"Tema nuevo"')
+    _escribir_copia(carpeta, None)
+    moodle = _aula_importada()
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(carpeta, moodle, ["importada.md"], presencia)
+    assert documento["errores"] == ["ORIGEN_SIN_HUELLA"]
+    assert not any(
+        c[0] in ("actualizar", "crear", "crear_seccion", "mover") for c in moodle.llamadas
+    )
+    assert presencia.resumenes == []  # todo rechazado: nada que confirmar
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {}
+
+
+def test_sin_huella_en_otro_curso_no_cuenta(tmp_path):
+    # El origen es del curso 5678 y se publica en pruebas (1234): no hay nada que comparar.
     carpeta = tmp_path.resolve()
     _fichero_importado(carpeta)
-    _escribir_copia(carpeta, None)
+    documento = publicacion.publicar_en_cursos(
+        _aula_importada(),
+        CFG,
+        [contenido.cargar(carpeta / "importada.md")],
+        carpeta,
+        PresenciaFalsa(),
+        entorno="pruebas",
+    )
+    assert documento["errores"] == []
+
+
+def _marca_del_fichero(carpeta: Path, nombre="importada.md") -> str:
+    return hashlib.sha256((carpeta / nombre).read_bytes()).hexdigest()
+
+
+def test_un_fichero_sin_juntar_tras_cambiada_desde_la_importacion_no_se_publica(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _fichero_normal(carpeta)
+    # La copia nueva ya trae la huella del aula de ahora; el fichero sigue como se marcó.
+    _escribir_copia(carpeta, _huella_del_aula(), huella_fichero=_marca_del_fichero(carpeta))
+    moodle = _aula_importada()
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(carpeta, moodle, ["importada.md", "otra.md"], presencia)
+    informe.validar(documento)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert {
+        "codigo": "PUBLICAR",
+        "resultado": "fallo",
+        "detalle": "importada.md: junta antes los cambios de .tiza/copia/501.html",
+    } in documento["pasos"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+    assert not any(c[0] in ("actualizar", "mover", "subir") for c in moodle.llamadas)
+    assert moodle.formularios[501]["name"] == "Viejo"
+    [aviso] = [a for a in presencia.avisos if a.codigo == "CAMBIADA_EN_EL_AULA"]
+    [linea] = mensajes.lineas_de_aviso(aviso)
+    assert "junta antes los cambios de .tiza/copia/501.html" in linea.texto
+    assert [d.fichero for d in presencia.resumenes[0].documentos] == ["otra.md"]
+    # La marca sigue: nada se renovó.
+    assert estado.marcas_de_copia(carpeta / ".tiza", 5678) == {501: _marca_del_fichero(carpeta)}
+
+
+def test_con_el_fichero_ya_juntado_se_publica_y_se_borra_la_marca(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula(), huella_fichero=_marca_del_fichero(carpeta))
+    # El docente junta los cambios: el fichero ya no es el que se marcó.
+    ruta = carpeta / "importada.md"
+    ruta.write_text(ruta.read_text(encoding="utf-8") + "\nCon lo que cambió en el aula.\n")
     moodle = _aula_importada()
     documento = _publicar_real(carpeta, moodle, ["importada.md"])
     assert documento["errores"] == []
-    assert "ORIGEN_SIN_HUELLA" in [p["codigo"] for p in documento["pasos"]]
-    assert 501 in estado.huellas_de_copia(carpeta / ".tiza", 5678)
+    assert [c[1] for c in moodle.llamadas if c[0] == "actualizar"] == [501]
+    assert estado.marcas_de_copia(carpeta / ".tiza", 5678) == {}
+    # Y después se publica con normalidad, sin tocar nada más.
+    segunda = _publicar_real(carpeta, moodle, ["importada.md"])
+    assert segunda["errores"] == []
+
+
+def test_la_marca_de_otra_actividad_no_bloquea(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula(), huella_fichero="a" * 64)  # otro contenido
+    documento = _publicar_real(carpeta, _aula_importada(), ["importada.md"])
+    assert documento["errores"] == []
+
+
+def test_solo_fechas_tampoco_publica_un_fichero_sin_juntar(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea_importada(carpeta)
+    sha = hashlib.sha256((carpeta / "tarea.md").read_bytes()).hexdigest()
+    _escribir_copia(carpeta, _huella_de_la_tarea(), cmid=601, huella_fichero=sha)
+    moodle = _aula_con_tarea_importada()
+    presencia = PresenciaFalsa()
+    documento = _solo_fechas(carpeta, moodle, presencia)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert not any(c[0] == "actualizar" for c in moodle.llamadas)
 
 
 def test_un_copia_json_invalido_para_la_publicacion_por_origen(tmp_path):
@@ -1148,17 +1252,9 @@ def test_el_origen_repetido_no_gasta_cupo_en_pruebas(tmp_path):
 # Avisos al docente
 
 
-def test_sin_huella_y_huella_no_guardada_llegan_al_docente(tmp_path, monkeypatch):
+def test_huella_no_guardada_llega_al_docente(tmp_path, monkeypatch):
     carpeta = tmp_path.resolve()
     _fichero_importado(carpeta)
-    presencia = PresenciaFalsa()
-    _publicar_real(carpeta, _aula_importada(), ["importada.md"], presencia)
-    assert "ORIGEN_SIN_HUELLA" in presencia.codigos()
-    [aviso] = [a for a in presencia.avisos if a.codigo == "ORIGEN_SIN_HUELLA"]
-    [linea] = mensajes.lineas_de_aviso(aviso)
-    assert linea.texto == (
-        "No he podido comprobar si «Nuevo» ha cambiado en el aula desde la copia."
-    )
     _escribir_copia(carpeta, _huella_del_aula())
 
     def no_guarda(*_args, **_kwargs):

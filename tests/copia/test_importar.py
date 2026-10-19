@@ -136,6 +136,32 @@ def test_importar_otro_curso(carpeta):
     assert not (carpeta / "aula").exists() and not (carpeta / ".tiza").exists()
 
 
+def test_como_nuevas_con_un_curso_real_no_se_admite(carpeta):
+    copia_en(carpeta, [pagina()])  # curso 3, que es el real de tiza.toml
+    antes = ficheros_de(carpeta)
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("copia.mbz", carpeta, como_nuevas=True)
+    assert info.value.codigo == "COPIA_DEL_MISMO_CURSO"
+    assert ficheros_de(carpeta) == antes
+    assert not (carpeta / "aula").exists() and not (carpeta / ".tiza").exists()
+    texto = ayuda.explicar("COPIA_DEL_MISMO_CURSO")
+    assert texto is not None and "sin --como-nuevas" in texto
+    assert "sin --como-nuevas" in info.value.detalle
+    # Sin --como-nuevas sí se importa.
+    assert agente.importar("copia.mbz", carpeta).estados["IMPORTADA"] == 1
+
+
+def test_como_nuevas_con_un_curso_real_de_otro_servidor_si_vale(carpeta):
+    config.guardar_global("https://aula.example.org/centro/", "profe")
+    copia_en(carpeta, [pagina()], servidor="https://otra.example.org")
+    assert agente.importar("copia.mbz", carpeta, como_nuevas=True).estados["IMPORTADA"] == 1
+
+
+def test_como_nuevas_de_un_curso_que_no_es_real_sigue_valiendo(carpeta):
+    resumen = importar_en(carpeta, [pagina()], curso=9, como_nuevas=True)
+    assert resumen.como_nuevas is True and resumen.estados["IMPORTADA"] == 1
+
+
 def test_otro_curso_sin_cursos_reales(carpeta):
     # Sin tiza.toml, o con solo un curso de pruebas, también es COPIA_DE_OTRO_CURSO.
     copia_en(carpeta, [pagina()])
@@ -408,6 +434,9 @@ def test_copia_json_esquema_cerrado(carpeta):
         lambda d: d["cursos"]["3"]["actividades"][0].update(estado="OTRO"),
         lambda d: d["cursos"]["3"]["actividades"][0].update(fichero="../fuera.html"),
         lambda d: d["cursos"]["3"]["actividades"][0].update(huella_aula="abc"),
+        lambda d: d["cursos"]["3"]["actividades"][0].update(huella_fichero="abc"),
+        lambda d: d["cursos"]["3"]["actividades"][0].update(huella_fichero=7),
+        lambda d: d["cursos"]["3"]["actividades"][0].pop("huella_fichero"),
         lambda d: d["cursos"]["3"].pop("moodle"),
         lambda d: d["cursos"].update({"tres": d["cursos"]["3"]}),
         lambda d: d.update(como_nuevas={"curso": 3}),
@@ -466,6 +495,48 @@ def test_reimportar_cambiada(carpeta):
     assert resumen.estados["CAMBIADA_DESDE_LA_IMPORTACION"] == 1
     # Con la huella nueva guardada, repetir la misma copia ya no cuenta como cambio.
     assert importar_en(carpeta, [pagina("<p>Hola, mundo</p>")]).estados["YA_IMPORTADO"] == 1
+
+
+def test_cambiada_guarda_el_sha256_del_fichero_del_docente(carpeta):
+    importar_en(carpeta, [pagina("<p>Hola</p>")])
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html"
+    assert actividades_de(carpeta)[501]["huella_fichero"] is None  # nada que juntar todavía
+    importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+    entrada = actividades_de(carpeta)[501]
+    assert entrada["estado"] == "CAMBIADA_DESDE_LA_IMPORTACION"
+    assert entrada["huella_fichero"] == sha(ruta)
+    assert estado.marcas_de_copia(carpeta / ".tiza", 3) == {501: sha(ruta)}
+    # Repetir la misma copia (YA_IMPORTADO) no pierde la marca: sigue sin juntar.
+    assert importar_en(carpeta, [pagina("<p>Hola, mundo</p>")]).estados["YA_IMPORTADO"] == 1
+    assert actividades_de(carpeta)[501]["huella_fichero"] == sha(ruta)
+    # El docente junta los cambios (toca su fichero) y el aula vuelve a cambiar: marca nueva.
+    ruta.write_text(ruta.read_text(encoding="utf-8") + "<p>Juntado</p>\n", encoding="utf-8")
+    importar_en(carpeta, [pagina("<p>Hola, tercera</p>")])
+    entrada = actividades_de(carpeta)[501]
+    assert entrada["estado"] == "CAMBIADA_DESDE_LA_IMPORTACION"
+    assert entrada["huella_fichero"] == sha(ruta)
+
+
+def test_el_sha256_de_la_marca_es_el_que_ve_cargar(carpeta):
+    importar_en(carpeta, [pagina("<p>Hola</p>")])
+    importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html"
+    doc = contenido.cargar(ruta, raiz=carpeta.resolve())
+    assert doc.sha256_fichero == actividades_de(carpeta)[501]["huella_fichero"]
+    # No entra en el hash del documento: no invalida los verificados.
+    assert doc.sha256_fichero not in contenido.hash_documento(doc)
+
+
+def test_un_rechazo_posterior_conserva_la_marca(carpeta):
+    importar_en(carpeta, [pagina("<p>Hola</p>")])
+    importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+    marca = actividades_de(carpeta)[501]["huella_fichero"]
+    assert marca
+    # La copia siguiente trae la actividad con un tipo no gestionado: conserva fichero y marca.
+    raro = f.ActividadFalsa(501, "forum", 7, "Un foro", "<p>x</p>")
+    importar_en(carpeta, [raro])
+    entrada = actividades_de(carpeta)[501]
+    assert entrada["estado"] == "TIPO_NO_GESTIONADO" and entrada["huella_fichero"] == marca
 
 
 def test_reimportar_con_la_seccion_renombrada(carpeta):

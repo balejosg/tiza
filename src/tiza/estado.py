@@ -60,6 +60,7 @@ __all__ = [
     "guardar_verificado",
     "guardar_version_de_copia",
     "huellas_de_copia",
+    "marcas_de_copia",
     "nombre_de_copia",
     "nombre_de_seccion",
     "reservar_copia",
@@ -200,10 +201,34 @@ def huellas_de_copia(dir_tiza: str | Path, curso: int) -> dict[int, str]:
     }
 
 
+def marcas_de_copia(dir_tiza: str | Path, curso: int) -> dict[int, str]:
+    """El ``huella_fichero`` de cada actividad del ``curso`` que se marcó como cambiada en el aula.
+
+    Es el sha256 del fichero del docente en el momento de marcarla ``CAMBIADA_DESDE_LA_IMPORTACION``
+    (cmid -> sha256): mientras el fichero siga así, el docente no ha juntado los cambios del aula.
+    Solo las que lo tienen; sin ``copia.json`` o sin entrada para el curso, ``{}``.
+    """
+    try:
+        datos = cargar_copia(dir_tiza)
+    except ErrorEstado as exc:
+        if exc.codigo == "IMPORTACION_AUSENTE":
+            return {}
+        raise
+    entrada = datos["cursos"].get(str(curso))
+    if entrada is None:
+        return {}
+    return {
+        actividad["cmid"]: actividad["huella_fichero"]
+        for actividad in entrada["actividades"]
+        if actividad["huella_fichero"] is not None
+    }
+
+
 def guardar_huella_de_copia(dir_tiza: str | Path, curso: int, cmid: int, huella: str) -> bool:
     """Renueva la ``huella_aula`` de una actividad, solo en la entrada de su curso.
 
-    Devuelve ``False`` si ``copia.json`` no existe o la actividad no está en la entrada de ese
+    Lo que se acaba de publicar es ya la línea base: la marca del fichero (``huella_fichero``)
+    se borra. Devuelve ``False`` si ``copia.json`` no existe o la actividad no está en la entrada de ese
     curso (no se inventan entradas). Lo demás de ``copia.json`` queda igual.
     """
     try:
@@ -220,6 +245,7 @@ def guardar_huella_de_copia(dir_tiza: str | Path, curso: int, cmid: int, huella:
         return False
     for actividad in hechas:
         actividad["huella_aula"] = huella
+        actividad["huella_fichero"] = None
     escribir_copia(dir_tiza, datos)
     return True
 

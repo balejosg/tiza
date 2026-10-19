@@ -104,7 +104,6 @@ AVISOS = frozenset(
         "MAXIMO_ALCANZADO",
         "NOMBRES_NO_DISPONIBLES",
         "ORDENANDO_EN_PRUEBAS",
-        "ORIGEN_SIN_HUELLA",
         "PETICION_RETIRADA",
         "PUBLICANDO_EN_PRUEBAS",
         "QUEDAN_MINUTOS",
@@ -135,8 +134,9 @@ class Aviso:
         return cls("AUTOPRUEBA_FALLIDA")
 
     @classmethod
-    def cambiada_en_el_aula(cls, nombre: str) -> Aviso:
-        return cls("CAMBIADA_EN_EL_AULA", {"nombre": nombre})
+    def cambiada_en_el_aula(cls, nombre: str, cmid: int | None = None) -> Aviso:
+        """``cmid``: con él, el docente aún no juntó los cambios de ``.tiza/copia/<cmid>.html``."""
+        return cls("CAMBIADA_EN_EL_AULA", {"nombre": nombre, "cmid": cmid})
 
     @classmethod
     def cancelada(cls) -> Aviso:
@@ -185,10 +185,6 @@ class Aviso:
     @classmethod
     def ordenando_en_pruebas(cls, documentos: tuple[DocumentoBreve, ...]) -> Aviso:
         return cls("ORDENANDO_EN_PRUEBAS", {"documentos": documentos})
-
-    @classmethod
-    def origen_sin_huella(cls, nombre: str) -> Aviso:
-        return cls("ORIGEN_SIN_HUELLA", {"nombre": nombre})
 
     @classmethod
     def peticion_retirada(cls) -> Aviso:
@@ -721,20 +717,25 @@ def publicar_con(
         depurar(exc, debug)
         return borrador.documento("error")
     # Lo que se rechaza por su origen se dice ya y no deja nada hecho (ni una sección creada).
-    aceptados, rechazados = _separar_rechazados(documentos, secciones, curso, base, solo_fechas)
+    dir_tiza = Path(carpeta) / rutas.CARPETA_TRABAJO
+    try:
+        huellas, marcas = _guardado_de_copia(dir_tiza, curso, documentos)
+    except estado.ErrorEstado as exc:
+        borrador.fallo("PREPARAR", exc.codigo)
+        borrador.error(exc.codigo)
+        return borrador.documento("error")
+    aceptados, rechazados = _separar_rechazados(
+        documentos, secciones, curso, base, solo_fechas, huellas, marcas
+    )
     for rechazado, motivo in rechazados:
-        borrador.fallo(paso, rechazado.ruta.name)
+        detalle = rechazado.ruta.name
+        if motivo == "CAMBIADA_EN_EL_AULA" and rechazado.origen is not None:
+            cmid = rechazado.origen.cmid
+            detalle += f": junta antes los cambios de .tiza/copia/{cmid}.html"
+            presencia.informar(Aviso.cambiada_en_el_aula(rechazado.nombre, cmid))
+        borrador.fallo(paso, detalle)
         borrador.error(motivo)
     documentos = aceptados
-    dir_tiza = Path(carpeta) / rutas.CARPETA_TRABAJO
-    huellas: dict[int, str] = {}  # de cada actividad importada, el aula tal como la dejó la copia
-    if any(publicar.aplica_origen(doc, curso) for doc in documentos):
-        try:
-            huellas = estado.huellas_de_copia(dir_tiza, curso)
-        except estado.ErrorEstado as exc:
-            borrador.fallo("PREPARAR", exc.codigo)
-            borrador.error(exc.codigo)
-            return borrador.documento("error")
     existentes: dict[str, int] = {}
     if not solo_fechas:
         faltante = _resolver_dependencias(base, secciones, documentos, existentes, curso)
@@ -768,10 +769,8 @@ def publicar_con(
             huella = None
             huella_nueva = None  # solo --solo-fechas: la calcula publicar.py con lo que relee
             if doc.origen is not None and publicar.aplica_origen(doc, curso):
+                # Sin huella no se llega aquí: ``_separar_rechazados`` ya lo dejó fuera.
                 huella = huellas.get(doc.origen.cmid)
-                if huella is None:  # sin copia o sin huella: se publica sin esa protección
-                    borrador.paso("ORIGEN_SIN_HUELLA", detalle=doc.ruta.name)
-                    presencia.informar(Aviso.origen_sin_huella(doc.nombre))
             if solo_fechas:
                 resultado, huella_nueva = publicar.publicar_fechas_con_huella(
                     aula, secciones, doc, curso, huella
@@ -832,8 +831,26 @@ def publicar_con(
 # Fallos que paran solo a su fichero: la actividad no se toca y el resto del lote sigue.
 # ``DEPENDENCIA_NO_PUBLICADA`` aquí es la de un fichero del lote que se quedó sin publicar.
 ERRORES_POR_FICHERO = frozenset(
-    {"CAMBIADA_EN_EL_AULA", "ORIGEN_NO_ENCONTRADO", "DEPENDENCIA_NO_PUBLICADA"}
+    {
+        "CAMBIADA_EN_EL_AULA",
+        "ORIGEN_NO_ENCONTRADO",
+        "ORIGEN_SIN_HUELLA",
+        "DEPENDENCIA_NO_PUBLICADA",
+    }
 )
+
+
+def _guardado_de_copia(
+    dir_tiza: Path, curso: int, documentos: list[Documento]
+) -> tuple[dict[int, str], dict[int, str]]:
+    """De ``copia.json``, lo de este curso: (huella del aula, marca del fichero) por cmid.
+
+    Solo se lee si algún documento viene de este curso por su ``origen``. Un ``copia.json``
+    que no vale da ``ErrorEstado``.
+    """
+    if not any(publicar.aplica_origen(doc, curso) for doc in documentos):
+        return {}, {}
+    return estado.huellas_de_copia(dir_tiza, curso), estado.marcas_de_copia(dir_tiza, curso)
 
 
 def _sin_origen_repetido(documentos: list[Documento]) -> tuple[list[Documento], list[Documento]]:
@@ -855,13 +872,18 @@ def _separar_rechazados(
     curso: int,
     base: Path,
     solo_fechas: bool,
+    huellas: Mapping[int, str],
+    marcas: Mapping[int, str],
 ) -> tuple[list[Documento], list[tuple[Documento, str]]]:
     """(los que se pueden publicar, los rechazados con su código), mirando solo la estructura.
 
     Se rechazan antes de confirmar y de crear nada: dos ficheros del mismo ``origen``
-    (``ORIGEN_DUPLICADO``), un ``origen`` que ya no está en este curso (``ORIGEN_NO_ENCONTRADO``) y
-    quien depende de uno rechazado (``DEPENDENCIA_NO_PUBLICADA``). Con ``--solo-fechas`` solo
-    cuentan los duplicados: lo demás es todo o nada.
+    (``ORIGEN_DUPLICADO``), un ``origen`` que ya no está en este curso (``ORIGEN_NO_ENCONTRADO``),
+    una actividad de la que ``copia.json`` no guarda la huella (``ORIGEN_SIN_HUELLA``: sin ella no
+    se puede saber si cambió en el aula), una cuyo fichero sigue como cuando se marcó cambiada en
+    el aula (``CAMBIADA_EN_EL_AULA``: el docente aún no juntó los cambios) y quien depende de uno
+    rechazado (``DEPENDENCIA_NO_PUBLICADA``). Con ``--solo-fechas`` el origen no encontrado y las
+    dependencias no cuentan: es todo o nada.
     """
     base = Path(base).resolve()
     claves = [_relativa(doc.ruta, base) for doc in documentos]
@@ -870,13 +892,20 @@ def _separar_rechazados(
     for indice, doc in enumerate(documentos):
         if doc.origen is not None and cuantos[(doc.origen.curso, doc.origen.cmid)] > 1:
             rechazados[indice] = "ORIGEN_DUPLICADO"
+    for indice, doc in enumerate(documentos):
+        if indice in rechazados or doc.origen is None or not publicar.aplica_origen(doc, curso):
+            continue
+        if not solo_fechas:
+            try:
+                publicar.modulo_por_origen(secciones, doc)
+            except ErrorPublicacion:
+                rechazados[indice] = "ORIGEN_NO_ENCONTRADO"
+                continue
+        if doc.origen.cmid not in huellas:
+            rechazados[indice] = "ORIGEN_SIN_HUELLA"
+        elif marcas.get(doc.origen.cmid) == doc.sha256_fichero:
+            rechazados[indice] = "CAMBIADA_EN_EL_AULA"
     if not solo_fechas:
-        for indice, doc in enumerate(documentos):
-            if indice not in rechazados and publicar.aplica_origen(doc, curso):
-                try:
-                    publicar.modulo_por_origen(secciones, doc)
-                except ErrorPublicacion:
-                    rechazados[indice] = "ORIGEN_NO_ENCONTRADO"
         crecio = True
         while crecio:  # quien depende de un rechazado, también (de forma transitiva)
             crecio = False
@@ -1123,8 +1152,13 @@ def _en_real(
             break
         nombre_curso = nombres.get(curso)
         # Lo que se rechaza por su origen sale con su código y no entra en lo que se confirma.
+        try:
+            huellas, marcas = _guardado_de_copia(base / rutas.CARPETA_TRABAJO, curso, documentos)
+        except estado.ErrorEstado as exc:
+            registro.append((posicion, curso, fallo(exc.codigo, curso)))
+            break
         a_publicar, _rechazados = _separar_rechazados(
-            documentos, secciones, curso, base, solo_fechas
+            documentos, secciones, curso, base, solo_fechas, huellas, marcas
         )
         ids = {id(doc) for doc in a_publicar}
         if not a_publicar:

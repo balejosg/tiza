@@ -574,7 +574,6 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ORDENANDO_EN_PRUEBAS": publicacion.Aviso.ordenando_en_pruebas(
             (publicacion.DocumentoBreve("t.md", "pagina", "T"),)
         ),
-        "ORIGEN_SIN_HUELLA": publicacion.Aviso.origen_sin_huella("T"),
         "PETICION_RETIRADA": publicacion.Aviso.peticion_retirada(),
         "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),
         "QUEDAN_MINUTOS": publicacion.Aviso.quedan_minutos(5),
