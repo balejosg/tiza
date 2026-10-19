@@ -12,10 +12,17 @@ Pide, juntos y diciendo para qué sirve cada uno:
 
 - **La programación antigua** (Word, mejor que PDF): es lo que se revisa.
 - **La concreción curricular o el proyecto de centro**, si el centro los tiene.
+- **El calendario de evaluaciones del centro**, si vas a comparar las fechas del aula con la temporalización: sin él no se puede decir qué fecha cae fuera.
 
-La copia del curso la pides tú con `tiza copia <curso>`: `pruebas`, `real` (si hay un solo curso
-real) o el id de un curso de `tiza.toml`. La sesión del docente la hace y él la confirma en su
-terminal. Si responde `CURSO_AMBIGUO`, pide el id del curso.
+Antes de `tiza comprobar` hace falta `.tiza/estructura.json`: si la sesión se abrió con `tiza
+sesion`, ejecuta antes `tiza estructura` (si no, `comprobar` da `ESTRUCTURA_AUSENTE`).
+
+La copia del curso la pides tú con `tiza copia real` (o con el id del curso real, si hay más de
+uno). La sesión del docente la hace y él la confirma en su terminal. Si responde `CURSO_AMBIGUO`,
+pide el id del curso. No pidas la del curso de pruebas: no se importa con `origen`.
+
+- `CUPO_COPIAS`: la sesión permite 3 copias. Pide al docente que cierre la sesión y abra otra;
+  una copia por vuelta basta.
 
 - `COPIA_NO_PERMITIDA`: explícale cómo hacerla a mano, en dos líneas: en el curso, «Más» →
   «Copia de seguridad», sin marcar usuarios; guárdala en la carpeta de la asignatura.
@@ -37,10 +44,10 @@ Pide copias **sin datos del alumnado**. Si la programación los trae, no los use
   - `COPIA_CON_USUARIOS`: tiene datos de alumnos. Pídele que la haga otra vez sin usuarios y que
     borre la rechazada.
   - `COPIA_NO_VALIDA` o `COPIA_DEMASIADO_GRANDE`: lo mismo; sin los ficheros pesados si hace falta.
-  - `COPIA_DE_OTRO_CURSO`: no es de ningún curso de `tiza.toml`. Si es de otro curso (el del año
-    pasado, por ejemplo) y el docente quiere reutilizarlo, impórtala con `--como-nuevas`: sale sin
-    `origen` y se publica como actividades nuevas. `tiza copia` solo pide cursos de `tiza.toml`:
-    esa copia la hace el docente a mano.
+  - `COPIA_DE_OTRO_CURSO`: no es de ningún curso real de `tiza.toml` (por ejemplo, se pidió la de
+    pruebas). Para realinear el aula, pide `tiza copia real`. Solo si el docente quiere reutilizar
+    otro curso (el del año pasado, por ejemplo), impórtala con `--como-nuevas`: sale sin `origen`
+    y se publica como actividades nuevas. Esa copia la hace el docente a mano.
   - `COPIA_DEL_MISMO_CURSO`: con `--como-nuevas`, la copia es de uno de los cursos de `tiza.toml`.
     Impórtala sin `--como-nuevas`: así se publica sobre sus actividades y se comprueba lo que
     cambió en el aula.
@@ -77,7 +84,9 @@ contestar, y todas juntas. No apliques nada hasta que responda.
 - **Programación**: con `guias/programacion.md`, usando `tiza rellenar` sobre la antigua como
   referencia.
 - **Aula**: edita los ficheros importados sin tocar `origen`. Después, `tiza comprobar`, `tiza
-  publicar --en pruebas`, la revisión del docente y `--en real`.
+  publicar --en pruebas`, la revisión del docente y `--en real`. En pruebas, una actividad con
+  `origen` se busca por nombre: si le cambias el nombre se crea otra en pruebas y la antigua se
+  queda; avisa al docente de que puede borrarla.
 - **`CAMBIADA_DESDE_LA_IMPORTACION`**: antes de publicar, junta lo que el docente cambió en el aula
   con lo propuesto. Lo del aula está en `.tiza/copia/<cmid>.html`, en HTML.
   - Si el fichero es `.html` (página, tarea o etiqueta), junta HTML con HTML.

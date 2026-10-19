@@ -659,7 +659,12 @@ def validar_copia(datos: Any) -> None:
 def _validar_entrada_copia(entrada: Any, campos: set[str]) -> None:
     if not isinstance(entrada, dict):
         raise ErrorInforme("TIPO_INCORRECTO", "cada importación debe ser un objeto")
-    _exigir_campos(entrada, campos, "importación")
+    # ``fecha_copia`` (cuándo se hizo la copia importada) es opcional: un copia.json antiguo no la lleva.
+    _exigir_campos({k: v for k, v in entrada.items() if k != "fecha_copia"}, campos, "importación")
+    if entrada.get("fecha_copia") is not None:
+        if not isinstance(entrada["fecha_copia"], str):
+            raise ErrorInforme("TIPO_INCORRECTO", "fecha_copia debe ser texto o nulo")
+        _exigir_texto(entrada["fecha_copia"], "fecha_copia")
     for campo in ("moodle", "fecha_importacion"):
         if not isinstance(entrada[campo], str):
             raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")

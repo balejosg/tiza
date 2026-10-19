@@ -852,6 +852,14 @@ def test_con_el_fichero_ya_juntado_se_publica_y_se_borra_la_marca(tmp_path):
     assert segunda["errores"] == []
 
 
+def test_una_marca_ilegible_bloquea_hasta_reimportar(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula(), huella_fichero=estado.MARCA_ILEGIBLE)
+    documento = _publicar_real(carpeta, _aula_importada(), ["importada.md"])
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+
+
 def test_la_marca_de_otra_actividad_no_bloquea(tmp_path):
     carpeta = tmp_path.resolve()
     _fichero_importado(carpeta)

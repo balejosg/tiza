@@ -916,3 +916,10 @@ def test_una_numerica_sin_tolerancia_en_la_copia_vale_cero(tmp_path):
     numerica = f.PreguntaFalsa(entrada=111, tipo="numerical", respuestas=(("2", 1.0),))
     (p,) = _con_preguntas(tmp_path, [numerica])
     assert [r.tolerancia for r in p.respuestas] == [0.0]
+
+
+def test_la_fecha_de_la_copia_sale_de_backup_date(tmp_path):
+    secciones, actividades = f.copia_basica()
+    datos = abrir(tmp_path, secciones, actividades, fecha=1792800000)
+    assert datos.fecha == datetime.fromtimestamp(1792800000, tz=UTC)
+    assert abrir(tmp_path, secciones, actividades).fecha is None

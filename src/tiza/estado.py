@@ -47,6 +47,8 @@ __all__ = [
     "FICHERO_ESTRUCTURA",
     "FICHERO_INFORME",
     "FICHERO_VERIFICADOS",
+    "AVISO_CAMBIADA",
+    "MARCA_ILEGIBLE",
     "Verificado",
     "anotar_verificado",
     "buscar_seccion",
@@ -63,6 +65,7 @@ __all__ = [
     "marcas_de_copia",
     "nombre_de_copia",
     "nombre_de_seccion",
+    "quitar_aviso_cambiada",
     "reservar_copia",
     "ruta_lectura",
     "temporal_de_copia",
@@ -75,6 +78,15 @@ FICHERO_ESTRUCTURA = "estructura.json"
 FICHERO_VERIFICADOS = "verificados.json"
 CARPETA_PREVIEW = "preview"  # las vistas previas clicables dentro de la carpeta de trabajo
 CARPETA_LECTURAS = "lecturas"  # el texto de cada Word o PDF que lee ``tiza leer``
+MARCA_ILEGIBLE = "0" * 64  # ``huella_fichero`` cuando no se pudo leer el fichero: bloquea siempre
+AVISO_CAMBIADA = (
+    "El nombre, el texto o las fechas cambiaron en el aula desde la importación. "
+    "Tu fichero no se ha tocado; la versión nueva está en .tiza/copia/{cmid}.html."
+)
+_AVISO_CAMBIADA = re.compile(
+    r"El nombre, el texto o las fechas cambiaron en el aula desde la importación\. "
+    r"Tu fichero no se ha tocado; la versión nueva está en \.tiza/copia/\d+\.html\. ?"
+)
 FICHERO_COPIA = "copia.json"  # el resumen de lo que ``tiza importar`` hizo con una copia
 CARPETA_COPIA = "copia"  # ``copia/<cmid>.html``: la versión nueva de una actividad ya importada
 CARPETA_COPIAS = "copias"  # donde ``tiza copia`` deja los .mbz que pide a la sesión
@@ -224,6 +236,11 @@ def marcas_de_copia(dir_tiza: str | Path, curso: int) -> dict[int, str]:
     }
 
 
+def quitar_aviso_cambiada(detalle: str) -> str:
+    """El ``detalle`` sin el aviso de «cambió en el aula» (que deja de valer al juntarlo)."""
+    return _AVISO_CAMBIADA.sub("", detalle).strip()
+
+
 def guardar_huella_de_copia(dir_tiza: str | Path, curso: int, cmid: int, huella: str) -> bool:
     """Renueva la ``huella_aula`` de una actividad, solo en la entrada de su curso.
 
@@ -246,6 +263,9 @@ def guardar_huella_de_copia(dir_tiza: str | Path, curso: int, cmid: int, huella:
     for actividad in hechas:
         actividad["huella_aula"] = huella
         actividad["huella_fichero"] = None
+        actividad["estado"] = "IMPORTADA"  # ya no hay nada que juntar
+        if actividad["detalle"] is not None:  # el aviso de «cambió en el aula» ya no vale
+            actividad["detalle"] = quitar_aviso_cambiada(actividad["detalle"]) or None
     escribir_copia(dir_tiza, datos)
     return True
 

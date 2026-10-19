@@ -1561,3 +1561,109 @@ def test_importar_no_importa_nada_del_aula():
         "from . import config, publicar",
     ):
         assert patron.search(ejemplo)
+
+
+# --- La última tanda: fecha de la copia, detalle, marca ilegible, estado tras publicar ------
+
+FECHA_VIEJA = 1792000000  # 2026-10-14
+FECHA_NUEVA = 1792800000  # 2026-10-23
+
+
+def test_una_copia_mas_antigua_no_cambia_huellas_ni_marcas(carpeta):
+    nueva = importar_en(carpeta, [pagina("<p>Nuevo</p>")], fecha=FECHA_NUEVA)
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html"
+    assert nueva.estados["IMPORTADA"] == 1
+    antes = actividades_de(carpeta)[501]
+    # Se reimporta después una copia hecha antes, con otro texto del aula.
+    resumen = importar_en(carpeta, [pagina("<p>Viejo</p>")], fecha=FECHA_VIEJA)
+    entrada = actividades_de(carpeta)[501]
+    assert resumen.estados["IMPORTADA"] == 1  # el estado conservado
+    assert entrada["huella_aula"] == antes["huella_aula"]
+    assert entrada["huella_fichero"] == antes["huella_fichero"] is None
+    assert entrada["estado"] == antes["estado"]
+    assert "copia más antigua que la última importada" in entrada["detalle"].lower()
+    assert not (carpeta / ".tiza" / "copia" / "501.html").exists()
+    assert "Nuevo" in ruta.read_text(encoding="utf-8")
+    assert entrada_de(carpeta)["fecha_copia"] == antes_fecha(FECHA_NUEVA)
+    # Repetirlo no acumula el aviso, y una copia nueva sí vuelve a contar.
+    importar_en(carpeta, [pagina("<p>Viejo</p>")], fecha=FECHA_VIEJA)
+    detalle = actividades_de(carpeta)[501]["detalle"].lower()
+    assert detalle.count("copia más antigua") == 1
+    again = importar_en(carpeta, [pagina("<p>Nuevo</p>")], fecha=FECHA_NUEVA)
+    assert again.estados["YA_IMPORTADO"] == 1
+
+
+def antes_fecha(segundos):
+    from datetime import UTC
+
+    return datetime.fromtimestamp(segundos, tz=UTC).isoformat(timespec="seconds")
+
+
+def test_la_fecha_de_la_copia_se_guarda_y_sin_ella_no_hay_comparacion(carpeta):
+    importar_en(carpeta, [pagina("<p>A</p>")])
+    assert entrada_de(carpeta)["fecha_copia"] is None
+    importar_en(carpeta, [pagina("<p>B</p>")], fecha=FECHA_VIEJA)
+    # Sin fecha anterior no hay nada que comparar: cuenta como cambio normal.
+    assert actividades_de(carpeta)[501]["estado"] == "CAMBIADA_DESDE_LA_IMPORTACION"
+    assert entrada_de(carpeta)["fecha_copia"] == antes_fecha(FECHA_VIEJA)
+
+
+def tarea_con_adjunto():
+    return f.ActividadFalsa(
+        502,
+        "assign",
+        7,
+        "Entrega",
+        "<p>Haz esto</p>",
+        ficheros=[
+            f.FicheroFalso(
+                "enunciado.pdf", b"x", filearea="introattachment", componente="mod_assign"
+            )
+        ],
+    )
+
+
+def test_reimportar_no_pierde_el_detalle(carpeta):
+    importar_en(carpeta, [tarea_con_adjunto()])
+    detalle = actividades_de(carpeta)[502]["detalle"]
+    assert detalle and "archivos adicionales" in detalle
+    resumen = importar_en(carpeta, [tarea_con_adjunto()])
+    assert resumen.estados["YA_IMPORTADO"] == 1
+    assert actividades_de(carpeta)[502]["detalle"] == detalle
+
+
+def test_con_como_nuevas_el_aviso_de_adjuntos_no_dice_que_se_conservan(carpeta):
+    importar_en(carpeta, [tarea_con_adjunto()], curso=9, como_nuevas=True)
+    detalle = actividades_de(carpeta, como_nuevas=True)[502]["detalle"]
+    assert "archivos adicionales" in detalle and "se conservan" not in detalle
+    assert "no los tendrá" in detalle
+
+
+def test_fichero_ilegible_al_marcar_falla_cerrado(carpeta, monkeypatch):
+    importar_en(carpeta, [pagina("<p>Hola</p>")])
+    with monkeypatch.context() as ilegible:
+        ilegible.setattr(importar, "_huella_del_fichero", lambda ruta: None)
+        importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+        entrada = actividades_de(carpeta)[501]
+        assert entrada["estado"] == "CAMBIADA_DESDE_LA_IMPORTACION"
+        assert entrada["huella_fichero"] == estado.MARCA_ILEGIBLE
+        assert "No se pudo leer tu fichero" in entrada["detalle"]
+        # Repetir la copia con el fichero aún ilegible mantiene el bloqueo...
+        importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+        assert actividades_de(carpeta)[501]["huella_fichero"] == estado.MARCA_ILEGIBLE
+    # ...y con el fichero legible la marca pasa a ser la del fichero.
+    importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html"
+    assert actividades_de(carpeta)[501]["huella_fichero"] == sha(ruta)
+
+
+def test_publicar_bien_deja_la_entrada_importada_y_sin_el_aviso_de_cambio(carpeta):
+    importar_en(carpeta, [pagina("<p>Hola</p>")])
+    importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+    assert actividades_de(carpeta)[501]["estado"] == "CAMBIADA_DESDE_LA_IMPORTACION"
+    assert actividades_de(carpeta)[501]["detalle"]
+    assert estado.guardar_huella_de_copia(carpeta / ".tiza", 3, 501, "b" * 64)
+    entrada = actividades_de(carpeta)[501]
+    assert entrada["estado"] == "IMPORTADA"
+    assert entrada["huella_fichero"] is None and entrada["huella_aula"] == "b" * 64
+    assert entrada["detalle"] is None

@@ -111,6 +111,7 @@ def _moodle_backup(
     curso: int,
     servidor: str,
     ajustes: Sequence[tuple[str, str, str]] = (),
+    fecha: int | None = None,
 ) -> bytes:
     extra = "".join(
         f"<setting><level>{nivel}</level><name>{_e(nombre)}</name><value>{_e(valor)}</value></setting>"
@@ -128,11 +129,13 @@ def _moodle_backup(
         f"<directory>sections/section_{s.id}</directory></section>"
         for s in secciones
     )
+    fecha_xml = f"<backup_date>{fecha}</backup_date>" if fecha is not None else ""
     return (
         f"{CABECERA}<moodle_backup><information>"
         "<name>copia.mbz</name><moodle_version>2024100715</moodle_version>"
         "<moodle_release>4.5.15 (Build: 20261005)</moodle_release>"
         f"<original_wwwroot>{_e(servidor)}</original_wwwroot>"
+        f"{fecha_xml}"
         f"<original_course_id>{curso}</original_course_id>"
         f"<contents><activities>{acts}</activities><sections>{secs}</sections>"
         "<course><courseid>2</courseid><title>pruebas</title><directory>course</directory>"
@@ -342,11 +345,12 @@ def entradas_de_copia(
     curso: int = 2,
     servidor: str = "https://aula.example.org",
     ajustes: Sequence[tuple[str, str, str]] = (),
+    fecha: int | None = None,
 ) -> dict[str, bytes]:
     """Los ficheros de la copia (nombre en el archivo -> contenido), sin empaquetar."""
     entradas: dict[str, bytes] = {
         "moodle_backup.xml": _moodle_backup(
-            secciones, actividades, users, curso, servidor, ajustes
+            secciones, actividades, users, curso, servidor, ajustes, fecha
         ),
         "files.xml": _files_xml(actividades),
         "questions.xml": _questions_xml(actividades),
@@ -401,11 +405,18 @@ def construir_mbz(
     curso: int = 2,
     servidor: str = "https://aula.example.org",
     ajustes: Sequence[tuple[str, str, str]] = (),
+    fecha: int | None = None,
     extras: Mapping[str, bytes] | Sequence[tuple[str, bytes]] = (),
 ) -> bytes:
     """Los bytes de un ``.mbz`` con esas secciones y actividades (más las ``extras`` crudas)."""
     entradas = entradas_de_copia(
-        secciones, actividades, users=users, curso=curso, servidor=servidor, ajustes=ajustes
+        secciones,
+        actividades,
+        users=users,
+        curso=curso,
+        servidor=servidor,
+        ajustes=ajustes,
+        fecha=fecha,
     )
     pares = list(entradas.items())
     pares += list(extras.items()) if isinstance(extras, Mapping) else list(extras)

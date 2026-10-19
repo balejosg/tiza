@@ -247,7 +247,8 @@ def _comprobar_curso(raiz: Path, copia: Copia) -> None:
         raise ErrorImportar(
             "COPIA_DE_OTRO_CURSO",
             "La copia no es de ninguno de los cursos reales de tiza.toml ni del aula configurada. "
-            "Si quieres reutilizarla en otro curso, impórtala con --como-nuevas.",
+            "Para realinear el aula real, pide la copia con «tiza copia real» (o con el id del "
+            "curso real); --como-nuevas solo sirve para reutilizar otro curso.",
         )
 
 
@@ -489,12 +490,27 @@ def _previa(anterior: dict | None, curso: int, como_nuevas: bool) -> dict[int, d
     return {a["cmid"]: a for a in entrada["actividades"]}
 
 
+def _es_antigua(anterior: dict | None, datos: Copia, como_nuevas: bool) -> bool:
+    """¿La copia es más antigua que la última importada de este curso? (solo con fechas de ambas)"""
+    if anterior is None or como_nuevas or datos.fecha is None:
+        return False
+    ultima = anterior["cursos"].get(str(datos.curso_original))
+    texto = ultima.get("fecha_copia") if ultima else None
+    if texto is None:
+        return False
+    try:
+        return datos.fecha < datetime.fromisoformat(texto)
+    except ValueError:
+        return False
+
+
 def _datos_de_copia(
     anterior: dict | None,
     datos: Copia,
     entradas: list[_Entrada],
     previa: dict[int, dict],
     como_nuevas: bool,
+    antigua: bool = False,
 ) -> dict[str, Any]:
     """``copia.json`` nuevo: solo cambia la entrada de este curso (o la de «como nuevas»).
 
@@ -507,6 +523,7 @@ def _datos_de_copia(
     entrada: dict[str, Any] = {
         "moodle": re.sub(r"[^0-9A-Za-z.() +-]", "", datos.moodle)[:60],
         "fecha_importacion": datetime.now(UTC).isoformat(timespec="seconds"),
+        "fecha_copia": datos.fecha.isoformat(timespec="seconds") if datos.fecha else None,
         "secciones": [
             {
                 "numero": s.numero,
@@ -517,6 +534,12 @@ def _datos_de_copia(
         ],
         "actividades": actividades,
     }
+    if antigua and anterior is not None:
+        # Una copia más antigua no cambia lo que se sabe del aula: queda la última.
+        ultima = anterior["cursos"][str(datos.curso_original)]
+        entrada["moodle"] = ultima["moodle"]
+        entrada["fecha_copia"] = ultima.get("fecha_copia")
+        entrada["secciones"] = ultima["secciones"]
     cursos = dict(anterior["cursos"]) if anterior else {}
     nuevas = anterior["como_nuevas"] if anterior else None
     if como_nuevas:
@@ -561,6 +584,7 @@ def importar(
     dir_tiza = raiz / rutas.CARPETA_TRABAJO
     anterior = _leer_copia_json(dir_tiza)
     previa = _previa(anterior, datos.curso_original, como_nuevas)
+    antigua = _es_antigua(anterior, datos, como_nuevas)
     entradas = []
     try:
         for actividad in datos.actividades:
@@ -574,10 +598,12 @@ def importar(
                     dir_tiza,
                     previa.get(actividad.cmid),
                     como_nuevas,
+                    antigua,
                 )
             )
         escrito = estado.escribir_copia(
-            dir_tiza, _datos_de_copia(anterior, datos, entradas, previa, como_nuevas)
+            dir_tiza,
+            _datos_de_copia(anterior, datos, entradas, previa, como_nuevas, antigua),
         )
     except (OSError, estado.ErrorEstado):
         raise ErrorImportar(
@@ -615,6 +641,31 @@ def _huella_del_fichero(ruta: Path) -> str | None:
     return hashlib.sha256(datos).hexdigest()
 
 
+_AVISO_FICHERO_ILEGIBLE = (
+    "No se pudo leer tu fichero: no se publicará hasta que se pueda leer; "
+    "pide una copia nueva e impórtala."
+)
+AVISO_COPIA_ANTIGUA = "Copia más antigua que la última importada: esta actividad no se ha tocado."
+
+
+def _detalle_previo(previa: dict | None) -> str:
+    """El ``detalle`` de la importación anterior, sin el aviso de copia antigua (no se acumula)."""
+    detalle = previa["detalle"] if previa else None
+    return (detalle or "").replace(AVISO_COPIA_ANTIGUA, "").strip()
+
+
+def _conservar(entrada: _Entrada, previa: dict) -> _Entrada:
+    """Copia más antigua que la última importada: la actividad queda como estaba."""
+    entrada.estado = previa["estado"]
+    entrada.fichero = previa["fichero"]
+    entrada.huella_aula = previa["huella_aula"]
+    entrada.huella_fichero = previa["huella_fichero"]
+    entrada.avisos[:] = [AVISO_COPIA_ANTIGUA]
+    if previo := _detalle_previo(previa):
+        entrada.avisos.append(previo)
+    return entrada
+
+
 def _fichero_previo(previa: dict | None, raiz: Path, base: Path) -> Path | None:
     """El fichero de la importación anterior, si sigue ahí y está dentro del destino."""
     if previa is None or not previa["fichero"]:
@@ -636,11 +687,14 @@ def _importar_actividad(
     dir_tiza: Path,
     previa: dict | None,
     como_nuevas: bool,
+    antigua: bool = False,
 ) -> _Entrada:
     nombre = _texto_seguro(actividad.nombre, f"Actividad {actividad.cmid}")
     entrada = _Entrada(
         cmid=actividad.cmid, modulo=actividad.modulo, seccion=seccion.numero, nombre=nombre
     )
+    if antigua and previa is not None:
+        return _conservar(entrada, previa)
     tipo = tipos.de_modulo(actividad.modulo)
     if tipo is None:
         return _rechazar(
@@ -703,17 +757,24 @@ def _importar_actividad(
         guardada = previa["huella_aula"] if previa else None
         # Una marca anterior sigue valiendo hasta que el docente toque su fichero y publique.
         entrada.huella_fichero = previa["huella_fichero"] if previa else None
+        previo = _detalle_previo(previa)
         if huella is not None and guardada is not None and guardada != huella:
             entrada.estado = "CAMBIADA_DESDE_LA_IMPORTACION"
             # El fichero tal como está ahora: si al publicar sigue igual, no se juntó el cambio.
-            entrada.huella_fichero = _huella_del_fichero(ruta)
+            marca = _huella_del_fichero(ruta)
+            entrada.huella_fichero = marca or estado.MARCA_ILEGIBLE
             _extraer(datos, recursos, ruta.parent, actividad.cmid, raiz)
             estado.guardar_version_de_copia(dir_tiza, actividad.cmid, html)
-            entrada.avisos.append(
-                "El nombre, el texto o las fechas cambiaron en el aula desde la importación. "
-                "Tu fichero no se ha tocado; la versión nueva está en "
-                f".tiza/copia/{actividad.cmid}.html."
-            )
+            entrada.avisos += [estado.quitar_aviso_cambiada(previo)] if previo else []
+            entrada.avisos.append(estado.AVISO_CAMBIADA.format(cmid=actividad.cmid))
+            if marca is None:
+                entrada.avisos.append(_AVISO_FICHERO_ILEGIBLE)
+        else:
+            if entrada.huella_fichero == estado.MARCA_ILEGIBLE:
+                # Si ahora se puede leer, la marca pasa a ser la de verdad.
+                entrada.huella_fichero = _huella_del_fichero(ruta) or estado.MARCA_ILEGIBLE
+            if previo:  # el detalle de antes (p. ej. los archivos adicionales de una tarea) sigue
+                entrada.avisos.append(previo)
         return entrada
 
     frontmatter = _frontmatter(actividad, tipo, seccion, datos.curso_original, como_nuevas, extra)
@@ -749,7 +810,9 @@ def _importar_actividad(
         avisos.append("El nombre tenía símbolos o era demasiado largo y se ha cambiado.")
     if tipo == "tarea" and any(f.filearea == "introattachment" for f in actividad.ficheros):
         avisos.append(
-            "Tiene archivos adicionales: no están en el fichero, pero se conservan en el aula."
+            "Tiene archivos adicionales: no están en el fichero y la tarea nueva no los tendrá."
+            if como_nuevas
+            else "Tiene archivos adicionales: no están en el fichero, pero se conservan en el aula."
         )
     if actividad.fecha_recordatorio is not None:
         avisos.append("Tiene activado el recordatorio de calificar: tiza lo desactiva al publicar.")

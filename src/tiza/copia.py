@@ -248,6 +248,7 @@ class Copia:
     secciones: tuple[SeccionCopia, ...]
     actividades: tuple[ActividadCopia, ...]
     servidor: str = ""
+    fecha: datetime | None = None  # ``backup_date``: cuándo se hizo la copia (None si no la dice)
     ruta: Path = field(default=Path(), repr=False, compare=False)
     recursos: Mapping[str, tuple[str, int]] = field(
         default_factory=lambda: MappingProxyType({}), repr=False, compare=False
@@ -625,6 +626,7 @@ def _construir(
         secciones=secciones,
         actividades=actividades,
         servidor=_texto(informacion, "original_wwwroot"),
+        fecha=_fecha(informacion, "backup_date"),
         ruta=ruta,
         recursos=MappingProxyType(dict(recursos)),
     )

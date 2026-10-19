@@ -903,7 +903,7 @@ def _separar_rechazados(
                 continue
         if doc.origen.cmid not in huellas:
             rechazados[indice] = "ORIGEN_SIN_HUELLA"
-        elif marcas.get(doc.origen.cmid) == doc.sha256_fichero:
+        elif marcas.get(doc.origen.cmid) in (doc.sha256_fichero, estado.MARCA_ILEGIBLE):
             rechazados[indice] = "CAMBIADA_EN_EL_AULA"
     if not solo_fechas:
         crecio = True
