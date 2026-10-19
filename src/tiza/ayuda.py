@@ -182,6 +182,10 @@ MENSAJES: dict[str, str] = {
     "ESTILO_INEXISTENTE": "La plantilla no tiene ese estilo de párrafo. Usa uno de la lista del mensaje, con el nombre que ves en Word o con su identificador.",
     "CAMBIOS_SIN_ACEPTAR": "El documento tiene cambios sin aceptar (control de cambios). Se lee con los cambios aceptados; acéptalos o recházalos en Word si no es lo que quieres.",
     "INDICE_SE_ACTUALIZA_AL_ABRIR": "La plantilla tiene índice de contenidos. Al abrir el Word nuevo, Word preguntará si actualizar los campos: di que sí y el índice quedará al día; si dices que no, quedará sin actualizar.",
+    # Copias de seguridad
+    "COPIA_NO_VALIDA": "El fichero no es una copia de seguridad de Moodle que tiza pueda leer: está dañado, incompleto o no es un .mbz. Haz una copia nueva del curso, sin datos de usuarios, y repite el comando.",
+    "COPIA_DEMASIADO_GRANDE": "La copia es demasiado grande para leerla con seguridad (más de 2 GB, de 20 000 ficheros, o con ficheros muy pesados). Haz la copia sin los ficheros pesados, como vídeos, y repite el comando.",
+    "COPIA_CON_USUARIOS": "La copia incluye datos de usuarios y tiza no abre copias con ellos. Hazla de nuevo en el aula con la casilla de usuarios desmarcada y repite el comando.",
     # Instalación
     "REF_NO_VALIDA": "La variable TIZA_REF no es una etiqueta, rama o commit válidos: solo admite letras, números, «.», «_», «-» y «/». Corrígela o bórrala para instalar la última versión.",
     "UV_NO_ENCONTRADO": "No se encuentra uv. Vuelve a ejecutar el instalador del README.",

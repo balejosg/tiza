@@ -907,6 +907,7 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "html5lib" },
+    { name = "lxml" },
     { name = "markdown-it-py" },
     { name = "platformdirs" },
     { name = "pypdf" },
@@ -931,6 +932,7 @@ ventana = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12" },
     { name = "html5lib", specifier = ">=1.1" },
+    { name = "lxml", specifier = ">=5,<7" },
     { name = "markdown-it-py", specifier = ">=3.0" },
     { name = "platformdirs", specifier = ">=4.0" },
     { name = "pypdf", specifier = ">=6,<7" },
