@@ -12,13 +12,19 @@ import pytest
 import yaml
 
 from copia import fabrica as f
-from tiza import agente, ayuda, cli, contenido, estado, importar, informe
+from tiza import agente, ayuda, cli, config, contenido, estado, importar, informe
 from tiza.copia import ErrorCopia
 from tiza.importar import ErrorImportar, nombre_de_recurso, nombre_seguro
 from tiza.lectura.modelo import ErrorLectura
 from tiza.tipos import huella_aula
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"datos de una imagen"
+
+
+@pytest.fixture(autouse=True)
+def _sin_aula_configurada(tmp_path, monkeypatch):
+    """Por defecto no hay aula configurada (nunca la del usuario): el curso decide solo."""
+    monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
 
 
 @pytest.fixture
@@ -234,7 +240,7 @@ def test_importar_cuestionario_otros_tipos_admitidos(carpeta):
             "P4",
             ((1, "<p>Varias</p>"),),
             "multichoice",
-            (("<p>A</p>", 0.5), ("<p>B</p>", 0.5), ("<p>C</p>", 0.0)),
+            (("<p>A</p>", 0.5), ("<p>B</p>", 0.5), ("<p>C</p>", -0.5)),
             ajustes={"single": "0"},
         ),
     ]
@@ -568,6 +574,228 @@ def test_nunca_lleva_datos_de_personas(carpeta):
             assert dato not in texto
 
 
+# --- Arreglos previos a la revisión ------------------------------------------------------
+
+
+def quiz_con(ajustes, preguntas=None):
+    return f.ActividadFalsa(
+        510,
+        "quiz",
+        7,
+        "Ajustes",
+        "<p>i</p>",
+        preguntas=preguntas or preguntas_basicas(),
+        ajustes=ajustes,
+    )
+
+
+@pytest.mark.parametrize(
+    ("ajustes", "intentos", "limite", "mezclar"),
+    [
+        ({"attempts_number": 3, "timelimit": 2700, "shuffleanswers": 0}, "3", "45", "0"),
+        ({"attempts_number": 0, "timelimit": 0, "shuffleanswers": 1}, "0", None, "1"),
+        ({"attempts_number": 1, "timelimit": 36000, "shuffleanswers": 1}, "1", "600", "1"),
+    ],
+)
+def test_ajustes_del_cuestionario_ida_y_vuelta(carpeta, ajustes, intentos, limite, mezclar):
+    """Lo que se importa, publicado con el payload de tiza, da los mismos valores que la copia."""
+    from tiza import tipos
+
+    importar_en(carpeta, [quiz_con(ajustes)])
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "ajustes-510.md"
+    doc = contenido.cargar(ruta, raiz=carpeta.resolve())
+    payload = tipos.obtener("cuestionario").payload(doc, "<p>i</p>", 1, None)
+    assert payload["attempts"] == intentos
+    assert payload["shuffleanswers"] == mezclar
+    if limite is None:
+        assert payload["timelimit[enabled]"] == "0"
+    else:
+        assert payload["timelimit[enabled]"] == "1"
+        assert payload["timelimit[number]"] == limite and payload["timelimit[timeunit]"] == "60"
+    assert actividades_de(carpeta)[510]["detalle"] is None
+
+
+def test_ajustes_del_cuestionario_que_tiza_no_puede_decir(carpeta):
+    ajustes = {"attempts_number": 25, "timelimit": 90, "shuffleanswers": 1}
+    importar_en(carpeta, [quiz_con(ajustes)])
+    doc = contenido.cargar(carpeta / "aula" / "02-tema-1-intro" / "ajustes-510.md", raiz=carpeta)
+    assert doc.cuestionario.intentos == 10 and doc.cuestionario.tiempo_limite == 2
+    detalle = actividades_de(carpeta)[510]["detalle"]
+    assert "10 intentos" in detalle and "minutos enteros" in detalle
+
+
+def test_cuestionario_sin_ajustes_en_la_copia_no_los_escribe(carpeta):
+    importar_en(carpeta, [quiz_con({})])
+    texto = (carpeta / "aula" / "02-tema-1-intro" / "ajustes-510.md").read_text(encoding="utf-8")
+    cabecera = yaml.safe_load(texto.split("---\n")[1])
+    assert not {"intentos", "tiempo_limite", "mezclar_respuestas"} & set(cabecera)
+
+
+def test_otro_servidor_es_otra_copia(carpeta):
+    config.guardar_global("https://aula.example.org/centro/", "profe")
+    copia_en(carpeta, [pagina()], servidor="https://otra.example.org")
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("copia.mbz", carpeta)
+    assert info.value.codigo == "COPIA_DE_OTRO_CURSO"
+    assert not (carpeta / "aula").exists()
+    # Con --como-nuevas no se comprueba.
+    assert agente.importar("copia.mbz", carpeta, como_nuevas=True).estados["IMPORTADA"] == 1
+
+
+@pytest.mark.parametrize(
+    "servidor",
+    ["https://aula.example.org", "https://AULA.example.org/", "https://aula.example.org:443/x/"],
+)
+def test_mismo_servidor_se_compara_por_esquema_y_host(carpeta, servidor):
+    config.guardar_global("https://aula.example.org/centro", "profe")
+    resumen = importar_en(carpeta, [pagina()], servidor=servidor)
+    assert resumen.estados["IMPORTADA"] == 1
+
+
+@pytest.mark.parametrize(
+    "servidor", ["http://aula.example.org", "https://aula.example.org:8443", ""]
+)
+def test_distinto_esquema_o_puerto_es_otro_servidor(carpeta, servidor):
+    config.guardar_global("https://aula.example.org", "profe")
+    copia_en(carpeta, [pagina()], servidor=servidor)
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("copia.mbz", carpeta)
+    assert info.value.codigo == "COPIA_DE_OTRO_CURSO"
+
+
+def test_sin_aula_configurada_decide_solo_el_curso(carpeta):
+    resumen = importar_en(carpeta, [pagina()], servidor="https://cualquiera.example.net")
+    assert resumen.estados["IMPORTADA"] == 1
+
+
+def quiz_de(preguntas):
+    return f.ActividadFalsa(510, "quiz", 7, "Notas", preguntas=preguntas)
+
+
+def multichoice(respuestas, **ajustes):
+    return f.PreguntaFalsa(
+        101,
+        "P",
+        ((1, "<p>Elige</p>"),),
+        "multichoice",
+        tuple((f"<p>{n}</p>", x) for n, x in enumerate(respuestas)),
+        ajustes=ajustes or None,
+    )
+
+
+@pytest.mark.parametrize(
+    "respuestas",
+    [
+        (1.0, 0.0, 0.0),
+        (0.5, 0.5, -0.5),
+        (0.3333333, 0.3333333, 0.3333333, -0.3333333),
+        (0.25, 0.25, 0.25, 0.25, -0.25),
+    ],
+)
+def test_fracciones_que_tiza_generaria_se_aceptan(carpeta, respuestas):
+    correctas = sum(1 for x in respuestas if x > 0)
+    pregunta = multichoice(respuestas, single="1" if correctas == 1 else "0")
+    importar_en(carpeta, [quiz_de([pregunta])])
+    assert actividades_de(carpeta)[510]["estado"] == "IMPORTADA"
+
+
+@pytest.mark.parametrize(
+    ("respuestas", "single"),
+    [
+        ((0.5, 0.5, 0.0), "0"),  # el incorrecto debería valer -0.5
+        ((0.7, 0.3, -0.3), "0"),  # no son las fracciones de tiza
+        ((1.0, 0.5, 0.0), "1"),  # puntuación parcial en una de respuesta única
+        ((1.0, 0.0, -0.25), "1"),
+        ((1.0, 0.0, 0.0), "0"),  # una correcta pero sin «una sola respuesta»
+        ((0.5, 0.5, -0.5), "1"),  # varias correctas marcadas como respuesta única
+    ],
+)
+def test_fracciones_que_tiza_no_generaria_no_se_admiten(carpeta, respuestas, single):
+    importar_en(carpeta, [quiz_de([multichoice(respuestas, single=single)])])
+    entrada = actividades_de(carpeta)[510]
+    assert entrada["estado"] == "PREGUNTAS_NO_ADMITIDAS" and entrada["fichero"] is None
+    assert "fracciones parciales" in entrada["detalle"]
+
+
+def test_fracciones_en_verdadero_falso_corta_y_numerica(carpeta):
+    malas = [
+        f.PreguntaFalsa(1, "A", ((1, "<p>a</p>"),), "truefalse", (("V", 0.5), ("F", 0.0))),
+        f.PreguntaFalsa(2, "B", ((1, "<p>b</p>"),), "shortanswer", (("x", 0.5), ("y", 1.0))),
+        f.PreguntaFalsa(3, "C", ((1, "<p>c</p>"),), "numerical", (("2", 0.8), ("3", 1.0))),
+    ]
+    for n, mala in enumerate(malas):
+        mala.entrada = 200 + n
+        importar_en(carpeta, [quiz_de([mala])])
+        assert actividades_de(carpeta)[510]["estado"] == "PREGUNTAS_NO_ADMITIDAS", mala.tipo
+        shutil_rm(carpeta)
+
+
+def shutil_rm(carpeta):
+    import shutil
+
+    shutil.rmtree(carpeta / ".tiza", ignore_errors=True)
+    shutil.rmtree(carpeta / "aula", ignore_errors=True)
+
+
+def test_republicar_no_cambia_la_puntuacion(carpeta):
+    """Las fracciones del XML que tiza publicaría son las de la copia."""
+    import xml.etree.ElementTree as ET
+
+    from tiza.cuestionario import preguntas_xml
+
+    for respuestas, single in (((1.0, 0.0, 0.0), "1"), ((0.5, 0.5, -0.5), "0")):
+        shutil_rm(carpeta)
+        importar_en(carpeta, [quiz_de([multichoice(respuestas, single=single)])])
+        ruta = carpeta / "aula" / "02-tema-1-intro" / "notas-510.md"
+        doc = contenido.cargar(ruta, raiz=carpeta.resolve())
+        xml = ET.fromstring(preguntas_xml(doc))
+        publicadas = [float(a.get("fraction")) / 100 for a in xml.iter("answer")]
+        assert publicadas == pytest.approx(list(respuestas), abs=1e-6)
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "Calcula 2*3*4 y a_b_c",
+        "<p>Calcula 2*3*4 y a_b_c</p>",
+        "<p>Primero</p>\n\n<p>Calcula 2*3*4 y a_b_c</p>",
+        "<span>Calcula</span> 2*3*4 y a_b_c",
+        "<div>Uno</div>\n\n  \n\nCalcula 2*3*4 y a_b_c",
+        "<pre>x = 2*3*4\n\ny = a_b_c</pre>\n\nCalcula 2*3*4 y a_b_c",
+        "<ul>\n<li>2*3*4</li>\n\n<li>a_b_c</li>\n</ul>",
+    ],
+)
+def test_el_html_de_la_copia_llega_sin_que_un_asterisco_cambie_su_sentido(carpeta, texto):
+    preguntas = [
+        f.PreguntaFalsa(
+            101,
+            "P1",
+            ((1, texto),),
+            "multichoice",
+            ((texto, 1.0), ("<p>otra</p>", 0.0)),
+        ),
+        f.PreguntaFalsa(102, "P2", ((1, texto),), "truefalse", (("V", 1.0), ("F", 0.0))),
+    ]
+    cuerpo = f.ActividadFalsa(510, "quiz", 7, "Marcas", texto, preguntas=preguntas)
+    importar_en(carpeta, [cuerpo])
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "marcas-510.md"
+    doc = contenido.cargar(ruta, raiz=carpeta.resolve())
+    salidas = [
+        doc.html,
+        doc.cuestionario.preguntas[0].html,
+        doc.cuestionario.preguntas[0].opciones[0].html,
+    ]
+    salidas.append(doc.cuestionario.preguntas[1].html)
+    for html in salidas:
+        assert "<em>" not in html and "<strong>" not in html
+        if "2*3*4" in texto:
+            assert "2*3*4" in html
+        if "a_b_c" in texto:
+            assert "a_b_c" in html
+    if "<pre>" in texto:
+        assert "x = 2*3*4\n\ny = a_b_c" in doc.html
+
+
 # --- Huella --------------------------------------------------------------------------------
 
 
@@ -673,4 +901,4 @@ def test_resumen_importacion_esquema_cerrado():
 
 def test_importar_no_importa_nada_del_aula():
     texto = Path(importar.__file__).read_text(encoding="utf-8")
-    assert "publicar" not in texto.replace("publicar como", "")
+    assert not re.search(r"^\s*(from \S* ?import .*\bpublicar\b|import .*publicar)", texto, re.M)

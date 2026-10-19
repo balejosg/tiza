@@ -182,6 +182,10 @@ class ActividadCopia:
     ``fechas``: tarea (``allowsubmissionsfromdate``, ``duedate``, ``cutoffdate``) o
     cuestionario (``timeopen``, ``timeclose``), cada una un ``datetime`` en UTC o ``None``
     si es 0; vacío en las demás. ``html``: el ``content`` de una página; el ``intro`` del resto.
+
+    Solo en un cuestionario (``None`` en los demás o si la copia no lo dice): ``intentos``
+    (``attempts_number``; 0 son ilimitados, como en tiza), ``tiempo_limite`` (``timelimit``, en
+    segundos; ``None`` si no tiene) y ``mezclar_respuestas`` (``shuffleanswers``).
     """
 
     cmid: int
@@ -194,6 +198,9 @@ class ActividadCopia:
     ficheros: tuple[FicheroCopia, ...] = ()
     preguntas: tuple[PreguntaCopia, ...] = ()
     paquete_h5p: str | None = None
+    intentos: int | None = None
+    tiempo_limite: int | None = None
+    mezclar_respuestas: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -756,6 +763,24 @@ _FECHAS = {
 }
 
 
+def _ajustes_del_cuestionario(contenido: Any) -> dict[str, Any]:
+    """``intentos``, ``tiempo_limite`` (segundos) y ``mezclar_respuestas`` de ``quiz.xml``."""
+    if contenido is None:
+        return {}
+    ajustes: dict[str, Any] = {}
+    intentos = _texto(contenido, "attempts_number").strip()
+    if intentos:
+        ajustes["intentos"] = _entero(intentos, "intentos del cuestionario")
+    limite = _texto(contenido, "timelimit").strip()
+    if limite:
+        segundos = _entero(limite, "tiempo límite del cuestionario")
+        ajustes["tiempo_limite"] = segundos if segundos > 0 else None
+    mezclar = _texto(contenido, "shuffleanswers").strip()
+    if mezclar:
+        ajustes["mezclar_respuestas"] = mezclar == "1"
+    return ajustes
+
+
 def _leer_actividades(
     xmls: dict[str, bytes],
     titulos: dict[str, str],
@@ -801,6 +826,7 @@ def _leer_actividades(
             else {}
         )
         paquete = next((f.contenthash for f in propios if f.filearea == "package"), None)
+        ajustes = _ajustes_del_cuestionario(contenido) if modulo == "quiz" else {}
         actividades.append(
             ActividadCopia(
                 cmid=cmid,
@@ -817,6 +843,7 @@ def _leer_actividades(
                     else ()
                 ),
                 paquete_h5p=paquete if modulo == "h5pactivity" else None,
+                **ajustes,
             )
         )
     actividades.sort(key=lambda a: a.cmid)

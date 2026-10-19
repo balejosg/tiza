@@ -21,19 +21,28 @@ import math
 import os
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 import yaml
 
 from . import config, contenido, estado, filtro, rutas, tipos
 from . import copia as lector
-from .copia import ActividadCopia, Copia, ErrorCopia, FicheroCopia, PreguntaCopia, SeccionCopia
+from .copia import (
+    ActividadCopia,
+    Copia,
+    ErrorCopia,
+    FicheroCopia,
+    PreguntaCopia,
+    RespuestaCopia,
+    SeccionCopia,
+)
+from .cuestionario import fraccion_correcta
 from .ficheros import fichero_en_carpeta
 from .informe import ESTADOS_IMPORTACION, ResumenImportacion
 from .lectura.modelo import ErrorLectura
@@ -183,12 +192,42 @@ def _carpeta_destino(raiz: Path, destino: str) -> Path:
     return carpeta
 
 
-def _comprobar_curso(raiz: Path, curso: int) -> None:
-    reales = config.reales_de_carpeta(raiz)
-    if curso not in reales:
+_PUERTO_POR_DEFECTO = {"https": 443, "http": 80}
+
+
+def _servidor(url: str) -> tuple[str, str, int] | None:
+    """(esquema, servidor, puerto) de una URL sin la ruta ni la barra final; ``None`` si no vale."""
+    try:
+        partes = urlsplit(url.strip())
+        esquema = partes.scheme.lower()
+        puerto = partes.port or _PUERTO_POR_DEFECTO.get(esquema, 0)
+    except ValueError:
+        return None
+    if esquema not in _PUERTO_POR_DEFECTO or not partes.hostname:
+        return None
+    return esquema, partes.hostname.lower(), puerto
+
+
+def _aula_configurada() -> str | None:
+    """La URL del aula configurada (``tiza configurar``), o ``None`` si no hay ninguna."""
+    try:
+        global_ = config.cargar_global()
+    except config.ErrorConfig:
+        return None
+    url = global_.get("url") if global_ else None
+    return url if isinstance(url, str) and url.strip() else None
+
+
+def _comprobar_curso(raiz: Path, copia: Copia) -> None:
+    """La copia tiene que ser de uno de los cursos reales y, si hay aula configurada, de ella."""
+    otro = copia.curso_original not in config.reales_de_carpeta(raiz)
+    url = _aula_configurada()
+    if not otro and url is not None:
+        otro = _servidor(url) != _servidor(copia.servidor)
+    if otro:
         raise ErrorImportar(
             "COPIA_DE_OTRO_CURSO",
-            "La copia no es de ninguno de los cursos reales de tiza.toml. "
+            "La copia no es de ninguno de los cursos reales de tiza.toml ni del aula configurada. "
             "Si quieres reutilizarla en otro curso, impórtala con --como-nuevas.",
         )
 
@@ -314,6 +353,42 @@ def _sin_vacios(datos: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in datos.items() if v is not None}
 
 
+# Etiquetas que abren en CommonMark un bloque HTML que acaba en la primera línea en blanco
+# (tipo 6): dentro de él, el Markdown no se interpreta y ``2*3*4`` sigue siendo ``2*3*4``.
+_ES_BLOQUE = re.compile(
+    r"<(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|"
+    r"details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|"
+    r"h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|"
+    r"optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|"
+    r"track|ul)(?:[\s/>]|$)",
+    re.IGNORECASE,
+)
+_ES_PRE = re.compile(r"<pre(?:[\s/>]|$)", re.IGNORECASE)
+_PRE = re.compile(r"(<pre\b.*?</pre>)", re.DOTALL | re.IGNORECASE)
+_LINEAS_EN_BLANCO = re.compile(r"\n[ \t]*(?:\n[ \t]*)+")
+
+
+def html_como_markdown(html: str) -> str:
+    """El HTML de Moodle, listo para un campo que tiza lee como Markdown, con el mismo sentido.
+
+    tiza renderiza los textos de las preguntas y el cuerpo de un ``.md`` como Markdown con HTML
+    permitido; un ``*`` o un ``_`` fuera de un bloque HTML cambiaría el texto (``2*3*4`` pasaría a
+    llevar cursiva). Por eso el texto se deja como un único bloque HTML: sin líneas en blanco
+    (salvo dentro de ``<pre>``, que tiza ya protege) y, si no empieza por una etiqueta de bloque,
+    dentro de un ``<p>`` (o de un ``<div>`` si empieza por ``<pre>``).
+    """
+    texto = html.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not texto:
+        return ""
+    partes = _PRE.split(texto)
+    texto = "".join(
+        parte if i % 2 else _LINEAS_EN_BLANCO.sub("\n", parte) for i, parte in enumerate(partes)
+    )
+    if _ES_BLOQUE.match(texto):
+        return texto
+    return f"<div>{texto}</div>" if _ES_PRE.match(texto) else f"<p>{texto}</p>"
+
+
 # --- Cuestionarios ---------------------------------------------------------------------
 
 
@@ -322,20 +397,46 @@ def _motivo(pregunta: PreguntaCopia, que: str = "") -> str:
     return f"{tipo}({que})" if que else tipo
 
 
+def _es(valor: float, esperado: float) -> bool:
+    return math.isclose(valor, esperado, abs_tol=1e-6)
+
+
+def _fracciones_de_tiza(tipo: str, respuestas: Sequence[RespuestaCopia]) -> bool:
+    """¿Son las fracciones que tiza generaría al publicar la pregunta? Si no, puntuaría distinto.
+
+    Una única correcta: 1 y 0. Varias (de 2 a 10): ``cuestionario.fraccion_correcta(n)`` en las
+    correctas y su negativo en las incorrectas. Respuesta corta y numérica: 1 en las que cuentan
+    (las de 0 no puntúan y tiza no las escribe).
+    """
+    fracciones = [r.fraccion for r in respuestas]
+    if tipo == "multichoice":
+        correctas = sum(1 for x in fracciones if x > 0)
+        if correctas == 1:
+            return all(_es(x, 1.0) or _es(x, 0.0) for x in fracciones)
+        if not 2 <= correctas <= 10:
+            return False
+        valor = float(fraccion_correcta(correctas)) / 100
+        return all(_es(x, valor) if x > 0 else _es(x, -valor) for x in fracciones)
+    return all(_es(x, 1.0) or _es(x, 0.0) for x in fracciones)
+
+
 def _convertir(pregunta: PreguntaCopia) -> dict[str, Any] | str:
     """La pregunta en el formato de tiza, o el motivo (texto de tiza) por el que no se puede."""
     tipo = pregunta.tipo
     if tipo not in _TIPOS_PREGUNTA:
         return _motivo(pregunta)
-    textos = [pregunta.texto, pregunta.retroalimentacion] + [
-        r.retroalimentacion for r in pregunta.respuestas
-    ]
+    textos = [pregunta.texto, pregunta.retroalimentacion]
+    textos += [r.texto for r in pregunta.respuestas]
+    textos += [r.retroalimentacion for r in pregunta.respuestas]
     if any("@@PLUGINFILE@@" in t for t in textos):
         return _motivo(pregunta, "con ficheros")
     if not pregunta.texto.strip() or len(pregunta.texto) > _MAX_ENUNCIADO:
         return _motivo(pregunta, "enunciado")
-    resultado: dict[str, Any] = {"enunciado": pregunta.texto}
+    enunciado = html_como_markdown(pregunta.texto)
+    resultado: dict[str, Any] = {"enunciado": enunciado}
     respuestas = pregunta.respuestas
+    if not _fracciones_de_tiza(tipo, respuestas):
+        return _motivo(pregunta, "fracciones parciales")
     if tipo == "truefalse":
         if len(respuestas) != 2:
             return _motivo(pregunta, "respuestas")
@@ -347,38 +448,41 @@ def _convertir(pregunta: PreguntaCopia) -> dict[str, Any] | str:
         ):
             verdadera = por_id.get(int(pregunta.opciones["trueanswer"]), verdadera)
             falsa = por_id.get(int(pregunta.opciones["falseanswer"]), falsa)
-        if verdadera.fraccion == falsa.fraccion:
+        if sorted((verdadera.fraccion, falsa.fraccion)) != [0.0, 1.0]:
             return _motivo(pregunta, "respuestas")
         resultado = {
             "tipo": "verdadero_falso",
-            "enunciado": pregunta.texto,
+            "enunciado": enunciado,
             "respuesta": "verdadero" if verdadera.fraccion > falsa.fraccion else "falso",
         }
     elif tipo == "multichoice":
         if not 2 <= len(respuestas) <= 10 or any(not r.texto.strip() for r in respuestas):
             return _motivo(pregunta, "opciones")
         correctas = sum(1 for r in respuestas if r.fraccion > 0)
-        if correctas == 0 or (pregunta.opciones.get("single", "1") == "1" and correctas != 1):
-            return _motivo(pregunta, "puntuación parcial")
+        # tiza publica «una sola respuesta» solo si hay exactamente una correcta.
+        if correctas == 0 or pregunta.opciones.get("single", "1" if correctas == 1 else "0") != (
+            "1" if correctas == 1 else "0"
+        ):
+            return _motivo(pregunta, "fracciones parciales")
         opciones = []
         for r in respuestas:
-            opcion: dict[str, Any] = {"texto": r.texto}
+            opcion: dict[str, Any] = {"texto": html_como_markdown(r.texto)}
             if r.fraccion > 0:
                 opcion["correcta"] = True
             if r.retroalimentacion.strip():
-                opcion["retro"] = r.retroalimentacion
+                opcion["retro"] = html_como_markdown(r.retroalimentacion)
             opciones.append(opcion)
-        resultado = {"tipo": "opcion_multiple", "enunciado": pregunta.texto, "opciones": opciones}
+        resultado = {"tipo": "opcion_multiple", "enunciado": enunciado, "opciones": opciones}
     else:
-        buenas = [r for r in respuestas if r.fraccion >= 0.9999]
-        if any(0 < r.fraccion < 0.9999 for r in respuestas) or not buenas:
-            return _motivo(pregunta, "puntuación parcial")
+        buenas = [r for r in respuestas if _es(r.fraccion, 1.0)]
+        if not buenas:
+            return _motivo(pregunta, "fracciones parciales")
         if tipo == "shortanswer":
             if any(not r.texto.strip() for r in buenas):
                 return _motivo(pregunta, "respuestas")
             resultado = {
                 "tipo": "respuesta_corta",
-                "enunciado": pregunta.texto,
+                "enunciado": enunciado,
                 "aceptadas": [r.texto.strip() for r in buenas],
             }
             if pregunta.opciones.get("usecase") == "1":
@@ -392,12 +496,43 @@ def _convertir(pregunta: PreguntaCopia) -> dict[str, Any] | str:
                 return _motivo(pregunta, "valor")
             if not math.isfinite(valor):
                 return _motivo(pregunta, "valor")
-            resultado = {"tipo": "numerica", "enunciado": pregunta.texto, "valor": valor}
+            resultado = {"tipo": "numerica", "enunciado": enunciado, "valor": valor}
             if buenas[0].tolerancia > 0:
                 resultado["tolerancia"] = buenas[0].tolerancia
     if pregunta.retroalimentacion.strip():
-        resultado["retro"] = pregunta.retroalimentacion
+        resultado["retro"] = html_como_markdown(pregunta.retroalimentacion)
     return resultado
+
+
+def _ajustes_del_cuestionario(actividad: ActividadCopia) -> tuple[dict[str, Any], str | None]:
+    """``intentos``, ``tiempo_limite`` (minutos) y ``mezclar_respuestas`` con la semántica de tiza.
+
+    tiza los manda siempre al publicar: sin ellos, republicar pisaría los del aula. Lo que tiza
+    no puede decir (más de 10 intentos, un tiempo que no son minutos enteros de 1 a 600) se
+    ajusta al valor más cercano y se avisa en el detalle.
+    """
+    ajustes: dict[str, Any] = {}
+    avisos = []
+    intentos = actividad.intentos
+    if intentos is not None and intentos >= 0:
+        if intentos > 10:
+            intentos = 10
+            avisos.append("más de 10 intentos")
+        ajustes["intentos"] = "ilimitados" if intentos == 0 else intentos
+    segundos = actividad.tiempo_limite
+    if segundos is not None:
+        minutos = min(max(-(-segundos // 60), 1), 600)
+        if minutos * 60 != segundos:
+            avisos.append("un tiempo límite que no son minutos enteros de 1 a 600")
+        ajustes["tiempo_limite"] = minutos
+    if actividad.mezclar_respuestas is not None:
+        ajustes["mezclar_respuestas"] = actividad.mezclar_respuestas
+    nota = None
+    if avisos:
+        nota = (
+            "Ajustes del cuestionario aproximados a los que admite tiza: " + ", ".join(avisos) + "."
+        )
+    return ajustes, nota
 
 
 def _preguntas(actividad: ActividadCopia) -> tuple[list[dict[str, Any]], list[str]]:
@@ -540,7 +675,7 @@ def importar(
     base = _carpeta_destino(raiz, destino)
     datos = lector.abrir_copia(ruta_copia)
     if not como_nuevas:
-        _comprobar_curso(raiz, datos.curso_original)
+        _comprobar_curso(raiz, datos)
     secciones = {s.id: s for s in datos.secciones}
     for actividad in datos.actividades:
         if actividad.seccion_id not in secciones:
@@ -629,6 +764,7 @@ def _importar_actividad(
 
     html, recursos, faltan = _recursos(actividad, actividad.html)
     extra: dict[str, Any] = {}
+    nota = None
     if tipo == "cuestionario":
         preguntas, motivos = _preguntas(actividad)
         if motivos:
@@ -637,6 +773,7 @@ def _importar_actividad(
                 "Tipos de pregunta que tiza no admite: " + ", ".join(motivos)
             )
             return entrada
+        extra, nota = _ajustes_del_cuestionario(actividad)
         extra["preguntas"] = preguntas
     elif tipo == "h5p":
         paquete = next(
@@ -680,7 +817,8 @@ def _importar_actividad(
         aviso = _texto_seguro(f"El filtro de tiza no admite: {exc.detalle}")
     sin_fichero = _extraer(datos, recursos, ruta.parent, actividad.cmid, base)
     entrada.fichero = ruta.relative_to(raiz).as_posix()
-    if not _crear(ruta, _documento(frontmatter, html).encode("utf-8"), base):
+    cuerpo = html if extension == ".html" else html_como_markdown(html)
+    if not _crear(ruta, _documento(frontmatter, cuerpo).encode("utf-8"), base):
         entrada.estado = "YA_IMPORTADO"
         return entrada
     if aviso is not None:
@@ -689,6 +827,8 @@ def _importar_actividad(
         entrada.estado, entrada.detalle = _detalle_de_carga(ruta, raiz)
     if (faltan or sin_fichero) and entrada.detalle is None:
         entrada.detalle = "Falta en la copia algún fichero que la actividad usa."
+    if nota is not None and entrada.detalle is None:
+        entrada.detalle = nota
     return entrada
 
 

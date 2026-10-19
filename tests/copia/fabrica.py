@@ -82,6 +82,7 @@ class ActividadFalsa:
     preguntas: Sequence[PreguntaFalsa] = ()
     module_id: int | None = None  # para forzar un module.xml que no coincide
     xml_propio: bytes | None = None  # sustituye a <módulo>.xml entero
+    ajustes: Mapping[str, object] = field(default_factory=dict)  # attempts_number, timelimit…
 
 
 def _e(texto: object) -> str:
@@ -191,6 +192,7 @@ def _principal(actividad: ActividadFalsa) -> bytes:
     if actividad.modulo == "assign":
         cuerpo += "<userflags></userflags><submissions></submissions><grades></grades>"
     if actividad.modulo == "quiz":
+        cuerpo += "".join(f"<{k}>{_e(v)}</{k}>" for k, v in actividad.ajustes.items())
         cuerpo += _instancias(actividad)
     return (
         f'{CABECERA}<activity id="9" moduleid="{actividad.cmid}" '

@@ -187,7 +187,7 @@ MENSAJES: dict[str, str] = {
     "COPIA_NO_VALIDA": "El fichero no es una copia de seguridad de Moodle que tiza pueda leer: está dañado, incompleto o no es un .mbz. Haz una copia nueva del curso, sin datos de usuarios, y repite el comando.",
     "COPIA_DEMASIADO_GRANDE": "La copia es demasiado grande para leerla con seguridad (más de 2 GB, de 20 000 ficheros, o con ficheros muy pesados). Haz la copia sin los ficheros pesados, como vídeos, y repite el comando.",
     "COPIA_CON_USUARIOS": "La copia incluye datos de usuarios y tiza no abre copias con ellos. Hazla de nuevo en el aula con la casilla de usuarios desmarcada y repite el comando.",
-    "COPIA_DE_OTRO_CURSO": "La copia no es de ninguno de los cursos reales de tiza.toml, así que no se ha importado nada. Si es de otro curso y quieres reutilizarla, impórtala con --como-nuevas.",
+    "COPIA_DE_OTRO_CURSO": "La copia no es de ninguno de los cursos reales de tiza.toml ni del aula configurada, así que no se ha importado nada. Si es de otro curso y quieres reutilizarla, impórtala con --como-nuevas.",
     "COPIA_FORMATO": "La copia de seguridad de Moodle es un fichero con extensión .mbz. Indica ese fichero, dentro de la carpeta de la asignatura o en .tiza/copias.",
     "COPIA_AUSENTE": "No existe ese fichero .mbz. Comprueba el nombre y que está dentro de la carpeta de la asignatura o en .tiza/copias.",
     "DESTINO_NO_VALIDO": "El destino debe ser una carpeta de la asignatura, sin ruta absoluta, ni «..», ni carpetas ocultas (que empiezan por un punto), ni símbolos como dos puntos, asterisco o interrogación.",
