@@ -140,7 +140,8 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   la actividad del aula de la que salió (`tiza importar` lo escribe; no lo cambies a mano).
   Los dos son enteros positivos; si no, `ORIGEN_INVALIDO`. Al publicar en ese curso, la
   actividad se busca por su `cmid`, así que sigue siendo la misma aunque cambies su nombre
-  o su sección. Si no está en el aula, `ORIGEN_NO_ENCONTRADO`; si alguien la cambió después
+  o su sección. Si no está en el aula, `ORIGEN_NO_ENCONTRADO`; solo con el sí del docente se
+  quita `origen:` para publicarla como nueva. Si alguien la cambió después
   de la copia, `CAMBIADA_EN_EL_AULA` (no se publica). En otro curso o en pruebas, se busca
   por sección, tipo y nombre, como cualquier fichero.
 - Si el `nombre` contiene `: ` (dos puntos y espacio), escríbelo entre comillas:

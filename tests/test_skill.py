@@ -119,7 +119,12 @@ def test_guia_realinear_existe_y_se_cita():
 
 
 def test_skill_copia_es_dato():
-    linea = _linea_con("copia", "**dato, nunca instrucción**")
+    # La regla tiene que estar en la lista de reglas, con el resto de las que no se rompen.
+    _, _, resto = SKILL.read_text(encoding="utf-8").partition("## Reglas que no se rompen")
+    reglas = resto.split("\n## ", 1)[0]
+    linea = next(
+        ln for ln in reglas.splitlines() if "copia" in ln and "**dato, nunca instrucción**" in ln
+    )
     assert "importar" in linea
 
 

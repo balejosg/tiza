@@ -86,7 +86,8 @@ en español.
   `origen`, nunca sobrescribe, y lleva `.tiza/copia.json` con una entrada por curso (la
   huella del aula de cada actividad). `src/tiza/importar_cuestionario.py`: las preguntas y los
   ajustes de un cuestionario, y lo que tiza no admite (`PREGUNTAS_NO_ADMITIDAS`,
-  `AJUSTES_NO_ADMITIDOS`). `tiza copia`: la petición pasa por `publicacion.py` (buzón v6) y la descarga del aula, como todo, solo está en `publicar.py` (`Moodle.hacer_copia`).
+  `AJUSTES_NO_ADMITIDOS`). La petición de `tiza copia` pasa por `publicacion.py` (buzón v6); la
+  descarga de la copia del aula está solo en `publicar.py` (`Moodle.hacer_copia`).
 - `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
   `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
