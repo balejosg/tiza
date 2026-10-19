@@ -10,6 +10,7 @@ import struct
 import tarfile
 import time
 import zipfile
+import zlib
 from datetime import UTC, datetime
 
 import pytest
@@ -790,3 +791,128 @@ def test_zip_con_file_size_falso(tmp_path):
         abrir_copia(ruta)
     assert info.value.codigo == "COPIA_NO_VALIDA"
     assert type(info.value) is ErrorCopia
+
+
+# --- cabeceras extendidas de tar --------------------------------------------------------
+
+
+def _tar_con_cabecera_extendida(tipo: bytes, declarado: int, ruta) -> None:
+    """Un tar.gz cuya primera cabecera es extendida y declara ``declarado`` bytes de relleno.
+
+    El relleno son ceros, que comprimen casi a nada: el fichero ocupa unos cientos de KB aunque
+    declare cientos de MB (como la copia maliciosa de la revisión).
+    """
+    cabecera = tarfile.TarInfo("PaxHeader/x")
+    cabecera.type = tipo
+    cabecera.size = declarado
+    crudo = cabecera.tobuf(tarfile.USTAR_FORMAT, "utf-8", "surrogateescape")
+    compresor = zlib.compressobj(1, zlib.DEFLATED, 31)  # gzip
+    trozo = b"\0" * (1024 * 1024)
+    with ruta.open("wb") as salida:
+        salida.write(compresor.compress(crudo))
+        for _ in range(declarado // len(trozo)):
+            salida.write(compresor.compress(trozo))
+        salida.write(compresor.flush())
+
+
+@pytest.mark.parametrize(
+    "tipo", [tarfile.XHDTYPE, tarfile.XGLTYPE, tarfile.GNUTYPE_LONGNAME, tarfile.GNUTYPE_LONGLINK]
+)
+def test_cabecera_extendida_enorme_se_rechaza_sin_leerla(tmp_path, monkeypatch, tipo):
+    ruta = tmp_path / "copia.mbz"
+    _tar_con_cabecera_extendida(tipo, 300 * 1024 * 1024, ruta)
+    assert ruta.stat().st_size < 2 * 1024 * 1024  # el fichero es pequeño
+    leidos = []
+    original = copia._Acotado.read
+
+    def contar(self, n=-1):
+        datos = original(self, n)
+        leidos.append(len(datos))
+        return datos
+
+    monkeypatch.setattr(copia._Acotado, "read", contar)
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(ruta)
+    assert info.value.codigo == "COPIA_NO_VALIDA"
+    assert "cabecera" in info.value.detalle
+    assert sum(leidos) < 64 * 1024  # solo se leyó el bloque de cabecera, no los 300 MB
+
+
+def test_cabecera_extendida_pequena_sigue_funcionando(tmp_path):
+    # Una cabecera pax pequeña y legítima (nombre largo) sigue funcionando.
+    secciones, actividades = f.copia_basica()
+    datos = f.construir_mbz(secciones, actividades)
+    salida = io.BytesIO()
+    with (
+        tarfile.open(fileobj=io.BytesIO(datos), mode="r:gz") as origen,
+        tarfile.open(fileobj=salida, mode="w:gz", format=tarfile.PAX_FORMAT) as destino,
+    ):
+        for miembro in origen.getmembers():
+            destino.addfile(miembro, origen.extractfile(miembro))
+        largo = tarfile.TarInfo("extra/" + "n" * 300 + ".bin")
+        largo.size = 3
+        destino.addfile(largo, io.BytesIO(b"abc"))
+    ruta = tmp_path / "copia.mbz"
+    ruta.write_bytes(salida.getvalue())
+    assert [s.id for s in abrir_copia(ruta).secciones] == [7]
+
+
+def test_la_api_privada_de_tarfile_sigue_ahi(tmp_path, monkeypatch):
+    """El límite de cabeceras se apoya en ``TarInfo._proc_member``: si cambia, este test falla."""
+    assert callable(getattr(tarfile.TarInfo, "_proc_member", None))
+    assert callable(getattr(tarfile.TarInfo, "_proc_pax", None))
+    assert callable(getattr(tarfile.TarInfo, "_proc_gnulong", None))
+    assert tarfile.TarInfo.fromtarfile.__func__ is not None
+    # ``tarfile`` sigue llamando a ``_proc_member`` de la subclase que se le pasa en ``tarinfo``.
+    llamadas = []
+    original = copia._TarInfoAcotado._proc_member
+
+    def espiar(self, tar):
+        llamadas.append(self.type)
+        return original(self, tar)
+
+    monkeypatch.setattr(copia._TarInfoAcotado, "_proc_member", espiar)
+    secciones, actividades = f.copia_basica()
+    abrir(tmp_path, secciones, actividades)
+    assert llamadas
+    # Y una cabecera de 2 MiB (más del límite) se rechaza por el límite, no por casualidad.
+    ruta = tmp_path / "grande.mbz"
+    _tar_con_cabecera_extendida(tarfile.XHDTYPE, 2 * 1024 * 1024, ruta)
+    with pytest.raises(ErrorCopia) as info:
+        abrir_copia(ruta)
+    assert info.value.codigo == "COPIA_NO_VALIDA"
+    assert "cabecera de archivo demasiado grande" in info.value.detalle
+
+
+# --- tolerancia de las numéricas (estructura real de Moodle 4.5) ------------------------
+
+
+@pytest.mark.parametrize("antigua", [False, True])
+def test_la_tolerancia_numerica_se_lee_de_numerical_records(tmp_path, antigua):
+    numerica = f.PreguntaFalsa(
+        entrada=111,
+        tipo="numerical",
+        respuestas=(("3.14", 1.0), ("3.1416", 0.5)),
+        tolerancia=0.005,
+        tolerancia_antigua=antigua,
+    )
+    (p,) = _con_preguntas(tmp_path, [numerica])
+    assert [r.tolerancia for r in p.respuestas] == [0.005, 0.005]
+
+
+def test_la_fabrica_escribe_la_estructura_real_de_la_numerica(tmp_path):
+    numerica = f.PreguntaFalsa(entrada=111, tipo="numerical", tolerancia=0.005)
+    secciones, actividades = f.copia_basica()
+    actividades.append(f.ActividadFalsa(505, "quiz", 7, "Un test", preguntas=[numerica]))
+    xml = f.construir_mbz(secciones, actividades)
+    with tarfile.open(fileobj=io.BytesIO(xml), mode="r:gz") as tar:
+        preguntas = tar.extractfile("questions.xml").read().decode()
+    assert "<numerical_records><numerical_record" in preguntas
+    assert "<numerical_answers>" not in preguntas
+    assert "<numerical_units></numerical_units>" in preguntas
+
+
+def test_una_numerica_sin_tolerancia_en_la_copia_vale_cero(tmp_path):
+    numerica = f.PreguntaFalsa(entrada=111, tipo="numerical", respuestas=(("2", 1.0),))
+    (p,) = _con_preguntas(tmp_path, [numerica])
+    assert [r.tolerancia for r in p.respuestas] == [0.0]

@@ -63,6 +63,7 @@ MAX_RECURSO = 100 * 1024 * 1024  # cada recurso que se lee con ``leer_recurso``
 MAX_DESCOMPRIMIDO = 4 * 1024**3  # todo lo que se descomprime al recorrer la copia
 MAX_XML_TOTAL = 256 * 1024 * 1024  # los XML que se retienen en memoria, sumados
 MAX_DIRECTORIO_ZIP = 32 * 1024 * 1024  # el directorio central de un zip
+MAX_CABECERA_TAR = 1024 * 1024  # una cabecera extendida de tar (pax o nombre largo de GNU)
 
 # Ajustes raíz de ``moodle_backup.xml`` que llevarían datos del alumnado: todos deben valer 0, igual
 # que los ``*_userinfo`` de secciones y actividades. No están ``badges``, ``calendarevents`` ni
@@ -145,7 +146,7 @@ class FicheroCopia:
 @dataclass(frozen=True, slots=True)
 class RespuestaCopia:
     """Una respuesta de una pregunta; ``id`` es el de ``question_answers`` (0 si no se conoce)
-    y ``tolerancia`` la de una respuesta numérica (``numerical_answers``; 0 si no la tiene)."""
+    y ``tolerancia`` la de una respuesta numérica (``numerical_records``; 0 si no la tiene)."""
 
     texto: str
     fraccion: float
@@ -365,11 +366,37 @@ def _entradas(ruta: Path) -> Generator[_Entrada, None, None]:
             raise _no_valida("El fichero no es una copia de Moodle (ni tar.gz ni zip).")
 
 
+_CABECERAS_EXTENDIDAS = frozenset(
+    {
+        tarfile.XHDTYPE,
+        tarfile.XGLTYPE,
+        tarfile.SOLARIS_XHDTYPE,
+        tarfile.GNUTYPE_LONGNAME,
+        tarfile.GNUTYPE_LONGLINK,
+    }
+)
+
+
+class _TarInfoAcotado(tarfile.TarInfo):
+    """``TarInfo`` que no deja a ``tarfile`` leer en memoria una cabecera extendida enorme.
+
+    ``tarfile`` lee la cabecera pax o de nombre largo entera antes de que nada pueda cortarla, y
+    su tamaño lo declara el propio fichero. Se apoya en ``_proc_member``, que es API privada de
+    ``tarfile`` (estable desde Python 3.8): ``test_la_api_privada_de_tarfile_sigue_ahi`` falla si
+    cambia.
+    """
+
+    def _proc_member(self, tarfile: Any) -> Any:
+        if self.type in _CABECERAS_EXTENDIDAS and self.size > MAX_CABECERA_TAR:
+            raise _no_valida("La copia tiene una cabecera de archivo demasiado grande.")
+        return super()._proc_member(tarfile)  # type: ignore[misc]
+
+
 def _entradas_tar(fichero: IO[bytes]) -> Generator[_Entrada, None, None]:
     cuenta = 0
     with gzip.GzipFile(fileobj=fichero, mode="rb") as plano:
         flujo: Any = _Acotado(plano)
-        with tarfile.open(fileobj=flujo, mode="r|") as tar:
+        with tarfile.open(fileobj=flujo, mode="r|", tarinfo=_TarInfoAcotado) as tar:
             for miembro in tar:
                 cuenta += 1
                 if cuenta > MAX_ENTRADAS:
@@ -711,7 +738,7 @@ def _con_unidades(elemento: Any) -> bool:
 def _respuestas_de(elemento: Any) -> tuple[RespuestaCopia, ...]:
     """Las respuestas de ``plugin_qtype_*_question/answers/answer``, con su tolerancia numérica.
 
-    Solo esas: otros elementos ``answer`` (el de ``numerical_answer``, que es un id) no cuentan.
+    Solo esas: otros elementos ``answer`` (el de ``numerical_record``, que es un id) no cuentan.
     """
     respuestas = []
     for plugin in elemento:
@@ -723,7 +750,12 @@ def _respuestas_de(elemento: Any) -> tuple[RespuestaCopia, ...]:
         ):
             continue
         tolerancias: dict[int, float] = {}
-        for numerica in plugin.findall("numerical_answers/numerical_answer"):
+        # Moodle 4.5 guarda la tolerancia en ``numerical_records/numerical_record`` (medido en la
+        # copia real); ``numerical_answers`` es el nombre de versiones anteriores.
+        for numerica in (
+            *plugin.findall("numerical_records/numerical_record"),
+            *plugin.findall("numerical_answers/numerical_answer"),
+        ):
             referencia = _texto(numerica, "answer").strip()
             if _ENTERO.fullmatch(referencia):
                 tolerancias[int(referencia)] = _decimal(_texto(numerica, "tolerance", "0"))

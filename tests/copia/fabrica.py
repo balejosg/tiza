@@ -66,7 +66,8 @@ class PreguntaFalsa:
     estado: str = "ready"  # estado de todas sus versiones
     modo: str = "normal"  # "aleatoria": hueco aleatorio; "ausente": no está en questions.xml
     ajustes: Mapping[str, str] | None = None  # ajustes del tipo (por defecto, single=1)
-    tolerancia: float | None = None  # numérica: tolerancia de cada respuesta (numerical_answers)
+    tolerancia: float | None = None  # numérica: tolerancia de cada respuesta (numerical_records)
+    tolerancia_antigua: bool = False  # la escribe en ``numerical_answers`` (versiones antiguas)
     puntos: float = 2.0  # maxmark del hueco
     penalizacion: float | None = None  # penalty de la pregunta (None: no la escribe)
     unidades: bool = False  # numérica con una unidad definida
@@ -255,20 +256,33 @@ def _penalizacion(pregunta: PreguntaFalsa) -> str:
 
 
 def _numericas(pregunta: PreguntaFalsa) -> str:
+    """Lo propio de una numérica, con la estructura de la copia real de Moodle 4.5."""
     unidades = (
         '<numerical_units><numerical_unit id="1"><multiplier>1.0</multiplier>'
         "<unit>m</unit></numerical_unit></numerical_units>"
         if pregunta.unidades
-        else ""
+        else "<numerical_units></numerical_units>"
+    )
+    opciones = (
+        '<numerical_options><numerical_option id="3"><showunits>3</showunits>'
+        "<unitsleft>0</unitsleft><unitgradingtype>0</unitgradingtype>"
+        "<unitpenalty>0.1000000</unitpenalty></numerical_option></numerical_options>"
     )
     if pregunta.tolerancia is None:
-        return unidades
+        return f"{unidades}{opciones}"
+    if pregunta.tolerancia_antigua:
+        partes = "".join(
+            f'<numerical_answer id="{n}"><answer>{n}</answer>'
+            f"<tolerance>{pregunta.tolerancia}</tolerance></numerical_answer>"
+            for n, _ in enumerate(pregunta.respuestas, start=1)
+        )
+        return f"{unidades}<numerical_answers>{partes}</numerical_answers>"
     partes = "".join(
-        f'<numerical_answer id="{n}"><answer>{n}</answer>'
-        f"<tolerance>{pregunta.tolerancia}</tolerance></numerical_answer>"
+        f'<numerical_record id="{n}"><answer>{n}</answer>'
+        f"<tolerance>{pregunta.tolerancia}</tolerance></numerical_record>"
         for n, _ in enumerate(pregunta.respuestas, start=1)
     )
-    return f"{unidades}<numerical_answers>{partes}</numerical_answers>"
+    return f"{unidades}{opciones}<numerical_records>{partes}</numerical_records>"
 
 
 def _questions_xml(actividades: Sequence[ActividadFalsa]) -> bytes:

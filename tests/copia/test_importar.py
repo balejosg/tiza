@@ -276,6 +276,28 @@ def test_importar_cuestionario_otros_tipos_admitidos(carpeta):
     assert [o.correcta for o in p4.opciones] == [True, True, False]
 
 
+def test_ida_y_vuelta_de_la_tolerancia_numerica(carpeta):
+    """La copia real guarda la tolerancia en ``numerical_records``: no se pierde al importar."""
+    preguntas = [
+        pregunta(
+            103,
+            "P3",
+            ((1, "<p>Pi con dos decimales</p>"),),
+            "numerical",
+            (("3.14", 1.0),),
+            tolerancia=0.005,
+        )
+    ]
+    importar_en(carpeta, [f.ActividadFalsa(510, "quiz", 7, "Pi", preguntas=preguntas)])
+    entrada = actividades_de(carpeta)[510]
+    assert entrada["estado"] == "IMPORTADA"
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "pi-510.md"
+    assert "tolerancia: 0.005" in ruta.read_text(encoding="utf-8")
+    doc = contenido.cargar(ruta, raiz=carpeta.resolve())
+    (numerica,) = doc.cuestionario.preguntas
+    assert numerica.valor == 3.14 and numerica.tolerancia == 0.005
+
+
 def test_importar_cuestionario_no_admitido(carpeta):
     preguntas = [*preguntas_basicas(), pregunta(103, "P3", ((1, "Redacta"),), "essay", ())]
     importar_en(carpeta, [f.ActividadFalsa(510, "quiz", 7, "Con redacción", preguntas=preguntas)])
@@ -283,6 +305,20 @@ def test_importar_cuestionario_no_admitido(carpeta):
     assert entrada["estado"] == "PREGUNTAS_NO_ADMITIDAS"
     assert "essay" in entrada["detalle"] and entrada["fichero"] is None
     assert not (carpeta / "aula").exists() or not list((carpeta / "aula").rglob("*.md"))
+
+
+def test_el_motivo_de_preguntas_no_admitidas_queda_en_copia_json(carpeta):
+    preguntas = [
+        pregunta(101, "P1", ((1, "Une"),), "match", (("a", 1.0),)),
+        pregunta(102, "P2", ((1, "Redacta"),), "essay", ()),
+    ]
+    importar_en(carpeta, [f.ActividadFalsa(510, "quiz", 7, "Con otros tipos", preguntas=preguntas)])
+    en_disco = json.loads((carpeta / ".tiza" / "copia.json").read_text(encoding="utf-8"))
+    (actividad,) = (
+        a for c in en_disco["cursos"].values() for a in c["actividades"] if a["cmid"] == 510
+    )
+    assert actividad["estado"] == "PREGUNTAS_NO_ADMITIDAS"
+    assert actividad["detalle"] == "Preguntas que tiza no admite: match, essay"
 
 
 def test_importar_cuestionario_aleatorio_o_sin_resolver(carpeta):

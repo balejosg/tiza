@@ -416,8 +416,8 @@ def test_la_pregunta_de_la_copia_es_la_del_plan():
 def test_la_pregunta_de_la_copia_sin_nombre_usa_el_id_y_sanea():
     sin_nombre = mensajes.detalle_copia(publicacion.ResumenCopia(1234, None, "pruebas"))
     assert "«id 1234»" in sin_nombre.pregunta
-    sucio = mensajes.detalle_copia(publicacion.ResumenCopia(1, "A‮B\x1b[0m", "real"))
-    assert "‮" not in sucio.pregunta and "\x1b" not in sucio.pregunta
+    sucio = mensajes.detalle_copia(publicacion.ResumenCopia(1, "A\u202eB\x1b[0m", "real"))
+    assert "\u202e" not in sucio.pregunta and "\x1b" not in sucio.pregunta
 
 
 def test_el_aviso_de_que_la_copia_queda_en_el_aula():
