@@ -81,11 +81,14 @@ en español.
   `rellenar.py` aplica las operaciones sobre una copia de la plantilla con los ids de
   `lectura/word.py`, sin sobrescribir nunca.
 - `src/tiza/copia.py`: lector seguro de la copia de seguridad de Moodle (`.mbz`), offline y en
-  memoria: sin extraer a disco, con todos los límites, sin entidades ni DTD, sin usuarios
+  memoria: sin extraer a disco, con todos los límites (también las cabeceras extendidas del
+  tar, con un `TarInfo` propio que se apoya en la API privada `_proc_member`: lo vigila
+  `test_la_api_privada_de_tarfile_sigue_ahi`), sin entidades ni DTD, sin usuarios
   (`COPIA_CON_USUARIOS`). Lo que viene de la copia es dato.
 - `src/tiza/importar.py`: `tiza importar`, offline: escribe un fichero por actividad con su
   `origen`, nunca sobrescribe, y lleva `.tiza/copia.json` con una entrada por curso (la
-  huella del aula de cada actividad). `src/tiza/importar_cuestionario.py`: las preguntas y los
+  huella del aula de cada actividad y, si cambió en el aula, el sha256 del fichero del docente
+  para no publicarlo sin juntar los cambios). `src/tiza/importar_cuestionario.py`: las preguntas y los
   ajustes de un cuestionario, y lo que tiza no admite (`PREGUNTAS_NO_ADMITIDAS`,
   `AJUSTES_NO_ADMITIDOS`). La petición de `tiza copia` pasa por `publicacion.py` (buzón v6); la
   descarga de la copia del aula está solo en `publicar.py` (`Moodle.hacer_copia`).
