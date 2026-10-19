@@ -54,6 +54,12 @@ programación, sin datos del alumnado.
 - *«Ajusta las fechas de la unidad al calendario escolar.»* Si dejas el
   calendario en la carpeta, `tiza` avisa cuando una fecha cae en festivo o en un
   día sin clase.
+- *«Prepárame la programación del curso que viene a partir de la plantilla del
+  departamento.»* El agente rellena una copia de tu plantilla en Word, con tus
+  estilos y tu encabezado, y te señala lo que de la anterior está desfasado.
+- *«Revisa mi programación antigua con la normativa y con mi aula.»* El agente
+  contrasta las tres cosas, con una copia del curso que confirmas tú, y te
+  deja una lista de propuestas para aceptar por número.
 
 El agente trabaja con tus documentos y no se inventa criterios. Aun así, la
 última palabra es tuya: revisa que lo citado coincide con el decreto y con tu

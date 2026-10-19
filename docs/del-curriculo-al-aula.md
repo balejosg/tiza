@@ -12,10 +12,15 @@ caso saldrán de tus documentos.
 - **`tiza leer`** convierte tu programación (Word o PDF) en un texto que el agente puede
   leer sin errores. El Word se lee mejor que el PDF, sobre todo si tiene tablas.
 - **`tiza documento`** escribe la unidad como un Word sencillo, para que la revises o la
-  incorpores a tu programación. Nunca sobrescribe un Word tuyo: si el nombre existe, crea otro.
+  incorpores a tu programación. Nunca sobrescribe un Word tuyo: si el nombre existe, da error y eliges otro.
+- **`tiza rellenar`** pasa la programación a Word a partir de la plantilla de tu departamento:
+  rellena una copia sin tocar tus estilos, encabezados ni numeración. Tampoco sobrescribe nada tuyo.
+- **`tiza importar`** y **`tiza copia`** traen tu aula al agente: `tiza copia` pide, con tu
+  sesión abierta y tu confirmación, una copia del curso sin datos de alumnos, y `tiza importar`
+  la convierte en ficheros de tiza editables. Sirven para realinear una programación antigua.
 
-El agente solo lee lo que hay en la carpeta de la asignatura. No consulta el aula ni ve el
-trabajo de tu alumnado.
+El agente solo lee lo que hay en la carpeta de la asignatura. Solo con la copia que tú
+confirmas ve el contenido del curso (nunca el trabajo de tu alumnado).
 
 ## Antes de empezar: qué dejar en la carpeta
 
@@ -59,6 +64,33 @@ trabajo de tu alumnado.
 Después, el camino de siempre: el agente escribe las actividades, las publica **ocultas** en
 tu curso de pruebas, las revisas y, cuando te guste, se la pides para el curso real. En tu
 terminal ves qué se publica y confirmas con `s`.
+
+## Los momentos: normativa, programación, unidad y aula
+
+1. **Normativa → programación.** Pídele «prepárame la programación del curso que viene a partir
+   de la plantilla del departamento». Dale la plantilla en Word, la programación del curso
+   anterior y lo que tengas (concreción curricular, plan de convivencia, calendario). El agente
+   las lee con `tiza leer`, te señala qué está desfasado respecto a la normativa y de dónde
+   sale, te pregunta solo lo que decides tú (grupos, horas, temporalización) y deja un Word
+   nuevo con `tiza rellenar`. Ábrelo y di que sí a actualizar los campos, para que el índice
+   quede al día.
+2. **Programación → unidad.** La conversación de arriba: el agente propone la unidad y la deja
+   en un Word con `tiza documento`.
+3. **Unidad → aula.** El agente prepara las actividades y las publica ocultas en pruebas;
+   tú revisas y confirmas el curso real.
+4. **Aula → programación (realinear).** Si tu programación es antigua, pide «revisa mi
+   programación antigua con la normativa y con mi aula». El agente te pide la programación y
+   una copia del curso: con tu sesión abierta la pide con `tiza copia`, y tú la confirmas en tu
+   terminal (si el aula no te deja, la haces a mano, sin marcar usuarios). La importa con
+   `tiza importar` y te deja **una sola lista de propuestas**, agrupada en ley, programación y
+   aula, que aceptas o rechazas por número. Lo aceptado se publica sobre las mismas
+   actividades, sin duplicarlas.
+
+Al publicar una actividad que viene de la copia, tiza vigila su **nombre, texto y fechas**: si
+cambiaron en el aula después de la copia, no la publica y te lo dice (`CAMBIADA_EN_EL_AULA`);
+pide una copia nueva. No vigila las preguntas ni los ajustes de un cuestionario ni el paquete de
+una actividad H5P: si los cambiaste en el aula, díselo al agente. Detalle en la
+[guía de uso](guia.md#realinear-con-una-copia-del-curso).
 
 ## Lo que conviene tener presente
 

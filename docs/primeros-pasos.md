@@ -91,6 +91,14 @@ no te preguntará la dirección ni el usuario: solo entrar en el aula y que conf
 los cursos. Tampoco necesitas `tiza actualizar`: `tiza empezar` te avisa cuando
 hay una versión nueva.
 
+## Más allá de las actividades
+
+Además de preparar actividades, el agente puede ayudarte con tu programación: pasarla a
+Word a partir de la plantilla de tu departamento o realinear una programación antigua con
+la normativa y con tu aula. Para esto último te pide una copia del curso (sin alumnado), que
+se hace con tu sesión abierta y que confirmas tú en tu terminal. Mira
+[Del currículo al aula](del-curriculo-al-aula.md).
+
 ## Tres avisos importantes
 
 - **No entres en el aula desde el navegador mientras la sesión está abierta.**
