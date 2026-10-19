@@ -24,15 +24,19 @@ __all__ = [
     "Borrador",
     "ErrorInforme",
     "Fichero",
+    "ESTADOS_IMPORTACION",
     "Lectura",
     "PASOS",
     "Paso",
+    "ResumenImportacion",
     "crear",
     "escribir",
     "leer",
     "resumen",
     "validar",
+    "validar_copia",
     "validar_estructura",
+    "validar_importacion",
     "validar_lectura",
 ]
 
@@ -476,6 +480,148 @@ def validar_relleno(datos: Any) -> None:
     for aviso in _exigir_lista(datos["avisos"], "avisos"):
         if not isinstance(aviso, str) or not _CODIGO.match(aviso):
             raise ErrorInforme("VALOR_NO_PERMITIDO", "los avisos deben ser códigos")
+
+
+# Cómo queda cada actividad de una copia que importa ``tiza importar``.
+ESTADOS_IMPORTACION = (
+    "IMPORTADA",
+    "YA_IMPORTADO",
+    "CAMBIADA_DESDE_LA_IMPORTACION",
+    "HTML_NO_ADMITIDO",
+    "PREGUNTAS_NO_ADMITIDAS",
+    "TIPO_NO_GESTIONADO",
+)
+_CAMPOS_IMPORTACION = {"copia", "curso", "como_nuevas", "actividades", "estados"}
+_CAMPOS_COPIA = {
+    "version",
+    "curso",
+    "moodle",
+    "fecha_importacion",
+    "como_nuevas",
+    "secciones",
+    "actividades",
+}
+_CAMPOS_SECCION_COPIA = {"numero", "nombre", "resumen_html_presente"}
+_CAMPOS_ACTIVIDAD_COPIA = {
+    "cmid",
+    "modulo",
+    "seccion",
+    "nombre",
+    "fichero",
+    "estado",
+    "detalle",
+    "huella_aula",
+}
+_MODULO = re.compile(r"\A[a-z][a-z0-9]{0,29}\Z")
+
+
+@dataclass(frozen=True)
+class ResumenImportacion:
+    """El resumen que imprime ``tiza importar``: dónde quedó ``copia.json`` y los recuentos.
+
+    ``copia`` es una ruta relativa a la carpeta de la asignatura y ``estados`` lleva un
+    recuento por cada estado de :data:`ESTADOS_IMPORTACION` (también los que valen 0).
+    Se valida al construirlo: nunca sale uno inválido.
+    """
+
+    copia: str
+    curso: int
+    como_nuevas: bool
+    actividades: int
+    estados: Mapping[str, int]
+
+    def __post_init__(self) -> None:
+        validar_importacion(self.a_dict())
+
+    def a_dict(self) -> dict:
+        return {
+            "copia": self.copia,
+            "curso": self.curso,
+            "como_nuevas": self.como_nuevas,
+            "actividades": self.actividades,
+            "estados": {estado: self.estados.get(estado, 0) for estado in ESTADOS_IMPORTACION},
+        }
+
+
+def validar_importacion(datos: Any) -> None:
+    """Esquema cerrado del resumen de ``tiza importar``."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "la importación debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_IMPORTACION, "importación")
+    _exigir_ruta_relativa(datos["copia"], "copia")
+    _exigir_entero(datos["curso"], "curso")
+    _exigir_bool(datos["como_nuevas"], "como_nuevas")
+    _exigir_entero(datos["actividades"], "actividades")
+    estados = datos["estados"]
+    if not isinstance(estados, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "estados debe ser un objeto")
+    _exigir_campos(estados, set(ESTADOS_IMPORTACION), "estados")
+    for estado, cuantas in estados.items():
+        _exigir_entero(cuantas, f"estado {estado}")
+
+
+def validar_copia(datos: Any) -> None:
+    """Esquema cerrado de ``.tiza/copia.json``, que también lee el agente."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "la copia debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_COPIA, "copia")
+    if datos["version"] != 1 or isinstance(datos["version"], bool):
+        raise ErrorInforme("VALOR_NO_PERMITIDO", "version debe ser 1")
+    _exigir_entero(datos["curso"], "curso")
+    for campo in ("moodle", "fecha_importacion"):
+        if not isinstance(datos[campo], str):
+            raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
+        _exigir_texto(datos[campo], campo)
+    _exigir_bool(datos["como_nuevas"], "como_nuevas")
+    for seccion in _exigir_lista(datos["secciones"], "secciones"):
+        if not isinstance(seccion, dict):
+            raise ErrorInforme("TIPO_INCORRECTO", "cada sección debe ser un objeto")
+        _exigir_campos(seccion, _CAMPOS_SECCION_COPIA, "sección")
+        _exigir_entero(seccion["numero"], "número de sección")
+        if not isinstance(seccion["nombre"], str):
+            raise ErrorInforme("TIPO_INCORRECTO", "el nombre de la sección debe ser texto")
+        _exigir_texto(seccion["nombre"], "nombre de sección")
+        _exigir_bool(seccion["resumen_html_presente"], "resumen_html_presente")
+    for actividad in _exigir_lista(datos["actividades"], "actividades"):
+        if not isinstance(actividad, dict):
+            raise ErrorInforme("TIPO_INCORRECTO", "cada actividad debe ser un objeto")
+        _exigir_campos(actividad, _CAMPOS_ACTIVIDAD_COPIA, "actividad")
+        _exigir_entero(actividad["cmid"], "cmid")
+        _exigir_entero(actividad["seccion"], "sección de la actividad")
+        if not isinstance(actividad["modulo"], str) or not _MODULO.match(actividad["modulo"]):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "módulo no permitido")
+        if not isinstance(actividad["nombre"], str):
+            raise ErrorInforme("TIPO_INCORRECTO", "el nombre de la actividad debe ser texto")
+        _exigir_texto(actividad["nombre"], "nombre de la actividad")
+        if actividad["fichero"] is not None:
+            _exigir_ruta_relativa(actividad["fichero"], "fichero")
+        _exigir_opcion(actividad["estado"], set(ESTADOS_IMPORTACION), "estado")
+        if actividad["detalle"] is not None and not isinstance(actividad["detalle"], str):
+            raise ErrorInforme("TIPO_INCORRECTO", "el detalle debe ser texto o nulo")
+        _exigir_texto(actividad["detalle"], "detalle")
+        huella = actividad["huella_aula"]
+        if huella is not None and (not isinstance(huella, str) or not _HASH.match(huella)):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "huella_aula no es un sha256")
+
+
+def _exigir_bool(valor: Any, nombre: str) -> None:
+    if not isinstance(valor, bool):
+        raise ErrorInforme("TIPO_INCORRECTO", f"{nombre} debe ser verdadero o falso")
+
+
+def _exigir_ruta_relativa(valor: Any, nombre: str) -> None:
+    """Una ruta con «/» dentro de la carpeta de la asignatura: sin «..», sin unidad ni barra inicial."""
+    if not isinstance(valor, str) or not valor:
+        raise ErrorInforme("TIPO_INCORRECTO", f"{nombre} debe ser una ruta")
+    _exigir_texto(valor, nombre)
+    partes = valor.split("/")
+    if (
+        "\\" in valor
+        or valor.startswith("/")
+        or any(p in ("", ".", "..") for p in partes)
+        or re.match(r"[A-Za-z]:", partes[0])
+    ):
+        raise ErrorInforme("VALOR_NO_PERMITIDO", f"{nombre} no es una ruta relativa")
 
 
 _CAMPOS_ESTRUCTURA = {"version", "generado", "cursos"}

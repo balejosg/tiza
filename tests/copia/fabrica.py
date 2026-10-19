@@ -65,6 +65,8 @@ class PreguntaFalsa:
     fijada: int | None = None  # versión que fija el cuestionario (None = la última)
     estado: str = "ready"  # estado de todas sus versiones
     modo: str = "normal"  # "aleatoria": hueco aleatorio; "ausente": no está en questions.xml
+    ajustes: Mapping[str, str] | None = None  # ajustes del tipo (por defecto, single=1)
+    tolerancia: float | None = None  # numérica: tolerancia de cada respuesta (numerical_answers)
 
 
 @dataclass
@@ -219,6 +221,22 @@ def _files_xml(actividades: Sequence[ActividadFalsa]) -> bytes:
     return f"{CABECERA}<files>{''.join(partes)}</files>".encode()
 
 
+def _ajustes(pregunta: PreguntaFalsa) -> str:
+    ajustes = pregunta.ajustes if pregunta.ajustes is not None else {"single": "1"}
+    return "".join(f"<{k}>{_e(v)}</{k}>" for k, v in ajustes.items())
+
+
+def _numericas(pregunta: PreguntaFalsa) -> str:
+    if pregunta.tolerancia is None:
+        return ""
+    partes = "".join(
+        f'<numerical_answer id="{n}"><answer>{n}</answer>'
+        f"<tolerance>{pregunta.tolerancia}</tolerance></numerical_answer>"
+        for n, _ in enumerate(pregunta.respuestas, start=1)
+    )
+    return f"<numerical_answers>{partes}</numerical_answers>"
+
+
 def _questions_xml(actividades: Sequence[ActividadFalsa]) -> bytes:
     entradas = []
     identificador = 100
@@ -243,7 +261,8 @@ def _questions_xml(actividades: Sequence[ActividadFalsa]) -> bytes:
                     f"<qtype>{_e(pregunta.tipo)}</qtype>"
                     f"<createdby>{USUARIO}</createdby><modifiedby>{USUARIO}</modifiedby>"
                     f"<plugin_qtype_{pregunta.tipo}_question><answers>{respuestas}</answers>"
-                    f'<{pregunta.tipo} id="1"><single>1</single></{pregunta.tipo}>'
+                    f"{_numericas(pregunta)}"
+                    f'<{pregunta.tipo} id="1">{_ajustes(pregunta)}</{pregunta.tipo}>'
                     f"</plugin_qtype_{pregunta.tipo}_question>"
                     "</question></questions></question_versions>"
                 )

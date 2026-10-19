@@ -127,9 +127,14 @@ class FicheroCopia:
 
 @dataclass(frozen=True, slots=True)
 class RespuestaCopia:
+    """Una respuesta de una pregunta; ``id`` es el de ``question_answers`` (0 si no se conoce)
+    y ``tolerancia`` la de una respuesta numérica (``numerical_answers``; 0 si no la tiene)."""
+
     texto: str
     fraccion: float
     retroalimentacion: str = ""
+    id: int = 0
+    tolerancia: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -644,15 +649,41 @@ def _hueco_sin_pregunta(tipo: str, hueco: int, maximo: str) -> PreguntaCopia:
     )
 
 
+def _respuestas_de(elemento: Any) -> tuple[RespuestaCopia, ...]:
+    """Las respuestas de ``plugin_qtype_*_question/answers/answer``, con su tolerancia numérica.
+
+    Solo esas: otros elementos ``answer`` (el de ``numerical_answer``, que es un id) no cuentan.
+    """
+    respuestas = []
+    for plugin in elemento:
+        etiqueta = plugin.tag
+        if not (
+            isinstance(etiqueta, str)
+            and etiqueta.startswith("plugin_qtype_")
+            and etiqueta.endswith("_question")
+        ):
+            continue
+        tolerancias: dict[int, float] = {}
+        for numerica in plugin.findall("numerical_answers/numerical_answer"):
+            referencia = _texto(numerica, "answer").strip()
+            if _ENTERO.fullmatch(referencia):
+                tolerancias[int(referencia)] = _decimal(_texto(numerica, "tolerance", "0"))
+        for r in plugin.findall("answers/answer"):
+            identificador = (r.get("id") or "").strip()
+            numero = int(identificador) if _ENTERO.fullmatch(identificador) else 0
+            respuestas.append(
+                RespuestaCopia(
+                    texto=_texto(r, "answertext"),
+                    fraccion=_decimal(_texto(r, "fraction", "0")),
+                    retroalimentacion=_texto(r, "feedback"),
+                    id=numero,
+                    tolerancia=tolerancias.get(numero, 0.0),
+                )
+            )
+    return tuple(respuestas)
+
+
 def _pregunta(entrada: int, version: int, hueco: int, maximo: str, elemento: Any) -> PreguntaCopia:
-    respuestas = tuple(
-        RespuestaCopia(
-            texto=_texto(r, "answertext"),
-            fraccion=_decimal(_texto(r, "fraction", "0")),
-            retroalimentacion=_texto(r, "feedback"),
-        )
-        for r in elemento.iter("answer")
-    )
     return PreguntaCopia(
         entrada=entrada,
         version=version,
@@ -662,7 +693,7 @@ def _pregunta(entrada: int, version: int, hueco: int, maximo: str, elemento: Any
         texto=_texto(elemento, "questiontext"),
         retroalimentacion=_texto(elemento, "generalfeedback"),
         puntos=_decimal(maximo, _decimal(_texto(elemento, "defaultmark", "1"), 1.0)),
-        respuestas=respuestas,
+        respuestas=_respuestas_de(elemento),
         opciones=_opciones_de(elemento),
     )
 

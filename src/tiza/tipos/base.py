@@ -13,7 +13,10 @@ que hace el resto de tiza por encima del protocolo.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import hashlib
+import json
+import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, time
 from pathlib import Path
@@ -309,6 +312,45 @@ def campo_visible(visible: bool | None) -> dict[str, str]:
 
 def formato_fecha(momento: datetime) -> str:
     return momento.strftime("%Y-%m-%d %H:%M")
+
+
+# --------------------------------------------------------------------------- #
+# Huella de lo que hay en el aula (``CAMBIADA_EN_EL_AULA``)
+# --------------------------------------------------------------------------- #
+
+_ZONA_AULA = ZoneInfo("Europe/Madrid")
+# Cada URL «…/draftfile.php/<n>/…/<f>» o «…/pluginfile.php/<n>/…/<f>» (con o sin servidor y
+# con o sin «?…») es la referencia «@@PLUGINFILE@@/<f>» de la copia: el aula devuelve las
+# primeras en el formulario de edición y la copia trae las segundas.
+_URL_DE_FICHERO = re.compile(
+    r"""[^\s"'<>=]*?/(?:draftfile|pluginfile)\.php/\d+/(?:[^\s"'<>?#]*/)?"""
+    r"""([^\s"'<>?#/]+)(?:\?[^\s"'<>#]*)?"""
+)
+
+
+def huella_aula(nombre: str, html: str, fechas: Mapping[str, datetime | None] | None = None) -> str:
+    """El sha256 de lo que tiza sobrescribe al publicar una actividad: nombre, texto y fechas.
+
+    Es la misma cuenta para la copia (``tiza importar``), el formulario del aula y lo que
+    tiza envía, y por eso vive aquí. La normalización la fijó la espiga 5:
+
+    - cada URL de fichero del aula pasa a ``@@PLUGINFILE@@/<f>``;
+    - ``fechas`` (campo de Moodle -> momento) se guardan como (año, mes, día, hora, minuto) en
+      Europe/Madrid; una fecha sin poner (``None``) es lo mismo que no estar;
+    - el JSON compacto de ``[nombre, html, fechas]`` (claves ordenadas) se pasa por sha256.
+    """
+    texto = _URL_DE_FICHERO.sub(lambda m: f"@@PLUGINFILE@@/{m.group(1)}", html)
+    puestas: dict[str, list[int]] = {}
+    for campo, momento in (fechas or {}).items():
+        if momento is None:
+            continue
+        if momento.tzinfo is None:
+            momento = momento.replace(tzinfo=_ZONA_AULA)
+        puestas[campo] = list(partes_fecha(momento.astimezone(_ZONA_AULA)))
+    serie = json.dumps(
+        [nombre, texto, puestas], ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(serie.encode("utf-8")).hexdigest()
 
 
 def verificar(

@@ -9,6 +9,7 @@ se avisa aquí con **Cambia**.
 ### Añadido
 - **`tiza leer` y `tiza documento`**: el agente lee, sin red, el Word o el PDF de tu programación y escribe un Word sencillo con la unidad. Nunca sobrescribe un Word tuyo.
 - **`tiza rellenar`**: el agente rellena una copia de la plantilla Word de tu departamento sin tocar tus estilos, encabezados ni numeración, y el índice se puede actualizar al abrir el Word nuevo (Word pregunta si actualizar los campos; di que sí). Nunca sobrescribe un Word tuyo.
+- **`tiza importar`**: convierte una copia de seguridad de tu curso (`.mbz`, hecha sin usuarios) en ficheros de tiza editables, uno por página, tarea, etiqueta, cuestionario (con preguntas de verdadero/falso, opción múltiple, respuesta corta y numérica) o actividad H5P, cada uno con su `origen`. Nunca sobrescribe un fichero tuyo; si la copia es de otro curso, usa `--como-nuevas`.
 - **Guía del agente para pasar de tu programación a la unidad**: pide lo que falta en un solo mensaje, contrasta tu programación con la normativa y dice de dónde sale cada referencia.
 
 ### Cambia

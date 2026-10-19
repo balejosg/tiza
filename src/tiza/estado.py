@@ -3,7 +3,8 @@
 Único dueño de los nombres de los ficheros del estado, de sus formatos y de su
 validación al leer: la estructura de secciones (``estructura.json``), el registro
 de lo verificado en pruebas (``verificados.json``), las vistas previas
-(``preview/``) y el informe (``informe.json``).
+(``preview/``), el informe (``informe.json``) y la importación de una copia de
+seguridad (``copia.json``, ``copia/<cmid>.html`` y ``copias/``).
 
 Aquí no se habla con el aula ni se importa python-moodle: el lado del agente
 (``tiza comprobar``) puede usar este módulo sin cargar nada del aula. La
@@ -23,33 +24,43 @@ from pathlib import Path
 from typing import Any
 
 from . import rutas
-from .ficheros import asegurar_directorio, escribir_json
+from .ficheros import asegurar_directorio, escribir_json, escribir_texto, leer_bytes_acotado
 
 __all__ = [
+    "CARPETA_COPIA",
+    "CARPETA_COPIAS",
     "CARPETA_LECTURAS",
     "CARPETA_PREVIEW",
     "ErrorEstado",
     "Estructura",
+    "FICHERO_COPIA",
     "FICHERO_ESTRUCTURA",
     "FICHERO_INFORME",
     "FICHERO_VERIFICADOS",
     "Verificado",
     "anotar_verificado",
     "buscar_seccion",
+    "cargar_copia",
     "cargar_estructura",
     "cargar_verificados",
     "comprobar_puerta_real",
+    "escribir_copia",
     "escribir_estructura",
     "guardar_verificado",
+    "guardar_version_de_copia",
     "nombre_de_seccion",
     "ruta_lectura",
 ]
 
+MAX_COPIA_JSON = 16 * 1024 * 1024  # copia.json, al leerlo
 FICHERO_INFORME = "informe.json"
 FICHERO_ESTRUCTURA = "estructura.json"
 FICHERO_VERIFICADOS = "verificados.json"
 CARPETA_PREVIEW = "preview"  # las vistas previas clicables dentro de la carpeta de trabajo
 CARPETA_LECTURAS = "lecturas"  # el texto de cada Word o PDF que lee ``tiza leer``
+FICHERO_COPIA = "copia.json"  # el resumen de lo que ``tiza importar`` hizo con una copia
+CARPETA_COPIA = "copia"  # ``copia/<cmid>.html``: la versión nueva de una actividad ya importada
+CARPETA_COPIAS = "copias"  # donde ``tiza copia`` deja los .mbz que pide a la sesión
 
 
 class ErrorEstado(Exception):
@@ -119,6 +130,49 @@ def cargar_estructura(dir_tiza: str | Path) -> Estructura:
         pruebas=cursos.get("pruebas"),
         reales=(real,) if isinstance(real, dict) else tuple(real or ()),
     )
+
+
+def escribir_copia(dir_tiza: str | Path, datos: Mapping[str, Any]) -> Path:
+    """Valida y escribe ``copia.json`` (versión 1); lo reescribe en cada importación."""
+    _validar_copia(datos)
+    asegurar_directorio(Path(dir_tiza))
+    return escribir_json(Path(dir_tiza) / FICHERO_COPIA, datos)
+
+
+def cargar_copia(dir_tiza: str | Path) -> dict:
+    """Lee ``copia.json`` validado; un fichero fuera del esquema es ``COPIA_INVALIDA``.
+
+    ``IMPORTACION_AUSENTE`` si no existe (no hay importación) e ``IMPORTACION_ILEGIBLE`` si no
+    se puede leer.
+    """
+    ruta = Path(dir_tiza) / FICHERO_COPIA
+    if not ruta.is_file():
+        raise ErrorEstado("IMPORTACION_AUSENTE")
+    try:
+        datos = json.loads(leer_bytes_acotado(ruta, MAX_COPIA_JSON).decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ErrorEstado("IMPORTACION_ILEGIBLE") from exc
+    _validar_copia(datos)
+    return datos
+
+
+def guardar_version_de_copia(dir_tiza: str | Path, cmid: int, html: str) -> Path:
+    """Deja la versión de la copia nueva de una actividad como dato en ``copia/<cmid>.html``."""
+    if isinstance(cmid, bool) or not isinstance(cmid, int) or cmid <= 0:
+        raise ErrorEstado("COPIA_INVALIDA")
+    directorio = asegurar_directorio(Path(dir_tiza))
+    carpeta = asegurar_directorio(directorio / CARPETA_COPIA)
+    return escribir_texto(carpeta / f"{cmid}.html", html)
+
+
+def _validar_copia(datos: Any) -> None:
+    # Import diferido: informe importa este módulo por el nombre de su fichero.
+    from .informe import ErrorInforme, validar_copia
+
+    try:
+        validar_copia(datos)
+    except ErrorInforme as exc:
+        raise ErrorEstado("COPIA_INVALIDA") from exc
 
 
 def _normalizar_cursos(cursos: Mapping[str, Any]) -> dict:

@@ -104,6 +104,24 @@ def _parser() -> argparse.ArgumentParser:
     )
     rellenar.add_argument("relleno", help="el relleno .yaml, dentro de la carpeta de la asignatura")
 
+    importar = sub.add_parser(
+        "importar",
+        help="convierte una copia de seguridad de Moodle (.mbz) en ficheros de tiza (offline)",
+    )
+    importar.add_argument(
+        "copia", help="el .mbz, dentro de la carpeta de la asignatura (o en .tiza/copias)"
+    )
+    importar.add_argument(
+        "--destino",
+        default="aula",
+        help="carpeta donde se escriben los ficheros (por defecto, aula)",
+    )
+    importar.add_argument(
+        "--como-nuevas",
+        action="store_true",
+        help="importa la copia de otro curso como actividades nuevas (sin vínculo con el aula)",
+    )
+
     estructura = sub.add_parser("estructura", help="lee las secciones de los cursos (autenticado)")
     estructura.add_argument("--debug", action="store_true")
 
@@ -307,6 +325,8 @@ def _despachar(args) -> int:
         return _documento(args)
     if args.comando == "rellenar":
         return _rellenar(args)
+    if args.comando == "importar":
+        return _importar(args)
     return 2
 
 
@@ -458,6 +478,27 @@ def _rellenar(args) -> int:
         resultado = _error_json(error.codigo, error.detalle)
         codigo = 2
     except ErrorInforme:  # un nombre de fichero con símbolos no permitidos
+        resultado = _error_json("NOMBRE_NO_VALIDO", "El nombre del fichero no vale.")
+        codigo = 2
+    _escribir_json(resultado)
+    return codigo
+
+
+def _importar(args) -> int:
+    """Importa una copia de Moodle: un único JSON en stdout (resumen o error) y 0 o 2."""
+    from .config import ErrorConfig
+    from .copia import ErrorCopia  # carga diferida: sin lxml
+    from .estado import ErrorEstado
+    from .importar import ErrorImportar
+    from .lectura.modelo import ErrorLectura
+
+    try:
+        resultado = agente.importar(args.copia, Path.cwd(), args.destino, args.como_nuevas).a_dict()
+        codigo = 0
+    except (ErrorImportar, ErrorCopia, ErrorLectura, ErrorConfig, ErrorEstado) as error:
+        resultado = _error_json(error.codigo, error.detalle)
+        codigo = 2
+    except ErrorInforme:  # un nombre con símbolos no permitidos
         resultado = _error_json("NOMBRE_NO_VALIDO", "El nombre del fichero no vale.")
         codigo = 2
     _escribir_json(resultado)

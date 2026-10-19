@@ -39,6 +39,7 @@ __all__ = [
     "estado_sesion",
     "estructura",
     "formato_documento",
+    "importar",
     "leer",
     "ordenar",
     "peticion_estructura",
@@ -548,3 +549,22 @@ def rellenar(relleno: str | Path, carpeta: str | Path) -> informe.Relleno:
         operaciones=resultado.operaciones,
         avisos=resultado.avisos,
     )
+
+
+def importar(
+    copia: str | Path,
+    carpeta: str | Path,
+    destino: str = "aula",
+    como_nuevas: bool = False,
+) -> informe.ResumenImportacion:
+    """Convierte una copia de seguridad de Moodle (``.mbz``) en ficheros de tiza editables.
+
+    Offline. La copia es un ``.mbz`` de la carpeta de la asignatura o uno que ``tiza copia`` dejó
+    en ``.tiza/copias/``. Escribe un fichero por actividad en ``<carpeta>/<destino>/``, con su
+    ``origen``, y el resumen ``.tiza/copia.json``; nunca sobrescribe nada. Devuelve el resumen
+    validado (los recuentos por estado). Lanza ``ErrorImportar``, ``ErrorCopia``,
+    ``ErrorLectura`` (la ruta de la copia) o ``ErrorConfig`` (``tiza.toml``) con un código estable.
+    """
+    from . import importar as importador
+
+    return importador.importar(carpeta, copia, destino, como_nuevas)

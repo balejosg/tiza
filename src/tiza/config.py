@@ -37,6 +37,7 @@ __all__ = [
     "necesita_autoprueba",
     "preparar_url",
     "registrar_autoprueba",
+    "reales_de_carpeta",
     "resolver",
     "validar_url",
 ]
@@ -417,6 +418,16 @@ def resolver(carpeta: str | Path) -> Config:
         sin_pruebas=sin_pruebas,
         reales=reales,
     )
+
+
+def reales_de_carpeta(carpeta: str | Path) -> tuple[int, ...]:
+    """Los cursos reales del ``tiza.toml`` de la carpeta (vacía si no hay fichero ni cursos).
+
+    Offline y sin la configuración global: no hace falta tener el aula configurada.
+    """
+    fuente = cargar_carpeta(carpeta).get("cursos", {})
+    _validar_curso(fuente)
+    return _reales_de(fuente)
 
 
 def _reales_de(cursos: dict) -> tuple[int, ...]:
