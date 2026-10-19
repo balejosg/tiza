@@ -21,7 +21,14 @@ from docx.oxml.ns import qn
 from tiza.ficheros import FicheroNoSeguro, leer_bytes_acotado
 from tiza.lectura.modelo import Bloque, ErrorLectura, Lectura
 
-__all__ = ["leer_docx"]
+__all__ = [
+    "Analisis",
+    "analizar_docx",
+    "celdas_directas",
+    "leer_bytes_docx",
+    "leer_docx",
+    "mapa_de_tabla",
+]
 
 MAXIMO_FICHERO = 30 * 1024 * 1024
 MAXIMO_XML = 60 * 1024 * 1024
@@ -224,11 +231,22 @@ class _Estilos:
 # --- Lectura del cuerpo -------------------------------------------------------------------
 
 
+def celdas_directas(tr: Any) -> list[Any]:
+    """Las ``w:tc`` de una fila (también las envueltas en un ``w:sdt``), sin las de tablas anidadas."""
+    return [
+        tc
+        for tc in tr.iter(qn("w:tc"))
+        if tc.getparent() is tr or tc.getparent().tag == qn("w:sdtContent")
+    ]
+
+
 class _Lector:
     def __init__(self, numeracion: _Numeracion, estilos: _Estilos) -> None:
         self.numeracion = numeracion
         self.estilos = estilos
         self.cambios = False
+        # Id de cada bloque con id -> su elemento XML, del mismo recorrido que da los bloques.
+        self.mapa: dict[str, Any] = {}
 
     # texto -------------------------------------------------------------------------------
     def _texto(self, elemento: Any, partes: list[str]) -> None:
@@ -333,22 +351,23 @@ class _Lector:
             if vacio:
                 continue
             parrafos += 1
+            self.mapa[bloque.id] = elemento
             bloques.append(bloque)
         return bloques
 
     def _tabla(self, tbl: Any, id_: str) -> Bloque:
         tabla = Bloque(id=id_, tipo="tabla")
+        self.mapa[id_] = tbl
         origenes: dict[int, Bloque] = {}  # columna -> celda de la fila anterior que la ocupa
         columnas = len(tbl.findall(qn("w:tblGrid") + "/" + qn("w:gridCol")))
         filas = [f for f in tbl if f.tag == qn("w:tr")]
         for numero, tr in enumerate(filas, start=1):
             fila = Bloque(id=f"{id_}.f{numero}", tipo="fila")
+            self.mapa[fila.id] = tr
             trpr = tr.find(qn("w:trPr"))
             columna = _entero(_val(trpr, "gridBefore")) or 0 if trpr is not None else 0
             nuevos: dict[int, Bloque] = {}
-            for tc in tr.iter(qn("w:tc")):
-                if tc.getparent() is not tr and tc.getparent().tag != qn("w:sdtContent"):
-                    continue
+            for tc in celdas_directas(tr):
                 tcpr = tc.find(qn("w:tcPr"))
                 ancho = max(_entero(_val(tcpr, "gridSpan")) or 1, 1) if tcpr is not None else 1
                 fusion = tcpr.find(qn("w:vMerge")) if tcpr is not None else None
@@ -361,6 +380,7 @@ class _Lector:
                     celda = Bloque(
                         id=f"{fila.id}.c{len(fila.hijos) + 1}", tipo="celda", ancho=ancho
                     )
+                    self.mapa[celda.id] = tc
                     celda.hijos = self.contenido(tc, f"{celda.id}.")
                     fila.hijos.append(celda)
                     nuevos[columna] = celda
@@ -370,6 +390,13 @@ class _Lector:
             tabla.hijos.append(fila)
         tabla.ancho, tabla.alto = columnas, len(filas)
         return tabla
+
+
+def mapa_de_tabla(tbl: Any) -> dict[str, Any]:
+    """Los elementos de una tabla suelta con los ids relativos de ``tiza leer`` (``f1.c2``)."""
+    lector = _Lector(_Numeracion(), _Estilos(None))
+    lector._tabla(tbl, "t")
+    return {id_[2:]: elemento for id_, elemento in lector.mapa.items() if id_.startswith("t.")}
 
 
 # --- Entrada ------------------------------------------------------------------------------
@@ -407,8 +434,8 @@ def _raiz(datos: bytes, miembro: str) -> Any:
         raise ErrorLectura("FORMATO_NO_ADMITIDO", f"{miembro} no es XML válido.") from None
 
 
-def leer_docx(ruta: Path) -> Lectura:
-    """Lee un .docx y devuelve sus bloques en orden de documento."""
+def leer_bytes_docx(ruta: Path) -> bytes:
+    """Los bytes del .docx, con los límites y comprobaciones de la lectura (``ErrorLectura``)."""
     ruta = Path(ruta)
     try:
         datos = leer_bytes_acotado(ruta, MAXIMO_FICHERO)
@@ -419,6 +446,20 @@ def leer_docx(ruta: Path) -> Lectura:
             raise ErrorLectura("DOCUMENTO_DEMASIADO_GRANDE", "El fichero pasa de 30 MB.") from None
         raise ErrorLectura("FORMATO_NO_ADMITIDO", "No es un fichero normal.") from None
     _comprobar_zip(datos)
+    return datos
+
+
+@dataclass
+class Analisis:
+    """Un .docx abierto: su lectura, el documento de python-docx y el mapa id -> elemento XML."""
+
+    lectura: Lectura
+    documento: Any
+    mapa: dict[str, Any]
+
+
+def analizar_docx(datos: bytes, nombre: str) -> Analisis:
+    """Lee los ``datos`` ya comprobados (``leer_bytes_docx``): bloques, documento y mapa de ids."""
     try:
         numeracion = _Numeracion.desde(_raiz(datos, "word/numbering.xml"))
         estilos = _Estilos(_raiz(datos, "word/styles.xml"))
@@ -432,10 +473,17 @@ def leer_docx(ruta: Path) -> Lectura:
         raise
     except Exception:  # XML raro, números que no lo son, recursión: nunca texto de la librería
         raise ErrorLectura("FORMATO_NO_ADMITIDO", "No se puede interpretar el documento.") from None
-    return Lectura(
-        fichero=ruta.name,
+    lectura = Lectura(
+        fichero=nombre,
         formato="docx",
         bloques=bloques,
         avisos=["CAMBIOS_SIN_ACEPTAR"] if lector.cambios else [],
         sha256=hashlib.sha256(datos).hexdigest(),
     )
+    return Analisis(lectura, documento, lector.mapa)
+
+
+def leer_docx(ruta: Path) -> Lectura:
+    """Lee un .docx y devuelve sus bloques en orden de documento."""
+    ruta = Path(ruta)
+    return analizar_docx(leer_bytes_docx(ruta), ruta.name).lectura

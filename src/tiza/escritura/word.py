@@ -24,7 +24,7 @@ from markdown_it.token import Token
 
 from tiza.escritura import ErrorEscritura
 
-__all__ = ["escribir_docx"]
+__all__ = ["escribir_docx", "escribir_sin_sobrescribir"]
 
 MAX_NIVEL_TITULO = 4
 MAX_NIVEL_LISTA = 3
@@ -227,7 +227,7 @@ class _Constructor:
             i += 1
 
 
-def _escribir_sin_sobrescribir(datos: bytes, destino: Path) -> None:
+def escribir_sin_sobrescribir(datos: bytes, destino: Path) -> None:
     """Crea ``destino`` en exclusiva y lo escribe; si algo falla, no deja nada."""
     try:
         fichero = open(destino, "xb")  # noqa: SIM115 - se cierra en el ``with`` siguiente
@@ -274,5 +274,5 @@ def escribir_docx(markdown: str, destino: Path) -> int:
     constructor.construir(tokens)
     memoria = io.BytesIO()
     constructor.documento.save(memoria)
-    _escribir_sin_sobrescribir(memoria.getvalue(), Path(destino))
+    escribir_sin_sobrescribir(memoria.getvalue(), Path(destino))
     return constructor.bloques

@@ -79,6 +79,73 @@ def parrafo_numerado(documento, texto: str, num: int, ilvl: int = 0):
     return p
 
 
+def estilo_titulo_en_espanol(documento) -> None:
+    """Un estilo «Título 2» con el ``styleId`` que le pone Word en español (``Ttulo2``)."""
+    documento.styles.element.append(
+        elemento(
+            '<w:style w:type="paragraph" w:styleId="Ttulo2"><w:name w:val="Título 2"/>'
+            '<w:basedOn w:val="Normal"/><w:pPr><w:outlineLvl w:val="1"/></w:pPr></w:style>'
+        )
+    )
+
+
+def tabla_con_total(documento):
+    """Tabla RA | texto | % con cabecera, dos filas y un total fusionado (``gridSpan`` 2)."""
+    tabla = documento.add_table(rows=4, cols=3)
+    filas = [("RA", "Resultado de aprendizaje", "%"), ("RA1", "Reconoce A", "40"),
+             ("RA2", "Reconoce B", "60")]  # fmt: skip
+    for n, fila in enumerate(filas):
+        for j, texto in enumerate(fila):
+            tabla.cell(n, j).text = texto
+    tabla.cell(3, 0).merge(tabla.cell(3, 1)).text = "TOTAL"
+    tabla.cell(3, 2).text = "100"
+    return tabla
+
+
+def tabla_vmerge(documento):
+    """Tabla de 3×2 cuya primera columna está fusionada en vertical en las dos primeras filas."""
+    tabla = documento.add_table(rows=3, cols=2)
+    tabla.cell(0, 0).merge(tabla.cell(1, 0)).text = "Bloque"
+    tabla.cell(0, 1).text = "Uno"
+    tabla.cell(1, 1).text = "Dos"
+    tabla.cell(2, 0).text = "Suelta"
+    tabla.cell(2, 1).text = "Tres"
+    return tabla
+
+
+def tabla_unidad(documento):
+    """La tabla de una unidad de trabajo: título fusionado en la primera fila y dos filas más."""
+    tabla = documento.add_table(rows=3, cols=2)
+    tabla.cell(0, 0).merge(tabla.cell(0, 1)).text = "UNIDAD DE TRABAJO 1"
+    for n, (a, b) in enumerate([("Título", "Introducción"), ("Horas", "12")], start=1):
+        tabla.cell(n, 0).text = a
+        tabla.cell(n, 1).text = b
+    return tabla
+
+
+def encabezado_y_pie(documento, cabecera: str, pie: str) -> None:
+    seccion = documento.sections[0]
+    seccion.header.paragraphs[0].text = cabecera
+    seccion.footer.paragraphs[0].text = pie
+
+
+def lista_de_letras(documento, textos: list[str]) -> None:
+    """Una lista numerada a), b), c)… (el ``numId`` es el 1)."""
+    numeracion(documento, {1: [nivel(0, "lowerLetter", "%1)")]}, {1: (1, None)})
+    for texto in textos:
+        parrafo_numerado(documento, texto, 1)
+
+
+def control_en_linea(documento, marcador: str = "Haga clic aquí"):
+    """Un párrafo con un control de contenido en línea que enseña su texto de ejemplo."""
+    return parrafo_xml(
+        documento,
+        '<w:sdt><w:sdtPr><w:alias w:val="Asignatura"/><w:showingPlcHdr/></w:sdtPr><w:sdtContent>'
+        '<w:r><w:rPr><w:rStyle w:val="PlaceholderText"/><w:b/></w:rPr>'
+        f"<w:t>{marcador}</w:t></w:r></w:sdtContent></w:sdt>",
+    )
+
+
 def a_bytes(documento) -> bytes:
     memoria = io.BytesIO()
     documento.save(memoria)
