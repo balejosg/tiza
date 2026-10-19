@@ -675,13 +675,6 @@ def _importar_actividad(
                 previa,
             )
         extra["preguntas"] = preguntas
-    elif tipo == "tarea" and any(f.filearea == "introattachment" for f in actividad.ficheros):
-        return _rechazar(
-            entrada,
-            "AJUSTES_NO_ADMITIDOS",
-            "Ajustes que tiza no puede publicar sin cambiarlos: adjuntos de la tarea",
-            previa,
-        )
     elif tipo == "h5p":
         paquete = next(
             (f for f in actividad.ficheros if f.contenthash == actividad.paquete_h5p), None
@@ -754,6 +747,10 @@ def _importar_actividad(
     avisos += [_PROBLEMAS_DE_RECURSOS[p] for p in problemas]
     if nombre != " ".join(actividad.nombre.split()):
         avisos.append("El nombre tenía símbolos o era demasiado largo y se ha cambiado.")
+    if tipo == "tarea" and any(f.filearea == "introattachment" for f in actividad.ficheros):
+        avisos.append(
+            "Tiene archivos adicionales: no están en el fichero, pero se conservan en el aula."
+        )
     if actividad.fecha_recordatorio is not None:
         avisos.append("Tiene activado el recordatorio de calificar: tiza lo desactiva al publicar.")
     entrada.estado = estado_final

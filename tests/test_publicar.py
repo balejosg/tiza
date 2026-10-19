@@ -14,7 +14,7 @@ from py_moodle.draftfile import MoodleDraftFileError
 from py_moodle.module import MoodleModuleError
 from py_moodle.session import MoodleSessionError
 
-from dobles import MoodleFalso, fecha_en_formulario
+from dobles import MoodleFalso, aula_con_tarea, fecha_en_formulario, tarea_en
 from tiza import config, contenido, publicar, tipos
 from tiza.publicar import ErrorPublicacion
 
@@ -1013,6 +1013,27 @@ def test_leer_modulo_lee_fechas_casillas_y_visibilidad():
         "timeopen": None,  # campos de un cuestionario
         "timeclose": None,
     }
+
+
+def test_leer_modulo_trae_el_area_de_archivos_adicionales_de_una_tarea():
+    con_area = FORMULARIO_TAREA.replace(
+        '<input type="hidden" name="instance" value="77">',
+        '<input type="hidden" name="instance" value="77">'
+        '<input type="hidden" name="introattachments" value="123456789">',
+    )
+    moodle = publicar.Moodle("https://aula", _SesionFormulario(con_area), "clave", pausa=0)
+    assert moodle.leer_modulo(5)["adjuntos"] == 123456789
+    sin_area = publicar.Moodle(
+        "https://aula", _SesionFormulario(FORMULARIO_TAREA), "clave", pausa=0
+    )
+    assert sin_area.leer_modulo(5)["adjuntos"] is None
+    raro = con_area.replace("123456789", "no-es-un-numero")
+    assert (
+        publicar.Moodle("https://aula", _SesionFormulario(raro), "clave", pausa=0).leer_modulo(5)[
+            "adjuntos"
+        ]
+        is None
+    )
 
 
 def test_autoprueba_detecta_fechas_que_el_aula_no_aplica():
@@ -3693,3 +3714,63 @@ class TestPublicarPorOrigen:
             list(moodle.huecos(cmid)),
             dict(moodle.formularios[cmid]),
         ) == antes
+
+
+class TestAdjuntosDeUnaTarea:
+    """Actualizar una tarea no borra sus «Archivos adicionales» (fallo medido en el CT)."""
+
+    def _publicar(self, tmp_path, moodle):
+        tarea_en(tmp_path, "2026-10-12")
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        return publicar.publicar_documento(moodle, 5678, moodle.estructura(5678), doc, visible=None)
+
+    def _aula(self, adjuntos="4242"):
+        moodle = aula_con_tarea()
+        moodle.secciones_por_curso[5678] = moodle.secciones
+        if adjuntos is not None:
+            moodle.formularios[55]["introattachments"] = adjuntos
+        return moodle
+
+    def test_al_actualizar_se_reenvia_el_area_del_formulario(self, tmp_path):
+        moodle = self._aula("4242")
+        resultado = self._publicar(tmp_path, moodle)
+        assert resultado.accion == "actualizada" and resultado.cmid == 55
+        (actualizar,) = [c for c in moodle.llamadas if c[0] == "actualizar"]
+        assert actualizar[2]["introattachments"] == "4242"
+        # No es el borrador del texto, que es uno nuevo.
+        assert actualizar[2]["introeditor[itemid]"] != "4242"
+
+    def test_el_formulario_se_carga_una_sola_vez_antes_de_escribir(self, tmp_path):
+        moodle = self._aula()
+        self._publicar(tmp_path, moodle)
+        nombres = [c[0] for c in moodle.llamadas]
+        assert nombres.count("leer_modulo") >= 1
+        assert nombres.index("leer_modulo") < nombres.index("actualizar")
+
+    def test_sin_esa_area_en_el_formulario_no_se_envia_la_clave(self, tmp_path):
+        moodle = self._aula(adjuntos=None)
+        self._publicar(tmp_path, moodle)
+        (actualizar,) = [c for c in moodle.llamadas if c[0] == "actualizar"]
+        assert "introattachments" not in actualizar[2]
+
+    def test_una_tarea_nueva_sigue_como_siempre(self, tmp_path):
+        moodle = MoodleFalso()
+        tarea_en(tmp_path, "2026-10-12")
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        resultado = publicar.publicar_documento(
+            moodle, 5678, moodle.estructura(5678), doc, visible=None
+        )
+        assert resultado.accion == "creada"
+        (crear,) = [c for c in moodle.llamadas if c[0] == "crear"]
+        payload = crear[4]
+        assert payload["introattachments"] == payload["introeditor[itemid]"]
+        assert not any(c[0] == "leer_modulo" and c[1] != resultado.cmid for c in moodle.llamadas)
+
+    def test_otros_tipos_no_cargan_el_formulario_para_el_payload(self, tmp_path):
+        moodle = MoodleFalso()
+        moodle.secciones[0]["modulos"] = [{"cmid": 60, "nombre": "Repaso", "tipo": "pagina"}]
+        moodle.formularios[60] = {"name": "Repaso", "visible": "1", "page[text]": "<p>x</p>"}
+        doc = documento(tmp_path)
+        publicar.publicar_documento(moodle, 5678, moodle.estructura(5678), doc, visible=None)
+        antes_de_escribir = moodle.llamadas[: [c[0] for c in moodle.llamadas].index("actualizar")]
+        assert not any(c[0] == "leer_modulo" for c in antes_de_escribir)

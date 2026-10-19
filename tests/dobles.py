@@ -248,6 +248,9 @@ class MoodleFalso:
             "nombre": formulario.get("name", ""),
             "texto": formulario.get("page[text]") or formulario.get("introeditor[text]", ""),
             "instance": self.instancias.get(cmid, 77),
+            "adjuntos": int(formulario["introattachments"])
+            if str(formulario.get("introattachments", "")).isdigit()
+            else None,
             "visible": formulario.get("visible"),
             "contexto": self.contextos.get(cmid, 999),
             "fechas": {campo: _fecha_del_formulario(formulario, campo) for campo in _CAMPOS_FECHA},

@@ -103,6 +103,7 @@ class ContextoPublicacion:
     itemid: int  # borrador del texto
     visible: bool | None  # None: lo que ya exista conserva su visibilidad
     existente: dict | None  # el módulo que se actualizaría, si ya existe
+    leido: dict | None = None  # su formulario de edición, si ``publicar`` ya lo cargó
 
 
 class Tipo:
@@ -115,6 +116,8 @@ class Tipo:
     finalizaciones: tuple[str, ...] = ()  # modos de finalización admitidos
     banderas: tuple[str, ...] = ()  # casillas del formulario de «cuándo se completa»
     campos_fecha: tuple[str, ...] = ()  # campos del formulario de Moodle con fecha
+    # Al actualizar, el payload necesita algo del formulario de edición (``ContextoPublicacion.leido``).
+    lee_formulario_al_actualizar: bool = False
 
     # --- Campos y validación ----------------------------------------------
 
@@ -146,9 +149,13 @@ class Tipo:
         """Los campos del formulario de creación/actualización del módulo."""
         raise NotImplementedError
 
+    def payload_de(self, p: ContextoPublicacion) -> dict[str, str]:
+        """El payload al publicar: por defecto el de ``payload``; un tipo puede ajustarlo al aula."""
+        return self.payload(p.doc, p.html, p.itemid, p.visible)
+
     def publicar(self, p: ContextoPublicacion) -> tuple[int, str, dict]:
         """Crea o actualiza el módulo y lo verifica; devuelve (cmid, acción, formulario)."""
-        payload = self.payload(p.doc, p.html, p.itemid, p.visible)
+        payload = self.payload_de(p)
         if p.existente is not None:
             cmid = p.existente["cmid"]
             p.moodle.actualizar(cmid, payload)

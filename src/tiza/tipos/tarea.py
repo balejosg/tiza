@@ -31,6 +31,7 @@ class Tarea(Tipo):
     finalizaciones = ("ninguna", "manual", "ver", "entregar", "calificar")
     banderas = ("completionview", "completionsubmit", "completionusegrade")
     campos_fecha = CAMPOS_FECHA
+    lee_formulario_al_actualizar = True  # para reenviar el área de «Archivos adicionales»
 
     def validar(self, datos: dict, ctx: Contexto) -> Extras:
         for campo in ("apertura", "entrega"):
@@ -82,6 +83,21 @@ class Tarea(Tipo):
         }
         payload.update(fechas_payload(self, doc))
         payload.update(campo_visible(visible))
+        return payload
+
+    def payload_de(self, p) -> dict[str, str]:
+        """Al actualizar, el área de «Archivos adicionales» es la del formulario, con sus ficheros.
+
+        Una nueva y vacía los borraría en Moodle. Si el formulario no trae esa área, la clave se
+        quita: lo que no se envía se conserva. En una tarea nueva todo sigue igual.
+        """
+        payload = super().payload_de(p)
+        if p.existente is not None:
+            adjuntos = (p.leido or {}).get("adjuntos")
+            if adjuntos is None:
+                payload.pop("introattachments", None)
+            else:
+                payload["introattachments"] = str(adjuntos)
         return payload
 
     def urls_pluginfile(self, base_url, contexto, instance, nombre) -> list[str]:

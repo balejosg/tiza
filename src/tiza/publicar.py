@@ -551,11 +551,14 @@ class Moodle:
         formulario = sopa.find("form", attrs={"action": re.compile(r"modedit\.php")}) or sopa
         instancia = _campo(formulario, "instance")
         coincidencia = re.search(r'["\']contextid["\']\s*:\s*(\d+)', respuesta.text)
+        adjuntos = _campo(formulario, "introattachments")
         return {
             "nombre": _campo(formulario, "name") or "",
             "texto": _campo(formulario, "page[text]")
             or _campo(formulario, "introeditor[text]")
             or "",
+            # El área de borrador de «Archivos adicionales» de una tarea (con sus ficheros).
+            "adjuntos": int(adjuntos) if adjuntos and adjuntos.isdigit() else None,
             "instance": int(instancia) if instancia and instancia.isdigit() else None,
             "visible": _campo(formulario, "visible"),
             "contexto": int(coincidencia.group(1)) if coincidencia else None,
@@ -1774,6 +1777,10 @@ def _publicar_congelado(
                 raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
             if fuera:
                 existente, movido = fuera[0][1], True
+    # Si el payload necesita algo del formulario de edición, se carga una sola vez.
+    if leido is None and existente is not None:
+        if tipos.obtener(doc.tipo).lee_formulario_al_actualizar:
+            leido = moodle.leer_modulo(existente["cmid"])
     # Antes de escribir nada: una restricción ajena o una finalización bloqueada paran todo.
     envio = preparar_itinerario(moodle, doc, existente, dependencias, leido)
     if movido and existente is not None:
@@ -1807,6 +1814,7 @@ def _publicar_congelado(
             itemid=itemid,
             visible=visible,
             existente=existente,
+            leido=leido,
         )
     )
     aplicar_itinerario(moodle, doc, cmid, envio)

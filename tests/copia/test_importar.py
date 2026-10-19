@@ -1083,7 +1083,7 @@ def test_formato_de_texto_no_html_en_una_pregunta(carpeta):
     assert actividades_de(carpeta)[510]["estado"] == "IMPORTADA"
 
 
-def test_tarea_con_adjuntos_no_se_importa(carpeta):
+def test_tarea_con_adjuntos_se_importa_y_avisa_de_que_se_conservan(carpeta):
     tarea = f.ActividadFalsa(
         502,
         "assign",
@@ -1095,8 +1095,14 @@ def test_tarea_con_adjuntos_no_se_importa(carpeta):
     )
     importar_en(carpeta, [tarea])
     entrada = actividades_de(carpeta)[502]
-    assert entrada["estado"] == "AJUSTES_NO_ADMITIDOS" and entrada["fichero"] is None
-    assert "adjuntos de la tarea" in entrada["detalle"]
+    assert entrada["estado"] == "IMPORTADA" and entrada["fichero"]
+    assert "archivos adicionales" in entrada["detalle"]
+    assert "se conservan en el aula" in entrada["detalle"]
+    ruta = carpeta / entrada["fichero"]
+    assert contenido.cargar(ruta, raiz=carpeta.resolve()).tipo == "tarea"
+    # El adjunto no se lleva al fichero: ni se escribe ni se enlaza.
+    assert "guia.pdf" not in ruta.read_text(encoding="utf-8")
+    assert not list(carpeta.rglob("guia.pdf"))
 
 
 def test_los_avisos_se_acumulan(carpeta):
