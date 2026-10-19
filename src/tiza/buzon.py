@@ -72,13 +72,15 @@ INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
-VERSION_PROTOCOLO = 5  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
+VERSION_PROTOCOLO = 6  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
 
 _CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible", "solo_fechas"}
+_CAMPO_CURSO = "curso"  # solo en «copia»: el nombre del curso de tiza.toml (pruebas, real o un id)
+_CURSO = re.compile(r"\A[A-Za-z0-9._-]{1,40}\Z")
 _ID = re.compile(r"\A[0-9a-f]{32}\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _ABSOLUTA = re.compile(r"\A(?:[/\\]|[A-Za-z]:)")
-_COMANDOS = {"publicar", "estructura", "ordenar"}
+_COMANDOS = {"publicar", "estructura", "ordenar", "copia"}
 _ENTORNOS = {"pruebas", "real"}
 
 
@@ -202,7 +204,7 @@ def validar_peticion(peticion: Any) -> None:
     if not isinstance(peticion, dict):
         raise ErrorBuzon("PETICION_INVALIDA", "la petición debe ser un objeto")
     for campo in peticion:
-        if campo not in _CAMPOS:
+        if campo not in _CAMPOS and campo != _CAMPO_CURSO:
             raise ErrorBuzon("PETICION_INVALIDA", f"campo «{campo}» no permitido")
     for campo in _CAMPOS:
         if campo not in peticion:
@@ -227,7 +229,19 @@ def validar_peticion(peticion: Any) -> None:
     entorno = peticion["entorno"]
     if entorno is not None and entorno not in _ENTORNOS:
         raise ErrorBuzon("PETICION_INVALIDA", "entorno no permitido")
-    if peticion["comando"] == "estructura":
+    if (_CAMPO_CURSO in peticion) != (peticion["comando"] == "copia"):
+        raise ErrorBuzon("PETICION_INVALIDA", "el campo «curso» es de «copia» y solo de «copia»")
+    if peticion["comando"] == "copia":
+        curso = peticion[_CAMPO_CURSO]
+        if not isinstance(curso, str) or not _CURSO.match(curso):
+            raise ErrorBuzon(
+                "PETICION_INVALIDA", "curso debe ser el nombre de un curso de tiza.toml"
+            )
+        if ficheros or entorno is not None or peticion["visible"] is not None:
+            raise ErrorBuzon("PETICION_INVALIDA", "copia solo admite curso")
+        if peticion["solo_fechas"]:
+            raise ErrorBuzon("PETICION_INVALIDA", "copia no admite solo_fechas")
+    elif peticion["comando"] == "estructura":
         if ficheros:
             raise ErrorBuzon("PETICION_INVALIDA", "estructura no admite ficheros")
         if entorno is not None:

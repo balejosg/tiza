@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 import pytest
 
@@ -153,3 +154,61 @@ class TestSecciones:
 
     def test_nombre_de_seccion_sanea_angulos_y_controles(self):
         assert estado.nombre_de_seccion("Tema <1>\x07  repaso") == "Tema ‹1› repaso"
+
+
+class TestCopiasDeTiza:
+    """``.tiza/copias/``: el nombre y el sitio de las copias que deja ``tiza copia``."""
+
+    MOMENTO = datetime(2026, 10, 19, 10, 30)
+
+    def test_el_nombre_lleva_curso_y_fecha_y_las_repeticiones_un_sufijo(self):
+        assert estado.nombre_de_copia("real", self.MOMENTO) == "real-20261019-1030.mbz"
+        assert estado.nombre_de_copia("real", self.MOMENTO, 1) == "real-20261019-1030-2.mbz"
+        assert estado.nombre_de_copia("5678", self.MOMENTO, 2) == "5678-20261019-1030-3.mbz"
+
+    def test_reservar_da_su_nombre_sin_pisar_nada(self, tmp_path):
+        dir_tiza = tmp_path / ".tiza"
+        nombres = []
+        for contenido in (b"uno", b"dos", b"tres"):
+            temporal = estado.temporal_de_copia(dir_tiza)
+            temporal.write_bytes(contenido)
+            destino = estado.reservar_copia(dir_tiza, "pruebas", self.MOMENTO, temporal)
+            assert not temporal.exists() and destino.read_bytes() == contenido
+            nombres.append(destino.name)
+        assert nombres == [
+            "pruebas-20261019-1030.mbz",
+            "pruebas-20261019-1030-2.mbz",
+            "pruebas-20261019-1030-3.mbz",
+        ]
+
+    def test_un_fichero_del_docente_con_ese_nombre_se_respeta(self, tmp_path):
+        carpeta = tmp_path / ".tiza" / estado.CARPETA_COPIAS
+        carpeta.mkdir(parents=True)
+        (carpeta / "pruebas-20261019-1030.mbz").write_bytes(b"suyo")
+        temporal = estado.temporal_de_copia(tmp_path / ".tiza")
+        temporal.write_bytes(b"nueva")
+        destino = estado.reservar_copia(tmp_path / ".tiza", "pruebas", self.MOMENTO, temporal)
+        assert destino.name == "pruebas-20261019-1030-2.mbz"
+        assert (carpeta / "pruebas-20261019-1030.mbz").read_bytes() == b"suyo"
+
+    def test_el_temporal_no_pisa_otro_y_nace_en_la_carpeta_de_copias(self, tmp_path):
+        uno = estado.temporal_de_copia(tmp_path / ".tiza")
+        otro = estado.temporal_de_copia(tmp_path / ".tiza")
+        assert uno != otro and uno.parent == tmp_path / ".tiza" / estado.CARPETA_COPIAS
+
+    def test_no_escribe_si_tiza_o_copias_son_enlaces(self, tmp_path):
+        from dobles import enlace_simbolico
+        from tiza.ficheros import FicheroNoSeguro
+
+        fuera = tmp_path / "fuera"
+        fuera.mkdir()
+        enlace_simbolico(tmp_path / ".tiza", fuera)
+        with pytest.raises(FicheroNoSeguro):
+            estado.temporal_de_copia(tmp_path / ".tiza")
+        assert list(fuera.iterdir()) == []
+        otra = tmp_path / "otra"
+        (otra / ".tiza").mkdir(parents=True)
+        enlace_simbolico(otra / ".tiza" / estado.CARPETA_COPIAS, fuera)
+        with pytest.raises(FicheroNoSeguro):
+            estado.temporal_de_copia(otra / ".tiza")
+        assert list(fuera.iterdir()) == []

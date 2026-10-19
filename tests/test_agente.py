@@ -245,6 +245,26 @@ class TestBuzon:
         assert documento["errores"] == ["SIN_SESION"]
         informe.validar(documento)
 
+    def test_copia_envia_la_peticion_de_copia_con_el_curso(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        enviadas: list = []
+
+        def enviar(dir_tiza, peticion, espera, **_opciones):
+            enviadas.append(peticion)
+            return informe.crear("copia", "ok", [], [], [], "pruebas", 1234)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        assert agente.copia(tmp_path, "pruebas")["comando"] == "copia"
+        [peticion] = enviadas
+        buzon.validar_peticion(peticion)
+        assert (peticion["comando"], peticion["curso"]) == ("copia", "pruebas")
+        assert (peticion["ficheros"], peticion["entorno"]) == ([], None)
+
+    def test_copia_sin_sesion(self, tmp_path):
+        documento = agente.copia(tmp_path, "pruebas")
+        assert documento["errores"] == ["SIN_SESION"]
+        informe.validar(documento)
+
     def test_cancelar_retira_la_peticion(self, tmp_path):
         dir_tiza = tmp_path / ".tiza"
         buzon.crear_sesion(dir_tiza, datetime.now(UTC) + timedelta(minutes=5))

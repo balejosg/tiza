@@ -22,8 +22,10 @@ Lo que cambia según quién publica entra explícito, nunca por accidente:
 
 from __future__ import annotations
 
+import re
 import sys
 import traceback
+from collections import Counter
 from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime
@@ -46,11 +48,13 @@ __all__ = [
     "CAMPO_RECORDATORIO",
     "ActividadOrden",
     "CambioFecha",
+    "CUPO_COPIAS",
     "CambioSeccion",
     "DocumentoBreve",
     "DocumentoResumen",
     "MAX_PUBLICACIONES_PRUEBAS",
     "Presencia",
+    "ResumenCopia",
     "ResumenOrden",
     "ResumenPublicacion",
     "ResumenSinPruebas",
@@ -59,6 +63,7 @@ __all__ = [
     "cambios_de_seccion",
     "cargar_calendario",
     "codigo_solo_fechas",
+    "copiar_curso",
     "depurar",
     "exige_oculto_sin_pruebas",
     "informe_de_cursos",
@@ -76,6 +81,7 @@ __all__ = [
 
 AVISO_DEBUG = "AVISO: salida de depuración; no la compartas."
 MAX_PUBLICACIONES_PRUEBAS = 50  # por sesión: frena a un agente en bucle
+CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
 
 # Lo que la publicación y la sesión cuentan al docente. Cada aviso tiene su
 # constructor tipado en ``Aviso`` (dueño de las claves de ``datos``) y su texto
@@ -84,6 +90,7 @@ AVISOS = frozenset(
     {
         "AUTOPRUEBA_FALLIDA",
         "CANCELADA",
+        "COPIA_QUEDA_EN_EL_AULA",
         "CREANDO_SECCION",
         "CURSOS_GUARDADOS",
         "ERROR_INTERNO",
@@ -125,6 +132,10 @@ class Aviso:
     @classmethod
     def cancelada(cls) -> Aviso:
         return cls("CANCELADA")
+
+    @classmethod
+    def copia_queda_en_el_aula(cls) -> Aviso:
+        return cls("COPIA_QUEDA_EN_EL_AULA")
 
     @classmethod
     def creando_seccion(cls, nombre: str) -> Aviso:
@@ -339,6 +350,18 @@ class ResumenOrden:
     total: int = 1
 
 
+@dataclass(frozen=True)
+class ResumenCopia:
+    """La copia del curso que se pide: la presencia lo enseña y el docente decide.
+
+    ``entorno`` es ``pruebas`` o ``real``; ``nombre_curso`` viene del aula y solo lo ve el docente.
+    """
+
+    curso: int
+    nombre_curso: str | None
+    entorno: str
+
+
 def itinerario_de(doc: Documento, base: Path) -> tuple[str, ...]:
     """El itinerario del documento en lenguaje llano, con los nombres de sus dependencias.
 
@@ -405,6 +428,10 @@ class Presencia(Protocol):
 
     def confirmar_orden(self, resumen: ResumenOrden) -> bool:
         """¿Reordenar en real como enseña ``resumen``? Una respuesta por curso."""
+        ...
+
+    def confirmar_copia(self, resumen: ResumenCopia) -> bool:
+        """¿Hacer una copia de este curso, sin datos de alumnos? Una respuesta por petición."""
         ...
 
     def confirmar_sin_pruebas(self) -> bool:
@@ -1249,4 +1276,148 @@ def informe_de_cursos(
     if publicados == 0:
         borrador.error("ABORTADO")
         return borrador.documento("abortado")
+    return borrador.documento()
+
+
+def _curso_de_copia(cfg: Config, nombre: str) -> tuple[str, int]:
+    """(entorno, id) del curso que pide el agente: ``pruebas``, ``real`` o el id de uno de tiza.toml.
+
+    ``real`` solo vale si hay un único curso real; con varios, hay que decir cuál por su id.
+    """
+    pruebas = cfg.cursos.get("pruebas")
+    if nombre == "pruebas":
+        if pruebas is None:
+            raise ErrorPublicacion("SIN_CURSO_PRUEBAS")
+        return "pruebas", pruebas
+    if nombre == "real":
+        if not cfg.reales:
+            raise ErrorPublicacion("CURSO_NO_CONFIGURADO")
+        if len(cfg.reales) > 1:
+            raise ErrorPublicacion("CURSO_AMBIGUO")
+        return "real", cfg.reales[0]
+    if re.fullmatch(r"[1-9][0-9]{0,17}", nombre):
+        curso = int(nombre)
+        if curso == pruebas:
+            return "pruebas", curso
+        if curso in cfg.reales:
+            return "real", curso
+    raise ErrorPublicacion("CURSO_NO_CONFIGURADO")
+
+
+def _quitar(ruta: Path) -> None:
+    try:
+        ruta.unlink()
+    except OSError:
+        pass
+
+
+def _borrar_del_aula(
+    aula: AulaVirtual, nombre: str, curso: int, presencia: Presencia, debug: bool
+) -> bool:
+    """Quita la copia de la zona de copias del docente; si no puede, se lo dice y devuelve falso."""
+    try:
+        aula.borrar_copia(nombre, curso)
+    except ErrorPublicacion as exc:
+        depurar(exc, debug)
+        presencia.informar(Aviso.copia_queda_en_el_aula())
+        return False
+    return True
+
+
+def copiar_curso(
+    aula: AulaVirtual,
+    cfg: Config,
+    curso: str,
+    base: Path,
+    presencia: Presencia,
+    cupo: dict,
+    *,
+    nombres: Mapping[int, str] | None = None,
+    vigente: Callable[[], bool] | None = None,
+    debug: bool = False,
+) -> dict:
+    """``tiza copia``: la sesión hace una copia del curso sin datos de usuario y la deja en
+    ``.tiza/copias/``.
+
+    ``curso``: ``pruebas``, ``real`` o el id de un curso de ``cfg``. Pide al docente una
+    confirmación por petición; con un no, ``COPIA_RECHAZADA`` y no se toca nada. Gasta 1 del
+    cupo de copias (``CUPO_COPIAS`` por sesión). La copia se descarga a un temporal, se abre
+    con :func:`tiza.copia.abrir_copia` (una copia con usuarios, o que no vale, se borra y da
+    su código) y solo entonces recibe su nombre ``<curso>-<AAAAMMDD-HHMM>.mbz``, sin
+    sobrescribir nada. Después se borra de la zona de copias del docente en Moodle; si no se
+    puede, se avisa y ``borrada_del_aula`` va a falso. El informe lleva solo códigos y números.
+    """
+    from .copia import MAX_COPIA, ErrorCopia, abrir_copia  # carga diferida: lxml
+
+    comando = "copia"
+    try:
+        entorno, curso_id = _curso_de_copia(cfg, curso)
+    except ErrorPublicacion as exc:
+        return informe.crear(comando, "error", [], [], [exc.codigo])
+
+    def fallo(codigo: str, resultado: str = "error") -> dict:
+        return informe.crear(comando, resultado, [], [], [codigo], entorno, curso_id)
+
+    if cupo.setdefault("copias", 0) >= CUPO_COPIAS:
+        return fallo("CUPO_COPIAS")
+    resumen = ResumenCopia(curso_id, (nombres or {}).get(curso_id), entorno)
+    if not presencia.confirmar_copia(resumen):
+        return fallo("COPIA_RECHAZADA", "abortado")
+    if vigente is not None and not vigente():
+        presencia.informar(Aviso.peticion_retirada())
+        return fallo("PETICION_RETIRADA")
+    cupo["copias"] += 1
+    dir_tiza = Path(base) / rutas.CARPETA_TRABAJO
+    try:
+        temporal = estado.temporal_de_copia(dir_tiza)
+    except OSError:
+        return fallo("COPIA_NO_ESCRIBIBLE")
+
+    borrador = informe.Borrador(comando, entorno=entorno, curso=curso_id)
+    borrador.paso("LOGIN")
+
+    def terminar(codigo: str, causa: BaseException | None = None) -> dict:
+        borrador.fallo("COPIAR", codigo)
+        borrador.error(codigo)
+        if causa is not None:
+            depurar(causa, debug)
+        return borrador.documento("error")
+
+    nombre_en_el_aula: str | None = None
+    try:
+        try:
+            hecha = aula.hacer_copia(curso_id, temporal, MAX_COPIA)
+        except ErrorPublicacion as exc:
+            return terminar(exc.codigo, exc)
+        except OSError as exc:
+            return terminar("COPIA_NO_ESCRIBIBLE", exc)
+        nombre_en_el_aula = hecha.nombre
+        try:
+            contenido_de_la_copia = abrir_copia(temporal)
+        except ErrorCopia as exc:
+            return terminar(exc.codigo, exc)
+        try:
+            destino = estado.reservar_copia(dir_tiza, curso, datetime.now(), temporal)
+        except OSError as exc:
+            return terminar("COPIA_NO_ESCRIBIBLE", exc)
+        nombre_en_el_aula = None  # ya se tratará más abajo
+        borrada = _borrar_del_aula(aula, hecha.nombre, curso_id, presencia, debug)
+        copia_hecha = informe.CopiaHecha(
+            curso=curso,
+            fichero=f"{rutas.CARPETA_TRABAJO}/{estado.CARPETA_COPIAS}/{destino.name}",
+            bytes=hecha.bytes,
+            actividades=Counter(a.modulo[:30] for a in contenido_de_la_copia.actividades),
+            borrada_del_aula=borrada,
+        )
+    finally:
+        _quitar(temporal)  # tras renombrarla ya no existe; si algo falló, no queda a medias
+        if nombre_en_el_aula is not None:
+            # La copia no se queda: tampoco debe quedarse, con sus datos, en la zona del docente.
+            _borrar_del_aula(aula, nombre_en_el_aula, curso_id, presencia, debug)
+    borrador.paso("COPIAR", detalle=f"{hecha.bytes} bytes")
+    if borrada:
+        borrador.paso("BORRAR_COPIA")
+    else:
+        borrador.fallo("BORRAR_COPIA", "COPIA_QUEDA_EN_EL_AULA")
+    borrador.copia(copia_hecha)
     return borrador.documento()

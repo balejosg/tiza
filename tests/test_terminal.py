@@ -589,3 +589,19 @@ def test_confirmar_orden_ensena_el_orden_saneado_y_pide_confirmar(monkeypatch, c
     assert "\x1b" not in salida
     assert "«tarea.md» quedará por encima de «repaso.md»" in salida
     assert vistos == [("real", 5678, "Matemáticas 2ºB")]
+
+
+def test_confirmar_copia_hace_la_pregunta_exacta_y_sanea_el_nombre(monkeypatch, capsys):
+    preguntas: list = []
+    monkeypatch.setattr(terminal, "confirmar", lambda pregunta: preguntas.append(pregunta) or True)
+    resumen = publicacion.ResumenCopia(1234, "Mates\x1b[2J 2ºB", "pruebas")
+    assert terminal.PresenciaTerminal().confirmar_copia(resumen) is True
+    assert preguntas == [
+        "¿Hago una copia del curso «Mates[2J 2ºB», sin datos de alumnos, para que el agente "
+        "la lea? Se guarda en esta carpeta."
+    ]
+    salida = capsys.readouterr().out
+    assert "Curso de la copia: «Mates[2J 2ºB» (id 1234) (entorno: pruebas)" in salida
+    assert "\x1b" not in salida
+    monkeypatch.setattr(terminal, "confirmar", lambda pregunta: False)
+    assert terminal.PresenciaTerminal().confirmar_copia(resumen) is False

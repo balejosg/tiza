@@ -396,3 +396,26 @@ class TestDetalleCorto:
         )
         [documento] = mensajes.detalle_corto(resumen).documentos
         assert "\x1b" not in " ".join(documento.lineas)
+
+
+def test_la_pregunta_de_la_copia_es_la_del_plan():
+    resumen = publicacion.ResumenCopia(5678, "Matemáticas 2ºB", "real")
+    assert mensajes.detalle_copia(resumen).pregunta == (
+        "¿Hago una copia del curso «Matemáticas 2ºB», sin datos de alumnos, para que el agente "
+        "la lea? Se guarda en esta carpeta."
+    )
+
+
+def test_la_pregunta_de_la_copia_sin_nombre_usa_el_id_y_sanea():
+    sin_nombre = mensajes.detalle_copia(publicacion.ResumenCopia(1234, None, "pruebas"))
+    assert "«id 1234»" in sin_nombre.pregunta
+    sucio = mensajes.detalle_copia(publicacion.ResumenCopia(1, "A‮B\x1b[0m", "real"))
+    assert "‮" not in sucio.pregunta and "\x1b" not in sucio.pregunta
+
+
+def test_el_aviso_de_que_la_copia_queda_en_el_aula():
+    [linea] = mensajes.lineas_de_aviso(publicacion.Aviso.copia_queda_en_el_aula())
+    assert linea.texto == (
+        'La copia también queda en tu zona de copias de Moodle ("Restaurar"): puedes borrarla allí'
+    )
+    assert not linea.error

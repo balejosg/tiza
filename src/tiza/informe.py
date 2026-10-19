@@ -22,6 +22,7 @@ from .ficheros import asegurar_directorio, escribir_json
 
 __all__ = [
     "Borrador",
+    "CopiaHecha",
     "ErrorInforme",
     "Fichero",
     "ESTADOS_IMPORTACION",
@@ -35,6 +36,7 @@ __all__ = [
     "resumen",
     "validar",
     "validar_copia",
+    "validar_copia_hecha",
     "validar_estructura",
     "validar_importacion",
     "validar_lectura",
@@ -45,6 +47,7 @@ COMANDOS = {
     "estructura",
     "publicar",
     "ordenar",
+    "copia",
     "autoprueba",
     "sesion",
 }
@@ -59,9 +62,12 @@ TIPOS = set(tipos.TIPOS)
 PASOS = (
     frozenset(
         {
+            "BORRAR_COPIA",
             "BORRAR_SECCION",
             "CALENDARIO",
             "COMPROBAR",
+            "COPIA_A_MANO",
+            "COPIAR",
             "CREAR_SECCION",
             "CURSO",
             "CURSO_OMITIDO",
@@ -98,6 +104,8 @@ _CAMPOS_RAIZ = {
     "ficheros",
     "errores",
 }
+# ``copia``: solo lo lleva el informe de ``tiza copia`` cuando hay una copia hecha.
+_CAMPO_COPIA = "copia"
 _CAMPOS_PASO = {"codigo", "resultado", "detalle"}
 _CAMPOS_FICHERO = {
     "nombre",
@@ -184,18 +192,20 @@ def crear(
     errores: Iterable[str] | None = None,
     entorno: str | None = None,
     curso: int | None = None,
+    copia: CopiaHecha | None = None,
 ) -> dict:
     """Documento del informe con el esquema cerrado, válido por construcción.
 
     ``Paso``/``Fichero`` son lo normal; un dict ya construido (p. ej. el informe
     de un curso que se agrega) se valida aquí. La salida hacia el agente se
-    valida entera, otra vez, en :func:`escribir` y en el buzón.
+    valida entera, otra vez, en :func:`escribir` y en el buzón. ``copia`` solo lo
+    lleva el informe de ``tiza copia`` (el campo no existe en los demás).
     """
     _exigir_opcion(comando, COMANDOS, "comando")
     _exigir_opcion(resultado, RESULTADOS, "resultado")
     _exigir_entorno(entorno)
     _exigir_entero_o_nulo(curso, "curso")
-    return {
+    documento = {
         "version": 1,
         "comando": comando,
         "entorno": entorno,
@@ -205,6 +215,11 @@ def crear(
         "ficheros": [_fichero_a_dict(fichero) for fichero in ficheros or ()],
         "errores": _errores_validos(errores or ()),
     }
+    if copia is not None:
+        if comando != "copia":
+            raise ErrorInforme("CAMPO_NO_PERMITIDO", "solo el informe de «copia» lleva una copia")
+        documento[_CAMPO_COPIA] = copia.a_dict()
+    return documento
 
 
 def _paso_a_dict(paso: Paso | dict) -> dict:
@@ -248,6 +263,7 @@ class Borrador:
         self._pasos: list[Paso | dict] = []
         self._ficheros: list[Fichero | dict] = []
         self._errores: list[str] = []
+        self._copia: CopiaHecha | None = None
 
     @property
     def errores(self) -> tuple[str, ...]:
@@ -264,6 +280,10 @@ class Borrador:
 
     def fichero(self, fichero: Fichero | dict) -> None:
         self._ficheros.append(fichero)
+
+    def copia(self, copia: CopiaHecha) -> None:
+        """La copia que hizo ``tiza copia`` (solo en el informe de ese comando)."""
+        self._copia = copia
 
     def agregar(self, documento: Mapping[str, Any], *, excluir: Collection[str] = ()) -> None:
         """Acumula pasos, ficheros y errores de otro informe ya construido (un curso)."""
@@ -283,6 +303,7 @@ class Borrador:
             self._errores,
             self.entorno,
             self.curso,
+            self._copia,
         )
 
 
@@ -290,7 +311,9 @@ def validar(documento: Any) -> None:
     """Comprueba que el documento cumple el esquema cerrado."""
     if not isinstance(documento, dict):
         raise ErrorInforme("TIPO_INCORRECTO", "el informe debe ser un objeto")
-    _exigir_campos(documento, _CAMPOS_RAIZ, "raíz")
+    # El campo «copia» es opcional: solo existe en el informe de «tiza copia».
+    con_copia = _CAMPO_COPIA in documento
+    _exigir_campos(documento, _CAMPOS_RAIZ | ({_CAMPO_COPIA} if con_copia else set()), "raíz")
     if documento["version"] != 1:
         raise ErrorInforme("VALOR_NO_PERMITIDO", "version debe ser 1")
     _exigir_opcion(documento["comando"], COMANDOS, "comando")
@@ -304,6 +327,62 @@ def validar(documento: Any) -> None:
     for error in _exigir_lista(documento["errores"], "errores"):
         if not isinstance(error, str) or not _CODIGO.match(error):
             raise ErrorInforme("VALOR_NO_PERMITIDO", "los errores deben ser códigos")
+    if con_copia:
+        if documento["comando"] != "copia":
+            raise ErrorInforme("CAMPO_NO_PERMITIDO", "solo el informe de «copia» lleva una copia")
+        validar_copia_hecha(documento[_CAMPO_COPIA])
+
+
+_CAMPOS_COPIA_HECHA = {"curso", "fichero", "bytes", "actividades", "borrada_del_aula"}
+_CURSO_DE_COPIA = re.compile(r"\A[A-Za-z0-9._-]{1,40}\Z")
+
+
+@dataclass(frozen=True)
+class CopiaHecha:
+    """La copia que ``tiza copia`` dejó en ``.tiza/copias/``: lo único que ve el agente de ella.
+
+    ``curso`` es el nombre que pidió el agente (``pruebas``, ``real`` o un id), ``fichero`` la
+    ruta relativa a la carpeta de la asignatura, ``bytes`` su tamaño, ``actividades`` el
+    recuento por módulo (``page``, ``assign``…) y ``borrada_del_aula`` si tiza la quitó de la
+    zona de copias del docente en Moodle. Se valida al construirlo: nunca sale una inválida.
+    """
+
+    curso: str
+    fichero: str
+    bytes: int
+    actividades: Mapping[str, int]
+    borrada_del_aula: bool
+
+    def __post_init__(self) -> None:
+        validar_copia_hecha(self.a_dict())
+
+    def a_dict(self) -> dict:
+        return {
+            "curso": self.curso,
+            "fichero": self.fichero,
+            "bytes": self.bytes,
+            "actividades": dict(sorted(self.actividades.items())),
+            "borrada_del_aula": self.borrada_del_aula,
+        }
+
+
+def validar_copia_hecha(datos: Any) -> None:
+    """Esquema cerrado de la copia que hizo ``tiza copia``."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "la copia debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_COPIA_HECHA, "copia hecha")
+    if not isinstance(datos["curso"], str) or not _CURSO_DE_COPIA.match(datos["curso"]):
+        raise ErrorInforme("VALOR_NO_PERMITIDO", "el curso de la copia no es válido")
+    _exigir_ruta_relativa(datos["fichero"], "fichero")
+    _exigir_entero(datos["bytes"], "bytes")
+    actividades = datos["actividades"]
+    if not isinstance(actividades, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "actividades debe ser un objeto")
+    for modulo, cuantas in actividades.items():
+        if not isinstance(modulo, str) or not _MODULO.match(modulo):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "módulo no permitido")
+        _exigir_entero(cuantas, f"actividades de {modulo}")
+    _exigir_bool(datos["borrada_del_aula"], "borrada_del_aula")
 
 
 def _validar_paso(paso: Any) -> None:
@@ -775,6 +854,14 @@ def resumen(documento: dict) -> list[str]:
         lineas.append(" — ".join(partes))
         if fichero["url"]:
             lineas.append(f"  Ver en el aula: {fichero['url']}")
+    copia = documento.get(_CAMPO_COPIA)
+    if copia is not None:
+        modulos = ", ".join(f"{modulo} {n}" for modulo, n in copia["actividades"].items())
+        lineas.append(
+            f"Copia {copia['curso']}: {copia['fichero']} — {copia['bytes']} bytes — "
+            f"actividades: {modulos or 'ninguna'} — "
+            + ("borrada del aula" if copia["borrada_del_aula"] else "queda también en el aula")
+        )
     if documento["errores"]:
         lineas.append("Errores: " + ", ".join(documento["errores"]))
         # Texto fijo de tiza, elegido por el código; nunca viene de Moodle.

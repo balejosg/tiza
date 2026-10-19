@@ -17,6 +17,7 @@ from tiza.publicar import (
     CAMPOS_FINALIZACION_LEIDOS,
     DETALLE_INTENTOS_REPUBLICAR,
     Contrasena,
+    CopiaDescargada,
     ErrorPublicacion,
 )
 
@@ -104,6 +105,8 @@ class MoodleFalso:
         sin_finalizacion=False,
         motor_formulas=True,
         imagenes_servidas=True,
+        copia_permitida=True,
+        copia=None,
     ):
         self.base_url = "https://aula.example.org/centro"
         self.secciones = (
@@ -155,6 +158,15 @@ class MoodleFalso:
         self.despliegues_h5p: dict[int, bool] = {}
         self.librerias_ausentes: dict[int, bool] = {}
         self.intentos_h5p: dict[int, bool] = {}
+        # Copia de seguridad del curso: sin permiso, ``hacer_copia`` da COPIA_NO_PERMITIDA; los
+        # bytes de la copia son los de ``copia`` (por defecto, una sintética sin usuarios).
+        self.copia_permitida = copia_permitida
+        self.copia = copia
+        self.copias_hechas: list[tuple[int, str]] = []  # (curso, nombre en el aula)
+        self.copias_en_el_aula: list[str] = []
+        self.borradas: list[tuple[str, int]] = []  # lo que ``borrar_copia`` recibió
+        self.borrar_copia_falla = False
+        self.copia_falla: str | None = None  # código con el que falla ``hacer_copia``
 
     def _de(self, curso_id):
         return self.secciones_por_curso.get(curso_id, self.secciones)
@@ -374,6 +386,46 @@ class MoodleFalso:
         self.llamadas.append(("h5p_tiene_intentos", cmid))
         return self.intentos_h5p.get(cmid, False)
 
+    # --- Copia de seguridad del curso ---------------------------------------
+
+    def puede_copiar(self, curso_id):
+        self.llamadas.append(("puede_copiar", curso_id))
+        return self.copia_permitida
+
+    def hacer_copia(self, curso_id, destino, maximo):
+        self.llamadas.append(("hacer_copia", curso_id, Path(destino).name))
+        if not self.copia_permitida:
+            raise ErrorPublicacion("COPIA_NO_PERMITIDA")
+        if self.copia_falla is not None:
+            raise ErrorPublicacion(self.copia_falla)
+        datos = self.copia if self.copia is not None else copia_sintetica()
+        if len(datos) > maximo:
+            raise ErrorPublicacion("COPIA_DEMASIADO_GRANDE")
+        Path(destino).write_bytes(datos)
+        nombre = f"tiza-{curso_id}-{1792000000 + len(self.copias_hechas)}-nu.mbz"
+        self.copias_hechas.append((curso_id, nombre))
+        self.copias_en_el_aula.append(nombre)
+        return CopiaDescargada(len(datos), nombre)
+
+    def borrar_copia(self, nombre, curso_id):
+        self.llamadas.append(("borrar_copia", nombre, curso_id))
+        self.borradas.append((nombre, curso_id))
+        if self.borrar_copia_falla:
+            raise ErrorPublicacion("ERROR_BORRADO")
+        self.copias_en_el_aula.remove(nombre)
+
+
+def copia_sintetica(
+    *, users: int = 0, curso: int = 1234, servidor: str = "https://aula.example.org"
+) -> bytes:
+    """Los bytes de una copia ``.mbz`` válida (una página, una tarea, una etiqueta y un foro)."""
+    from copia import fabrica
+
+    secciones, actividades = fabrica.copia_basica()
+    return fabrica.construir_mbz(
+        secciones, actividades, users=users, curso=curso, servidor=servidor
+    )
+
 
 def aula_con_tarea(entrega_antes=(2026, 10, 10, 23, 59)) -> MoodleFalso:
     """Un aula donde la tarea ya está publicada con otra fecha de entrega."""
@@ -401,6 +453,7 @@ class PresenciaFalsa:
         confirmar_cursos: bool = True,
         autoprueba: bool = False,
         real: bool | tuple[bool, ...] = True,  # una respuesta por curso real, en orden
+        copia: bool = True,
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
     ) -> None:
@@ -413,6 +466,7 @@ class PresenciaFalsa:
         self._confirmar_cursos = confirmar_cursos
         self._autoprueba = autoprueba
         self._real = list(real) if isinstance(real, tuple) else real
+        self._copia = copia
         self._sin_pruebas = sin_pruebas
         self._ampliar = list(ampliar)
         self.passwords_pedidas: list[tuple[str, str]] = []
@@ -420,6 +474,7 @@ class PresenciaFalsa:
         self.resumenes: list = []
         self.resumenes_cortos: list = []
         self.resumenes_orden: list = []
+        self.resumenes_copia: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
 
@@ -460,6 +515,10 @@ class PresenciaFalsa:
         self.resumenes_orden.append(resumen)
         return self._respuesta_real()
 
+    def confirmar_copia(self, resumen):
+        self.resumenes_copia.append(resumen)
+        return self._copia
+
     def confirmar_sin_pruebas(self):
         self.sin_pruebas_pedidas += 1
         return self._sin_pruebas
@@ -498,6 +557,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
     return {
         "AUTOPRUEBA_FALLIDA": publicacion.Aviso.autoprueba_fallida(),
         "CANCELADA": publicacion.Aviso.cancelada(),
+        "COPIA_QUEDA_EN_EL_AULA": publicacion.Aviso.copia_queda_en_el_aula(),
         "CREANDO_SECCION": publicacion.Aviso.creando_seccion("Tema"),
         "CURSOS_GUARDADOS": publicacion.Aviso.cursos_guardados(Path("tiza.toml")),
         "ERROR_INTERNO": publicacion.Aviso.error_interno("RuntimeError"),

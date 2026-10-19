@@ -392,7 +392,7 @@ class TestOrdenarEnLaSesion:
         assert [f["accion"] for f in documento["ficheros"]] == ["ordenada"] * 3
         assert [f["oculto"] for f in documento["ficheros"]] == [None] * 3
         assert orden_en(moodle) == [[3, 2, 1, 4]]  # los huecos de P2, P1, P3: 1.º, 3.º y 4.º
-        assert sesion.cupo == {"pruebas": 1}
+        assert sesion.cupo["pruebas"] == 1
         assert presencia.codigos()[0] == "ORDENANDO_EN_PRUEBAS"
         assert presencia.resumenes_orden == []  # en pruebas no se pregunta
 

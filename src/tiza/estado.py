@@ -19,6 +19,7 @@ import json
 import os
 import re
 import stat
+import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -26,7 +27,13 @@ from pathlib import Path
 from typing import Any
 
 from . import rutas
-from .ficheros import asegurar_directorio, escribir_json, escribir_texto, leer_bytes_acotado
+from .ficheros import (
+    FicheroNoSeguro,
+    asegurar_directorio,
+    escribir_json,
+    escribir_texto,
+    leer_bytes_acotado,
+)
 
 __all__ = [
     "CARPETA_COPIA",
@@ -50,8 +57,11 @@ __all__ = [
     "escribir_estructura",
     "guardar_verificado",
     "guardar_version_de_copia",
+    "nombre_de_copia",
     "nombre_de_seccion",
+    "reservar_copia",
     "ruta_lectura",
+    "temporal_de_copia",
 ]
 
 MAX_COPIA_JSON = 16 * 1024 * 1024  # copia.json, al leerlo
@@ -171,6 +181,57 @@ def guardar_version_de_copia(dir_tiza: str | Path, cmid: int, html: str) -> Path
     directorio = asegurar_directorio(Path(dir_tiza))
     carpeta = asegurar_directorio(directorio / CARPETA_COPIA)
     return escribir_texto(carpeta / f"{cmid}.html", html)
+
+
+def nombre_de_copia(curso: str, momento: datetime, repeticion: int = 0) -> str:
+    """Nombre de una copia que deja ``tiza copia``: ``<curso>-<AAAAMMDD-HHMM>.mbz``.
+
+    ``repeticion`` > 0 añade el sufijo ``-2``, ``-3``…: nunca se sobrescribe una copia.
+    """
+    base = f"{curso}-{momento:%Y%m%d-%H%M}"
+    return f"{base}.mbz" if repeticion == 0 else f"{base}-{repeticion + 1}.mbz"
+
+
+def _carpeta_de_copias(dir_tiza: str | Path) -> Path:
+    """``.tiza/copias``, creada si falta; se niega si ``.tiza`` o ella son enlaces (FicheroNoSeguro)."""
+    directorio = asegurar_directorio(Path(dir_tiza))
+    return asegurar_directorio(directorio / CARPETA_COPIAS)
+
+
+def temporal_de_copia(dir_tiza: str | Path) -> Path:
+    """Un fichero temporal nuevo (``x``: nunca uno que ya exista) donde descargar la copia."""
+    carpeta = _carpeta_de_copias(dir_tiza)
+    temporal = carpeta / f".descarga-{uuid.uuid4().hex}.tmp"
+    descriptor = os.open(temporal, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    os.close(descriptor)
+    return temporal
+
+
+def reservar_copia(dir_tiza: str | Path, curso: str, momento: datetime, temporal: Path) -> Path:
+    """Da a ``temporal`` su nombre definitivo sin sobrescribir nada y devuelve la ruta.
+
+    Reserva el nombre con un fichero vacío creado con ``x`` y lo sustituye por la copia; si ya
+    hay uno con ese nombre (una copia anterior, o un fichero del docente), prueba el siguiente
+    sufijo. ``FicheroNoSeguro`` si no hay sitio entre cien nombres.
+    """
+    carpeta = _carpeta_de_copias(dir_tiza)
+    for repeticion in range(100):
+        destino = carpeta / nombre_de_copia(curso, momento, repeticion)
+        try:
+            descriptor = os.open(destino, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            continue
+        os.close(descriptor)
+        try:
+            os.replace(temporal, destino)
+        except OSError:
+            try:
+                destino.unlink()
+            except OSError:
+                pass
+            raise
+        return destino
+    raise FicheroNoSeguro("no_regular")
 
 
 def _validar_copia(datos: Any) -> None:

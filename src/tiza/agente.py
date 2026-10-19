@@ -35,6 +35,7 @@ __all__ = [
     "Comprobacion",
     "FicheroComprobado",
     "comprobar",
+    "copia",
     "documento",
     "estado_sesion",
     "estructura",
@@ -42,6 +43,7 @@ __all__ = [
     "importar",
     "leer",
     "ordenar",
+    "peticion_copia",
     "peticion_estructura",
     "peticion_ordenar",
     "peticion_publicar",
@@ -314,6 +316,23 @@ def peticion_ordenar(ficheros: Sequence[str], entorno: str) -> dict:
     }
 
 
+def peticion_copia(curso: str) -> dict:
+    """Petición de copia para el buzón: ``curso`` es ``pruebas``, ``real`` o el id de un curso.
+
+    Pide una copia de seguridad del curso, sin datos de usuarios, que queda en ``.tiza/copias/``.
+    """
+    return {
+        "version": buzon.VERSION_PROTOCOLO,
+        "id": uuid.uuid4().hex,
+        "comando": "copia",
+        "curso": curso,
+        "ficheros": [],
+        "entorno": None,
+        "visible": None,
+        "solo_fechas": False,
+    }
+
+
 def peticion_estructura() -> dict:
     return {
         "version": buzon.VERSION_PROTOCOLO,
@@ -351,6 +370,21 @@ def ordenar(
 ) -> dict:
     """Pide a la sesión del docente que ordene las actividades de ``ficheros``; en real, confirma."""
     return _enviar(carpeta, peticion_ordenar(ficheros, entorno), espera, cancelar)
+
+
+def copia(
+    carpeta: str | Path,
+    curso: str,
+    *,
+    espera: float = buzon.ESPERA_POR_DEFECTO,
+    cancelar: threading.Event | None = None,
+) -> dict:
+    """Pide a la sesión del docente una copia del curso (sin usuarios) en ``.tiza/copias/``.
+
+    El docente confirma en su terminal. El informe lleva la ruta de la copia y el recuento de
+    sus actividades; después se lee con ``importar``. Sin sesión, ``SIN_SESION``.
+    """
+    return _enviar(carpeta, peticion_copia(curso), espera, cancelar)
 
 
 def estructura(

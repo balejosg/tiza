@@ -163,6 +163,19 @@ def _parser() -> argparse.ArgumentParser:
     )
     ordenar.add_argument("--debug", action="store_true")
 
+    copia = sub.add_parser(
+        "copia",
+        help="pide al docente una copia de seguridad del curso, sin usuarios (autenticado)",
+        description="Pide a la sesión abierta del docente que haga una copia de seguridad del "
+        "curso, sin datos de alumnos. El docente la confirma; queda en .tiza/copias/ lista "
+        "para «tiza importar».",
+    )
+    copia.add_argument(
+        "curso",
+        help="«pruebas», «real» (si solo hay un curso real) o el id de un curso de tiza.toml",
+    )
+    copia.add_argument("--debug", action="store_true")
+
     autoprueba = sub.add_parser(
         "autoprueba", help="prueba de contrato en el curso de pruebas (autenticado)"
     )
@@ -311,6 +324,8 @@ def _despachar(args) -> int:
         return _publicar(args)
     if args.comando == "ordenar":
         return _ordenar(args)
+    if args.comando == "copia":
+        return _copia(args)
     if args.comando == "autoprueba":
         return _autoprueba(args)
     if args.comando == "sesion":
@@ -1335,6 +1350,23 @@ def _ordenar(args) -> int:
             entorno=args.en,
         )
     return _ordenar_directa(args)
+
+
+def _copia(args) -> int:
+    """La copia del curso la hace la sesión del docente: sin sesión no hay modo directo."""
+    dir_tiza = _dir_tiza()
+    if buzon.sesion_activa(dir_tiza):
+        return _responder_buzon(
+            "copia", agente.peticion_copia(args.curso), dir_tiza, debug=args.debug
+        )
+    version = buzon.sesion_incompatible(dir_tiza)
+    if version is not None:
+        return _fallo(
+            "copia",
+            "SESION_INCOMPATIBLE",
+            f"la sesión abierta usa tiza {version}; esta terminal, tiza {__version__}",
+        )
+    return _fallo("copia", "SIN_SESION", "la copia del curso la hace la sesión del docente")
 
 
 # --------------------------------------------------------------------------- #

@@ -917,5 +917,54 @@ class TestSoloFechasEnLaPeticion:
             buzon.validar_peticion(datos)
         assert exc.value.codigo == "PETICION_INVALIDA"
 
+    def test_buzon_version_6(self):
+        copia = peticion_valida(
+            comando="copia", curso="pruebas", ficheros=[], entorno=None, visible=None
+        )
+        buzon.validar_peticion(copia)  # la versión 6 admite el comando
+        for version in (5, 7):
+            with pytest.raises(buzon.ErrorBuzon) as exc:
+                buzon.validar_peticion({**copia, "version": version})
+            assert exc.value.codigo == "PETICION_INVALIDA"
+        # Una sesión de la versión 5 no atiende a un agente de la 6, ni al revés.
+        with pytest.raises(buzon.ErrorBuzon):
+            buzon.validar_peticion(peticion_valida(version=5))
+
+    @pytest.mark.parametrize(
+        "cambios",
+        [
+            {"curso": None},
+            {"curso": ""},
+            {"curso": 1234},
+            {"curso": "pruebas y más"},
+            {"curso": "../real"},
+            {"curso": "x" * 41},
+            {"ficheros": ["a.md"]},
+            {"entorno": "pruebas"},
+            {"visible": True},
+            {"solo_fechas": True},
+        ],
+    )
+    def test_copia_solo_admite_un_curso(self, cambios):
+        datos = peticion_valida(
+            comando="copia", curso="pruebas", ficheros=[], entorno=None, visible=None
+        )
+        datos.update(cambios)
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(datos)
+        assert exc.value.codigo == "PETICION_INVALIDA"
+
+    def test_copia_exige_curso_y_los_demas_comandos_no_lo_llevan(self):
+        sin_curso = peticion_valida(comando="copia", ficheros=[], entorno=None, visible=None)
+        with pytest.raises(buzon.ErrorBuzon):
+            buzon.validar_peticion(sin_curso)
+        for comando in ("publicar", "ordenar"):
+            with pytest.raises(buzon.ErrorBuzon):
+                buzon.validar_peticion(peticion_valida(comando=comando, curso="pruebas"))
+        with pytest.raises(buzon.ErrorBuzon):
+            buzon.validar_peticion(
+                peticion_valida(comando="estructura", ficheros=[], entorno=None, curso="real")
+            )
+
     def test_el_protocolo_sube_con_el_campo(self):
-        assert buzon.VERSION_PROTOCOLO == 5
+        assert buzon.VERSION_PROTOCOLO == 6  # 5: solo_fechas; 6: el comando «copia»

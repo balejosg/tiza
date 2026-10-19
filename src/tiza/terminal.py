@@ -22,7 +22,13 @@ from urllib.parse import urlsplit
 
 from . import mensajes, publicar, ventana
 from .config import MAX_REALES
-from .publicacion import Aviso, ResumenOrden, ResumenPublicacion, ResumenSinPruebas
+from .publicacion import (
+    Aviso,
+    ResumenCopia,
+    ResumenOrden,
+    ResumenPublicacion,
+    ResumenSinPruebas,
+)
 from .sesion import SIN_PRUEBAS, CursoSesion
 
 __all__ = [
@@ -357,6 +363,11 @@ class PresenciaTerminal:
         for linea in detalle.finales:
             print(f"  {linea}")
         return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
+
+    def confirmar_copia(self, resumen: ResumenCopia) -> bool:
+        detalle = mensajes.detalle_copia(resumen)
+        print(f"Curso de la copia: {detalle.curso} (entorno: {detalle.entorno})")
+        return confirmar(detalle.pregunta)
 
     def ofrecer_ampliacion(self, minutos: int, plazo: float) -> bool:
         return preguntar_con_limite(

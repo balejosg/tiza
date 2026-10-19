@@ -26,6 +26,7 @@ from .publicacion import (
     CambioSeccion,
     DocumentoBreve,
     DocumentoResumen,
+    ResumenCopia,
     ResumenOrden,
     ResumenPublicacion,
     ResumenSinPruebas,
@@ -34,6 +35,7 @@ from .publicacion import (
 __all__ = [
     "AUTOPRUEBA_TEXTO",
     "AVISO_AJENO",
+    "DetalleCopia",
     "DetalleCorto",
     "DetalleOrden",
     "DetalleReal",
@@ -49,6 +51,7 @@ __all__ = [
     "describir_cambios",
     "describir_curso",
     "describir_documento",
+    "detalle_copia",
     "detalle_corto",
     "detalle_orden",
     "detalle_real",
@@ -407,6 +410,28 @@ def detalle_orden(resumen: ResumenOrden) -> DetalleOrden:
 
 
 @dataclass(frozen=True)
+class DetalleCopia:
+    """La confirmación de ``tiza copia``: de qué curso y la pregunta al docente."""
+
+    curso: str
+    entorno: str
+    pregunta: str
+
+
+def detalle_copia(resumen: ResumenCopia) -> DetalleCopia:
+    """La pregunta de la copia del curso, con el nombre del curso saneado (viene del aula)."""
+    nombre = texto_seguro(resumen.nombre_curso, 80) if resumen.nombre_curso else None
+    return DetalleCopia(
+        curso=describir_curso(resumen.curso, resumen.nombre_curso),
+        entorno=resumen.entorno,
+        pregunta=(
+            f"¿Hago una copia del curso «{nombre or 'id ' + str(resumen.curso)}», sin datos de "
+            "alumnos, para que el agente la lea? Se guarda en esta carpeta."
+        ),
+    )
+
+
+@dataclass(frozen=True)
 class Linea:
     """Una línea para el docente; ``error`` la manda a stderr en la terminal."""
 
@@ -432,6 +457,15 @@ def _autoprueba_fallida(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 
 def _cancelada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("Operación cancelada.", error=True),)
+
+
+def _copia_queda_en_el_aula(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "La copia también queda en tu zona de copias de Moodle "
+            '("Restaurar"): puedes borrarla allí'
+        ),
+    )
 
 
 def _creando_seccion(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
@@ -528,6 +562,7 @@ def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
     "CANCELADA": _cancelada,
+    "COPIA_QUEDA_EN_EL_AULA": _copia_queda_en_el_aula,
     "CREANDO_SECCION": _creando_seccion,
     "CURSOS_GUARDADOS": _cursos_guardados,
     "ERROR_INTERNO": _error_interno,

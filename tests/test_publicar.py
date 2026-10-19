@@ -3047,3 +3047,374 @@ class TestLimiteDeBorradores:
         assert not publicar._pide_espera(_RespuestaJson({"error": "limit, wait"}))
         assert not publicar._pide_espera(_RespuestaJson(["maxdraftitemids"]))
         assert not publicar._pide_espera(None)
+
+
+# --- Copia de seguridad del curso: las etapas de backup.php contra una sesión falsa ---------
+
+AJUSTES_DE_USUARIO = (
+    "users",
+    "anonymize",
+    "role_assignments",
+    "comments",
+    "badges",
+    "calendarevents",
+    "userscompletion",
+    "logs",
+    "grade_histories",
+    "xapistate",
+    "groups",
+)
+URL_AULA = "https://aula.example.org/centro"
+
+
+class _RespuestaCopia:
+    def __init__(self, texto="", status=200, cuerpo=b"", cabeceras=None, datos=None):
+        self.text = texto
+        self.status_code = status
+        self.headers = cabeceras or {}
+        self._cuerpo = cuerpo
+        self._datos = datos if datos is not None else {}
+        self.cerrada = False
+
+    def iter_content(self, chunk_size=1):
+        for inicio in range(0, len(self._cuerpo), chunk_size):
+            yield self._cuerpo[inicio : inicio + chunk_size]
+
+    def json(self):
+        return self._datos
+
+    def close(self):
+        self.cerrada = True
+
+
+def _pagina_con(formulario: str) -> str:
+    return f"<html><body>{formulario}</body></html>"
+
+
+def _etapa(extras: str, accion: str = f"{URL_AULA}/backup/backup.php") -> str:
+    return _pagina_con(
+        f'<form action="{accion}" method="post">'
+        '<input type="hidden" name="sesskey" value="clave">'
+        '<input type="hidden" name="backup" value="1">'
+        f"{extras}"
+        '<input type="submit" name="cancel" value="Cancelar">'
+        '<input type="submit" name="submitbutton" value="Siguiente"></form>'
+    )
+
+
+def _ajustes_marcados(bloqueados=()) -> str:
+    """Cada ajuste de usuario como lo trae mform: un hidden a 0 y la casilla, marcada."""
+    html = ""
+    for ajuste in (*AJUSTES_DE_USUARIO, "activities", "files"):
+        bloqueo = " disabled" if ajuste in bloqueados else ""
+        html += (
+            f'<input type="hidden" name="setting_root_{ajuste}" value="0">'
+            f'<input type="checkbox" name="setting_root_{ajuste}" value="1" checked{bloqueo}>'
+        )
+    html += (
+        '<input type="hidden" name="setting_section_section_7_userinfo" value="0">'
+        '<input type="checkbox" name="setting_section_section_7_userinfo" value="1" checked>'
+        '<input type="checkbox" name="setting_activity_page_501_userinfo" value="1" checked>'
+    )
+    return html
+
+
+class _SesionCopia:
+    """El aula: backup.php en tres etapas, la zona de copias del docente y su gestor de ficheros."""
+
+    def __init__(
+        self,
+        cuerpo=b"MBZ" * 10,
+        sin_formulario=False,
+        no_aparece=False,
+        cabeceras=None,
+        al_borrar_queda=False,
+    ):
+        self.cuerpo = cuerpo
+        self.sin_formulario = sin_formulario
+        self.no_aparece = no_aparece
+        self.cabeceras = cabeceras
+        self.al_borrar_queda = al_borrar_queda
+        self.posts: list[tuple[str, list[tuple[str, str]]]] = []
+        self.borrados_ajax: list[dict] = []
+        self.guardado_edicion: list[tuple[str, str]] | None = None
+        self.nombres_en_el_area: list[str] = []
+        self.descargas: list[_RespuestaCopia] = []
+        self._etapa = 0
+
+    def get(self, url, params=None, timeout=None, stream=False, allow_redirects=True):
+        if url.endswith("/backup/backup.php"):
+            if self.sin_formulario:
+                return _RespuestaCopia("<html><body>Sin permiso</body></html>")
+            self._etapa = 1
+            return _RespuestaCopia(_etapa(_ajustes_marcados(bloqueados=("users",))))
+        if url.endswith("/backup/restorefile.php"):
+            enlaces = "".join(
+                f'<a href="{URL_AULA}/pluginfile.php/55/user/backup/0/{nombre}?forcedownload=1">'
+                f"{nombre}</a>"
+                for nombre in self.nombres_en_el_area
+            )
+            enlaces += '<a href="/pluginfile.php/55/course/backup/0/ajena.mbz">ajena</a>'
+            return _RespuestaCopia(_pagina_con(enlaces))
+        if "/user/backup/" in url:
+            respuesta = _RespuestaCopia(cuerpo=self.cuerpo, cabeceras=self.cabeceras)
+            self.descargas.append(respuesta)
+            return respuesta
+        if url.endswith("/backup/backupfilesedit.php"):
+            return _RespuestaCopia(
+                _pagina_con(
+                    f'<form action="{URL_AULA}/backup/backupfilesedit.php" method="post">'
+                    '<input type="hidden" name="sesskey" value="clave">'
+                    '<input type="hidden" name="files_filemanager" value="7777">'
+                    '<input type="submit" name="submitbutton" value="Guardar"></form>'
+                )
+            )
+        return _RespuestaCopia("<html></html>")  # /my/ y lo demás: la sesión sigue viva
+
+    def post(self, url, data=None, params=None, timeout=None):
+        if url.endswith("/backup/backup.php"):
+            pares = list(data)
+            self.posts.append((url, pares))
+            self._etapa += 1
+            if self._etapa == 2:
+                return _RespuestaCopia(_etapa(_ajustes_marcados()))
+            if self._etapa == 3:
+                return _RespuestaCopia(
+                    _etapa(
+                        '<input type="hidden" name="setting_root_users" value="1">'
+                        '<input type="text" name="setting_root_filename" value="copia.mbz">'
+                    )
+                )
+            nombre = dict(pares).get("setting_root_filename", "")
+            if not self.no_aparece:
+                self.nombres_en_el_area.append(nombre)
+            return _RespuestaCopia(
+                _pagina_con(f'<form action="{URL_AULA}/backup/restorefile.php"></form>')
+            )
+        if url.endswith("/repository/draftfiles_ajax.php"):
+            self.borrados_ajax.append({"params": params, **data})
+            return _RespuestaCopia(datos={"filepath": "/"})
+        if url.endswith("/backup/backupfilesedit.php"):
+            self.guardado_edicion = list(data)
+            if not self.al_borrar_queda:
+                borrados = {b["filename"] for b in self.borrados_ajax}
+                self.nombres_en_el_area = [n for n in self.nombres_en_el_area if n not in borrados]
+            return _RespuestaCopia()
+        raise AssertionError(url)
+
+
+def _moodle_de_copia(sesion, monkeypatch=None, epoch=1792000000):
+    moodle = publicar.Moodle(URL_AULA, sesion, "clave", pausa=0, dormir=lambda _s: None)
+    moodle.contexto = lambda curso_id: 999
+    if monkeypatch is not None:
+        reloj = types.SimpleNamespace(time=lambda: float(epoch), monotonic=publicar.time.monotonic)
+        monkeypatch.setattr(publicar, "time", reloj)
+    return moodle
+
+
+class TestHacerCopia:
+    def test_copia_fuerza_sin_usuarios(self, tmp_path, monkeypatch):
+        sesion = _SesionCopia()
+        moodle = _moodle_de_copia(sesion, monkeypatch)
+        destino = tmp_path / "descarga.tmp"
+        hecha = moodle.hacer_copia(2, destino, 1000)
+        assert (hecha.bytes, destino.read_bytes()) == (30, b"MBZ" * 10)
+        assert len(sesion.posts) == 3  # tres etapas
+        for _url, pares in sesion.posts:
+            enviado = [valor for nombre, valor in pares]
+            nombres = [nombre for nombre, _valor in pares]
+            for ajuste in AJUSTES_DE_USUARIO:
+                # Una sola vez y a 0, aunque el formulario la traiga marcada, bloqueada o a 1.
+                assert nombres.count(f"setting_root_{ajuste}") <= 1, ajuste
+                if f"setting_root_{ajuste}" in nombres:
+                    assert dict(pares)[f"setting_root_{ajuste}"] == "0", ajuste
+            assert dict(pares).get("setting_section_section_7_userinfo", "0") == "0"
+            assert dict(pares).get("setting_activity_page_501_userinfo", "0") == "0"
+            assert "cancel" not in nombres and enviado[-1] == "1"
+        primera = dict(sesion.posts[0][1])
+        assert primera["setting_root_users"] == "0"  # la bloqueada también
+        assert primera["setting_root_activities"] == "1"  # lo demás sigue como venía
+        ultima = dict(sesion.posts[-1][1])
+        assert ultima["setting_root_users"] == "0"  # el hidden a 1 de la última etapa, forzado
+
+    def test_copia_nombre_unico(self, tmp_path, monkeypatch):
+        sesion = _SesionCopia()
+        moodle = _moodle_de_copia(sesion, monkeypatch)
+        primera = moodle.hacer_copia(2, tmp_path / "a.tmp", 1000)
+        # La segunda, en el mismo segundo y sin haber borrado la primera: otro nombre.
+        sesion._etapa = 0
+        segunda = moodle.hacer_copia(2, tmp_path / "b.tmp", 1000)
+        assert primera.nombre == "tiza-2-1792000000-nu.mbz"
+        assert segunda.nombre == "tiza-2-1792000000-2-nu.mbz"
+        ultimas = [dict(pares)["setting_root_filename"] for _u, pares in sesion.posts[2::3]]
+        assert ultimas == [primera.nombre, segunda.nombre]
+        # Y aunque la primera ya no esté en el aula, esta sesión no repite su nombre.
+        sesion.nombres_en_el_area.clear()
+        sesion._etapa = 0
+        assert moodle.hacer_copia(2, tmp_path / "c.tmp", 1000).nombre.endswith("-3-nu.mbz")
+
+    def test_sin_formulario_no_hay_permiso(self, tmp_path):
+        moodle = _moodle_de_copia(_SesionCopia(sin_formulario=True))
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.hacer_copia(2, tmp_path / "d.tmp", 1000)
+        assert exc.value.codigo == "COPIA_NO_PERMITIDA"
+        assert not (tmp_path / "d.tmp").exists()
+
+    def test_si_la_sesion_caduco_no_es_falta_de_permiso(self, tmp_path):
+        sesion = _SesionCopia(sin_formulario=True)
+        original = sesion.get
+
+        def get(url, **opciones):
+            if url.endswith("/my/"):
+                return types.SimpleNamespace(
+                    status_code=303, headers={"Location": f"{URL_AULA}/login/index.php"}
+                )
+            return original(url, **opciones)
+
+        sesion.get = get
+        moodle = _moodle_de_copia(sesion)
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.hacer_copia(2, tmp_path / "d.tmp", 1000)
+        assert exc.value.codigo == "SESION_CADUCADA"
+
+    def test_una_etapa_que_responde_con_error_no_espera_diez_minutos(self, tmp_path):
+        sesion = _SesionCopia()
+        original = sesion.post
+
+        def post(url, **opciones):
+            respuesta = original(url, **opciones)
+            if len(sesion.posts) == 2:
+                respuesta.status_code = 500
+            return respuesta
+
+        sesion.post = post
+        esperas: list[float] = []
+        moodle = _moodle_de_copia(sesion)
+        moodle._dormir = esperas.append
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.hacer_copia(2, tmp_path / "j.tmp", 1000)
+        assert exc.value.codigo == "COPIA_FALLIDA"
+        assert esperas == [] and len(sesion.posts) == 2
+
+    def test_un_formulario_que_no_avanza_es_fallido(self, tmp_path):
+        sesion = _SesionCopia()
+        original = sesion.get
+
+        def get(url, **opciones):
+            if url.endswith("/backup/backup.php"):
+                return _RespuestaCopia(
+                    _pagina_con(
+                        f'<form action="{URL_AULA}/backup/backup.php">'
+                        '<input type="submit" name="cancel" value="Cancelar"></form>'
+                    )
+                )
+            return original(url, **opciones)
+
+        sesion.get = get
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(sesion).hacer_copia(2, tmp_path / "k.tmp", 1000)
+        assert exc.value.codigo == "COPIA_FALLIDA"
+        assert sesion.posts == []  # nunca se pulsa «cancelar» por error
+
+    def test_corta_al_pasar_del_maximo_y_no_deja_nada(self, tmp_path):
+        sesion = _SesionCopia(cuerpo=b"x" * 5000)
+        moodle = _moodle_de_copia(sesion)
+        destino = tmp_path / "e.tmp"
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.hacer_copia(2, destino, 1000)
+        assert exc.value.codigo == "COPIA_DEMASIADO_GRANDE"
+        assert not destino.exists()
+        assert sesion.descargas[0].cerrada
+        assert sesion.nombres_en_el_area == []  # la copia que no se pudo traer se borró del aula
+
+    def test_la_cabecera_de_tamano_corta_sin_descargar(self, tmp_path):
+        sesion = _SesionCopia(cabeceras={"Content-Length": "999999"})
+        with pytest.raises(ErrorPublicacion) as exc:
+            _moodle_de_copia(sesion).hacer_copia(2, tmp_path / "f.tmp", 1000)
+        assert exc.value.codigo == "COPIA_DEMASIADO_GRANDE"
+
+    def test_si_la_copia_no_aparece_es_fallida_tras_la_espera(self, tmp_path):
+        esperas: list[float] = []
+        sesion = _SesionCopia(no_aparece=True)
+        moodle = _moodle_de_copia(sesion)
+        moodle._dormir = esperas.append
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.hacer_copia(2, tmp_path / "g.tmp", 1000)
+        assert exc.value.codigo == "COPIA_FALLIDA"
+        assert sum(esperas) == publicar.ESPERA_COPIA  # diez minutos, no más
+
+    def test_una_descarga_que_pasa_de_diez_minutos_es_fallida(self, tmp_path, monkeypatch):
+        sesion = _SesionCopia()
+        moodle = _moodle_de_copia(sesion)
+        instantes = iter([0.0, publicar.ESPERA_COPIA + 1.0, publicar.ESPERA_COPIA + 2.0])
+        monkeypatch.setattr(
+            publicar,
+            "time",
+            types.SimpleNamespace(time=lambda: 1.0, monotonic=lambda: next(instantes)),
+        )
+        destino = tmp_path / "h.tmp"
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.hacer_copia(2, destino, 1000)
+        assert exc.value.codigo == "COPIA_FALLIDA"
+        assert not destino.exists()
+
+    def test_un_enlace_puesto_en_el_destino_no_se_sigue(self, tmp_path):
+        from dobles import enlace_simbolico
+
+        ajeno = tmp_path / "ajeno.txt"
+        ajeno.write_text("mio", encoding="utf-8")
+        destino = tmp_path / "i.tmp"
+        enlace_simbolico(destino, ajeno)
+        if not hasattr(publicar.os, "O_NOFOLLOW"):
+            pytest.skip("este sistema no tiene O_NOFOLLOW")
+        with pytest.raises(OSError):
+            _moodle_de_copia(_SesionCopia()).hacer_copia(2, destino, 1000)
+        assert ajeno.read_text(encoding="utf-8") == "mio"
+
+    def test_puede_copiar_mira_el_formulario(self):
+        assert _moodle_de_copia(_SesionCopia()).puede_copiar(2) is True
+        assert _moodle_de_copia(_SesionCopia(sin_formulario=True)).puede_copiar(2) is False
+
+
+class TestBorrarCopia:
+    def _con_una_copia(self, tmp_path, **opciones):
+        sesion = _SesionCopia(**opciones)
+        moodle = _moodle_de_copia(sesion)
+        hecha = moodle.hacer_copia(2, tmp_path / "x.tmp", 1000)
+        return sesion, moodle, hecha.nombre
+
+    def test_borra_del_gestor_y_guarda(self, tmp_path):
+        sesion, moodle, nombre = self._con_una_copia(tmp_path)
+        moodle.borrar_copia(nombre, 2)
+        [borrado] = sesion.borrados_ajax
+        assert (borrado["filename"], borrado["itemid"], borrado["filepath"]) == (
+            nombre,
+            "7777",
+            "/",
+        )
+        assert borrado["params"] == {"action": "delete"} and borrado["sesskey"] == "clave"
+        assert ("submitbutton", "1") in (sesion.guardado_edicion or [])
+        assert sesion.nombres_en_el_area == []
+
+    def test_si_sigue_en_el_area_es_error(self, tmp_path):
+        _sesion, moodle, nombre = self._con_una_copia(tmp_path, al_borrar_queda=True)
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.borrar_copia(nombre, 2)
+        assert exc.value.codigo == "ERROR_BORRADO"
+
+    def test_si_ya_no_esta_no_hace_nada(self, tmp_path):
+        sesion, moodle, nombre = self._con_una_copia(tmp_path)
+        sesion.nombres_en_el_area.clear()
+        moodle.borrar_copia(nombre, 2)
+        assert sesion.borrados_ajax == [] and sesion.guardado_edicion is None
+
+
+class TestAutopruebaYCopia:
+    def test_la_autoprueba_avisa_si_el_aula_no_deja_copiar(self):
+        moodle = MoodleFalso(copia_permitida=False)
+        resultado = publicar.autoprueba(moodle, 1234)
+        assert resultado["resultado"] == "ok"  # sigue: es un aviso, no un fallo
+        [paso] = [p for p in resultado["pasos"] if p.codigo == "COPIA_A_MANO"]
+        assert "COPIA_NO_PERMITIDA" in paso.detalle
+        sin_aviso = publicar.autoprueba(MoodleFalso(), 1234)
+        assert "COPIA_A_MANO" not in [p.codigo for p in sin_aviso["pasos"]]

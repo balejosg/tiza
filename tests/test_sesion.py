@@ -23,7 +23,7 @@ from dobles import (
     enlace_simbolico,
     peticion,
 )
-from tiza import buzon, config, contenido, publicacion, publicar, sesion
+from tiza import buzon, config, contenido, informe, publicacion, publicar, sesion
 
 TAREA = (
     '---\ntipo: tarea\nnombre: Problemas\nseccion: "Fracciones"\n'
@@ -90,7 +90,7 @@ def test_el_doble_cumple_la_interfaz_de_presencia():
         for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
-    assert len(metodos) == 11
+    assert len(metodos) == 12
     for nombre in metodos:
         esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaFalsa, nombre)).parameters)
@@ -516,3 +516,29 @@ class TestElegirCursosReales:
             ("real", 101, "1º A", False),
             ("real", 102, None, True),
         ]
+
+
+def test_autoprueba_sin_permiso_de_copia(tmp_path, monkeypatch):
+    """Sin el formulario de copia la autoprueba sigue (es un aviso) y su línea lo dice."""
+    monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
+    carpeta = tmp_path / "asignatura"
+    carpeta.mkdir()
+    moodle = MoodleFalso(copia_permitida=False)
+    presencia = PresenciaFalsa()
+    assert sesion.autoprueba_con(moodle, 1234, carpeta, presencia) is True
+    informe_ = json.loads((carpeta / ".tiza" / "informe.json").read_text(encoding="utf-8"))
+    assert (informe_["comando"], informe_["resultado"]) == ("autoprueba", "ok")
+    [paso] = [p for p in informe_["pasos"] if p["codigo"] == "COPIA_A_MANO"]
+    assert "COPIA_NO_PERMITIDA" in paso["detalle"] and "a mano" in paso["detalle"]
+    # La línea que ve el docente (y el agente en el resumen) lo cuenta.
+    [resultado] = [a for a in presencia.avisos if a.codigo == "RESULTADO"]
+    assert any(
+        linea.startswith("Paso COPIA_A_MANO: ok") and "a mano" in linea
+        for linea in informe.resumen(resultado.datos["documento"])
+    )
+    # Con permiso, ni rastro del aviso.
+    otra = tmp_path / "otra"
+    otra.mkdir()
+    assert sesion.autoprueba_con(MoodleFalso(), 1234, otra, PresenciaFalsa()) is True
+    texto = (otra / ".tiza" / "informe.json").read_text(encoding="utf-8")
+    assert "COPIA_A_MANO" not in texto

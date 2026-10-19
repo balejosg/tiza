@@ -10,7 +10,7 @@ de fechas de la confirmación.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -19,10 +19,13 @@ from dobles import (
     MoodleFalso,
     PresenciaFalsa,
     aula_con_tarea,
+    copia_sintetica,
+    enlace_simbolico,
     fecha_en_formulario,
     tarea_en,
 )
-from tiza import calendario, config, contenido, estado, publicacion, publicar
+from tiza import calendario, config, contenido, estado, informe, publicacion, publicar
+from tiza.copia import abrir_copia
 
 PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
 
@@ -270,3 +273,217 @@ def test_se_consulta_una_sola_vez_por_curso(tmp_path):
     assert [llamada for llamada in moodle.llamadas if llamada[0] == "motor_de_formulas"] == [
         ("motor_de_formulas", 1234)
     ]
+
+
+# --- tiza copia: la sesión hace la copia del curso ---------------------------------------
+
+
+class _Reloj(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return cls(2026, 10, 19, 10, 30)
+
+
+def _cupo() -> dict:
+    return {"pruebas": 0, "copias": 0}
+
+
+def _copiar(tmp_path, moodle=None, presencia=None, curso="pruebas", cupo=None, cfg=CFG, **opciones):
+    moodle = moodle or MoodleFalso()
+    presencia = presencia or PresenciaFalsa()
+    documento = publicacion.copiar_curso(
+        moodle,
+        cfg,
+        curso,
+        tmp_path.resolve(),
+        presencia,
+        cupo if cupo is not None else _cupo(),
+        **opciones,
+    )
+    informe.validar(documento)  # lo que sale hacia el agente cumple el esquema cerrado
+    return moodle, presencia, documento
+
+
+def _copias_guardadas(tmp_path) -> list[str]:
+    carpeta = tmp_path / ".tiza" / "copias"
+    return sorted(ruta.name for ruta in carpeta.iterdir()) if carpeta.exists() else []
+
+
+def test_copia_pide_confirmacion(tmp_path):
+    cupo = _cupo()
+    moodle, presencia, documento = _copiar(
+        tmp_path,
+        presencia=PresenciaFalsa(copia=False),
+        cupo=cupo,
+        nombres={1234: "Pruebas de Mates"},
+    )
+    assert (documento["resultado"], documento["errores"]) == ("abortado", ["COPIA_RECHAZADA"])
+    assert not any(llamada[0] == "hacer_copia" for llamada in moodle.llamadas)
+    assert "copia" not in documento
+    assert (presencia.resumenes_copia[0].curso, presencia.resumenes_copia[0].nombre_curso) == (
+        1234,
+        "Pruebas de Mates",
+    )
+    assert cupo["copias"] == 0  # negarse no gasta cupo
+    assert _copias_guardadas(tmp_path) == []  # y no deja nada
+
+
+def test_copia_con_usuarios_se_borra(tmp_path):
+    moodle = MoodleFalso(copia=copia_sintetica(users=1))
+    _moodle, _presencia, documento = _copiar(tmp_path, moodle)
+    assert documento["errores"] == ["COPIA_CON_USUARIOS"]
+    assert "copia" not in documento
+    assert _copias_guardadas(tmp_path) == []  # ni la copia ni el temporal
+    # Tampoco se queda, con sus datos, en la zona de copias del docente.
+    assert moodle.copias_en_el_aula == []
+
+
+def test_copia_queda_en_tiza_copias(tmp_path, monkeypatch):
+    monkeypatch.setattr(publicacion, "datetime", _Reloj)
+    moodle, presencia, documento = _copiar(tmp_path)
+    assert documento["resultado"] == "ok" and documento["errores"] == []
+    assert (documento["comando"], documento["entorno"], documento["curso"]) == (
+        "copia",
+        "pruebas",
+        1234,
+    )
+    assert _copias_guardadas(tmp_path) == ["pruebas-20261019-1030.mbz"]
+    ruta = tmp_path / ".tiza" / "copias" / "pruebas-20261019-1030.mbz"
+    assert documento["copia"] == {
+        "curso": "pruebas",
+        "fichero": ".tiza/copias/pruebas-20261019-1030.mbz",
+        "bytes": ruta.stat().st_size,
+        "actividades": {"assign": 1, "forum": 1, "label": 1, "page": 1},
+        "borrada_del_aula": True,
+    }
+    assert len(abrir_copia(ruta).actividades) == 4  # es la copia, entera y legible
+    assert [p["codigo"] for p in documento["pasos"]] == ["LOGIN", "COPIAR", "BORRAR_COPIA"]
+    assert moodle.borradas == [(moodle.copias_hechas[0][1], 1234)]
+    assert [r.entorno for r in presencia.resumenes_copia] == ["pruebas"]
+
+
+def test_copia_cupo(tmp_path):
+    cupo = _cupo()
+    moodle, presencia = MoodleFalso(), PresenciaFalsa()
+    documentos = [_copiar(tmp_path, moodle, presencia, cupo=cupo)[2] for _ in range(4)]
+    assert [d["resultado"] for d in documentos] == ["ok", "ok", "ok", "error"]
+    assert documentos[3]["errores"] == ["CUPO_COPIAS"]
+    assert cupo["copias"] == publicacion.CUPO_COPIAS == 3
+    assert len(presencia.resumenes_copia) == 3  # a la cuarta ni se le pregunta al docente
+    assert (
+        len(_copias_guardadas(tmp_path)) == 3
+    )  # tres copias en el mismo minuto: nombres distintos
+
+
+def test_copia_se_borra_del_aula(tmp_path):
+    moodle = MoodleFalso()
+    _moodle, presencia, documento = _copiar(tmp_path, moodle)
+    assert moodle.borradas == [(moodle.copias_hechas[0][1], 1234)]
+    assert documento["copia"]["borrada_del_aula"] is True
+    assert "COPIA_QUEDA_EN_EL_AULA" not in presencia.codigos()
+    # Si no se puede borrar, la copia sigue siendo buena: se avisa y se dice en el informe.
+    moodle = MoodleFalso()
+    moodle.borrar_copia_falla = True
+    _moodle, presencia, documento = _copiar(tmp_path, moodle)
+    assert documento["resultado"] == "ok" and documento["errores"] == []
+    assert documento["copia"]["borrada_del_aula"] is False
+    assert "COPIA_QUEDA_EN_EL_AULA" in presencia.codigos()
+    assert [p["resultado"] for p in documento["pasos"] if p["codigo"] == "BORRAR_COPIA"] == [
+        "fallo"
+    ]
+
+
+def test_copia_curso_desconocido(tmp_path):
+    moodle = MoodleFalso()
+    for nombre in ("otro", "9999", "pruebas-1", "1234; rm"):
+        _m, presencia, documento = _copiar(tmp_path, moodle, curso=nombre)
+        assert documento["errores"] == ["CURSO_NO_CONFIGURADO"], nombre
+        assert presencia.resumenes_copia == []
+    assert not any(llamada[0] == "hacer_copia" for llamada in moodle.llamadas)
+
+
+def test_copia_del_curso_real_por_nombre_o_por_id(tmp_path):
+    for nombre in ("real", "5678"):
+        _m, presencia, documento = _copiar(tmp_path, curso=nombre)
+        assert (documento["entorno"], documento["curso"]) == ("real", 5678), nombre
+        assert documento["copia"]["curso"] == nombre
+        assert presencia.resumenes_copia[0].entorno == "real"
+
+
+def test_copia_con_varios_reales_pide_el_id(tmp_path):
+    cfg = config.Config(CFG.url, CFG.usuario, {"pruebas": 1234}, reales=(5678, 91))
+    _m, _p, documento = _copiar(tmp_path, curso="real", cfg=cfg)
+    assert documento["errores"] == ["CURSO_AMBIGUO"]
+    _m, _p, documento = _copiar(tmp_path, curso="91", cfg=cfg)
+    assert (documento["entorno"], documento["curso"]) == ("real", 91)
+
+
+def test_copia_sin_curso_de_pruebas(tmp_path):
+    cfg = config.Config(CFG.url, CFG.usuario, {}, sin_pruebas=True, reales=(5678,))
+    _m, _p, documento = _copiar(tmp_path, curso="pruebas", cfg=cfg)
+    assert documento["errores"] == ["SIN_CURSO_PRUEBAS"]
+
+
+@pytest.mark.parametrize("codigo", ["COPIA_NO_PERMITIDA", "COPIA_FALLIDA", "SESION_CADUCADA"])
+def test_copia_que_falla_en_el_aula_da_su_codigo_y_no_deja_nada(tmp_path, codigo):
+    moodle = MoodleFalso()
+    moodle.copia_falla = codigo
+    _m, _p, documento = _copiar(tmp_path, moodle)
+    assert (documento["resultado"], documento["errores"]) == ("error", [codigo])
+    assert "copia" not in documento
+    assert _copias_guardadas(tmp_path) == []
+
+
+def test_copia_demasiado_grande_se_corta_con_el_maximo_de_abrir_copia(tmp_path, monkeypatch):
+    from tiza import copia
+
+    monkeypatch.setattr(copia, "MAX_COPIA", 100)
+    _m, _p, documento = _copiar(tmp_path)
+    assert documento["errores"] == ["COPIA_DEMASIADO_GRANDE"]
+    assert _copias_guardadas(tmp_path) == []
+
+
+def test_copia_que_no_es_una_copia_se_borra_y_da_su_codigo(tmp_path):
+    moodle = MoodleFalso(copia=b"esto no es un .mbz")
+    _m, _p, documento = _copiar(tmp_path, moodle)
+    assert documento["errores"] == ["COPIA_NO_VALIDA"]
+    assert _copias_guardadas(tmp_path) == []
+    assert moodle.copias_en_el_aula == []
+
+
+def test_copia_nunca_sobrescribe_un_fichero_que_ya_esta(tmp_path, monkeypatch):
+    monkeypatch.setattr(publicacion, "datetime", _Reloj)
+    carpeta = tmp_path / ".tiza" / "copias"
+    carpeta.mkdir(parents=True)
+    (carpeta / "pruebas-20261019-1030.mbz").write_bytes(b"del docente")
+    _m, _p, documento = _copiar(tmp_path)
+    assert documento["copia"]["fichero"] == ".tiza/copias/pruebas-20261019-1030-2.mbz"
+    assert (carpeta / "pruebas-20261019-1030.mbz").read_bytes() == b"del docente"
+
+
+def test_copia_con_tiza_enlazada_no_escribe_fuera(tmp_path):
+    fuera = tmp_path / "fuera"
+    fuera.mkdir()
+    carpeta = tmp_path / "asignatura"
+    carpeta.mkdir()
+    enlace_simbolico(carpeta / ".tiza", fuera)
+    moodle = MoodleFalso()
+    _m, _p, documento = _copiar(carpeta, moodle)
+    assert documento["errores"] == ["COPIA_NO_ESCRIBIBLE"]
+    assert list(fuera.iterdir()) == []
+    assert not any(llamada[0] == "hacer_copia" for llamada in moodle.llamadas)
+
+
+def test_copia_si_el_agente_ya_no_espera_no_se_hace(tmp_path):
+    cupo = _cupo()
+    moodle, presencia, documento = _copiar(tmp_path, cupo=cupo, vigente=lambda: False)
+    assert documento["errores"] == ["PETICION_RETIRADA"]
+    assert "PETICION_RETIRADA" in presencia.codigos()
+    assert not any(llamada[0] == "hacer_copia" for llamada in moodle.llamadas)
+    assert cupo["copias"] == 0
+
+
+def test_copia_no_deja_ningun_texto_de_moodle_en_el_informe(tmp_path):
+    moodle = MoodleFalso(cursos=[{"id": 1234, "nombre": "Curso <b>secreto</b>"}])
+    _m, _p, documento = _copiar(tmp_path, moodle, nombres={1234: "Curso <b>secreto</b>"})
+    assert "secreto" not in str(documento)

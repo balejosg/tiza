@@ -21,6 +21,8 @@ from dobles import (
     MoodleFalso,
     PresenciaFalsa,
     aula_con_tarea,
+    configurar_aula,
+    copia_sintetica,
     dejar_peticion,
     enlace_simbolico,
     peticion,
@@ -1027,7 +1029,7 @@ class TestBuzonEntero:
         assert (fichero["tipo"], fichero["nombre"], fichero["cmid"]) == ("pagina", "pagina.md", 100)
         doc = contenido.cargar(carpeta / "pagina.md")
         assert contenido.hash_documento(doc) in abierta.verificados
-        assert abierta.cupo == {"pruebas": 1}
+        assert abierta.cupo["pruebas"] == 1
         assert "PUBLICANDO_EN_PRUEBAS" in presencia.codigos()
         assert (carpeta / ".tiza" / "informe.json").is_file()
 
@@ -1066,3 +1068,88 @@ class TestBuzonEntero:
         assert respuesta["errores"] == ["PETICION_RETIRADA"]
         assert "PETICION_RETIRADA" in presencia.codigos()
         assert respuesta["ficheros"] == []
+
+
+class TestCopiaEnLaSesion:
+    """``tiza copia`` por el buzón entero: petición del agente, confirmación y copia en la carpeta."""
+
+    def test_la_copia_cruza_el_buzon_y_queda_en_tiza_copias(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        dir_tiza = carpeta / ".tiza"
+        presencia = PresenciaFalsa()
+        moodle = MoodleFalso()
+        abierta = sesion_abierta.SesionAbierta(
+            moodle, CFG, carpeta, presencia, nombres={1234: "Pruebas de Mates"}
+        )
+
+        respuesta = cruzar_el_buzon(dir_tiza, abierta.atender, agente.peticion_copia("pruebas"))
+
+        assert respuesta["resultado"] == "ok" and respuesta["comando"] == "copia"
+        copia = respuesta["copia"]
+        assert copia["actividades"] == {"assign": 1, "forum": 1, "label": 1, "page": 1}
+        assert (carpeta / copia["fichero"]).is_file()
+        assert copia["borrada_del_aula"] is True and moodle.copias_en_el_aula == []
+        assert abierta.cupo["copias"] == 1
+        [resumen] = presencia.resumenes_copia
+        assert (resumen.curso, resumen.nombre_curso) == (1234, "Pruebas de Mates")
+        assert presencia.codigos()[-1] == "RESULTADO"
+        assert (dir_tiza / "informe.json").is_file()
+        assert json.loads((dir_tiza / "informe.json").read_text(encoding="utf-8"))["copia"] == copia
+
+    def test_la_copia_se_pide_con_el_curso_real_y_se_importa_despues(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
+        carpeta = preparar_carpeta(tmp_path)
+        configurar_aula(carpeta, {"pruebas": 1234, "real": 5678})
+        abierta = sesion_abierta.SesionAbierta(
+            MoodleFalso(copia=copia_sintetica(curso=5678, servidor=CFG.url)),
+            CFG,
+            carpeta,
+            PresenciaFalsa(),
+        )
+        respuesta = cruzar_el_buzon(
+            carpeta / ".tiza", abierta.atender, agente.peticion_copia("real")
+        )
+        assert respuesta["entorno"] == "real" and respuesta["curso"] == 5678
+        # La copia queda donde ``tiza importar`` la admite.
+        resumen = agente.importar(respuesta["copia"]["fichero"], carpeta)
+        assert resumen.curso == 5678 and resumen.actividades == 4
+
+    def test_el_docente_dice_que_no_y_no_se_hace_nada(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        moodle = MoodleFalso()
+        abierta = sesion_abierta.SesionAbierta(moodle, CFG, carpeta, PresenciaFalsa(copia=False))
+        respuesta = cruzar_el_buzon(
+            carpeta / ".tiza", abierta.atender, agente.peticion_copia("pruebas")
+        )
+        assert (respuesta["resultado"], respuesta["errores"]) == ("abortado", ["COPIA_RECHAZADA"])
+        assert not any(llamada[0] == "hacer_copia" for llamada in moodle.llamadas)
+        assert not (carpeta / ".tiza" / "copias").exists()
+
+    def test_el_agente_retira_la_peticion_y_la_sesion_no_copia(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        dir_tiza = carpeta / ".tiza"
+        peticion_agente = agente.peticion_copia("pruebas")
+        ruta = buzon.carpeta_buzon(dir_tiza) / f"{peticion_agente['id']}{buzon.SUFIJO_PETICION}"
+
+        class PresenciaQueRetiraLaCopia(PresenciaFalsa):
+            def confirmar_copia(self, resumen):
+                ruta.unlink()  # el agente deja de esperar antes de que el docente responda
+                return super().confirmar_copia(resumen)
+
+        presencia = PresenciaQueRetiraLaCopia()
+        moodle = MoodleFalso()
+        abierta = sesion_abierta.SesionAbierta(moodle, CFG, carpeta, presencia)
+
+        respuesta = cruzar_el_buzon(dir_tiza, abierta.atender, peticion_agente)
+
+        assert respuesta["errores"] == ["PETICION_RETIRADA"]
+        assert "PETICION_RETIRADA" in presencia.codigos()
+        assert not any(llamada[0] == "hacer_copia" for llamada in moodle.llamadas)
+        assert abierta.cupo["copias"] == 0
+
+    def test_un_curso_que_no_es_de_tiza_toml_da_el_error_de_curso(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        documento = atender(
+            agente.peticion_copia("otro"), MoodleFalso(), CFG, carpeta, PresenciaFalsa()
+        )
+        assert documento["errores"] == ["CURSO_NO_CONFIGURADO"]

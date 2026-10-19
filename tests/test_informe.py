@@ -503,3 +503,75 @@ def test_resumen_lectura_esquema_cerrado():
     with pytest.raises(ErrorInforme):
         informe.validar_lectura({**resumen, "fichero": "a<b>.docx"})
     assert informe.Lectura(**resumen).a_dict() == resumen
+
+
+# --- La copia que hace «tiza copia» ----------------------------------------------------
+
+
+def _copia_hecha(**cambios) -> informe.CopiaHecha:
+    datos = {
+        "curso": "pruebas",
+        "fichero": ".tiza/copias/pruebas-20261019-1030.mbz",
+        "bytes": 2048,
+        "actividades": {"page": 3, "assign": 1},
+        "borrada_del_aula": True,
+    }
+    datos.update(cambios)
+    return informe.CopiaHecha(**datos)
+
+
+def test_el_informe_de_copia_lleva_la_copia_y_valida():
+    documento = crear("copia", "ok", [Paso("COPIAR", detalle="2048 bytes")], copia=_copia_hecha())
+    validar(documento)
+    assert documento["copia"]["actividades"] == {"assign": 1, "page": 3}
+    assert any(
+        "Copia pruebas: .tiza/copias/pruebas-20261019-1030.mbz" in l for l in resumen(documento)
+    )
+    sin = crear("copia", "error", [], [], ["COPIA_NO_PERMITIDA"])
+    assert "copia" not in sin
+    validar(sin)
+
+
+def test_solo_el_informe_de_copia_lleva_copia():
+    with pytest.raises(ErrorInforme) as exc:
+        crear("publicar", "ok", [], copia=_copia_hecha())
+    assert exc.value.codigo == "CAMPO_NO_PERMITIDO"
+    documento = crear("copia", "ok", [], copia=_copia_hecha())
+    documento["comando"] = "publicar"
+    with pytest.raises(ErrorInforme):
+        validar(documento)
+
+
+@pytest.mark.parametrize(
+    "cambios",
+    [
+        {"fichero": "/etc/passwd"},
+        {"fichero": "../fuera.mbz"},
+        {"fichero": "a\\b.mbz"},
+        {"fichero": ".tiza/copias/<b>.mbz"},
+        {"curso": "pruebas<script>"},
+        {"curso": ""},
+        {"bytes": -1.5},
+        {"bytes": None},
+        {"actividades": {"Page": 1}},
+        {"actividades": {"page": "3"}},
+        {"actividades": {"page; rm": 1}},
+        {"borrada_del_aula": "si"},
+    ],
+)
+def test_la_copia_hecha_rechaza_valores_fuera_del_esquema(cambios):
+    with pytest.raises(ErrorInforme):
+        _copia_hecha(**cambios)
+
+
+def test_la_copia_del_informe_es_un_esquema_cerrado():
+    documento = crear("copia", "ok", [], copia=_copia_hecha())
+    documento["copia"]["texto_de_moodle"] = "hola"
+    with pytest.raises(ErrorInforme) as exc:
+        validar(documento)
+    assert exc.value.codigo == "CAMPO_NO_PERMITIDO"
+    documento = crear("copia", "ok", [], copia=_copia_hecha())
+    del documento["copia"]["bytes"]
+    with pytest.raises(ErrorInforme) as exc:
+        validar(documento)
+    assert exc.value.codigo == "CAMPO_FALTANTE"

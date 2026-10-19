@@ -14,6 +14,7 @@ import dataclasses
 import hashlib
 import html
 import json
+import os
 import re
 import shutil
 import tempfile
@@ -21,7 +22,7 @@ import time
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import unquote, urljoin, urlsplit
 
 import requests
 from bs4 import BeautifulSoup
@@ -47,10 +48,12 @@ from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
 __all__ = [
     "AulaVirtual",
+    "CopiaDescargada",
     "ErrorPublicacion",
     "Moodle",
     "autenticar",
     "asegurar_secciones",
+    "aula_deja_copiar",
     "autoprueba",
     "aplicar_itinerario",
     "fechas_esperadas",
@@ -83,6 +86,35 @@ PAUSA_POR_DEFECTO = 0.4
 # (unas 50 seguidas; repone ~1 cada 5 s, espiga 6). Si no basta, AULA_PIDE_ESPERA.
 ESPERAS_LIMITE_BORRADORES = (5.0, 10.0, 20.0, 40.0)
 TIEMPO_ESPERA = 30  # segundos por petición: un aula que no responde no cuelga la sesión
+
+# Copia de seguridad del curso (espiga 7, CT 130): es síncrona y rápida (42 MB en menos de
+# 12 s); el tope de espera para cada etapa, para que aparezca en el área privada y para la
+# descarga es de 10 minutos.
+ESPERA_COPIA = 600.0
+PASO_ESPERA_COPIA = 10.0  # entre dos miradas al área privada, mientras la copia no aparece
+MAX_ETAPAS_COPIA = 8  # backup.php tiene 4 etapas; más es que el formulario no es el esperado
+TROZO_COPIA = 1024 * 1024
+# Ajustes del formulario de copia que pueden llevar datos del alumnado: siempre a 0 (espiga 7).
+AJUSTES_DE_USUARIO_COPIA = frozenset(
+    {
+        "users",
+        "anonymize",
+        "role_assignments",
+        "comments",
+        "badges",
+        "calendarevents",
+        "userscompletion",
+        "logs",
+        "grade_histories",
+        "xapistate",
+        "groups",
+    }
+)
+_AJUSTE_RAIZ = "setting_root_"
+_USERINFO = re.compile(r"\Asetting_(?:section|activity)_.+_userinfo\Z")
+_ACCION_COPIA = re.compile(r"backup\.php")
+_ACCION_EDICION_COPIAS = re.compile(r"backupfilesedit\.php")
+_BOTONES_QUE_NO_AVANZAN = frozenset({"cancel", "previous"})
 
 # Fechas del formulario de las actividades con fechas, para releerlas: los campos
 # de una tarea y los de un cuestionario (nombres del Moodle en español, arriba).
@@ -216,6 +248,13 @@ class _SesionQueAnota:
         return self.ultima
 
 
+class CopiaDescargada(NamedTuple):
+    """Lo que devuelve ``hacer_copia``: los bytes escritos y el nombre que tiene en el aula."""
+
+    bytes: int
+    nombre: str  # el nombre propio, en la zona de copias privadas del docente en Moodle
+
+
 class ErrorPublicacion(Exception):
     """Error de publicación con un código estable y sin texto de Moodle."""
 
@@ -296,6 +335,12 @@ class AulaVirtual(Protocol):
 
     def h5p_tiene_intentos(self, cmid: int) -> bool: ...
 
+    def puede_copiar(self, curso_id: int) -> bool: ...
+
+    def hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada: ...
+
+    def borrar_copia(self, nombre: str, curso_id: int) -> None: ...
+
 
 class Moodle:
     """Adaptador fino sobre python-moodle con salida reducida a códigos."""
@@ -313,6 +358,7 @@ class Moodle:
         self.sesskey = sesskey
         self._pausa = pausa
         self._dormir = dormir
+        self._nombres_de_copia: set[str] = set()  # los que ya usó esta sesión del aula
 
     def _esperar(self) -> None:
         """Peticiones secuenciales con una pausa corta."""
@@ -972,6 +1018,310 @@ class Moodle:
         embed = self._reducir("ERROR_CONSULTA", self.sesion.get, destino, timeout=TIEMPO_ESPERA)
         self._reducir("ERROR_CONSULTA", embed.raise_for_status)
         return getattr(embed, "text", "") or ""
+
+    # --- Copia de seguridad del curso (sin usuarios) -------------------------
+
+    def puede_copiar(self, curso_id: int) -> bool:
+        """¿Ve el docente el formulario de copia del curso? Solo lectura (una carga de la página).
+
+        Falso si el aula responde sin el formulario (falta el permiso de copia). Solo sale un
+        sí o un no; el texto de Moodle no sale de aquí.
+        """
+        self._esperar()
+        pagina = self._reducir(
+            "ERROR_CONSULTA",
+            self.sesion.get,
+            f"{self.base_url}/backup/backup.php",
+            params={"id": curso_id},
+            timeout=TIEMPO_ESPERA,
+        )
+        if getattr(pagina, "status_code", 0) != 200:
+            return False
+        return _formulario_de(getattr(pagina, "text", "") or "", _ACCION_COPIA) is not None
+
+    def hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada:
+        """Hace la copia del curso sin datos de usuario y la descarga en ``destino``.
+
+        Sigue las etapas de ``backup/backup.php`` como el navegador, con todos los ajustes de
+        usuario forzados a 0 y un nombre propio y único para el fichero; busca la copia nueva
+        en la zona de copias privadas del docente y la descarga por trozos, cortando en
+        ``maximo`` bytes. Si algo falla, no deja ``destino`` a medias. ``COPIA_NO_PERMITIDA`` si
+        el aula no da el formulario; ``COPIA_FALLIDA`` si la copia no aparece o la descarga no
+        acaba en 10 minutos; ``COPIA_DEMASIADO_GRANDE`` si pasa de ``maximo``.
+        """
+        try:
+            return self._hacer_copia(curso_id, destino, maximo)
+        except BaseException:
+            try:
+                Path(destino).unlink()
+            except OSError:
+                pass
+            raise
+
+    def _hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada:
+        antes = self._copias_en_el_area(curso_id)
+        nombre = self._nombre_unico_de_copia(curso_id, {nombre for nombre, _ in antes})
+        self._esperar()
+        pagina = self._reducir(
+            "COPIA_FALLIDA",
+            self.sesion.get,
+            f"{self.base_url}/backup/backup.php",
+            params={"id": curso_id},
+            timeout=TIEMPO_ESPERA,
+        )
+        formulario = (
+            _formulario_de(getattr(pagina, "text", "") or "", _ACCION_COPIA)
+            if getattr(pagina, "status_code", 0) == 200
+            else None
+        )
+        if formulario is None:
+            if not self.sesion_viva():
+                raise ErrorPublicacion("SESION_CADUCADA")
+            raise ErrorPublicacion("COPIA_NO_PERMITIDA")
+        for _ in range(MAX_ETAPAS_COPIA):
+            envio = _envio_de_copia(formulario, nombre)
+            if envio is None:
+                raise ErrorPublicacion("COPIA_FALLIDA")  # un formulario sin botón para seguir
+            self._esperar()
+            pagina = self._reducir(
+                "COPIA_FALLIDA",
+                self.sesion.post,
+                f"{self.base_url}/backup/backup.php",
+                data=envio,
+                timeout=ESPERA_COPIA,
+            )
+            if getattr(pagina, "status_code", 200) >= 400:
+                raise ErrorPublicacion("COPIA_FALLIDA")  # el aula respondió con una página de error
+            formulario = _formulario_de(getattr(pagina, "text", "") or "", _ACCION_COPIA)
+            if formulario is None:
+                break  # sin más etapas: la copia está hecha
+        else:
+            raise ErrorPublicacion("COPIA_FALLIDA")
+        enlace = None
+        for intento in range(int(ESPERA_COPIA / PASO_ESPERA_COPIA) + 1):
+            if intento:
+                self._dormir(PASO_ESPERA_COPIA)
+            enlace = next(
+                (url for n, url in self._copias_en_el_area(curso_id) if n == nombre), None
+            )
+            if enlace is not None:
+                break
+        if enlace is None:
+            raise ErrorPublicacion("COPIA_FALLIDA")
+        try:
+            escritos = self._descargar_copia(enlace, Path(destino), maximo)
+        except BaseException:
+            # Una copia que no se pudo traer (demasiado grande, cortada…) no se queda en el aula.
+            try:
+                self.borrar_copia(nombre, curso_id)
+            except ErrorPublicacion:
+                pass
+            raise
+        return CopiaDescargada(escritos, nombre)
+
+    def _nombre_unico_de_copia(self, curso_id: int, en_el_area: set[str]) -> str:
+        """``tiza-<curso>-<epoch>-nu.mbz``; con un sufijo si ya existe (dos en el mismo segundo).
+
+        Sin un nombre propio, Moodle nombra la copia con la hora y el minuto y dos copias seguidas
+        se pisan (espiga 7).
+        """
+        base = f"tiza-{curso_id}-{int(time.time())}"
+        nombre, repeticion = f"{base}-nu.mbz", 1
+        while nombre in en_el_area or nombre in self._nombres_de_copia:
+            repeticion += 1
+            nombre = f"{base}-{repeticion}-nu.mbz"
+        self._nombres_de_copia.add(nombre)
+        return nombre
+
+    def _copias_en_el_area(self, curso_id: int) -> list[tuple[str, str]]:
+        """(nombre, enlace) de cada copia de la zona de copias privadas del docente."""
+        self._esperar()
+        pagina = self._reducir(
+            "COPIA_FALLIDA",
+            self.sesion.get,
+            f"{self.base_url}/backup/restorefile.php",
+            params={"contextid": self.contexto(curso_id)},
+            timeout=TIEMPO_ESPERA,
+        )
+        sopa = BeautifulSoup(getattr(pagina, "text", "") or "", "html.parser")
+        salida: list[tuple[str, str]] = []
+        for enlace in sopa.find_all("a", href=True):
+            href = str(enlace["href"])
+            if ".mbz" in href and "pluginfile.php" in href and "/user/backup/" in href:
+                nombre = unquote(href.rsplit("/", 1)[-1].split("?")[0])
+                salida.append((nombre, urljoin(f"{self.base_url}/", href)))
+        return salida
+
+    def _descargar_copia(self, enlace: str, destino: Path, maximo: int) -> int:
+        """Descarga por trozos; corta al pasar de ``maximo`` bytes o de ``ESPERA_COPIA`` segundos."""
+        self._esperar()
+        respuesta = self._reducir(
+            "COPIA_FALLIDA", self.sesion.get, enlace, stream=True, timeout=TIEMPO_ESPERA
+        )
+        try:
+            if getattr(respuesta, "status_code", 0) != 200:
+                raise ErrorPublicacion("COPIA_FALLIDA")
+            largo = (getattr(respuesta, "headers", None) or {}).get("Content-Length", "")
+            if str(largo).isdigit() and int(largo) > maximo:
+                raise ErrorPublicacion("COPIA_DEMASIADO_GRANDE")
+            limite = time.monotonic() + ESPERA_COPIA
+            escritos = 0
+            banderas = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+            banderas |= getattr(os, "O_BINARY", 0)
+            descriptor = os.open(destino, banderas, 0o600)  # no sigue un enlace puesto en su lugar
+            with os.fdopen(descriptor, "wb") as fichero:
+                try:
+                    for trozo in respuesta.iter_content(chunk_size=TROZO_COPIA):
+                        if not trozo:
+                            continue
+                        escritos += len(trozo)
+                        if escritos > maximo:
+                            raise ErrorPublicacion("COPIA_DEMASIADO_GRANDE")
+                        if time.monotonic() > limite:
+                            raise ErrorPublicacion("COPIA_FALLIDA")
+                        fichero.write(trozo)
+                except ERRORES_MOODLE as exc:
+                    raise self._error("COPIA_FALLIDA", exc) from exc
+            return escritos
+        finally:
+            cerrar = getattr(respuesta, "close", None)
+            if callable(cerrar):
+                cerrar()
+
+    def borrar_copia(self, nombre: str, curso_id: int) -> None:
+        """Quita la copia ``nombre`` de la zona de copias privadas del docente (espiga 7).
+
+        Abre ``backup/backupfilesedit.php`` (su gestor de ficheros es un área de borrador), borra
+        el fichero con ``draftfiles_ajax.php?action=delete`` y guarda el formulario. Después mira
+        que ya no esté: si sigue, ``ERROR_BORRADO``. Si ya no estaba, no hace nada.
+        """
+        presente = next(
+            ((n, url) for n, url in self._copias_en_el_area(curso_id) if n == nombre), None
+        )
+        if presente is None:
+            return
+        contexto_usuario = re.search(r"pluginfile\.php/(\d+)/user/backup/", presente[1])
+        if contexto_usuario is None:
+            raise ErrorPublicacion("ERROR_BORRADO")
+        contexto_curso = self.contexto(curso_id)
+        self._esperar()
+        pagina = self._reducir(
+            "ERROR_BORRADO",
+            self.sesion.get,
+            f"{self.base_url}/backup/backupfilesedit.php",
+            params={
+                "currentcontext": contexto_curso,
+                "contextid": contexto_usuario.group(1),
+                "filearea": "backup",
+                "component": "user",
+                "returnurl": f"{self.base_url}/backup/restorefile.php?contextid={contexto_curso}",
+            },
+            timeout=TIEMPO_ESPERA,
+        )
+        formulario = _formulario_de(getattr(pagina, "text", "") or "", _ACCION_EDICION_COPIAS)
+        if formulario is None:
+            raise ErrorPublicacion("ERROR_BORRADO")
+        pares = _campos_de_formulario(formulario)
+        gestor = next((valor for campo, valor in pares if campo.endswith("filemanager")), None)
+        if gestor is None:
+            raise ErrorPublicacion("ERROR_BORRADO")
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_BORRADO",
+            self.sesion.post,
+            f"{self.base_url}/repository/draftfiles_ajax.php",
+            params={"action": "delete"},
+            data={"sesskey": self.sesskey, "itemid": gestor, "filepath": "/", "filename": nombre},
+            timeout=TIEMPO_ESPERA,
+        )
+        try:
+            borrado = (
+                getattr(respuesta, "status_code", 0) == 200 and "error" not in respuesta.json()
+            )
+        except (ValueError, TypeError):
+            borrado = False
+        if not borrado:
+            raise ErrorPublicacion("ERROR_BORRADO")
+        self._esperar()
+        self._reducir(
+            "ERROR_BORRADO",
+            self.sesion.post,
+            f"{self.base_url}/backup/backupfilesedit.php",
+            data=[*pares, ("submitbutton", "1")],
+            timeout=TIEMPO_ESPERA,
+        )
+        if any(n == nombre for n, _ in self._copias_en_el_area(curso_id)):
+            raise ErrorPublicacion("ERROR_BORRADO")
+
+
+def _formulario_de(html: str, accion: re.Pattern[str]) -> Any:
+    """El formulario de la página cuya acción cumple ``accion``, o ``None``."""
+    return BeautifulSoup(html, "html.parser").find("form", attrs={"action": accion})
+
+
+def _campos_de_formulario(formulario: Any) -> list[tuple[str, str]]:
+    """Los campos que enviaría un navegador (sin botones), en su orden y con su valor actual."""
+    pares: list[tuple[str, str]] = []
+    for campo in formulario.find_all(["input", "select", "textarea"]):
+        nombre = campo.get("name")
+        if not nombre:
+            continue
+        tipo = campo.get("type", "")
+        if campo.name == "select":
+            opcion = campo.find("option", selected=True) or campo.find("option")
+            if opcion is not None:
+                pares.append((nombre, opcion.get("value", "")))
+        elif tipo in ("checkbox", "radio"):
+            if campo.has_attr("checked") and not campo.has_attr("disabled"):
+                pares.append((nombre, campo.get("value", "1")))
+        elif tipo in ("submit", "button", "reset", "image", "file"):
+            continue
+        elif campo.name == "textarea":
+            pares.append((nombre, campo.text or ""))
+        else:
+            pares.append((nombre, campo.get("value", "")))
+    return pares
+
+
+def _es_ajuste_de_usuario(nombre: str) -> bool:
+    if nombre.startswith(_AJUSTE_RAIZ):
+        return nombre.removeprefix(_AJUSTE_RAIZ) in AJUSTES_DE_USUARIO_COPIA
+    return bool(_USERINFO.match(nombre))
+
+
+def _envio_de_copia(formulario: Any, nombre_fichero: str) -> list[tuple[str, str]] | None:
+    """Lo que se envía en una etapa de la copia, o ``None`` si el formulario no avanza.
+
+    Todos los ajustes de usuario van a 0 (también los bloqueados o ya marcados: cada uno sale
+    una sola vez, con ese valor) y el nombre del fichero es el propio. El botón es el de
+    ``submitbutton`` o, si no, el primero que no sea «cancelar» ni «anterior».
+    """
+    pares: list[tuple[str, str]] = []
+    vistos: set[str] = set()
+    for campo, valor in _campos_de_formulario(formulario):
+        if _es_ajuste_de_usuario(campo):
+            if campo not in vistos:
+                pares.append((campo, "0"))
+                vistos.add(campo)
+        elif campo == f"{_AJUSTE_RAIZ}filename":
+            pares.append((campo, nombre_fichero))
+        else:
+            pares.append((campo, valor))
+    # Un ajuste de usuario que el formulario trae solo como casilla (marcada o no) también va a 0.
+    for campo in formulario.find_all("input", attrs={"type": "checkbox"}):
+        nombre = campo.get("name") or ""
+        if _es_ajuste_de_usuario(nombre) and nombre not in vistos:
+            pares.append((nombre, "0"))
+            vistos.add(nombre)
+    botones = [
+        boton.get("name")
+        for boton in formulario.find_all("input", attrs={"type": "submit"})
+        if boton.get("name") and boton.get("name") not in _BOTONES_QUE_NO_AVANZAN
+    ]
+    if not botones:
+        return None
+    pares.append(("submitbutton" if "submitbutton" in botones else botones[0], "1"))
+    return pares
 
 
 def _tiene_campo(contenedor: Any, nombre: str) -> bool:
@@ -1950,6 +2300,23 @@ def aula_dibuja_formulas(moodle: AulaVirtual, curso_id: int) -> bool:
         return True
 
 
+def aula_deja_copiar(moodle: AulaVirtual, curso_id: int) -> bool:
+    """Falso solo si el aula respondió y el docente no ve el formulario de copia del curso.
+
+    Es solo lectura; si no se puede mirar, no se avisa.
+    """
+    try:
+        return moodle.puede_copiar(curso_id)
+    except ErrorPublicacion:
+        return True
+
+
+DETALLE_COPIA_A_MANO = (
+    "el aula no da al docente el formulario de copia del curso: «tiza copia» responderá "
+    "COPIA_NO_PERMITIDA y la copia hay que hacerla a mano, sin usuarios"
+)
+
+
 def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
     """Publica, republica, verifica y borra en el curso de pruebas."""
     pasos: list[informe.Paso] = []
@@ -1969,6 +2336,8 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
         paso("ESTRUCTURA", "ok", f"{len(secciones)} secciones")
         if not aula_dibuja_formulas(moodle, curso_id):
             paso("FORMULAS_NO_DIBUJADAS", "ok", "el aula no carga el motor de fórmulas")
+        if not aula_deja_copiar(moodle, curso_id):
+            paso("COPIA_A_MANO", "ok", DETALLE_COPIA_A_MANO)
         seccion = secciones[0]["numero"]
         with tempfile.TemporaryDirectory(prefix="tiza-autoprueba-") as temporal:
             documentos = _ejemplos(Path(temporal), seccion)

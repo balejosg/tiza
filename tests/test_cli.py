@@ -2029,3 +2029,63 @@ class TestOrdenarEnCli:
         monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
         assert cli.main(["ordenar", "no-existe.md", "--en", "pruebas"]) == 1
         assert leer_informe(tmp_path)["comando"] == "ordenar"
+
+
+class TestCopia:
+    """``tiza copia``: la pide el agente a la sesión del docente; sin sesión no hay modo directo."""
+
+    def test_copia_sin_sesion(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
+        assert cli.main(["copia", "pruebas"]) == 1
+        informe_ = leer_informe(tmp_path)
+        assert (informe_["comando"], informe_["errores"]) == ("copia", ["SIN_SESION"])
+        assert "SIN_SESION" in capsys.readouterr().err
+
+    def test_con_sesion_usa_el_buzon_con_el_comando_copia(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        salida = simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        capturado: dict = {}
+        hecha = informe.CopiaHecha(
+            "pruebas", ".tiza/copias/pruebas-20261019-1030.mbz", 1234, {"page": 3}, True
+        )
+
+        def enviar(dir_tiza, peticion, *a, **k):
+            capturado["peticion"] = peticion
+            return informe.crear("copia", "ok", [], [], [], "pruebas", 1234, hecha)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        assert cli.main(["copia", "pruebas"]) == 0
+        enviada = capturado["peticion"]
+        assert (enviada["comando"], enviada["curso"]) == ("copia", "pruebas")
+        assert enviada["ficheros"] == [] and enviada["entorno"] is None
+        buzon.validar_peticion(enviada)
+        texto = salida.contenido()
+        assert ".tiza/copias/pruebas-20261019-1030.mbz" in texto and "page 3" in texto
+
+    def test_el_error_de_la_sesion_sale_con_su_que_hacer(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        salida = simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        monkeypatch.setattr(
+            buzon,
+            "enviar",
+            lambda *a, **k: informe.crear("copia", "error", [], [], ["COPIA_NO_PERMITIDA"]),
+        )
+        assert cli.main(["copia", "real"]) == 1
+        assert "Qué hacer (COPIA_NO_PERMITIDA)" in salida.contenido()
+
+    def test_sesion_incompatible_lo_explica(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: False)
+        monkeypatch.setattr(buzon, "sesion_incompatible", lambda *a, **k: "0.22.0")
+        assert cli.main(["copia", "pruebas"]) == 1
+        assert leer_informe(tmp_path)["errores"] == ["SESION_INCOMPATIBLE"]
+
+    def test_el_curso_es_obligatorio(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(SystemExit):
+            cli.main(["copia"])
