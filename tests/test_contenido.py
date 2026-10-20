@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -421,6 +422,20 @@ class TestNombreDeLaVista:
         assert destino == tmp_path / ".tiza" / "preview" / "pagina.html"
 
 
+RAIZ_REPO = Path(__file__).resolve().parent.parent
+RAIZ_SKILL = RAIZ_REPO / "src" / "tiza" / "skill" / "tiza"
+# Clases de Bootstrap 5 que no existen en el tema de Moodle 4.5 (que es Bootstrap 4.6).
+CLASE_BOOTSTRAP_5 = re.compile(
+    r"fw-.+|fst-.+|text-bg-.+|rounded-[345]|gap-.+|(g|gx|gy)-.+|d-grid|ratio|ratio-.+|fs-.+"
+)
+ATRIBUTO_CLASS = re.compile(r'class="([^"]*)"')
+BLOQUE_HTML = re.compile(r"^[ \t]*```html[ \t]*\n(.*?)^[ \t]*```", re.MULTILINE | re.DOTALL)
+
+
+def bloques_html(ruta: Path) -> list[str]:
+    return BLOQUE_HTML.findall(ruta.read_text(encoding="utf-8"))
+
+
 class TestEjemplosDelRepo:
     def test_los_ejemplos_cargan_y_tienen_recursos(self):
         raiz = Path(__file__).resolve().parent.parent / "ejemplos"
@@ -472,6 +487,44 @@ class TestEjemplosDelRepo:
             "book",
             "**water**",
         ]
+
+    def test_la_plantilla_con_estilo_pasa_el_filtro(self):
+        raiz = RAIZ_REPO / "ejemplos"
+        doc = cargar(raiz / "pagina-con-estilo.html")
+        assert doc.tipo == "pagina"
+        for marca in ("alert alert-info", "card", "<details", "fa-solid"):
+            assert marca in doc.html, f"la plantilla debería llevar «{marca}»"
+
+    def test_los_fragmentos_de_la_guia_de_estilo_pasan_el_filtro(self):
+        fragmentos = bloques_html(RAIZ_SKILL / "guias" / "estilo.md")
+        assert len(fragmentos) >= 5, "la guía de estilo debería tener al menos 5 fragmentos html"
+        for numero, fragmento in enumerate(fragmentos, 1):
+            try:
+                filtro.analizar(fragmento)
+            except filtro.HtmlPeligroso as exc:
+                pytest.fail(f"el fragmento {numero} de estilo.md no pasa el filtro: {exc.detalle}")
+
+    def test_ni_la_guia_ni_los_ejemplos_usan_clases_de_bootstrap_5_que_no_existen_en_moodle_4_5(
+        self,
+    ):
+        ficheros = [
+            RAIZ_SKILL / "guias" / "estilo.md",
+            *sorted((RAIZ_REPO / "ejemplos").glob("*.html")),
+            *sorted((RAIZ_REPO / "ejemplos" / "unidad").glob("*.html")),
+        ]
+        origenes = [
+            (f.relative_to(RAIZ_REPO).as_posix(), f.read_text(encoding="utf-8")) for f in ficheros
+        ]
+        origenes += [
+            ("src/tiza/skill/tiza/SKILL.md (bloque html)", bloque)
+            for bloque in bloques_html(RAIZ_SKILL / "SKILL.md")
+        ]
+        for nombre, texto in origenes:
+            for atributo in ATRIBUTO_CLASS.findall(texto):
+                for clase in atributo.split():
+                    assert not CLASE_BOOTSTRAP_5.fullmatch(clase), (
+                        f"{nombre}: la clase «{clase}» es de Bootstrap 5 y no existe en el tema de Moodle 4.5"
+                    )
 
 
 class TestHash:
