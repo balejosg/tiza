@@ -105,7 +105,10 @@ Delegación de Protección de Datos te pide un resumen, pásale
   construye un navegador (html5lib), y lo que se publica es ese árbol validado.
   Se admiten las etiquetas de texto, listas, tablas, enlaces, imágenes y
   estructura; `style` solo con propiedades de maquetación (sin `position`,
-  `url()`, valores negativos…); `class` solo de una lista cerrada de Bootstrap; e
+  `url()`, valores negativos…); `class` solo de una lista cerrada de Bootstrap (y, solo en `<i>` y `<span>`, una
+  lista cerrada de 20 iconos de Font Awesome, sin animaciones, apilados, tamaños ni
+  rotaciones: son decorativos y las animaciones distraen sin aportar) con
+  `aria-hidden="true"` como único atributo `aria-*`, también solo en esas dos etiquetas; e
   `<iframe>` solo por `https` desde una lista cerrada de servidores (YouTube,
   Vimeo, Genially, Canva, Wordwall, Educaplay, LearningApps, GeoGebra y PhET),
   que se publican con `sandbox` y, el de YouTube, sin cookies.

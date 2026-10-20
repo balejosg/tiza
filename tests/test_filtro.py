@@ -156,6 +156,136 @@ class TestClases:
         rechaza('<p class="alert\x1balert-info">x</p>')
 
 
+ICONO = "fa-solid fa-lightbulb"
+
+
+class TestIconosFontAwesome:
+    @pytest.mark.parametrize("etiqueta", ["i", "span"])
+    def test_acepta_un_icono_decorativo(self, etiqueta):
+        acepta(f'<{etiqueta} class="{ICONO}" aria-hidden="true"></{etiqueta}>')
+
+    @pytest.mark.parametrize("estilo", ["fa", "fa-solid", "fa-regular", "fa-fw"])
+    def test_acepta_estilo_y_anchura(self, estilo):
+        acepta(f'<i class="{estilo} fa-book" aria-hidden="true"></i>')
+
+    @pytest.mark.parametrize("icono", sorted(filtro.ICONOS_FONT_AWESOME))
+    def test_acepta_cada_icono_de_la_lista(self, icono):
+        acepta(f'<i class="fa-solid {icono}"></i>')
+
+    def test_la_lista_cerrada_tiene_los_veinte_iconos(self):
+        assert len(filtro.ICONOS_FONT_AWESOME) == 20
+        assert "fa-lightbulb" in filtro.ICONOS_FONT_AWESOME
+
+    @pytest.mark.parametrize(
+        "clase",
+        [
+            "fa-bomb",
+            "fa-spin",
+            "fa-beat",
+            "fa-bounce",
+            "fa-fade",
+            "fa-flip",
+            "fa-shake",
+            "fa-pulse",
+            "fa-spin-pulse",
+            "fa-stack",
+            "fa-stack-1x",
+            "fa-stack-2x",
+            "fa-2x",
+            "fa-lg",
+            "fa-rotate-90",
+            "fa-flip-horizontal",
+            "fa-brands",
+            "fa-github",
+            "fas",
+            "far",
+            "fa-lightbulb-o",
+            "FA-SPIN",
+            "Fa-Solid",
+            "fa-",
+        ],
+    )
+    def test_rechaza_lo_que_no_es_de_la_lista(self, clase):
+        detalle = rechaza(f'<i class="fa-solid fa-book {clase}"></i>')
+        assert f"«{clase}»" in detalle
+
+    @pytest.mark.parametrize("etiqueta", ["div", "p", "b", "li"])
+    def test_solo_en_i_y_span(self, etiqueta):
+        assert "«fa-solid»" in rechaza(f'<{etiqueta} class="{ICONO}">x</{etiqueta}>')
+
+    def test_no_vale_en_enlaces(self):
+        assert "«fa-solid»" in rechaza(f'<a href="https://example.org" class="{ICONO}">x</a>')
+        assert "«fa-lightbulb»" in rechaza(
+            '<a href="https://example.org" class="fa-lightbulb">x</a>'
+        )
+
+    @pytest.mark.parametrize("valor", ["false", "True", "TRUE", "", "1", "true ", " true", "yes"])
+    def test_aria_hidden_solo_con_true(self, valor):
+        assert "aria-hidden" in rechaza(f'<i class="{ICONO}" aria-hidden="{valor}"></i>')
+
+    @pytest.mark.parametrize("etiqueta", ["div", "p", "a", "b", "img"])
+    def test_aria_hidden_solo_en_i_y_span(self, etiqueta):
+        assert "aria-hidden" in rechaza(f'<{etiqueta} aria-hidden="true">x</{etiqueta}>')
+
+    @pytest.mark.parametrize(
+        "atributo",
+        [
+            'aria-label="x"',
+            'aria-labelledby="x"',
+            'aria-live="polite"',
+            'aria-expanded="true"',
+            'role="img"',
+        ],
+    )
+    @pytest.mark.parametrize("etiqueta", ["i", "span"])
+    def test_ningun_otro_aria_ni_role(self, etiqueta, atributo):
+        detalle = rechaza(f'<{etiqueta} class="{ICONO}" {atributo}></{etiqueta}>')
+        assert atributo.split("=")[0] in detalle
+
+    def test_se_publica_tal_cual(self):
+        html = f'<p><i aria-hidden="true" class="{ICONO}"></i> Idea</p>'
+        assert filtro.serializar(acepta(html).cuerpo) == html
+
+    @pytest.mark.parametrize(
+        "ataque",
+        [
+            '<i class="fa-solid FA-SPIN"></i>',
+            '<i class="fa-solid\tfa-spin"></i>',
+            '<i class="fa-solid\nfa-spin"></i>',
+            '<i class="fa-solid&#9;fa-spin"></i>',
+            '<i class="fa-solid fa-lightbulb&#x00;fa-spin"></i>',
+            '<i class="fa-solid fa-lightbulb" aria-hidden="true "></i>',
+            '<i class="fa-solid" aria-hidden="true" aria-hidden="false"></i>',
+            '<i class="fa-solid" aria-hidden="false" aria-hidden="true"></i>',
+            '<i class="fa-solid" ARIA-HIDDEN="true"></i>',
+            '<i class="fa-solid" aria-hidden="tr&#117;e"></i>',
+            '<i class="fa-solid" aria-hidden></i>',
+            '<i class="fa-solid" aria-hidden=true onclick=alert(1)></i>',
+            '<i class="fa-solid" aria-hidden="true" aria-label="x"></i>',
+            '<span class="fa-solid fa-spin" aria-hidden="true">x</span>',
+            '<span class="fa-stack"><i class="fa-solid fa-book fa-stack-1x"></i></span>',
+            '<div class="fa-solid fa-book" aria-hidden="true"></div>',
+            '<a href="https://example.org" class="fa-solid fa-book" aria-hidden="true">x</a>',
+            '<i class="fa-solid fa-book" style="animation:spin 1s infinite"></i>',
+            '<i class="fa-solid fa-book" title="</i><script>alert(1)</script>"></i>',
+            '<svg class="fa-solid fa-book" aria-hidden="true"></svg>',
+            '<i class="fa-solid fa-book fa-brands fa-github"></i>',
+            '<i class="fa-solid fa-book" aria-hidden="true"><i class="fas fa-spin"></i></i>',
+        ],
+    )
+    def test_casos_hostiles_con_el_invariante(self, ataque):
+        comprobar_invariante(ataque)
+        comprobar_invariante(f"<p>antes</p>{ataque}<p>después</p>")
+        comprobar_invariante(f"<div>{ataque}</div>")
+
+    def test_los_casos_de_mayusculas_y_espacios_se_rechazan(self):
+        rechaza('<i class="fa-solid FA-SPIN"></i>')
+        rechaza('<i class="fa-solid\tfa-spin"></i>')
+        rechaza(
+            '<i class="fa-solid fa-book" aria-hidden="true" aria-hidden="false" aria-label="x"></i>'
+        )
+
+
 def estilo(css: str, etiqueta: str = "div") -> str:
     """Valida ``<etiqueta style=css>`` y devuelve el style que se publicaría."""
     resultado = acepta(f'<{etiqueta} style="{css}">x</{etiqueta}>')

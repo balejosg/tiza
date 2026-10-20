@@ -99,6 +99,8 @@ ATRIBUTOS_POR_ETIQUETA = {
     "ol": frozenset({"start"}),
     "td": frozenset({"colspan", "rowspan"}),
     "th": frozenset({"colspan", "rowspan", "scope"}),
+    "i": frozenset({"aria-hidden"}),
+    "span": frozenset({"aria-hidden"}),
     "col": frozenset({"span"}),
     "colgroup": frozenset({"span"}),
     "details": frozenset({"open"}),
@@ -202,6 +204,33 @@ _PATRON_CLASE = re.compile(
 _PATRON_CLASE_BOTON = re.compile(rf"\Abtn(?:-sm|-lg|-(?:outline-)?(?:{_COLORES}))?\Z")
 # Solo en <code>: la que pone el Markdown en los bloques de código.
 _PATRON_CLASE_LENGUAJE = re.compile(r"\Alanguage-[A-Za-z0-9_+#.-]{1,40}\Z")
+# Solo en <i> y <span>: iconos de Font Awesome 6 (el aula ya los carga) de una lista cerrada
+# y sin animaciones, apilados, tamaños ni rotaciones; son decorativos (aria-hidden="true").
+ICONOS_FONT_AWESOME = frozenset(
+    {
+        "fa-circle-info",
+        "fa-lightbulb",
+        "fa-triangle-exclamation",
+        "fa-circle-check",
+        "fa-circle-question",
+        "fa-book",
+        "fa-book-open",
+        "fa-pen",
+        "fa-list-check",
+        "fa-bullseye",
+        "fa-clock",
+        "fa-calendar",
+        "fa-link",
+        "fa-video",
+        "fa-download",
+        "fa-star",
+        "fa-flag",
+        "fa-puzzle-piece",
+        "fa-graduation-cap",
+        "fa-arrow-right",
+    }
+)
+_CLASES_FONT_AWESOME = frozenset({"fa", "fa-solid", "fa-regular", "fa-fw"}) | ICONOS_FONT_AWESOME
 _ATRIBUTO_URL = {"a": "href", "img": "src"}
 _DATA_IMAGEN = re.compile(r"\Adata:image/(?:png|jpeg|gif|webp)[;,]", re.IGNORECASE)
 _ESPACIO_DE_NOMBRES_HTML = (None, "http://www.w3.org/1999/xhtml")
@@ -385,6 +414,11 @@ def _validar_atributos(etiqueta: str, atributos: dict) -> None:
                 atributos[clave] = css
             else:
                 del atributos[clave]
+            continue
+        if atributo == "aria-hidden":
+            # Solo el valor exacto (sin espacios): el icono es decorativo.
+            if texto != "true":
+                raise HtmlPeligroso(f"valor no permitido en «aria-hidden» de <{etiqueta}>")
             continue
         patron = _VALORES.get(atributo)
         if patron is not None and not patron.match(texto.strip()):
@@ -620,6 +654,7 @@ def _validar_clases(etiqueta: str, clases: list[str]) -> None:
             or _PATRON_CLASE.match(clase)
             or (etiqueta == "a" and _PATRON_CLASE_BOTON.match(clase))
             or (etiqueta == "code" and _PATRON_CLASE_LENGUAJE.match(clase))
+            or (etiqueta in {"i", "span"} and clase in _CLASES_FONT_AWESOME)
         ):
             continue
         raise HtmlPeligroso(f"clase «{clase}» no permitida en <{etiqueta}>")
