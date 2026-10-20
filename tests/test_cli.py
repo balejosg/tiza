@@ -1295,6 +1295,32 @@ class TestAislar:
         assert global_codex["projects"][str(carpeta.resolve())]["trust_level"] == "trusted"
         assert cli.main(["revisar"]) == 0
 
+    def test_aislar_global_en_windows_no_toca_claude_y_avisa(self, tmp_path, monkeypatch):
+        home = self.preparar(tmp_path, monkeypatch, {"a": 1})
+        monkeypatch.setattr(cli, "_sistema", lambda: "Windows")
+        salida = simular_terminal(monkeypatch)
+        responder(monkeypatch, [])  # no debe preguntar: no hay nada que escribir
+        cli.main(["aislar", "--global"])
+        assert json.loads((home / ".claude" / "settings.json").read_text("utf-8")) == {"a": 1}
+        assert not list((home / ".claude").glob("*.antes-de-tiza-*"))
+        assert "En Windows, Claude Code se aísla por carpeta" in salida.contenido()
+        assert "«tiza aislar»" in salida.contenido()
+
+    def test_aislar_carpeta_en_windows_escribe_el_perfil_sin_sandbox(self, tmp_path, monkeypatch):
+        home, carpeta = self.preparar_proyecto(tmp_path, monkeypatch)
+        monkeypatch.setattr(cli, "_sistema", lambda: "Windows")
+        simular_terminal(monkeypatch)
+        responder(monkeypatch, ["s"])
+        assert cli.main(["aislar"]) == 0
+        proyecto = json.loads((carpeta / ".claude" / "settings.json").read_text("utf-8"))
+        assert "sandbox" not in proyecto
+        assert proyecto["permissions"]["defaultMode"] == "dontAsk"
+        assert proyecto["permissions"]["blockReadsOutsideWorkingDirectories"] is True
+        assert "PowerShell(tiza publicar *)" in proyecto["permissions"]["allow"]
+        assert "Edit(/tiza.toml)" in proyecto["permissions"]["deny"]
+        assert not (home / ".claude" / "settings.json").exists()
+        assert cli.main(["revisar"]) == 0
+
     def test_aislar_crea_opencode_si_no_existe(self, tmp_path, monkeypatch):
         home, carpeta = self.preparar_proyecto(tmp_path, monkeypatch)
         (home / ".config" / "opencode").mkdir(parents=True)

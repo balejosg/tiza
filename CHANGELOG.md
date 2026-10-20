@@ -4,6 +4,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.24.3 — 2026-10-20
+
+### Corregido
+- **En Windows, `tiza aislar` ya no deja a Claude Code sin poder ejecutar comandos**: Claude Code no tiene sandbox en Windows y el bloque que escribía bloqueaba todos los comandos, también en la pestaña Code de Claude Desktop. Ahora aísla con permisos: el agente solo ejecuta los comandos de tiza que necesita y escribe en la carpeta de la asignatura. `tiza revisar` lo comprueba. Sustituye el modo de permisos de la carpeta por `dontAsk`, quita el sandbox y no deja al agente reescribir `.claude/`.
+
+### Cambia
+- **`tiza aislar --global` en Windows ya no aplica el aislamiento de Claude Code**: un modo global sin preguntas afectaría a todos tus proyectos. Hazlo en la carpeta de la asignatura.
+
 ## 0.24.2 — 2026-10-20
 
 ### Corregido

@@ -21,6 +21,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 - Nunca restaures una copia ni generes o edites un `.mbz`.
 - **Sí puedes** ejecutar `tiza normativa` (offline, solo lee datos del paquete), `tiza leer`, `tiza documento`, `tiza rellenar` e `tiza importar` (offline, solo dentro de la carpeta de la asignatura; `tiza documento`, `tiza rellenar` e `tiza importar` nunca sobrescriben un fichero) y `tiza comprobar`, `tiza publicar`, `tiza ordenar`, `tiza estructura` y `tiza copia` (esta, solo con sesión) mientras el docente mantenga abierta una sesión `tiza sesion` en esa carpeta. Sin sesión, fallan con `SIN_SESION`: pide al docente que ejecute `tiza empezar` en su terminal, en la carpeta de la asignatura. Si el detalle dice que estás en un **worktree de git** (por ejemplo, en la app de GitHub Copilot), tu sesión no está en la carpeta de la asignatura: el buzón `.tiza/` vive ahí; cambia a esa carpeta y repite. La contraseña se escribe en la página de entrada de su aula (o en la terminal del docente si no hay ventana), nunca en tu shell.
 - No uses modos sin permisos ("yolo"/bypass) en equipos con la sesión del aula abierta.
+- En Windows, con el aislamiento de tiza, solo puedes ejecutar los comandos de tiza que te tocan. Para leer la carpeta usa tus herramientas de ficheros, no comandos de shell como `Get-Content`. Si un comando aparece denegado, es el aislamiento funcionando: no pidas al docente que lo relaje.
 
 ## Flujo de trabajo
 

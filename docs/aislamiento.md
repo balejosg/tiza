@@ -112,6 +112,8 @@ solo lee los `settings*.json` de esta carpeta.
 
 ## Claude Code
 
+En Windows esta sección no se aplica: mira [«En Windows»](#en-windows).
+
 En `.claude/settings.json` **de la carpeta de la asignatura** (o en
 `~/.claude/settings.json` si prefieres el aislamiento global):
 
@@ -164,8 +166,9 @@ En `.claude/settings.json` **de la carpeta de la asignatura** (o en
   URL del aula) y la de **caché** (ahí están las vistas previas). `denyWrite`
   niega además escribir en ellas: cambiar la configuración o una vista previa
   sería una forma de colarse. `tiza aislar` escribe
-  las rutas de tu sistema (las de este ejemplo son las de Linux; en Windows y
-  macOS serán sus equivalentes; además añade la lista completa de navegadores,
+  las rutas de tu sistema (las de este ejemplo son las de Linux; en macOS serán
+  sus equivalentes; en Windows este bloque no se usa, mira «En Windows»; además
+  añade la lista completa de navegadores,
   correo y almacenes de contraseñas).
 - Ajusta las rutas a tu sistema: `tiza aislar` escribe la lista completa que
   `tiza revisar` espera para tu sistema (además de la de este ejemplo, que es
@@ -188,6 +191,62 @@ En `.claude/settings.json` **de la carpeta de la asignatura** (o en
 - El buzón `.tiza/buzon/` está dentro de tu carpeta de trabajo, así que el
   sandbox no lo bloquea: el agente puede ejecutar `tiza publicar` sin salir de
   él ni abrir conexiones.
+
+### En Windows
+
+En Windows, Claude Code no tiene sandbox: ejecuta los comandos directamente en
+tu equipo. Por eso `tiza aislar` no escribe el bloque `sandbox` de arriba (en
+Windows no aislaría nada y bloquearía los comandos que el agente necesita). En
+su lugar escribe en `.claude/settings.json` de la carpeta de la asignatura un
+**perfil de permisos**:
+
+- el agente trabaja en modo `dontAsk`: Claude Code **deniega sin preguntar**
+  todo lo que no esté permitido. Además, `disableBypassPermissionsMode` impide
+  pasar a un modo sin permisos;
+- solo se permiten los comandos de tiza que el agente necesita (`tiza normativa`,
+  `leer`, `documento`, `rellenar`, `importar`, `copia`, `comprobar`, `publicar`,
+  `ordenar`, `estructura`, `revisar` y `--help`), y solo puede escribir en la
+  carpeta de la asignatura, salvo en `tiza.toml` y en `.claude/` (el agente no
+  reescribe su propio perfil);
+- el agente no lee nada fuera de la carpeta (`blockReadsOutsideWorkingDirectories`).
+  Para leer la carpeta usa sus herramientas de ficheros: los comandos de solo
+  lectura (`Get-ChildItem`, `Get-Content`, `Select-String`…) se deniegan, porque
+  Claude Code los deja pasar en cualquier modo;
+- siguen denegados la lectura de navegadores, correo, Descargas y los almacenes
+  de contraseñas; la lectura y la escritura de la configuración y la caché de
+  tiza; y `WebFetch` hacia el servidor del aula.
+
+Así queda el fichero, abreviado:
+
+```json
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "disableBypassPermissionsMode": "disable",
+    "blockReadsOutsideWorkingDirectories": true,
+    "allow": [ … ],
+    "deny": [ … ]
+  }
+}
+```
+
+Ten en cuenta:
+
+- El límite lo pone Claude Code, no Windows: decide qué programas lanza el
+  agente, no lo que hacen esos programas. Por eso solo se permiten los comandos
+  de tiza, que trabajan sin red o a través del buzón de la sesión.
+- Hace falta Claude Code 2.1.257 o posterior. `tiza revisar` comprueba el perfil
+  en Windows y marca como falta el bloque `sandbox` antiguo, si lo tienes.
+  También marca como falta cualquier permiso de shell añadido a mano y
+  `additionalDirectories`.
+- Si la carpeta de la asignatura está dentro de Descargas, tiza no puede
+  denegar Descargas con una regla: Claude Code no permite reabrir una subcarpeta.
+  El resto de Descargas lo protegen `blockReadsOutsideWorkingDirectories` y los
+  comandos de lectura denegados.
+- Si el agente dice que un comando está denegado, es el aislamiento funcionando.
+  No relajes el perfil para que pueda ejecutarlo.
+- `tiza aislar --global` en Windows no aplica este perfil: un modo `dontAsk`
+  global afectaría a todos tus proyectos. Hazlo en la carpeta de la asignatura.
 
 ## Codex
 

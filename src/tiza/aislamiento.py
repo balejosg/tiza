@@ -1,7 +1,9 @@
 """Aislamiento del agente: comprobar y completar su configuración.
 
-``revisar_*`` solo lee. ``fusionar_*`` solo AÑADE restricciones. Nunca se
-muestra el contenido de los ficheros de ajustes: pueden tener claves de API.
+``revisar_*`` solo lee. ``fusionar_*`` solo AÑADE restricciones; en Windows,
+además, permite los comandos de tiza del agente (imprescindible con ``dontAsk``)
+y quita el sandbox, que allí Claude Code no aplica y bloquea los comandos. Nunca
+se muestra el contenido de los ficheros de ajustes: pueden tener claves de API.
 Reproduce lo que explica docs/aislamiento.md.
 """
 
@@ -14,12 +16,12 @@ import shutil
 import tomllib
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from urllib.parse import urlsplit
 
 import platformdirs
 
-from . import config
+from . import config, rutas
 
 __all__ = [
     "AVISO_GLOBAL",
@@ -35,6 +37,9 @@ __all__ = [
     "fusionar_codex",
     "fusionar_confianza_codex",
     "leer_json",
+    "regla_ruta",
+    "reglas_agente_windows",
+    "reglas_lectura_windows",
     "reglas_webfetch",
     "revisar",
     "revisar_claude",
@@ -76,6 +81,107 @@ def servidor_configurado() -> str | None:
 def reglas_webfetch(servidor: str) -> list[str]:
     """Reglas de Claude Code que bloquean la WebFetch hacia el servidor del aula."""
     return [f"WebFetch(domain:{servidor})"]
+
+
+# En Windows nativo Claude Code no tiene sandbox: el aislamiento lo imponen los permisos
+# (modo ``dontAsk``), así que se permite solo lo que el agente necesita de tiza. Los demás
+# comandos (empezar, sesion, configurar, autoprueba, aislar, actualizar) son del docente.
+_SHELLS = ("PowerShell", "Bash")
+_COMANDOS_AGENTE = (
+    "normativa",
+    "leer",
+    "documento",
+    "rellenar",
+    "importar",
+    "copia",
+    "comprobar",
+    "publicar",
+    "ordenar",
+    "estructura",
+    "revisar",
+)
+_COMANDOS_DOCENTE = ("empezar", "sesion", "configurar", "autoprueba", "aislar", "actualizar")
+# Los comandos de solo lectura integrados se ejecutan sin permiso en cualquier modo: se
+# deniegan para que el agente no lea con ellos fuera de lo que le toca.
+_LECTURA = {
+    "PowerShell": (
+        "Get-ChildItem",
+        "Get-Content",
+        "Get-Item",
+        "Get-ItemProperty",
+        "Select-String",
+        "Test-Path",
+        "Resolve-Path",
+        "Get-FileHash",
+        "Format-Hex",
+        "Get-Acl",
+    ),
+    "Bash": (
+        "ls",
+        "cat",
+        "head",
+        "tail",
+        "grep",
+        "find",
+        "wc",
+        "stat",
+        "du",
+        "diff",
+        "file",
+        "tree",
+    ),
+}
+
+
+def reglas_agente_windows() -> list[str]:
+    """Reglas ``allow`` de Windows: los comandos de tiza del agente y escribir en la carpeta."""
+    reglas: list[str] = []
+    for shell in _SHELLS:
+        for comando in _COMANDOS_AGENTE:
+            reglas += [f"{shell}({config.APP} {comando})", f"{shell}({config.APP} {comando} *)"]
+        reglas.append(f"{shell}({config.APP} --help)")
+    # ``/`` es la carpeta del proyecto en los ajustes de proyecto.
+    return [*reglas, "Edit(/**)"]
+
+
+def reglas_lectura_windows() -> list[str]:
+    """Reglas ``deny`` de Windows para los comandos de solo lectura, con y sin argumentos."""
+    return [
+        regla
+        for shell in _SHELLS
+        for comando in _LECTURA[shell]
+        for regla in (f"{shell}({comando})", f"{shell}({comando} *)")
+    ]
+
+
+def _es_regla_de_shell(regla: object) -> bool:
+    """Una regla que permite ejecutar comandos: ``PowerShell``, ``Bash`` o con paréntesis."""
+    return isinstance(regla, str) and (
+        regla in _SHELLS or any(regla.startswith(f"{shell}(") for shell in _SHELLS)
+    )
+
+
+def regla_ruta(ruta: str) -> str:
+    """Una ruta con la sintaxis de reglas de Claude Code.
+
+    ``~/...`` se queda igual; las absolutas llevan ``//`` delante (``C:\\Users\\x`` es
+    ``//c/Users/x`` y ``/home/x`` es ``//home/x``).
+    """
+    if ruta == "~" or ruta.startswith("~/"):
+        return ruta
+    windows = PureWindowsPath(ruta)
+    if windows.drive.endswith(":"):
+        resto = "/".join(windows.parts[1:])
+        return (
+            f"//{windows.drive[0].lower()}/{resto}".rstrip("/")
+            if resto
+            else f"//{windows.drive[0].lower()}"
+        )
+    if windows.drive:  # ruta de red \\servidor\recurso
+        return "//" + windows.as_posix().lstrip("/")
+    if ruta.startswith("/"):
+        return "/" + ruta
+    return ruta
 
 
 # Lo que un agente sin restricciones podría leer para entrar al aula con la sesión del docente o
@@ -300,6 +406,10 @@ def revisar_claude(
     efectivos = _fusionar_ajustes(ajustes, [datos for _, datos in proyecto])
     sandbox = _seccion(efectivos, "sandbox")
     permisos = _seccion(efectivos, "permissions")
+    if sistema == "Windows":
+        return _revisar_claude_windows(
+            lista, efectivos, proyecto, home=home, carpeta=carpeta, servidor=servidor
+        )
     _comprobar(lista, CLAUDE, sandbox.get("enabled") is True, "sandbox activado")
     _comprobar(
         lista,
@@ -372,21 +482,7 @@ def revisar_claude(
                     "rutas de navegadores o Descargas; quítalas",
                 )
             )
-    if servidor is None:
-        lista.append(
-            Comprobacion(
-                CLAUDE,
-                "aviso",
-                "WebFetch hacia el aula sin comprobar: no se pudo leer el servidor configurado",
-            )
-        )
-    else:
-        _comprobar(
-            lista,
-            CLAUDE,
-            all(regla in _lista(permisos, "deny") for regla in reglas_webfetch(servidor)),
-            f"WebFetch bloqueado hacia {servidor}",
-        )
+    _comprobar_webfetch(lista, permisos, servidor)
     _comprobar(
         lista,
         CLAUDE,
@@ -420,15 +516,198 @@ def revisar_claude(
     )
     if not aporta and not any(c.estado == "falta" for c in lista):
         lista.append(Comprobacion(CLAUDE, "aviso", AVISO_GLOBAL))
-    if sistema == "Windows":
+    return lista
+
+
+def _comprobar_webfetch(lista: list[Comprobacion], permisos: dict, servidor: str | None) -> None:
+    if servidor is None:
         lista.append(
             Comprobacion(
                 CLAUDE,
                 "aviso",
-                "el sandbox de Claude Code no funciona en Windows nativo; usa WSL2 o un usuario del sistema sin acceso al aula",
+                "WebFetch hacia el aula sin comprobar: no se pudo leer el servidor configurado",
             )
         )
+    else:
+        _comprobar(
+            lista,
+            CLAUDE,
+            all(regla in _lista(permisos, "deny") for regla in reglas_webfetch(servidor)),
+            f"WebFetch bloqueado hacia {servidor}",
+        )
+
+
+def _reglas_privadas_windows(sistema: str, reabrir: Sequence[str], home: Path) -> list[str]:
+    """Reglas ``Read`` de navegadores y Descargas, salvo la ruta que contiene la carpeta reabierta."""
+    reglas: list[str] = []
+    for ruta in rutas_privadas(sistema):
+        expandida = _expandir(ruta, home, None)
+        if expandida is not None and any(
+            Path(carpeta).is_relative_to(expandida.resolve()) for carpeta in reabrir
+        ):
+            continue
+        base = regla_ruta(ruta)
+        reglas += [f"Read({base})", f"Read({base}/**)"]
+    return reglas
+
+
+def _reglas_tiza_windows(accion: str) -> list[str]:
+    """Reglas de ``accion`` (``Read`` o ``Edit``) sobre la configuración y la caché de tiza."""
+    reglas: list[str] = []
+    for ruta in rutas_tiza():
+        base = regla_ruta(ruta)
+        reglas += [f"{accion}({base})", f"{accion}({base}/**)"]
+    return reglas
+
+
+def _revisar_claude_windows(
+    lista: list[Comprobacion],
+    efectivos: dict,
+    proyecto: Sequence[tuple[str, dict]],
+    *,
+    home: Path | None,
+    carpeta: Path | None,
+    servidor: str | None,
+) -> list[Comprobacion]:
+    """Windows: sin sandbox, el aislamiento son los permisos (modo ``dontAsk``)."""
+    sandbox = _seccion(efectivos, "sandbox")
+    permisos = _seccion(efectivos, "permissions")
+    deny = _lista(permisos, "deny")
+    allow = _lista(permisos, "allow")
+    modo = permisos.get("defaultMode")
+    _comprobar(lista, CLAUDE, modo == "dontAsk", "solo lo permitido, sin preguntar (modo dontAsk)")
+    _comprobar(
+        lista,
+        CLAUDE,
+        permisos.get("blockReadsOutsideWorkingDirectories") is True,
+        "sin lecturas fuera de la carpeta",
+    )
+    _comprobar(
+        lista,
+        CLAUDE,
+        permisos.get("disableBypassPermissionsMode") == "disable" and modo != "bypassPermissions",
+        "sin modo de permisos desactivados",
+    )
+    sin_permitir = [r for r in reglas_agente_windows() if r not in allow]
+    _comprobar(
+        lista,
+        CLAUDE,
+        not sin_permitir,
+        "comandos de tiza del agente permitidos"
+        + (f" (faltan {len(sin_permitir)} reglas)" if sin_permitir else ""),
+    )
+    de_mas = [r for r in allow if _es_regla_de_shell(r) and r not in reglas_agente_windows()]
+    if de_mas:
+        lista.append(
+            Comprobacion(
+                CLAUDE,
+                "falta",
+                "allow permite comandos que el agente no debe ejecutar; quítalos"
+                f" ({len(de_mas)} reglas)",
+            )
+        )
+    if _lista(permisos, "additionalDirectories"):
+        lista.append(
+            Comprobacion(
+                CLAUDE,
+                "falta",
+                "permissions.additionalDirectories amplía lo que el agente puede leer; quítalo",
+            )
+        )
+    sin_lectura = [r for r in reglas_lectura_windows() if r not in deny]
+    _comprobar(
+        lista,
+        CLAUDE,
+        not sin_lectura,
+        "sin comandos de lectura sueltos"
+        + (f" (faltan {len(sin_lectura)} reglas)" if sin_lectura else ""),
+    )
+    reabrir: list[str] = []
+    if carpeta is not None:
+        reabrir = rutas_reabiertas(home or Path.home(), "Windows", carpeta)
+    sin_privadas = [
+        r
+        for r in _reglas_privadas_windows("Windows", reabrir, home or Path.home())
+        if r not in deny
+    ]
+    _comprobar(
+        lista,
+        CLAUDE,
+        not sin_privadas,
+        "sin lectura de navegadores ni Descargas"
+        + (f" (faltan {len(sin_privadas)} reglas)" if sin_privadas else ""),
+    )
+    sin_leer_tiza = [r for r in _reglas_tiza_windows("Read") if r not in deny]
+    _comprobar(
+        lista,
+        CLAUDE,
+        not sin_leer_tiza,
+        "sin lectura de la configuración ni la caché de tiza"
+        + (f" (faltan {len(sin_leer_tiza)} reglas)" if sin_leer_tiza else ""),
+    )
+    sin_escribir_tiza = [r for r in _reglas_tiza_windows("Edit") if r not in deny]
+    _comprobar(
+        lista,
+        CLAUDE,
+        not sin_escribir_tiza,
+        "sin escritura en la configuración ni la caché de tiza"
+        + (f" (faltan {len(sin_escribir_tiza)} reglas)" if sin_escribir_tiza else ""),
+    )
+    _comprobar(
+        lista,
+        CLAUDE,
+        _regla_fichero_asignatura() in deny,
+        f"sin escritura en {rutas.FICHERO_ASIGNATURA}",
+    )
+    _comprobar(
+        lista,
+        CLAUDE,
+        all(regla in deny for regla in _REGLAS_CLAUDE_WINDOWS),
+        "sin escritura en la configuración del agente (.claude)",
+    )
+    _comprobar_webfetch(lista, permisos, servidor)
+    if sandbox.get("enabled") is True:
+        lista.append(
+            Comprobacion(
+                CLAUDE,
+                "falta",
+                "el sandbox no funciona en Windows y bloquea los comandos; "
+                "ejecuta «tiza aislar» para quitarlo",
+            )
+        )
+    for nombre, datos in proyecto:
+        if (
+            _seccion(datos, "permissions").get("defaultMode") == "bypassPermissions"
+            and modo == "bypassPermissions"
+        ):
+            lista.append(
+                Comprobacion(
+                    CLAUDE,
+                    "falta",
+                    f"{nombre} de esta carpeta desactiva los permisos; quita esa línea",
+                )
+            )
+    aporta = any(_seccion(datos, "permissions") for _, datos in proyecto)
+    if not aporta and not any(c.estado == "falta" for c in lista):
+        lista.append(Comprobacion(CLAUDE, "aviso", AVISO_GLOBAL))
+    lista.append(
+        Comprobacion(
+            CLAUDE,
+            "aviso",
+            "en Windows no hay sandbox: el aislamiento lo imponen los permisos de Claude Code "
+            "(necesita Claude Code 2.1.257 o posterior)",
+        )
+    )
     return lista
+
+
+# ``/`` es la carpeta de la asignatura: el agente no reescribe su propio perfil.
+_REGLAS_CLAUDE_WINDOWS = ("Edit(/.claude)", "Edit(/.claude/**)")
+
+
+def _regla_fichero_asignatura() -> str:
+    """Regla ``Edit`` contra ``tiza.toml``: ``/`` es la carpeta de la asignatura."""
+    return f"Edit(/{rutas.FICHERO_ASIGNATURA})"
 
 
 def _anadir(
@@ -454,14 +733,20 @@ def fusionar_claude(
     reabrir: Sequence[str] = (),
     *,
     servidor: str | None = None,
+    home: Path | None = None,
 ) -> tuple[dict, list[str]]:
     """``reabrir``: la carpeta de la asignatura si está en Descargas (``rutas_reabiertas``).
 
     ``servidor`` es el del aula configurada: con él se añade el bloqueo de red y de
     WebFetch. Sin él (no se pudo leer la configuración), no se añade nada de red.
+    ``home`` (por defecto, el del usuario) solo cuenta en Windows, para saber qué
+    ruta privada contiene la carpeta reabierta.
     """
     nuevo = copy.deepcopy(ajustes)
     cambios: list[str] = []
+    if sistema == "Windows":
+        _fusionar_claude_windows(nuevo, cambios, reabrir, servidor, home or Path.home())
+        return nuevo, cambios
     sandbox = nuevo.setdefault("sandbox", {})
     permisos = nuevo.setdefault("permissions", {})
     if not isinstance(sandbox, dict) or not isinstance(permisos, dict):
@@ -506,6 +791,48 @@ def fusionar_claude(
         # Fija el modo de permisos para que esta capa gane a un global débil.
         permisos["defaultMode"] = "default"
     return nuevo, cambios
+
+
+def _fusionar_claude_windows(
+    nuevo: dict, cambios: list[str], reabrir: Sequence[str], servidor: str | None, home: Path
+) -> None:
+    """Perfil de Windows: sin sandbox (Claude Code no lo aplica allí), con permisos ``dontAsk``."""
+    if "sandbox" in nuevo:
+        if not isinstance(nuevo["sandbox"], dict):
+            raise ErrorAislamiento("AJUSTES_INESPERADOS", "sandbox")
+        del nuevo["sandbox"]
+        cambios.append(
+            "quitar el sandbox: en Windows Claude Code no lo aplica y bloquea los comandos"
+        )
+    permisos = nuevo.setdefault("permissions", {})
+    if not isinstance(permisos, dict):
+        raise ErrorAislamiento("AJUSTES_INESPERADOS", "permissions")
+    anterior = permisos.get("defaultMode")
+    if anterior != "dontAsk":
+        permisos["defaultMode"] = "dontAsk"
+        texto = "denegar sin preguntar lo que no esté permitido (modo dontAsk"
+        if anterior is None:
+            cambios.append(texto + ")")
+        else:
+            cambios.append(f"{texto}, en lugar de «{anterior}»)")
+    if permisos.get("disableBypassPermissionsMode") != "disable":
+        permisos["disableBypassPermissionsMode"] = "disable"
+        cambios.append("impedir el modo de permisos desactivados")
+    if permisos.get("blockReadsOutsideWorkingDirectories") is not True:
+        permisos["blockReadsOutsideWorkingDirectories"] = True
+        cambios.append("impedir leer fuera de la carpeta")
+    _anadir(permisos, ("allow",), reglas_agente_windows(), cambios, "permitir {}")
+    denegar = [
+        *reglas_lectura_windows(),
+        *_reglas_privadas_windows("Windows", reabrir, home),
+        *_reglas_tiza_windows("Read"),
+        *_reglas_tiza_windows("Edit"),
+        _regla_fichero_asignatura(),
+        *_REGLAS_CLAUDE_WINDOWS,
+    ]
+    if servidor is not None:
+        denegar += reglas_webfetch(servidor)
+    _anadir(permisos, ("deny",), denegar, cambios, "denegar {}")
 
 
 CODEX = "Codex"

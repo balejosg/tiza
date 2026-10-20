@@ -77,6 +77,11 @@ Recuérdale que `tiza aislar` es un comando suyo, de su terminal, no tuyo.
 `tiza revisar` es de solo lectura y puedes ejecutarlo para comprobar el
 aislamiento. No sigas hasta que lo confirme.
 
+En Windows, con el aislamiento de tiza, solo puedes ejecutar los comandos de tiza
+que te tocan. Para leer la carpeta usa tus herramientas de ficheros, no comandos
+de shell como `Get-Content`. Si un comando aparece denegado, es el aislamiento
+funcionando: no le pidas al docente que lo relaje.
+
 `tiza normativa` (offline, solo lee datos del paquete) también es tuyo: úsalo
 antes de citar un elemento curricular, no completes de memoria lo que responda
 `NORMATIVA_SIN_DATOS` y no busques normativa en internet.

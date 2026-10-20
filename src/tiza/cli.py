@@ -978,7 +978,13 @@ def _aislar_global(args, servidor: str | None) -> int:
     home, sistema = _home(), _sistema()
     escrituras: list[tuple[Path, str, list[str]]] = []
     try:
-        if (home / ".claude").is_dir():
+        if (home / ".claude").is_dir() and sistema == "Windows":
+            # dontAsk global rompería los demás proyectos y «Edit(/**)» sería relativo a ~/.claude.
+            print(
+                "En Windows, Claude Code se aísla por carpeta: entra en la carpeta de la "
+                "asignatura y ejecuta «tiza aislar»."
+            )
+        elif (home / ".claude").is_dir():
             ruta = aislamiento.ruta_claude(home)
             if ruta.exists() and not ruta.is_file():
                 raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
@@ -1030,6 +1036,7 @@ def _aislar_carpeta(carpeta: Path, servidor: str | None) -> bool | None:
             sistema,
             aislamiento.rutas_reabiertas(home, sistema, carpeta),
             servidor=servidor,
+            home=home,
         )
         if cambios:
             texto = json.dumps(nuevo, ensure_ascii=False, indent=2) + "\n"

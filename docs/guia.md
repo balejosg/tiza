@@ -26,7 +26,7 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
 | `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas y cuestionarios ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
-| `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
+| `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad. En Windows aísla Claude Code con permisos (el agente solo ejecuta los comandos de tiza que le tocan), y `--global` no lo hace en Windows; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
 | `tiza revisar` | agente o docente | Solo lectura: comprueba el aislamiento de esta carpeta y avisa si es global |
 
 Cuando algo falla, `tiza` muestra el código (por ejemplo `SESION_CADUCADA`) y

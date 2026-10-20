@@ -117,7 +117,7 @@ def test_las_rutas_de_tiza_son_la_configuracion_y_la_cache(monkeypatch, tmp_path
     assert len(set(aislamiento.rutas_tiza())) == 2
 
 
-@pytest.mark.parametrize("sistema", sorted(PRIVADAS_ESPERADAS))
+@pytest.mark.parametrize("sistema", ["Darwin", "Linux"])
 def test_claude_niega_leer_y_escribir_las_rutas_de_tiza(sistema):
     nuevo, cambios = aislamiento.fusionar_claude({}, sistema, servidor=SERVIDOR)
     deny_read = nuevo["sandbox"]["filesystem"]["denyRead"]
@@ -258,9 +258,12 @@ class TestClaude:
         assert any("AppData" in r for r in aislamiento.rutas_privadas("Windows"))
         assert "~/.mozilla" in aislamiento.rutas_privadas("Linux")
 
-    def test_windows_avisa_del_sandbox(self):
+    def test_windows_avisa_de_que_el_aislamiento_son_los_permisos(self):
         nuevo, _ = aislamiento.fusionar_claude({}, "Windows")
-        assert any(c.estado == "aviso" for c in aislamiento.revisar_claude(nuevo, "Windows"))
+        avisos = [
+            c.texto for c in aislamiento.revisar_claude(nuevo, "Windows") if c.estado == "aviso"
+        ]
+        assert any("no hay sandbox" in t and "2.1.257" in t for t in avisos)
 
     def test_revisar_tolera_listas_con_elementos_raros(self):
         ajustes = {
@@ -796,3 +799,218 @@ class TestCarpetaEnDescargas:
     def test_opencode_fuera_de_descargas_no_reabre(self):
         reglas = json.loads(aislamiento.contenido_opencode("Linux"))["permissions"]
         assert all(r["effect"] != "allow" or r["action"] == "*" for r in reglas)
+
+
+class TestClaudeWindows:
+    """Windows nativo: Claude Code no tiene sandbox; el aislamiento son los permisos."""
+
+    def perfil(self, ajustes=None, **kwargs):
+        return aislamiento.fusionar_claude(ajustes or {}, "Windows", **kwargs)
+
+    def test_el_perfil_trae_modo_banderas_y_comandos_del_agente(self):
+        nuevo, cambios = self.perfil(servidor=SERVIDOR)
+        permisos = nuevo["permissions"]
+        assert permisos["defaultMode"] == "dontAsk"
+        assert permisos["disableBypassPermissionsMode"] == "disable"
+        assert permisos["blockReadsOutsideWorkingDirectories"] is True
+        assert "sandbox" not in nuevo
+        allow = permisos["allow"]
+        assert allow == aislamiento.reglas_agente_windows()
+        for shell in ("PowerShell", "Bash"):
+            assert f"{shell}(tiza publicar)" in allow
+            assert f"{shell}(tiza publicar *)" in allow
+            assert f"{shell}(tiza --help)" in allow
+        assert "Edit(/**)" in allow
+        assert any("modo dontAsk" in c for c in cambios)
+        assert any("fuera de la carpeta" in c for c in cambios)
+
+    def test_ningun_comando_del_docente_esta_permitido(self):
+        allow = self.perfil()[0]["permissions"]["allow"]
+        for comando in ("empezar", "sesion", "configurar", "autoprueba", "aislar", "actualizar"):
+            assert not any(f"tiza {comando}" in regla for regla in allow)
+        assert not any(regla in allow for regla in ("PowerShell", "Bash", "PowerShell(*)"))
+
+    def test_deniega_lecturas_sueltas_rutas_tiza_y_webfetch(self):
+        deny = self.perfil(servidor=SERVIDOR)[0]["permissions"]["deny"]
+        assert set(aislamiento.reglas_lectura_windows()) <= set(deny)
+        assert "PowerShell(Get-ChildItem)" in deny
+        assert "PowerShell(Get-Content *)" in deny
+        assert "Bash(cat *)" in deny
+        assert "Edit(/tiza.toml)" in deny
+        assert "Edit(/.claude)" in deny
+        assert "Edit(/.claude/**)" in deny
+        assert f"WebFetch(domain:{SERVIDOR})" in deny
+        assert "Read(~/Downloads)" in deny
+        assert "Read(~/Downloads/**)" in deny
+        assert "Read(~/AppData/Local/Google/Chrome/**)" in deny
+        for ruta in aislamiento.rutas_tiza():
+            base = aislamiento.regla_ruta(ruta)
+            for regla in (f"Read({base})", f"Read({base}/**)", f"Edit({base})", f"Edit({base}/**)"):
+                assert regla in deny
+
+    def test_sin_servidor_no_hay_webfetch(self):
+        deny = self.perfil()[0]["permissions"]["deny"]
+        assert not any(regla.startswith("WebFetch") for regla in deny)
+
+    def test_quita_el_sandbox_de_un_perfil_antiguo_y_conserva_lo_demas(self):
+        antiguo, _ = aislamiento.fusionar_claude(
+            {"env": {"ANTHROPIC_API_KEY": "sk-secreta"}, "permissions": {"deny": ["Bash(rm:*)"]}},
+            "Linux",
+            servidor=SERVIDOR,
+        )
+        nuevo, cambios = self.perfil(antiguo, servidor=SERVIDOR)
+        assert "sandbox" not in nuevo
+        assert nuevo["env"] == {"ANTHROPIC_API_KEY": "sk-secreta"}
+        assert "Bash(rm:*)" in nuevo["permissions"]["deny"]
+        assert nuevo["permissions"]["defaultMode"] == "dontAsk"  # sustituye al «default»
+        assert any("quitar el sandbox" in c for c in cambios)
+        assert (
+            "denegar sin preguntar lo que no esté permitido (modo dontAsk, en lugar de «default»)"
+            in cambios
+        )
+        assert antiguo["sandbox"]["enabled"] is True  # no muta la entrada
+
+    def test_borra_sandbox_si_se_queda_vacio(self):
+        nuevo, _ = self.perfil({"sandbox": {"enabled": True, "allowUnsandboxedCommands": False}})
+        assert "sandbox" not in nuevo
+
+    def test_forma_inesperada_no_se_toca(self):
+        for ajustes in ({"sandbox": "sí"}, {"permissions": []}):
+            with pytest.raises(aislamiento.ErrorAislamiento) as exc:
+                self.perfil(ajustes)
+            assert exc.value.codigo == "AJUSTES_INESPERADOS"
+
+    def test_conserva_reglas_del_docente_y_es_idempotente(self):
+        ajustes = {"permissions": {"allow": ["Read"], "deny": ["Bash(rm:*)"]}}
+        nuevo, _ = self.perfil(ajustes, servidor=SERVIDOR)
+        assert nuevo["permissions"]["allow"][0] == "Read"
+        assert nuevo["permissions"]["deny"][0] == "Bash(rm:*)"
+        assert ajustes == {"permissions": {"allow": ["Read"], "deny": ["Bash(rm:*)"]}}
+        otra, cambios = self.perfil(nuevo, servidor=SERVIDOR)
+        assert cambios == []
+        assert otra == nuevo
+
+    def test_carpeta_en_descargas_no_deniega_esa_ruta_pero_si_lo_demas(self, tmp_path):
+        home = tmp_path / "home"
+        carpeta = home / "Downloads" / "IABach"
+        carpeta.mkdir(parents=True)
+        reabrir = aislamiento.rutas_reabiertas(home, "Windows", carpeta)
+        assert reabrir == [str(carpeta.resolve())]
+        nuevo, _ = self.perfil(reabrir=reabrir, home=home)
+        deny = nuevo["permissions"]["deny"]
+        assert "Read(~/Downloads)" not in deny
+        assert "Read(~/Downloads/**)" not in deny
+        assert "Read(~/AppData/Local/Google/Chrome/**)" in deny
+        assert "Edit(/tiza.toml)" in deny
+        ruta = aislamiento.ruta_claude_proyecto(carpeta)
+        ruta.parent.mkdir()
+        ruta.write_text(json.dumps(nuevo), encoding="utf-8")
+        (home / ".claude").mkdir(exist_ok=True)
+        assert faltas(aislamiento.revisar(home, "Windows", carpeta)) == []
+        # Con la carpeta fuera de Descargas, esa ruta sí hace falta.
+        fuera = home / "Asignaturas"
+        fuera.mkdir()
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", home=home, carpeta=fuera))
+        assert textos == ["sin lectura de navegadores ni Descargas (faltan 2 reglas)"]
+
+    @pytest.mark.parametrize(
+        ("ruta", "esperada"),
+        [
+            ("~/Downloads", "~/Downloads"),
+            ("~/AppData/Local/tiza", "~/AppData/Local/tiza"),
+            (r"C:\Users\x\AppData\Local\tiza\tiza", "//c/Users/x/AppData/Local/tiza/tiza"),
+            ("D:/datos/tiza", "//d/datos/tiza"),
+            ("/home/x/.config/tiza", "//home/x/.config/tiza"),
+        ],
+    )
+    def test_regla_ruta(self, ruta, esperada):
+        assert aislamiento.regla_ruta(ruta) == esperada
+
+    def test_revisar_el_perfil_fusionado_no_tiene_faltas(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        comprobaciones = aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR)
+        assert faltas(comprobaciones) == []
+        textos = [c.texto for c in comprobaciones if c.estado == "ok"]
+        assert "solo lo permitido, sin preguntar (modo dontAsk)" in textos
+        assert "comandos de tiza del agente permitidos" in textos
+        assert f"WebFetch bloqueado hacia {SERVIDOR}" in textos
+
+    def test_revisar_un_perfil_antiguo_con_sandbox_falta(self):
+        antiguo, _ = aislamiento.fusionar_claude({}, "Linux", servidor=SERVIDOR)
+        textos = faltas(aislamiento.revisar_claude(antiguo, "Windows", servidor=SERVIDOR))
+        assert any("sandbox" in t and "tiza aislar" in t for t in textos)
+        assert "solo lo permitido, sin preguntar (modo dontAsk)" in textos
+
+    def test_revisar_vacio_falta_todo(self):
+        assert len(faltas(aislamiento.revisar_claude({}, "Windows", servidor=SERVIDOR))) >= 9
+
+    @pytest.mark.parametrize(
+        "regla",
+        [
+            "PowerShell",
+            "Bash(*)",
+            "PowerShell(tiza empezar)",
+            "Bash(tiza sesion *)",
+            "Bash(tiza *)",
+            "PowerShell(tiza e*)",
+            "Bash(curl *)",
+            "PowerShell(Invoke-WebRequest *)",
+            "Bash(python:*)",
+        ],
+    )
+    def test_revisar_allow_con_permisos_de_mas_falta(self, regla):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        nuevo["permissions"]["allow"].append(regla)
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))
+        assert textos == [
+            "allow permite comandos que el agente no debe ejecutar; quítalos (1 reglas)"
+        ]
+
+    def test_revisar_allow_de_shell_en_una_capa_de_proyecto_falta(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        proyecto = [(".claude/settings.local.json", {"permissions": {"allow": ["Bash(curl *)"]}})]
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", proyecto, servidor=SERVIDOR))
+        assert textos == [
+            "allow permite comandos que el agente no debe ejecutar; quítalos (1 reglas)"
+        ]
+
+    def test_revisar_additional_directories_falta(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        nuevo["permissions"]["additionalDirectories"] = ["C:\\Users\\x\\Documents"]
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))
+        assert textos == [
+            "permissions.additionalDirectories amplía lo que el agente puede leer; quítalo"
+        ]
+        nuevo["permissions"]["additionalDirectories"] = []
+        assert faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR)) == []
+
+    def test_revisar_sin_deny_de_claude_falta(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        nuevo["permissions"]["deny"].remove("Edit(/.claude/**)")
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))
+        assert textos == ["sin escritura en la configuración del agente (.claude)"]
+
+    def test_revisar_cuenta_las_reglas_que_faltan(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        nuevo["permissions"]["allow"].remove("Bash(tiza leer)")
+        nuevo["permissions"]["deny"].remove("Edit(/tiza.toml)")
+        nuevo["permissions"]["deny"].remove("Bash(ls *)")
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))
+        assert "comandos de tiza del agente permitidos (faltan 1 reglas)" in textos
+        assert "sin comandos de lectura sueltos (faltan 1 reglas)" in textos
+        assert "sin escritura en tiza.toml" in textos
+
+    def test_revisar_detecta_proyecto_que_activa_bypass(self):
+        bueno, _ = self.perfil(servidor=SERVIDOR)
+        proyecto = [
+            (".claude/settings.local.json", {"permissions": {"defaultMode": "bypassPermissions"}})
+        ]
+        textos = faltas(aislamiento.revisar_claude(bueno, "Windows", proyecto, servidor=SERVIDOR))
+        assert any("settings.local.json" in t for t in textos)
+        assert "sin modo de permisos desactivados" in textos
+
+    def test_revisar_sin_servidor_deja_webfetch_sin_comprobar(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        comprobaciones = aislamiento.revisar_claude(nuevo, "Windows")
+        assert faltas(comprobaciones) == []
+        assert any("WebFetch hacia el aula sin comprobar" in c.texto for c in comprobaciones)
