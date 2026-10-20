@@ -96,8 +96,10 @@ al final, como `[e1] encabezado … [e1] fin` y `[pie1] pie … [pie1] fin`, y s
 tablas se cambian con los mismos ids y operaciones que el cuerpo (`e1.p1`, `pie2.t1.f1.c1`).
 Una parte sin texto no sale. Lo que no cambies, incluido el número de página, se conserva.
 Para cambiar solo el curso o una fecha dentro de un texto con formato, `sustituir` (no
-`reemplazar`): conserva el formato, los tabuladores y los campos. `buscar` va de un solo
-trozo (un tabulador entre dos palabras corta el texto aunque la lectura muestre un espacio).
+`reemplazar`): conserva el formato, los tabuladores y los campos. En un pie con número de
+página (en la lectura sale como un número, p. ej. «54»), usa también `sustituir`: `reemplazar`
+quita el campo del número. `buscar` va de un solo trozo (un tabulador entre dos palabras
+corta el texto aunque la lectura muestre un espacio).
 Si da `TEXTO_NO_ENCONTRADO` o `TEXTO_PARTIDO`, usa `reemplazar` sobre ese id.
 
 Reglas del formato (el agente no ve `docs/`):

@@ -2,9 +2,9 @@
 
 La plantilla se lee una sola vez, con los límites de ``tiza leer``, y se comprueba su
 ``sha256``. Los ids se resuelven con el mismo recorrido que da los ids de la lectura
-(``lectura.word``) y **todo** lo que depende de la plantilla se valida antes de tocar el XML:
-si algo falla no se escribe nada. Después se aplican las operaciones en el orden del YAML
-sobre los elementos ya resueltos (un ``duplicar_tabla`` copia la tabla tal y como esté en ese
+(``lectura.word``). Lo que depende de la plantilla se valida antes de tocar el XML;
+``TEXTO_NO_ENCONTRADO`` y ``TEXTO_PARTIDO`` salen al aplicar ``sustituir``, y tampoco entonces
+se escribe nada si fallan. Después se aplican las operaciones en el orden del YAML sobre los elementos ya resueltos (un ``duplicar_tabla`` copia la tabla tal y como esté en ese
 momento) y el resultado se escribe en un fichero nuevo, sin sobrescribir nunca.
 
 Se conservan los estilos, la numeración y los controles de contenido, y los encabezados y pies

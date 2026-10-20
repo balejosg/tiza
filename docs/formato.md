@@ -299,7 +299,11 @@ Detalles por operación:
   trozos (por un cambio de formato o un campo), `TEXTO_PARTIDO`: usa entonces `reemplazar`.
   En una celda se miran sus párrafos, no las tablas anidadas. Varias `sustituir` sobre el
   mismo id se aplican en orden, cada una sobre el texto que dejó la anterior. Se ignora el
-  texto de respaldo de un cuadro de texto y lo borrado con el control de cambios.
+  texto de respaldo de un cuadro de texto y lo borrado con el control de cambios. Si un
+  cuadro de texto solo tiene texto de respaldo (`mc:Fallback`, sin `mc:Choice`), `tiza leer`
+  lo muestra, pero `sustituir` y `reemplazar` no lo cambian y dan `TEXTO_NO_ENCONTRADO`.
+  En un pie con número de página, `sustituir` y no `reemplazar`: `reemplazar` quita el campo
+  del número.
 - **`insertar_despues`**: tras un párrafo copia su estilo y su formato; tras una tabla, el
   estilo de párrafo normal. Con `estilo` (el nombre que ves en Word o su identificador)
   usa ese estilo; si la plantilla no lo tiene, `ESTILO_INEXISTENTE` con la lista.
