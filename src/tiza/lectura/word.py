@@ -262,8 +262,21 @@ class _Lector:
                 partes.append("-" if nombre == "noBreakHyphen" else " ")
             elif nombre in ("pPr", "rPr", "instrText", "delText"):
                 continue
+            elif nombre == "AlternateContent":  # Choice y Fallback dicen lo mismo: solo una vez
+                alternativa = self._alternativa(hijo)
+                if alternativa is not None:
+                    self._texto(alternativa, partes)
             else:  # r, ins, moveTo, hyperlink, fldSimple, smartTag, sdt, sdtContent…
                 self._texto(hijo, partes)
+
+    @staticmethod
+    def _alternativa(contenido: Any) -> Any | None:
+        """El ``mc:Choice`` de un ``mc:AlternateContent`` (o su ``mc:Fallback`` si no lo hay)."""
+        elegidas: dict[str, Any] = {}
+        for hijo in contenido:
+            if isinstance(hijo.tag, str):
+                elegidas.setdefault(hijo.tag.rsplit("}", 1)[-1], hijo)
+        return elegidas.get("Choice", elegidas.get("Fallback"))
 
     def _parrafo(self, p: Any, id_: str) -> tuple[Bloque, bool]:
         """El bloque del párrafo y si va vacío (sin texto): no se publica si lo está."""

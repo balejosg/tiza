@@ -8,6 +8,7 @@ se avisa aquí con **Cambia**.
 
 ### Corregido
 - **`tiza rellenar` ya puede cambiar los encabezados y pies (por ejemplo, el curso): `tiza leer` los muestra con sus ids.** Salen al final de la lectura (`[e1.p1]`, `[pie1.p1]`) y se cambian con las mismas operaciones que el cuerpo; el número de página y lo que no cambies se conservan.
+- **`tiza leer` ya no repite el texto de los cuadros de texto**: Word guarda cada cuadro dos veces (para versiones antiguas) y se leía duplicado; en un encabezado salía «C2 – Uso Restringido C2 – Uso Restringido» y en un pie con el número de página en un cuadro, «5454».
 
 ## 0.24.0 — 2026-10-19
 

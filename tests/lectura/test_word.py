@@ -345,3 +345,53 @@ def test_tablas_en_un_encabezado_usan_el_mismo_recorrido(tmp_path):
     assert encabezado.hijos[0].id == "e1.t1"
     assert [c.id for c in encabezado.hijos[0].hijos[0].hijos] == ["e1.t1.f1.c1", "e1.t1.f1.c2"]
     assert "  [e1.t1.f1.c1]\n    [e1.t1.f1.c1.p1] Curso 2026/27" in a_texto(lectura)
+
+
+# --- Cuadros de texto (mc:AlternateContent) -----------------------------------------------
+
+_MC = 'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"'
+_CUADRO = (
+    "<w:r><mc:AlternateContent {mc}>"
+    '<mc:Choice Requires="wps"><w:drawing><w:txbxContent><w:p><w:r><w:t>{texto}</w:t></w:r></w:p>'
+    "</w:txbxContent></w:drawing></mc:Choice>"
+    "<mc:Fallback><w:pict><w:txbxContent><w:p><w:r><w:t>{texto}</w:t></w:r></w:p></w:txbxContent>"
+    "</w:pict></mc:Fallback></mc:AlternateContent></w:r>"
+)
+
+
+def test_un_cuadro_de_texto_con_choice_y_fallback_sale_una_sola_vez(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Antes")
+    f.parrafo_xml(
+        d, "<w:r><w:t>Hola </w:t></w:r>" + _CUADRO.format(mc=_MC, texto="Uso Restringido")
+    )
+    d.add_paragraph("Después")
+    f.parrafo_xml(d, "<w:r><w:t>Solo Fallback</w:t></w:r>")
+    lectura = leer(d, tmp_path)
+    assert ids(lectura.bloques) == ["p1", "p2", "p3", "p4"]  # los ids del cuerpo no cambian
+    assert [b.texto for b in lectura.bloques] == [
+        "Antes",
+        "Hola Uso Restringido",
+        "Después",
+        "Solo Fallback",
+    ]
+
+
+def test_un_alternate_content_solo_con_fallback_se_lee_por_el_fallback(tmp_path):
+    d = f.nuevo()
+    f.parrafo_xml(
+        d,
+        f"<w:r><mc:AlternateContent {_MC}><mc:Fallback><w:t>Respaldo</w:t></mc:Fallback>"
+        "</mc:AlternateContent></w:r>",
+    )
+    assert [b.texto for b in leer(d, tmp_path).bloques] == ["Respaldo"]
+
+
+def test_el_cuadro_de_texto_de_un_pie_sale_una_vez(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Cuerpo")
+    pie = d.sections[0].footer.paragraphs[0]
+    for hijo in f.elemento("<w:x>" + _CUADRO.format(mc=_MC, texto="54") + "</w:x>"):
+        pie._p.append(hijo)
+    (parte,) = leer(d, tmp_path).partes
+    assert [h.texto for h in parte.hijos] == ["54"]
