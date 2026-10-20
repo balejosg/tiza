@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Cambia
+- **El agente escribe las páginas y las etiquetas en `.html` por defecto**, con la guía de estilo (`guias/estilo.md`): se ven cuidadas en el aula sin tocar nada. Tareas, cuestionarios y H5P siguen igual; el `.md` sigue valiendo si lo pides.
+
 ## 0.24.3 — 2026-10-20
 
 ### Corregido

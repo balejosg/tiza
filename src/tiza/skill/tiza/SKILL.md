@@ -27,7 +27,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
 1. **Lee la estructura**: abre `.tiza/estructura.json` en la carpeta de la asignatura. Contiene las secciones (número y nombre) de los cursos configurados: `pruebas` (un objeto; puede faltar) y `real` (una **lista** con un objeto por curso real, en el orden de `tiza.toml`; versión 1 del fichero: un solo objeto). Si no existe, ejecuta `tiza estructura` cuando haya sesión abierta; si no la hay, pide al docente que la abra. `tiza empezar` ya deja `.tiza/estructura.json` escrita (si la lectura de la estructura tuvo éxito).
 
-2. **Escribe el contenido**: uno o más ficheros `.md` (o `.html`, ver abajo) en esa carpeta, con este formato:
+2. **Escribe el contenido**: uno o más ficheros en esa carpeta, con este formato. Las páginas y las etiquetas se escriben en `.html` por defecto: antes de escribir una página o una etiqueta, carga `guias/estilo.md` y síguela. La descripción de una tarea va en `.html` solo si es larga. Cuestionarios y H5P siguen en `.md`, y el `.md` queda para cuando el docente lo pida o el texto sea muy breve.
 
    <!-- formato:inicio -->
    Elige el tipo antes de escribir, según lo que pida el docente:
@@ -45,16 +45,20 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    | Arrastrar palabras, marcar palabras o tarjetas | `h5p` (`arrastrar_palabras`, `marcar_palabras` o `tarjetas`) |
    | Preguntas sobre una imagen, gráfica o mapa | `cuestionario` con la imagen **dentro de la propia pregunta** (`![descripción](img/figura.png)`); la descripción (el cuerpo) se reserva para un texto o una figura común a varias preguntas |
 
-   ```markdown
+   ```html
    ---
    tipo: pagina
    nombre: Repaso de fracciones
    seccion: 3
    ---
 
-   ## Repaso
-
-   Practica con **fracciones**: [apuntes](apuntes.pdf) o ![foto](img/foto.png).
+   <h3>Repaso</h3>
+   <p>Practica con <strong>fracciones</strong>: <a href="apuntes.pdf">apuntes</a>.</p>
+   <p><img src="img/foto.png" alt="Tarta dividida en cuartos" class="img-fluid"></p>
+   <div class="alert alert-info">
+     <h4><i class="fa-solid fa-fw fa-lightbulb" aria-hidden="true"></i> Recuerda</h4>
+     <p class="mb-0">Una fracción reparte un todo en partes iguales.</p>
+   </div>
    ```
 
    Para una tarea, añade las fechas (ISO; `apertura` < `entrega` < `limite`):
@@ -110,18 +114,17 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
    Para una etiqueta (texto y medios que se ven directamente en el curso), el cuerpo es como el de una página:
 
-   ```markdown
+   ```html
    ---
    tipo: etiqueta
    nombre: Bienvenida al tema 3
    seccion: 3
    ---
 
-   ## Bienvenida
-
-   Este tema empieza con **dos vídeos** y una imagen.
-
-   ![Punto de ejemplo](img/foto.png)
+   <div class="alert alert-info">
+     <strong><i class="fa-solid fa-fw fa-circle-info" aria-hidden="true"></i> Bienvenida al tema 3</strong>
+     <p class="mb-0">Este tema empieza con la lectura de la unidad y un repaso de <strong>fracciones</strong>.</p>
+   </div>
    ```
 
    Para una actividad H5P generada por tiza, la actividad va en `actividad:`; el cuerpo es la descripción:
@@ -158,9 +161,9 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    - `nombre` debe coincidir con el módulo que se quiera actualizar: si ya existe una página, etiqueta, tarea o cuestionario con ese nombre en esa sección, se actualiza (mismo cmid) y, si no, se crea.
    - **Itinerario (opcional, todos los tipos)**: cuándo cuenta la actividad como hecha y cuándo se abre. Si no lo declaras, lo que haya en el aula **se conserva**.
      - `finalizacion`: `ninguna` (la desactiva), `manual` (el alumno la marca), `ver`, `entregar` (solo tarea) o `calificar` (tarea, cuestionario y H5P que califica). La etiqueta solo admite `ninguna` y `manual`; otro valor da `FINALIZACION_NO_ADMITIDA`. No existe «aprobar». `fecha_esperada` (opcional) es el «completar antes de», solo informativo.
-     - `restricciones`: `desde` y `hasta` (fechas), `completar` (hasta 10 ficheros `.md` de la carpeta, con ruta relativa a este fichero: «se abre cuando completen esas actividades») y `ocultar_si_no_cumple` (`true`: oculta del todo; por defecto se ve en gris con la condición). Siempre se exigen todas («y»). `restricciones: {}` quita las que puso tiza.
+     - `restricciones`: `desde` y `hasta` (fechas), `completar` (hasta 10 ficheros `.md` o `.html` de la carpeta, con ruta relativa a este fichero: «se abre cuando completen esas actividades») y `ocultar_si_no_cumple` (`true`: oculta del todo; por defecto se ve en gris con la condición). Siempre se exigen todas («y»). `restricciones: {}` quita las que puso tiza.
      - **Nunca** restricciones por grupo, agrupamiento, perfil, rol o nota, ni nada que dependa de datos del alumnado: tiza no las admite (`CAMPO_DESCONOCIDO`). Si el docente las pide, dile que se ponen a mano en el aula.
-     - Ejemplo de tema: `pagina.md` con `finalizacion: ver`; `test.md` con `finalizacion: calificar` y `restricciones: {completar: [pagina.md]}`; `tarea.md` con `restricciones: {completar: [test.md], desde: 2026-10-20}`. Se publican en **una petición**: tiza las ordena por dependencias.
+     - Ejemplo de tema: `pagina.html` con `finalizacion: ver`; `test.md` con `finalizacion: calificar` y `restricciones: {completar: [pagina.html]}`; `tarea.md` con `restricciones: {completar: [test.md], desde: 2026-10-20}`. Se publican en **una petición**: tiza las ordena por dependencias.
    - **Etiqueta**: mismo Markdown/HTML y mismo filtro que una página, pero el contenido se muestra directamente en la página del curso. Úsala para un texto breve, una imagen o un vídeo, sin actividad ni entrega.
    - **Cuestionario**:
      - Ajustes, todos opcionales: `apertura` y `cierre` (`apertura` < `cierre`), `tiempo_limite` (minutos, de 1 a 600), `intentos` (de 1 a 10 o `ilimitados`; por defecto 1) y `mezclar_respuestas` (`true` o `false`; por defecto `true`).
@@ -186,11 +189,11 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    - Si el nombre contiene `: `, escríbelo entre comillas (`nombre: "Repaso: fracciones"`); YAML lo necesita.
    - **Fórmulas (Matemáticas, Física, Química…)**: en un `.md`, escríbelas en LaTeX con `\( … \)` (en la línea), `\[ … \]` o `$$ … $$` (en bloque). tiza las publica tal cual, sin tocar `*`, `_` ni `\\`, y el aula las dibuja con su motor de fórmulas. Si tras publicar el informe trae el paso `FORMULAS_NO_DIBUJADAS` (también lo da la autoprueba), el contenido está bien publicado pero el aula no carga ese motor y el alumnado vería LaTeX sin dibujar: díselo al docente, tiza no cambia los filtros del aula. El `$x$` simple **no** vale: Moodle no lo dibuja, y `tiza comprobar` avisa con el paso `FORMULA_DOLAR_SIMPLE`. Una fórmula sin cerrar es un error (`FORMULA_SIN_CERRAR`); el límite es de 2000 caracteres por fórmula y 500 por documento (`FORMULA_INVALIDA`). Valen en el cuerpo, en el enunciado, las opciones y la retroalimentación de un cuestionario; **no en las actividades H5P** (`FORMULA_EN_H5P`). Dentro de un bloque de código (``` o comillas inversas) no se tocan. En un `.html` se escriben igual. La vista previa enseña la fuente LaTeX, no la fórmula dibujada.
    - En un `.md` la sangría no crea bloques de código (el HTML sangrado se publica como HTML): el código va entre tres comillas invertidas (```).
-   - Un fichero `.html` lleva el mismo bloque YAML de arriba y, debajo, un fragmento o un documento HTML completo (solo se publica el contenido de `<body>`; de `<head>` solo se toleran `<meta charset>` y `<title>`, que se ignoran). En un `.html` no se interpreta Markdown. Úsalo para maquetar con estilo o para pegar HTML hecho en otra herramienta; para texto normal, el `.md` es más cómodo.
+   - Un fichero `.html` lleva el mismo bloque YAML de arriba y, debajo, un fragmento o un documento HTML completo (solo se publica el contenido de `<body>`; de `<head>` solo se toleran `<meta charset>` y `<title>`, que se ignoran). En un `.html` no se interpreta Markdown. Es lo normal para páginas y etiquetas (estilo de `guias/estilo.md`), y también sirve para pegar HTML hecho en otra herramienta.
    - Solo se admite HTML de una lista blanca. Lo demás se rechaza con `HTML_PELIGROSO` y el mensaje dice qué sobra (la etiqueta, el atributo, la propiedad CSS, la clase o el servidor): corrígelo y vuelve a comprobar. No se limpia nada en silencio.
      - **Etiquetas**: texto, listas, tablas, enlaces, imágenes y estructura (`div`, `span`, `section`, `article`, `header`, `footer`, `aside`, `details`…). Nada de `script`, `style`, `svg`, formularios, `video`/`audio`, `main`/`nav` ni comentarios `<!-- -->`.
      - **`style`**: solo propiedades de maquetación (color, fuente, fondo, márgenes, bordes, tamaños, `display` sin `none`, flex y grid básicos). Sin `position`, `top`/`left`, `z-index`, `transform`, `opacity`, `url()`, `calc()`, `var()`, `!important`, valores negativos ni números mayores de 2000.
-     - **`class`**: solo clases de Bootstrap de la lista: `alert alert-info`, `card card-body`, `table table-striped`, `badge`, `btn btn-primary` (solo en enlaces), `text-center`, `text-danger`, `bg-light`, `mt-3`/`p-2` (del 0 al 5), `row`/`col-md-6`, `d-flex`, `img-fluid`… Nada de `position-*`, `fixed-*`, `d-none` ni clases propias de Moodle. Solo en `<i>`/`<span>` valen además los iconos de Font Awesome de una lista cerrada (`<i class="fa-solid fa-lightbulb" aria-hidden="true"></i>`), sin animaciones, tamaños ni rotaciones: la lista está en `guias/estilo.md`. `aria-hidden="true"` solo vale ahí; ningún otro `aria-*`.
+     - **`class`**: solo clases de Bootstrap de la lista (solo las que existen en Moodle 4.5: ver `guias/estilo.md`): `alert alert-info`, `card card-body`, `table table-striped`, `badge`, `btn btn-primary` (solo en enlaces), `text-center`, `text-danger`, `bg-light`, `mt-3`/`p-2` (del 0 al 5), `row`/`col-md-6`, `d-flex`, `img-fluid`… Nada de `position-*`, `fixed-*`, `d-none` ni clases propias de Moodle. Solo en `<i>`/`<span>` valen además los iconos de Font Awesome de una lista cerrada (`<i class="fa-solid fa-lightbulb" aria-hidden="true"></i>`), sin animaciones, tamaños ni rotaciones: la lista está en `guias/estilo.md`. `aria-hidden="true"` solo vale ahí; ningún otro `aria-*`.
      - **`<iframe>`**: solo `https` y solo de estos servidores: YouTube (`/embed/…`), Vimeo (`player.vimeo.com`), Genially, Canva, Wordwall, Educaplay, LearningApps, GeoGebra y PhET. Escríbelo vacío y con `title`. tiza lo publica con un `sandbox` fijo y cambia YouTube a `youtube-nocookie.com`. Si el código que da el servicio lleva `position:absolute`, atributos antiguos o un `allow` con permisos raros, usa esta plantilla: `<iframe src="…" title="…" style="width:100%;aspect-ratio:16/9;border:0" allowfullscreen></iframe>`. Al confirmar en real, el docente ve cada iframe como «incrusta: URL».
    - Las URL deben ser `http(s)`, rutas relativas al fichero, anclas o `mailto:` (en enlaces).
    <!-- formato:fin -->

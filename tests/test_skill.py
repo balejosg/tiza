@@ -61,6 +61,17 @@ def test_unidad_completa_carga_la_guia_antes_del_primer_paso():
     assert seccion.index("guias/unidad.md") < seccion.index("\n1. ")
 
 
+GUIA_ESTILO = SKILL.parent / "guias/estilo.md"
+
+
+def test_guia_estilo_existe_y_se_cita_antes_de_escribir():
+    assert GUIA_ESTILO.is_file()
+    texto = SKILL.read_text(encoding="utf-8")
+    assert "guias/estilo.md" in texto
+    seccion = texto.split("2. **Escribe el contenido**", 1)[1].split("\n3. ", 1)[0]
+    assert "guias/estilo.md" in seccion
+
+
 GUIA_PROGRAMACION = SKILL.parent / "guias/programacion.md"
 
 

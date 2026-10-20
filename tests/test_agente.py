@@ -338,17 +338,27 @@ def test_formato_documento_cubre_todos_los_tipos_y_campos():
 
 def test_los_ejemplos_del_formato_son_validos(tmp_path):
     texto = agente.formato_documento()
-    ejemplos = re.findall(r"```markdown\n(.*?)```", texto, re.DOTALL)
-    assert len(ejemplos) == len(contenido.TTIPOS)
+    # Bloques ```markdown y ```html en el orden del texto; cada uno se escribe con su extensión.
+    bloques = re.findall(r"```(markdown|html)\n(.*?)```", texto, re.DOTALL)
+    assert len(bloques) == len(contenido.TTIPOS)
     for ruta in ("apuntes.pdf", "img/foto.png", "img/figura1.png"):
         (tmp_path / ruta).parent.mkdir(exist_ok=True)
         (tmp_path / ruta).write_bytes(b"x")
     tipos = []
-    for numero, ejemplo in enumerate(ejemplos):
-        ruta = tmp_path / f"ejemplo{numero}.md"
+    for numero, (lenguaje, ejemplo) in enumerate(bloques):
+        extension = "md" if lenguaje == "markdown" else "html"
+        ruta = tmp_path / f"ejemplo{numero}.{extension}"
         escribir(tmp_path, ruta.name, ejemplo)
         tipos.append(contenido.cargar(ruta).tipo)
     assert tipos == list(contenido.TTIPOS)
+    # Página y etiqueta van en .html por defecto; tarea, cuestionario y H5P siguen en .md.
+    assert [lenguaje for lenguaje, _ in bloques] == [
+        "html",
+        "markdown",
+        "markdown",
+        "html",
+        "markdown",
+    ]
 
 
 class TestCalendarioEnComprobar:
