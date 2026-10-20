@@ -30,17 +30,38 @@ cursos.
 
 ## Del currículo a tu aula virtual
 
-El decreto de tu materia, tu programación didáctica y tu aula virtual suelen ser
-tres mundos aparte. Con el agente puedes conectarlos en una conversación. Solo
-tienes que dejar en la carpeta de la asignatura los documentos que ya tienes: el
-decreto de tu comunidad o el real decreto de enseñanzas mínimas, y tu
-programación, sin datos del alumnado.
+La normativa, tu programación didáctica y tu aula virtual suelen ser tres mundos
+aparte. Con el agente puedes conectarlos en una conversación.
 
-- *«Lee la programación y el decreto y prepárame la situación de aprendizaje del
-  segundo trimestre.»* El agente te propone la secuencia de actividades e indica
-  de qué competencias específicas, criterios de evaluación y saberes básicos sale
-  cada una, citando el documento y el apartado. Antes de escribir nada, te
-  pregunta lo que le falta: sesiones, fechas o producto final.
+**La normativa ya viene con `tiza`.** Trae, sin conexión, la de la Comunidad de
+Madrid del curso 2026-27 para Ciencias de la Computación, Tecnología y
+Digitalización y Digitalización (ESO), Ciencias de la Computación I y II
+(Bachillerato) y el ciclo de Desarrollo de Aplicaciones Multiplataforma (FP). El
+agente la consulta antes de citar nada: cada criterio o resultado de aprendizaje
+llega con su texto literal del boletín y de qué norma y artículo sale, y no la
+completa de memoria ni la busca en internet. Para esas materias no tienes que
+aportar el decreto. Para otra materia o comunidad, deja en la carpeta de la
+asignatura el decreto que te corresponda y el agente trabajará con él.
+
+Tú solo aportas lo tuyo: tu programación (en Word o PDF) y, si la hay, la
+plantilla de tu departamento, siempre sin datos del alumnado.
+
+### Tu programación del curso
+
+- *«Prepárame la programación del curso que viene a partir de la plantilla del
+  departamento.»* El agente lee la plantilla y tu programación anterior, te
+  señala lo que ha quedado desfasado respecto a la normativa (y dónde lo dice),
+  te pregunta solo lo que decides tú —grupos, horas, temporalización— y te deja
+  un Word nuevo: una copia de tu plantilla con tus estilos, encabezados y pies,
+  y la numeración intacta. Nunca toca tu Word original.
+
+### De la programación a tu aula
+
+- *«Prepárame la situación de aprendizaje del segundo trimestre.»* El agente te
+  propone la secuencia de actividades e indica de qué competencias específicas,
+  criterios de evaluación y saberes básicos sale cada una, con su fuente. Antes
+  de escribir nada, te pregunta lo que le falta: sesiones, fechas o producto
+  final. Si quieres la unidad en papel, te la deja también en un Word.
 - *«En la tarea final, pon los criterios que evalúa y cuatro niveles de
   logro.»* Tu alumnado ve en el aula qué se le pide y cómo se valora, con el
   lenguaje del currículo traducido a su edad.
@@ -54,19 +75,26 @@ programación, sin datos del alumnado.
 - *«Ajusta las fechas de la unidad al calendario escolar.»* Si dejas el
   calendario en la carpeta, `tiza` avisa cuando una fecha cae en festivo o en un
   día sin clase.
-- *«Prepárame la programación del curso que viene a partir de la plantilla del
-  departamento.»* El agente rellena una copia de tu plantilla en Word, con tus
-  estilos y tu encabezado, y te señala lo que de la anterior está desfasado.
-- *«Revisa mi programación antigua con la normativa y con mi aula.»* El agente
-  contrasta las tres cosas, con una copia del curso que confirmas tú, y te
-  deja una lista de propuestas para aceptar por número.
 
-El agente trabaja con tus documentos y no se inventa criterios. Aun así, la
-última palabra es tuya: revisa que lo citado coincide con el decreto y con tu
-programación antes de publicarlo en el curso real. `tiza` comprueba el formato y
-la seguridad de lo que se publica, pero no comprueba el currículo. Tienes una
-conversación de ejemplo, de principio a fin, en
-[Del currículo al aula](docs/del-curriculo-al-aula.md).
+### Poner al día una programación y un aula que ya tienes
+
+- *«Revisa mi programación antigua con la normativa y con mi aula.»* El agente
+  te pide permiso para hacer una copia de tu curso, sin datos del alumnado, y tú
+  la confirmas en tu terminal. Después contrasta tu programación con la
+  normativa vigente y con lo que hay de verdad en tu aula: normas derogadas,
+  unidades sin actividades, actividades que no cuelgan de ningún criterio,
+  fechas que no casan con la temporalización… Te deja **una sola lista de
+  propuestas**, cada una con su fuente, y tú aceptas las que quieras por número.
+  Lo aceptado se aplica a tu programación y a las actividades que ya tienes en el
+  aula, aunque no las creara `tiza`: no se duplican y se conservan sus ajustes.
+  Si después de la copia cambiaste a mano en el aula el nombre, el texto o las
+  fechas de una actividad, `tiza` no lo pisa.
+
+El agente trabaja con la normativa y tus documentos, y no se inventa criterios.
+Aun así, la última palabra es tuya: revisa lo que cita antes de publicarlo en el
+curso real. `tiza` comprueba el formato y la seguridad de lo que se publica, pero
+no comprueba el currículo. Tienes una conversación de ejemplo, de principio a fin,
+en [Del currículo al aula](docs/del-curriculo-al-aula.md).
 
 ## Cómo funciona
 
@@ -141,7 +169,7 @@ actualización y la desinstalación están en la [guía de uso](docs/guia.md#ins
 - [Formato de los ficheros](docs/formato.md): lo que escribe el agente, por si
   quieres revisarlo o escribirlo tú.
 - [Del currículo al aula](docs/del-curriculo-al-aula.md): una conversación de
-  ejemplo, del decreto y la programación a la unidad publicada.
+  ejemplo, de la normativa y la programación a la unidad publicada.
 - [Ejemplos](ejemplos/): una unidad completa y un ejemplo de cada tipo.
 - [Cómo protege tiza tu aula](docs/seguridad.md) y [cómo aislar a tu
   agente](docs/aislamiento.md).
