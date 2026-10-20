@@ -33,7 +33,7 @@ escriben igual, con `\( … \)` y `\[ … \]`.
   | `fst-italic` | `font-italic` |
   | `text-bg-primary` | `bg-primary text-white` |
   | `rounded-3` | `rounded-lg` |
-  | `gap-3` | márgenes (`mr-2`, `mb-3`) o `style="gap:12px"` |
+  | `gap-3` | márgenes (`mr-2`, `mb-3`) |
   | `g-3` | nada: la separación de las columnas ya viene hecha |
   | `d-grid` | `d-block` |
   | `ratio` | `style="aspect-ratio:16/9"` |
@@ -47,7 +47,8 @@ escriben igual, con `\( … \)` y `\[ … \]`.
 ## 3. Accesibilidad
 
 - Títulos desde `h3`: el aula ya pone el `h2` con el nombre de la actividad. No saltes
-  niveles (`h3`, luego `h4`; nunca `h3` y luego `h5`).
+  niveles (`h3`, luego `h4`; nunca `h3` y luego `h5`). Una página empieza por la cabecera
+  (`h3`); los títulos de los bloques del catálogo (`alert`, `card`) son `h4`.
 - Contraste suficiente (AA): no pongas colores propios al texto; deja los del tema.
 - El color nunca es el único significado. El bloque «Importante» lleva la palabra
   «Importante», no solo el amarillo.
@@ -79,11 +80,11 @@ Font Awesome 6 está cargado en el aula. Reglas:
 
 ### Cabecera
 
-Título y subtítulo. Un `badge` con la sesión, si ayuda.
+Título (`h3`), después un `badge` con la sesión, si ayuda, y el subtítulo.
 
 ```html
-<p><span class="badge badge-primary">Sesión 1</span></p>
 <h3>Las fracciones</h3>
+<p><span class="badge badge-primary">Sesión 1</span></p>
 <p class="lead">Qué son, cómo se comparan y para qué sirven.</p>
 ```
 
@@ -245,7 +246,16 @@ Lista de enlaces con texto descriptivo.
 - **Página de contenido**: cabecera corta, explicación, ejemplo resuelto, «Recuerda» o
   «Importante», actividad y cierre. Añade tabla o tarjetas solo si el contenido lo pide.
 - **Etiqueta**: se ve en la portada del curso. Corta: uno o dos bloques (un `alert` con un
-  aviso, o un título y un párrafo). Sin cabecera grande ni `h3` de página.
+  aviso, o un título y un párrafo). Sin cabecera grande ni `h3` de página. El título va en
+  `<strong>` dentro del `alert` (la portada del curso ya pone la sección como `h3`); sin
+  `h3` ni `h4`:
+
+  ```html
+  <div class="alert alert-info">
+    <strong>Bienvenida al tema 3</strong>
+    <p class="mb-0">Empezamos con un repaso de fracciones.</p>
+  </div>
+  ```
 
 ## 6. Plantilla completa
 

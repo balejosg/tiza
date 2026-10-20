@@ -201,7 +201,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 3. **Comprueba offline** hasta que pase (código de salida 0):
 
    ```
-   tiza comprobar pagina.md
+   tiza comprobar pagina.html
    ```
 
    Escribe la vista previa en `.tiza/preview/pagina.html` y valida frontmatter, fechas, recursos y la existencia de la sección. Corrige lo que indique el resultado y repite. En un cuestionario, la vista previa muestra las respuestas correctas marcadas: es lo que el docente debe revisar.
@@ -209,7 +209,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 4. **Publica en pruebas** ejecutándolo tú mismo (necesita la sesión del docente abierta):
 
    ```
-   tiza publicar pagina.md --en pruebas
+   tiza publicar pagina.html --en pruebas
    ```
 
    Si responde `SIN_SESION`, mira el detalle: si menciona un **worktree de git**, estás en la carpeta equivocada (el buzón `.tiza/` vive en la carpeta de la asignatura); cambia a ella y repite. Si no, pide al docente que ejecute `tiza empezar` en su terminal, en la carpeta de la asignatura, y repite. Las publicaciones en pruebas no piden confirmación; lo nuevo se crea **oculto** y lo que ya existe conserva su visibilidad; `--visible` lo muestra y `--oculto` lo oculta.
