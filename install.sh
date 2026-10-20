@@ -28,13 +28,17 @@ if ! command -v uv >/dev/null 2>&1; then
     export PATH
 fi
 
+# Python fijo: uv usaría el más nuevo, y una versión recién salida aún no tiene wheels de
+# todas las dependencias (pyyaml, por ejemplo) y obligaría a compilarlas.
+PYTHON=3.13
+
 INSTALADO=0
 for ORIGEN in $ORIGENES; do
-    if [ "$VENTANA" = 1 ] && uv tool install --force "tiza[ventana] @ $ORIGEN"; then
+    if [ "$VENTANA" = 1 ] && uv tool install --force --python "$PYTHON" "tiza[ventana] @ $ORIGEN"; then
         INSTALADO=1
         break
     fi
-    if uv tool install --force "tiza @ $ORIGEN"; then
+    if uv tool install --force --python "$PYTHON" "tiza @ $ORIGEN"; then
         [ "$VENTANA" = 1 ] && echo "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
         INSTALADO=1
         break

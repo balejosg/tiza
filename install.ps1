@@ -37,13 +37,17 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     }
 }
 
+# Python fijo: uv usaría el más nuevo, y una versión recién salida aún no tiene wheels de
+# todas las dependencias (pyyaml, por ejemplo) y obligaría a compilarlas.
+$python = "3.13"
+
 # Se instala también la ventana de entrada al aula (pywebview, sobre el WebView2 de
 # Windows); si falla, tiza se instala sin ella y el docente entra con la contraseña en la terminal.
 $instalado = $false
 foreach ($origen in $origenes) {
-    uv tool install --force "tiza[ventana] @ $origen"
+    uv tool install --force --python $python "tiza[ventana] @ $origen"
     if ($LASTEXITCODE -eq 0) { $instalado = $true; break }
-    uv tool install --force "tiza @ $origen"
+    uv tool install --force --python $python "tiza @ $origen"
     if ($LASTEXITCODE -eq 0) {
         Write-Host "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
         $instalado = $true

@@ -215,6 +215,9 @@ en español.
 - La versión (`0.24.1`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
+- El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y
+  `cli.PYTHON_INSTALADO`: súbelo junto y solo cuando todas las dependencias (también las de
+  `[ventana]`) traigan wheels para la versión nueva en Windows, macOS y Linux.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con
   `educa` antes de commitear en el público (el dominio de Educaplay): no lo «arregles».
   La búsqueda excluye `src/tiza/normativa/datos/`, `herramientas/normativa/fuentes/`,

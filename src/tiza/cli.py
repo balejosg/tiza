@@ -49,6 +49,9 @@ from .terminal import ErrorTerminal
 __all__ = ["main", "instalar_skill"]
 
 REPO_GIT = "https://github.com/balejosg/tiza"
+# Python fijo (como en los instaladores): uv usaría el más nuevo, y una versión recién salida
+# aún no tiene wheels de todas las dependencias (pyyaml, por ejemplo) y habría que compilarlas.
+PYTHON_INSTALADO = "3.13"
 _REF_VALIDA = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._/-]{0,99}\Z")  # etiqueta, rama o commit
 
 
@@ -669,7 +672,8 @@ def _instalar_version(uv: str, ref: str) -> bool:
 
 
 def _uv_instala(uv: str, paquete: str) -> bool:
-    return subprocess.run([uv, "tool", "install", "--force", paquete]).returncode == 0
+    orden = [uv, "tool", "install", "--force", "--python", PYTHON_INSTALADO, paquete]
+    return subprocess.run(orden).returncode == 0
 
 
 def _origenes(ref: str) -> list[str]:

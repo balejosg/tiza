@@ -745,7 +745,7 @@ class TestActualizar:
         assert cli.main(["actualizar"]) == 0
         assert self.pedidas == [f"{cli.REPO_GIT}/releases/latest"]
         assert ejecutadas == [
-            ["/bin/uv", "tool", "install", "--force", f"tiza @ {WHEEL}"],
+            ["/bin/uv", "tool", "install", "--force", "--python", "3.13", f"tiza @ {WHEEL}"],
             ["/bin/tiza", "instalar-skill"],
         ]
 
@@ -829,7 +829,15 @@ class TestActualizar:
         monkeypatch.setenv("TIZA_REF", ref)
         assert cli.main(["actualizar"]) == 0
         assert self.pedidas == []
-        assert ejecutadas[0] == ["/bin/uv", "tool", "install", "--force", f"tiza @ {origen}"]
+        assert ejecutadas[0] == [
+            "/bin/uv",
+            "tool",
+            "install",
+            "--force",
+            "--python",
+            "3.13",
+            f"tiza @ {origen}",
+        ]
 
     def test_con_la_ultima_version_no_reinstala_nada(self, ejecutadas, monkeypatch, capsys):
         ultima_release(monkeypatch, "https://github.com/balejosg/tiza/releases/tag/v0.5.1")
