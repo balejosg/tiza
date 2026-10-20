@@ -1836,7 +1836,7 @@ class TestEjemploDeUnidad:
         origen = Path(__file__).resolve().parent.parent / "ejemplos" / "unidad"
         raiz = tmp_path / "unidad"
         shutil.copytree(origen, raiz)
-        ficheros = sorted(p.name for p in raiz.glob("*.md"))
+        ficheros = sorted(p.name for p in raiz.iterdir() if p.suffix in (".md", ".html"))
         assert len(ficheros) == 6
         comprobacion = agente.comprobar(raiz, ficheros)
         assert [(f.fichero, f.codigo) for f in comprobacion.ficheros if f.codigo] == []

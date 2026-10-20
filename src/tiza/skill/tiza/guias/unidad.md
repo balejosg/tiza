@@ -58,8 +58,9 @@ Haz solo las preguntas que únicamente el docente puede contestar, y todas junta
 
 Escribe `unidad-N.md` y conviértelo con `tiza documento unidad-N.md`. Si ya existe ese Word
 (`DOCUMENTO_EXISTE`), genera otro con `--salida unidad-N-v2.docx` y dilo: nunca se borra un
-Word del docente. Después, los `.md` de las actividades y el camino de siempre: `tiza comprobar`,
-pruebas y real.
+Word del docente. Después, las actividades: las páginas y etiquetas se escriben en `.html` siguiendo
+`guias/estilo.md` (los cuestionarios, H5P y tareas cortas, en `.md`), y el camino de siempre:
+`tiza comprobar`, pruebas y real.
 
 ### Markdown que admite `tiza documento`
 
