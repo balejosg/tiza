@@ -269,3 +269,79 @@ def test_error_inesperado_al_interpretar_no_escapa(tmp_path, monkeypatch):
         leer(d, tmp_path)
     assert e.value.codigo == "FORMATO_NO_ADMITIDO"
     assert e.value.detalle == "No se puede interpretar el documento."
+
+
+# --- Encabezados y pies --------------------------------------------------------------------
+
+
+def test_encabezados_y_pies_tienen_ids_por_primera_aparicion(tmp_path):
+    d = f.nuevo()
+    f.dos_secciones(d)
+    lectura = leer(d, tmp_path)
+    assert ids(lectura.bloques) == ["p1", "p2", "p3"]
+    assert [(b.id, b.tipo) for b in lectura.partes] == [
+        ("e1", "encabezado"),
+        ("pie1", "pie"),
+        ("pie2", "pie"),
+    ]
+    assert [[(h.id, h.texto) for h in b.hijos] for b in lectura.partes] == [
+        [("e1.p1", "Curso 2026/27")],
+        [("pie1.p1", "Página 1")],
+        [("pie2.p1", "Departamento de Informática")],
+    ]
+    assert a_texto(lectura).splitlines()[3:] == [
+        "[e1] encabezado",
+        "  [e1.p1] Curso 2026/27",
+        "[e1] fin",
+        "[pie1] pie",
+        "  [pie1.p1] Página 1",
+        "[pie1] fin",
+        "[pie2] pie",
+        "  [pie2.p1] Departamento de Informática",
+        "[pie2] fin",
+    ]
+
+
+def test_los_ids_del_cuerpo_no_cambian_con_encabezados_y_pies(tmp_path):
+    con = f.nuevo()
+    f.dos_secciones(con)
+    sin = f.nuevo()
+    sin.add_paragraph("Antes 1")
+    sin.add_paragraph("Antes 2")
+    sin.add_section()
+    sin.add_paragraph("Después")
+    leida_con, leida_sin = leer(con, tmp_path, "con.docx"), leer(sin, tmp_path, "sin.docx")
+    assert leida_sin.partes == []
+    assert leida_con.bloques == leida_sin.bloques
+    assert a_texto(leida_con).startswith(a_texto(leida_sin))
+
+
+def test_una_parte_sin_texto_no_sale_pero_no_cambia_los_ids_de_las_demas(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Uno")
+    d.add_section()
+    d.add_paragraph("Dos")
+    primera, segunda = d.sections
+    primera.header.paragraphs[0].text = ""  # e1, sin texto
+    primera.footer.paragraphs[0].text = ""  # pie1, sin texto
+    segunda.header.is_linked_to_previous = False
+    segunda.header.paragraphs[0].text = "Curso 2026/27"  # e2
+    segunda.footer.is_linked_to_previous = False
+    segunda.footer.paragraphs[0].text = "Pie"  # pie2
+    lectura = leer(d, tmp_path)
+    assert [b.id for b in lectura.partes] == ["e2", "pie2"]
+
+
+def test_tablas_en_un_encabezado_usan_el_mismo_recorrido(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Cuerpo")
+    cabecera = d.sections[0].header
+    tabla = cabecera.add_table(1, 2, d.sections[0].page_width)
+    tabla.cell(0, 0).text = "Curso 2026/27"
+    tabla.cell(0, 1).text = "IES Ejemplo"
+    lectura = leer(d, tmp_path)
+    (encabezado,) = lectura.partes
+    assert encabezado.id == "e1"
+    assert encabezado.hijos[0].id == "e1.t1"
+    assert [c.id for c in encabezado.hijos[0].hijos[0].hijos] == ["e1.t1.f1.c1", "e1.t1.f1.c2"]
+    assert "  [e1.t1.f1.c1]\n    [e1.t1.f1.c1.p1] Curso 2026/27" in a_texto(lectura)

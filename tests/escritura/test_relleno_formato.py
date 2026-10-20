@@ -511,3 +511,41 @@ def test_yaml_con_caracteres_o_fechas_imposibles_es_relleno_invalido(tmp_path, c
     with pytest.raises(ErrorEscritura) as exc:
         cargar_relleno(ruta, tmp_path)
     assert exc.value.codigo == "RELLENO_INVALIDO"
+
+
+def test_ids_de_encabezados_y_pies_validos(tmp_path):
+    ops = [
+        {"op": "reemplazar", "id": "e1.p1", "texto": "Curso 2027/28"},
+        {"op": "reemplazar", "id": "pie2.t1.f1.c1", "texto": "x"},
+        {"op": "insertar_despues", "id": "e1.t1", "parrafos": ["y"]},
+        {"op": "filas", "tabla": "e12.t1", "modelo": 1, "antes_de": "final", "contenido": [["z"]]},
+        {"op": "borrar", "id": "pie1.t1.f1.c1.t1.f2"},
+        {
+            "op": "duplicar_tabla",
+            "tabla": "e1.t1",
+            "despues_de": "e1.p1",
+            "veces": 1,
+            "celdas": [{"f1.c1": "copia"}],
+        },
+    ]
+    assert len(_cargar(tmp_path, ops).operaciones) == 6
+
+
+@pytest.mark.parametrize("id_", ["x1.p1", "e0.p1", "pie0.p1", "e1", "pie1", "e01.p1", "e1.e1.p1"])
+def test_ids_de_encabezados_y_pies_con_forma_no_valida(tmp_path, id_):
+    assert "operaciones[0]" in _invalido(tmp_path, [{"op": "reemplazar", "id": id_, "texto": "x"}])
+
+
+def test_las_reglas_de_conflicto_valen_con_el_prefijo_de_parte(tmp_path):
+    ops = [
+        {"op": "reemplazar", "id": "e1.t1.f1.c1", "texto": "x"},
+        {"op": "borrar", "id": "e1.t1.f1.c1.p1"},
+    ]
+    assert "operaciones[1]" in _conflictivo(tmp_path, ops)
+    # Una parte y otra no se pisan, ni con el cuerpo.
+    separadas = [
+        {"op": "reemplazar", "id": "e1.p1", "texto": "x"},
+        {"op": "borrar", "id": "pie1.p1"},
+        {"op": "borrar", "id": "p1"},
+    ]
+    assert len(_cargar(tmp_path, separadas).operaciones) == 3

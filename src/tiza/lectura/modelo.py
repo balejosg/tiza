@@ -27,6 +27,10 @@ class Bloque:
     ``id``: ``p<n>`` (párrafo del cuerpo), ``t<n>`` (tabla), ``t<n>.f<i>`` (fila),
     ``t<n>.f<i>.c<j>`` (celda) y ``t<n>.f<i>.c<j>.p<k>`` (párrafo de una celda); en el PDF,
     ``g<página>.<n>``. Los índices empiezan en 1, en orden de documento.
+    Un encabezado o un pie de Word es ``e<n>`` o ``pie<n>`` (``tipo`` ``encabezado`` o ``pie``,
+    sin texto propio): sus ``hijos`` llevan el mismo recorrido que el cuerpo con ese prefijo
+    (``e1.p1``, ``pie2.t1.f1.c1.p1``) y ``n`` cuenta desde 1 por la primera aparición de cada
+    parte. Ese contenedor no es un elemento del XML y no se puede usar como id en un relleno.
     ``tipo``: ``titulo``, ``parrafo``, ``tabla``, ``fila`` o ``celda``. ``nivel``: 1-9 en
     los títulos. ``etiqueta``: la numeración automática ya calculada («c)», «2.») o ``""``.
     ``ancho`` y ``alto``: en las celdas, las columnas y filas que ocupan; en las tablas, sus
@@ -49,6 +53,7 @@ class Lectura:
     fichero: str
     formato: str
     bloques: list[Bloque] = field(default_factory=list)
+    partes: list[Bloque] = field(default_factory=list)  # encabezados y pies con texto (Word)
     avisos: list[str] = field(default_factory=list)
     sha256: str = ""
     paginas: int | None = None  # páginas de un PDF; ``None`` en un Word
@@ -81,4 +86,9 @@ def a_texto(lectura: Lectura) -> str:
     lineas: list[str] = []
     for bloque in lectura.bloques:
         _escribir(bloque, 0, lineas)
+    for parte in lectura.partes:
+        lineas.append(f"[{parte.id}] {parte.tipo}")
+        for hijo in parte.hijos:
+            _escribir(hijo, 2, lineas)
+        lineas.append(f"[{parte.id}] fin")
     return "\n".join(lineas) + ("\n" if lineas else "")

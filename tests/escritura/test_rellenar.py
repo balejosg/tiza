@@ -969,3 +969,112 @@ def test_reemplazar_con_lista_y_luego_duplicar_tabla_tras_el_mismo_id(tmp_path):
     ]
     assert cuerpo[:4] == ["A", "B", "tabla", ""]
     assert "COPIA" in "".join(t.text or "" for t in nuevo.element.body[2].iter(qn("w:t")))
+
+
+# --- Encabezados y pies -------------------------------------------------------------------
+
+
+def _miembros(ruta):
+    """``nombre -> bytes`` de cada encabezado y pie del zip."""
+    with zipfile.ZipFile(ruta) as zf:
+        return {
+            n: zf.read(n)
+            for n in zf.namelist()
+            if n.startswith(("word/header", "word/footer")) and n.endswith(".xml")
+        }
+
+
+def test_reemplazar_el_encabezado_lo_cambia_y_conserva_su_estilo(tmp_path):
+    d = f.nuevo()
+    f.dos_secciones(d)
+    parrafo = d.sections[0].header.paragraphs[0]
+    parrafo.runs[0].bold = True
+    resultado, nuevo, lectura = aplicar(tmp_path, d, Reemplazar("e1.p1", ("Curso 2027/28",)))
+    assert nuevo.sections[0].header.paragraphs[0].text == "Curso 2027/28"
+    assert nuevo.sections[0].header.paragraphs[0].runs[0].bold is True
+    assert nuevo.sections[1].header.is_linked_to_previous  # sigue compartido
+    assert [(b.id, [h.texto for h in b.hijos]) for b in lectura.partes] == [
+        ("e1", ["Curso 2027/28"]),
+        ("pie1", ["Página 1"]),
+        ("pie2", ["Departamento de Informática"]),
+    ]
+    assert not any(b"2026/27" in xml for xml in _miembros(resultado.salida).values())
+
+
+def test_un_pie_con_pagina_que_no_se_toca_conserva_el_campo(tmp_path):
+    d = f.nuevo()
+    f.dos_secciones(d)
+    resultado, _, _ = aplicar(tmp_path, d, Reemplazar("e1.p1", ("Curso 2027/28",)))
+    pies = [x for n, x in _miembros(resultado.salida).items() if n.startswith("word/footer")]
+    assert sum(b"PAGE" in x for x in pies) == 1
+
+
+def test_reemplazar_un_parrafo_de_pie_con_campo_quita_el_campo(tmp_path):
+    d = f.nuevo()
+    f.dos_secciones(d)
+    resultado, nuevo, _ = aplicar(tmp_path, d, Reemplazar("pie1.p1", ("Sin número",)))
+    assert nuevo.sections[0].footer.paragraphs[0].text == "Sin número"
+    pies = [x for n, x in _miembros(resultado.salida).items() if n.startswith("word/footer")]
+    assert not any(b"PAGE" in x for x in pies)
+
+
+def test_insertar_borrar_y_tablas_funcionan_en_encabezados_y_pies(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Cuerpo")
+    cabecera = d.sections[0].header
+    cabecera.paragraphs[0].text = "IES Ejemplo"
+    tabla = cabecera.add_table(3, 2, d.sections[0].page_width)
+    for n, (a, b) in enumerate([("Curso", "2026/27"), ("Grupo", "1A"), ("Total", "x")]):
+        tabla.cell(n, 0).text, tabla.cell(n, 1).text = a, b
+    d.sections[0].footer.paragraphs[0].text = "Pie"
+    _, nuevo, lectura = aplicar(
+        tmp_path,
+        d,
+        InsertarDespues("e1.p1", ("Departamento",)),
+        Filas("e1.t1", 2, 3, (fila("Aula", "B2"),)),
+        DuplicarTabla("e1.t1", "e1.p1", 1, ({"f1.c2": ("2027/28",)},)),
+        Borrar("pie1.p1"),
+    )
+    cabecera = nuevo.sections[0].header
+    assert [p.text for p in cabecera.paragraphs][:2] == ["IES Ejemplo", "Departamento"]
+    assert [[c.text for c in r.cells] for r in cabecera.tables[0].rows][-2:] == [
+        ["Aula", "B2"],
+        ["Total", "x"],
+    ]
+    assert len(cabecera.tables) == 2
+    assert [b.id for b in lectura.partes] == ["e1"]  # el pie quedó sin texto: no sale
+    assert [t.cell(0, 1).text for t in cabecera.tables] == ["2027/28", "2026/27"]
+    pie = nuevo.sections[0].footer
+    assert pie._element[-1].tag == qn("w:p")  # sigue acabando en un párrafo
+
+
+def test_el_mapa_de_ids_incluye_encabezados_y_pies(tmp_path):
+    d = f.nuevo()
+    f.dos_secciones(d)
+    cabecera = d.sections[0].header
+    tabla = cabecera.add_table(1, 2, d.sections[0].page_width)
+    tabla.cell(0, 0).text = "IES"
+    tabla.cell(0, 1).text = "Curso"
+    ruta = tmp_path / "doc.docx"
+    d.save(str(ruta))
+    analisis = analizar_docx(ruta.read_bytes(), ruta.name)
+    ids = []
+
+    def recoger(bloque):
+        if bloque.tipo not in ("encabezado", "pie"):  # los contenedores no son elementos
+            ids.append(bloque.id)
+        for hijo in bloque.hijos:
+            recoger(hijo)
+
+    for bloque in [*analisis.lectura.bloques, *analisis.lectura.partes]:
+        recoger(bloque)
+    assert {"e1.p1", "e1.t1", "e1.t1.f1.c2.p1", "pie1.p1", "pie2.p1"} <= set(ids)
+    assert set(analisis.mapa) == set(ids) and len(ids) == len(set(ids))
+    assert analisis.mapa["e1.p1"].getroottree().getroot().tag == qn("w:hdr")
+    assert analisis.mapa["pie2.p1"].getroottree().getroot().tag == qn("w:ftr")
+
+
+def test_un_id_de_parte_inexistente_es_id_desconocido(tmp_path):
+    d = f.nuevo()
+    f.dos_secciones(d)
+    assert fallo(tmp_path, d, Reemplazar("e2.p1", ("x",))).codigo == "ID_DESCONOCIDO"

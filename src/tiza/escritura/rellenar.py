@@ -7,8 +7,10 @@ si algo falla no se escribe nada. Después se aplican las operaciones en el orde
 sobre los elementos ya resueltos (un ``duplicar_tabla`` copia la tabla tal y como esté en ese
 momento) y el resultado se escribe en un fichero nuevo, sin sobrescribir nunca.
 
-Se conservan los estilos, la numeración, los encabezados y pies y los controles de contenido:
-solo se cambia el texto, y el texto nuevo toma el formato del que sustituye.
+Se conservan los estilos, la numeración y los controles de contenido, y los encabezados y pies
+que no se tocan (con sus campos, como ``PAGE``): solo se cambia el texto, y el texto nuevo toma
+el formato del que sustituye. Los encabezados y pies (``e1.p1``, ``pie2.t1.f1.c1``) se editan
+con las mismas operaciones que el cuerpo.
 """
 
 from __future__ import annotations
@@ -59,6 +61,7 @@ _MARCAS_DE_CAMBIO = (
     qn("w:pPrChange"),
     qn("w:trPrChange"),
 )
+_CONTENEDORES = (_TC, qn("w:body"), qn("w:hdr"), qn("w:ftr"))  # lo que acaba en un párrafo
 _NOMBRE_DE = {_P: "un párrafo", _TBL: "una tabla", _TR: "una fila", _TC: "una celda"}
 _MAX_ESTILOS_EN_EL_ERROR = 40
 
@@ -121,7 +124,7 @@ def _controles(run: Any) -> list[Any]:
     """Los ``w:sdt`` que envuelven al run (hasta la celda o el cuerpo)."""
     encontrados = []
     for ancestro in run.iterancestors():
-        if ancestro.tag in (_TC, qn("w:body")):
+        if ancestro.tag in _CONTENEDORES:
             break
         if ancestro.tag == qn("w:sdt"):
             encontrados.append(ancestro)
@@ -365,7 +368,7 @@ def _borrar(elemento: Any) -> None:
     padre.remove(elemento)
     if elemento.tag == _TR and padre.find(_TR) is None:  # una tabla sin filas no es válida
         _borrar(padre)
-    elif padre.tag in (_TC, qn("w:body")):
+    elif padre.tag in _CONTENEDORES:
         if antes is not None and despues is not None and antes.tag == despues.tag == _TBL:
             antes.addnext(OxmlElement("w:p"))  # sin un párrafo entre ellas, Word las funde
         _asegurar_cierre(padre)
@@ -380,11 +383,12 @@ _DOCPR = qn("wp:docPr")
 class _Ids:
     """Ids únicos para lo que se copia: mayores que el máximo del documento."""
 
-    def __init__(self, raiz: Any) -> None:
+    def __init__(self, *raices: Any) -> None:
         self.control = max(
-            (_entero(c.get(qn("w:val"))) for c in raiz.iterfind(".//" + _SDT_ID)), default=0
+            (_entero(c.get(qn("w:val"))) for r in raices for c in r.iterfind(".//" + _SDT_ID)),
+            default=0,
         )
-        self.imagen = max((_entero(d.get("id")) for d in raiz.iter(_DOCPR)), default=0)
+        self.imagen = max((_entero(d.get("id")) for r in raices for d in r.iter(_DOCPR)), default=0)
 
     def renovar(self, elemento: Any) -> None:
         """Quita lo que no puede repetirse en una copia y da ids nuevos a controles e imágenes."""
@@ -646,7 +650,7 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
         raise ErrorEscritura(error.codigo, error.detalle) from None
     indice = _tiene_indice(analisis.documento.element)
     estilos = _Estilos(analisis.documento)
-    ids = _Ids(analisis.documento.element)
+    ids = _Ids(analisis.documento.element, *analisis.partes)
     ultimos: dict[Any, Any] = {}  # ancla -> último elemento insertado tras ella
     acciones = [
         _preparar(i, operacion, analisis.mapa, estilos, ids, ultimos)

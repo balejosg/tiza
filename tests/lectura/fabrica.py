@@ -129,6 +129,38 @@ def encabezado_y_pie(documento, cabecera: str, pie: str) -> None:
     seccion.footer.paragraphs[0].text = pie
 
 
+def pie_con_pagina(seccion, antes: str = "Página ") -> None:
+    """El pie de la sección: «<antes>» seguido del campo PAGE (con su resultado en caché)."""
+    pie = seccion.footer
+    pie.is_linked_to_previous = False
+    p = pie.paragraphs[0]
+    p.text = antes
+    for hijo in elemento(
+        '<w:x><w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+        '<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>1</w:t></w:r>'
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:x>'
+    ):
+        p._p.append(hijo)
+
+
+def dos_secciones(documento, cabecera: str = "Curso 2026/27") -> None:
+    """Dos secciones que comparten encabezado, cada una con su pie (el 1.º con el campo PAGE).
+
+    El cuerpo queda con dos párrafos antes del salto de sección y uno después.
+    """
+    documento.add_paragraph("Antes 1")
+    documento.add_paragraph("Antes 2")
+    documento.add_section()
+    documento.add_paragraph("Después")
+    primera, segunda = documento.sections
+    primera.header.paragraphs[0].text = cabecera
+    pie_con_pagina(primera)
+    segunda.header.is_linked_to_previous = True  # comparten el de la primera
+    segunda.footer.is_linked_to_previous = False
+    segunda.footer.paragraphs[0].text = "Departamento de Informática"
+
+
 def lista_de_letras(documento, textos: list[str]) -> None:
     """Una lista numerada a), b), c)… (el ``numId`` es el 1)."""
     numeracion(documento, {1: [nivel(0, "lowerLetter", "%1)")]}, {1: (1, None)})

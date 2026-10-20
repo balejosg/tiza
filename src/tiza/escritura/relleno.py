@@ -43,8 +43,10 @@ EXTENSIONES_RELLENO = frozenset({".yaml", ".yml"})
 EXTENSIONES_PLANTILLA = frozenset({".docx"})
 
 _N = r"[1-9][0-9]*"
-# Un id absoluto puede pasar por celdas de tablas anidadas: «t1.f1.c1.t1.f2.c1.p1».
-_PREFIJO = rf"(?:t{_N}\.f{_N}\.c{_N}\.)*"
+# Un id absoluto puede empezar por un encabezado o un pie («e1.p1», «pie2.t1.f1.c1.p1») y pasar
+# por celdas de tablas anidadas: «t1.f1.c1.t1.f2.c1.p1».
+_PARTE = rf"(?:(?:e|pie){_N}\.)?"
+_PREFIJO = rf"{_PARTE}(?:t{_N}\.f{_N}\.c{_N}\.)*"
 _RE_PARRAFO = re.compile(rf"{_PREFIJO}p{_N}")
 _RE_CELDA = re.compile(rf"{_PREFIJO}t{_N}\.f{_N}\.c{_N}")
 _RE_TABLA = re.compile(rf"{_PREFIJO}t{_N}")

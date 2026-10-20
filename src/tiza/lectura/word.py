@@ -392,6 +392,46 @@ class _Lector:
         return tabla
 
 
+_RELACION_PARTE = {"headerReference": "encabezado", "footerReference": "pie"}
+_PREFIJO_PARTE = {"encabezado": "e", "pie": "pie"}
+_ATRIBUTO_RELACION = qn("r:id")
+
+
+def _partes_de_encabezado_y_pie(documento: Any) -> list[tuple[str, int, Any]]:
+    """``(tipo, n, raíz)`` de cada encabezado y pie, numerados por su primera aparición.
+
+    Se recorren los ``w:sectPr`` en orden de documento y, en cada uno, sus referencias en el
+    orden del XML. Una parte que usan varias secciones sale una sola vez. ``n`` cuenta desde 1
+    por separado en encabezados y en pies.
+    """
+    cuerpo = documento.element.body
+    vistas: set[Any] = set()
+    cuenta = {"encabezado": 0, "pie": 0}
+    partes: list[tuple[str, int, Any]] = []
+    for seccion in cuerpo.iter(qn("w:sectPr")):
+        if seccion.getparent().tag == qn("w:sectPrChange"):
+            continue  # la sección anterior al cambio de formato, no una sección del documento
+        for referencia in seccion:
+            if not isinstance(referencia.tag, str):
+                continue
+            tipo = _RELACION_PARTE.get(referencia.tag.rsplit("}", 1)[-1])
+            relacion = documento.part.rels.get(referencia.get(_ATRIBUTO_RELACION))
+            if tipo is None or relacion is None or relacion.is_external:
+                continue
+            parte = relacion.target_part
+            sufijo = "/header" if tipo == "encabezado" else "/footer"
+            if parte.partname in vistas or not relacion.reltype.endswith(sufijo):
+                continue
+            vistas.add(parte.partname)
+            cuenta[tipo] += 1
+            partes.append((tipo, cuenta[tipo], parte.element))
+    return sorted(partes, key=lambda parte: parte[0] != "encabezado")  # los encabezados, y los pies
+
+
+def _tiene_parrafos(bloques: list[Bloque]) -> bool:
+    return any(b.tipo in ("parrafo", "titulo") or _tiene_parrafos(b.hijos) for b in bloques)
+
+
 def mapa_de_tabla(tbl: Any) -> dict[str, Any]:
     """Los elementos de una tabla suelta con los ids relativos de ``tiza leer`` (``f1.c2``)."""
     lector = _Lector(_Numeracion(), _Estilos(None))
@@ -456,6 +496,7 @@ class Analisis:
     lectura: Lectura
     documento: Any
     mapa: dict[str, Any]
+    partes: list[Any] = field(default_factory=list)  # raíces de los encabezados y pies leídos
 
 
 def analizar_docx(datos: bytes, nombre: str) -> Analisis:
@@ -469,6 +510,17 @@ def analizar_docx(datos: bytes, nombre: str) -> Analisis:
             raise ErrorLectura("FORMATO_NO_ADMITIDO", "No se puede abrir el documento.") from None
         lector = _Lector(numeracion, estilos)
         bloques = lector.contenido(documento.element.body, "")
+        partes: list[Bloque] = []
+        raices: list[Any] = []
+        for tipo, n, raiz in _partes_de_encabezado_y_pie(documento):
+            raices.append(raiz)
+            id_ = f"{_PREFIJO_PARTE[tipo]}{n}"
+            hijos = lector.contenido(raiz, f"{id_}.")
+            if _tiene_parrafos(hijos):
+                partes.append(Bloque(id=id_, tipo=tipo, hijos=hijos))
+            else:  # una parte sin texto no sale, y sus ids tampoco valen
+                for clave in [k for k in lector.mapa if k.startswith(f"{id_}.")]:
+                    del lector.mapa[clave]
     except ErrorLectura:
         raise
     except Exception:  # XML raro, números que no lo son, recursión: nunca texto de la librería
@@ -477,10 +529,11 @@ def analizar_docx(datos: bytes, nombre: str) -> Analisis:
         fichero=nombre,
         formato="docx",
         bloques=bloques,
+        partes=partes,
         avisos=["CAMBIOS_SIN_ACEPTAR"] if lector.cambios else [],
         sha256=hashlib.sha256(datos).hexdigest(),
     )
-    return Analisis(lectura, documento, lector.mapa)
+    return Analisis(lectura, documento, lector.mapa, raices)
 
 
 def leer_docx(ruta: Path) -> Lectura:
