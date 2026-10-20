@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.24.1 — 2026-10-20
 
 ### Añadido
 - **`tiza rellenar` puede cambiar solo un trozo de texto con la operación `sustituir`** (`id`, `buscar`, `poner`): conserva el formato, los tabuladores, los campos y los controles, así que cambiar «2026/27» por «2027/28» en un encabezado no lo descoloca. El resumen dice cuántas apariciones cambió (`sustituciones`); si el texto no está, `TEXTO_NO_ENCONTRADO`, y si está repartido entre varios trozos, `TEXTO_PARTIDO` (se usa `reemplazar`).
