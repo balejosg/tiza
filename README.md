@@ -24,6 +24,7 @@ llega a tu alumnado. Funciona en Windows, macOS y Linux.
 - *«Retrasa una semana las entregas del tema 2.»* Solo cambian las fechas. El
   contenido y los intentos del alumnado quedan como estaban.
 - *«Pon esta tarea en el tema 4 y ordénalo: primero la teoría, luego el test.»*
+- Las páginas salen con un estilo cuidado que toma los colores de tu aula.
 
 Si das la misma asignatura en varios grupos, una sola petición llega a todos tus
 cursos.
@@ -158,7 +159,7 @@ La guía [Primeros pasos](docs/primeros-pasos.md) te acompaña en tu primer día
 paso a paso. Si prefieres que te guíe tu propio agente, pásale
 [INSTALAR_CON_AGENTE.md](INSTALAR_CON_AGENTE.md).
 
-Los instaladores instalan la versión `v0.24.3`. Las opciones de instalación, la
+Los instaladores instalan la versión `v0.25.0`. Las opciones de instalación, la
 actualización y la desinstalación están en la [guía de uso](docs/guia.md#instalación-opciones).
 
 ## Más información

@@ -118,9 +118,15 @@ subirlo, y los enlaces `https` que lleve el paquete te los enseña al confirmar.
 
 Para maquetar con estilo, o para pegar HTML hecho en otra herramienta, usa un
 fichero `.html` con el mismo bloque YAML y, debajo, HTML (un fragmento o un
-documento completo: solo se publica el `<body>`). Mira
-[`ejemplos/maquetado.html`](../ejemplos/maquetado.html): estilos, clases de
-Bootstrap y un iframe de cada grupo. Si algo no se admite, `tiza comprobar` da
+documento completo: solo se publica el `<body>`). Para páginas y etiquetas, el
+`.html` con estilo es lo normal: el agente sigue la guía de estilo de la skill,
+con clases de Bootstrap 4 que toman los colores del aula y iconos de Font Awesome
+de una lista cerrada (solo en `<i>` o `<span>`, con `aria-hidden="true"`). Mira
+la plantilla [`ejemplos/pagina-con-estilo.html`](../ejemplos/pagina-con-estilo.html)
+y [`ejemplos/maquetado.html`](../ejemplos/maquetado.html): estilos, clases de
+Bootstrap y un iframe de cada grupo. En Moodle 4.5 algunas clases de Bootstrap 5
+(`fw-bold`, `fst-italic`…) no hacen nada: usa su equivalente de
+Bootstrap 4 (`font-weight-bold`, `font-italic`). Si algo no se admite, `tiza comprobar` da
 `HTML_PELIGROSO` y dice qué sobra. Los iframes de Genially, Canva o LearningApps
 suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
 

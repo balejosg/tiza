@@ -4,10 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.25.0 — 2026-10-20
+
+### Añadido
+- **Iconos de Font Awesome en las páginas y etiquetas**: una lista cerrada de iconos en `<i>` o `<span>`, sin animaciones. El aula ya carga Font Awesome.
+- **Plantilla de página con estilo** (`ejemplos/pagina-con-estilo.html`) y unidad de ejemplo rehecha con páginas `.html` con estilo.
 
 ### Cambia
-- **El agente escribe las páginas y las etiquetas en `.html` por defecto**, con la guía de estilo (`guias/estilo.md`): se ven cuidadas en el aula sin tocar nada. Tareas, cuestionarios y H5P siguen igual; el `.md` sigue valiendo si lo pides.
+- **El agente escribe las páginas y las etiquetas en `.html` por defecto**, con la guía de estilo (`guias/estilo.md`): se ven cuidadas en el aula sin tocar nada y sus colores los pone el tema del aula. Tareas, cuestionarios y H5P siguen igual; el `.md` sigue valiendo si lo pides.
+
+### Corregido
+- **`ejemplos/maquetado.html` ya no usa `fw-bold`**: esa clase de Bootstrap 5 no existe en Moodle 4.5 y no hacía nada.
 
 ## 0.24.3 — 2026-10-20
 
