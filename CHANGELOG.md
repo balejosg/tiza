@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Corregido
+- **`tiza rellenar` ya puede cambiar los encabezados y pies (por ejemplo, el curso): `tiza leer` los muestra con sus ids.** Salen al final de la lectura (`[e1.p1]`, `[pie1.p1]`) y se cambian con las mismas operaciones que el cuerpo; el número de página y lo que no cambies se conservan.
+
 ## 0.24.0 — 2026-10-19
 
 ### Añadido

@@ -62,6 +62,9 @@ operaciones:
   - op: reemplazar                      # cambia el texto de un párrafo (o de una celda)
     id: p3
     texto: "Programación didáctica de Desarrollo de Aplicaciones Multiplataforma, curso 2027-28"
+  - op: reemplazar                      # encabezados y pies: ids e<n>.… y pie<n>.…
+    id: e1.p1
+    texto: "Curso 2027-28"
   - op: insertar_despues                # añade párrafos tras un párrafo o una tabla
     id: p5
     estilo: "Título 2"                  # opcional; vale para todos los párrafos de la operación
@@ -83,6 +86,11 @@ operaciones:
   - op: borrar                          # un párrafo (p7), una tabla (t3) o una fila (t4.f2)
     id: p7
 ```
+
+Revisa también los **encabezados y pies** (curso, departamento, fechas): salen en la lectura
+al final, como `[e1] encabezado … [e1] fin` y `[pie1] pie … [pie1] fin`, y sus párrafos y
+tablas se cambian con los mismos ids y operaciones que el cuerpo (`e1.p1`, `pie2.t1.f1.c1`).
+Una parte sin texto no sale. Lo que no cambies, incluido el número de página, se conserva.
 
 Reglas del formato (el agente no ve `docs/`):
 

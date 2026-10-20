@@ -233,7 +233,7 @@ previa enseña la fuente LaTeX; el dibujo se revisa en el curso de pruebas. Mira
 ## Programación en Word: `relleno.yaml`
 
 Lo escribe el agente para `tiza rellenar`, que cambia una **copia** de una plantilla Word
-(`.docx`) sin tocar sus estilos, encabezados, pies ni numeración. Los ids vienen de
+(`.docx`) sin tocar sus estilos ni su numeración, y con sus encabezados y pies tal cual salvo los que se cambien con sus ids. Los ids vienen de
 `tiza leer` sobre esa misma plantilla, y `tiza leer` da también su `sha256`. El fichero va
 en la carpeta de la asignatura, no en `.tiza/`, y sus rutas son relativas a esa carpeta.
 
@@ -270,7 +270,10 @@ admite saltos de línea ni caracteres de control (`RELLENO_INVALIDO`): para vari
 párrafos, usa una lista. `duplicar_tabla` admite hasta 40 copias.
 
 Ids (los de `tiza leer`): `p<n>` párrafo, `t<n>` tabla, `t<n>.f<i>` fila y `t<n>.f<i>.c<j>`
-celda. En una tabla anidada, la ruta completa (`t1.f1.c1.t1.f2.c1.p1`). Filas y celdas
+celda. Los encabezados y pies de página llevan el prefijo `e<n>.` (encabezado) o `pie<n>.`
+(pie) delante de esos mismos ids: `e1.p1`, `pie2.t1.f1.c1`. `n` cuenta desde 1 por la primera
+aparición de cada parte en el documento; una parte que usan varias secciones sale una vez, y
+una parte sin texto no sale (pero su número se reserva). `e1` a secas no es un id válido. En una tabla anidada, la ruta completa (`t1.f1.c1.t1.f2.c1.p1`). Filas y celdas
 empiezan en 1 y las combinadas desplazan los números. En `duplicar_tabla.celdas` las celdas
 van relativas a la tabla copiada (`f1.c1`), solo las de primer nivel.
 
