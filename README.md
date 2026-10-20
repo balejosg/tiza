@@ -158,7 +158,7 @@ La guía [Primeros pasos](docs/primeros-pasos.md) te acompaña en tu primer día
 paso a paso. Si prefieres que te guíe tu propio agente, pásale
 [INSTALAR_CON_AGENTE.md](INSTALAR_CON_AGENTE.md).
 
-Los instaladores instalan la versión `v0.24.2`. Las opciones de instalación, la
+Los instaladores instalan la versión `v0.24.3`. Las opciones de instalación, la
 actualización y la desinstalación están en la [guía de uso](docs/guia.md#instalación-opciones).
 
 ## Más información
