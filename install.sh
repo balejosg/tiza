@@ -5,7 +5,7 @@
 # (por ejemplo TIZA_REF=main para la última versión).
 set -eu
 
-REF="${TIZA_REF:-v0.24.1}"
+REF="${TIZA_REF:-v0.24.2}"
 # Sin git. Una versión publicada (vX.Y.Z) se instala desde el wheel de su release, que no
 # hay que construir; si aún no está subido, desde el .zip. Una rama o un commit, desde el
 # .zip. Las referencias con «/» (ramas con barra, solo para desarrollo) necesitan git.

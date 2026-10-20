@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.24.2 — 2026-10-20
 
 ### Corregido
 - **El instalador vuelve a funcionar en Windows sin Visual C++**: uv elegía Python 3.15, recién salido, y PyYAML aún no trae versión preparada para él, así que intentaba compilarlo y fallaba. Los instaladores y `tiza actualizar` usan ahora Python 3.13.
