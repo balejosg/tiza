@@ -575,3 +575,18 @@ def test_la_copia_del_informe_es_un_esquema_cerrado():
     with pytest.raises(ErrorInforme) as exc:
         validar(documento)
     assert exc.value.codigo == "CAMPO_FALTANTE"
+
+
+def test_el_resumen_de_rellenar_lleva_las_sustituciones():
+    resumen = informe.Relleno("P.docx", "S.docx", 2, ("INDICE_SE_ACTUALIZA_AL_ABRIR",), 3)
+    assert resumen.a_dict() == {
+        "plantilla": "P.docx",
+        "salida": "S.docx",
+        "operaciones": 2,
+        "sustituciones": 3,
+        "avisos": ["INDICE_SE_ACTUALIZA_AL_ABRIR"],
+    }
+    with pytest.raises(informe.ErrorInforme):
+        informe.Relleno("P.docx", "S.docx", 2, (), "3")
+    with pytest.raises(informe.ErrorInforme):
+        informe.validar_relleno({k: v for k, v in resumen.a_dict().items() if k != "sustituciones"})

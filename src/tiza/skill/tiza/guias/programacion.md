@@ -65,6 +65,10 @@ operaciones:
   - op: reemplazar                      # encabezados y pies: ids e<n>.… y pie<n>.…
     id: e1.p1
     texto: "Curso 2027-28"
+  - op: sustituir                       # cambia solo un trozo y conserva formato y tabuladores
+    id: e2.p1
+    buscar: "2026/27"
+    poner: "2027/28"
   - op: insertar_despues                # añade párrafos tras un párrafo o una tabla
     id: p5
     estilo: "Título 2"                  # opcional; vale para todos los párrafos de la operación
@@ -91,6 +95,10 @@ Revisa también los **encabezados y pies** (curso, departamento, fechas): salen 
 al final, como `[e1] encabezado … [e1] fin` y `[pie1] pie … [pie1] fin`, y sus párrafos y
 tablas se cambian con los mismos ids y operaciones que el cuerpo (`e1.p1`, `pie2.t1.f1.c1`).
 Una parte sin texto no sale. Lo que no cambies, incluido el número de página, se conserva.
+Para cambiar solo el curso o una fecha dentro de un texto con formato, `sustituir` (no
+`reemplazar`): conserva el formato, los tabuladores y los campos. `buscar` va de un solo
+trozo (un tabulador entre dos palabras corta el texto aunque la lectura muestre un espacio).
+Si da `TEXTO_NO_ENCONTRADO` o `TEXTO_PARTIDO`, usa `reemplazar` sobre ese id.
 
 Reglas del formato (el agente no ve `docs/`):
 
@@ -121,6 +129,7 @@ Si `tiza rellenar` responde un error, léelo y corrige solo eso:
 
 - `RELLENO_INVALIDO`: el mensaje dice la clave, p. ej. `operaciones[2].op`.
 - `ID_DESCONOCIDO` o `PLANTILLA_CAMBIADA`: vuelve a `tiza leer` y copia los ids nuevos.
+- `TEXTO_NO_ENCONTRADO` o `TEXTO_PARTIDO`: el mensaje dice qué hacer (`reemplazar` el párrafo).
 - `OPERACIONES_EN_CONFLICTO`, `FILA_FUSIONADA`, `FILA_MODELO_FUSIONADA`, `CELDAS_NO_COINCIDEN`,
   `ESTILO_INEXISTENTE`: el mensaje dice qué hacer.
 

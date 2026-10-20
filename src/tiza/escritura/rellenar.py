@@ -38,6 +38,7 @@ from tiza.escritura.relleno import (
     Operacion,
     Reemplazar,
     Relleno,
+    Sustituir,
     dentro_de_la_carpeta,
 )
 from tiza.escritura.word import escribir_sin_sobrescribir
@@ -68,11 +69,13 @@ _MAX_ESTILOS_EN_EL_ERROR = 40
 
 @dataclass(frozen=True)
 class ResultadoRelleno:
-    """``salida``: el Word creado; ``operaciones``: las aplicadas; ``avisos``: códigos de aviso."""
+    """``salida``: el Word creado; ``operaciones``: las aplicadas; ``avisos``: códigos de aviso;
+    ``sustituciones``: las apariciones que cambiaron las operaciones ``sustituir``."""
 
     salida: Path
     operaciones: int
     avisos: tuple[str, ...]
+    sustituciones: int = 0  # veces que ``sustituir`` cambió su texto, en total
 
 
 # --- Texto y formato de un párrafo --------------------------------------------------------
@@ -267,6 +270,74 @@ def _poner_celda(tc: Any, textos: tuple[str, ...]) -> None:
         tc.append(nuevo)
 
 
+# --- Sustituir texto ----------------------------------------------------------------------
+
+_SEPARADOR = "\0"  # un tabulador o un salto: un texto buscado no puede cruzarlo (no admite control)
+_SEPARADORES = (qn("w:tab"), qn("w:br"), qn("w:cr"), qn("w:noBreakHyphen"))
+_FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback"
+
+
+def _trozos(elemento: Any, raiz: Any | None = None) -> Iterator[Any | None]:
+    """Los ``w:t`` visibles de un párrafo o celda, en orden, y ``None`` donde se corta el texto.
+
+    Es el texto que ve ``tiza leer``: sin lo borrado con el control de cambios, sin la copia de
+    respaldo de un cuadro de texto y, en una celda, sin las tablas anidadas (tienen sus ids).
+    """
+    raiz = elemento if raiz is None else raiz
+    for hijo in elemento:
+        if not isinstance(hijo.tag, str) or hijo.tag in (*_NO_RECORRER, _FALLBACK):
+            continue
+        if hijo.tag == _T:
+            yield hijo
+        elif hijo.tag in _SEPARADORES:
+            yield None
+        elif hijo.tag == _TBL and raiz.tag == _TC:
+            continue
+        else:
+            yield from _trozos(hijo, raiz)
+            if hijo.tag == _P:
+                yield None
+
+
+def _sustituir(i: int, operacion: Sustituir, destino: Any) -> int:
+    """Cambia ``buscar`` por ``poner`` en los ``w:t`` de ``destino``. Devuelve cuántas veces."""
+    trozos = list(_trozos(destino))
+    enteras = sum((t.text or "").count(operacion.buscar) for t in trozos if t is not None)
+    corrido = _SEPARADOR.join("".join((t.text or "") for t in grupo) for grupo in _grupos(trozos))
+    if corrido.count(operacion.buscar) > enteras:
+        raise ErrorEscritura(
+            "TEXTO_PARTIDO",
+            f"operaciones[{i}]: «{_visible(operacion.buscar)}» está repartido entre varios trozos "
+            f"de «{operacion.id}» (por el formato o un campo). Usa «reemplazar» sobre ese id.",
+        )
+    if enteras == 0:
+        raise ErrorEscritura(
+            "TEXTO_NO_ENCONTRADO",
+            f"operaciones[{i}]: «{_visible(operacion.buscar)}» no está en «{operacion.id}». "
+            "Copia el texto tal como sale en «tiza leer», de un solo trozo: un tabulador o un "
+            "salto de línea entre dos palabras corta el texto aunque la lectura los muestre "
+            "como un espacio.",
+        )
+    for t in trozos:
+        if t is not None and operacion.buscar in (t.text or ""):
+            t.text = (t.text or "").replace(operacion.buscar, operacion.poner)
+            if t.text != t.text.strip() or "  " in t.text:
+                t.set(_ESPACIO, "preserve")
+    return enteras
+
+
+def _grupos(trozos: list[Any | None]) -> Iterator[list[Any]]:
+    """Los ``w:t`` seguidos, sin ningún corte entre ellos."""
+    grupo: list[Any] = []
+    for t in trozos:
+        if t is None:
+            yield grupo
+            grupo = []
+        else:
+            grupo.append(t)
+    yield grupo
+
+
 # --- Estilos ------------------------------------------------------------------------------
 
 
@@ -429,6 +500,7 @@ def _preparar(
     estilos: _Estilos,
     ids: _Ids,
     ultimos: dict[Any, Any],
+    sustituciones: list[int],
 ) -> Callable[[], None]:
     """Valida la operación con la plantilla y devuelve lo que la aplica sobre lo ya resuelto."""
     if isinstance(operacion, Reemplazar):
@@ -444,6 +516,14 @@ def _preparar(
                 ultimos[destino] = ultimo
 
         return reemplazar
+
+    if isinstance(operacion, Sustituir):
+        objetivo = _elemento(mapa, operacion.id, _P, _TC)
+
+        def cambiar() -> None:
+            sustituciones[0] += _sustituir(i, operacion, objetivo)
+
+        return cambiar
 
     if isinstance(operacion, InsertarDespues):
         ref = _elemento(mapa, operacion.id, _P, _TBL)
@@ -652,8 +732,9 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
     estilos = _Estilos(analisis.documento)
     ids = _Ids(analisis.documento.element, *analisis.partes)
     ultimos: dict[Any, Any] = {}  # ancla -> último elemento insertado tras ella
+    sustituciones = [0]
     acciones = [
-        _preparar(i, operacion, analisis.mapa, estilos, ids, ultimos)
+        _preparar(i, operacion, analisis.mapa, estilos, ids, ultimos, sustituciones)
         for i, operacion in enumerate(relleno.operaciones)
     ]
     try:
@@ -672,4 +753,4 @@ def rellenar(carpeta: Path, relleno: Relleno) -> ResultadoRelleno:
     avisos = list(analisis.lectura.avisos)
     if indice:
         avisos.append("INDICE_SE_ACTUALIZA_AL_ABRIR")
-    return ResultadoRelleno(salida, len(acciones), tuple(avisos))
+    return ResultadoRelleno(salida, len(acciones), tuple(avisos), sustituciones[0])

@@ -177,6 +177,8 @@ MENSAJES: dict[str, str] = {
     "DOCUMENTO_NO_ESCRIBIBLE": "No se pudo crear el Word. Comprueba que la carpeta de destino exista y que puedas escribir en ella, y repite el comando.",
     "RELLENO_INVALIDO": "El fichero de relleno no es válido. El mensaje indica la clave o la operación que falla (por ejemplo, operaciones[2].op). Corrígela y repite el comando; un texto de varios párrafos va en una lista.",
     "OPERACIONES_EN_CONFLICTO": "Dos operaciones del relleno se contradicen sobre el mismo bloque: por ejemplo, borrar una fila y tocar una celda suya, o dos reemplazos del mismo id. Deja solo una de ellas y repite el comando.",
+    "TEXTO_NO_ENCONTRADO": "El texto que «sustituir» busca no está en ese párrafo o celda. Cópialo tal como sale en «tiza leer», de un solo trozo (un tabulador o un salto de línea corta el texto aunque la lectura lo muestre como un espacio) y repite el comando.",
+    "TEXTO_PARTIDO": "El texto que «sustituir» busca está repartido entre varios trozos del párrafo (por el formato o un campo), y no se puede cambiar sin tocarlos. Usa «reemplazar» sobre ese párrafo.",
     "PLANTILLA_CAMBIADA": "La plantilla ha cambiado desde que se leyó con «tiza leer», así que los ids del relleno ya no valen. Vuelve a leerla y rehaz el relleno con los ids nuevos.",
     "ID_DESCONOCIDO": "Un id del relleno no existe en la plantilla o no es del tipo que pide la operación. Vuelve a leer la plantilla con «tiza leer» y copia los ids tal como salen.",
     "CELDAS_NO_COINCIDEN": "Una fila nueva trae un número de celdas distinto del de la fila modelo. Escribe una celda por cada celda de la fila modelo, o elige otra fila modelo.",

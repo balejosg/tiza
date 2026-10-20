@@ -54,6 +54,7 @@ def test_cli_rellenar_resumen(carpeta, capsys):
         "plantilla": "Plantilla.docx",
         "salida": "Salida.docx",
         "operaciones": 1,
+        "sustituciones": 0,
         "avisos": [],
     }
     assert (carpeta / "Salida.docx").is_file()
@@ -102,4 +103,27 @@ def test_cli_rellenar_error_es_codigo(carpeta, capsys):
     assert codigo == 2
     assert resultado["error"] == "PLANTILLA_CAMBIADA"
     assert resultado["que_hacer"] == ayuda.explicar("PLANTILLA_CAMBIADA")
+    assert not (carpeta / "Salida.docx").exists()
+
+
+def test_cli_rellenar_dice_cuantas_sustituciones(carpeta, capsys):
+    preparar(carpeta)
+    datos = yaml.safe_load((carpeta / "relleno.yaml").read_text(encoding="utf-8"))
+    datos["operaciones"] = [
+        {"op": "sustituir", "id": "p1", "buscar": "viejo", "poner": "nuevo"},
+    ]
+    (carpeta / "relleno.yaml").write_text(yaml.safe_dump(datos), encoding="utf-8")
+    codigo, resumen = ejecutar(capsys, ["rellenar", "relleno.yaml"])
+    assert codigo == 0 and resumen["operaciones"] == 1 and resumen["sustituciones"] == 1
+
+
+def test_cli_rellenar_texto_no_encontrado_tiene_ayuda(carpeta, capsys):
+    preparar(carpeta)
+    datos = yaml.safe_load((carpeta / "relleno.yaml").read_text(encoding="utf-8"))
+    datos["operaciones"] = [{"op": "sustituir", "id": "p1", "buscar": "nada", "poner": "algo"}]
+    (carpeta / "relleno.yaml").write_text(yaml.safe_dump(datos), encoding="utf-8")
+    codigo, resultado = ejecutar(capsys, ["rellenar", "relleno.yaml"])
+    assert codigo == 2 and resultado["error"] == "TEXTO_NO_ENCONTRADO"
+    assert resultado["que_hacer"] == ayuda.explicar("TEXTO_NO_ENCONTRADO")
+    assert ayuda.explicar("TEXTO_PARTIDO")
     assert not (carpeta / "Salida.docx").exists()

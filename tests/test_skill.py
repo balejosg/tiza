@@ -85,6 +85,7 @@ def test_guia_programacion_existe_y_se_cita(tmp_path):
     relleno = cargar_relleno(ruta, tmp_path)
     assert {type(op).__name__ for op in relleno.operaciones} == {
         "Reemplazar",
+        "Sustituir",
         "InsertarDespues",
         "Filas",
         "DuplicarTabla",

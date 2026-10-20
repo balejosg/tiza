@@ -582,6 +582,7 @@ def rellenar(relleno: str | Path, carpeta: str | Path) -> informe.Relleno:
         salida=resultado.salida.resolve().relative_to(raiz).as_posix(),
         operaciones=resultado.operaciones,
         avisos=resultado.avisos,
+        sustituciones=resultado.sustituciones,
     )
 
 

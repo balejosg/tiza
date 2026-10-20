@@ -260,6 +260,7 @@ Operaciones (`op`):
 | `op` | Claves | Qué hace |
 |---|---|---|
 | `reemplazar` | `id`, `texto` | Cambia el texto de un párrafo o de una celda |
+| `sustituir` | `id`, `buscar`, `poner` | Cambia un trozo de texto dentro de un párrafo o de una celda, sin tocar nada más |
 | `insertar_despues` | `id`, `parrafos`, `estilo` (opcional) | Añade párrafos tras un párrafo o una tabla |
 | `filas` | `tabla`, `modelo`, `antes_de`, `contenido` | Añade filas a una tabla, copiando el formato de una fila modelo |
 | `duplicar_tabla` | `tabla`, `despues_de`, `veces`, `celdas` | Copia una tabla tras un párrafo o tabla, una vez por copia |
@@ -285,6 +286,20 @@ Detalles por operación:
   ejemplo. En una celda se sustituye todo su contenido, incluida una tabla anidada: para
   conservarla, usa sus ids. Para cambiar el texto de un control y conservarlo, reemplaza el
   id del párrafo, no el de la celda.
+- **`sustituir`**: cambia `buscar` por `poner` en el párrafo o la celda `id` y no toca nada más:
+  runs, formato, tabuladores, saltos, campos y controles se quedan como están. Es la
+  operación para cambiar solo el curso o una fecha dentro de un texto con formato
+  (`Programación del Departamento<tab>Curso 2026/27`), donde `reemplazar` lo dejaría en un
+  solo run sin el tabulador. `buscar` y `poner` son textos no vacíos, sin saltos de línea ni
+  caracteres de control. `buscar` se compara con cada trozo de texto (`w:t`) por separado,
+  distinguiendo mayúsculas: en la lectura un tabulador o un salto salen como un espacio, pero
+  cortan el texto, así que busca dentro de uno solo de los lados. Si `buscar` aparece más de
+  una vez en el bloque, se cambian todas y `sustituciones` en la salida dice cuántas en
+  total. Sin apariciones, `TEXTO_NO_ENCONTRADO`; si alguna está repartida entre varios
+  trozos (por un cambio de formato o un campo), `TEXTO_PARTIDO`: usa entonces `reemplazar`.
+  En una celda se miran sus párrafos, no las tablas anidadas. Varias `sustituir` sobre el
+  mismo id se aplican en orden, cada una sobre el texto que dejó la anterior. Se ignora el
+  texto de respaldo de un cuadro de texto y lo borrado con el control de cambios.
 - **`insertar_despues`**: tras un párrafo copia su estilo y su formato; tras una tabla, el
   estilo de párrafo normal. Con `estilo` (el nombre que ves en Word o su identificador)
   usa ese estilo; si la plantilla no lo tiene, `ESTILO_INEXISTENTE` con la lista.
@@ -309,8 +324,9 @@ Orden y conflictos:
 - `OPERACIONES_EN_CONFLICTO`, con las dos posiciones (p. ej. `operaciones[1]` y
   `operaciones[4]`), si: se borra un bloque y otra operación lo toca, lo usa como
   referencia (`tabla`, `despues_de`, `modelo`, `antes_de`) o lo tiene dentro; se borra un
-  bloque que está dentro de uno que otra operación reemplaza o borra; o se repite un
-  `reemplazar` o un `borrar` del mismo id. Añadir filas a una tabla cuya fila se borra no
+  bloque que está dentro de uno que otra operación reemplaza, sustituye o borra; se repite
+  un `reemplazar` o un `borrar` del mismo id; o se sustituye texto en un bloque que otra
+  operación reemplaza (el mismo, uno que lo contiene o uno que está dentro). Añadir filas a una tabla cuya fila se borra no
   es conflicto, siempre que la fila modelo y la de `antes_de` sean otras.
 
 Límites: el YAML pesa como mucho 2 MB, no admite anclas ni alias
@@ -322,7 +338,8 @@ fila modelo, no una comprobación. Un salto de línea final en un texto se quita
 no se admiten los campos que cruzan párrafos ni el texto dentro de cuadros de texto.
 
 Salida: `tiza rellenar relleno.yaml` imprime un JSON en la pantalla. Si sale bien (código 0):
-`plantilla`, `salida`, `operaciones` (cuántas se aplicaron) y `avisos`. Si falla (código 2):
+`plantilla`, `salida`, `operaciones` (cuántas se aplicaron), `sustituciones` (cuántas
+apariciones cambiaron las `sustituir`, 0 si no hay) y `avisos`. Si falla (código 2):
 `error`, `detalle` y `que_hacer`. El Word solo se crea al final: si algo falla antes, no queda
 nada escrito, y la plantilla nunca se toca.
 
@@ -337,6 +354,7 @@ Códigos de error:
 | `FICHERO_FUERA`, `FICHERO_TEMPORAL`, `FORMATO_NO_ADMITIDO` | Una ruta sale de la carpeta, es oculta o un temporal de Word (`~$`), o no tiene la extensión que toca |
 | `PLANTILLA_CAMBIADA` | El `sha256` no coincide: vuelve a `tiza leer` |
 | `ID_DESCONOCIDO` | Un id no existe o no es del tipo que pide la operación |
+| `TEXTO_NO_ENCONTRADO`, `TEXTO_PARTIDO` | `sustituir` no encuentra `buscar` en el bloque, o lo encuentra repartido entre varios trozos de texto (usa `reemplazar`) |
 | `CELDAS_NO_COINCIDEN` | Una fila nueva no tiene las celdas de la fila modelo |
 | `FILA_MODELO_FUSIONADA`, `FILA_FUSIONADA` | Una fila con celdas fusionadas no se puede copiar ni borrar |
 | `ESTILO_INEXISTENTE` | La plantilla no tiene ese estilo de párrafo |

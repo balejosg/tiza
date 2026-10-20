@@ -33,6 +33,7 @@ __all__ = [
     "Operacion",
     "Relleno",
     "Reemplazar",
+    "Sustituir",
     "cargar_relleno",
 ]
 
@@ -62,6 +63,20 @@ class Reemplazar:
     id: str
     texto: tuple[str, ...]
     op: ClassVar[str] = "reemplazar"
+
+
+@dataclass(frozen=True)
+class Sustituir:
+    """Cambia ``buscar`` por ``poner`` dentro del texto de un párrafo o de una celda.
+
+    Solo toca el texto: los runs, el formato, los tabuladores, los campos y los controles se
+    quedan como están. ``buscar`` tiene que caer entero dentro de un solo trozo de texto.
+    """
+
+    id: str
+    buscar: str
+    poner: str
+    op: ClassVar[str] = "sustituir"
 
 
 @dataclass(frozen=True)
@@ -112,7 +127,7 @@ class Borrar:
     op: ClassVar[str] = "borrar"
 
 
-Operacion = Reemplazar | InsertarDespues | Filas | DuplicarTabla | Borrar
+Operacion = Reemplazar | Sustituir | InsertarDespues | Filas | DuplicarTabla | Borrar
 
 
 @dataclass(frozen=True)
@@ -145,6 +160,13 @@ def _texto(valor: Any, ruta: str) -> str:
             "no admite saltos de línea ni caracteres de control; si son varios párrafos, usa una lista de párrafos",
         )
     return valor
+
+
+def _texto_no_vacio(valor: Any, ruta: str) -> str:
+    texto = _texto(valor, ruta)
+    if not texto:
+        raise _error(ruta, "no puede estar vacío")
+    return texto
 
 
 def _textos(valor: Any, ruta: str) -> tuple[str, ...]:
@@ -214,6 +236,7 @@ def _mapa(
 
 _CAMPOS: dict[str, tuple[str, ...]] = {
     "reemplazar": ("id", "texto"),
+    "sustituir": ("id", "buscar", "poner"),
     "insertar_despues": ("id", "parrafos", "estilo"),
     "filas": ("tabla", "modelo", "antes_de", "contenido"),
     "duplicar_tabla": ("tabla", "despues_de", "veces", "celdas"),
@@ -250,7 +273,7 @@ def _operacion(valor: Any, ruta: str) -> Operacion:
     if not isinstance(nombre, str) or nombre not in _CAMPOS:
         raise _error(
             _clave(ruta, "op"),
-            "operación no admitida: usa reemplazar, insertar_despues, filas, duplicar_tabla o borrar",
+            "operación no admitida: usa reemplazar, sustituir, insertar_despues, filas, duplicar_tabla o borrar",
         )
     campos = _CAMPOS[nombre]
     datos = _mapa(
@@ -273,6 +296,17 @@ def _operacion(valor: Any, ruta: str) -> Operacion:
                 "un párrafo (p3) o una celda (t2.f1.c1)",
             ),
             _textos(datos["texto"], campo("texto")),
+        )
+    if nombre == "sustituir":
+        return Sustituir(
+            _id(
+                datos["id"],
+                campo("id"),
+                _FORMAS_REEMPLAZO,
+                "un párrafo (p3) o una celda (t2.f1.c1)",
+            ),
+            _texto_no_vacio(datos["buscar"], campo("buscar")),
+            _texto_no_vacio(datos["poner"], campo("poner")),
         )
     if nombre == "insertar_despues":
         estilo = None
@@ -342,7 +376,7 @@ def _referencias(operacion: Operacion) -> tuple[str, ...]:
         return tuple(refs)
     if isinstance(operacion, DuplicarTabla):
         return (operacion.tabla, operacion.despues_de)
-    if isinstance(operacion, InsertarDespues | Reemplazar | Borrar):
+    if isinstance(operacion, InsertarDespues | Reemplazar | Sustituir | Borrar):
         return (operacion.id,)
     raise TypeError(operacion)
 
@@ -353,7 +387,8 @@ def _conflicto(operaciones: tuple[Operacion, ...]) -> tuple[int, int, str] | Non
     Reglas: (a) un ``borrar`` de X choca con cualquier operación cuya referencia sea X o esté
     dentro de X; (b) un ``borrar`` de X choca con un ``reemplazar`` o un ``borrar`` cuyo id
     contiene a X («t3.f2.c1» frente a «t3.f2.c1.p1»); (c) dos ``reemplazar`` o dos ``borrar``
-    del mismo id.
+    del mismo id; (d) un ``sustituir`` choca con un ``reemplazar`` del mismo bloque, de uno que lo
+    contiene o de uno que está dentro de él.
     """
     hallados: list[tuple[int, int, str]] = []
     primeros: dict[tuple[str, str], int] = {}
@@ -373,10 +408,20 @@ def _conflicto(operaciones: tuple[Operacion, ...]) -> tuple[int, int, str] | Non
             if j == i:
                 continue
             choca = any(ref == x or _dentro_de(ref, x) for ref in refs[j])
-            if not choca and isinstance(otra, Reemplazar | Borrar):
+            if not choca and isinstance(otra, Reemplazar | Sustituir | Borrar):
                 choca = _dentro_de(x, otra.id)
             if choca:
                 hallados.append((min(i, j), max(i, j), x))
+    for i, operacion in enumerate(operaciones):  # sustituir dentro de lo que se reemplaza
+        if not isinstance(operacion, Sustituir):
+            continue
+        for j, otra in enumerate(operaciones):
+            if isinstance(otra, Reemplazar) and (
+                otra.id == operacion.id
+                or _dentro_de(otra.id, operacion.id)
+                or _dentro_de(operacion.id, otra.id)
+            ):
+                hallados.append((min(i, j), max(i, j), operacion.id))
     if not hallados:
         return None
     return min(hallados, key=lambda hallado: (hallado[1], hallado[0]))
@@ -497,7 +542,7 @@ def cargar_relleno(ruta: Path, carpeta: Path) -> Relleno:
             "OPERACIONES_EN_CONFLICTO",
             f"operaciones[{i}] y operaciones[{j}] chocan sobre «{id_en_disputa}»: un borrado no puede "
             "convivir con otra operación sobre el mismo bloque (ni dentro de él ni por encima), "
-            "y no se reemplaza dos veces el mismo id.",
+            "y no se reemplaza dos veces el mismo id ni se sustituye texto en un bloque que se reemplaza.",
         )
     return Relleno(
         plantilla=plantilla,

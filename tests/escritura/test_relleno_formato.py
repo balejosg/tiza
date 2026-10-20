@@ -549,3 +549,73 @@ def test_las_reglas_de_conflicto_valen_con_el_prefijo_de_parte(tmp_path):
         {"op": "borrar", "id": "p1"},
     ]
     assert len(_cargar(tmp_path, separadas).operaciones) == 3
+
+
+# --- sustituir ----------------------------------------------------------------------------
+
+
+def _sustituir(**cambios):
+    return {"op": "sustituir", "id": "p1", "buscar": "2026/27", "poner": "2027/28", **cambios}
+
+
+def test_sustituir_valido(tmp_path):
+    ops = [
+        _sustituir(),
+        _sustituir(id="t1.f1.c1"),
+        _sustituir(id="e1.p1"),
+        _sustituir(id="pie2.p3"),
+    ]
+    operaciones = _cargar(tmp_path, ops).operaciones
+    assert [type(o).__name__ for o in operaciones] == ["Sustituir"] * 4
+    assert (operaciones[0].buscar, operaciones[0].poner) == ("2026/27", "2027/28")
+
+
+@pytest.mark.parametrize(
+    "operacion, ruta",
+    [
+        (_sustituir(buscar=""), "buscar"),
+        (_sustituir(poner=""), "poner"),
+        (_sustituir(buscar="a\nb"), "buscar"),
+        (_sustituir(poner="a\tb"), "poner"),
+        (_sustituir(buscar=3), "buscar"),
+        (_sustituir(poner=["x"]), "poner"),
+        (_sustituir(id="t1.f1"), "id"),
+        (_sustituir(id="t1"), "id"),
+        (_sustituir(id="x1.p1"), "id"),
+        ({"op": "sustituir", "id": "p1", "buscar": "a"}, "poner"),
+        (_sustituir(texto="x"), "texto"),
+    ],
+)
+def test_sustituir_no_valido(tmp_path, operacion, ruta):
+    detalle = _invalido(tmp_path, [operacion])
+    assert "operaciones[0]" in detalle and ruta in detalle
+
+
+def test_sustituir_y_borrar_del_mismo_id_chocan(tmp_path):
+    for ops in (
+        [_sustituir(), {"op": "borrar", "id": "p1"}],
+        [{"op": "borrar", "id": "p1"}, _sustituir()],
+        [_sustituir(id="t1.f2.c1"), {"op": "borrar", "id": "t1.f2"}],
+        [_sustituir(id="t1.f2.c1"), {"op": "borrar", "id": "t1.f2.c1.p1"}],
+    ):
+        assert "operaciones[1]" in _conflictivo(tmp_path, ops)
+
+
+def test_sustituir_y_reemplazar_chocan_si_se_solapan(tmp_path):
+    for ops in (
+        [_sustituir(), {"op": "reemplazar", "id": "p1", "texto": "x"}],
+        [{"op": "reemplazar", "id": "t1.f1.c1", "texto": "x"}, _sustituir(id="t1.f1.c1.p1")],
+        [_sustituir(id="t1.f1.c1"), {"op": "reemplazar", "id": "t1.f1.c1.p1", "texto": "x"}],
+    ):
+        assert "operaciones[1]" in _conflictivo(tmp_path, ops)
+
+
+def test_sustituir_convive_con_lo_demas(tmp_path):
+    ops = [
+        _sustituir(),
+        _sustituir(buscar="otro"),  # varias sustituciones sobre el mismo id se aplican en orden
+        {"op": "reemplazar", "id": "p2", "texto": "x"},
+        {"op": "insertar_despues", "id": "p1", "parrafos": ["y"]},
+        {"op": "borrar", "id": "p3"},
+    ]
+    assert len(_cargar(tmp_path, ops).operaciones) == 5

@@ -6,6 +6,9 @@ se avisa aquí con **Cambia**.
 
 ## Sin publicar
 
+### Añadido
+- **`tiza rellenar` puede cambiar solo un trozo de texto con la operación `sustituir`** (`id`, `buscar`, `poner`): conserva el formato, los tabuladores, los campos y los controles, así que cambiar «2026/27» por «2027/28» en un encabezado no lo descoloca. El resumen dice cuántas apariciones cambió (`sustituciones`); si el texto no está, `TEXTO_NO_ENCONTRADO`, y si está repartido entre varios trozos, `TEXTO_PARTIDO` (se usa `reemplazar`).
+
 ### Corregido
 - **`tiza rellenar` ya puede cambiar los encabezados y pies (por ejemplo, el curso): `tiza leer` los muestra con sus ids.** Salen al final de la lectura (`[e1.p1]`, `[pie1.p1]`) y se cambian con las mismas operaciones que el cuerpo; el número de página y lo que no cambies se conservan.
 - **`tiza leer` ya no repite el texto de los cuadros de texto**: Word guarda cada cuadro dos veces (para versiones antiguas) y se leía duplicado; en un encabezado salía «C2 – Uso Restringido C2 – Uso Restringido» y en un pie con el número de página en un cuadro, «5454».

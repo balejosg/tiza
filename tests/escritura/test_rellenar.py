@@ -23,6 +23,7 @@ from tiza.escritura.relleno import (
     InsertarDespues,
     Reemplazar,
     Relleno,
+    Sustituir,
 )
 from tiza.lectura.modelo import ErrorLectura
 from tiza.lectura.word import analizar_docx, leer_docx
@@ -1078,3 +1079,146 @@ def test_un_id_de_parte_inexistente_es_id_desconocido(tmp_path):
     d = f.nuevo()
     f.dos_secciones(d)
     assert fallo(tmp_path, d, Reemplazar("e2.p1", ("x",))).codigo == "ID_DESCONOCIDO"
+
+
+# --- sustituir ----------------------------------------------------------------------------
+
+
+def _encabezado_con_tabulador(d):
+    """Un encabezado ``Departamento<tab>Curso 2026/27`` con negrita y cursiva en cada run."""
+    d.add_paragraph("Cuerpo")
+    p = d.sections[0].header.paragraphs[0]
+    for hijo in f.elemento(
+        "<w:x><w:r><w:rPr><w:b/></w:rPr><w:t>Departamento</w:t><w:tab/>"
+        "<w:t>Curso 2026/27</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t xml:space='preserve'> (A)</w:t></w:r></w:x>"
+    ):
+        p._p.append(hijo)
+    return p
+
+
+def _xml_de(resultado, miembro="word/header1.xml"):
+    with zipfile.ZipFile(resultado.salida) as zf:
+        return zf.read(miembro).decode("utf-8")
+
+
+def test_sustituir_conserva_el_tabulador_y_el_formato(tmp_path):
+    d = f.nuevo()
+    _encabezado_con_tabulador(d)
+    resultado, nuevo, lectura = aplicar(tmp_path, d, Sustituir("e1.p1", "2026/27", "2027/28"))
+    assert resultado.sustituciones == 1 and resultado.operaciones == 1
+    xml = _xml_de(resultado)
+    assert "<w:tab/>" in xml and "Curso 2027/28" in xml and "2026/27" not in xml
+    runs = nuevo.sections[0].header.paragraphs[0].runs
+    assert [r.text for r in runs] == ["Departamento\tCurso 2027/28", " (A)"]
+    assert runs[0].bold is True and runs[1].italic is True
+    assert lectura.partes[0].hijos[0].texto == "Departamento Curso 2027/28 (A)"
+
+
+def test_sustituir_dos_apariciones_las_cambia_y_las_cuenta(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Curso 2026/27 y de nuevo 2026/27")
+    d.add_paragraph("Otro 2026/27")
+    resultado, _, lectura = aplicar(tmp_path, d, Sustituir("p1", "2026/27", "2027/28"))
+    assert resultado.sustituciones == 2
+    assert textos(lectura) == {"p1": "Curso 2027/28 y de nuevo 2027/28", "p2": "Otro 2026/27"}
+
+
+def test_sustituir_en_una_celda_busca_en_todos_sus_parrafos_y_no_en_tablas_anidadas(tmp_path):
+    d = f.nuevo()
+    t = d.add_table(rows=1, cols=1)
+    celda = t.cell(0, 0)
+    celda.paragraphs[0].text = "A 2026/27"
+    celda.add_paragraph("B 2026/27")
+    interior = celda.add_table(rows=1, cols=1)
+    interior.cell(0, 0).text = "C 2026/27"
+    celda.add_paragraph("")
+    resultado, _, lectura = aplicar(tmp_path, d, Sustituir("t1.f1.c1", "2026/27", "2027/28"))
+    assert resultado.sustituciones == 2
+    assert textos(lectura) == {
+        "t1.f1.c1.p1": "A 2027/28",
+        "t1.f1.c1.p2": "B 2027/28",
+        "t1.f1.c1.t1.f1.c1.p1": "C 2026/27",
+    }
+
+
+def test_sustituir_texto_no_encontrado(tmp_path):
+    d = f.nuevo()
+    _encabezado_con_tabulador(d)
+    error = fallo(tmp_path, d, Sustituir("e1.p1", "2030/31", "2031/32"))
+    assert error.codigo == "TEXTO_NO_ENCONTRADO" and "operaciones[0]" in error.detalle
+
+
+def test_sustituir_no_cruza_un_tabulador_aunque_la_lectura_lo_muestre_como_espacio(tmp_path):
+    d = f.nuevo()
+    _encabezado_con_tabulador(d)
+    assert fallo(tmp_path, d, Sustituir("e1.p1", "Departamento Curso", "x")).codigo == (
+        "TEXTO_NO_ENCONTRADO"
+    )
+
+
+def test_sustituir_texto_partido_entre_runs(tmp_path):
+    d = f.nuevo()
+    p = d.add_paragraph()
+    p.add_run("Curso 2026").bold = True
+    p.add_run("/27")
+    error = fallo(tmp_path, d, Sustituir("p1", "2026/27", "2027/28"))
+    assert error.codigo == "TEXTO_PARTIDO" and "reemplazar" in error.detalle
+
+
+def test_sustituir_partido_aunque_otra_aparicion_este_entera(tmp_path):
+    d = f.nuevo()
+    p = d.add_paragraph("2026/27 y 20")
+    p.add_run("26/27")
+    assert fallo(tmp_path, d, Sustituir("p1", "2026/27", "x")).codigo == "TEXTO_PARTIDO"
+
+
+def test_sustituir_conserva_campos_y_controles(tmp_path):
+    d = f.nuevo()
+    f.dos_secciones(d, cabecera="Curso 2026/27")
+    f.control_en_linea(d, marcador="Curso 2026/27")
+    resultado, _, lectura = aplicar(
+        tmp_path,
+        d,
+        Sustituir("pie1.p1", "Página", "Pág."),
+        Sustituir("p4", "2026/27", "2027/28"),
+    )
+    pies = [x for n, x in _miembros(resultado.salida).items() if n.startswith("word/footer")]
+    assert sum(b"PAGE" in x for x in pies) == 1
+    assert "Pág. 1" in [h.texto for b in lectura.partes for h in b.hijos]
+    with zipfile.ZipFile(resultado.salida) as zf:
+        cuerpo = zf.read("word/document.xml").decode("utf-8")
+    assert "showingPlcHdr" in cuerpo and "Curso 2027/28" in cuerpo
+
+
+def test_sustituir_se_aplica_en_orden_sobre_el_texto_ya_cambiado(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Curso 2026/27")
+    resultado, _, lectura = aplicar(
+        tmp_path,
+        d,
+        Sustituir("p1", "2026/27", "2027/28"),
+        Sustituir("p1", "2027/28", "2028/29"),
+    )
+    assert textos(lectura) == {"p1": "Curso 2028/29"} and resultado.sustituciones == 2
+
+
+def test_sustituir_con_espacios_en_los_extremos_conserva_xml_space(tmp_path):
+    d = f.nuevo()
+    d.add_paragraph("Uno-")
+    _, nuevo, _ = aplicar(tmp_path, d, Sustituir("p1", "-", " "))
+    t = nuevo.paragraphs[0]._p.find(".//" + qn("w:t"))
+    assert t.text == "Uno " and t.get("{http://www.w3.org/XML/1998/namespace}space") == "preserve"
+
+
+def test_sustituir_no_lee_el_respaldo_de_un_cuadro_de_texto(tmp_path):
+    d = f.nuevo()
+    mc = 'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"'
+    f.parrafo_xml(
+        d,
+        f"<w:r><mc:AlternateContent {mc}><mc:Choice Requires='wps'><w:txbxContent><w:p><w:r>"
+        "<w:t>Curso 2026/27</w:t></w:r></w:p></w:txbxContent></mc:Choice><mc:Fallback>"
+        "<w:txbxContent><w:p><w:r><w:t>Curso 2026/27</w:t></w:r></w:p></w:txbxContent>"
+        "</mc:Fallback></mc:AlternateContent></w:r>",
+    )
+    resultado, _, lectura = aplicar(tmp_path, d, Sustituir("p1", "2026/27", "2027/28"))
+    assert resultado.sustituciones == 1 and textos(lectura) == {"p1": "Curso 2027/28"}

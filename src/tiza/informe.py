@@ -520,12 +520,14 @@ def validar_documento(datos: Any) -> None:
     _exigir_entero(datos["bloques"], "bloques")
 
 
-_CAMPOS_RELLENO = {"plantilla", "salida", "operaciones", "avisos"}
+_CAMPOS_RELLENO = {"plantilla", "salida", "operaciones", "sustituciones", "avisos"}
 
 
 @dataclass(frozen=True)
 class Relleno:
     """El resumen que imprime ``tiza rellenar``: qué plantilla, qué Word nuevo y cuántas operaciones.
+
+    ``sustituciones`` cuenta las apariciones de texto que cambiaron las operaciones ``sustituir``.
 
     Las rutas son relativas a la carpeta de la asignatura y los avisos, códigos estables.
     Se valida al construirlo.
@@ -535,6 +537,7 @@ class Relleno:
     salida: str
     operaciones: int
     avisos: Sequence[str]
+    sustituciones: int = 0
 
     def __post_init__(self) -> None:
         validar_relleno(self.a_dict())
@@ -544,6 +547,7 @@ class Relleno:
             "plantilla": self.plantilla,
             "salida": self.salida,
             "operaciones": self.operaciones,
+            "sustituciones": self.sustituciones,
             "avisos": list(self.avisos),
         }
 
@@ -558,6 +562,7 @@ def validar_relleno(datos: Any) -> None:
             raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
         _exigir_texto(datos[campo], campo)
     _exigir_entero(datos["operaciones"], "operaciones")
+    _exigir_entero(datos["sustituciones"], "sustituciones")
     for aviso in _exigir_lista(datos["avisos"], "avisos"):
         if not isinstance(aviso, str) or not _CODIGO.match(aviso):
             raise ErrorInforme("VALOR_NO_PERMITIDO", "los avisos deben ser códigos")
