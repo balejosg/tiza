@@ -1064,7 +1064,19 @@ class Moodle:
     # ------------------------------------------------------------------ #
 
     def _pagina_del_calificador(self, ruta: str, params: dict[str, int]) -> str:
-        """El HTML de una página del calificador; una redirección es falta de permiso."""
+        """El HTML de una página del calificador; una redirección es falta de permiso.
+
+        Tras crear o borrar un elemento, o cambiar un máximo o un peso, Moodle devuelve primero
+        la página «Recalculando calificaciones» (``div.progressbar_container``, sin el árbol):
+        se repite el mismo GET, hasta 3 peticiones en total. Si sigue, lo ve quien llama.
+        """
+        for _ in range(_PETICIONES_POR_RECALCULO):
+            html = self._leer_pagina_del_calificador(ruta, params)
+            if not _es_recalculo(html):
+                return html
+        return html
+
+    def _leer_pagina_del_calificador(self, ruta: str, params: dict[str, int]) -> str:
         self._esperar()
         respuesta = self._reducir(
             "ERROR_CONSULTA",
@@ -1877,6 +1889,20 @@ def _validar_eid(eid: str, prefijo: str | None = None) -> None:
     """Un ``eid`` es ``cg<id>`` o ``ig<id>``; otra cosa es un error propio, nunca ``ValueError``."""
     if not isinstance(eid, str) or not _EID.fullmatch(eid) or (prefijo and eid[:2] != prefijo):
         raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+
+_PETICIONES_POR_RECALCULO = 3
+
+
+def _es_recalculo(html: str) -> bool:
+    """¿Es la página intersticial de «Recalculando calificaciones»?"""
+    if "progressbar_container" not in html:
+        return False
+    sopa = BeautifulSoup(html, "html.parser")
+    return (
+        sopa.find("div", class_="progressbar_container") is not None
+        and sopa.find("form", id="gradetreeform") is None
+    )
 
 
 def _decimal_visto(parciales: list[dict[str, Any]]) -> str:

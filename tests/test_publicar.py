@@ -4049,6 +4049,60 @@ def test_decimal_de_un_curso_limpio_sale_del_formulario_de_alta():
     assert ("https://aula/grade/edit/tree/item.php", {"courseid": 2}) in sesion.gets
 
 
+RECALCULANDO = (
+    '<html><body><div class="progressbar_container"><h2>Recalculando calificaciones</h2></div>'
+    "</body></html>"
+)
+
+
+class _SesionRecalculando(_SesionCalificador):
+    """Las primeras ``veces`` lecturas del árbol son la página de recálculo."""
+
+    def __init__(self, veces, **kwargs):
+        super().__init__(**kwargs)
+        self.veces = veces
+        self.lecturas_del_arbol = 0
+
+    def get(self, url, params=None, allow_redirects=True, timeout=None):
+        if url.endswith("/grade/edit/tree/index.php") and not (params or {}).get("action"):
+            self.lecturas_del_arbol += 1
+            if self.veces > 0:
+                self.veces -= 1
+                return _RespuestaHttp(RECALCULANDO)
+        return super().get(url, params, allow_redirects, timeout)
+
+
+def test_recalculo_y_luego_el_arbol_se_repite_el_get():
+    sesion = _SesionRecalculando(1)
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    assert moodle.calificador(2).nodos
+    assert sesion.lecturas_del_arbol == 2
+
+
+def test_recalculo_tres_veces_da_el_error_de_siempre():
+    sesion = _SesionRecalculando(5)
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+    assert sesion.lecturas_del_arbol == 3
+
+
+def test_crear_tras_un_recalculo_encuentra_el_eid_nuevo():
+    sesion = _SesionRecalculando(0)
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    original = sesion.post
+
+    def post_y_recalcula(url, data=None, allow_redirects=True, timeout=None):
+        respuesta = original(url, data, allow_redirects, timeout)
+        sesion.veces = 1  # la lectura siguiente al guardar es el intersticial
+        return respuesta
+
+    sesion.post = post_y_recalcula
+    assert moodle.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, "porcentaje") == "cg9"
+
+
 def test_sin_formulario_del_arbol_no_hay_permiso():
     sesion = _SesionCalificador(arbol="<html><body>Sin permiso</body></html>")
     moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
