@@ -116,6 +116,9 @@ class Tipo:
     finalizaciones: tuple[str, ...] = ()  # modos de finalización admitidos
     banderas: tuple[str, ...] = ()  # casillas del formulario de «cuándo se completa»
     campos_fecha: tuple[str, ...] = ()  # campos del formulario de Moodle con fecha
+    # ¿Tiene elemento de calificación en Moodle? Solo entonces vale «evalua» (el calificador
+    # no podría colocar una actividad sin nota). Cada tipo lo declara; por defecto, no.
+    calificable: bool = False
     # Al actualizar, el payload necesita algo del formulario de edición (``ContextoPublicacion.leido``).
     lee_formulario_al_actualizar: bool = False
 

@@ -299,9 +299,22 @@ class TestHash:
             assert contenido.hash_documento(distinto) != contenido.hash_documento(con)
 
 
+def test_cada_tipo_declara_si_es_calificable():
+    for tipo in tipos.TODOS:
+        assert isinstance(tipo.calificable, bool), tipo.nombre
+    # pagina y etiqueta no tienen elemento de calificación en Moodle
+    assert {t.nombre for t in tipos.TODOS if t.calificable} == {"tarea", "cuestionario", "h5p"}
+
+
 @pytest.mark.parametrize("nombre", sorted(EJEMPLOS))
-def test_evalua_en_todos_los_tipos(tmp_path, nombre):
+def test_evalua_solo_en_los_tipos_calificables(tmp_path, nombre):
     texto = EJEMPLOS[nombre].replace("seccion: 1\n", "seccion: 1\nevalua: {RA1: 40}\n", 1)
     ruta = tmp_path / f"{nombre}.md"
     ruta.write_text(texto, encoding="utf-8")
-    assert contenido.cargar(ruta, raiz=tmp_path).evalua == (("RA1", 40),)
+    if tipos.obtener(nombre).calificable:
+        assert contenido.cargar(ruta, raiz=tmp_path).evalua == (("RA1", 40),)
+    else:
+        with pytest.raises(contenido.ErrorContenido) as error:
+            contenido.cargar(ruta, raiz=tmp_path)
+        assert error.value.codigo == "EVALUA_NO_CALIFICABLE"
+        assert tipos.obtener(nombre).llano in error.value.detalle

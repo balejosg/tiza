@@ -12,6 +12,7 @@ __all__ = ["MENSAJES", "explicar"]
 MENSAJES: dict[str, str] = {
     "EVALUA_INVALIDO": "El campo «evalua» no es válido: debe ser un mapa de ids (letra y hasta 15 letras o cifras más) a pesos de 0 a 100 con hasta 2 decimales, sin ids repetidos. Por ejemplo: evalua: {RA1: 40, RA3: 25}.",
     "ELEMENTO_DESCONOCIDO": "Una actividad nombra en «evalua» un elemento que no está en calificacion.yaml. Corrige el id en el .md o añade el elemento al esquema.",
+    "EVALUA_NO_CALIFICABLE": "Una página o un área de texto y medios no tiene nota en Moodle, así que no puede llevar «evalua». Quita el campo o convierte la actividad en una tarea, un cuestionario o un contenido H5P.",
     "SECCION_SIN_EVALUACION": "La sección de una actividad con «evalua» no cae en ninguna evaluación de calificacion.yaml. Añade esa sección a una evaluación o cambia la de la actividad.",
     "REFERENCIA_CIRCULAR": "Un cálculo del calificador referencia a la categoría que lo contiene y Moodle lo dejaría vacío. Es un fallo de tiza: no cambies nada a mano y avisa al mantenedor.",
     "PESOS_NO_SUMAN_100": "Los pesos de «evalua» de las actividades de un elemento no suman 100 en todo el curso. Ajusta los pesos de ese elemento para que sumen 100 (o déjalos todos a 0).",

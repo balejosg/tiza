@@ -99,6 +99,7 @@ MAX_ALTERNATIVAS_H5P = 10
 class H5P(Tipo):
     nombre = "h5p"
     llano = "Contenido interactivo (H5P)"
+    calificable = True
     modulo = "h5pactivity"
     campos = frozenset({"actividad", "paquete"})
     finalizaciones = ("ninguna", "manual", "ver", "calificar")

@@ -49,8 +49,8 @@ def carpeta_fp(tmp_path: Path, esquema: str = ESQUEMA, actividades=ACTIVIDADES) 
     for nombre, seccion, _cmid, evalua in actividades:
         mapa = ", ".join(f"{clave}: {peso}" for clave, peso in evalua.items())
         (carpeta / f"{nombre}.md").write_text(
-            f"---\ntipo: pagina\nnombre: {nombre}\nseccion: {seccion}\nevalua: {{{mapa}}}\n---\n\n"
-            "Texto\n",
+            f"---\ntipo: tarea\nnombre: {nombre}\nseccion: {seccion}\n"
+            f"apertura: 2026-10-01\nentrega: 2026-10-10\nevalua: {{{mapa}}}\n---\n\nTexto\n",
             encoding="utf-8",
         )
     (carpeta / "calificacion.yaml").write_text(esquema, encoding="utf-8")
@@ -93,7 +93,7 @@ def secciones_de(actividades=ACTIVIDADES) -> list[dict]:
                 "nombre": f"Tema {numero}",
                 "id": 10 * numero,
                 "modulos": [
-                    {"cmid": cmid, "nombre": nombre, "tipo": "pagina"}
+                    {"cmid": cmid, "nombre": nombre, "tipo": "tarea"}
                     for nombre, seccion, cmid, _ in actividades
                     if seccion == numero
                 ],
@@ -742,6 +742,25 @@ def test_un_error_de_las_actividades_sale_antes_de_tocar_el_aula(tmp_path):
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["errores"] == ["ELEMENTO_DESCONOCIDO"]
     assert moodle.llamadas == []
+
+
+def test_evalua_en_una_pagina_o_una_etiqueta_es_un_error_antes_de_tocar_el_aula(tmp_path):
+    for tipo in ("pagina", "etiqueta"):
+        (tmp_path / tipo).mkdir()
+        carpeta = carpeta_fp(tmp_path / tipo)
+        (carpeta / "nota.md").write_text(
+            f"---\ntipo: {tipo}\nnombre: nota\nseccion: 1\nevalua: {{RA1: 0}}\n---\n\nX\n",
+            encoding="utf-8",
+        )
+        moodle = AulaViva()
+        documento = atender(pedir(carpeta), moodle, carpeta)
+        assert documento["errores"] == ["EVALUA_NO_CALIFICABLE"], tipo
+        assert moodle.llamadas == []
+        resultado = agente.comprobar(carpeta, ["nota.md"])  # y también en «tiza comprobar»
+        assert "EVALUA_NO_CALIFICABLE" in resultado.informe["errores"]
+        assert [f.codigo for f in resultado.ficheros if f.fichero == "nota.md"] == [
+            "EVALUA_NO_CALIFICABLE"
+        ]
 
 
 def test_un_fichero_con_evalua_que_no_carga_no_se_ignora(tmp_path):

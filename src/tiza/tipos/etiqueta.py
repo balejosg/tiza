@@ -8,6 +8,7 @@ from .base import Tipo, campo_visible
 class Etiqueta(Tipo):
     nombre = "etiqueta"
     llano = "Área de texto y medios"
+    calificable = False  # sin elemento de calificación en Moodle
     modulo = "label"
     finalizaciones = ("ninguna", "manual")
 

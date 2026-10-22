@@ -70,6 +70,7 @@ MAX_ENUNCIADO = 5000
 class Cuestionario(Tipo):
     nombre = "cuestionario"
     llano = "Cuestionario"
+    calificable = True
     modulo = "quiz"
     campos = CAMPOS_CUESTIONARIO
     finalizaciones = ("ninguna", "manual", "ver", "calificar")

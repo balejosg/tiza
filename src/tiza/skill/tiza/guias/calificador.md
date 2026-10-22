@@ -50,10 +50,11 @@ de una evaluación) **se lo dices al docente y no lo fuerzas**.
 
 ## 3. Las actividades: `evalua`
 
-Cada página, etiqueta, tarea o cuestionario declara en su cabecera con qué resultados se
+Cada tarea, cuestionario o contenido H5P declara en su cabecera con qué resultados se
 evalúa y con qué peso: `evalua: {RA1: 40, RA3: 25}` (de 0 a 100). La actividad real queda en el
 primer elemento de `evalua` (en el orden del YAML); en los demás aparece una copia que refleja
-su nota. Una actividad sin `evalua` no entra en el calificador.
+su nota. Una actividad sin `evalua` no entra en el calificador. Una página o una etiqueta
+no tienen nota en Moodle: con `evalua` dan `EVALUA_NO_CALIFICABLE`, también en `tiza comprobar`.
 
 ## 4. Cómo se ve la nota
 
@@ -94,7 +95,7 @@ corregirla, lo hace a mano en el aula.
 ## 7. Cómo se monta
 
 1. `tiza comprobar calificacion.yaml` (offline) hasta que salga 0. Con las actividades, la misma
-   comprobación sirve para `evalua`.
+   comprobación sirve para `evalua` (`EVALUA_INVALIDO`, `EVALUA_NO_CALIFICABLE`).
 2. Las actividades tienen que estar publicadas en el aula. Una que aún no está sale como
    `ACTIVIDAD_PENDIENTE` (no es un error): vuelve a montar cuando esté publicada.
 3. `tiza calificador calificacion.yaml --en pruebas`: sin pregunta, gasta uno del cupo de la

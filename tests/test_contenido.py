@@ -2290,14 +2290,14 @@ class TestOrigen:
 
 class TestEvalua:
     def test_evalua_valido_conserva_el_orden(self, tmp_path):
-        doc = cargar(escribir(tmp_path, pagina(evalua="{RA3: 25, RA1: 40}")))
+        doc = cargar(escribir(tmp_path, tarea(evalua="{RA3: 25, RA1: 40}")))
         assert doc.evalua == (("RA3", 25), ("RA1", 40))
 
     def test_sin_evalua_es_none(self, tmp_path):
         assert cargar(escribir(tmp_path, pagina())).evalua is None
 
     def test_admite_decimales_y_cero(self, tmp_path):
-        doc = cargar(escribir(tmp_path, pagina(evalua="{RA1: 0, RA2: 33.33, RA3: 100}")))
+        doc = cargar(escribir(tmp_path, tarea(evalua="{RA1: 0, RA2: 33.33, RA3: 100}")))
         assert doc.evalua == (("RA1", 0), ("RA2", 33.33), ("RA3", 100))
 
     @pytest.mark.parametrize(
@@ -2317,12 +2317,19 @@ class TestEvalua:
     )
     def test_evalua_invalido(self, tmp_path, valor):
         with pytest.raises(ErrorContenido) as error:
-            cargar(escribir(tmp_path, pagina(evalua=valor)))
+            cargar(escribir(tmp_path, tarea(evalua=valor)))
         assert error.value.codigo == "EVALUA_INVALIDO"
 
+    @pytest.mark.parametrize("tipo", ["pagina", "etiqueta"])
+    def test_evalua_en_un_tipo_sin_calificacion(self, tmp_path, tipo):
+        texto = f"---\ntipo: {tipo}\nnombre: N\nseccion: 1\nevalua: {{RA1: 40}}\n---\n\nx\n"
+        with pytest.raises(ErrorContenido) as error:
+            cargar(escribir(tmp_path, texto))
+        assert error.value.codigo == "EVALUA_NO_CALIFICABLE"
+
     def test_hash_no_cambia_con_evalua(self, tmp_path):
-        sin = cargar(escribir(tmp_path, pagina(), nombre="sin.md"))
-        con = cargar(escribir(tmp_path, pagina(evalua="{RA1: 40}"), nombre="con.md"))
+        sin = cargar(escribir(tmp_path, tarea(), nombre="sin.md"))
+        con = cargar(escribir(tmp_path, tarea(evalua="{RA1: 40}"), nombre="con.md"))
         assert hash_documento(sin) == hash_documento(con)
 
     def test_hash_de_ejemplo_pagina_no_cambia(self):

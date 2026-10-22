@@ -8,6 +8,7 @@ from .base import Tipo, campo_visible
 class Pagina(Tipo):
     nombre = "pagina"
     llano = "Página"
+    calificable = False  # sin elemento de calificación en Moodle
     modulo = "page"
     finalizaciones = ("ninguna", "manual", "ver")
     banderas = ("completionview",)

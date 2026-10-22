@@ -227,8 +227,10 @@ restricciones:
 
 ## Calificador: `evalua`
 
-Cualquier actividad puede declarar con qué resultados de aprendizaje se evalúa y
-con qué peso, para colocarla en el calificador del curso:
+Las tareas, los cuestionarios y los contenidos H5P pueden declarar con qué resultados
+de aprendizaje se evalúan y con qué peso, para colocarlos en el calificador del curso.
+Una página o un área de texto y medios no tienen nota en Moodle: con `evalua` dan
+error (`EVALUA_NO_CALIFICABLE`), también en `tiza comprobar`.
 
 ```yaml
 evalua: {RA1: 40, RA3: 25}   # id: peso de 0 a 100, con hasta 2 decimales

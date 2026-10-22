@@ -31,6 +31,7 @@ class Tarea(Tipo):
     finalizaciones = ("ninguna", "manual", "ver", "entregar", "calificar")
     banderas = ("completionview", "completionsubmit", "completionusegrade")
     campos_fecha = CAMPOS_FECHA
+    calificable = True
     lee_formulario_al_actualizar = True  # para reenviar el área de «Archivos adicionales»
 
     def validar(self, datos: dict, ctx: Contexto) -> Extras:

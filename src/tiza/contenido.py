@@ -489,6 +489,12 @@ def _validar(
     restricciones = _validar_restricciones(datos, ruta, zona, raiz)
     origen = _validar_origen(datos)
     evalua = _validar_evalua(datos)
+    if evalua is not None and not adapter.calificable:
+        raise ErrorContenido(
+            "EVALUA_NO_CALIFICABLE",
+            f"«{adapter.llano}» no tiene nota en Moodle y no puede ir al calificador: quita "
+            "«evalua» o usa una tarea, un cuestionario o un contenido H5P",
+        )
     ctx = tipos.Contexto(
         zona=zona,
         ruta=ruta,
