@@ -202,3 +202,47 @@ def test_skill_carga_la_guia_del_calificador_en_su_seccion():
     seccion = texto.split("## Calificador", 1)[1].split("\n## ", 1)[0]
     assert "guias/calificador.md" in seccion
     assert "tiza calificador" in seccion
+
+
+DOCS = Path(__file__).resolve().parent.parent / "docs"
+
+
+def test_la_descripcion_de_la_skill_menciona_el_calificador_y_cabe():
+    import re
+
+    texto = SKILL.read_text(encoding="utf-8")
+    descripcion = re.search(r"^description: (.*)$", texto, re.MULTILINE)
+    assert descripcion is not None
+    assert "calificador" in descripcion.group(1)
+    assert len(descripcion.group(1)) <= 1024  # el límite de las skills de agente
+
+
+def test_calificador_invalido_se_explica_igual_en_la_ayuda_y_en_la_guia():
+    from tiza import ayuda
+
+    guia = GUIA_CALIFICADOR.read_text(encoding="utf-8")
+    for texto in (ayuda.explicar("CALIFICADOR_INVALIDO") or "", guia):
+        texto = " ".join(texto.split())
+        assert "pide al docente que lo revise" in texto
+        assert "deja de saber qué cambió el docente a mano" in texto
+        assert "bórralo" not in texto
+
+
+def test_la_guia_dice_lo_que_el_calificador_no_admite():
+    guia = " ".join(GUIA_CALIFICADOR.read_text(encoding="utf-8").split())
+    assert "No admitido" in guia and "`organizacion`" in guia and "`final.de`" in guia
+    assert "escalas" in guia
+
+
+def test_seguridad_cuenta_el_calificador_json_como_estado_que_tiza_escribe():
+    texto = (DOCS / "seguridad.md").read_text(encoding="utf-8")
+    assert "`.tiza/calificador.json`" in texto and "CALIFICADOR_INVALIDO" in texto
+
+
+def test_la_guia_de_comandos_no_promete_la_terminal_del_docente_para_el_calificador():
+    fila = next(
+        ln
+        for ln in (DOCS / "guia.md").read_text(encoding="utf-8").splitlines()
+        if ln.startswith("| `tiza calificador")
+    )
+    assert "terminal del docente" not in fila and "SIN_SESION" in fila
