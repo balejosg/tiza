@@ -1499,6 +1499,12 @@ class Moodle:
         """El total del curso: con fórmula, calculado con máximo 10; sin ella, en porcentaje.
 
         Solo para un curso sin calificador anterior.
+
+        Con fórmula, Moodle deja la raíz con ``aggregateonlygraded=0``: al ponerla, el formulario
+        de la raíz ya no trae ``aggregation`` ni ``aggregateonlygraded`` y el reenvío del máximo
+        guarda la casilla desmarcada (no tiene arreglo por POST). Es inocuo mientras haya fórmula,
+        porque la agregación no se usa; si el docente la quita, debe volver a marcar «solo
+        calificaciones no vacías» en el total del curso.
         """
         pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
         fila = next(

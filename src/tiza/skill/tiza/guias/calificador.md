@@ -63,6 +63,9 @@ su nota. Una actividad sin `evalua` no entra en el calificador.
 - **Límite del tope**: un elemento que todavía no tiene ninguna nota cuenta como 0 en la fórmula
   del tope. A mitad de curso, la final puede salir topada aunque el alumnado vaya bien. Díselo al
   docente cada vez que monte o revise el calificador en ese punto del curso.
+- Con tope, el total del curso lleva una fórmula y Moodle deja desmarcado su ajuste «solo
+  calificaciones no vacías». Es inocuo mientras haya fórmula; si el docente la quita, que lo
+  vuelva a marcar en el total del curso.
 
 ## 5. Si el aula ya tiene un calificador
 
