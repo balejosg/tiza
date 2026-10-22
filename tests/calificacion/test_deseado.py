@@ -383,3 +383,18 @@ def test_ids_estables_al_anadir_y_quitar() -> None:
     restante = _ids(deseado(FP, sin_una, False, CARPETA))
     assert 0 < len(restante) < len(antes)
     assert restante.items() <= antes.items()
+
+
+def test_peso_cero_sin_indicador() -> None:
+    docs = completo() + [doc("unidad1/extra.md", 1, RA1=0)]
+    d = deseado(FP, docs, False, CARPETA)
+    # el hijo de peso 0 está en TZ_E_RA1 pero no cuenta en el contador
+    assert nodo(d, "unidad1/extra.md").peso == 0.0
+    apuntados = {i.formula_de for i in hijos(d, "TZ_K_RA1")}
+    assert "unidad1/extra.md" not in apuntados
+    assert len(apuntados) == len([h for h in hijos(d, "TZ_E_RA1") if h.peso]) == 3
+    # si todos los hijos de un elemento pesan 0, el contador se queda sin indicadores
+    ceros = [doc("u1/a.md", 1, RA1=0), doc("u1/b.md", 1, RA1=0)]
+    d = deseado(FP, ceros, False, CARPETA)
+    assert nodo(d, "TZ_K_RA1").clase == "contador"
+    assert hijos(d, "TZ_K_RA1") == []

@@ -191,7 +191,7 @@ class _Montaje:
         self.nombres = {e.id: e.nombre for e in esquema.elementos}
         self.nodos: list[Nodo] = []
         self.copias = self._numerar_copias()
-        # (contenedor) -> idnumbers de sus hijos, en orden; para los indicadores del contador
+        # elemento -> hijos de TZ_E_<id> que cuentan (peso > 0), en orden: los indicadores del contador
         self.hijos_de_elemento: dict[str, list[tuple[str, str]]] = {}
 
     def _lugares(self, actividad: _Actividad) -> list[tuple[str, str]]:
@@ -227,7 +227,7 @@ class _Montaje:
                 idnumber = self.copias[(a.ruta, elemento, vista)]
                 hijo = Nodo(idnumber, "copia", f"{a.nombre} (copia)", padre, peso, a.ruta)
             self._agregar(hijo)
-            if vista == _VISTA_ELEMENTOS:
+            if vista == _VISTA_ELEMENTOS and peso > 0:
                 self.hijos_de_elemento.setdefault(elemento, []).append((hijo.idnumber, a.nombre))
 
     def _vista_elementos(self, padre: str) -> None:
