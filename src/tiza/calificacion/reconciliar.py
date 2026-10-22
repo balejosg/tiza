@@ -106,7 +106,8 @@ class Operacion:
       (``publicar.fijar_formula`` la traduce al idioma del aula).
     * ``fijar_total_curso``: ``eid``/``item_id`` del curso y ``formula`` (``None``: solo la
       visualización en porcentaje).
-    * ``bloquear_ajeno`` y ``bloquear_cerrada``: ``eid``/``item_id`` del total (``ig<id>``).
+    * ``bloquear_ajeno`` y ``bloquear_cerrada``: solo ``item_id`` del total
+      (nunca un ``eid``: bloquear un ``cg<id>`` bloquea en cascada) e ``idnumber``.
     * ``borrar``: ``eid`` e ``idnumber``.
     """
 
@@ -411,9 +412,9 @@ class _Plan:
                 self._otro(nodo)
         self._dejan_de_contar()
         self._total_del_curso()
+        self._sobrantes()
         if not self.solo_ajustes:
             self._cierres()
-            self._sobrantes()
 
     def _actividad(self, nodo: Nodo) -> None:
         ruta = nodo.idnumber
@@ -470,7 +471,6 @@ class _Plan:
                 Operacion(
                     "bloquear_ajeno",
                     idnumber=actual.idnumber or None,
-                    eid=actual.eid,
                     item_id=actual.item_id,
                     nombre=actual.nombre,
                 )
@@ -629,9 +629,7 @@ class _Plan:
             nodo = self.idx.por_id.get(idnumber)
             if nodo is not None and not nodo.bloqueado:
                 self.cierre.append(
-                    Operacion(
-                        "bloquear_cerrada", idnumber=idnumber, eid=nodo.eid, item_id=nodo.item_id
-                    )
+                    Operacion("bloquear_cerrada", idnumber=idnumber, item_id=nodo.item_id)
                 )
 
     def _profundidad(self, nodo: NodoAula) -> int:
@@ -644,7 +642,11 @@ class _Plan:
             nodo = padre
 
     def _sobrantes(self) -> None:
-        """Los nodos de tiza que ya no están en el esquema: se borran si no tienen notas."""
+        """Los nodos de tiza que ya no están en el esquema.
+
+        Se borran si no tienen notas (solo en la primera pasada); los que se quedan (con notas
+        o con algo dentro que se queda) pasan a pesar 0, como una actividad que deja de contar.
+        """
         candidatos = [
             n
             for n in self.aula.nodos
@@ -673,9 +675,22 @@ class _Plan:
             ):
                 continue
             borrados.add(n.eid)
-            self.borrar.append(
-                Operacion("borrar", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id)
-            )
+            if not self.solo_ajustes:
+                self.borrar.append(
+                    Operacion("borrar", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id)
+                )
+        for n in candidatos:
+            if n.eid in borrados or n.idnumber in self.a_mano:
+                continue
+            padre = self.idx.padre(n)
+            if padre is not None and padre.idnumber.startswith(f"{_PREFIJO}K_"):
+                continue  # los hijos de un contador no llevan peso sobrescrito
+            if not _peso_correcto(n, 0.0):
+                self.peso.append(
+                    Operacion(
+                        "fijar_peso", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id, peso=0.0
+                    )
+                )
 
     # -- el resultado ------------------------------------------------------
 

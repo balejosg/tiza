@@ -105,6 +105,8 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
     def buscar(op: Operacion) -> NodoAula:
         if op.eid:
             return nodos[op.eid]
+        if op.tipo in ("bloquear_ajeno", "bloquear_cerrada"):
+            return next(n for n in nodos.values() if n.item_id == op.item_id)
         return next(n for n in nodos.values() if n.idnumber == op.idnumber)
 
     def padre_de(op: Operacion) -> str:
@@ -252,7 +254,7 @@ def test_anterior_bloquea_antes_de_mover() -> None:
     assert rec.anterior is True
     tp = tipos(rec.operaciones)
     ajeno = rec.operaciones[tp.index("bloquear_ajeno")]
-    assert ajeno.eid == "cg20" and ajeno.item_id == 20
+    assert ajeno.item_id == 20 and ajeno.eid is None
     assert tp.count("bloquear_ajeno") == 1
     colocar = next(o for o in rec.operaciones if o.tipo == "colocar" and o.cmid == 11)
     assert tp.index("bloquear_ajeno") < rec.operaciones.index(colocar)
@@ -337,7 +339,7 @@ def test_cerrar_bloquea_total() -> None:
     rec = reconciliar(d, aula, huellas, CMIDS)
     cierres = [o for o in rec.operaciones if o.tipo == "bloquear_cerrada"]
     v1 = por_id(aula, "TZ_V_1")
-    assert [(o.idnumber, o.eid, o.item_id) for o in cierres] == [("TZ_V_1", v1.eid, v1.item_id)]
+    assert [(o.idnumber, o.eid, o.item_id) for o in cierres] == [("TZ_V_1", None, v1.item_id)]
     assert rec.operaciones[-1] == cierres[0]
     # y ya cerrada, no se vuelve a bloquear
     cerrada = aplicar(aula, cierres)
@@ -480,6 +482,23 @@ def test_quitado_con_notas_se_queda() -> None:
     rec = reconciliar(d1, con_notas, huellas, cmids)
     assert "borrar" not in tipos(rec.operaciones)
     assert ("ELEMENTO_CON_NOTAS_QUITADO", "TZ_E_RA2") in rec.avisos
+    # D2: lo que se queda deja de contar (peso 0) en vez de seguir a 40 frente a un RA1 de 100
+    ceros = [o for o in rec.operaciones if o.tipo == "fijar_peso" and o.eid == ra2.eid]
+    assert [(o.idnumber, o.item_id, o.peso) for o in ceros] == [("TZ_E_RA2", ra2.item_id, 0.0)]
+    final = aplicar(con_notas, rec.operaciones)
+    assert por_id(final, "TZ_E_RA2").peso == 0.0 and por_id(final, "TZ_E_RA1").peso == 100.0
+    otra = reconciliar(d1, final, huellas_de(final, cmids), cmids)
+    assert not [o for o in otra.operaciones if o.eid == ra2.eid]
+    # y si el docente tocó a mano esa categoría, no se pisa
+    a_mano = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, peso=33.0) if n.eid == ra2.eid else n for n in con_notas.nodos
+        ),
+        decimal=".",
+    )
+    sin_pisar = reconciliar(d1, a_mano, huellas, cmids)
+    assert not [o for o in sin_pisar.operaciones if o.eid == ra2.eid]
+    assert "TZ_E_RA2" in sin_pisar.a_mano
 
 
 def test_borrar_va_el_ultimo_y_primero_los_hijos() -> None:
@@ -496,6 +515,10 @@ def test_borrar_va_el_ultimo_y_primero_los_hijos() -> None:
     assert set(t[primero:]) == {"borrar"}
     ids = [o.idnumber for o in rec.operaciones if o.tipo == "borrar"]
     assert "TZ_E_RA2" not in ids  # d.md y c.md siguen dentro de la categoría: no se borra
+    # RA2 se queda con algo dentro: pesa 0 (D2)
+    assert [
+        o.peso for o in rec.operaciones if o.tipo == "fijar_peso" and o.idnumber == "TZ_E_RA2"
+    ] == [0.0]
     # las copias que ya no hacen falta sí se borran, y antes que su categoría
     assert any(i.startswith("TZ_C_") for i in ids)
     pos = {i: k for k, i in enumerate(ids)}
@@ -712,3 +735,67 @@ def test_reconciliacion_es_inmutable() -> None:
     with pytest.raises(dataclasses.FrozenInstanceError):
         rec.anterior = True  # type: ignore[misc]
     assert isinstance(rec.operaciones, tuple) and isinstance(rec.avisos, tuple)
+
+
+def test_a_mano_de_la_primera_pasada_no_se_toca_en_la_segunda() -> None:
+    _, aula = montar(FP)
+    huellas = huellas_de(aula, CMIDS)
+    ra1 = por_id(aula, "TZ_E_RA1")
+    a_mano = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, peso=55.0) if n.eid == ra1.eid else n for n in aula.nodos
+        ),
+        decimal=".",
+    )
+    # el esquema cambia a 50/50: RA2 sí se arregla; RA1 (a mano) no
+    d = deseado(FP_ABIERTA_5050, docs(), False, CARPETA)
+    rec = reconciliar(d, a_mano, huellas, CMIDS)
+    assert rec.a_mano == {"TZ_E_RA1"}
+    pesos = {o.idnumber for o in rec.operaciones if o.tipo == "fijar_peso"}
+    assert "TZ_E_RA2" in pesos and "TZ_E_RA1" not in pesos
+    tras = aplicar(a_mano, rec.operaciones)
+    # RA1 sigue distinto de lo deseado, pero no se toca en la segunda pasada
+    assert pasada2(d, tras, huellas, CMIDS, a_mano=rec.a_mano) == ()
+    assert por_id(tras, "TZ_E_RA1").peso == 55.0
+    # aunque Moodle reescale otro nodo, solo ese se ajusta
+    ra2 = por_id(tras, "TZ_E_RA2")
+    reescalado = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, peso=12.0) if n.eid == ra2.eid else n for n in tras.nodos
+        ),
+        decimal=".",
+    )
+    ops = pasada2(d, reescalado, huellas, CMIDS, a_mano=rec.a_mano)
+    assert [(o.tipo, o.eid, o.peso) for o in ops] == [("fijar_peso", ra2.eid, 50.0)]
+
+
+def test_pasada2_y_borrar_no_tocan_una_evaluacion_cerrada() -> None:
+    aula, huellas = montaje_cerrado()
+    eids, ids = subarbol(aula, "TZ_V_1")
+    # dentro de la cerrada pasan cosas: un peso, una fórmula y una copia que ya no hace falta
+    copia = next(n for n in aula.nodos if n.eid in eids and n.idnumber.startswith("TZ_C_"))
+    hijo = next(n for n in aula.nodos if n.idnumber == "TZ_V_1_RA1")
+    tocada = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, peso=1.0)
+            if n.eid == hijo.eid
+            else dataclasses.replace(n, formula=None)
+            if n.eid == copia.eid
+            else n
+            for n in aula.nodos
+        ),
+        decimal=".",
+    )
+    # d.md deja de contar: sus copias de la 1.ª evaluación sobran (y están dentro de la cerrada)
+    solo = [doc("a.md", 1, RA1=100), doc("c.md", 2, RA2=100)]
+    d = deseado(FP_ABIERTA_5050, solo, False, CARPETA)
+    sobrantes = [
+        n for n in tocada.nodos if n.eid in eids and n.idnumber not in {x.idnumber for x in d.nodos}
+    ]
+    assert sobrantes, "el test sería vacío"
+    rec = reconciliar(d, tocada, {}, CMIDS)
+    assert not [o for o in rec.operaciones if toca(o, eids, ids)]
+    assert not [o for o in pasada2(d, tocada, {}, CMIDS) if toca(o, eids, ids)]
+    assert not [o for o in rec.operaciones if o.tipo == "borrar" and o.eid in eids]
+    # fuera de la cerrada sí hay trabajo: no es un test vacío
+    assert any(o.tipo == "fijar_peso" and o.idnumber == "TZ_E_RA2" for o in rec.operaciones)
