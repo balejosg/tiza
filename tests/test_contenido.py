@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -2332,6 +2333,11 @@ class TestEvalua:
         con = cargar(escribir(tmp_path, tarea(evalua="{RA1: 40}"), nombre="con.md"))
         assert hash_documento(sin) == hash_documento(con)
 
-    def test_hash_de_ejemplo_pagina_no_cambia(self):
-        doc = cargar(RAIZ / "ejemplos" / "pagina.md")
+    def test_hash_de_ejemplo_pagina_no_cambia(self, tmp_path):
+        # En Windows git saca los ejemplos con CRLF: el hash fijado es el de los ficheros con saltos de línea LF.
+        destino = tmp_path / "ejemplos"
+        shutil.copytree(RAIZ / "ejemplos", destino)
+        for md in destino.rglob("*.md"):
+            md.write_bytes(md.read_bytes().replace(b"\r\n", b"\n"))
+        doc = cargar(destino / "pagina.md")
         assert hash_documento(doc) == HASH_EJEMPLO_PAGINA_MD
