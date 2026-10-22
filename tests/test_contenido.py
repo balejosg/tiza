@@ -2240,6 +2240,8 @@ RAIZ = Path(__file__).resolve().parents[1]
 # Hash de ejemplos/pagina.md antes de existir «origen»: un documento sin «origen» no cambia.
 HASH_PAGINA_EJEMPLO = "7b67ccb390a394a7470ab9bb6f96fc247c47b5c0bfa0d8c070b33f23144c0b91"
 # Contenido exacto (bytes con \n) de una página sin recursos: no depende del checkout (CRLF).
+# Hash de ejemplos/pagina.md: evalua no entra en el hash.
+HASH_EJEMPLO_PAGINA_MD = "df20536131cb9749bc394484113b2612cddd901fc06932e88b32d3acb79a4527"
 PAGINA_EJEMPLO = (
     '---\ntipo: pagina\nnombre: "Ejemplo: repaso de fracciones"\nseccion: 0\n---\n\n'
     "## Repaso de fracciones\n\nPractica con **fracciones** antes de la tarea.\n"
@@ -2284,3 +2286,45 @@ class TestOrigen:
         doc = cargar(ruta)
         assert doc.origen is None
         assert hash_documento(doc) == HASH_PAGINA_EJEMPLO
+
+
+class TestEvalua:
+    def test_evalua_valido_conserva_el_orden(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina(evalua="{RA3: 25, RA1: 40}")))
+        assert doc.evalua == (("RA3", 25), ("RA1", 40))
+
+    def test_sin_evalua_es_none(self, tmp_path):
+        assert cargar(escribir(tmp_path, pagina())).evalua is None
+
+    def test_admite_decimales_y_cero(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina(evalua="{RA1: 0, RA2: 33.33, RA3: 100}")))
+        assert doc.evalua == (("RA1", 0), ("RA2", 33.33), ("RA3", 100))
+
+    @pytest.mark.parametrize(
+        "valor",
+        [
+            '{RA1: "40"}',
+            "{RA1: 120}",
+            "{RA1: -1}",
+            "{RA1: 10.123}",
+            "{RA1: true}",
+            "[RA1]",
+            '{"1RA": 10}',
+            "{RA_1: 10}",
+            "{RA1: null}",
+            "{RA1: 10, RA1: 20}",
+        ],
+    )
+    def test_evalua_invalido(self, tmp_path, valor):
+        with pytest.raises(ErrorContenido) as error:
+            cargar(escribir(tmp_path, pagina(evalua=valor)))
+        assert error.value.codigo == "EVALUA_INVALIDO"
+
+    def test_hash_no_cambia_con_evalua(self, tmp_path):
+        sin = cargar(escribir(tmp_path, pagina(), nombre="sin.md"))
+        con = cargar(escribir(tmp_path, pagina(evalua="{RA1: 40}"), nombre="con.md"))
+        assert hash_documento(sin) == hash_documento(con)
+
+    def test_hash_de_ejemplo_pagina_no_cambia(self):
+        doc = cargar(RAIZ / "ejemplos" / "pagina.md")
+        assert hash_documento(doc) == HASH_EJEMPLO_PAGINA_MD

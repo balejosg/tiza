@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Añadido
+- **Campo `evalua` en el frontmatter**: `evalua: {RA1: 40, RA3: 25}` declara con qué resultados de aprendizaje y pesos se evalúa una actividad. Todavía no coloca nada en el calificador.
+
 ## 0.25.0 — 2026-10-20
 
 ### Añadido

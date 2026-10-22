@@ -225,6 +225,22 @@ restricciones:
 - tiza nunca lee el estado de finalización ni informes del alumnado. La
   confirmación del curso real enseña el itinerario en lenguaje llano.
 
+## Calificador: `evalua`
+
+Cualquier actividad puede declarar con qué resultados de aprendizaje se evalúa y
+con qué peso, para colocarla en el calificador del curso:
+
+```yaml
+evalua: {RA1: 40, RA3: 25}   # id: peso de 0 a 100, con hasta 2 decimales
+```
+
+- Los ids empiezan por letra, usan letras y cifras y tienen hasta 16 caracteres.
+  Un peso de 0 deja la actividad sin peso, pero se queda en el calificador.
+- Un id repetido o un mapa vacío dan error (`EVALUA_INVALIDO`). Que el id exista
+  en el esquema del curso se comprueba al colocar la actividad, no al leer el `.md`.
+- Cambiar `evalua` no cambia el hash de la actividad: no hace falta volver a
+  verificarla.
+
 ## Fórmulas
 
 En un `.md` las fórmulas se escriben en LaTeX con `\( … \)` (en la línea) y `\[ … \]` o

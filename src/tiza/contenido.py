@@ -63,10 +63,12 @@ _EXTENSIONES_HTML = frozenset({".html", ".htm"})
 # se separan (aquí no se puede importar el registro: el registro importa este módulo).
 TTIPOS = ("pagina", "tarea", "cuestionario", "etiqueta", "h5p")
 CAMPOS_ITINERARIO = {"finalizacion", "fecha_esperada", "restricciones"}
-CAMPOS_COMUNES = {"tipo", "nombre", "seccion", "origen"} | CAMPOS_ITINERARIO
+CAMPOS_COMUNES = {"tipo", "nombre", "seccion", "origen", "evalua"} | CAMPOS_ITINERARIO
 CAMPOS_ORIGEN = ("curso", "cmid")
 CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
 MAX_DEPENDENCIAS = 10
+MAX_PESO_EVALUA = 100  # peso máximo de un resultado de aprendizaje en «evalua»
+_RE_ID_EVALUA = re.compile(r"[A-Za-z][A-Za-z0-9]{0,15}")
 MAX_PAQUETE_H5P_BYTES = 64 * 1024 * 1024  # el .h5p subido
 PREFIJO_IMAGEN = "tiza-imagen:"  # lo que lleva el src de una imagen de pregunta en el HTML
 MAX_IMAGEN_PREGUNTA_BYTES = 1024 * 1024  # cada imagen de una pregunta
@@ -285,6 +287,8 @@ class Documento:
     finalizacion: Finalizacion | None = None
     restricciones: Restricciones | None = None
     origen: Origen | None = None  # None: el documento no viene de una importación
+    # Pesos por id (RA1: 40) en el orden del YAML; None: no coloca la actividad en el calificador.
+    evalua: tuple[tuple[str, float], ...] | None = None
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
     sha256_fichero: str = (
         ""  # sha256 de los bytes del fichero tal como se leyó (no entra en el hash)
@@ -379,11 +383,58 @@ def _separar_frontmatter(texto: str) -> tuple[Any, str]:
         raise ErrorContenido("FRONTMATTER_INVALIDO", "falta el bloque YAML entre ---")
     try:
         datos = yaml.safe_load(coincidencia.group(1))
+        nodos = yaml.compose(coincidencia.group(1), Loader=yaml.SafeLoader)
     except yaml.YAMLError:
         raise ErrorContenido("FRONTMATTER_INVALIDO", "el bloque YAML no se puede leer") from None
     if not isinstance(datos, dict):
         raise ErrorContenido("FRONTMATTER_INVALIDO", "el bloque YAML debe ser un mapa")
+    if _ids_repetidos_en_evalua(nodos):  # PyYAML se queda con la última clave repetida
+        raise ErrorContenido("EVALUA_INVALIDO", "hay ids repetidos en evalua")
     return datos, coincidencia.group(2)
+
+
+def _ids_repetidos_en_evalua(raiz: yaml.Node | None) -> bool:
+    """Mira los nodos YAML: ``safe_load`` pierde las claves repetidas de un mapa."""
+    if not isinstance(raiz, yaml.MappingNode):
+        return False
+    for clave, valor in raiz.value:
+        if (
+            isinstance(clave, yaml.ScalarNode)
+            and clave.value == "evalua"
+            and isinstance(valor, yaml.MappingNode)
+        ):
+            ids = [k.value for k, _ in valor.value if isinstance(k, yaml.ScalarNode)]
+            return len(ids) != len(set(ids))
+    return False
+
+
+def _validar_evalua(datos: dict[str, Any]) -> tuple[tuple[str, float], ...] | None:
+    if "evalua" not in datos:
+        return None
+    valor = datos["evalua"]
+    if not isinstance(valor, dict) or not valor:
+        raise ErrorContenido(
+            "EVALUA_INVALIDO", "evalua debe ser un mapa de ids a pesos, como {RA1: 40, RA3: 25}"
+        )
+    salida: list[tuple[str, float]] = []
+    for clave, peso in valor.items():
+        if not isinstance(clave, str) or not _RE_ID_EVALUA.fullmatch(clave):
+            raise ErrorContenido(
+                "EVALUA_INVALIDO",
+                "cada id de evalua empieza por letra, usa letras y cifras y tiene hasta 16",
+            )
+        if (
+            isinstance(peso, bool)
+            or not isinstance(peso, int | float)
+            or not 0 <= peso <= MAX_PESO_EVALUA
+            or round(peso, 2) != peso
+        ):
+            raise ErrorContenido(
+                "EVALUA_INVALIDO",
+                f"el peso de «{clave}» debe ser un número de 0 a 100 con hasta 2 decimales",
+            )
+        salida.append((clave, peso))
+    return tuple(salida)
 
 
 def _validar(
@@ -437,6 +488,7 @@ def _validar(
     finalizacion = _validar_finalizacion(datos, adapter, zona)
     restricciones = _validar_restricciones(datos, ruta, zona, raiz)
     origen = _validar_origen(datos)
+    evalua = _validar_evalua(datos)
     ctx = tipos.Contexto(
         zona=zona,
         ruta=ruta,
@@ -462,6 +514,7 @@ def _validar(
         finalizacion=finalizacion,
         restricciones=restricciones,
         origen=origen,
+        evalua=evalua,
     )
 
 

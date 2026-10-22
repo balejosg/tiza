@@ -297,3 +297,11 @@ class TestHash:
             ruta.write_text(otro, encoding="utf-8")
             distinto = contenido.cargar(ruta, raiz=tmp_path)
             assert contenido.hash_documento(distinto) != contenido.hash_documento(con)
+
+
+@pytest.mark.parametrize("nombre", sorted(EJEMPLOS))
+def test_evalua_en_todos_los_tipos(tmp_path, nombre):
+    texto = EJEMPLOS[nombre].replace("seccion: 1\n", "seccion: 1\nevalua: {RA1: 40}\n", 1)
+    ruta = tmp_path / f"{nombre}.md"
+    ruta.write_text(texto, encoding="utf-8")
+    assert contenido.cargar(ruta, raiz=tmp_path).evalua == (("RA1", 40),)
