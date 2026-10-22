@@ -95,6 +95,10 @@ sobrescribe un fichero.
 ficheros de tiza, y `tiza copia` pide esa copia a la sesión abierta del docente, que la confirma
 en su terminal. Ninguno de los dos entra en el aula.
 
+`tiza calificador <calificacion.yaml> --en pruebas|real` (con la sesión abierta) pide al docente
+montar el calificador del aula según el esquema de la programación. Sin sesión, falla con
+`SIN_SESION`. En real, el docente confirma curso por curso en su terminal; tú no tocas el aula.
+
 ### Paso 3. Empezar (lo hace el docente, en su terminal)
 
 Dile al docente que abra **una terminal propia** (no la del agente), entre en la

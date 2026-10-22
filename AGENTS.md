@@ -20,7 +20,7 @@ en español.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar` y `tiza actualizar` son del docente** (tampoco lances `python -m tiza.ventana`): no los ejecutes. El agente puede usar
   `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
-  `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar`, `tiza estructura` y `tiza copia` dejan la
+  `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar`, `tiza calificador`, `tiza estructura` y `tiza copia` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
   en su terminal.
@@ -80,6 +80,13 @@ en español.
   `relleno.py` valida el `relleno.yaml` (forma, ids, conflictos) sin abrir la plantilla, y
   `rellenar.py` aplica las operaciones sobre una copia de la plantilla con los ids de
   `lectura/word.py`, sin sobrescribir nunca.
+- `src/tiza/calificacion/`: el calificador del aula, puro salvo `ejecutar.py`. `esquema.py`
+  valida `calificacion.yaml` (esquema cerrado, con la línea del error); `carpeta.py` lee las
+  actividades de la carpeta con su `evalua`; `deseado.py` calcula el árbol deseado (todo cuelga
+  de `TZ_TIZA`, con los ids `TZ_`); `reconciliar.py` lo compara con el aula y con las huellas
+  (`calificador.json`) y da las operaciones; `formulas.py` construye las fórmulas puras;
+  `ejecutar.py` las traduce a llamadas de `Moodle`. `tiza calificador` (buzón v7) pasa por
+  `publicacion.py`; la guía del agente es `guias/calificador.md`.
 - `src/tiza/copia.py`: lector seguro de la copia de seguridad de Moodle (`.mbz`), offline y en
   memoria: sin extraer a disco, con todos los límites (también las cabeceras extendidas del
   tar, con un `TarInfo` propio que se apoya en la API privada `_proc_member`: lo vigila
@@ -95,8 +102,8 @@ en español.
 - `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
   `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
-  nombres de los ficheros (`informe.json`, `estructura.json`, `verificados.json`
-  y `preview/`), sus formatos y su validación al leer. `cargar_estructura`
+  nombres de los ficheros (`informe.json`, `estructura.json`, `verificados.json`,
+  `calificador.json` y `preview/`), sus formatos y su validación al leer. `cargar_estructura`
   devuelve un `Estructura` con v1 y v2 ya unificados (el agente no reinterpreta
   versiones); un fichero fuera del esquema es `ESTRUCTURA_INVALIDA`, no se
   interpreta a medias. Los verificados usan una sola dataclass (`Verificado`)
@@ -212,7 +219,7 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.25.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.26.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y

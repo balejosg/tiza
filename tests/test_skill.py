@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tiza.calificacion.esquema import cargar_esquema
 from tiza.escritura.relleno import cargar_relleno
 
 SKILL = Path(__file__).resolve().parent.parent / "src/tiza/skill/tiza/SKILL.md"
@@ -42,6 +43,7 @@ def test_skill_nombra_comandos_del_agente():
         "tiza rellenar",
         "tiza importar",
         "tiza copia",
+        "tiza calificador",
     ):
         assert f"`{comando}" in tabla
     for comando in COMANDOS_DEL_DOCENTE:
@@ -144,3 +146,57 @@ def test_skill_copia_rechazada_no_se_abre():
     linea = _linea_con("COPIA_CON_USUARIOS", "no se abre")
     for via in ("tar", "unzip", "Python"):
         assert via in linea
+
+
+GUIA_CALIFICADOR = SKILL.parent / "guias/calificador.md"
+EJEMPLO_CALIFICADOR = Path(__file__).resolve().parent.parent / "ejemplos/calificacion.yaml"
+# Los códigos que la guía nombra: el agente los ve en el informe o en la salida y debe conocerlos.
+CODIGOS_CALIFICADOR = (
+    "ESQUEMA_INVALIDO",
+    "PESOS_NO_SUMAN_100",
+    "EVALUA_INVALIDO",
+    "ELEMENTO_DESCONOCIDO",
+    "SECCION_SIN_EVALUACION",
+    "ACTIVIDAD_PENDIENTE",
+    "ACTIVIDAD_AMBIGUA",
+    "CARPETA_DEMASIADO_GRANDE",
+    "CAMBIADO_A_MANO",
+    "EVALUACION_CERRADA_EN_EL_AULA",
+    "ELEMENTO_CON_NOTAS_QUITADO",
+    "BLOQUEO_FALLIDO",
+    "CALIFICADOR_INVALIDO",
+    "SIN_SESION",
+)
+
+
+def test_ejemplo_del_calificador_carga_con_tope_y_tres_evaluaciones():
+    esquema = cargar_esquema(EJEMPLO_CALIFICADOR, EJEMPLO_CALIFICADOR.parent)
+    assert esquema.organizacion == "elementos"
+    assert len(esquema.elementos) == 3
+    assert len(esquema.evaluaciones) == 3
+    assert esquema.final.tope is not None
+
+
+def test_guia_calificador_existe_se_cita_y_nombra_sus_codigos():
+    assert GUIA_CALIFICADOR.is_file()
+    texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
+    assert len(texto.splitlines()) <= 130
+    assert "guias/calificador.md" in SKILL.read_text(encoding="utf-8")
+    for codigo in CODIGOS_CALIFICADOR:
+        assert codigo in texto, f"la guía del calificador no nombra {codigo}"
+
+
+def test_guia_calificador_muestra_el_ejemplo_tal_cual(tmp_path):
+    texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
+    bloque = _bloque_yaml(texto)
+    assert bloque == EJEMPLO_CALIFICADOR.read_text(encoding="utf-8")
+    ruta = tmp_path / "calificacion.yaml"
+    ruta.write_text(bloque, encoding="utf-8")
+    cargar_esquema(ruta, tmp_path)
+
+
+def test_skill_carga_la_guia_del_calificador_en_su_seccion():
+    texto = SKILL.read_text(encoding="utf-8")
+    seccion = texto.split("## Calificador", 1)[1].split("\n## ", 1)[0]
+    assert "guias/calificador.md" in seccion
+    assert "tiza calificador" in seccion

@@ -4,10 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.26.0 — 2026-10-22
 
 ### Añadido
-- **Campo `evalua` en el frontmatter**: `evalua: {RA1: 40, RA3: 25}` declara con qué resultados de aprendizaje y pesos se evalúa una actividad. Todavía no coloca nada en el calificador.
+- **Campo `evalua` en el frontmatter**: `evalua: {RA1: 40, RA3: 25}` declara con qué resultados de aprendizaje y pesos se evalúa una actividad.
+- **`tiza calificador <calificacion.yaml> --en pruebas|real`**: monta el calificador del aula según la programación (resultados o criterios, evaluaciones, pesos y un tope opcional) y coloca en él las actividades con `evalua`. Nunca lee ni escribe notas ni desbloquea nada; en real, el docente confirma cada curso. Su guía para el agente es `guias/calificador.md`.
 
 ## 0.25.0 — 2026-10-20
 

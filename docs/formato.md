@@ -241,6 +241,34 @@ evalua: {RA1: 40, RA3: 25}   # id: peso de 0 a 100, con hasta 2 decimales
 - Cambiar `evalua` no cambia el hash de la actividad: no hace falta volver a
   verificarla.
 
+## Calificador: `calificacion.yaml`
+
+Lo escribe el agente en la carpeta de la asignatura, a partir de la programación, y lo monta
+`tiza calificador`. Es un esquema cerrado, sin lenguaje de fórmulas: qué elementos (resultados
+o criterios) hay, cuánto pesa cada uno, qué evaluaciones hay y un tope opcional de la final.
+
+```yaml
+organizacion: elementos            # o evaluaciones (ESO y Bachillerato)
+elementos:                         # con organizacion elementos o final de elementos
+  - {id: RA1, nombre: "Redes locales", peso: 40, codigo: RA1}   # peso 0-100; suman 100
+evaluaciones:
+  - {nombre: "1.ª evaluación", secciones: [1, 2, 3], cerrada: false}   # secciones de «seccion:»
+final:
+  de: elementos                    # o evaluaciones (entonces cada evaluación lleva peso)
+  tope: {si_alguno_menor_que: 5, maximo: 4}   # opcional, solo con de: elementos
+```
+
+- `id`: empieza por letra, letras y cifras, 16 como mucho. Los ids repetidos dan `ID_REPETIDO`.
+- Una sección solo puede estar en una evaluación (`SECCION_REPETIDA`). Una actividad con `evalua`
+  en una sección que no es de ninguna evaluación da `SECCION_SIN_EVALUACION`.
+- `cerrada: true` congela la evaluación en el aula: no se crea, cambia, mueve ni borra nada
+  dentro. tiza no la reabre.
+- Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Un
+  elemento que todavía no tiene ninguna nota cuenta como 0 en ese cálculo, así que a mitad de
+  curso la final puede salir topada. Un error del esquema da `ESQUEMA_INVALIDO`, con la ruta y la línea.
+- Lo que el esquema no expresa (redondeos, actitud, recuperaciones) se queda fuera: la
+  guía del agente (`guias/calificador.md`) dice cómo tratarlo.
+
 ## Fórmulas
 
 En un `.md` las fórmulas se escriben en LaTeX con `\( … \)` (en la línea) y `\[ … \]` o

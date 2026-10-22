@@ -1,0 +1,13 @@
+# Módulo de FP: tres resultados de aprendizaje, tres evaluaciones y un tope en la final.
+organizacion: elementos
+elementos:
+  - {id: RA1, nombre: "Redes locales", peso: 40, codigo: RA1}
+  - {id: RA2, nombre: "Sistemas operativos", peso: 30, codigo: RA2}
+  - {id: RA3, nombre: "Seguridad informática", peso: 30, codigo: RA3}
+evaluaciones:
+  - {nombre: "1.ª evaluación", secciones: [1, 2, 3]}
+  - {nombre: "2.ª evaluación", secciones: [4, 5, 6]}
+  - {nombre: "3.ª evaluación", secciones: [7, 8]}
+final:
+  de: elementos
+  tope: {si_alguno_menor_que: 5, maximo: 4}
