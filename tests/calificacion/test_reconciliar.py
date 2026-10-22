@@ -440,6 +440,17 @@ def test_montaje_completo_con_tope() -> None:
     assert any("[[TZ_A11]]" in (n.formula or "") for n in aula.nodos)
 
 
+def test_un_numero_de_id_con_caracteres_raros_no_deja_huella() -> None:
+    raro = "EX\u202e1"
+    aula = aula_con(actividad(11, idnumber=raro), actividad(12), actividad(13))
+    d, final = montar(FP, aula=aula)
+    huellas = huellas_de(final, CMIDS)
+    assert raro not in huellas and "TZ_TIZA" in huellas and "TZ_A12" in huellas
+    # sin huella, el nodo se trata como nuevo: no es un «cambio a mano» y converge
+    rec = reconciliar(d, final, huellas, CMIDS)
+    assert rec.a_mano == frozenset() and rec.operaciones == ()
+
+
 def test_actividad_con_numero_de_id_propio_lo_conserva() -> None:
     aula = aula_con(actividad(11, idnumber="EX1"), actividad(12), actividad(13))
     d, final = montar(FP_TOPE, aula=aula)

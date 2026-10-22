@@ -291,6 +291,39 @@ class TestHuellasDelCalificador:
             estado.cargar_huellas(tmp_path, 7)
         assert error.value.codigo == "CALIFICADOR_INVALIDO"
 
+    CLAVES_PELIGROSAS = [
+        "TZ_A1\u202eevil",  # bidi
+        "TZ_A1\u200b",  # invisible de ancho cero
+        "TZ_A1\u2066",  # aislamiento bidi
+        "TZ A1",  # espacio
+        "EX\u00f1",  # letra no ASCII
+        "TZ_A1\ufeff",
+        "a" * 101,
+        "",
+    ]
+
+    @pytest.mark.parametrize("clave", CLAVES_PELIGROSAS)
+    def test_una_clave_con_bidi_o_invisibles_es_invalida_al_leer(self, tmp_path, clave):
+        datos = {"version": 1, "cursos": {"7": {"nodos": {clave: self.HUELLA}}}}
+        (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas(tmp_path, 7)
+        assert error.value.codigo == "CALIFICADOR_INVALIDO"
+
+    def test_las_claves_peligrosas_no_se_guardan_y_las_demas_si(self, tmp_path):
+        buenas = {"TZ_TIZA": self.HUELLA, "EX1": self.HUELLA, "a.b:c-d_9": self.HUELLA}
+        malas = {clave: self.HUELLA for clave in self.CLAVES_PELIGROSAS}
+        estado.guardar_huellas(tmp_path, 7, {**buenas, **malas})
+        assert estado.cargar_huellas(tmp_path, 7) == buenas
+        texto = (tmp_path / "calificador.json").read_text(encoding="utf-8")
+        assert not any(c in texto for c in "\u202e\u200b\u2066\ufeff")
+
+    def test_clave_de_huella_valida(self):
+        assert estado.clave_de_huella_valida("TZ_E_RA1")
+        assert estado.clave_de_huella_valida("EX-1.2:3")
+        assert not estado.clave_de_huella_valida("TZ\u202e")
+        assert not estado.clave_de_huella_valida("")
+
     def test_no_json_es_invalido(self, tmp_path):
         (tmp_path / "calificador.json").write_text("{no es json", encoding="utf-8")
         with pytest.raises(estado.ErrorEstado) as error:

@@ -33,6 +33,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from tiza import estado
 from tiza.calificacion.deseado import NOTA_FINAL, Deseado, Nodo
 from tiza.calificacion.esquema import TOLERANCIA_PESOS
 from tiza.calificacion.formulas import (
@@ -255,7 +256,9 @@ def huellas_de(aula: CalificadorAula, cmids: dict[str, int]) -> dict[str, str]:
 
     Clave: el ``idnumber`` (la de las actividades con número de ID propio también). Más
     ``CURSO``: la huella de la fórmula del total del curso. Se calculan sobre el aula **releída
-    tras la segunda pasada**: lo que Moodle haya dejado, no lo que se pidió.
+    tras la segunda pasada**: lo que Moodle haya dejado, no lo que se pidió. Un número de ID que
+    no sea una clave segura (``estado.clave_de_huella_valida``) no deja huella: se trata como
+    un nodo sin huella.
     """
     indice = _Indice(aula)
     colocadas = set(cmids.values())
@@ -263,8 +266,12 @@ def huellas_de(aula: CalificadorAula, cmids: dict[str, int]) -> dict[str, str]:
     for n in aula.nodos:
         if n.clase == "curso":
             resultado[CURSO] = _sha(["curso", _normalizar(n.formula, aula.decimal)])
-        elif n.idnumber and (
-            n.idnumber.startswith(_PREFIJO) or (n.clase == "actividad" and n.cmid in colocadas)
+        elif (
+            n.idnumber
+            and estado.clave_de_huella_valida(n.idnumber)
+            and (
+                n.idnumber.startswith(_PREFIJO) or (n.clase == "actividad" and n.cmid in colocadas)
+            )
         ):
             resultado[n.idnumber] = _huella(n, indice, aula.decimal)
     return resultado

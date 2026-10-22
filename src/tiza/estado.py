@@ -353,8 +353,16 @@ def reservar_copia(dir_tiza: str | Path, curso: str, momento: datetime, temporal
 
 
 _HUELLA = re.compile(r"[0-9a-f]{64}")
-_CLAVE_DE_NODO = re.compile(r"[^\x00-\x1f\x7f-\x9f]{1,255}")
+# Las claves son números de ID de Moodle: los de tiza (``TZ_…``) y los que el docente puso a sus
+# actividades. Solo un juego seguro de caracteres: nada de bidi, invisibles ni espacios. El que
+# no cumpla no se guarda y su nodo se trata como sin huella.
+_CLAVE_DE_NODO = re.compile(r"[A-Za-z0-9_.:-]{1,100}")
 _CURSO_DE_HUELLAS = re.compile(r"[0-9]{1,18}")
+
+
+def clave_de_huella_valida(clave: str) -> bool:
+    """¿Puede ``clave`` (un número de ID) ser clave de una huella en ``calificador.json``?"""
+    return isinstance(clave, str) and _CLAVE_DE_NODO.fullmatch(clave) is not None
 
 
 def _validar_calificador(datos: Any) -> None:
@@ -416,10 +424,12 @@ def cargar_huellas(dir_tiza: str | Path, curso: int) -> dict[str, str]:
 def guardar_huellas(dir_tiza: str | Path, curso: int, nodos: Mapping[str, str]) -> Path:
     """Guarda las huellas de ``curso`` (sustituye las anteriores) y deja intactos los demás cursos.
 
-    Valida antes de escribir: lo que no case con el esquema no llega al disco.
+    Valida antes de escribir: lo que no case con el esquema no llega al disco. Las claves que no
+    son un número de ID seguro (``clave_de_huella_valida``) no se guardan: ese nodo queda sin huella.
     """
     datos = _cargar_calificador(dir_tiza) or {"version": 1, "cursos": {}}
-    datos["cursos"][str(int(curso))] = {"nodos": dict(nodos)}
+    guardables = {k: v for k, v in nodos.items() if clave_de_huella_valida(k)}
+    datos["cursos"][str(int(curso))] = {"nodos": guardables}
     _validar_calificador(datos)
     asegurar_directorio(Path(dir_tiza))
     return escribir_json(Path(dir_tiza) / FICHERO_CALIFICADOR, datos)
