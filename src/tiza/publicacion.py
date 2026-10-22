@@ -1921,6 +1921,8 @@ def calificador_con(
             accion = "pendiente"
         elif ruta in colocadas:
             accion = "colocada"
+        elif ruta in rec.sin_colocar:
+            accion = "sin_colocar"
         else:
             accion = "ya_estaba"
         try:

@@ -68,6 +68,7 @@ ACCIONES = {
     "colocada",
     "ya_estaba",
     "pendiente",
+    "sin_colocar",  # está en el aula y no se coloca: evaluación cerrada o cambiada a mano
 }
 # El registro de tipos (tipos/) es el dueño de qué tipos existen.
 TIPOS = set(tipos.TIPOS)

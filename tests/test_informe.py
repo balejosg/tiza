@@ -482,7 +482,7 @@ class TestOrdenar:
 class TestCalificador:
     """El informe de ``tiza calificador``: sus pasos, sus acciones por actividad y sus recuentos."""
 
-    @pytest.mark.parametrize("accion", ["colocada", "ya_estaba", "pendiente"])
+    @pytest.mark.parametrize("accion", ["colocada", "ya_estaba", "pendiente", "sin_colocar"])
     def test_las_acciones_por_actividad_valen(self, accion):
         documento = crear(
             "calificador",

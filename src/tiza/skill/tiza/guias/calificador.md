@@ -104,9 +104,10 @@ corregirla, lo hace a mano en el aula.
    con lo que va a pasar en lenguaje llano. Lanza el comando con el mayor tiempo de espera que
    permita tu herramienta, como en `tiza publicar`.
 
-En el informe, cada actividad sale como `colocada`, `ya_estaba` o `pendiente`, y los pasos
-`CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo. Sin sesión, `SIN_SESION`:
-pide al docente que ejecute `tiza empezar`.
+En el informe, cada actividad sale como `colocada`, `ya_estaba`, `pendiente` (aún no está en el
+aula) o `sin_colocar` (está en el aula y tiza no la coloca: evaluación cerrada o cambiada a
+mano), y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se
+hizo. Sin sesión, `SIN_SESION`: pide al docente que ejecute `tiza empezar`.
 
 ## 8. Lo que tiza no hace
 

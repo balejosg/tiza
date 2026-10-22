@@ -615,6 +615,45 @@ def test_el_resumen_distingue_la_cerrada_que_se_crea_de_la_que_ya_existe(tmp_pat
     assert [c.nueva for c in presencia.resumenes_calificador[0].cerradas] == [False]
 
 
+def test_una_actividad_nueva_en_una_evaluacion_cerrada_sale_como_sin_colocar(tmp_path):
+    cerrada = ESQUEMA.replace(
+        "{nombre: 1.ª evaluación, secciones: [1]}",
+        "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
+    )
+    carpeta = carpeta_fp(tmp_path, cerrada)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    atender(pedir(carpeta), moodle, carpeta)  # ya cerrada (la 1.ª vez la bloquea)
+    assert moodle.por_id("TZ_V_1").bloqueado
+    # llega e.md, de la sección 1 (cerrada): está en el aula pero tiza no puede colocarla
+    carpeta_fp(tmp_path, cerrada, (*ACTIVIDADES, ("e", 1, 14, {"RA1": 0})))
+    moodle.nodos["ig114"] = nodo("ig114", "", "actividad", CURSO_EID, cmid=14, maximo=10.0)
+    moodle.secciones[0]["modulos"].append({"cmid": 14, "nombre": "e", "tipo": "tarea"})
+    moodle.escrituras.clear()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert acciones(documento)["e.md"] == "sin_colocar"
+    assert acciones(documento)["a.md"] == "ya_estaba"
+    assert pasos(documento, "ACTIVIDAD_EN_EVALUACION_CERRADA")[0]["detalle"] == "1"
+    assert moodle.escrituras == []  # ni ella ni sus copias: nada de FORMULA_NO_VALIDA
+    assert moodle.nodos["ig114"].padre_eid == CURSO_EID
+    informe.validar(documento)
+
+
+def test_una_actividad_cambiada_a_mano_sale_como_sin_colocar(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    a = next(n for n in moodle.nodos.values() if n.cmid == 11)
+    # el docente saca «a» de su categoría a otra de tiza
+    moodle.nodos[a.eid] = dataclasses.replace(a, padre_eid=moodle.por_id("TZ_VISTA").eid)
+    moodle.escrituras.clear()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert acciones(documento)["a.md"] == "sin_colocar"
+    assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "1"
+    assert moodle.escrituras == []
+
+
 def test_resumen_sin_anterior_ni_bloqueos_no_dice_lo_que_no_hace():
     resumen = publicacion.ResumenCalificador(
         curso=5678,
