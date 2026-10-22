@@ -27,6 +27,7 @@ from .publicacion import (
     CambioSeccion,
     DocumentoBreve,
     DocumentoResumen,
+    ResumenCalificador,
     ResumenCopia,
     ResumenOrden,
     ResumenPublicacion,
@@ -36,6 +37,7 @@ from .publicacion import (
 __all__ = [
     "AUTOPRUEBA_TEXTO",
     "AVISO_AJENO",
+    "DetalleCalificador",
     "DetalleCopia",
     "DetalleCorto",
     "DetalleOrden",
@@ -52,6 +54,7 @@ __all__ = [
     "describir_cambios",
     "describir_curso",
     "describir_documento",
+    "detalle_calificador",
     "detalle_copia",
     "detalle_corto",
     "detalle_orden",
@@ -422,6 +425,89 @@ def detalle_orden(resumen: ResumenOrden) -> DetalleOrden:
 
 
 @dataclass(frozen=True)
+class DetalleCalificador:
+    """La confirmación de ``tiza calificador`` en un curso real: qué cambia, en líneas llanas."""
+
+    curso: str
+    posicion: int
+    total: int
+    encabezado: str
+    lineas: tuple[str, ...]
+
+
+def _porcentaje(valor: float) -> str:
+    return f"{valor:g} %".replace(".", ",")
+
+
+def _unidades(secciones: tuple[int | str, ...]) -> str:
+    """Las secciones de una evaluación en llano: «1-4», «1, 3» o «1-2, «Tema 5»»."""
+    rangos: list[list[int]] = []
+    for numero in sorted({s for s in secciones if isinstance(s, int)}):
+        if rangos and numero == rangos[-1][1] + 1:
+            rangos[-1][1] = numero
+        else:
+            rangos.append([numero, numero])
+    tramos = [str(desde) if desde == hasta else f"{desde}-{hasta}" for desde, hasta in rangos]
+    tramos += [f"«{texto_seguro(s, 60)}»" for s in secciones if isinstance(s, str)]
+    return ", ".join(tramos)
+
+
+def _lista(nombres: tuple[str, ...]) -> str:
+    return ", ".join(texto_seguro(nombre, 80) for nombre in nombres)
+
+
+def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
+    """Lo que hará ``tiza calificador`` en el curso, con consecuencias, en lenguaje llano.
+
+    Los nombres de actividades salen de los ficheros; los de totales ajenos y los avisos, del
+    aula, y se sanean aquí. Es la pantalla del docente: no se escribe en ``.tiza``.
+    """
+    lineas: list[str] = []
+    for elemento in resumen.lineas_esquema:
+        de_la_final = (
+            f" ({_porcentaje(elemento.peso)} de la final)" if elemento.peso is not None else ""
+        )
+        actividades = (
+            ", ".join(
+                f"{texto_seguro(nombre, 80)} {_porcentaje(peso)}"
+                for nombre, peso in elemento.actividades
+            )
+            or "todavía sin actividades"
+        )
+        lineas.append(f"{texto_seguro(elemento.id, 40)}{de_la_final}: {actividades}")
+    for cerrada in resumen.cerradas:
+        lineas.append(
+            f"{texto_seguro(cerrada.nombre, 80)}: unidades {_unidades(cerrada.secciones)} "
+            "(cerrada, no cambia)"
+        )
+    if resumen.bloquea:
+        lineas.append(f"Se bloquean los totales de: {_lista(resumen.bloquea)} (tienen notas)")
+    if resumen.mueve:
+        lineas.append(f"Pasan al calificador de tiza: {_lista(resumen.mueve)}")
+    if resumen.ids_nuevos:
+        lineas.append(f"Se añade número de ID a: {_lista(resumen.ids_nuevos)}")
+    if resumen.anterior:
+        lineas.append(
+            "Lo de tiza es informativo: el total del curso sigue siendo el tuyo, y las "
+            "actividades que pasan a tiza dejan de sumar en él"
+        )
+    for nombre in resumen.notas_cambian:
+        lineas.append(
+            f"La nota de la {texto_seguro(nombre, 80)} puede cambiar para quien ya tenga notas"
+        )
+    for aviso in resumen.avisos:
+        lineas.extend(linea.texto for linea in lineas_de_aviso(aviso))
+    curso = describir_curso(resumen.curso, resumen.nombre_curso)
+    return DetalleCalificador(
+        curso=curso,
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado=f"Se va a montar el calificador en el curso REAL {curso}:",
+        lineas=tuple(lineas),
+    )
+
+
+@dataclass(frozen=True)
 class DetalleCopia:
     """La confirmación de ``tiza copia``: de qué curso y la pregunta al docente."""
 
@@ -461,6 +547,46 @@ def lineas_de_error(codigo: str, detalle: str = "") -> tuple[Linea, ...]:
     if que_hacer is not None:
         lineas.append(Linea(f"Qué hacer: {que_hacer}", error=True))
     return tuple(lineas)
+
+
+def _actividad_pendiente(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(f"Aún no está en el aula, no cuenta todavía: {texto_seguro(datos['ruta'], 200)}"),
+    )
+
+
+def _calificando_en_pruebas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "El agente pide montar el calificador en pruebas con "
+            f"«{texto_seguro(datos['esquema'], 200)}»."
+        ),
+    )
+
+
+def _cambiado_a_mano(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(f"Lo cambiaste a mano en el aula y tiza no lo toca: {texto_seguro(datos['nombre'])}"),
+    )
+
+
+def _elemento_con_notas_quitado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "Ya no está en el esquema pero tiene notas: se queda en el aula con peso 0: "
+            f"{texto_seguro(datos['nombre'])}"
+        ),
+    )
+
+
+def _elemento_sin_actividades(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea(f"Ninguna actividad cuenta para {texto_seguro(datos['elemento'], 40)} todavía."),)
+
+
+def _evaluacion_cerrada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(f"Ya está bloqueada en el aula y tiza no la toca: {texto_seguro(datos['nombre'])}"),
+    )
 
 
 def _autoprueba_fallida(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
@@ -602,14 +728,20 @@ def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 
 
 _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
+    "ACTIVIDAD_PENDIENTE": _actividad_pendiente,
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
+    "CALIFICANDO_EN_PRUEBAS": _calificando_en_pruebas,
     "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
+    "CAMBIADO_A_MANO": _cambiado_a_mano,
     "CANCELADA": _cancelada,
     "COPIA_QUEDA_EN_EL_AULA": _copia_queda_en_el_aula,
     "CREANDO_SECCION": _creando_seccion,
     "CURSOS_GUARDADOS": _cursos_guardados,
+    "ELEMENTO_CON_NOTAS_QUITADO": _elemento_con_notas_quitado,
+    "ELEMENTO_SIN_ACTIVIDADES": _elemento_sin_actividades,
     "ERROR_INTERNO": _error_interno,
     "ESTRUCTURA_NO_LEIDA": _estructura_no_leida,
+    "EVALUACION_CERRADA_EN_EL_AULA": _evaluacion_cerrada_en_el_aula,
     "FALLO": _fallo,
     "HUELLA_NO_GUARDADA": _huella_no_guardada,
     "INFORME_NO_ESCRITO": _informe_no_escrito,

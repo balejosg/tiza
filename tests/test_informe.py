@@ -479,6 +479,51 @@ class TestOrdenar:
             Fichero(nombre="a.md", tipo="pagina", accion="reordenada")
 
 
+class TestCalificador:
+    """El informe de ``tiza calificador``: sus pasos, sus acciones por actividad y sus recuentos."""
+
+    @pytest.mark.parametrize("accion", ["colocada", "ya_estaba", "pendiente"])
+    def test_las_acciones_por_actividad_valen(self, accion):
+        documento = crear(
+            "calificador",
+            "ok",
+            [Paso("LOGIN"), Paso("CALIFICADOR", detalle="12 cambios")],
+            [Fichero(nombre="unidad/a.md", tipo="pagina", cmid=7, accion=accion, curso=2)],
+            [],
+            "pruebas",
+            2,
+        )
+        validar(documento)
+        assert documento["comando"] == "calificador"
+
+    @pytest.mark.parametrize(
+        "codigo",
+        [
+            "CALIFICADOR",
+            "CALIFICADOR_BLOQUEAR",
+            "CALIFICADOR_COLOCAR",
+            "ACTIVIDAD_PENDIENTE",
+            "CAMBIADO_A_MANO",
+            "ELEMENTO_CON_NOTAS_QUITADO",
+            "ELEMENTO_SIN_ACTIVIDADES",
+            "EVALUACION_CERRADA_EN_EL_AULA",
+            "TOTAL_AJENO_BLOQUEADO",
+        ],
+    )
+    def test_los_pasos_del_calificador_estan_registrados(self, codigo):
+        assert codigo in informe.PASOS
+        Paso(codigo, detalle="2")
+
+    def test_un_paso_que_no_esta_registrado_no_vale(self):
+        with pytest.raises(ErrorInforme):
+            Paso("CALIFICADOR_INVENTADO")
+
+    def test_los_avisos_de_la_reconciliacion_son_los_pasos(self):
+        from tiza.calificacion import reconciliar
+
+        assert set(reconciliar.AVISOS) <= informe.PASOS
+
+
 def test_resumen_lectura_esquema_cerrado():
     resumen = {
         "fichero": "prog.docx",

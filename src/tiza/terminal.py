@@ -24,6 +24,7 @@ from . import mensajes, publicar, ventana
 from .config import MAX_REALES
 from .publicacion import (
     Aviso,
+    ResumenCalificador,
     ResumenCopia,
     ResumenOrden,
     ResumenPublicacion,
@@ -361,6 +362,14 @@ class PresenciaTerminal:
             for linea in lineas:
                 print(f"      {linea}")
         for linea in detalle.finales:
+            print(f"  {linea}")
+        return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
+
+    def confirmar_calificador(self, resumen: ResumenCalificador) -> bool:
+        detalle = mensajes.detalle_calificador(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        print(detalle.encabezado)
+        for linea in detalle.lineas:
             print(f"  {linea}")
         return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
 

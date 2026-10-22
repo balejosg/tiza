@@ -25,6 +25,8 @@ from pathlib import Path
 from typing import Any
 
 from . import buzon, contenido, estado, informe, publicacion, rutas
+from .calificacion.carpeta import cargar_calificacion
+from .calificacion.esquema import ErrorCalificacion
 from .config import Config
 from .contenido import Documento, ErrorContenido
 from .publicacion import Presencia
@@ -115,6 +117,39 @@ class SesionAbierta:
     verificados: dict[str, estado.Verificado] = field(default_factory=dict)
     cupo: dict = field(default_factory=lambda: {"pruebas": 0, "copias": 0})
 
+    def _calificador(self, peticion: dict, base: Path, entorno: str, curso: int | None) -> dict:
+        """``tiza calificador``: el esquema y todas las actividades de la carpeta, no solo los
+        ficheros de la petición. Lo que se puede saber sin el aula (el esquema, los ``evalua`` y que
+        sus pesos cuadren) se comprueba antes de gastar cupo o leer nada del aula."""
+        comando = peticion["comando"]
+        nombre = peticion["ficheros"][0]
+        ruta = _ruta_dentro(base, nombre)
+        if ruta is None:
+            return informe.crear(
+                comando, "error", [], [], ["RUTA_FUERA_DE_CARPETA"], entorno, curso
+            )
+        try:
+            esquema, documentos = cargar_calificacion(ruta, base)
+        except ErrorCalificacion as exc:
+            return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
+        dir_tiza = base / rutas.CARPETA_TRABAJO
+        documento = publicacion.calificador_en_cursos(
+            self.aula,
+            self.cfg,
+            esquema,
+            documentos,
+            base,
+            self.presencia,
+            entorno=entorno,
+            nombre_esquema=nombre,
+            vigente=lambda: buzon.peticion_pendiente(dir_tiza, peticion["id"]),
+            cupo=self.cupo,
+            avisar_en_pruebas=True,
+            nombres=self.nombres,
+            debug=self.debug,
+        )
+        return registrar(documento, base, self.presencia)
+
     def atender(self, peticion: dict) -> dict:
         """Atiende una petición del buzón y devuelve su informe.
 
@@ -157,6 +192,8 @@ class SesionAbierta:
             return informe.crear(comando, "error", [], [], [codigo], entorno)
         # En el informe, el curso solo si es uno: con varios, cada fichero lleva el suyo.
         curso = cursos_de_entorno[0] if len(cursos_de_entorno) == 1 else None
+        if comando == "calificador":
+            return self._calificador(peticion, base, entorno, curso)
         documentos: list[Documento] = []
         for nombre in peticion["ficheros"]:
             ruta = _ruta_dentro(base, nombre)

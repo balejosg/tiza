@@ -541,6 +541,7 @@ class PresenciaFalsa:
         self.resumenes: list = []
         self.resumenes_cortos: list = []
         self.resumenes_orden: list = []
+        self.resumenes_calificador: list = []
         self.resumenes_copia: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
@@ -580,6 +581,10 @@ class PresenciaFalsa:
 
     def confirmar_orden(self, resumen):
         self.resumenes_orden.append(resumen)
+        return self._respuesta_real()
+
+    def confirmar_calificador(self, resumen):
+        self.resumenes_calificador.append(resumen)
         return self._respuesta_real()
 
     def confirmar_copia(self, resumen):
@@ -623,13 +628,19 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
     doc = publicacion.DocumentoResumen("t.md", "pagina", "T", 3, None)
     return {
         "AUTOPRUEBA_FALLIDA": publicacion.Aviso.autoprueba_fallida(),
+        "ACTIVIDAD_PENDIENTE": publicacion.Aviso.actividad_pendiente("t.md"),
+        "CALIFICANDO_EN_PRUEBAS": publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
         "CAMBIADA_EN_EL_AULA": publicacion.Aviso.cambiada_en_el_aula("T"),
+        "CAMBIADO_A_MANO": publicacion.Aviso.cambiado_a_mano("T"),
         "CANCELADA": publicacion.Aviso.cancelada(),
         "COPIA_QUEDA_EN_EL_AULA": publicacion.Aviso.copia_queda_en_el_aula(),
         "CREANDO_SECCION": publicacion.Aviso.creando_seccion("Tema"),
         "CURSOS_GUARDADOS": publicacion.Aviso.cursos_guardados(Path("tiza.toml")),
+        "ELEMENTO_CON_NOTAS_QUITADO": publicacion.Aviso.elemento_con_notas_quitado("T"),
+        "ELEMENTO_SIN_ACTIVIDADES": publicacion.Aviso.elemento_sin_actividades("RA1"),
         "ERROR_INTERNO": publicacion.Aviso.error_interno("RuntimeError"),
         "ESTRUCTURA_NO_LEIDA": publicacion.Aviso.estructura_no_leida(),
+        "EVALUACION_CERRADA_EN_EL_AULA": publicacion.Aviso.evaluacion_cerrada_en_el_aula("T"),
         "FALLO": publicacion.Aviso.fallo("LOGIN_FALLIDO", ""),
         "HUELLA_NO_GUARDADA": publicacion.Aviso.huella_no_guardada("T"),
         "INFORME_NO_ESCRITO": publicacion.Aviso.informe_no_escrito(),

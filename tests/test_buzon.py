@@ -917,18 +917,54 @@ class TestSoloFechasEnLaPeticion:
             buzon.validar_peticion(datos)
         assert exc.value.codigo == "PETICION_INVALIDA"
 
-    def test_buzon_version_6(self):
-        copia = peticion_valida(
-            comando="copia", curso="pruebas", ficheros=[], entorno=None, visible=None
+    def test_version_7(self):
+        calificador = peticion_valida(
+            comando="calificador", ficheros=["calificacion.yaml"], entorno="pruebas", visible=None
         )
-        buzon.validar_peticion(copia)  # la versión 6 admite el comando
-        for version in (5, 7):
+        buzon.validar_peticion(calificador)  # la versión 7 admite el comando
+        for version in (5, 6, 8):
             with pytest.raises(buzon.ErrorBuzon) as exc:
-                buzon.validar_peticion({**copia, "version": version})
+                buzon.validar_peticion({**calificador, "version": version})
             assert exc.value.codigo == "PETICION_INVALIDA"
-        # Una sesión de la versión 5 no atiende a un agente de la 6, ni al revés.
+        # Una sesión de la versión 6 no atiende a un agente de la 7, ni al revés.
         with pytest.raises(buzon.ErrorBuzon):
-            buzon.validar_peticion(peticion_valida(version=5))
+            buzon.validar_peticion(peticion_valida(version=6))
+
+    def test_buzon_calificador_valido(self):
+        for entorno in ("pruebas", "real"):
+            buzon.validar_peticion(
+                peticion_valida(
+                    comando="calificador",
+                    ficheros=["calificacion.yaml"],
+                    entorno=entorno,
+                    visible=None,
+                )
+            )
+        buzon.validar_peticion(
+            peticion_valida(comando="calificador", ficheros=["curso/Calif.YAML"], visible=None)
+        )
+
+    @pytest.mark.parametrize(
+        "cambios",
+        [
+            {"ficheros": ["a.yaml", "b.yaml"]},  # solo uno
+            {"ficheros": []},
+            {"ficheros": ["a.md"]},  # tiene que ser un .yaml
+            {"ficheros": ["a.yml"]},
+            {"ficheros": ["a.yaml", "b.md"]},
+            {"entorno": None},
+            {"visible": True},
+            {"visible": False},
+            {"solo_fechas": True},
+            {"curso": "real"},
+        ],
+    )
+    def test_buzon_calificador_dos_yaml(self, cambios):
+        datos = peticion_valida(comando="calificador", ficheros=["calificacion.yaml"], visible=None)
+        datos.update(cambios)
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(datos)
+        assert exc.value.codigo == "PETICION_INVALIDA"
 
     @pytest.mark.parametrize(
         "cambios",
@@ -958,7 +994,7 @@ class TestSoloFechasEnLaPeticion:
         sin_curso = peticion_valida(comando="copia", ficheros=[], entorno=None, visible=None)
         with pytest.raises(buzon.ErrorBuzon):
             buzon.validar_peticion(sin_curso)
-        for comando in ("publicar", "ordenar"):
+        for comando in ("publicar", "ordenar", "calificador"):
             with pytest.raises(buzon.ErrorBuzon):
                 buzon.validar_peticion(peticion_valida(comando=comando, curso="pruebas"))
         with pytest.raises(buzon.ErrorBuzon):
@@ -967,4 +1003,4 @@ class TestSoloFechasEnLaPeticion:
             )
 
     def test_el_protocolo_sube_con_el_campo(self):
-        assert buzon.VERSION_PROTOCOLO == 6  # 5: solo_fechas; 6: el comando «copia»
+        assert buzon.VERSION_PROTOCOLO == 7  # 5: solo_fechas; 6: «copia»; 7: «calificador»

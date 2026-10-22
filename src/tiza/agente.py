@@ -19,6 +19,8 @@ from pathlib import Path
 
 from . import buzon, calendario, contenido, estado, informe, rutas
 from .calendario import ErrorCalendario
+from .calificacion.carpeta import cargar_calificacion
+from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
 from .contenido import Documento, ErrorContenido, hash_documento
 from .escritura import ErrorEscritura
 from .estado import ErrorEstado, Estructura, buscar_seccion, cargar_estructura
@@ -34,6 +36,7 @@ from .lectura.modelo import ErrorLectura
 __all__ = [
     "Comprobacion",
     "FicheroComprobado",
+    "calificador",
     "comprobar",
     "copia",
     "documento",
@@ -43,6 +46,7 @@ __all__ = [
     "importar",
     "leer",
     "ordenar",
+    "peticion_calificador",
     "peticion_copia",
     "peticion_estructura",
     "peticion_ordenar",
@@ -82,26 +86,32 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
     dir_tiza = base / rutas.CARPETA_TRABAJO
     borrador = informe.Borrador("comprobar")
     resultados: list[FicheroComprobado] = []
-    try:
-        estructura = cargar_estructura(dir_tiza)
-    except ErrorEstado as exc:
-        estructura = None
-        borrador.error(exc.codigo)
-        borrador.fallo("ESTRUCTURA", exc.codigo)
-    else:
-        borrador.paso("ESTRUCTURA")
+    # Un esquema de calificación (.yaml) no necesita la estructura del aula ni el calendario.
+    con_documentos = any(Path(n).suffix.lower() not in EXTENSIONES_ESQUEMA for n in ficheros)
+    estructura: Estructura | None = None
+    cal = None
+    if con_documentos:
+        try:
+            estructura = cargar_estructura(dir_tiza)
+        except ErrorEstado as exc:
+            borrador.error(exc.codigo)
+            borrador.fallo("ESTRUCTURA", exc.codigo)
+        else:
+            borrador.paso("ESTRUCTURA")
 
-    # El calendario es una ayuda: si no se puede leer, el error se cuenta pero los
-    # documentos se comprueban igual.
-    try:
-        cal = calendario.cargar(base)
-    except ErrorCalendario as exc:
-        cal = None
-        borrador.error(exc.codigo)
-        borrador.fallo("CALENDARIO", exc.detalle)
+        # El calendario es una ayuda: si no se puede leer, el error se cuenta pero los
+        # documentos se comprueban igual.
+        try:
+            cal = calendario.cargar(base)
+        except ErrorCalendario as exc:
+            borrador.error(exc.codigo)
+            borrador.fallo("CALENDARIO", exc.detalle)
 
     for nombre in ficheros:
         ruta = base / nombre
+        if ruta.suffix.lower() in EXTENSIONES_ESQUEMA:
+            resultados.append(_comprobar_esquema(borrador, ruta, raiz))
+            continue
         try:
             doc = contenido.cargar(ruta, raiz=raiz)
             vista = contenido.previsualizar(doc, dir_tiza)
@@ -172,6 +182,22 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
         borrador.fichero(_fichero(doc, seccion["nombre"] if seccion else None))
 
     return Comprobacion(borrador.documento(), tuple(resultados))
+
+
+def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> FicheroComprobado:
+    """Un ``.yaml`` de calificación: su forma y que las actividades de la carpeta cuadren. Sin red.
+
+    Es lo que ``tiza calificador`` comprueba antes de tocar el aula (el calificador anterior del
+    curso no cambia si hay errores: solo cambia lo que se coloca, no si algo es válido).
+    """
+    try:
+        cargar_calificacion(ruta, raiz)
+    except ErrorCalificacion as exc:
+        borrador.error(exc.codigo)
+        borrador.fallo("COMPROBAR", f"{ruta.name}: {exc.codigo}")
+        return FicheroComprobado(ruta.name, exc.codigo, exc.detalle)
+    borrador.paso("COMPROBAR", detalle=ruta.name)
+    return FicheroComprobado(ruta.name)
 
 
 def _con_dolar_simple(doc: Documento) -> bool:
@@ -316,6 +342,23 @@ def peticion_ordenar(ficheros: Sequence[str], entorno: str) -> dict:
     }
 
 
+def peticion_calificador(esquema: str, entorno: str) -> dict:
+    """Petición de calificador para el buzón: monta el calificador del curso según ``esquema``.
+
+    ``esquema`` es el ``.yaml`` de la carpeta; las actividades las lee la sesión de la carpeta.
+    No admite visibilidad ni fechas.
+    """
+    return {
+        "version": buzon.VERSION_PROTOCOLO,
+        "id": uuid.uuid4().hex,
+        "comando": "calificador",
+        "ficheros": [esquema],
+        "entorno": entorno,
+        "visible": None,
+        "solo_fechas": False,
+    }
+
+
 def peticion_copia(curso: str) -> dict:
     """Petición de copia para el buzón: ``curso`` es ``pruebas``, ``real`` o el id de un curso.
 
@@ -370,6 +413,22 @@ def ordenar(
 ) -> dict:
     """Pide a la sesión del docente que ordene las actividades de ``ficheros``; en real, confirma."""
     return _enviar(carpeta, peticion_ordenar(ficheros, entorno), espera, cancelar)
+
+
+def calificador(
+    carpeta: str | Path,
+    esquema: str,
+    entorno: str,
+    *,
+    espera: float = buzon.ESPERA_POR_DEFECTO,
+    cancelar: threading.Event | None = None,
+) -> dict:
+    """Pide a la sesión del docente que monte el calificador del curso según ``esquema``.
+
+    En real, el docente confirma en su terminal, curso por curso, con lo que va a pasar. Antes
+    se puede comprobar el esquema sin red con ``comprobar``. Sin sesión, ``SIN_SESION``.
+    """
+    return _enviar(carpeta, peticion_calificador(esquema, entorno), espera, cancelar)
 
 
 def copia(

@@ -72,7 +72,7 @@ INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
-VERSION_PROTOCOLO = 6  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
+VERSION_PROTOCOLO = 7  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
 
 _CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible", "solo_fechas"}
 _CAMPO_CURSO = "curso"  # solo en «copia»: el nombre del curso de tiza.toml (pruebas, real o un id)
@@ -80,7 +80,7 @@ _CURSO = re.compile(r"\A[A-Za-z0-9._-]{1,40}\Z")
 _ID = re.compile(r"\A[0-9a-f]{32}\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _ABSOLUTA = re.compile(r"\A(?:[/\\]|[A-Za-z]:)")
-_COMANDOS = {"publicar", "estructura", "ordenar", "copia"}
+_COMANDOS = {"publicar", "estructura", "ordenar", "copia", "calificador"}
 _ENTORNOS = {"pruebas", "real"}
 
 
@@ -262,6 +262,16 @@ def validar_peticion(peticion: Any) -> None:
                 "PETICION_INVALIDA",
                 "ordenar no cambia visibilidad ni fechas: sin visible ni solo_fechas",
             )
+        if peticion["comando"] == "calificador":
+            if peticion["visible"] is not None or peticion["solo_fechas"]:
+                raise ErrorBuzon(
+                    "PETICION_INVALIDA",
+                    "calificador no cambia visibilidad ni fechas: sin visible ni solo_fechas",
+                )
+            if len(ficheros) != 1 or not ficheros[0].lower().endswith(".yaml"):
+                raise ErrorBuzon(
+                    "PETICION_INVALIDA", "calificador exige un solo fichero, el esquema .yaml"
+                )
         if peticion["solo_fechas"] and peticion["visible"] is not None:
             raise ErrorBuzon(
                 "PETICION_INVALIDA",

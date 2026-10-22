@@ -94,6 +94,7 @@ _COMANDOS_AGENTE = (
     "rellenar",
     "importar",
     "copia",
+    "calificador",
     "comprobar",
     "publicar",
     "ordenar",

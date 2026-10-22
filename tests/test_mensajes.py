@@ -206,6 +206,42 @@ class TestAvisos:
         assert lineas
         assert all(isinstance(linea, mensajes.Linea) for linea in lineas)
 
+    @pytest.mark.parametrize(
+        ("aviso", "esperado"),
+        [
+            (
+                publicacion.Aviso.actividad_pendiente("unidad/c.md"),
+                "Aún no está en el aula, no cuenta todavía: unidad/c.md",
+            ),
+            (
+                publicacion.Aviso.cambiado_a_mano("Redes"),
+                "Lo cambiaste a mano en el aula y tiza no lo toca: Redes",
+            ),
+            (
+                publicacion.Aviso.evaluacion_cerrada_en_el_aula("Primera"),
+                "Ya está bloqueada en el aula y tiza no la toca: Primera",
+            ),
+            (
+                publicacion.Aviso.elemento_con_notas_quitado("RA9"),
+                "Ya no está en el esquema pero tiene notas: se queda en el aula con peso 0: RA9",
+            ),
+            (
+                publicacion.Aviso.elemento_sin_actividades("RA3"),
+                "Ninguna actividad cuenta para RA3 todavía.",
+            ),
+            (
+                publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
+                "El agente pide montar el calificador en pruebas con «calificacion.yaml».",
+            ),
+        ],
+    )
+    def test_los_avisos_del_calificador_dicen_lo_acordado(self, aviso, esperado):
+        assert [linea.texto for linea in mensajes.lineas_de_aviso(aviso)] == [esperado]
+
+    def test_los_avisos_del_calificador_sanean_lo_que_viene_del_aula(self):
+        lineas = mensajes.lineas_de_aviso(publicacion.Aviso.cambiado_a_mano("Notas\x1b[2J\u202e"))
+        assert "\x1b" not in lineas[0].texto and "\u202e" not in lineas[0].texto
+
     def test_cambiada_en_el_aula_dice_lo_acordado(self):
         lineas = mensajes.lineas_de_aviso(publicacion.Aviso.cambiada_en_el_aula("Tema\x1b\u202e 1"))
         assert [linea.texto for linea in lineas] == [

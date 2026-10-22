@@ -591,6 +591,39 @@ def test_confirmar_orden_ensena_el_orden_saneado_y_pide_confirmar(monkeypatch, c
     assert vistos == [("real", 5678, "Matemáticas 2ºB")]
 
 
+def test_confirmar_calificador_ensena_el_resumen_saneado_y_pide_confirmar(monkeypatch, capsys):
+    vistos: list = []
+    monkeypatch.setattr(
+        terminal,
+        "confirmar_destino",
+        lambda entorno, curso, nombre=None: vistos.append((entorno, curso, nombre)) or True,
+    )
+    resumen = publicacion.ResumenCalificador(
+        curso=5678,
+        nombre_curso="Matemáticas 2ºB",
+        lineas_esquema=(
+            publicacion.ElementoCalificador("RA1", 40.0, (("Práctica\x1b[2J", 100.0),)),
+        ),
+        mueve=("Examen\x1b[31m",),
+        bloquea=("Trabajos",),
+        ids_nuevos=(),
+        cerradas=(),
+        avisos=(),
+        posicion=1,
+        total=2,
+        anterior=True,
+    )
+    assert terminal.PresenciaTerminal().confirmar_calificador(resumen) is True
+    salida = capsys.readouterr().out
+    assert "Se va a montar el calificador en el curso REAL" in salida
+    assert "Curso 1 de 2" in salida
+    assert "RA1 (40 % de la final): Práctica[2J 100 %" in salida
+    assert "Pasan al calificador de tiza: Examen[31m" in salida
+    assert "Se bloquean los totales de: Trabajos (tienen notas)" in salida
+    assert "\x1b" not in salida
+    assert vistos == [("real", 5678, "Matemáticas 2ºB")]
+
+
 def test_confirmar_copia_hace_la_pregunta_exacta_y_sanea_el_nombre(monkeypatch, capsys):
     preguntas: list = []
     monkeypatch.setattr(terminal, "confirmar", lambda pregunta: preguntas.append(pregunta) or True)

@@ -166,6 +166,23 @@ def _parser() -> argparse.ArgumentParser:
     )
     ordenar.add_argument("--debug", action="store_true")
 
+    calificador = sub.add_parser(
+        "calificador",
+        help="monta el calificador del aula según un esquema .yaml y las actividades (autenticado)",
+        description="Crea en el calificador las categorías y los totales que dice el esquema y "
+        "coloca en ellos las actividades de la carpeta con «evalua». Lo hace la sesión abierta "
+        "del docente; en real confirma, curso por curso, con lo que va a pasar. Nunca lee ni "
+        "escribe notas, ni desbloquea nada. Para comprobar el esquema sin red: "
+        "«tiza comprobar calificacion.yaml».",
+    )
+    calificador.add_argument(
+        "esquema", help="el esquema .yaml, dentro de la carpeta de la asignatura"
+    )
+    calificador.add_argument(
+        "--en", choices=("pruebas", "real"), required=True, help="curso de destino"
+    )
+    calificador.add_argument("--debug", action="store_true")
+
     copia = sub.add_parser(
         "copia",
         help="pide al docente una copia de seguridad del curso, sin usuarios (autenticado)",
@@ -327,6 +344,8 @@ def _despachar(args) -> int:
         return _publicar(args)
     if args.comando == "ordenar":
         return _ordenar(args)
+    if args.comando == "calificador":
+        return _calificador(args)
     if args.comando == "copia":
         return _copia(args)
     if args.comando == "autoprueba":
@@ -1361,6 +1380,32 @@ def _ordenar(args) -> int:
             entorno=args.en,
         )
     return _ordenar_directa(args)
+
+
+def _calificador(args) -> int:
+    """El calificador lo monta la sesión del docente: sin sesión no hay modo directo."""
+    dir_tiza = _dir_tiza()
+    if buzon.sesion_activa(dir_tiza):
+        return _responder_buzon(
+            "calificador",
+            agente.peticion_calificador(args.esquema, args.en),
+            dir_tiza,
+            debug=args.debug,
+        )
+    version = buzon.sesion_incompatible(dir_tiza)
+    if version is not None:
+        return _fallo(
+            "calificador",
+            "SESION_INCOMPATIBLE",
+            f"la sesión abierta usa tiza {version}; esta terminal, tiza {__version__}",
+            entorno=args.en,
+        )
+    return _fallo(
+        "calificador",
+        "SIN_SESION",
+        "el calificador lo monta la sesión del docente",
+        entorno=args.en,
+    )
 
 
 def _copia(args) -> int:

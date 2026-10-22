@@ -2065,6 +2065,66 @@ class TestOrdenarEnCli:
         assert leer_informe(tmp_path)["comando"] == "ordenar"
 
 
+class TestCalificadorEnCli:
+    """``tiza calificador``: lo pide el agente a la sesión del docente; sin sesión no hay modo directo."""
+
+    def test_sin_sesion(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
+        assert cli.main(["calificador", "calificacion.yaml", "--en", "pruebas"]) == 1
+        informe_ = leer_informe(tmp_path)
+        assert (informe_["comando"], informe_["errores"]) == ("calificador", ["SIN_SESION"])
+        assert informe_["entorno"] == "pruebas"
+        assert "SIN_SESION" in capsys.readouterr().err
+
+    def test_con_sesion_usa_el_buzon_con_el_comando_calificador(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        capturado: dict = {}
+
+        def enviar(dir_tiza, peticion, *a, **k):
+            capturado["peticion"] = peticion
+            return informe_ok(comando="calificador", entorno="real", curso=5678)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        assert cli.main(["calificador", "calificacion.yaml", "--en", "real"]) == 0
+        enviada = capturado["peticion"]
+        assert (enviada["comando"], enviada["entorno"], enviada["ficheros"]) == (
+            "calificador",
+            "real",
+            ["calificacion.yaml"],
+        )
+        assert enviada["visible"] is None and enviada["solo_fechas"] is False
+        buzon.validar_peticion(enviada)
+
+    def test_sesion_incompatible_lo_explica(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: False)
+        monkeypatch.setattr(buzon, "sesion_incompatible", lambda *a, **k: "0.25.0")
+        assert cli.main(["calificador", "calificacion.yaml", "--en", "pruebas"]) == 1
+        assert leer_informe(tmp_path)["errores"] == ["SESION_INCOMPATIBLE"]
+
+    def test_el_destino_y_el_esquema_son_obligatorios(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(SystemExit):
+            cli.main(["calificador", "calificacion.yaml"])
+        with pytest.raises(SystemExit):
+            cli.main(["calificador", "--en", "pruebas"])
+
+    def test_comprobar_acepta_el_esquema(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "calificacion.yaml").write_text(
+            "organizacion: elementos\nelementos:\n  - {id: RA1, nombre: Redes, peso: 100}\n"
+            "evaluaciones:\n  - {nombre: Primera, secciones: [1]}\nfinal: {de: elementos}\n",
+            encoding="utf-8",
+        )
+        assert cli.main(["comprobar", "calificacion.yaml"]) == 0
+        assert leer_informe(tmp_path)["comando"] == "comprobar"
+
+
 class TestCopia:
     """``tiza copia``: la pide el agente a la sesión del docente; sin sesión no hay modo directo."""
 

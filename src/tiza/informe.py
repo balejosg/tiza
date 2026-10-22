@@ -44,6 +44,7 @@ __all__ = [
 ]
 
 COMANDOS = {
+    "calificador",
     "comprobar",
     "estructura",
     "publicar",
@@ -55,7 +56,19 @@ COMANDOS = {
 MAX_CURSOS_REALES = 6  # igual que config.MAX_REALES (este módulo no importa config)
 RESULTADOS = {"ok", "error", "abortado"}
 RESULTADOS_PASO = {"ok", "fallo"}
-ACCIONES = {"creada", "actualizada", "borrada", "verificada", "movida", "ordenada", "sin_cambios"}
+ACCIONES = {
+    "creada",
+    "actualizada",
+    "borrada",
+    "verificada",
+    "movida",
+    "ordenada",
+    "sin_cambios",
+    # tiza calificador: dónde queda cada actividad en el calificador
+    "colocada",
+    "ya_estaba",
+    "pendiente",
+}
 # El registro de tipos (tipos/) es el dueño de qué tipos existen.
 TIPOS = set(tipos.TIPOS)
 # El registro de los códigos de paso: solo estos salen en un informe. Los del
@@ -63,9 +76,14 @@ TIPOS = set(tipos.TIPOS)
 PASOS = (
     frozenset(
         {
+            "ACTIVIDAD_PENDIENTE",
             "BORRAR_COPIA",
             "BORRAR_SECCION",
             "CALENDARIO",
+            "CALIFICADOR",
+            "CALIFICADOR_BLOQUEAR",
+            "CALIFICADOR_COLOCAR",
+            "CAMBIADO_A_MANO",
             "COMPROBAR",
             "COPIA_A_MANO",
             "COPIAR",
@@ -74,7 +92,10 @@ PASOS = (
             "CURSO_OMITIDO",
             "DEPENDENCIA_SIN_FINALIZACION",
             "DEPENDENCIAS",
+            "ELEMENTO_CON_NOTAS_QUITADO",
+            "ELEMENTO_SIN_ACTIVIDADES",
             "ESTRUCTURA",
+            "EVALUACION_CERRADA_EN_EL_AULA",
             "FORMULA_DOLAR_SIMPLE",
             "FORMULAS_NO_DIBUJADAS",
             "HUELLA_NO_GUARDADA",
@@ -87,6 +108,7 @@ PASOS = (
             "SECCION_DISTINTA_ENTRE_CURSOS",
             "SIN_SESION",
             "SOLO_FECHAS",
+            "TOTAL_AJENO_BLOQUEADO",
             "VERIFICAR_CATEGORIA",
             "VERIFICAR_FECHAS",
         }

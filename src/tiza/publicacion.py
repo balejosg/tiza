@@ -33,9 +33,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 from . import calendario, contenido, estado, informe, publicar, rutas, tipos
+from .calificacion import reconciliar as rc
+from .calificacion.deseado import Deseado
+from .calificacion.deseado import deseado as calcular_deseado
+from .calificacion.ejecutar import TIPOS_DE_BLOQUEO, Ejecucion
+from .calificacion.esquema import ErrorCalificacion, Esquema
 from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
-from .publicar import AulaVirtual, ErrorPublicacion
+from .estado import ErrorEstado
+from .publicar import AulaVirtual, CalificadorAula, ErrorPublicacion
 from .tipos import CAMPO_RECORDATORIO, FechaActividad
 
 if TYPE_CHECKING:  # solo para el tipo; la sesión importa este módulo
@@ -53,8 +59,12 @@ __all__ = [
     "CambioSeccion",
     "DocumentoBreve",
     "DocumentoResumen",
+    "ElementoCalificador",
+    "EvaluacionCerrada",
     "MAX_PUBLICACIONES_PRUEBAS",
+    "PlanCalificador",
     "Presencia",
+    "ResumenCalificador",
     "ResumenCopia",
     "ResumenOrden",
     "ResumenPublicacion",
@@ -63,6 +73,8 @@ __all__ = [
     "cambios_de_fechas",
     "cambios_de_nombre",
     "cambios_de_seccion",
+    "calificador_con",
+    "calificador_en_cursos",
     "cargar_calendario",
     "codigo_solo_fechas",
     "copiar_curso",
@@ -74,9 +86,11 @@ __all__ = [
     "ordenar_con",
     "ordenar_en_cursos",
     "ordenar_por_dependencias",
+    "preparar_calificador",
     "publicar_con",
     "publicar_en_cursos",
     "puerta_real",
+    "resumen_calificador",
     "resumen_orden",
     "resumen_solo_fechas",
 ]
@@ -90,14 +104,20 @@ CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
 # llano en :mod:`tiza.mensajes`.
 AVISOS = frozenset(
     {
+        "ACTIVIDAD_PENDIENTE",
         "AUTOPRUEBA_FALLIDA",
+        "CALIFICANDO_EN_PRUEBAS",
         "CAMBIADA_EN_EL_AULA",
+        "CAMBIADO_A_MANO",
         "CANCELADA",
         "COPIA_QUEDA_EN_EL_AULA",
         "CREANDO_SECCION",
         "CURSOS_GUARDADOS",
+        "ELEMENTO_CON_NOTAS_QUITADO",
+        "ELEMENTO_SIN_ACTIVIDADES",
         "ERROR_INTERNO",
         "ESTRUCTURA_NO_LEIDA",
+        "EVALUACION_CERRADA_EN_EL_AULA",
         "FALLO",
         "HUELLA_NO_GUARDADA",
         "INFORME_NO_ESCRITO",
@@ -130,8 +150,35 @@ class Aviso:
             raise ValueError(f"aviso desconocido: {self.codigo}")
 
     @classmethod
+    def actividad_pendiente(cls, ruta: str) -> Aviso:
+        """``ruta``: el fichero de la carpeta que aún no está en el aula (o no se califica)."""
+        return cls("ACTIVIDAD_PENDIENTE", {"ruta": ruta})
+
+    @classmethod
     def autoprueba_fallida(cls) -> Aviso:
         return cls("AUTOPRUEBA_FALLIDA")
+
+    @classmethod
+    def calificando_en_pruebas(cls, esquema: str) -> Aviso:
+        return cls("CALIFICANDO_EN_PRUEBAS", {"esquema": esquema})
+
+    @classmethod
+    def cambiado_a_mano(cls, nombre: str) -> Aviso:
+        """``nombre``: lo que el docente cambió en el aula y tiza no toca (viene del aula)."""
+        return cls("CAMBIADO_A_MANO", {"nombre": nombre})
+
+    @classmethod
+    def elemento_con_notas_quitado(cls, nombre: str) -> Aviso:
+        return cls("ELEMENTO_CON_NOTAS_QUITADO", {"nombre": nombre})
+
+    @classmethod
+    def elemento_sin_actividades(cls, elemento: str) -> Aviso:
+        """``elemento``: el id del esquema (RA1…) al que no llega ninguna actividad."""
+        return cls("ELEMENTO_SIN_ACTIVIDADES", {"elemento": elemento})
+
+    @classmethod
+    def evaluacion_cerrada_en_el_aula(cls, nombre: str) -> Aviso:
+        return cls("EVALUACION_CERRADA_EN_EL_AULA", {"nombre": nombre})
 
     @classmethod
     def cambiada_en_el_aula(cls, nombre: str, cmid: int | None = None) -> Aviso:
@@ -376,6 +423,70 @@ class ResumenOrden:
 
 
 @dataclass(frozen=True)
+class ElementoCalificador:
+    """Un elemento del esquema (RA1…) como lo ve el docente al confirmar el calificador.
+
+    ``peso`` es su porcentaje de la final (``None`` si la final es por evaluaciones) y
+    ``actividades`` pares (nombre de la actividad, porcentaje del elemento). Todo sale de los
+    ficheros de la carpeta, nunca del aula.
+    """
+
+    id: str
+    peso: float | None
+    actividades: tuple[tuple[str, float], ...] = ()
+
+
+@dataclass(frozen=True)
+class EvaluacionCerrada:
+    """Una evaluación marcada ``cerrada: true``: tiza no la toca; ``secciones`` son las del esquema."""
+
+    nombre: str
+    secciones: tuple[int | str, ...]
+
+
+@dataclass(frozen=True)
+class ResumenCalificador:
+    """Lo que va a hacer ``tiza calificador`` en un curso real: la presencia lo enseña y el docente decide.
+
+    ``mueve`` y ``ids_nuevos`` son nombres de actividades (de los ficheros); ``bloquea`` los
+    nombres de los totales ajenos con notas que se bloquean (del aula: solo los ve el docente,
+    saneados). ``anterior``: el curso ya tenía un calificador que no es de tiza.
+    ``notas_cambian``: evaluaciones abiertas con notas dentro de lo de tiza.
+    """
+
+    curso: int
+    nombre_curso: str | None
+    lineas_esquema: tuple[ElementoCalificador, ...]
+    mueve: tuple[str, ...]
+    bloquea: tuple[str, ...]
+    ids_nuevos: tuple[str, ...]
+    cerradas: tuple[EvaluacionCerrada, ...]
+    avisos: tuple[Aviso, ...]
+    posicion: int = 1
+    total: int = 1
+    anterior: bool = False
+    notas_cambian: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class PlanCalificador:
+    """Lo que ``tiza calificador`` va a hacer en un curso: se calcula antes de confirmar.
+
+    Es lo que se enseña y lo que se ejecuta: no se vuelve a calcular entre la confirmación y la
+    ejecución, para no hacer algo distinto de lo que vio el docente.
+    """
+
+    curso: int
+    aula_antes: CalificadorAula
+    deseado: Deseado
+    reconciliacion: rc.Reconciliacion
+    cmids: dict[str, int]
+    huellas: dict[str, str]
+    documentos: tuple[Documento, ...]  # los que cuentan (los que llevan «evalua»)
+    base: Path
+
+
+@dataclass(frozen=True)
 class ResumenCopia:
     """La copia del curso que se pide: la presencia lo enseña y el docente decide.
 
@@ -453,6 +564,10 @@ class Presencia(Protocol):
 
     def confirmar_orden(self, resumen: ResumenOrden) -> bool:
         """¿Reordenar en real como enseña ``resumen``? Una respuesta por curso."""
+        ...
+
+    def confirmar_calificador(self, resumen: ResumenCalificador) -> bool:
+        """¿Montar el calificador en real como enseña ``resumen``? Una respuesta por curso."""
         ...
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
@@ -1469,6 +1584,352 @@ def ordenar_en_cursos(
                 break
         # Sin cambios no hay nada que confirmar: se informa de ``sin_cambios`` sin tocar el aula.
         documento = ordenar_con(aula, entorno, curso, documentos, debug=debug)
+        registro.append((posicion, curso, documento))
+        if documento["resultado"] != "ok":
+            break
+    return informe_de_cursos(comando, entorno, total, unico, registro)
+
+
+# --------------------------------------------------------------------------- #
+# El calificador: montarlo desde el esquema
+# --------------------------------------------------------------------------- #
+
+
+def _ruta_de(doc: Documento, base: Path) -> str:
+    """La ruta del documento en la carpeta, en POSIX: la misma clave que usa ``deseado``."""
+    try:
+        return doc.ruta.relative_to(base).as_posix()
+    except ValueError:
+        return doc.ruta.as_posix()
+
+
+def _cmids_de(
+    secciones: list[dict], documentos: list[Documento], curso: int, base: Path
+) -> dict[str, int]:
+    """El cmid de cada actividad que ya está en el aula, por ruta; las que faltan no salen.
+
+    Se encuentran como en ``ordenar`` (``origen`` en su curso, o sección, tipo y nombre).
+    ``ACTIVIDAD_AMBIGUA`` si dos ficheros apuntan a la misma actividad o una se repite: colocar
+    la equivocada cambiaría una nota sin que nadie lo viera.
+    """
+    cmids: dict[str, int] = {}
+    vistos: set[int] = set()
+    for doc in documentos:
+        ruta = _ruta_de(doc, base)
+        try:
+            if publicar.aplica_origen(doc, curso):
+                encontrados = [publicar.modulo_por_origen(secciones, doc)[1]]
+            else:
+                encontrados = publicar.modulos_de(secciones, doc)
+        except ErrorPublicacion:  # ORIGEN_NO_ENCONTRADO: ya no está en el aula, es pendiente
+            continue
+        if not encontrados:
+            continue
+        cmid = encontrados[0]["cmid"]
+        if len(encontrados) > 1 or cmid in vistos:
+            raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", ruta)
+        vistos.add(cmid)
+        cmids[ruta] = cmid
+    return cmids
+
+
+def preparar_calificador(
+    aula: AulaVirtual,
+    curso: int,
+    esquema: Esquema,
+    documentos: list[Documento],
+    dir_tiza: Path,
+) -> PlanCalificador:
+    """Lee el curso y calcula qué hay que hacer en su calificador. No escribe nada en el aula.
+
+    ``ErrorPublicacion`` si el aula no deja leer, ``ErrorCalificacion`` si las actividades no
+    cuadran con el esquema y ``ErrorEstado`` si ``.tiza/calificador.json`` no vale.
+    """
+    base = Path(dir_tiza).parent
+    huellas = estado.cargar_huellas(dir_tiza, curso)
+    contados = [doc for doc in documentos if doc.evalua is not None]
+    cmids = _cmids_de(aula.estructura(curso), contados, curso, base)
+    actual = aula.calificador(curso)
+    anterior = rc.hay_anterior(actual)
+    deseado = calcular_deseado(esquema, documentos, anterior, base)
+    return PlanCalificador(
+        curso=curso,
+        aula_antes=actual,
+        deseado=deseado,
+        reconciliacion=rc.reconciliar(deseado, actual, huellas, cmids),
+        cmids=cmids,
+        huellas=huellas,
+        documentos=tuple(contados),
+        base=base,
+    )
+
+
+def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
+    """El aviso de la reconciliación en el tipo que sabe contar la presencia (``None``: no cuenta)."""
+    nombres = {n.idnumber: n.nombre for n in plan.aula_antes.nodos if n.idnumber}
+    nombre = "el total del curso" if clave == rc.CURSO else nombres.get(clave, clave)
+    if codigo == "ACTIVIDAD_PENDIENTE":
+        return Aviso.actividad_pendiente(clave)
+    if codigo == "CAMBIADO_A_MANO":
+        return Aviso.cambiado_a_mano(nombre)
+    if codigo == "EVALUACION_CERRADA_EN_EL_AULA":
+        return Aviso.evaluacion_cerrada_en_el_aula(nombre)
+    if codigo == "ELEMENTO_CON_NOTAS_QUITADO":
+        return Aviso.elemento_con_notas_quitado(nombre)
+    if codigo == "ELEMENTO_SIN_ACTIVIDADES":
+        return Aviso.elemento_sin_actividades(clave)
+    return None  # TOTAL_AJENO_BLOQUEADO ya sale en «se bloquean los totales de…»
+
+
+def resumen_calificador(
+    plan: PlanCalificador,
+    esquema: Esquema,
+    nombre_curso: str | None,
+    *,
+    posicion: int = 1,
+    total: int = 1,
+) -> ResumenCalificador:
+    """Lo que enseña la confirmación de ``tiza calificador`` en un curso real.
+
+    Solo lectura. Los nombres de las actividades salen de los ficheros de la carpeta; los de
+    totales ajenos y evaluaciones, del aula, y solo los ve el docente.
+    """
+    nombres = {_ruta_de(doc, plan.base): doc.nombre for doc in plan.documentos}
+    operaciones = plan.reconciliacion.operaciones
+    colocar = [op for op in operaciones if op.tipo == "colocar"]
+    lineas = tuple(
+        ElementoCalificador(
+            e.id,
+            e.peso if esquema.final.de == "elementos" else None,
+            tuple(
+                (doc.nombre, peso)
+                for doc in plan.documentos
+                for id_, peso in doc.evalua or ()
+                if id_ == e.id and peso > 0
+            ),
+        )
+        for e in esquema.elementos
+    )
+    en_el_aula = {n.idnumber: n for n in plan.aula_antes.nodos if n.idnumber}
+    notas = tuple(
+        ev.nombre
+        for n, ev in enumerate(esquema.evaluaciones, 1)
+        if not ev.cerrada
+        and (aula_ev := en_el_aula.get(f"TZ_V_{n}")) is not None
+        and aula_ev.tiene_notas
+        and not aula_ev.bloqueado
+    )
+    avisos = [
+        aviso
+        for codigo, clave in (*plan.reconciliacion.avisos, *plan.deseado.avisos)
+        if (aviso := _aviso_de(codigo, clave, plan)) is not None
+    ]
+
+    def nombre_de(op: rc.Operacion) -> str:
+        return nombres.get(op.ruta or "", op.ruta or "")
+
+    return ResumenCalificador(
+        curso=plan.curso,
+        nombre_curso=nombre_curso,
+        lineas_esquema=lineas,
+        mueve=tuple(dict.fromkeys(nombre_de(op) for op in colocar)),
+        bloquea=tuple(
+            op.nombre or op.idnumber or "" for op in operaciones if op.tipo == "bloquear_ajeno"
+        ),
+        ids_nuevos=tuple(dict.fromkeys(nombre_de(op) for op in colocar if op.poner_idnumber)),
+        cerradas=tuple(
+            EvaluacionCerrada(ev.nombre, ev.secciones) for ev in esquema.evaluaciones if ev.cerrada
+        ),
+        avisos=tuple(avisos),
+        posicion=posicion,
+        total=total,
+        anterior=plan.reconciliacion.anterior,
+        notas_cambian=notas,
+    )
+
+
+def _huellas_a_guardar(final: CalificadorAula, plan: PlanCalificador) -> dict[str, str]:
+    """Las huellas de lo que quedó, salvo lo que el docente cambió a mano: eso conserva la de antes.
+
+    Si se guardara el estado cambiado, la vez siguiente tiza lo tomaría por lo que montó y lo
+    pisaría; con la huella vieja se sigue respetando (y avisando) hasta que el docente lo deje
+    como estaba o lo borre del aula.
+    """
+    nuevas = rc.huellas_de(final, plan.cmids)
+    for clave in plan.reconciliacion.a_mano:
+        if clave in plan.huellas:
+            nuevas[clave] = plan.huellas[clave]
+    return nuevas
+
+
+def calificador_con(
+    aula: AulaVirtual,
+    entorno: str,
+    curso: int,
+    esquema: Esquema,
+    documentos: list[Documento],
+    dir_tiza: Path,
+    *,
+    plan: PlanCalificador | None = None,
+    debug: bool = False,
+) -> dict:
+    """Con el aula ya abierta: monta el calificador de ``curso`` y devuelve el informe.
+
+    Flujo: ``calificador(curso)`` → ``hay_anterior`` → ``deseado`` → ``reconciliar`` (todo eso es
+    ``preparar_calificador``; con ``plan`` ya se hizo y es lo que vio el docente al confirmar) →
+    las operaciones en orden → releer → ``pasada2`` una vez → releer si hubo algo que ajustar →
+    guardar las huellas. Si falla un ``bloquear_ajeno`` no se ejecuta nada más en el curso
+    (``BLOQUEO_FALLIDO``). Cualquier otro fallo para en seco: se repite el comando y converge.
+    """
+    borrador = informe.Borrador("calificador", entorno=entorno, curso=curso)
+    borrador.paso("LOGIN")
+    dir_tiza = Path(dir_tiza)
+    try:
+        plan = plan or preparar_calificador(aula, curso, esquema, documentos, dir_tiza)
+    except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
+        borrador.fallo("CALIFICADOR", exc.codigo)
+        borrador.error(exc.codigo)
+        depurar(exc, debug)
+        return borrador.documento("error")
+    rec = plan.reconciliacion
+    primera = Ejecucion(aula, curso, plan.aula_antes.decimal)
+    segunda: Ejecucion | None = None
+    final = plan.aula_antes
+    try:
+        if rec.operaciones:
+            primera.ejecutar(rec.operaciones, tolerar_formulas=True)
+            final = aula.calificador(curso)
+            ajustes = rc.pasada2(plan.deseado, final, plan.huellas, plan.cmids, a_mano=rec.a_mano)
+            if ajustes:
+                segunda = Ejecucion(aula, curso, final.decimal)
+                segunda.ejecutar(ajustes, tolerar_formulas=False)
+                final = aula.calificador(curso)
+    except ErrorPublicacion as exc:
+        hechas = len(primera.hechas) + (len(segunda.hechas) if segunda else 0)
+        if exc.codigo == "BLOQUEO_FALLIDO":
+            borrador.fallo("CALIFICADOR_BLOQUEAR", exc.detalle or None)
+        else:
+            borrador.fallo("CALIFICADOR", f"{exc.codigo} tras {hechas} cambios")
+        borrador.error(exc.codigo)
+        depurar(exc, debug)
+        return borrador.documento("error")
+
+    hechas_todas = list(primera.hechas) + (list(segunda.hechas) if segunda else [])
+    borrador.paso(
+        "CALIFICADOR", detalle=f"{len(hechas_todas)} cambios" if hechas_todas else "sin cambios"
+    )
+    bloqueos = sum(1 for op in hechas_todas if op.tipo in TIPOS_DE_BLOQUEO)
+    if bloqueos:
+        borrador.paso("CALIFICADOR_BLOQUEAR", detalle=str(bloqueos))
+    colocadas = {op.ruta for op in hechas_todas if op.tipo == "colocar"}
+    if colocadas:
+        borrador.paso("CALIFICADOR_COLOCAR", detalle=str(len(colocadas)))
+    avisos = [*rec.avisos, *plan.deseado.avisos]
+    for codigo, cuantos in Counter(codigo for codigo, _ in avisos).items():
+        borrador.paso(codigo, detalle=str(cuantos))
+    pendientes = {clave for codigo, clave in rec.avisos if codigo == "ACTIVIDAD_PENDIENTE"}
+    for doc in plan.documentos:
+        ruta = _ruta_de(doc, plan.base)
+        if ruta not in plan.cmids or ruta in pendientes:
+            accion = "pendiente"
+        elif ruta in colocadas:
+            accion = "colocada"
+        else:
+            accion = "ya_estaba"
+        try:
+            borrador.fichero(
+                informe.Fichero(
+                    nombre=ruta,
+                    tipo=doc.tipo,
+                    cmid=plan.cmids.get(ruta),
+                    accion=accion,
+                    curso=curso,
+                )
+            )
+        except informe.ErrorInforme:  # un nombre de fichero que el informe no admite
+            continue
+    nuevas = _huellas_a_guardar(final, plan)
+    if nuevas != plan.huellas:
+        try:
+            estado.guardar_huellas(dir_tiza, curso, nuevas)
+        except (ErrorEstado, OSError):
+            borrador.fallo("HUELLA_NO_GUARDADA", "calificador")
+    return borrador.documento()
+
+
+def calificador_en_cursos(
+    aula: AulaVirtual,
+    cfg: Config,
+    esquema: Esquema,
+    documentos: list[Documento],
+    base: Path,
+    presencia: Presencia,
+    *,
+    entorno: str,
+    nombre_esquema: str,
+    vigente: Callable[[], bool] | None = None,
+    cupo: dict | None = None,
+    avisar_en_pruebas: bool = False,
+    nombres: Mapping[int, str] | None = None,
+    debug: bool = False,
+) -> dict:
+    """Monta el calificador en ``entorno``; mismo reparto de papeles que :func:`ordenar_en_cursos`.
+
+    En pruebas gasta 1 del cupo. En real va a todos los cursos reales, con una confirmación por
+    curso (con todo lo que va a pasar en llano) y parada en el primer fallo; sin puerta de
+    pruebas, como ``ordenar``. Si en un curso no hay nada que cambiar no se pregunta.
+    """
+    comando = "calificador"
+    dir_tiza = Path(base) / rutas.CARPETA_TRABAJO
+    if entorno == "pruebas":
+        curso = cfg.cursos.get("pruebas")
+        if curso is None:
+            return informe.crear(comando, "error", [], [], ["SIN_CURSO_PRUEBAS"], entorno)
+        if cupo is not None:
+            if cupo["pruebas"] + 1 > MAX_PUBLICACIONES_PRUEBAS:
+                return informe.crear(
+                    comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso
+                )
+            cupo["pruebas"] += 1
+        if avisar_en_pruebas:
+            presencia.informar(Aviso.calificando_en_pruebas(nombre_esquema))
+        return calificador_con(aula, entorno, curso, esquema, documentos, dir_tiza, debug=debug)
+
+    reales = cfg.reales
+    total = len(reales)
+    unico = reales[0] if total == 1 else None
+    nombres = nombres or {}
+
+    def fallo(codigo: str, curso: int | None = unico) -> dict:
+        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+
+    registro: list[tuple[int, int, dict | None]] = []
+    for posicion, curso in enumerate(reales, 1):
+        if vigente is not None and posicion > 1 and not vigente():
+            presencia.informar(Aviso.peticion_retirada())
+            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+            break
+        try:
+            plan = preparar_calificador(aula, curso, esquema, documentos, dir_tiza)
+        except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
+            # Cada curso se lee entero antes de escribir nada en él (y antes de preguntar).
+            registro.append((posicion, curso, fallo(exc.codigo, curso)))
+            break
+        if plan.reconciliacion.operaciones:
+            resumen = resumen_calificador(
+                plan, esquema, nombres.get(curso), posicion=posicion, total=total
+            )
+            if not presencia.confirmar_calificador(resumen):
+                registro.append((posicion, curso, None))
+                continue
+            if vigente is not None and not vigente():
+                presencia.informar(Aviso.peticion_retirada())
+                registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+                break
+        # Sin operaciones no hay nada que confirmar: se informa de que no había nada que hacer.
+        documento = calificador_con(
+            aula, entorno, curso, esquema, documentos, dir_tiza, plan=plan, debug=debug
+        )
         registro.append((posicion, curso, documento))
         if documento["resultado"] != "ok":
             break

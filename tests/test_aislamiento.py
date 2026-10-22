@@ -820,6 +820,7 @@ class TestClaudeWindows:
             assert f"{shell}(tiza publicar)" in allow
             assert f"{shell}(tiza publicar *)" in allow
             assert f"{shell}(tiza --help)" in allow
+            assert f"{shell}(tiza calificador *)" in allow  # el calificador es del agente
         assert "Edit(/**)" in allow
         assert any("modo dontAsk" in c for c in cambios)
         assert any("fuera de la carpeta" in c for c in cambios)

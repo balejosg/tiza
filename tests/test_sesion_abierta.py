@@ -1070,6 +1070,41 @@ class TestBuzonEntero:
         assert respuesta["ficheros"] == []
 
 
+class TestCalificadorEnLaSesion:
+    """``tiza calificador`` por el buzón entero; el resto del flujo está en test_calificador.py."""
+
+    def test_cruza_el_buzon_monta_en_pruebas_y_deja_el_informe(self, tmp_path):
+        from test_calificador import AulaViva, carpeta_fp
+
+        carpeta = carpeta_fp(tmp_path)
+        moodle = AulaViva()
+        presencia = PresenciaFalsa()
+        abierta = sesion_abierta.SesionAbierta(moodle, CFG, carpeta, presencia)
+
+        respuesta = cruzar_el_buzon(
+            carpeta / ".tiza",
+            abierta.atender,
+            agente.peticion_calificador("calificacion.yaml", "pruebas"),
+        )
+
+        assert respuesta["resultado"] == "ok" and respuesta["comando"] == "calificador"
+        assert {f["accion"] for f in respuesta["ficheros"]} == {"colocada"}
+        assert moodle.metodos().count("colocar_actividad") == 3
+        assert abierta.cupo["pruebas"] == 1
+        assert presencia.codigos()[-1] == "RESULTADO"
+        escrito = json.loads((carpeta / ".tiza" / "informe.json").read_text(encoding="utf-8"))
+        assert escrito == respuesta
+
+    def test_un_agente_de_otra_version_no_se_entiende(self, tmp_path):
+        carpeta = tmp_path
+        datos = agente.peticion_calificador("calificacion.yaml", "pruebas")
+        datos["version"] = buzon.VERSION_PROTOCOLO - 1
+        with pytest.raises(buzon.ErrorBuzon):
+            sesion_abierta.SesionAbierta(MoodleFalso(), CFG, carpeta, PresenciaFalsa()).atender(
+                datos
+            )
+
+
 class TestCopiaEnLaSesion:
     """``tiza copia`` por el buzón entero: petición del agente, confirmación y copia en la carpeta."""
 
