@@ -4495,7 +4495,23 @@ def test_el_doble_registra_el_decimal():
     ]
 
 
-@pytest.mark.parametrize("eid", ["", "x", "cg", "ig1x", "cg-1", "CG1", "cg1 ", "1", "cg1\n"])
+@pytest.mark.parametrize(
+    "eid",
+    [
+        "",
+        "x",
+        "cg",
+        "ig1x",
+        "cg-1",
+        "CG1",
+        "cg1 ",
+        "1",
+        "cg1\n",
+        "cg\u0663",
+        "cg\uff11",
+        "ig\u0661\u0662",
+    ],
+)
 def test_eid_mal_formado_es_error_propio(eid):
     moodle, sesion = _moodle_calificador()
     for llamada in (

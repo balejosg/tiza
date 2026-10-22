@@ -1896,7 +1896,9 @@ def _numero(texto: Any) -> float | None:
     return valor if valor == valor and abs(valor) != float("inf") else None
 
 
-_EID = re.compile(r"(cg|ig)\d+")
+_EID = re.compile(
+    r"(cg|ig)[0-9]+"
+)  # solo cifras ASCII: ``\d`` acepta también las de otros alfabetos
 
 
 def _validar_eid(eid: str, prefijo: str | None = None) -> None:
