@@ -3839,12 +3839,30 @@ class _SesionCalificador:
         self.calculos = calculos or {}
         self.respuesta_arbol = respuesta_arbol
         self.urls: list[str] = []
+        # Escritura: cada GET (url, params) y cada POST (url, campos); respuestas de POST en cola.
+        self.gets: list[tuple[str, dict]] = []
+        self.posts: list[tuple[str, list[tuple[str, str]]]] = []
+        self.respuestas_post: list[_RespuestaHttp] = []
+        self.arbol_despues: str | None = None  # el árbol que se ve tras el primer POST
+
+    def post(self, url, data=None, allow_redirects=True, timeout=None):
+        self.posts.append((url, list(data)))
+        if self.arbol_despues is not None:
+            self.arbol = self.arbol_despues
+        if self.respuestas_post:
+            return self.respuestas_post.pop(0)
+        return _RespuestaHttp("", status=303, destino="https://aula/grade/edit/tree/index.php")
 
     def get(self, url, params=None, allow_redirects=True, timeout=None):
         self.urls.append(url if not params else f"{url}?{sorted(params.items())}")
+        self.gets.append((url, dict(params or {})))
+        if url.endswith("/grade/edit/tree/index.php") and (params or {}).get("action"):
+            return _RespuestaHttp("", status=303, destino="https://aula/grade/edit/tree/index.php")
+        if url.endswith("/grade/edit/tree/action.php"):
+            return _RespuestaHttp("", status=303, destino="https://aula/grade/edit/tree/index.php")
         if url.endswith("/grade/edit/tree/index.php"):
             return self.respuesta_arbol or _RespuestaHttp(self.arbol)
-        ident = int(params["id"])
+        ident = int(params.get("id", 0))
         if url.endswith("/grade/edit/tree/item.php"):
             return _RespuestaHttp(self.items.get(ident) or _formulario_item())
         if url.endswith("/grade/edit/tree/category.php"):
@@ -3993,3 +4011,295 @@ def test_el_doble_devuelve_un_calificador_configurable():
     aula.calificadores[2] = esperado
     assert aula.calificador(2) is esperado
     assert ("calificador", 2) in aula.llamadas
+
+
+# --------------------------------------------------------------------------- #
+# Calificador: escribir (crear, pesar, bloquear, colocar)
+# --------------------------------------------------------------------------- #
+
+
+def _campos(sesion, indice=-1):
+    url, pares = sesion.posts[indice]
+    return url, dict(pares)
+
+
+def _moodle_calificador(**kwargs):
+    sesion = _SesionCalificador(**kwargs)
+    return publicar.Moodle("https://aula", sesion, "clave", pausa=0), sesion
+
+
+def _arbol_con_nueva_categoria():
+    html = _fixture_calificador("setup-lleno.html")
+    fila = (
+        '<tr class="category cg1" data-category="cg9" data-parent-category="cg1" '
+        'data-aggregation="13" data-grademax="0" data-aggregationcoef="0" data-itemid="900" '
+        'data-hidden="false" id="grade-item-cg9">'
+    )
+    return html.replace("</table>", fila + "</tr></table>", 1)
+
+
+def test_formula_moodle_coma():
+    plantilla = "=min([[A]],[[B]])+0.5"
+    assert publicar.formula_moodle(plantilla, ",") == "=min([[A]];[[B]])+0.5"
+
+
+def test_formula_moodle_punto():
+    plantilla = "=min([[A]],[[B]])+0.5"
+    assert publicar.formula_moodle(plantilla, ".") == plantilla
+
+
+def test_formula_tope():
+    notas = ["TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2", "TZ_NOTA_E_RA3"]
+    f = publicar.formula_tope(5, 4, notas)
+    esperado = (
+        "=min([[TZ_TIZA]]/[[TZ_K_TIZA]]*10;4+1000*floor(min("
+        "[[TZ_NOTA_E_RA1]];[[TZ_NOTA_E_RA2]];[[TZ_NOTA_E_RA3]])/5))"
+    )
+    assert publicar.formula_moodle(f, ",") == esperado
+    assert publicar.formula_moodle(f, ".") == esperado.replace(";", ",")
+
+
+def test_formula_tope_con_decimales():
+    f = publicar.formula_tope(4.5, 7.5, ["TZ_N1"])
+    assert "7.5+1000*floor(min([[TZ_N1]])/4.5)" in f
+
+
+def test_formula_nota():
+    assert publicar.formula_nota("TZ_E_RA1", "TZ_K_RA1") == "=[[TZ_E_RA1]]/[[TZ_K_RA1]]*10"
+
+
+def test_formula_indicador():
+    assert publicar.formula_indicador("TZ_A258", 100) == "=[[TZ_A258]]*0+100"
+    assert publicar.formula_indicador("TZ_A258", 2.5) == "=[[TZ_A258]]*0+2.5"
+    assert publicar.formula_indicador("X", 1 / 3) == "=[[X]]*0+0.33333"
+
+
+def test_formula_copia():
+    assert publicar.formula_copia("TZ_I_1") == "=[[TZ_I_1]]"
+
+
+def test_crear_categoria_envia():
+    moodle, sesion = _moodle_calificador()
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    eid = moodle.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, "porcentaje")
+    assert eid == "cg9"
+    url, campos = _campos(sesion)
+    assert url == "https://aula/grade/edit/tree/category.php"
+    assert campos["fullname"] == "RA1"
+    assert campos["grade_item_idnumber"] == "TZ_E_RA1"
+    assert campos["aggregation"] == "13"
+    assert campos["aggregateonlygraded"] == "1"
+    assert campos["parentcategory"] == "1"
+    assert campos["grade_item_weightoverride"] == "1"
+    assert campos["grade_item_aggregationcoef2"] == "40"
+    assert campos["courseid"] == "2"
+    assert ("category.php", {"courseid": 2, "id": 0}) in [
+        (u.rsplit("/", 1)[1], p) for u, p in sesion.gets
+    ]
+
+
+def test_crear_categoria_porcentaje():
+    moodle, sesion = _moodle_calificador()
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    moodle.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, "porcentaje")
+    assert _campos(sesion)[1]["grade_item_display"] == "2"
+    moodle2, sesion2 = _moodle_calificador()
+    sesion2.arbol_despues = _arbol_con_nueva_categoria()
+    moodle2.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, None)
+    assert "grade_item_display" not in _campos(sesion2)[1]
+
+
+def test_crear_categoria_sin_peso():
+    moodle, sesion = _moodle_calificador()
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    moodle.crear_categoria(2, "K", "TZ_K", "cg1", None, "porcentaje")
+    campos = _campos(sesion)[1]
+    assert campos["grade_item_weightoverride"] == "0"
+    assert campos["grade_item_aggregationcoef2"] == "0"
+
+
+def test_crear_sin_aparecer_en_el_arbol_es_error():
+    moodle, _ = _moodle_calificador()
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, "porcentaje")
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+
+
+def test_crear_calculado_envia():
+    moodle, sesion = _moodle_calificador()
+    nueva = '<tr class="item cg1" data-itemid="901" data-parent-category="cg1" id="grade-item-ig901"></tr>'
+    sesion.arbol_despues = _fixture_calificador("setup-lleno.html").replace(
+        "</table>", nueva + "</table>", 1
+    )
+    eid = moodle.crear_calculado(2, "Nota", "TZ_NOTA_E_1", "cg3", 25, 10)
+    assert eid == "ig901"
+    url, campos = _campos(sesion)
+    assert url == "https://aula/grade/edit/tree/item.php"
+    assert campos["itemname"] == "Nota"
+    assert campos["idnumber"] == "TZ_NOTA_E_1"
+    assert campos["grademax"] == "10"
+    assert campos["parentcategory"] == "3"
+    assert campos["weightoverride"] == "1"
+    assert campos["aggregationcoef2"] == "25"
+    assert "calculation" not in campos
+
+
+def test_crear_calculado_sin_peso():
+    moodle, sesion = _moodle_calificador()
+    nueva = '<tr class="item cg1" data-itemid="901" data-parent-category="cg1" id="grade-item-ig901"></tr>'
+    sesion.arbol_despues = _fixture_calificador("setup-lleno.html").replace(
+        "</table>", nueva + "</table>", 1
+    )
+    moodle.crear_calculado(2, "I", "TZ_I_1", "cg3", None, 7.5)
+    campos = _campos(sesion)[1]
+    assert campos["weightoverride"] == "0"
+    assert campos["grademax"] == "7.5"
+
+
+def test_fijar_maximo_y_peso():
+    moodle, sesion = _moodle_calificador()
+    moodle.fijar_maximo(2, 165, 30)
+    assert sesion.gets[-1] == ("https://aula/grade/edit/tree/item.php", {"courseid": 2, "id": 165})
+    assert _campos(sesion)[1]["grademax"] == "30"
+    moodle.fijar_peso(2, "ig165", 60)
+    assert _campos(sesion)[1]["weightoverride"] == "1"
+    assert _campos(sesion)[1]["aggregationcoef2"] == "60"
+    moodle.fijar_peso(2, "cg3", 0)
+    url, campos = _campos(sesion)
+    assert url.endswith("/category.php")
+    assert sesion.gets[-1][1] == {"courseid": 2, "id": 3}
+    assert campos["grade_item_weightoverride"] == "1"
+    assert campos["grade_item_aggregationcoef2"] == "0"
+
+
+def test_escritura_rechazada_es_error_propio():
+    moodle, sesion = _moodle_calificador()
+    sesion.respuestas_post = [_RespuestaHttp("<p>Texto secreto de Moodle</p>", status=200)]
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.fijar_peso(2, "ig165", 60)
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert "secreto" not in str(exc.value) + exc.value.detalle
+
+
+def test_fijar_formula_traduce_con_el_decimal():
+    moodle, sesion = _moodle_calificador()
+    moodle.fijar_formula(2, 169, "=min([[A]],[[B]])", decimal=",")
+    url, campos = _campos(sesion)
+    assert url == "https://aula/grade/edit/tree/calculation.php"
+    assert campos["calculation"] == "=min([[A]];[[B]])"
+    moodle.fijar_formula(2, 169, "=min([[A]],[[B]])", decimal=".")
+    assert _campos(sesion)[1]["calculation"] == "=min([[A]],[[B]])"
+
+
+def test_formula_reintenta():
+    moodle, sesion = _moodle_calificador()
+    sesion.respuestas_post = [
+        _RespuestaHttp("<div class='error'>Fórmula no válida</div>", status=200),
+        _RespuestaHttp("", status=303, destino="x"),
+    ]
+    moodle.fijar_formula(2, 169, "=[[A]]")
+    assert len(sesion.posts) == 2
+
+
+def test_formula_no_valida():
+    moodle, sesion = _moodle_calificador()
+    sesion.respuestas_post = [
+        _RespuestaHttp("<div>Fórmula no válida: texto de Moodle</div>", status=200),
+        _RespuestaHttp("<div>Fórmula no válida: texto de Moodle</div>", status=200),
+    ]
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.fijar_formula(2, 169, "=[[A]]")
+    assert exc.value.codigo == "FORMULA_NO_VALIDA"
+    assert len(sesion.posts) == 2
+    assert "texto de Moodle" not in str(exc.value) + exc.value.detalle
+
+
+def test_bloquear_es_ig():
+    moodle, sesion = _moodle_calificador()
+    moodle.bloquear_total(2, 162)
+    url, params = sesion.gets[-1]
+    assert url == "https://aula/grade/edit/tree/action.php"
+    assert params["eid"] == "ig162"
+    assert params["action"] == "lock"
+    assert params["sesskey"] == "clave"
+    assert not any(str(v).startswith("cg") for v in params.values())
+
+
+def test_bloquear_rechazado():
+    class Sesion(_SesionCalificador):
+        def get(self, url, params=None, **kw):
+            if url.endswith("action.php"):
+                return _RespuestaHttp("<p>no</p>", status=200)
+            return super().get(url, params, **kw)
+
+    moodle = publicar.Moodle("https://aula", Sesion(), "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.bloquear_total(2, 162)
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+
+
+def test_mover_manual_first():
+    moodle, sesion = _moodle_calificador()
+    moodle.mover_manual(2, 165, "cg5")
+    url, params = sesion.gets[-1]
+    assert url == "https://aula/grade/edit/tree/index.php"
+    assert params["action"] == "move"
+    assert params["eid"] == "ig165"
+    assert params["moveafter"] == "cg5"
+    assert params["first"] == 1
+
+
+def test_borrar_nodo():
+    moodle, sesion = _moodle_calificador()
+    moodle.borrar_nodo(2, "cg5")
+    url, params = sesion.gets[-1]
+    assert params["action"] == "delete"
+    assert params["eid"] == "cg5"
+    assert params["confirm"] == 1
+
+
+def test_colocar_actividad():
+    moodle, _ = _moodle_calificador()
+    llamadas = []
+    moodle.actualizar = lambda cmid, payload: llamadas.append((cmid, payload))
+    moodle.colocar_actividad(2, 258, 5, "TZ_A258")
+    moodle.colocar_actividad(2, 259, 5, None)
+    assert llamadas == [
+        (258, {"gradecat": "5", "cmidnumber": "TZ_A258"}),
+        (259, {"gradecat": "5"}),
+    ]
+
+
+def test_fijar_total_curso_con_formula():
+    sesion = _SesionCalificador()
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    moodle.fijar_total_curso(2, "=[[TZ_NOTA_FINAL]]")
+    assert [u.rsplit("/", 1)[1] for u, _ in sesion.posts] == ["calculation.php", "category.php"]
+    assert dict(sesion.posts[0][1])["calculation"] == "=[[TZ_NOTA_FINAL]]"
+    assert dict(sesion.posts[1][1])["grade_item_grademax"] == "10"
+    assert {"courseid": 2, "id": 1} in [p for u, p in sesion.gets if u.endswith("calculation.php")]
+
+
+def test_fijar_total_curso_sin_formula_solo_porcentaje():
+    sesion = _SesionCalificador()
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    moodle.fijar_total_curso(2, None)
+    assert len(sesion.posts) == 1
+    url, campos = _campos(sesion)
+    assert url.endswith("/category.php")
+    assert campos["grade_item_display"] == "2"
+
+
+def test_el_doble_registra_las_escrituras_y_simula_fallos():
+    aula = MoodleFalso()
+    eid = aula.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, "porcentaje")
+    assert eid.startswith("cg")
+    aula.bloquear_total(2, 162)
+    assert aula.escrituras[0][0] == "crear_categoria"
+    assert aula.escrituras[1] == ("bloquear_total", 2, 162)
+    aula.fallos["fijar_formula"] = ["FORMULA_NO_VALIDA"]
+    with pytest.raises(ErrorPublicacion) as exc:
+        aula.fijar_formula(2, 169, "=[[A]]")
+    assert exc.value.codigo == "FORMULA_NO_VALIDA"
+    aula.fijar_formula(2, 169, "=[[A]]")  # el fallo se gasta
+    assert aula.escrituras[-1][0] == "fijar_formula"

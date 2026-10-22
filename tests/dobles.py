@@ -139,6 +139,11 @@ class MoodleFalso:
         self.llamadas: list[tuple] = []
         # Calificador por curso (``publicar.CalificadorAula``); sin configurar, uno vacío.
         self.calificadores: dict[int, CalificadorAula] = {}
+        # Escrituras en el calificador: (método, *argumentos), en orden, para mirarlas en los tests.
+        self.escrituras: list[tuple] = []
+        # Fallos simulados: método -> códigos de error; cada llamada gasta el primero.
+        self.fallos: dict[str, list[str]] = {}
+        self._siguiente_eid = 1000
         self.cerradas = 0  # veces que se cerró la sesión del aula
         self.subidas: list[tuple[str, bytes]] = []
         # Formulario de cada módulo: como python-moodle, cada payload se fusiona
@@ -274,6 +279,53 @@ class MoodleFalso:
         if curso_id in self.calificadores:
             return self.calificadores[curso_id]
         return CalificadorAula(nodos=(), decimal=".")
+
+    def _escribir_calificador(self, metodo, *args):
+        self.llamadas.append((metodo, *args))
+        self.escrituras.append((metodo, *args))
+        pendientes = self.fallos.get(metodo)
+        if pendientes:
+            raise ErrorPublicacion(pendientes.pop(0))
+
+    def _nuevo_eid(self, prefijo):
+        self._siguiente_eid += 1
+        return f"{prefijo}{self._siguiente_eid}"
+
+    def crear_categoria(self, curso, nombre, idnumber, padre_eid, peso, visualizacion):
+        self._escribir_calificador(
+            "crear_categoria", curso, nombre, idnumber, padre_eid, peso, visualizacion
+        )
+        return self._nuevo_eid("cg")
+
+    def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo):
+        self._escribir_calificador(
+            "crear_calculado", curso, nombre, idnumber, padre_eid, peso, maximo
+        )
+        return self._nuevo_eid("ig")
+
+    def fijar_maximo(self, curso, item_id, maximo):
+        self._escribir_calificador("fijar_maximo", curso, item_id, maximo)
+
+    def fijar_peso(self, curso, eid, peso):
+        self._escribir_calificador("fijar_peso", curso, eid, peso)
+
+    def fijar_formula(self, curso, item_id, formula, decimal="."):
+        self._escribir_calificador("fijar_formula", curso, item_id, formula)
+
+    def bloquear_total(self, curso, item_id):
+        self._escribir_calificador("bloquear_total", curso, item_id)
+
+    def colocar_actividad(self, curso, cmid, categoria_id, idnumber):
+        self._escribir_calificador("colocar_actividad", curso, cmid, categoria_id, idnumber)
+
+    def mover_manual(self, curso, item_id, categoria_eid):
+        self._escribir_calificador("mover_manual", curso, item_id, categoria_eid)
+
+    def borrar_nodo(self, curso, eid):
+        self._escribir_calificador("borrar_nodo", curso, eid)
+
+    def fijar_total_curso(self, curso, formula, decimal="."):
+        self._escribir_calificador("fijar_total_curso", curso, formula)
 
     def motor_de_formulas(self, curso_id):
         self.llamadas.append(("motor_de_formulas", curso_id))

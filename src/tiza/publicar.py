@@ -385,6 +385,44 @@ class AulaVirtual(Protocol):
 
     def calificador(self, curso_id: int) -> CalificadorAula: ...
 
+    def crear_categoria(
+        self,
+        curso: int,
+        nombre: str,
+        idnumber: str,
+        padre_eid: str | None,
+        peso: float | None,
+        visualizacion: str | None,
+    ) -> str: ...
+
+    def crear_calculado(
+        self,
+        curso: int,
+        nombre: str,
+        idnumber: str,
+        padre_eid: str | None,
+        peso: float | None,
+        maximo: float,
+    ) -> str: ...
+
+    def fijar_maximo(self, curso: int, item_id: int, maximo: float) -> None: ...
+
+    def fijar_peso(self, curso: int, eid: str, peso: float) -> None: ...
+
+    def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str = ".") -> None: ...
+
+    def bloquear_total(self, curso: int, item_id: int) -> None: ...
+
+    def colocar_actividad(
+        self, curso: int, cmid: int, categoria_id: int, idnumber: str | None
+    ) -> None: ...
+
+    def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None: ...
+
+    def borrar_nodo(self, curso: int, eid: str) -> None: ...
+
+    def fijar_total_curso(self, curso: int, formula: str | None, decimal: str = ".") -> None: ...
+
     def borrar_copia(self, nombre: str, curso_id: int) -> None: ...
 
 
@@ -1140,6 +1178,272 @@ class Moodle:
             )
         return CalificadorAula(nodos=tuple(nodos), decimal=_decimal_visto(parciales))
 
+    # --- Calificador: escribir (los envíos medidos en las espigas) --------------
+
+    def _enviar_formulario(
+        self,
+        ruta: str,
+        params: dict[str, int],
+        cambios: dict[str, str],
+        codigo: str = "ESCRITURA_CALIFICADOR",
+    ) -> Any:
+        """GET del formulario, cambia campos y lo envía como un navegador; devuelve la respuesta.
+
+        El texto de Moodle no sale de aquí: quien llama decide qué es un 303 (guardado) y qué
+        un 200 (el formulario vuelto a mostrar, o sea, rechazado).
+        """
+        pagina = self._pagina_del_calificador(ruta, params)
+        accion = re.compile(re.escape(ruta.rsplit("/", 1)[-1]))
+        formulario = _formulario_de(pagina, accion)
+        if formulario is None:
+            raise ErrorPublicacion(codigo)
+        pares = [(k, v) for k, v in _campos_de_formulario(formulario) if k not in cambios]
+        pares += list(cambios.items())
+        pares.append(("submitbutton", "Guardar cambios"))
+        destino = urljoin(f"{self.base_url}/", str(formulario["action"]))
+        self._esperar()
+        return self._reducir(
+            codigo,
+            self.sesion.post,
+            destino,
+            data=pares,
+            allow_redirects=False,
+            timeout=TIEMPO_ESPERA,
+        )
+
+    def _guardar(self, ruta: str, params: dict[str, int], cambios: dict[str, str]) -> None:
+        respuesta = self._enviar_formulario(ruta, params, cambios)
+        if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+    def _eids_del_arbol(self, curso: int) -> list[str]:
+        pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
+        sopa = BeautifulSoup(pagina, "html.parser")
+        eids: list[str] = []
+        for fila in sopa.find_all("tr"):
+            if "data-aggregationforcategory" in fila.attrs:
+                continue
+            if "data-category" in fila.attrs:
+                eids.append(str(fila["data-category"]))
+            elif "data-itemid" in fila.attrs:
+                eids.append(f"ig{fila['data-itemid']}")
+        return eids
+
+    def _crear_y_buscar(
+        self, curso: int, ruta: str, params: dict[str, int], cambios: dict[str, str], prefijo: str
+    ) -> str:
+        """Envía el formulario de alta y devuelve el ``eid`` nuevo (el que aparece en el árbol)."""
+        antes = set(self._eids_del_arbol(curso))
+        self._guardar(ruta, params, cambios)
+        nuevos = [
+            e for e in self._eids_del_arbol(curso) if e not in antes and e.startswith(prefijo)
+        ]
+        if len(nuevos) != 1:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        return nuevos[0]
+
+    def crear_categoria(
+        self,
+        curso: int,
+        nombre: str,
+        idnumber: str,
+        padre_eid: str | None,
+        peso: float | None,
+        visualizacion: str | None,
+    ) -> str:
+        """Crea una categoría Natural «solo lo calificado» y devuelve su ``eid`` (``cg<id>``).
+
+        ``peso`` no nulo la pesa en su padre; con ``None`` (hijos de un contador) no se
+        sobrescribe el peso. ``visualizacion == "porcentaje"`` muestra el total en porcentaje.
+        """
+        cambios = {
+            "fullname": nombre,
+            "grade_item_idnumber": idnumber,
+            "aggregation": "13",
+            "aggregateonlygraded": "1",
+        }
+        if padre_eid:
+            cambios["parentcategory"] = padre_eid[2:]
+        if peso is not None:
+            cambios["grade_item_weightoverride"] = "1"
+            cambios["grade_item_aggregationcoef2"] = _texto_numero(peso)
+        if visualizacion == "porcentaje":
+            cambios["grade_item_display"] = "2"
+        return self._crear_y_buscar(
+            curso, "grade/edit/tree/category.php", {"courseid": curso, "id": 0}, cambios, "cg"
+        )
+
+    def crear_calculado(
+        self,
+        curso: int,
+        nombre: str,
+        idnumber: str,
+        padre_eid: str | None,
+        peso: float | None,
+        maximo: float,
+    ) -> str:
+        """Crea un elemento manual con ``grademax`` y devuelve su ``eid`` (``ig<id>``).
+
+        Sin fórmula: va después con ``fijar_formula`` (segunda pasada).
+        """
+        cambios = {
+            "itemname": nombre,
+            "idnumber": idnumber,
+            "grademax": _texto_numero(maximo),
+            "grademin": "0",
+        }
+        if padre_eid:
+            cambios["parentcategory"] = padre_eid[2:]
+        if peso is not None:
+            cambios["weightoverride"] = "1"
+            cambios["aggregationcoef2"] = _texto_numero(peso)
+        return self._crear_y_buscar(
+            curso, "grade/edit/tree/item.php", {"courseid": curso}, cambios, "ig"
+        )
+
+    def fijar_maximo(self, curso: int, item_id: int, maximo: float) -> None:
+        """El máximo de un elemento (indicadores y copias del contador)."""
+        self._guardar(
+            "grade/edit/tree/item.php",
+            {"courseid": curso, "id": item_id},
+            {"grademax": _texto_numero(maximo)},
+        )
+
+    def fijar_peso(self, curso: int, eid: str, peso: float) -> None:
+        """Sobrescribe el peso de una categoría (``cg<id>``) o de un elemento (``ig<id>``)."""
+        numero = int(eid[2:])
+        if eid.startswith("cg"):
+            self._guardar(
+                "grade/edit/tree/category.php",
+                {"courseid": curso, "id": numero},
+                {
+                    "grade_item_weightoverride": "1",
+                    "grade_item_aggregationcoef2": _texto_numero(peso),
+                },
+            )
+        else:
+            self._guardar(
+                "grade/edit/tree/item.php",
+                {"courseid": curso, "id": numero},
+                {"weightoverride": "1", "aggregationcoef2": _texto_numero(peso)},
+            )
+
+    def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str = ".") -> None:
+        """Fija la fórmula de un elemento calculado.
+
+        ``formula`` va en la notación interna (separador «,», decimal con punto) y se traduce con
+        ``decimal`` (el del aula: ``calificador().decimal``). Un 200 es «Fórmula no válida»
+        (referencias recién creadas: espiga 4): se reintenta una vez antes de dar el error.
+        """
+        traducida = formula_moodle(formula, decimal)
+        for _ in range(2):
+            respuesta = self._enviar_formulario(
+                "grade/edit/tree/calculation.php",
+                {"courseid": curso, "id": item_id},
+                {"calculation": traducida},
+            )
+            estado = getattr(respuesta, "status_code", 0)
+            if estado in (301, 302, 303):
+                return
+            if estado != 200:
+                raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        raise ErrorPublicacion("FORMULA_NO_VALIDA")
+
+    def _accion_del_calificador(self, ruta: str, params: dict[str, Any]) -> None:
+        self._esperar()
+        respuesta = self._reducir(
+            "ESCRITURA_CALIFICADOR",
+            self.sesion.get,
+            f"{self.base_url}/{ruta}",
+            params=params,
+            allow_redirects=False,
+            timeout=TIEMPO_ESPERA,
+        )
+        if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+    def bloquear_total(self, curso: int, item_id: int) -> None:
+        """Bloquea el total con la acción del menú sobre ``ig<id>``; nunca ``cg`` (cascada).
+
+        tiza nunca desbloquea. Quien llama comprueba el bloqueo al releer.
+        """
+        self._accion_del_calificador(
+            "grade/edit/tree/action.php",
+            {
+                "id": curso,
+                "sesskey": self.sesskey,
+                "eid": f"ig{item_id}",
+                "action": "lock",
+                "gpr_type": "edit",
+                "gpr_plugin": "tree",
+                "gpr_courseid": curso,
+            },
+        )
+
+    def colocar_actividad(
+        self, curso: int, cmid: int, categoria_id: int, idnumber: str | None
+    ) -> None:
+        """Mueve la actividad a una categoría (``gradecat``) y, si hace falta, le da número de ID.
+
+        ``actualizar`` reenvía el formulario del módulo conservando el resto de campos.
+        """
+        payload = {"gradecat": str(categoria_id)}
+        if idnumber:
+            payload["cmidnumber"] = idnumber
+        self.actualizar(cmid, payload)
+
+    def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None:
+        """Mueve un elemento manual al principio de una categoría (``first=1``; espiga 2)."""
+        self._accion_del_calificador(
+            "grade/edit/tree/index.php",
+            {
+                "id": curso,
+                "action": "move",
+                "eid": f"ig{item_id}",
+                "moveafter": categoria_eid,
+                "first": 1,
+                "sesskey": self.sesskey,
+            },
+        )
+
+    def borrar_nodo(self, curso: int, eid: str) -> None:
+        """Borra una copia o una categoría ``TZ_`` sin notas (quien llama lo garantiza)."""
+        self._accion_del_calificador(
+            "grade/edit/tree/index.php",
+            {
+                "id": curso,
+                "action": "delete",
+                "eid": eid,
+                "sesskey": self.sesskey,
+                "confirm": 1,
+            },
+        )
+
+    def fijar_total_curso(self, curso: int, formula: str | None, decimal: str = ".") -> None:
+        """El total del curso: con fórmula, calculado con máximo 10; sin ella, en porcentaje.
+
+        Solo para un curso sin calificador anterior.
+        """
+        pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
+        fila = next(
+            (
+                f
+                for f in BeautifulSoup(pagina, "html.parser").find_all("tr")
+                if "data-category" in f.attrs and "data-parent-category" not in f.attrs
+            ),
+            None,
+        )
+        if fila is None:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        item_id = int(str(fila["data-itemid"]))
+        categoria = int(str(fila["data-category"])[2:])
+        parametros = {"courseid": curso, "id": categoria}
+        if formula is None:
+            self._guardar("grade/edit/tree/category.php", parametros, {"grade_item_display": "2"})
+            return
+        self.fijar_formula(curso, item_id, formula, decimal)
+        self._guardar("grade/edit/tree/category.php", parametros, {"grade_item_grademax": "10"})
+
     def comprobar_h5p(self, cmid: int) -> bool:
         """¿Arrancó H5P? El embed trae H5PIntegration con contents (espiga)."""
         html = self._leer_embed_h5p(cmid)
@@ -1475,6 +1779,52 @@ def _numero(texto: Any) -> float | None:
     except ValueError:
         return None
     return valor if valor == valor and abs(valor) != float("inf") else None
+
+
+def _texto_numero(valor: float) -> str:
+    """Un número para un formulario o una fórmula: punto decimal y hasta 5 decimales."""
+    texto = f"{round(float(valor), 5):.5f}".rstrip("0").rstrip(".")
+    return texto if texto not in ("", "-0") else "0"
+
+
+def formula_moodle(plantilla: str, decimal: str) -> str:
+    """La fórmula interna (separador «,», decimal con punto) en la sintaxis del aula.
+
+    Si el aula muestra «,» como decimal, el separador de argumentos es «;»; con «.», se deja
+    igual. Los decimales de la plantilla (siempre con punto) no se tocan.
+    """
+    if decimal == ",":
+        return plantilla.replace(",", ";")
+    return plantilla
+
+
+def formula_nota(total: str, contador: str) -> str:
+    """La nota sobre 10 de un total entre su contador: las dos referencias se vacían a la vez."""
+    return f"=[[{total}]]/[[{contador}]]*10"
+
+
+def formula_indicador(idnumber: str, maximo: float) -> str:
+    """Un indicador del contador: vale ``maximo`` cuando ``idnumber`` tiene nota, y vacío si no."""
+    return f"=[[{idnumber}]]*0+{_texto_numero(maximo)}"
+
+
+def formula_copia(idnumber: str) -> str:
+    """Una copia de una sola referencia."""
+    return f"=[[{idnumber}]]"
+
+
+def formula_tope(umbral: float, maximo: float, notas: list[str]) -> str:
+    """La final con tope: ``min(nota, máximo + 1000*floor(min(notas)/umbral))``.
+
+    Si alguna nota baja del umbral, ``floor`` da 0 y la final no pasa de ``maximo``; si no,
+    el término enorme anula el tope. Un elemento sin ninguna nota cuenta como 0 aquí.
+    Notación interna (separador «,»): pasa por ``formula_moodle``.
+    """
+    minimo = ",".join(f"[[{n}]]" for n in notas)
+    return (
+        f"=min([[TZ_TIZA]]/[[TZ_K_TIZA]]*10,"
+        f"{_texto_numero(maximo)}+1000*floor(min({minimo})/{_texto_numero(umbral)}))"
+    )
 
 
 def _decimal_visto(parciales: list[dict[str, Any]]) -> str:
