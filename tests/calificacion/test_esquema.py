@@ -181,7 +181,7 @@ def test_extension_no_yaml(tmp_path: Path) -> None:
     assert info.value.codigo == "FORMATO_NO_ADMITIDO"
 
 
-@pytest.mark.parametrize("valor", [".nan", ".inf", "-.inf"])
+@pytest.mark.parametrize("valor", [".nan", ".inf", "-.inf", "1.0e+308", "9" * 400])
 @pytest.mark.parametrize(
     ("antes", "ruta"),
     [

@@ -120,6 +120,8 @@ class _Lector:
     def numero(self, valor: Any, ruta: str) -> float:
         if isinstance(valor, bool) or not isinstance(valor, (int, float)):
             raise self.invalido(ruta, "debe ser un número")
+        if abs(valor) > 1e6:
+            raise self.invalido(ruta, "es un número demasiado grande")
         if not math.isfinite(valor):
             raise self.invalido(ruta, "debe ser un número finito")
         if abs(valor * 100 - round(valor * 100)) > 1e-6:
