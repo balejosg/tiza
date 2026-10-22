@@ -456,6 +456,17 @@ def _lista(nombres: tuple[str, ...]) -> str:
     return ", ".join(texto_seguro(nombre, 80) for nombre in nombres)
 
 
+def _lista_corta(nombres: tuple[str, ...], maximo: int = 8) -> str:
+    """Los primeros nombres y cuántos más: una lista de copias puede ser muy larga."""
+    if len(nombres) <= maximo:
+        return _lista(nombres)
+    return f"{_lista(nombres[:maximo])} y {len(nombres) - maximo} más"
+
+
+def _numero(valor: float) -> str:
+    return f"{valor:g}".replace(".", ",")
+
+
 def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
     """Lo que hará ``tiza calificador`` en el curso, con consecuencias, en lenguaje llano.
 
@@ -475,10 +486,22 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
             or "todavía sin actividades"
         )
         lineas.append(f"{texto_seguro(elemento.id, 40)}{de_la_final}: {actividades}")
+    if resumen.tope is not None:
+        umbral, maximo = resumen.tope
+        lineas.append(
+            f"Regla de la final: si algún elemento queda por debajo de {_numero(umbral)}, la final "
+            f"no pasa de {_numero(maximo)}. Mientras un RA no tenga ninguna nota, cuenta como 0 "
+            "en esa regla: la final puede salir topada a mitad de curso"
+        )
     for cerrada in resumen.cerradas:
+        estado = (
+            "cerrada: se crea y se bloquea al terminar, y ya no cambia"
+            if cerrada.nueva
+            else "cerrada, no cambia"
+        )
         lineas.append(
             f"{texto_seguro(cerrada.nombre, 80)}: unidades {_unidades(cerrada.secciones)} "
-            "(cerrada, no cambia)"
+            f"({estado})"
         )
     if resumen.bloquea:
         lineas.append(f"Se bloquean los totales de: {_lista(resumen.bloquea)} (tienen notas)")
@@ -486,10 +509,23 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
         lineas.append(f"Pasan al calificador de tiza: {_lista(resumen.mueve)}")
     if resumen.ids_nuevos:
         lineas.append(f"Se añade número de ID a: {_lista(resumen.ids_nuevos)}")
+    if resumen.quita:
+        lineas.append(
+            f"Se quitan del calificador de tiza (no tienen notas): {_lista_corta(resumen.quita)}"
+        )
     if resumen.anterior:
         lineas.append(
             "Lo de tiza es informativo: el total del curso sigue siendo el tuyo, y las "
             "actividades que pasan a tiza dejan de sumar en él"
+        )
+    elif resumen.total_curso is not None:
+        como = (
+            "la nota final sobre 10"
+            if resumen.total_curso == "nota_final"
+            else "el porcentaje del calificador"
+        )
+        lineas.append(
+            f"El total del curso pasa a ser el de tiza ({como}), también para quien ya tenga notas"
         )
     for nombre in resumen.notas_cambian:
         lineas.append(

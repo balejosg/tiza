@@ -444,10 +444,14 @@ class ElementoCalificador:
 
 @dataclass(frozen=True)
 class EvaluacionCerrada:
-    """Una evaluación marcada ``cerrada: true``: tiza no la toca; ``secciones`` son las del esquema."""
+    """Una evaluación marcada ``cerrada: true``: tiza no la toca; ``secciones`` son las del esquema.
+
+    ``nueva``: aún no existe en el aula; tiza la crea entera y la bloquea al terminar.
+    """
 
     nombre: str
     secciones: tuple[int | str, ...]
+    nueva: bool = False
 
 
 @dataclass(frozen=True)
@@ -457,7 +461,10 @@ class ResumenCalificador:
     ``mueve`` y ``ids_nuevos`` son nombres de actividades (de los ficheros); ``bloquea`` los
     nombres de los totales ajenos con notas que se bloquean (del aula: solo los ve el docente,
     saneados). ``anterior``: el curso ya tenía un calificador que no es de tiza.
-    ``notas_cambian``: evaluaciones abiertas con notas dentro de lo de tiza.
+    ``notas_cambian``: evaluaciones abiertas con notas dentro de lo de tiza. ``total_curso``:
+    ``"porcentaje"`` o ``"nota_final"`` cuando el plan cambia el total del curso (solo sin
+    calificador anterior); ``tope``: ``(umbral, máximo)`` de la regla de la final, si la hay;
+    ``quita``: nombres (del aula) de lo de tiza que se borra, que no tiene notas.
     """
 
     curso: int
@@ -472,6 +479,9 @@ class ResumenCalificador:
     total: int = 1
     anterior: bool = False
     notas_cambian: tuple[str, ...] = ()
+    total_curso: str | None = None
+    tope: tuple[float, float] | None = None
+    quita: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1736,6 +1746,17 @@ def resumen_calificador(
     def nombre_de(op: rc.Operacion) -> str:
         return nombres.get(op.ruta or "", op.ruta or "")
 
+    nombre_en_el_aula = {n.eid: n.nombre or n.idnumber for n in plan.aula_antes.nodos}
+    total_curso = next(
+        (
+            "porcentaje" if op.formula is None else "nota_final"
+            for op in operaciones
+            if op.tipo == "fijar_total_curso"
+        ),
+        None,
+    )
+    tope = esquema.final.tope
+
     return ResumenCalificador(
         curso=plan.curso,
         nombre_curso=nombre_curso,
@@ -1746,13 +1767,24 @@ def resumen_calificador(
         ),
         ids_nuevos=tuple(dict.fromkeys(nombre_de(op) for op in colocar if op.poner_idnumber)),
         cerradas=tuple(
-            EvaluacionCerrada(ev.nombre, ev.secciones) for ev in esquema.evaluaciones if ev.cerrada
+            EvaluacionCerrada(
+                ev.nombre, ev.secciones, f"TZ_V_{n}" in plan.reconciliacion.por_cerrar
+            )
+            for n, ev in enumerate(esquema.evaluaciones, 1)
+            if ev.cerrada
         ),
         avisos=tuple(avisos),
         posicion=posicion,
         total=total,
         anterior=plan.reconciliacion.anterior,
         notas_cambian=notas,
+        total_curso=total_curso,
+        tope=(tope.si_alguno_menor_que, tope.maximo) if tope is not None else None,
+        quita=tuple(
+            nombre_en_el_aula.get(op.eid or "", op.idnumber or "")
+            for op in operaciones
+            if op.tipo == "borrar"
+        ),
     )
 
 

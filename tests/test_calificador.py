@@ -498,6 +498,123 @@ def test_resumen_llano():
     assert "Mates" in detalle.encabezado and "5678" in detalle.encabezado
 
 
+def _resumen(**campos) -> publicacion.ResumenCalificador:
+    base = dict(
+        curso=5678,
+        nombre_curso=None,
+        lineas_esquema=(),
+        mueve=(),
+        bloquea=(),
+        ids_nuevos=(),
+        cerradas=(),
+        avisos=(),
+    )
+    return publicacion.ResumenCalificador(**{**base, **campos})
+
+
+def test_resumen_dice_que_el_total_del_curso_pasa_a_ser_el_de_tiza():
+    sin_tope = mensajes.detalle_calificador(_resumen(total_curso="porcentaje")).lineas
+    assert (
+        "El total del curso pasa a ser el de tiza (el porcentaje del calificador), "
+        "también para quien ya tenga notas"
+    ) in sin_tope
+    con_tope = mensajes.detalle_calificador(_resumen(total_curso="nota_final")).lineas
+    assert (
+        "El total del curso pasa a ser el de tiza (la nota final sobre 10), "
+        "también para quien ya tenga notas"
+    ) in con_tope
+    # con un calificador anterior el total sigue siendo del docente: no se dice
+    anterior = mensajes.detalle_calificador(_resumen(anterior=True)).lineas
+    assert not any("pasa a ser el de tiza" in x for x in anterior)
+    # y si el plan no toca el total del curso, tampoco
+    assert not any(
+        "pasa a ser el de tiza" in x for x in mensajes.detalle_calificador(_resumen()).lineas
+    )
+
+
+def test_resumen_con_tope_dice_la_regla_y_su_limite():
+    lineas = mensajes.detalle_calificador(_resumen(tope=(5.0, 4.5))).lineas
+    [regla] = [x for x in lineas if x.startswith("Regla de la final")]
+    assert "por debajo de 5, la final no pasa de 4,5" in regla
+    assert (
+        "Mientras un RA no tenga ninguna nota, cuenta como 0 en esa regla: "
+        "la final puede salir topada a mitad de curso"
+    ) in regla
+    assert not any(
+        x.startswith("Regla de la final") for x in mensajes.detalle_calificador(_resumen()).lineas
+    )
+
+
+def test_resumen_dice_que_se_quita_del_calificador_de_tiza():
+    lineas = mensajes.detalle_calificador(_resumen(quita=("Notas (sobre 10)", "RA3\x1b[2J"))).lineas
+    assert lineas[0].startswith(
+        "Se quitan del calificador de tiza (no tienen notas): Notas (sobre 10), RA3"
+    )
+    assert "\x1b" not in lineas[0]
+    largas = tuple(f"copia {i}" for i in range(12))
+    [linea] = [
+        x
+        for x in mensajes.detalle_calificador(_resumen(quita=largas)).lineas
+        if x.startswith("Se quitan")
+    ]
+    assert linea.endswith("copia 7 y 4 más")
+    assert not any(
+        x.startswith("Se quitan") for x in mensajes.detalle_calificador(_resumen()).lineas
+    )
+
+
+def test_resumen_de_una_evaluacion_cerrada_que_se_crea_ahora():
+    nueva = publicacion.EvaluacionCerrada("1.ª evaluación", (1, 2), nueva=True)
+    [linea] = mensajes.detalle_calificador(_resumen(cerradas=(nueva,))).lineas
+    assert linea == (
+        "1.ª evaluación: unidades 1-2 (cerrada: se crea y se bloquea al terminar, y ya no cambia)"
+    )
+
+
+def test_el_resumen_sale_del_plan_con_el_total_del_curso_la_regla_y_lo_que_se_quita(tmp_path):
+    con_tope = ESQUEMA.replace(
+        "final: {de: elementos}",
+        "final: {de: elementos, tope: {si_alguno_menor_que: 5, maximo: 4}}",
+    )
+    carpeta = carpeta_fp(tmp_path, con_tope)
+    moodle = AulaViva()
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    [primero] = presencia.resumenes_calificador
+    assert primero.total_curso == "nota_final" and primero.tope == (5.0, 4.0)
+    assert primero.quita == ()
+    # se quita el tope: el total del curso vuelve al porcentaje y «Notas (sobre 10)» se borra
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA, encoding="utf-8")
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    [segundo] = presencia.resumenes_calificador
+    assert segundo.total_curso == "porcentaje" and segundo.tope is None
+    assert "Notas (sobre 10)" in segundo.quita
+    # la tercera vez ya no hay nada que cambiar ni que preguntar
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert presencia.resumenes_calificador == []
+
+
+def test_el_resumen_distingue_la_cerrada_que_se_crea_de_la_que_ya_existe(tmp_path):
+    cerrada = ESQUEMA.replace(
+        "{nombre: 1.ª evaluación, secciones: [1]}",
+        "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
+    )
+    carpeta = carpeta_fp(tmp_path, cerrada)
+    moodle = AulaViva()
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert [c.nueva for c in presencia.resumenes_calificador[0].cerradas] == [True]
+    # montada y cerrada, un cambio de pesos vuelve a preguntar, y ya no es nueva
+    (carpeta / "calificacion.yaml").write_text(
+        cerrada.replace("peso: 60", "peso: 50").replace("peso: 40", "peso: 50"), encoding="utf-8"
+    )
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert [c.nueva for c in presencia.resumenes_calificador[0].cerradas] == [False]
+
+
 def test_resumen_sin_anterior_ni_bloqueos_no_dice_lo_que_no_hace():
     resumen = publicacion.ResumenCalificador(
         curso=5678,
