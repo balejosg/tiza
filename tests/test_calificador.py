@@ -351,6 +351,26 @@ def test_una_formula_rechazada_dos_veces_es_un_error(tmp_path):
     assert pasos(documento, "CALIFICADOR")[0]["resultado"] == "fallo"
 
 
+def test_quitar_el_tope_deja_el_total_del_curso_en_porcentaje_sin_la_formula_vieja(tmp_path):
+    con_tope = ESQUEMA.replace(
+        "final: {de: elementos}",
+        "final: {de: elementos, tope: {si_alguno_menor_que: 5, maximo: 4}}",
+    )
+    carpeta = carpeta_fp(tmp_path, con_tope)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.nodos[CURSO_EID].formula == "=[[TZ_NOTA_FINAL]]"
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA, encoding="utf-8")
+    moodle.escrituras.clear()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert ("fijar_total_curso", CURSO, None, ".") in moodle.escrituras
+    assert moodle.nodos[CURSO_EID].formula is None
+    moodle.escrituras.clear()
+    atender(pedir(carpeta), moodle, carpeta)  # y a la siguiente, sin cambios
+    assert moodle.escrituras == []
+
+
 # --------------------------------------------------------------------------- #
 # Escena 2: cerrar una evaluación
 # --------------------------------------------------------------------------- #

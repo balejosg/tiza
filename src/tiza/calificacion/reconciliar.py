@@ -108,8 +108,8 @@ class Operacion:
     * ``fijar_maximo``: ``item_id`` (o ``idnumber``) y ``maximo``.
     * ``fijar_formula``: ``item_id`` (o ``idnumber``) y ``formula`` en la notación interna
       (``publicar.fijar_formula`` la traduce al idioma del aula).
-    * ``fijar_total_curso``: ``eid``/``item_id`` del curso y ``formula`` (``None``: solo la
-      visualización en porcentaje).
+    * ``fijar_total_curso``: ``eid``/``item_id`` del curso y ``formula`` (``None``: la
+      visualización en porcentaje y vaciar la fórmula que hubiera, la del tope quitado).
     * ``bloquear_ajeno`` y ``bloquear_cerrada``: solo ``item_id`` del total
       (nunca un ``eid``: bloquear un ``cg<id>`` bloquea en cascada) e ``idnumber``.
     * ``borrar``: ``eid`` e ``idnumber``.

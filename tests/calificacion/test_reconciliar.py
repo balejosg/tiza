@@ -648,6 +648,37 @@ def test_total_del_curso_sin_tope_es_solo_visualizacion() -> None:
     assert total.formula is None and total.eid == "cg1"
 
 
+def test_quitar_el_tope_vacia_la_formula_del_total_del_curso_y_converge() -> None:
+    _, con_tope = montar(FP_TOPE)
+    huellas = huellas_de(con_tope, CMIDS)
+    assert por_id_curso(con_tope).formula == "=[[TZ_NOTA_FINAL]]"
+    d = deseado(FP, docs(), False, CARPETA)
+    rec = reconciliar(d, con_tope, huellas, CMIDS)
+    (total,) = [o for o in rec.operaciones if o.tipo == "fijar_total_curso"]
+    assert total.formula is None  # el ejecutor la vacía y pone el porcentaje
+    final = aplicar(con_tope, rec.operaciones)
+    final = aplicar(final, pasada2(d, final, huellas, CMIDS, a_mano=rec.a_mano))
+    assert por_id_curso(final).formula is None
+    otra = reconciliar(d, final, huellas_de(final, CMIDS), CMIDS)
+    assert otra.operaciones == () and otra.avisos == ()
+
+
+def test_total_del_curso_en_porcentaje_solo_se_fija_una_vez() -> None:
+    d = deseado(FP, docs(), False, CARPETA)
+    primera = reconciliar(d, aula_inicial(), {}, CMIDS)
+    assert tipos(primera.operaciones).count("fijar_total_curso") == 1
+    _, montada = montar(FP)
+    huellas = huellas_de(montada, CMIDS)
+    # con la huella del curso (ya fijado) y sin fórmula, no hace falta nada
+    assert "fijar_total_curso" not in tipos(reconciliar(d, montada, huellas, CMIDS).operaciones)
+    # sin huella (nunca fijado), sí; y si hay una fórmula suelta, también
+    assert "fijar_total_curso" in tipos(reconciliar(d, montada, {}, CMIDS).operaciones)
+
+
+def por_id_curso(aula: CalificadorAula) -> NodoAula:
+    return next(n for n in aula.nodos if n.clase == "curso")
+
+
 def test_total_del_curso_cambiado_a_mano_no_se_pisa() -> None:
     d, aula = montar(FP_TOPE)
     huellas = huellas_de(aula, CMIDS)

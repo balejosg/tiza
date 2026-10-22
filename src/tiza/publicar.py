@@ -1109,6 +1109,21 @@ class Moodle:
         self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
         return str(getattr(respuesta, "text", ""))
 
+    def _formula_del_elemento(self, curso_id: int, item_id: int) -> str:
+        """La fórmula de un elemento calculado o categoría, o vacío si no tiene."""
+        texto = BeautifulSoup(
+            self._pagina_del_calificador(
+                "grade/edit/tree/calculation.php", {"courseid": curso_id, "id": item_id}
+            ),
+            "html.parser",
+        )
+        calculo = _campo_con_nombre(texto, "calculation")
+        if calculo is None:
+            return ""
+        if calculo.name == "textarea":
+            return calculo.get_text().strip()
+        return str(calculo.get("value") or "").strip()
+
     def calificador(self, curso_id: int) -> CalificadorAula:
         """La estructura del calificador del curso: categorías, elementos, pesos, bloqueos y fórmulas.
 
@@ -1148,19 +1163,7 @@ class Moodle:
                 raise ErrorPublicacion("ERROR_CONSULTA")
             pref = "grade_item_" if es_categoria else ""
             if es_categoria or coincidencia is None:
-                texto = BeautifulSoup(
-                    self._pagina_del_calificador(
-                        "grade/edit/tree/calculation.php", {"courseid": curso_id, "id": item_id}
-                    ),
-                    "html.parser",
-                )
-                calculo = _campo_con_nombre(texto, "calculation")
-                if calculo is None:
-                    formula = ""
-                elif calculo.name == "textarea":
-                    formula = calculo.get_text().strip()
-                else:
-                    formula = str(calculo.get("value") or "").strip()
+                formula = self._formula_del_elemento(curso_id, item_id)
             else:
                 formula = ""
             parciales.append(
@@ -1514,7 +1517,9 @@ class Moodle:
     def fijar_total_curso(self, curso: int, formula: str | None, decimal: str) -> None:
         """El total del curso: con fórmula, calculado con máximo 10; sin ella, en porcentaje.
 
-        Solo para un curso sin calificador anterior.
+        Solo para un curso sin calificador anterior. Sin fórmula, si el total tenía una (la del
+        tope que se acaba de quitar), también la vacía: si no, el curso seguiría calculándose
+        con la fórmula vieja.
 
         Con fórmula, Moodle deja la raíz con ``aggregateonlygraded=0``: al ponerla, el formulario
         de la raíz ya no trae ``aggregation`` ni ``aggregateonlygraded`` y el reenvío del máximo
@@ -1540,6 +1545,14 @@ class Moodle:
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR") from exc
         parametros = {"courseid": curso, "id": categoria}
         if formula is None:
+            if self._formula_del_elemento(curso, item_id):
+                respuesta = self._enviar_formulario(
+                    "grade/edit/tree/calculation.php",
+                    {"courseid": curso, "id": item_id},
+                    {"calculation": ""},
+                )
+                if not self._guardado(respuesta):
+                    raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
             self._guardar("grade/edit/tree/category.php", parametros, {"grade_item_display": "2"})
             return
         self.fijar_formula(curso, item_id, formula, decimal)

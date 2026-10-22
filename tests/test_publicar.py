@@ -4438,6 +4438,26 @@ def test_fijar_total_curso_sin_formula_solo_porcentaje():
     assert campos["grade_item_display"] == "2"
 
 
+def test_fijar_total_curso_sin_formula_vacia_la_que_hubiera_y_pone_porcentaje():
+    # Se quitó el tope: el total del curso tenía «=[[TZ_NOTA_FINAL]]» y debe dejar de calcularse
+    sesion = _SesionCalificador(calculos={1: "=[[TZ_NOTA_FINAL]]"})
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    moodle.fijar_total_curso(2, None, ".")
+    assert [u.rsplit("/", 1)[1] for u, _ in sesion.posts] == ["calculation.php", "category.php"]
+    assert dict(sesion.posts[0][1])["calculation"] == ""
+    assert dict(sesion.posts[1][1])["grade_item_display"] == "2"
+
+
+def test_fijar_total_curso_se_para_si_el_aula_rechaza_vaciar_la_formula():
+    sesion = _SesionCalificador(calculos={1: "=[[TZ_NOTA_FINAL]]"})
+    sesion.respuestas_post = [_RespuestaHttp("<div>no</div>", status=200)]
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.fijar_total_curso(2, None, ".")
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert [u.rsplit("/", 1)[1] for u, _ in sesion.posts] == ["calculation.php"]  # y se para
+
+
 def test_el_doble_registra_las_escrituras_y_simula_fallos():
     aula = MoodleFalso()
     eid = aula.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, "porcentaje")
