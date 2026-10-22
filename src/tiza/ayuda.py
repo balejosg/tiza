@@ -11,6 +11,9 @@ __all__ = ["MENSAJES", "explicar"]
 
 MENSAJES: dict[str, str] = {
     "EVALUA_INVALIDO": "El campo «evalua» no es válido: debe ser un mapa de ids (letra y hasta 15 letras o cifras más) a pesos de 0 a 100 con hasta 2 decimales, sin ids repetidos. Por ejemplo: evalua: {RA1: 40, RA3: 25}.",
+    "ELEMENTO_DESCONOCIDO": "Una actividad nombra en «evalua» un elemento que no está en calificacion.yaml. Corrige el id en el .md o añade el elemento al esquema.",
+    "SECCION_SIN_EVALUACION": "La sección de una actividad con «evalua» no cae en ninguna evaluación de calificacion.yaml. Añade esa sección a una evaluación o cambia la de la actividad.",
+    "PESOS_NO_SUMAN_100": "Los pesos de «evalua» de las actividades de un elemento no suman 100 en todo el curso. Ajusta los pesos de ese elemento para que sumen 100 (o déjalos todos a 0).",
     "ORIGEN_INVALIDO": "El campo «origen» del fichero no es válido: debe tener solo «curso» y «cmid», con números enteros positivos. Lo escribe «tiza importar»; no lo cambies a mano.",
     # Sesión y buzón
     "SIN_SESION": "No hay ninguna sesión abierta. En tu terminal, dentro de la carpeta de la asignatura, ejecuta «tiza empezar» y déjala abierta.",
