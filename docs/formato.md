@@ -264,7 +264,12 @@ final:
 - Una sección solo puede estar en una evaluación (`SECCION_REPETIDA`). Una actividad con `evalua`
   en una sección que no es de ninguna evaluación da `SECCION_SIN_EVALUACION`.
 - `cerrada: true` congela la evaluación en el aula: no se crea, cambia, mueve ni borra nada
-  dentro. tiza no la reabre.
+  dentro, y una actividad nueva de sus secciones queda sin colocar
+  (`ACTIVIDAD_EN_EVALUACION_CERRADA`). tiza no la reabre. Si la evaluación aún no existe en el aula,
+  tiza la crea entera y la bloquea al final.
+- No se admite cambiar `organizacion` o `final.de` de un calificador ya montado (habría que
+  borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas: tiza solo trabaja con
+  notas numéricas.
 - Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Un
   elemento que todavía no tiene ninguna nota cuenta como 0 en ese cálculo, así que a mitad de
   curso la final puede salir topada. Un error del esquema da `ESQUEMA_INVALIDO`, con la ruta y la línea.

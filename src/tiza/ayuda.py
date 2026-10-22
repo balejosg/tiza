@@ -221,7 +221,7 @@ MENSAJES: dict[str, str] = {
     "COPIA_DEL_MISMO_CURSO": "La copia es de uno de los cursos reales de tiza.toml, y con --como-nuevas se publicaría sin comprobar lo que cambió en el aula. Impórtala sin --como-nuevas; esa opción es para reutilizar la copia de otro curso.",
     "IMPORTACION_NO_ESCRIBIBLE": "No se pudo escribir en la carpeta de la asignatura. Comprueba que tienes permiso y que .tiza no es un enlace, y repite el comando: lo ya importado no se toca.",
     "COPIA_INVALIDA": "El fichero .tiza/copia.json no tiene la forma que escribe tiza y no se ha sobrescrito. No lo edites a mano: corrígelo o bórralo y vuelve a ejecutar «tiza importar».",
-    "CALIFICADOR_INVALIDO": "El fichero .tiza/calificador.json no tiene la forma que escribe tiza y no se ha sobrescrito. No lo edites a mano: bórralo y tiza volverá a montar el calificador sin recordar lo anterior (lo que cambiaste a mano en Moodle ya no se respetará).",
+    "CALIFICADOR_INVALIDO": "El fichero .tiza/calificador.json no tiene la forma que escribe tiza y no se ha sobrescrito. El agente no lo toca: pide al docente que lo revise. Si se borra, tiza deja de saber qué cambió el docente a mano en Moodle y podría pisarlo.",
     "IMPORTACION_AUSENTE": "No hay ninguna importación en esta carpeta (falta .tiza/copia.json). Ejecuta antes «tiza importar» con la copia del curso.",
     "IMPORTACION_ILEGIBLE": "No se pudo leer .tiza/copia.json. Vuelve a ejecutar «tiza importar» o bórralo.",
     "IMPORTADA": "La actividad se ha importado a un fichero nuevo.",

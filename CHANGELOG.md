@@ -9,6 +9,9 @@ se avisa aquí con **Cambia**.
 ### Añadido
 - **Campo `evalua` en el frontmatter**: `evalua: {RA1: 40, RA3: 25}` declara con qué resultados de aprendizaje y pesos se evalúa una actividad.
 - **`tiza calificador <calificacion.yaml> --en pruebas|real`**: monta el calificador del aula según la programación (resultados o criterios, evaluaciones, pesos y un tope opcional) y coloca en él las actividades con `evalua`. Nunca lee ni escribe notas ni desbloquea nada; en real, el docente confirma cada curso. Su guía para el agente es `guias/calificador.md`.
+- **`evalua` solo en actividades con nota**: tareas, cuestionarios y H5P. Una página o una etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiza comprobar`).
+- **Evaluaciones cerradas**: una actividad nueva en una evaluación cerrada se queda sin colocar, con sus copias (`ACTIVIDAD_EN_EVALUACION_CERRADA`, y `sin_colocar` en el informe). Una evaluación `cerrada: true` que aún no existe se crea entera y se bloquea al final. tiza comprueba con una relectura que cada bloqueo se ha hecho (`BLOQUEO_FALLIDO`).
+- **Quitar el tope** vacía también la fórmula del total del curso, y la confirmación del curso real dice el total del curso, la regla de la final con su límite y lo que se quita del calificador de tiza.
 
 ## 0.25.0 — 2026-10-20
 

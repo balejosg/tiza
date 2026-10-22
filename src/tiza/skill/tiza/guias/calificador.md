@@ -112,8 +112,10 @@ hizo. Sin sesión, `SIN_SESION`: pide al docente que ejecute `tiza empezar`.
 ## 8. Lo que tiza no hace
 
 - **No lee ni escribe notas** del alumnado. Solo sabe si un elemento tiene notas o no. No pidas
-  ni muestres notas de nadie.
-- No desbloquea nada.
+  ni muestres notas de nadie. No desbloquea nada.
+- **No admitido**: cambiar `organizacion` o `final.de` de un calificador ya montado (habría que
+  borrar a mano lo de tiza en el aula y volver a montar) ni usar escalas (solo notas numéricas).
+  Díselo al docente.
 - Con más de 500 ficheros `.md` o `.html` en la carpeta, `CARPETA_DEMASIADO_GRANDE`: saca de la
   carpeta los que no sean de este curso.
 - Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no
@@ -123,5 +125,6 @@ hizo. Sin sesión, `SIN_SESION`: pide al docente que ejecute `tiza empezar`.
   vuelve a comprobar. `EVALUA_INVALIDO` es un `evalua` mal escrito en un `.md`;
   `ELEMENTO_DESCONOCIDO` nombra un elemento que no está en el esquema, y `SECCION_SIN_EVALUACION`
   pone una actividad en una sección que no es de ninguna evaluación.
-- Si `.tiza/calificador.json` da `CALIFICADOR_INVALIDO`, no lo edites ni lo borres: díselo al
-  docente, porque borrarlo hace que tiza olvide lo que cambió a mano.
+- Si `.tiza/calificador.json` da `CALIFICADOR_INVALIDO`, no lo edites ni lo borres: pide al
+  docente que lo revise. Si se borra, tiza deja de saber qué cambió el docente a mano en Moodle y
+  podría pisarlo.

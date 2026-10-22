@@ -1068,7 +1068,9 @@ class Moodle:
 
         Tras crear o borrar un elemento, o cambiar un máximo o un peso, Moodle devuelve primero
         la página «Recalculando calificaciones» (``div.progressbar_container``, sin el árbol):
-        se repite el mismo GET, hasta 3 peticiones en total. Si sigue, lo ve quien llama.
+        se repite el mismo GET. El límite son 3 lecturas de página
+        (``_PETICIONES_POR_RECALCULO``) y cada una puede seguir una redirección (a su propia
+        aula), así que son hasta 6 peticiones HTTP. Si sigue, lo ve quien llama.
         """
         for _ in range(_PETICIONES_POR_RECALCULO):
             html = self._leer_pagina_del_calificador(ruta, params)
