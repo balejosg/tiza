@@ -35,6 +35,8 @@ __all__ = [
     "Reemplazar",
     "Sustituir",
     "cargar_relleno",
+    "cargar_yaml_sin_alias",
+    "sin_claves_repetidas",
 ]
 
 MAX_BYTES = 2 * 1024 * 1024
@@ -438,7 +440,7 @@ class _CargadorSinAlias(yaml.SafeLoader):
         return super().compose_node(parent, index)
 
 
-def _sin_claves_repetidas(nodo: yaml.Node | None, ruta: str) -> None:
+def sin_claves_repetidas(nodo: yaml.Node | None, ruta: str) -> None:
     """Rechaza una clave que aparece dos veces en el mismo bloque, con su ruta YAML."""
     if isinstance(nodo, yaml.MappingNode):
         vistas: set[str] = set()
@@ -448,15 +450,39 @@ def _sin_claves_repetidas(nodo: yaml.Node | None, ruta: str) -> None:
                 if clave in vistas:
                     raise _error(_clave(ruta, clave), "la clave está repetida")
                 vistas.add(clave)
-                _sin_claves_repetidas(valor_nodo, _clave(ruta, clave))
+                sin_claves_repetidas(valor_nodo, _clave(ruta, clave))
             else:
-                _sin_claves_repetidas(valor_nodo, ruta)
+                sin_claves_repetidas(valor_nodo, ruta)
     elif isinstance(nodo, yaml.SequenceNode):
         for i, hijo in enumerate(nodo.value):
-            _sin_claves_repetidas(hijo, f"{ruta}[{i}]")
+            sin_claves_repetidas(hijo, f"{ruta}[{i}]")
 
 
-def _cargar_yaml(origen: Path) -> Any:
+def _lineas_de(nodo: yaml.Node | None, ruta: str, lineas: dict[str, int]) -> None:
+    """Anota la línea (desde 1) de cada clave y de cada elemento de lista, por ruta YAML."""
+    if nodo is None:
+        return
+    lineas[ruta] = nodo.start_mark.line + 1
+    if isinstance(nodo, yaml.MappingNode):
+        for clave_nodo, valor_nodo in nodo.value:
+            if isinstance(clave_nodo, yaml.ScalarNode):
+                hija = _clave(ruta, str(clave_nodo.value))
+                _lineas_de(valor_nodo, hija, lineas)
+                lineas[hija] = clave_nodo.start_mark.line + 1
+    elif isinstance(nodo, yaml.SequenceNode):
+        for i, hijo in enumerate(nodo.value):
+            _lineas_de(hijo, f"{ruta}[{i}]", lineas)
+
+
+def cargar_yaml_sin_alias(origen: Path, lineas: dict[str, int] | None = None) -> Any:
+    """Lee un YAML de la carpeta sin anclas, alias ni claves repetidas (``ErrorEscritura``).
+
+    Si se pasa ``lineas``, se rellena con la línea de cada ruta YAML (``elementos[1].peso``).
+    """
+    return _cargar_yaml(origen, lineas)
+
+
+def _cargar_yaml(origen: Path, lineas: dict[str, int] | None = None) -> Any:
     try:
         bruto = ficheros.leer_bytes_acotado(origen, MAX_BYTES)
     except FileNotFoundError:
@@ -475,7 +501,9 @@ def _cargar_yaml(origen: Path) -> Any:
     try:
         cargador = _CargadorSinAlias(texto)
         nodo = cargador.get_single_node()
-        _sin_claves_repetidas(nodo, "")
+        sin_claves_repetidas(nodo, "")
+        if lineas is not None:
+            _lineas_de(nodo, "", lineas)
         datos = cargador.construct_document(nodo) if nodo is not None else None
     except _SinAlias:
         raise _error("", "no admite anclas ni alias (&… o *…)") from None
