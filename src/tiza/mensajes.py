@@ -495,8 +495,8 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
         )
     for cerrada in resumen.cerradas:
         estado = (
-            "cerrada: se crea y se bloquea al terminar, y ya no cambia"
-            if cerrada.nueva
+            "cerrada: se completa y se bloquea al terminar, y ya no cambia"
+            if cerrada.por_bloquear
             else "cerrada, no cambia"
         )
         lineas.append(

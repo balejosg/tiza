@@ -8,12 +8,13 @@ de escritura de ``Moodle``.
 
 Qué respeta, por este orden:
 
-* una evaluación cerrada (``TZ_V_<n>`` bloqueada en el aula, o ``cerrada: true`` en el esquema
-  y ya existente): nada de lo que cuelga de ella se crea, cambia, mueve ni borra, ni ella misma;
-  tiza nunca desbloquea. Una actividad nueva en una sección de una evaluación cerrada se queda
-  sin colocar, con todas sus copias e indicadores (``ACTIVIDAD_EN_EVALUACION_CERRADA``). Una
-  evaluación ``cerrada: true`` que aún no existe en el aula se crea con normalidad y se bloquea
-  al final de la segunda pasada («cerrar es marcar y volver a montar»);
+* una evaluación cerrada (``TZ_V_<n>`` **bloqueada en el aula**): nada de lo que cuelga de ella
+  se crea, cambia, mueve ni borra, ni ella misma; tiza nunca desbloquea. Una actividad nueva en
+  una sección de una evaluación cerrada se queda sin colocar, con todas sus copias e indicadores
+  (``ACTIVIDAD_EN_EVALUACION_CERRADA``). Una evaluación ``cerrada: true`` que aún no está
+  bloqueada (no existe, o a medio montar) se trata como abierta —se crea, se coloca y se ajusta,
+  en las dos pasadas— y se bloquea al final de la segunda («cerrar es marcar y volver a montar»):
+  si el montaje falla a medias, la ejecución siguiente la completa y después la bloquea;
 * lo que el docente cambió a mano en lo de tiza (D3): si el aula difiere de la huella, ese nodo no
   se toca (ni su peso ni su fórmula); sus hijos sí se gestionan;
 * las notas: un nodo de tiza que ya no está en el esquema pero tiene notas se queda, y una
@@ -140,8 +141,8 @@ class Reconciliacion:
     ``eid`` de la categoría ajena (puede no tener número de ID). ``a_mano`` son las claves
     (idnumber o ``CURSO``) cuyo estado en el aula difería de su huella: hay que pasárselas a
     ``pasada2`` para que no confunda con un cambio del docente lo que haga la propia primera pasada.
-    ``por_cerrar`` son las evaluaciones ``cerrada: true`` que aún no existían y la primera pasada
-    crea: ``pasada2`` las ajusta y las bloquea al final. ``sin_colocar`` son las rutas de las
+    ``por_cerrar`` son las evaluaciones ``cerrada: true`` que aún no están bloqueadas: se montan
+    como las abiertas y ``pasada2`` las ajusta y las bloquea al final. ``sin_colocar`` son las rutas de las
     actividades que están en el aula pero esta pasada no coloca (evaluación cerrada o cambiadas
     a mano).
     """
@@ -152,6 +153,11 @@ class Reconciliacion:
     a_mano: frozenset[str] = frozenset()
     por_cerrar: frozenset[str] = frozenset()
     sin_colocar: frozenset[str] = frozenset()
+
+    @property
+    def hay_trabajo(self) -> bool:
+        """Hay algo que ejecutar: operaciones de la primera pasada o evaluaciones por bloquear."""
+        return bool(self.operaciones) or bool(self.por_cerrar)
 
 
 # --------------------------------------------------------------------------- #
@@ -317,12 +323,10 @@ class _Plan:
             n.idnumber for n in aula.nodos if _EVALUACION.fullmatch(n.idnumber) and n.bloqueado
         }
         self.bloqueadas_en_aula = evaluaciones_cerradas
-        if por_cerrar is None:  # primera pasada: las cerradas del esquema que aún no existen
-            por_cerrar = frozenset(c for c in deseado.cerradas if c not in self.idx.por_id)
+        if por_cerrar is None:  # primera pasada: las cerradas del esquema aún sin bloquear
+            por_cerrar = frozenset(c for c in deseado.cerradas if c not in evaluaciones_cerradas)
         self.por_cerrar = por_cerrar
-        self.cerradas = {
-            c for c in deseado.cerradas if c in self.idx.por_id and c not in por_cerrar
-        } | evaluaciones_cerradas
+        self.cerradas = set(evaluaciones_cerradas)  # solo las bloqueadas en el aula son intocables
         self.sin_colocar: set[str] = set()
         self.en_cerrada: set[str] = set()  # sin colocar porque su sitio cae en una cerrada
         self.omitidos = self._omitidos()
@@ -677,14 +681,13 @@ class _Plan:
             )
 
     def _cierres(self) -> None:
-        """Bloquea las cerradas del esquema.
+        """Bloquea, al final de la segunda pasada, las cerradas del esquema aún sin bloquear.
 
-        Las que ya existían, en la primera pasada. Las que se acaban de crear, en la segunda:
-        un total bloqueado ya no admite los ajustes de pesos y fórmulas que esa pasada repite.
+        Un total bloqueado ya no admite los ajustes de pesos y fórmulas que esa pasada repite.
         """
-        for idnumber in self.d.cerradas:
-            if (idnumber in self.por_cerrar) != self.solo_ajustes:
-                continue
+        if not self.solo_ajustes:
+            return
+        for idnumber in sorted(self.por_cerrar):
             nodo = self.idx.por_id.get(idnumber)
             if nodo is not None and not nodo.bloqueado:
                 self.cierre.append(
@@ -805,8 +808,8 @@ def pasada2(
     """La segunda pasada, sobre el aula releída tras ejecutar la primera.
 
     Solo ``fijar_peso``, ``fijar_maximo``, ``fijar_formula`` y ``fijar_total_curso`` que sigan
-    haciendo falta, y al final el ``bloquear_cerrada`` de las evaluaciones que la primera pasada
-    creó con ``cerrada: true``. Pásale ``a_mano=reconciliacion.a_mano`` (sin él, lo que la
+    haciendo falta, y al final el ``bloquear_cerrada`` de las evaluaciones ``cerrada: true`` aún
+    sin bloquear. Pásale ``a_mano=reconciliacion.a_mano`` (sin él, lo que la
     primera pasada cambió en el aula se compara con las huellas de antes y parece cosa del
     docente) y ``por_cerrar=reconciliacion.por_cerrar``.
     """

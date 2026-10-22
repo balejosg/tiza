@@ -263,10 +263,10 @@ final:
 - `id`: empieza por letra, letras y cifras, 16 como mucho. Los ids repetidos dan `ID_REPETIDO`.
 - Una sección solo puede estar en una evaluación (`SECCION_REPETIDA`). Una actividad con `evalua`
   en una sección que no es de ninguna evaluación da `SECCION_SIN_EVALUACION`.
-- `cerrada: true` congela la evaluación en el aula: no se crea, cambia, mueve ni borra nada
-  dentro, y una actividad nueva de sus secciones queda sin colocar
-  (`ACTIVIDAD_EN_EVALUACION_CERRADA`). tiza no la reabre. Si la evaluación aún no existe en el aula,
-  tiza la crea entera y la bloquea al final.
+- `cerrada: true` bloquea la evaluación en el aula al terminar de montar (si no estaba completa,
+  primero la completa). Una vez bloqueada, no se crea, cambia, mueve ni borra nada dentro, y una
+  actividad nueva de sus secciones queda sin colocar (`ACTIVIDAD_EN_EVALUACION_CERRADA`). tiza no
+  la reabre.
 - No se admite cambiar `organizacion` o `final.de` de un calificador ya montado (habría que
   borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas: tiza solo trabaja con
   notas numéricas.

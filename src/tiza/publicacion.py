@@ -446,12 +446,12 @@ class ElementoCalificador:
 class EvaluacionCerrada:
     """Una evaluación marcada ``cerrada: true``: tiza no la toca; ``secciones`` son las del esquema.
 
-    ``nueva``: aún no existe en el aula; tiza la crea entera y la bloquea al terminar.
+    ``por_bloquear``: aún no está bloqueada en el aula; tiza la completa y la bloquea al terminar.
     """
 
     nombre: str
     secciones: tuple[int | str, ...]
-    nueva: bool = False
+    por_bloquear: bool = False
 
 
 @dataclass(frozen=True)
@@ -1866,7 +1866,7 @@ def calificador_con(
     segunda: Ejecucion | None = None
     final = plan.aula_antes
     try:
-        if rec.operaciones:
+        if rec.hay_trabajo:
             primera.ejecutar(rec.operaciones, tolerar_formulas=True)
             final = aula.calificador(curso)
             ajustes = rc.pasada2(
@@ -2004,7 +2004,7 @@ def calificador_en_cursos(
             # Cada curso se lee entero antes de escribir nada en él (y antes de preguntar).
             registro.append((posicion, curso, fallo(exc.codigo, curso)))
             break
-        if plan.reconciliacion.operaciones:
+        if plan.reconciliacion.hay_trabajo:
             resumen = resumen_calificador(
                 plan, esquema, nombres.get(curso), posicion=posicion, total=total
             )

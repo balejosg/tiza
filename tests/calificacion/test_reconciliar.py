@@ -338,14 +338,45 @@ def test_cerrar_bloquea_total() -> None:
     cerrando = Esquema("elementos", EL, EVS_CERRADA, Final("elementos"))
     d = deseado(cerrando, docs(), False, CARPETA)
     rec = reconciliar(d, aula, huellas, CMIDS)
-    cierres = [o for o in rec.operaciones if o.tipo == "bloquear_cerrada"]
     v1 = por_id(aula, "TZ_V_1")
+    # la evaluación aún no está bloqueada: se trata como abierta y se bloquea al final de la 2.ª pasada
+    assert rec.por_cerrar == {"TZ_V_1"} and rec.hay_trabajo
+    assert "bloquear_cerrada" not in tipos(rec.operaciones)
+    cierres = pasada2(d, aula, huellas, CMIDS, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
     assert [(o.idnumber, o.eid, o.item_id) for o in cierres] == [("TZ_V_1", None, v1.item_id)]
-    assert rec.operaciones[-1] == cierres[0]
+    assert cierres[-1].tipo == "bloquear_cerrada"
     # y ya cerrada, no se vuelve a bloquear
     cerrada = aplicar(aula, cierres)
     rec2 = reconciliar(d, cerrada, huellas_de(cerrada, CMIDS), CMIDS)
-    assert rec2.operaciones == ()
+    assert rec2.operaciones == () and not rec2.hay_trabajo
+
+
+def test_cerrada_sin_bloquear_se_completa_como_una_abierta() -> None:
+    # montada con los pesos 60/40 pero sin bloquear; el esquema cambia a 50/50 y la marca cerrada
+    _, aula = montar(FP)
+    huellas = huellas_de(aula, CMIDS)
+    d = deseado(
+        Esquema("elementos", EL_5050, EVS_CERRADA, Final("elementos")), docs(), False, CARPETA
+    )
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    assert {o.idnumber for o in rec.operaciones if o.tipo == "fijar_peso"} >= {
+        "TZ_E_RA1",
+        "TZ_E_RA2",
+    }
+    final = aplicar(aula, rec.operaciones)
+    ajustes = pasada2(d, final, huellas, CMIDS, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+    assert ajustes[-1].tipo == "bloquear_cerrada"
+    final = aplicar(final, ajustes)
+    assert por_id(final, "TZ_V_1").bloqueado is True
+    assert por_id(final, "TZ_E_RA1").peso == 50.0
+    # ya bloqueada, sigue sin tocarse aunque el esquema vuelva a cambiar
+    otra = Esquema("elementos", EL, EVS_CERRADA, Final("elementos"))
+    rec2 = reconciliar(
+        deseado(otra, docs(), False, CARPETA), final, huellas_de(final, CMIDS), CMIDS
+    )
+    eids, ids = subarbol(final, "TZ_V_1")
+    assert not [o for o in rec2.operaciones if toca(o, eids, ids)]
+    assert rec2.por_cerrar == frozenset()
 
 
 def test_cambiado_a_mano() -> None:  # D3

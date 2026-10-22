@@ -84,12 +84,12 @@ no tienen nota en Moodle: con `evalua` dan `EVALUA_NO_CALIFICABLE`, también en 
 
 ## 6. Cerrar una evaluación
 
-Cerrar una evaluación es poner `cerrada: true` en su bloque del esquema y volver a montar. Dentro
-de una evaluación cerrada nada se crea, cambia, mueve ni borra. `EVALUACION_CERRADA_EN_EL_AULA`
-significa que el aula ya la tiene bloqueada y tiza no la toca. Una actividad nueva en una sección
+Cerrar una evaluación es poner `cerrada: true` en su bloque del esquema y volver a montar: tiza la
+completa como una abierta y al final la bloquea. Dentro de una evaluación bloqueada en el aula nada
+se crea, cambia, mueve ni borra. `EVALUACION_CERRADA_EN_EL_AULA` significa que el aula ya la tiene
+bloqueada y tiza no la toca. Una actividad nueva en una sección
 de una evaluación cerrada sale como `ACTIVIDAD_EN_EVALUACION_CERRADA`: no se coloca, ni sus copias.
-Si el esquema marca `cerrada: true` una evaluación que aún no existe en el aula (primer montaje),
-tiza la crea entera y la bloquea al final. **tiza no puede reabrirla**: si el docente quiere
+Si un montaje falla a medias, repite el comando: completa la evaluación y después la bloquea. **tiza no puede reabrirla**: si el docente quiere
 corregirla, lo hace a mano en el aula.
 
 ## 7. Cómo se monta

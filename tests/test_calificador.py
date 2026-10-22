@@ -404,6 +404,33 @@ def test_calificador_cierra_evaluacion(tmp_path):
     assert moodle.por_id("TZ_E_RA1").peso == 50.0
 
 
+def test_montaje_cerrado_que_falla_a_medias_se_completa_antes_de_bloquearse(tmp_path):
+    cerrada = ESQUEMA.replace(
+        "{nombre: 1.ª evaluación, secciones: [1]}",
+        "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
+    )
+    carpeta = carpeta_fp(tmp_path, cerrada)
+    moodle = AulaViva()
+    moodle.fallos["fijar_formula"] = ["ESCRITURA_CALIFICADOR"]  # cae al empezar con las fórmulas
+    primero = atender(pedir(carpeta), moodle, carpeta)
+    assert primero["resultado"] == "error"
+    assert "bloquear_total" not in moodle.metodos()
+    assert moodle.por_id("TZ_V_1").bloqueado is False  # creada a medias y sin bloquear
+    assert not any(n.formula for n in moodle.nodos.values() if n.clase == "calculado")
+    # la siguiente ejecución la completa (fórmulas) y después la bloquea
+    moodle.escrituras.clear()
+    segundo = atender(pedir(carpeta), moodle, carpeta)
+    assert segundo["resultado"] == "ok", segundo
+    assert "fijar_formula" in moodle.metodos()
+    assert moodle.metodos()[-1] == "bloquear_total"
+    assert moodle.por_id("TZ_V_1").bloqueado is True
+    assert all(n.formula for n in moodle.nodos.values() if n.clase == "calculado")
+    # y una vez bloqueada no se toca más
+    moodle.escrituras.clear()
+    atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.escrituras == []
+
+
 def test_primer_montaje_con_una_evaluacion_cerrada_la_crea_y_la_bloquea_al_final(tmp_path):
     carpeta = carpeta_fp(
         tmp_path,
@@ -563,11 +590,11 @@ def test_resumen_dice_que_se_quita_del_calificador_de_tiza():
     )
 
 
-def test_resumen_de_una_evaluacion_cerrada_que_se_crea_ahora():
-    nueva = publicacion.EvaluacionCerrada("1.ª evaluación", (1, 2), nueva=True)
+def test_resumen_de_una_evaluacion_cerrada_que_se_bloquea_ahora():
+    nueva = publicacion.EvaluacionCerrada("1.ª evaluación", (1, 2), por_bloquear=True)
     [linea] = mensajes.detalle_calificador(_resumen(cerradas=(nueva,))).lineas
     assert linea == (
-        "1.ª evaluación: unidades 1-2 (cerrada: se crea y se bloquea al terminar, y ya no cambia)"
+        "1.ª evaluación: unidades 1-2 (cerrada: se completa y se bloquea al terminar, y ya no cambia)"
     )
 
 
@@ -596,7 +623,7 @@ def test_el_resumen_sale_del_plan_con_el_total_del_curso_la_regla_y_lo_que_se_qu
     assert presencia.resumenes_calificador == []
 
 
-def test_el_resumen_distingue_la_cerrada_que_se_crea_de_la_que_ya_existe(tmp_path):
+def test_el_resumen_distingue_la_cerrada_por_bloquear_de_la_ya_bloqueada(tmp_path):
     cerrada = ESQUEMA.replace(
         "{nombre: 1.ª evaluación, secciones: [1]}",
         "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
@@ -605,14 +632,14 @@ def test_el_resumen_distingue_la_cerrada_que_se_crea_de_la_que_ya_existe(tmp_pat
     moodle = AulaViva()
     presencia = PresenciaFalsa(real=True)
     atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
-    assert [c.nueva for c in presencia.resumenes_calificador[0].cerradas] == [True]
+    assert [c.por_bloquear for c in presencia.resumenes_calificador[0].cerradas] == [True]
     # montada y cerrada, un cambio de pesos vuelve a preguntar, y ya no es nueva
     (carpeta / "calificacion.yaml").write_text(
         cerrada.replace("peso: 60", "peso: 50").replace("peso: 40", "peso: 50"), encoding="utf-8"
     )
     presencia = PresenciaFalsa(real=True)
     atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
-    assert [c.nueva for c in presencia.resumenes_calificador[0].cerradas] == [False]
+    assert [c.por_bloquear for c in presencia.resumenes_calificador[0].cerradas] == [False]
 
 
 def test_una_actividad_nueva_en_una_evaluacion_cerrada_sale_como_sin_colocar(tmp_path):
