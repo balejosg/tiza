@@ -18,7 +18,7 @@ tiza monta lo que dice el esquema y nada más. **No inventes pesos, fórmulas ni
 
 ## 2. El esquema: `calificacion.yaml`
 
-Va en la carpeta de la asignatura. Este es el ejemplo que se valida en las pruebas:
+Va en la carpeta de la asignatura. Este es el ejemplo que los tests de tiza validan:
 
 ```yaml
 # Módulo de FP: tres resultados de aprendizaje, tres evaluaciones y un tope en la final.
@@ -43,7 +43,7 @@ final:
 - `evaluaciones`: `nombre`, `secciones` (números o nombres de sección) y `cerrada` (true o false).
   Con la final por evaluaciones, cada una lleva `peso` (suman 100).
 - `final`: `de` (`elementos` o `evaluaciones`) y `tope` (solo con `de: elementos`):
-  `si_alguno_menor_que` (de 0 a 10) y `maximo` (de 0 a 10, sin llegar).
+  `si_alguno_menor_que` (mayor que 0 y hasta 10) y `maximo` (de 0 a 10, sin llegar).
 
 Lo que el esquema no expresa (redondeos, la actitud, las recuperaciones, otros pesos dentro
 de una evaluación) **se lo dices al docente y no lo fuerzas**.
