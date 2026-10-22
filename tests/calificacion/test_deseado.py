@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -129,8 +130,8 @@ def test_peso_cero_se_queda() -> None:
     d = deseado(FP, docs, False, CARPETA)
     assert nodo(d, "unidad1/extra.md").peso == 0.0
     assert copia_de(d, "unidad1/extra.md", "TZ_V_1_RA1").peso == 0.0
-    assert nodo(d, "unidad1/practica1.md").peso == 40.0
-    assert sum(n.peso or 0 for n in hijos(d, "TZ_E_RA1")) == 100.0
+    assert nodo(d, "unidad1/practica1.md").peso == pytest.approx(40.0)
+    assert sum(n.peso or 0 for n in hijos(d, "TZ_E_RA1")) == pytest.approx(100.0)
 
 
 def test_eso_por_evaluaciones() -> None:
@@ -348,3 +349,37 @@ def test_cerradas() -> None:
 def test_los_pesos_son_float() -> None:
     d = deseado(FP, completo(), False, CARPETA)
     assert all(isinstance(n.peso, float) for n in d.nodos if n.peso is not None)
+
+
+def _ids(d: Deseado) -> dict[tuple[str, str | None, str | tuple[str, str] | None], str]:
+    """idnumber de cada copia e indicador, por (clase, padre, a qué apunta)."""
+    return {
+        (n.clase, n.padre, n.formula_de): n.idnumber
+        for n in d.nodos
+        if n.clase in ("copia", "indicador")
+    }
+
+
+def test_ids_con_forma_de_huella() -> None:
+    d = deseado(FP, completo(), False, CARPETA)
+    for n in d.nodos:
+        if n.clase == "copia" and n.formula_de in dict(d.actividades):
+            assert re.fullmatch(r"TZ_C_[0-9a-f]{10}", n.idnumber)
+        if n.clase == "indicador":
+            assert re.fullmatch(r"TZ_I_[0-9a-f]{10}", n.idnumber)
+
+
+def test_ids_estables_al_anadir_y_quitar() -> None:
+    base = completo()
+    antes = _ids(deseado(FP, base, False, CARPETA))
+    assert len(antes) > 10
+    # una actividad nueva que ordena la primera (con peso 0, no toca los pesos de nadie)
+    nueva = doc("a0/primera.md", 1, RA2=0, RA1=0)
+    despues = _ids(deseado(FP, [nueva] + base, False, CARPETA))
+    assert len(despues) > len(antes)
+    assert antes.items() <= despues.items()
+    # quitar una (RA3 se queda sin actividades): las demás conservan su id
+    sin_una = [d for d in base if d.ruta.name != "seguridad.md"]
+    restante = _ids(deseado(FP, sin_una, False, CARPETA))
+    assert 0 < len(restante) < len(antes)
+    assert restante.items() <= antes.items()

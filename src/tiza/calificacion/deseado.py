@@ -8,13 +8,14 @@ entre los hermanos que cuentan. Las actividades se identifican por su ruta relat
 Todo cuelga de ``TZ_TIZA``. Hay dos vistas de lo mismo: «por elementos» (``TZ_E_<id>``, con todo el
 curso) y «por evaluaciones» (``TZ_V_<n>``, con ``TZ_V_<n>_<id>`` dentro). La que da la final cuelga
 de ``TZ_TIZA``; la otra, de ``TZ_VISTA`` (peso 0). La actividad real vive en su primer elemento de
-``evalua``, en la vista de ``organizacion``; en los demás sitios va una copia ``TZ_C_<n>``. Solo
+``evalua``, en la vista de ``organizacion``; en los demás sitios va una copia ``TZ_C_<huella>``. Solo
 si la final tiene tope hay ``TZ_NOTAS`` (peso 0), con las notas sobre 10 de los elementos y de la
 final calculadas con contadores.
 """
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -77,6 +78,11 @@ class _Actividad:
     nombre: str
     evaluacion: int  # índice (desde 0) de la evaluación en la que cae su sección
     evalua: tuple[tuple[str, float], ...]
+
+
+def _huella(texto: str) -> str:
+    """Los 10 primeros hex del sha256: el id de un nodo no depende de qué otros haya."""
+    return hashlib.sha256(texto.encode("utf-8")).hexdigest()[:10]
 
 
 def _misma_seccion(a: int | str, b: int | str) -> bool:
@@ -195,14 +201,13 @@ class _Montaje:
         ]
 
     def _numerar_copias(self) -> dict[tuple[str, str, str], str]:
-        """``TZ_C_<n>`` por (ruta, elemento, vista), numerado por clave ordenada."""
-        claves = sorted(
-            (a.ruta, elemento, vista)
+        """``TZ_C_<huella>`` por (ruta, elemento, vista): estable al añadir o quitar actividades."""
+        return {
+            (a.ruta, elemento, vista): f"TZ_C_{_huella(f'{a.ruta}|{elemento}|{vista}')}"
             for a in self.actividades
             for elemento, vista in self._lugares(a)
             if not self._es_real(a, elemento, vista)
-        )
-        return {clave: f"TZ_C_{n}" for n, clave in enumerate(claves, 1)}
+        }
 
     def _es_real(self, actividad: _Actividad, elemento: str, vista: str) -> bool:
         return elemento == actividad.evalua[0][0] and vista == self.vista_real
@@ -275,15 +280,13 @@ class _Montaje:
 
     def _notas(self) -> None:
         self._agregar(Nodo(NOTAS, "contenedor", "Notas (sobre 10)", RAIZ, 0.0, None, "porcentaje"))
-        numero = 0
         for elemento in self.esquema.elementos:
             id_ = elemento.id
             self._agregar(Nodo(f"TZ_K_{id_}", "contador", f"Contador {id_}", NOTAS, 0.0))
             for hijo, nombre in self.hijos_de_elemento.get(id_, []):
-                numero += 1
                 self._agregar(
                     Nodo(
-                        f"TZ_I_{numero}",
+                        f"TZ_I_{_huella(f'{id_}|{hijo}')}",
                         "indicador",
                         f"Indicador {nombre}",
                         f"TZ_K_{id_}",
