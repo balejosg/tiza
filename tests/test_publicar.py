@@ -3969,6 +3969,61 @@ def test_sin_permiso():
     assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
 
 
+class _SesionConRedireccion(_SesionCalificador):
+    """La primera lectura del árbol es una redirección (p. ej. Moodle recalculando)."""
+
+    def __init__(self, destino, veces=1, **kwargs):
+        super().__init__(**kwargs)
+        self.destino = destino
+        self.veces = veces
+
+    def get(self, url, params=None, allow_redirects=True, timeout=None):
+        if url.endswith("/grade/edit/tree/index.php") and self.veces > 0:
+            self.veces -= 1
+            self.gets.append((url, dict(params or {})))
+            return _RespuestaHttp("", status=303, destino=self.destino)
+        return super().get(url, params, allow_redirects, timeout)
+
+
+def test_redireccion_que_no_va_al_login_se_sigue_una_vez():
+    sesion = _SesionConRedireccion("https://aula/grade/edit/tree/index.php")
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    assert moodle.calificador(2).nodos
+    assert sesion.gets[1][0] == "https://aula/grade/edit/tree/index.php"
+
+
+def test_dos_redirecciones_seguidas_son_falta_de_permiso():
+    sesion = _SesionConRedireccion("https://aula/grade/edit/tree/index.php", veces=2)
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+
+
+class _SesionDeEnteros(_SesionCalificador):
+    """Un curso limpio: ningún formulario existente muestra decimales; el alta sí (100,00)."""
+
+    def get(self, url, params=None, allow_redirects=True, timeout=None):
+        if url.endswith("/grade/edit/tree/item.php"):
+            self.gets.append((url, dict(params or {})))
+            if "id" not in (params or {}):
+                return _RespuestaHttp(_fixture_calificador("item.html"))
+            html = _fixture_calificador("item.html")
+            html = html.replace(
+                'name="grademax" type="text" value="100,00"',
+                'name="grademax" type="text" value="100"',
+            )
+            return _RespuestaHttp(html.replace('value="0,0"', 'value="0"'))
+        return super().get(url, params, allow_redirects, timeout)
+
+
+def test_decimal_de_un_curso_limpio_sale_del_formulario_de_alta():
+    sesion = _SesionDeEnteros()
+    cal = publicar.Moodle("https://aula", sesion, "clave", pausa=0).calificador(2)
+    assert cal.decimal == ","
+    assert ("https://aula/grade/edit/tree/item.php", {"courseid": 2}) in sesion.gets
+
+
 def test_sin_formulario_del_arbol_no_hay_permiso():
     sesion = _SesionCalificador(arbol="<html><body>Sin permiso</body></html>")
     moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
@@ -4170,6 +4225,20 @@ def test_fijar_maximo_y_peso():
     assert sesion.gets[-1][1] == {"courseid": 2, "id": 3}
     assert campos["grade_item_weightoverride"] == "1"
     assert campos["grade_item_aggregationcoef2"] == "0"
+
+
+def test_fijar_maximo_elige_no_recalcular_si_hay_notas():
+    moodle, sesion = _moodle_calificador(items={165: _formulario_item(rescale=True)})
+    moodle.fijar_maximo(2, 165, 220)
+    campos = _campos(sesion)[1]
+    assert campos["grademax"] == "220"
+    assert campos["rescalegrades"] == "no"
+
+
+def test_fijar_maximo_sin_notas_no_envia_rescalegrades():
+    moodle, sesion = _moodle_calificador()
+    moodle.fijar_maximo(2, 165, 30)
+    assert "rescalegrades" not in _campos(sesion)[1]
 
 
 def test_escritura_rechazada_es_error_propio():

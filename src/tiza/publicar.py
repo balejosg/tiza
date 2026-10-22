@@ -1075,7 +1075,21 @@ class Moodle:
             timeout=TIEMPO_ESPERA,
         )
         if 300 <= getattr(respuesta, "status_code", 200) < 400:
-            raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+            # Justo después de escribir, Moodle puede redirigir a otra página del calificador
+            # (p. ej. el recálculo): se sigue una vez. Al login, o una segunda vez, es falta de permiso.
+            destino = str((getattr(respuesta, "headers", None) or {}).get("Location", ""))
+            if not destino or "/login/" in destino:
+                raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+            self._esperar()
+            respuesta = self._reducir(
+                "ERROR_CONSULTA",
+                self.sesion.get,
+                urljoin(f"{self.base_url}/", destino),
+                allow_redirects=False,
+                timeout=TIEMPO_ESPERA,
+            )
+            if 300 <= getattr(respuesta, "status_code", 200) < 400:
+                raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
         self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
         return str(getattr(respuesta, "text", ""))
 
@@ -1184,7 +1198,16 @@ class Moodle:
                     cmid=p["cmid"],
                 )
             )
-        return CalificadorAula(nodos=tuple(nodos), decimal=_decimal_visto(parciales))
+        decimal = _decimal_visto(parciales)
+        if not decimal:
+            # Un curso limpio solo tiene enteros: el máximo por defecto del formulario de alta
+            # (sin ``id``) sí lleva decimales («100,00») en el idioma del aula.
+            alta = BeautifulSoup(
+                self._pagina_del_calificador("grade/edit/tree/item.php", {"courseid": curso_id}),
+                "html.parser",
+            )
+            decimal = _decimal_de(_valor_de_campo(alta, "grademax")) or "."
+        return CalificadorAula(nodos=tuple(nodos), decimal=decimal)
 
     # --- Calificador: escribir (los envíos medidos en las espigas) --------------
 
@@ -1194,6 +1217,7 @@ class Moodle:
         params: dict[str, int],
         cambios: dict[str, str],
         codigo: str = "ESCRITURA_CALIFICADOR",
+        si_existen: dict[str, str] | None = None,
     ) -> Any:
         """GET del formulario, cambia campos y lo envía como un navegador; devuelve la respuesta.
 
@@ -1205,6 +1229,10 @@ class Moodle:
         formulario = _formulario_de(pagina, accion)
         if formulario is None:
             raise ErrorPublicacion(codigo)
+        cambios = dict(cambios)
+        for nombre, valor in (si_existen or {}).items():
+            if _campo_con_nombre(formulario, nombre) is not None:
+                cambios[nombre] = valor
         pares = [(k, v) for k, v in _campos_de_formulario(formulario) if k not in cambios]
         pares += list(cambios.items())
         pares.append(("submitbutton", "Guardar cambios"))
@@ -1229,8 +1257,14 @@ class Moodle:
             raise ErrorPublicacion("SESION_CADUCADA")
         return True
 
-    def _guardar(self, ruta: str, params: dict[str, int], cambios: dict[str, str]) -> None:
-        respuesta = self._enviar_formulario(ruta, params, cambios)
+    def _guardar(
+        self,
+        ruta: str,
+        params: dict[str, int],
+        cambios: dict[str, str],
+        si_existen: dict[str, str] | None = None,
+    ) -> None:
+        respuesta = self._enviar_formulario(ruta, params, cambios, si_existen=si_existen)
         if not self._guardado(respuesta):
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
 
@@ -1330,11 +1364,16 @@ class Moodle:
         )
 
     def fijar_maximo(self, curso: int, item_id: int, maximo: float) -> None:
-        """El máximo de un elemento (indicadores y copias del contador)."""
+        """El máximo de un elemento (indicadores y copias del contador).
+
+        Si el elemento ya tiene notas, Moodle exige elegir en ``rescalegrades``: se elige «no»
+        (no recalcular), porque son elementos calculados y su fórmula redefine el valor.
+        """
         self._guardar(
             "grade/edit/tree/item.php",
             {"courseid": curso, "id": item_id},
             {"grademax": _texto_numero(maximo)},
+            si_existen={"rescalegrades": "no"},
         )
 
     def fijar_peso(self, curso: int, eid: str, peso: float) -> None:
@@ -1831,15 +1870,18 @@ def _validar_eid(eid: str, prefijo: str | None = None) -> None:
 
 
 def _decimal_visto(parciales: list[dict[str, Any]]) -> str:
-    """El separador decimal que enseñan los formularios (pesos primero, luego el máximo)."""
+    """El separador decimal que enseñan los formularios (pesos primero, luego el máximo); vacío si ninguno."""
     for clave in ("coef", "grademax_formulario"):
         for p in parciales:
-            texto = p[clave]
-            if "," in texto:
-                return ","
-            if "." in texto:
-                return "."
-    return "."
+            visto = _decimal_de(p[clave])
+            if visto:
+                return visto
+    return ""
+
+
+def _decimal_de(texto: str) -> str:
+    """«,» o «.» si el número del formulario lleva decimales; vacío si es un entero."""
+    return "," if "," in texto else "." if "." in texto else ""
 
 
 def _campos_de_formulario(formulario: Any) -> list[tuple[str, str]]:
