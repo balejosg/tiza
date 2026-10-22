@@ -16,7 +16,7 @@ import pytest
 from dobles import MoodleFalso, PresenciaFalsa, dejar_peticion, peticion
 from tiza import agente, buzon, config, estado, informe, mensajes, publicacion, sesion_abierta
 from tiza.calificacion.carpeta import documentos_de_la_carpeta
-from tiza.publicar import CalificadorAula, NodoAula
+from tiza.publicar import CalificadorAula, ErrorPublicacion, NodoAula
 
 URL = "https://aula.ejemplo.org/centro"
 CFG = config.Config(url=URL, usuario="profe", cursos={"pruebas": 1234}, reales=(5678,))
@@ -528,14 +528,44 @@ def test_bloqueo_fallido_para_el_curso(tmp_path):
     assert estado.cargar_huellas(carpeta / ".tiza", 5678) == {}
 
 
-def test_un_fallo_a_medias_no_guarda_huellas_y_se_cuenta(tmp_path):
+def test_un_fallo_a_medias_guarda_las_huellas_de_lo_hecho_y_se_cuenta(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     moodle = AulaViva()
     moodle.fallos["colocar_actividad"] = ["ERROR_ACTUALIZAR"]
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["errores"] == ["ERROR_ACTUALIZAR"]
-    assert estado.cargar_huellas(carpeta / ".tiza", CURSO) == {}
+    huellas = estado.cargar_huellas(carpeta / ".tiza", CURSO)
+    assert "TZ_TIZA" in huellas  # lo que se creó antes del fallo ya tiene huella
     assert pasos(documento, "CALIFICADOR")[0]["resultado"] == "fallo"
+
+
+def test_un_fallo_a_medias_y_la_segunda_ejecucion_convergen(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    assert atender(pedir(carpeta), moodle, carpeta)["resultado"] == "ok"
+    # El docente cambia los pesos del esquema; el segundo cambio de peso falla a medias.
+    nuevo = ESQUEMA.replace("peso: 60", "peso: 70").replace("peso: 40", "peso: 30")
+    (carpeta / "calificacion.yaml").write_text(nuevo, encoding="utf-8")
+    llamadas = []
+    fijar = moodle.fijar_peso
+
+    def fijar_y_falla_la_segunda(curso, eid, peso):
+        llamadas.append(eid)
+        if len(llamadas) == 2:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        fijar(curso, eid, peso)
+
+    moodle.fijar_peso = fijar_y_falla_la_segunda
+    primero = atender(pedir(carpeta), moodle, carpeta)
+    assert primero["resultado"] == "error"
+    moodle.fijar_peso = fijar
+    segundo = atender(pedir(carpeta), moodle, carpeta)
+    assert segundo["resultado"] == "ok", segundo
+    assert pasos(segundo, "CAMBIADO_A_MANO") == []
+    assert moodle.por_id("TZ_E_RA1").peso == 70.0
+    assert moodle.por_id("TZ_E_RA2").peso == 30.0
+    tercero = atender(pedir(carpeta), moodle, carpeta)
+    assert pasos(tercero, "CALIFICADOR")[0]["detalle"] == "sin cambios"
 
 
 def test_pruebas_gasta_un_cupo_y_avisa(tmp_path):

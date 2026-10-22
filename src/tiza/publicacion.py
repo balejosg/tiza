@@ -1762,6 +1762,33 @@ def _huellas_a_guardar(final: CalificadorAula, plan: PlanCalificador) -> dict[st
     return nuevas
 
 
+def _huellas_tras_fallo(
+    final: CalificadorAula, plan: PlanCalificador, hechas: list[rc.Operacion]
+) -> dict[str, str]:
+    """Las huellas tras un fallo a medias: las de lo que tocaron las operaciones ya hechas.
+
+    Sin ellas, la siguiente ejecución vería lo que tiza ya cambió como «cambiado a mano». Lo demás
+    conserva su huella de antes, y lo que el docente cambió a mano también.
+    """
+    ahora = rc.huellas_de(final, plan.cmids)
+    idnumber_de = {n.eid: n.idnumber for n in final.nodos if n.idnumber}
+    tocadas: set[str] = set()
+    for op in hechas:
+        if op.tipo == "fijar_total_curso":
+            tocadas.add(rc.CURSO)
+        if op.idnumber:
+            tocadas.add(op.idnumber)
+        if op.eid and op.eid in idnumber_de:
+            tocadas.add(idnumber_de[op.eid])
+    nuevas = {k: v for k, v in plan.huellas.items() if k not in tocadas}
+    for clave in tocadas - plan.reconciliacion.a_mano:
+        if clave in ahora:
+            nuevas[clave] = ahora[clave]
+        elif clave in plan.huellas:
+            nuevas[clave] = plan.huellas[clave]
+    return nuevas
+
+
 def calificador_con(
     aula: AulaVirtual,
     entorno: str,
@@ -1779,7 +1806,8 @@ def calificador_con(
     ``preparar_calificador``; con ``plan`` ya se hizo y es lo que vio el docente al confirmar) →
     las operaciones en orden → releer → ``pasada2`` una vez → releer si hubo algo que ajustar →
     guardar las huellas. Si falla un ``bloquear_ajeno`` no se ejecuta nada más en el curso
-    (``BLOQUEO_FALLIDO``). Cualquier otro fallo para en seco: se repite el comando y converge.
+    (``BLOQUEO_FALLIDO``). Cualquier otro fallo para en seco, y se guardan las huellas de lo ya
+    hecho para que repetir el comando converja sin tomarlo por cambios a mano.
     """
     borrador = informe.Borrador("calificador", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
@@ -1812,6 +1840,16 @@ def calificador_con(
             borrador.fallo("CALIFICADOR", f"{exc.codigo} tras {hechas} cambios")
         borrador.error(exc.codigo)
         depurar(exc, debug)
+        hechas_antes = [*primera.hechas, *(segunda.hechas if segunda else [])]
+        if hechas_antes:
+            try:
+                estado.guardar_huellas(
+                    dir_tiza,
+                    curso,
+                    _huellas_tras_fallo(aula.calificador(curso), plan, hechas_antes),
+                )
+            except (ErrorPublicacion, ErrorEstado, OSError):
+                borrador.fallo("HUELLA_NO_GUARDADA", "calificador")
         return borrador.documento("error")
 
     hechas_todas = list(primera.hechas) + (list(segunda.hechas) if segunda else [])

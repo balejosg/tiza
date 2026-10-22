@@ -337,7 +337,9 @@ class _Montaje:
                     f"TZ_K_{elemento.id}",
                 )
             )
-        self._agregar(Nodo(NOTA_FINAL, "nota", "Nota final (sobre 10)", NOTAS, 0.0, (FINAL, K_TIZA)))
+        self._agregar(
+            Nodo(NOTA_FINAL, "nota", "Nota final (sobre 10)", NOTAS, 0.0, (FINAL, K_TIZA))
+        )
 
     def montar(self) -> Deseado:
         esquema = self.esquema
