@@ -1,0 +1,714 @@
+"""La reconciliación del calificador: pura, sin aula, con un simulador de las operaciones."""
+
+from __future__ import annotations
+
+import dataclasses
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+from tiza.calificacion import reconciliar as rc
+from tiza.calificacion.deseado import Deseado, deseado
+from tiza.calificacion.esquema import Elemento, Esquema, Evaluacion, Final, Tope
+from tiza.calificacion.reconciliar import (
+    Operacion,
+    Reconciliacion,
+    hay_anterior,
+    huellas_de,
+    pasada2,
+    reconciliar,
+)
+from tiza.contenido import Documento
+from tiza.publicar import CalificadorAula, NodoAula
+
+CARPETA = Path("/curso")
+EL = (Elemento("RA1", "Redes", 60.0), Elemento("RA2", "Sistemas", 40.0))
+EL_5050 = (Elemento("RA1", "Redes", 50.0), Elemento("RA2", "Sistemas", 50.0))
+EVS = (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+EVS_CERRADA = (Evaluacion("Primera", (1,), cerrada=True), Evaluacion("Segunda", (2,)))
+FP = Esquema("elementos", EL, EVS, Final("elementos"))
+FP_TOPE = Esquema("elementos", EL, EVS, Final("elementos", Tope(5.0, 4.0)))
+FP_CERRADA = Esquema("elementos", EL_5050, EVS_CERRADA, Final("elementos"))
+FP_ABIERTA_5050 = Esquema("elementos", EL_5050, EVS, Final("elementos"))
+ESO = Esquema(
+    "evaluaciones",
+    (Elemento("RA1", "Redes", 60.0), Elemento("RA2", "Sistemas", 40.0)),
+    (Evaluacion("Primera", (1,), 40.0), Evaluacion("Segunda", (2,), 60.0)),
+    Final("evaluaciones"),
+)
+CMIDS = {"a.md": 11, "d.md": 12, "c.md": 13}
+
+
+def doc(ruta: str, seccion: int, **evalua: float) -> Documento:
+    return Documento(
+        ruta=CARPETA / ruta,
+        tipo="pagina",
+        nombre=Path(ruta).stem,
+        seccion=seccion,
+        cuerpo="",
+        html="",
+        recursos=[],
+        evalua=tuple(evalua.items()),
+    )
+
+
+def docs() -> list[Documento]:
+    # RA1: a 60 + d 40; RA2: d 50 + c 50. a y d en la sección 1, c en la 2.
+    return [doc("a.md", 1, RA1=60), doc("d.md", 1, RA1=40, RA2=50), doc("c.md", 2, RA2=50)]
+
+
+def nodo_aula(eid: str, idnumber: str, clase: str, padre: str | None, **kw) -> NodoAula:
+    base = dict(
+        eid=eid,
+        item_id=int(eid[2:]),
+        idnumber=idnumber,
+        clase=clase,
+        nombre=idnumber or "sin nombre",
+        padre_eid=padre,
+        peso=None,
+        sobrescrito=False,
+        bloqueado=False,
+        tiene_notas=False,
+        formula=None,
+        maximo=None,
+        cmid=None,
+    )
+    base.update(kw)
+    return NodoAula(**base)  # type: ignore[arg-type]
+
+
+def curso() -> NodoAula:
+    return nodo_aula("cg1", "", "curso", None, nombre="Curso")
+
+
+def actividad(cmid: int, padre: str = "cg1", idnumber: str = "", maximo: float = 10.0, **kw):
+    return nodo_aula(
+        f"ig{100 + cmid}", idnumber, "actividad", padre, cmid=cmid, maximo=maximo, **kw
+    )
+
+
+def aula_con(*nodos: NodoAula, decimal: str = ".") -> CalificadorAula:
+    return CalificadorAula(nodos=(curso(), *nodos), decimal=decimal)
+
+
+def aula_inicial(cmids=CMIDS, maximo: float = 10.0) -> CalificadorAula:
+    return aula_con(*(actividad(c, maximo=maximo) for c in cmids.values()))
+
+
+def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
+    """Simula lo que hace el aula con las operaciones (lo justo para que converjan)."""
+    nodos = {n.eid: n for n in aula.nodos}
+    siguiente = [500]
+
+    def buscar(op: Operacion) -> NodoAula:
+        if op.eid:
+            return nodos[op.eid]
+        return next(n for n in nodos.values() if n.idnumber == op.idnumber)
+
+    def padre_de(op: Operacion) -> str:
+        if op.padre_eid:
+            return op.padre_eid
+        if op.padre:
+            return next(n.eid for n in nodos.values() if n.idnumber == op.padre)
+        return next(n.eid for n in nodos.values() if n.clase == "curso")
+
+    def cambiar(op: Operacion, **kw) -> None:
+        n = buscar(op)
+        nodos[n.eid] = dataclasses.replace(n, **kw)
+
+    for op in operaciones:
+        t = op.tipo
+        if t in ("crear_categoria", "crear_calculado"):
+            siguiente[0] += 1
+            k = siguiente[0]
+            categoria = t == "crear_categoria"
+            eid = f"{'cg' if categoria else 'ig'}{k}"
+            nodos[eid] = nodo_aula(
+                eid,
+                op.idnumber,
+                "categoria" if categoria else "calculado",
+                padre_de(op),
+                nombre=op.nombre or "",
+                peso=op.peso,
+                sobrescrito=op.peso is not None,
+                maximo=op.maximo,
+            )
+        elif t == "colocar":
+            n = buscar(op)
+            cambiar(
+                op,
+                padre_eid=padre_de(op),
+                peso=None,
+                sobrescrito=False,
+                idnumber=op.idnumber if op.poner_idnumber else n.idnumber,
+            )
+        elif t == "mover_manual":
+            cambiar(op, padre_eid=padre_de(op))
+        elif t == "fijar_peso":
+            cambiar(op, peso=op.peso, sobrescrito=True)
+        elif t == "fijar_maximo":
+            cambiar(op, maximo=op.maximo)
+        elif t in ("fijar_formula", "fijar_total_curso"):
+            cambiar(op, formula=op.formula)
+        elif t in ("bloquear_ajeno", "bloquear_cerrada"):
+            cambiar(op, bloqueado=True)
+        elif t == "borrar":
+            del nodos[buscar(op).eid]
+        for _ in range(6):  # el máximo de una categoría Natural es la suma de sus hijos
+            for n in list(nodos.values()):
+                if n.clase == "categoria":
+                    hijos = [h for h in nodos.values() if h.padre_eid == n.eid]
+                    nodos[n.eid] = dataclasses.replace(
+                        n, maximo=sum(h.maximo or 0.0 for h in hijos)
+                    )
+    return CalificadorAula(nodos=tuple(nodos.values()), decimal=aula.decimal)
+
+
+def montar(esquema=FP, documentos=None, anterior=False, aula=None, huellas=None, cmids=CMIDS):
+    """Una pasada completa y la segunda: devuelve (deseado, aula final)."""
+    d = deseado(esquema, documentos or docs(), anterior, CARPETA)
+    aula = aula or aula_inicial(cmids)
+    huellas = huellas or {}
+    rec = reconciliar(d, aula, huellas, cmids)
+    aula = aplicar(aula, rec.operaciones)
+    aula = aplicar(aula, pasada2(d, aula, huellas, cmids, a_mano=rec.a_mano))
+    return d, aula
+
+
+def tipos(operaciones) -> list[str]:
+    return [o.tipo for o in operaciones]
+
+
+def por_id(aula: CalificadorAula, idnumber: str) -> NodoAula:
+    return next(n for n in aula.nodos if n.idnumber == idnumber)
+
+
+def subarbol(aula: CalificadorAula, raiz: str) -> tuple[set[str], set[str]]:
+    """(eids, idnumbers) de un nodo y todo lo que cuelga de él."""
+    nodos = {raiz_n.eid: raiz_n for raiz_n in aula.nodos}
+    eids = {por_id(aula, raiz).eid}
+    cambio = True
+    while cambio:
+        cambio = False
+        for n in nodos.values():
+            if n.padre_eid in eids and n.eid not in eids:
+                eids.add(n.eid)
+                cambio = True
+    return eids, {nodos[e].idnumber for e in eids}
+
+
+def toca(op: Operacion, eids: set[str], ids: set[str]) -> bool:
+    return bool({op.eid, op.padre_eid} & eids or {op.idnumber, op.padre} & ids)
+
+
+# --------------------------------------------------------------------------- #
+# Los tests del brief
+# --------------------------------------------------------------------------- #
+
+
+def test_curso_vacio_crea_todo() -> None:
+    d = deseado(FP, docs(), False, CARPETA)
+    aula = aula_inicial()
+    rec = reconciliar(d, aula, {}, CMIDS)
+    assert "bloquear_ajeno" not in tipos(rec.operaciones)
+    creadas: list[str] = []
+    for op in rec.operaciones:
+        if op.tipo in ("crear_categoria", "crear_calculado"):
+            assert op.padre is None or op.padre in creadas, op.idnumber
+            creadas.append(op.idnumber)
+        elif op.tipo == "colocar":
+            assert op.padre in creadas
+    assert creadas[0] == "TZ_TIZA"
+    assert rec.operaciones[0].padre_eid == "cg1"  # el padre de TZ_TIZA es el curso
+    assert {o.ruta for o in rec.operaciones if o.tipo == "colocar"} == set(CMIDS)
+    assert all(o.poner_idnumber for o in rec.operaciones if o.tipo == "colocar")
+    assert rec.anterior is False and rec.avisos == ()
+    # nada de crear lo que ya existe: tantas creaciones como nodos que no son actividades reales
+    reales = {n.idnumber for n in d.nodos if n.clase == "actividad"}
+    assert len(creadas) == len([n for n in d.nodos if n.idnumber not in reales])
+
+
+def trabajos(notas: bool, bloqueado: bool = False):
+    t = nodo_aula(
+        "cg20",
+        "",
+        "categoria",
+        "cg1",
+        nombre="Trabajos (docente)",
+        tiene_notas=notas,
+        bloqueado=bloqueado,
+    )
+    return t, actividad(11, padre="cg20", tiene_notas=notas)
+
+
+def test_anterior_bloquea_antes_de_mover() -> None:
+    t, a = trabajos(notas=True)
+    aula = aula_con(t, a, actividad(12), actividad(13))
+    assert hay_anterior(aula) is True
+    d = deseado(FP, docs(), True, CARPETA)
+    rec = reconciliar(d, aula, {}, CMIDS)
+    assert rec.anterior is True
+    tp = tipos(rec.operaciones)
+    ajeno = rec.operaciones[tp.index("bloquear_ajeno")]
+    assert ajeno.eid == "cg20" and ajeno.item_id == 20
+    assert tp.count("bloquear_ajeno") == 1
+    colocar = next(o for o in rec.operaciones if o.tipo == "colocar" and o.cmid == 11)
+    assert tp.index("bloquear_ajeno") < rec.operaciones.index(colocar)
+    assert ("TOTAL_AJENO_BLOQUEADO", "cg20") in rec.avisos
+    assert "fijar_total_curso" not in tp  # D1: el total del curso no se toca
+
+
+def test_ajena_sin_notas_no_se_bloquea() -> None:
+    t, a = trabajos(notas=False)
+    aula = aula_con(t, a, actividad(12), actividad(13))
+    rec = reconciliar(deseado(FP, docs(), True, CARPETA), aula, {}, CMIDS)
+    assert "bloquear_ajeno" not in tipos(rec.operaciones)
+    assert not [av for av in rec.avisos if av[0] == "TOTAL_AJENO_BLOQUEADO"]
+    assert any(o.tipo == "colocar" and o.cmid == 11 for o in rec.operaciones)
+
+
+def test_ajena_ya_bloqueada_no_se_bloquea_otra_vez() -> None:
+    t, a = trabajos(notas=True, bloqueado=True)
+    aula = aula_con(t, a, actividad(12), actividad(13))
+    rec = reconciliar(deseado(FP, docs(), True, CARPETA), aula, {}, CMIDS)
+    assert "bloquear_ajeno" not in tipos(rec.operaciones)
+
+
+def test_dos_actividades_de_la_misma_ajena_la_bloquean_una_vez() -> None:
+    t = nodo_aula("cg20", "", "categoria", "cg1", tiene_notas=True)
+    aula = aula_con(t, actividad(11, "cg20"), actividad(12, "cg20"), actividad(13))
+    rec = reconciliar(deseado(FP, docs(), True, CARPETA), aula, {}, CMIDS)
+    assert tipos(rec.operaciones).count("bloquear_ajeno") == 1
+
+
+def test_hay_anterior() -> None:
+    assert hay_anterior(aula_con(actividad(11), actividad(12))) is False
+    assert hay_anterior(aula_con()) is False
+    assert hay_anterior(aula_con(nodo_aula("cg20", "", "categoria", "cg1"))) is True
+    assert hay_anterior(aula_con(nodo_aula("ig50", "", "manual", "cg1"))) is True
+    # una actividad suelta o con número de ID propio dentro de lo de tiza no es «anterior»
+    tiza = nodo_aula("cg30", "TZ_TIZA", "categoria", "cg1")
+    assert hay_anterior(aula_con(tiza, actividad(11, "cg30", idnumber="EX1"))) is False
+    assert hay_anterior(aula_con(tiza, nodo_aula("ig60", "TZ_A5", "actividad", "cg30"))) is False
+    assert hay_anterior(aula_con(actividad(11, idnumber="EX1"))) is False
+
+
+def montaje_cerrado():
+    """FP montado en 60/40, con la 1.ª evaluación bloqueada en el aula."""
+    _, aula = montar(FP)
+    v1 = por_id(aula, "TZ_V_1")
+    nodos = tuple(
+        dataclasses.replace(n, bloqueado=True) if n.eid == v1.eid else n for n in aula.nodos
+    )
+    return CalificadorAula(nodos=nodos, decimal="."), huellas_de(aula, CMIDS)
+
+
+def test_evaluacion_cerrada_no_se_toca() -> None:
+    aula, huellas = montaje_cerrado()
+    d = deseado(FP_CERRADA, docs(), False, CARPETA)  # los pesos de RA cambian a 50/50
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    eids, ids = subarbol(aula, "TZ_V_1")
+    assert len(ids) > 2
+    assert not [o for o in rec.operaciones if toca(o, eids, ids)]
+    # no es un test vacío: lo de fuera sí cambia
+    assert any(o.tipo == "fijar_peso" and o.idnumber == "TZ_E_RA1" for o in rec.operaciones)
+    # y la actividad que cuenta dentro de la cerrada tampoco se mueve
+    assert not any(o.tipo == "borrar" for o in rec.operaciones)
+
+
+def test_cerrada_en_aula_abierta_en_esquema() -> None:
+    aula, huellas = montaje_cerrado()
+    d = deseado(FP_ABIERTA_5050, docs(), False, CARPETA)
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    assert ("EVALUACION_CERRADA_EN_EL_AULA", "TZ_V_1") in rec.avisos
+    eids, ids = subarbol(aula, "TZ_V_1")
+    assert not [o for o in rec.operaciones if toca(o, eids, ids)]
+    assert all(t in rc.TIPOS for t in tipos(rec.operaciones))
+    assert not any("desbloq" in t for t in rc.TIPOS)
+
+
+def test_cerrar_bloquea_total() -> None:
+    _, aula = montar(FP)
+    huellas = huellas_de(aula, CMIDS)
+    cerrando = Esquema("elementos", EL, EVS_CERRADA, Final("elementos"))
+    d = deseado(cerrando, docs(), False, CARPETA)
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    cierres = [o for o in rec.operaciones if o.tipo == "bloquear_cerrada"]
+    v1 = por_id(aula, "TZ_V_1")
+    assert [(o.idnumber, o.eid, o.item_id) for o in cierres] == [("TZ_V_1", v1.eid, v1.item_id)]
+    assert rec.operaciones[-1] == cierres[0]
+    # y ya cerrada, no se vuelve a bloquear
+    cerrada = aplicar(aula, cierres)
+    rec2 = reconciliar(d, cerrada, huellas_de(cerrada, CMIDS), CMIDS)
+    assert rec2.operaciones == ()
+
+
+def test_cambiado_a_mano() -> None:  # D3
+    _, aula = montar(FP)
+    huellas = huellas_de(aula, CMIDS)
+    ra1 = por_id(aula, "TZ_E_RA1")
+    nodos = tuple(dataclasses.replace(n, peso=55.0) if n.eid == ra1.eid else n for n in aula.nodos)
+    a_mano = CalificadorAula(nodos=nodos, decimal=".")
+    rec = reconciliar(deseado(FP, docs(), False, CARPETA), a_mano, huellas, CMIDS)
+    assert ("CAMBIADO_A_MANO", "TZ_E_RA1") in rec.avisos
+    assert "TZ_E_RA1" in rec.a_mano
+    assert not [o for o in rec.operaciones if o.tipo == "fijar_peso" and o.eid == ra1.eid]
+    assert rec.operaciones == ()
+    # sin huella, tiza no sabe que fue a mano y lo deja como lo quiere el esquema
+    sin = reconciliar(deseado(FP, docs(), False, CARPETA), a_mano, {}, CMIDS)
+    assert [o.idnumber for o in sin.operaciones if o.tipo == "fijar_peso"] == ["TZ_E_RA1"]
+
+
+def test_cambiado_a_mano_la_formula_y_los_hijos_si_se_gestionan() -> None:
+    _, aula = montar(FP_TOPE)
+    huellas = huellas_de(aula, CMIDS)
+    ind = next(n for n in aula.nodos if n.idnumber.startswith("TZ_I_"))
+    ra1 = por_id(aula, "TZ_E_RA1")
+    nodos = tuple(
+        dataclasses.replace(n, formula="=[[TZ_A11]]*0+77") if n.eid == ind.eid else n
+        for n in aula.nodos
+    )
+    a_mano = CalificadorAula(nodos=nodos, decimal=".")
+    # el docente cambia a mano TZ_E_RA1 (su peso) y, además, falta una copia debajo
+    nodos2 = tuple(
+        dataclasses.replace(n, peso=11.0) if n.eid == ra1.eid else n for n in a_mano.nodos
+    )
+    sin_copia = tuple(n for n in nodos2 if n.cmid != 12)  # d.md ya no está en el aula
+    rec = reconciliar(
+        deseado(FP_TOPE, docs(), False, CARPETA),
+        CalificadorAula(nodos=sin_copia, decimal="."),
+        huellas,
+        CMIDS,
+    )
+    assert ("CAMBIADO_A_MANO", ind.idnumber) in rec.avisos
+    assert not [o for o in rec.operaciones if o.eid == ind.eid]
+    assert ("CAMBIADO_A_MANO", "TZ_E_RA1") in rec.avisos
+    assert ("ACTIVIDAD_PENDIENTE", "d.md") in rec.avisos
+
+
+def test_pendiente() -> None:
+    d = deseado(FP_TOPE, docs(), False, CARPETA)
+    cmids = {"a.md": 11, "c.md": 13}  # d.md no está en el aula
+    rec = reconciliar(d, aula_inicial(cmids), {}, cmids)
+    assert ("ACTIVIDAD_PENDIENTE", "d.md") in rec.avisos
+    assert not [o for o in rec.operaciones if o.tipo == "colocar" and o.ruta == "d.md"]
+    # sus copias y sus indicadores tampoco se crean (no hay a qué apuntar)
+    pendientes = {n.idnumber for n in d.nodos if n.formula_de == "d.md"}
+    assert pendientes
+    pendientes |= {n.idnumber for n in d.nodos if n.formula_de in pendientes}
+    assert not [o for o in rec.operaciones if o.idnumber in pendientes]
+
+
+def test_actividad_con_cmid_sin_elemento_en_el_aula_es_pendiente() -> None:
+    d = deseado(FP, docs(), False, CARPETA)
+    aula = aula_con(actividad(11), actividad(12))  # el 13 no tiene elemento calificable
+    rec = reconciliar(d, aula, {}, CMIDS)
+    assert ("ACTIVIDAD_PENDIENTE", "c.md") in rec.avisos
+
+
+@pytest.mark.parametrize("esquema", [FP, FP_TOPE, ESO])
+def test_sin_cambios_no_hace_nada(esquema) -> None:
+    d, aula = montar(esquema)
+    huellas = huellas_de(aula, CMIDS)
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    assert rec.operaciones == ()
+    assert rec.avisos == ()
+    assert pasada2(d, aula, huellas, CMIDS) == ()
+
+
+def test_montaje_completo_con_tope() -> None:
+    d, aula = montar(FP_TOPE)
+    nodos = {n.idnumber: n for n in aula.nodos}
+    assert d.total_curso == "TZ_NOTA_FINAL"
+    assert nodos["TZ_NOTA_FINAL"].formula.startswith("=min([[TZ_TIZA]]/[[TZ_K_TIZA]]*10,")
+    curso_ = next(n for n in aula.nodos if n.clase == "curso")
+    assert curso_.formula == "=[[TZ_NOTA_FINAL]]"
+    assert nodos["TZ_NOTA_E_RA1"].formula == "=[[TZ_E_RA1]]/[[TZ_K_RA1]]*10"
+    assert nodos["TZ_NOTA_E_RA1"].maximo == 10.0
+    # el máximo del contador final es el del elemento, que solo se conoce tras colocar
+    assert nodos["TZ_KC_RA1"].maximo == nodos["TZ_E_RA1"].maximo == 20.0
+    assert nodos["TZ_KC_RA2"].formula == "=[[TZ_K_RA2]]"
+    ind = next(n for n in aula.nodos if n.idnumber.startswith("TZ_I_"))
+    assert ind.formula.endswith("*0+10") and ind.maximo == 10.0
+    # las actividades sin número de ID reciben TZ_A<cmid>, que usan las fórmulas
+    assert por_id(aula, "TZ_A11").cmid == 11
+    assert any("[[TZ_A11]]" in (n.formula or "") for n in aula.nodos)
+
+
+def test_actividad_con_numero_de_id_propio_lo_conserva() -> None:
+    aula = aula_con(actividad(11, idnumber="EX1"), actividad(12), actividad(13))
+    d, final = montar(FP_TOPE, aula=aula)
+    assert por_id(final, "EX1").cmid == 11
+    assert not any(n.idnumber == "TZ_A11" for n in final.nodos)
+    assert any("[[EX1]]" in (n.formula or "") for n in final.nodos)
+    colocar = [
+        o
+        for o in reconciliar(d, aula, {}, CMIDS).operaciones
+        if o.tipo == "colocar" and o.cmid == 11
+    ]
+    assert colocar[0].poner_idnumber is False and colocar[0].idnumber == "EX1"
+    assert huellas_de(final, CMIDS)["EX1"]
+
+
+def test_quitado_con_notas_se_queda() -> None:
+    d0 = deseado(
+        Esquema("elementos", EL, EVS, Final("elementos")),
+        [doc("a.md", 1, RA1=100)],
+        False,
+        CARPETA,
+    )
+    cmids = {"a.md": 11}
+    aula = aplicar(aula_inicial(cmids), reconciliar(d0, aula_inicial(cmids), {}, cmids).operaciones)
+    huellas = huellas_de(aula, cmids)
+    assert por_id(aula, "TZ_E_RA2")  # RA2 existe, vacío
+    # el esquema nuevo ya no tiene RA2
+    nuevo = Esquema("elementos", (Elemento("RA1", "Redes", 100.0),), EVS, Final("elementos"))
+    d1 = deseado(nuevo, [doc("a.md", 1, RA1=100)], False, CARPETA)
+    sin_notas = reconciliar(d1, aula, huellas, cmids)
+    borrados = [o.idnumber for o in sin_notas.operaciones if o.tipo == "borrar"]
+    assert borrados == ["TZ_E_RA2"]
+    ra2 = por_id(aula, "TZ_E_RA2")
+    assert [o.eid for o in sin_notas.operaciones if o.tipo == "borrar"] == [ra2.eid]
+    con_notas = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, tiene_notas=True) if n.eid == ra2.eid else n for n in aula.nodos
+        ),
+        decimal=".",
+    )
+    rec = reconciliar(d1, con_notas, huellas, cmids)
+    assert "borrar" not in tipos(rec.operaciones)
+    assert ("ELEMENTO_CON_NOTAS_QUITADO", "TZ_E_RA2") in rec.avisos
+
+
+def test_borrar_va_el_ultimo_y_primero_los_hijos() -> None:
+    d0 = deseado(FP, docs(), False, CARPETA)
+    _, aula = montar(FP)
+    huellas = huellas_de(aula, CMIDS)
+    # c.md y d.md dejan de contar: RA2 y todo lo suyo sobra; el esquema solo tiene RA1
+    nuevo = Esquema("elementos", (Elemento("RA1", "Redes", 100.0),), EVS, Final("elementos"))
+    d1 = deseado(nuevo, [doc("a.md", 1, RA1=100)], False, CARPETA)
+    assert d0 != d1
+    rec = reconciliar(d1, aula, huellas, CMIDS)
+    t = tipos(rec.operaciones)
+    primero = t.index("borrar")
+    assert set(t[primero:]) == {"borrar"}
+    ids = [o.idnumber for o in rec.operaciones if o.tipo == "borrar"]
+    assert "TZ_E_RA2" not in ids  # d.md y c.md siguen dentro de la categoría: no se borra
+    # las copias que ya no hacen falta sí se borran, y antes que su categoría
+    assert any(i.startswith("TZ_C_") for i in ids)
+    pos = {i: k for k, i in enumerate(ids)}
+    for o in rec.operaciones:
+        if o.tipo == "borrar":
+            hijo = por_id(aula, o.idnumber)
+            padre = next((n for n in aula.nodos if n.eid == hijo.padre_eid), None)
+            if padre is not None and padre.idnumber in pos:
+                assert pos[o.idnumber] < pos[padre.idnumber]
+
+
+def test_actividad_que_deja_de_contar_se_queda_con_peso_cero() -> None:  # D2
+    _, aula = montar(FP)
+    huellas = huellas_de(aula, CMIDS)
+    solo = [doc("a.md", 1, RA1=100), doc("c.md", 2, RA2=100)]  # d.md ya no cuenta
+    d = deseado(FP, solo, False, CARPETA)
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    d_aula = next(n for n in aula.nodos if n.cmid == 12)
+    op = next(o for o in rec.operaciones if o.tipo == "fijar_peso" and o.eid == d_aula.eid)
+    assert op.peso == 0.0
+    assert not any(o.tipo == "borrar" and o.eid == d_aula.eid for o in rec.operaciones)
+    # una vez a 0, ya no hay nada que hacer con ella
+    final = aplicar(aula, rec.operaciones)
+    otra = reconciliar(d, final, huellas_de(final, CMIDS), CMIDS)
+    assert not [o for o in otra.operaciones if o.eid == d_aula.eid]
+
+
+def test_mover_una_copia_del_aula_a_su_sitio() -> None:
+    d, aula = montar(FP)
+    huellas = huellas_de(aula, CMIDS)
+    copia = next(n for n in aula.nodos if n.idnumber.startswith("TZ_C_"))
+    destino = next(x for x in aula.nodos if x.eid == copia.padre_eid)
+    otro = next(n for n in aula.nodos if n.idnumber == "TZ_VISTA")
+    # sin huella la mueve de vuelta con mover_manual; con huella igual (a mano) la respeta
+    movida = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, padre_eid=otro.eid) if n.eid == copia.eid else n
+            for n in aula.nodos
+        ),
+        decimal=".",
+    )
+    sin = reconciliar(d, movida, {}, CMIDS)
+    ops = [o for o in sin.operaciones if o.tipo == "mover_manual"]
+    assert [(o.eid, o.item_id, o.padre_eid) for o in ops] == [
+        (copia.eid, copia.item_id, destino.eid)
+    ]
+    con = reconciliar(d, movida, huellas, CMIDS)
+    assert "mover_manual" not in tipos(con.operaciones)
+    assert ("CAMBIADO_A_MANO", copia.idnumber) in con.avisos
+
+
+def test_maximo_cambia_actualiza_contador() -> None:
+    d, aula = montar(FP_TOPE)
+    huellas = huellas_de(aula, CMIDS)
+    ra1 = por_id(aula, "TZ_E_RA1")
+    assert ra1.maximo == 20.0
+    # 1) el máximo de TZ_E_RA1 pasa de 20 a 30 (una actividad con otro máximo, p. ej.)
+    nodos = tuple(
+        dataclasses.replace(n, maximo=30.0) if n.eid == ra1.eid else n for n in aula.nodos
+    )
+    rec = reconciliar(d, CalificadorAula(nodos=nodos, decimal="."), huellas, CMIDS)
+    kc = por_id(aula, "TZ_KC_RA1")
+    ops = [o for o in rec.operaciones if o.tipo == "fijar_maximo"]
+    assert [(o.idnumber, o.eid, o.item_id, o.maximo) for o in ops] == [
+        ("TZ_KC_RA1", kc.eid, kc.item_id, 30.0)
+    ]
+    # 2) una actividad de RA1 pasa de máximo 10 a 100
+    a_aula = next(n for n in aula.nodos if n.cmid == 11)
+    nodos = tuple(
+        dataclasses.replace(n, maximo=100.0) if n.eid == a_aula.eid else n for n in aula.nodos
+    )
+    rec = reconciliar(d, CalificadorAula(nodos=nodos, decimal="."), huellas, CMIDS)
+    indicador = next(n for n in d.nodos if n.clase == "indicador" and n.formula_de == "a.md")
+    ind_aula = por_id(aula, indicador.idnumber)
+    maximos = [o for o in rec.operaciones if o.tipo == "fijar_maximo" and o.eid == ind_aula.eid]
+    formulas = [o for o in rec.operaciones if o.tipo == "fijar_formula" and o.eid == ind_aula.eid]
+    assert [o.maximo for o in maximos] == [100.0]
+    assert [o.formula for o in formulas] == ["=[[TZ_A11]]*0+100"]
+    assert max(i for i, o in enumerate(rec.operaciones) if o.tipo == "fijar_maximo") < min(
+        i for i, o in enumerate(rec.operaciones) if o.tipo == "fijar_formula"
+    )
+    # la copia de la actividad también toma el máximo nuevo
+    copias = [
+        o for o in rec.operaciones if o.tipo == "fijar_maximo" and o.idnumber.startswith("TZ_C_")
+    ]
+    assert copias and all(o.maximo == 100.0 for o in copias)
+
+
+def test_orden_dos_fases() -> None:
+    d = deseado(FP_TOPE, docs(), False, CARPETA)
+    rec = reconciliar(d, aula_inicial(), {}, CMIDS)
+    t = tipos(rec.operaciones)
+    ultimo_alta = max(
+        i for i, x in enumerate(t) if x in ("crear_categoria", "crear_calculado", "colocar")
+    )
+    assert min(i for i, x in enumerate(t) if x == "fijar_peso") > ultimo_alta
+    assert min(i for i, x in enumerate(t) if x == "fijar_formula") > ultimo_alta
+    assert min(i for i, x in enumerate(t) if x == "fijar_formula") > max(
+        i for i, x in enumerate(t) if x in ("fijar_peso", "fijar_maximo")
+    )
+    assert t[-1] == "fijar_total_curso"
+    # el orden por fases: ajeno, crear/colocar, pesos y máximos, fórmulas, cierre y borrado
+    fases = {
+        "bloquear_ajeno": 0,
+        "crear_categoria": 1,
+        "crear_calculado": 1,
+        "colocar": 1,
+        "mover_manual": 1,
+        "fijar_peso": 2,
+        "fijar_maximo": 2,
+        "fijar_formula": 3,
+        "fijar_total_curso": 3,
+        "bloquear_cerrada": 4,
+        "borrar": 4,
+    }
+    assert set(rc.TIPOS) == set(fases)
+    assert [fases[x] for x in t] == sorted(fases[x] for x in t)
+    total = [o for o in rec.operaciones if o.tipo == "fijar_total_curso"][0]
+    assert total.formula == "=[[TZ_NOTA_FINAL]]"
+
+
+def test_total_del_curso_sin_tope_es_solo_visualizacion() -> None:
+    d = deseado(FP, docs(), False, CARPETA)
+    rec = reconciliar(d, aula_inicial(), {}, CMIDS)
+    (total,) = [o for o in rec.operaciones if o.tipo == "fijar_total_curso"]
+    assert total.formula is None and total.eid == "cg1"
+
+
+def test_total_del_curso_cambiado_a_mano_no_se_pisa() -> None:
+    d, aula = montar(FP_TOPE)
+    huellas = huellas_de(aula, CMIDS)
+    nodos = tuple(
+        dataclasses.replace(n, formula="=[[TZ_NOTA_FINAL]]*0.9") if n.clase == "curso" else n
+        for n in aula.nodos
+    )
+    rec = reconciliar(d, CalificadorAula(nodos=nodos, decimal="."), huellas, CMIDS)
+    assert ("CAMBIADO_A_MANO", "TZ_CURSO") in rec.avisos
+    assert "fijar_total_curso" not in tipos(rec.operaciones)
+
+
+def test_pasada2_solo_ajustes() -> None:
+    d, aula = montar(FP_TOPE)
+    ra1 = por_id(aula, "TZ_E_RA1")
+    ind = next(n for n in aula.nodos if n.idnumber.startswith("TZ_I_"))
+    nodos = tuple(
+        dataclasses.replace(n, peso=33.0)
+        if n.eid == ra1.eid
+        else dataclasses.replace(n, formula=None)
+        if n.eid == ind.eid
+        else n
+        for n in aula.nodos
+    )
+    releida = CalificadorAula(nodos=nodos, decimal=".")
+    ops = pasada2(d, releida, {}, CMIDS)
+    assert [(o.tipo, o.eid) for o in ops] == [("fijar_peso", ra1.eid), ("fijar_formula", ind.eid)]
+    assert ops[0].peso == 60.0 and ops[1].formula.endswith("*0+10")
+    # con las huellas de antes de la primera pasada, el reescalado de Moodle no es «a mano»
+    huellas = huellas_de(aula, CMIDS)
+    assert pasada2(d, releida, huellas, CMIDS) == ()  # sin a_mano se confunde con un cambio
+    ops = pasada2(d, releida, huellas, CMIDS, a_mano=frozenset())
+    assert [(o.tipo, o.eid) for o in ops] == [("fijar_peso", ra1.eid), ("fijar_formula", ind.eid)]
+
+
+def test_pasada2_tras_la_primera_solo_arregla_el_contador() -> None:
+    d = deseado(FP_TOPE, docs(), False, CARPETA)
+    aula = aula_inicial()
+    rec = reconciliar(d, aula, {}, CMIDS)
+    aula = aplicar(aula, rec.operaciones)
+    ops = pasada2(d, aula, {}, CMIDS, a_mano=rec.a_mano)
+    assert set(tipos(ops)) <= {"fijar_peso", "fijar_maximo", "fijar_formula", "fijar_total_curso"}
+    assert {o.idnumber for o in ops if o.tipo == "fijar_maximo"} == {"TZ_KC_RA1", "TZ_KC_RA2"}
+
+
+def test_pasada2_no_crea_ni_coloca() -> None:
+    d = deseado(FP, docs(), False, CARPETA)
+    assert pasada2(d, aula_inicial(), {}, CMIDS) == ()  # nada existe aún: no hay qué ajustar
+
+
+def test_formula_con_coma_decimal_del_aula() -> None:
+    d, aula = montar(FP_TOPE)
+    traducidas = tuple(
+        dataclasses.replace(n, formula=n.formula.replace(",", ";")) if n.formula else n
+        for n in aula.nodos
+    )
+    coma = CalificadorAula(nodos=traducidas, decimal=",")
+    huellas = huellas_de(coma, CMIDS)
+    assert reconciliar(d, coma, huellas, CMIDS).operaciones == ()
+
+
+def test_no_importa_python_moodle() -> None:
+    codigo = (
+        "import sys, tiza.calificacion.reconciliar, tiza.estado;"
+        "assert not [m for m in sys.modules if m.startswith('py_moodle')]"
+        " and 'tiza.publicar' not in sys.modules"
+    )
+    resultado = subprocess.run(
+        [sys.executable, "-I", "-c", codigo], capture_output=True, text=True, check=False
+    )
+    assert resultado.returncode == 0, resultado.stderr
+
+
+def test_las_formulas_viven_fuera_de_publicar() -> None:
+    from tiza import publicar
+    from tiza.calificacion import formulas
+
+    assert publicar.formula_copia is formulas.formula_copia
+    assert publicar.formula_tope is formulas.formula_tope
+
+
+def test_reconciliacion_es_inmutable() -> None:
+    d = deseado(FP, docs(), False, CARPETA)
+    rec = reconciliar(d, aula_inicial(), {}, CMIDS)
+    assert isinstance(rec, Reconciliacion) and isinstance(d, Deseado)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        rec.anterior = True  # type: ignore[misc]
+    assert isinstance(rec.operaciones, tuple) and isinstance(rec.avisos, tuple)

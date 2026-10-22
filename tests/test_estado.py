@@ -229,3 +229,82 @@ class TestCopiasDeTiza:
         with pytest.raises(FicheroNoSeguro):
             estado.temporal_de_copia(otra / ".tiza")
         assert list(fuera.iterdir()) == []
+
+
+class TestHuellasDelCalificador:
+    """``.tiza/calificador.json``: la huella de cada nodo que montó tiza, por curso."""
+
+    HUELLA = "a" * 64
+
+    def test_sin_fichero_no_hay_huellas(self, tmp_path):
+        assert estado.cargar_huellas(tmp_path, 7) == {}
+
+    def test_guarda_y_lee_por_curso(self, tmp_path):
+        ruta = estado.guardar_huellas(tmp_path / ".tiza", 7, {"TZ_TIZA": self.HUELLA})
+        assert ruta == tmp_path / ".tiza" / "calificador.json"
+        estado.guardar_huellas(tmp_path / ".tiza", 8, {"TZ_E_RA1": "b" * 64})
+        assert estado.cargar_huellas(tmp_path / ".tiza", 7) == {"TZ_TIZA": self.HUELLA}
+        assert estado.cargar_huellas(tmp_path / ".tiza", 8) == {"TZ_E_RA1": "b" * 64}
+        assert estado.cargar_huellas(tmp_path / ".tiza", 9) == {}
+
+    def test_guardar_reemplaza_las_del_curso(self, tmp_path):
+        estado.guardar_huellas(tmp_path, 7, {"TZ_TIZA": self.HUELLA, "TZ_E_RA1": self.HUELLA})
+        estado.guardar_huellas(tmp_path, 7, {"TZ_TIZA": "c" * 64})
+        assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": "c" * 64}
+
+    def test_huellas_esquema_cerrado(self, tmp_path):
+        (tmp_path / "calificador.json").write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "cursos": {"7": {"nodos": {"TZ_TIZA": self.HUELLA}}},
+                    "extra": 1,
+                }
+            ),
+            encoding="utf-8",
+        )
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas(tmp_path, 7)
+        assert error.value.codigo == "CALIFICADOR_INVALIDO"
+
+    @pytest.mark.parametrize(
+        "datos",
+        [
+            [],
+            {"version": 2, "cursos": {}},
+            {"version": 1},
+            {"version": 1, "cursos": []},
+            {"version": 1, "cursos": {"siete": {"nodos": {}}}},
+            {"version": 1, "cursos": {"7": {"nodos": {}, "otro": 1}}},
+            {"version": 1, "cursos": {"7": {}}},
+            {"version": 1, "cursos": {"7": {"nodos": []}}},
+            {"version": 1, "cursos": {"7": {"nodos": {"TZ_TIZA": "corta"}}}},
+            {"version": 1, "cursos": {"7": {"nodos": {"TZ_TIZA": "A" * 64}}}},
+            {"version": 1, "cursos": {"7": {"nodos": {"TZ_TIZA": 5}}}},
+            {"version": 1, "cursos": {"7": {"nodos": {"": "a" * 64}}}},
+            {"version": 1, "cursos": {"7": {"nodos": {"x\ny": "a" * 64}}}},
+        ],
+    )
+    def test_fuera_del_esquema_es_invalido(self, tmp_path, datos):
+        (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas(tmp_path, 7)
+        assert error.value.codigo == "CALIFICADOR_INVALIDO"
+
+    def test_no_json_es_invalido(self, tmp_path):
+        (tmp_path / "calificador.json").write_text("{no es json", encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas(tmp_path, 7)
+        assert error.value.codigo == "CALIFICADOR_INVALIDO"
+
+    def test_no_se_guarda_lo_invalido(self, tmp_path):
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_huellas(tmp_path, 7, {"TZ_TIZA": "no es un sha256"})
+        assert error.value.codigo == "CALIFICADOR_INVALIDO"
+        assert not (tmp_path / "calificador.json").exists()
+
+    def test_un_directorio_no_es_el_fichero(self, tmp_path):
+        (tmp_path / "calificador.json").mkdir()
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas(tmp_path, 7)
+        assert error.value.codigo == "CALIFICADOR_INVALIDO"

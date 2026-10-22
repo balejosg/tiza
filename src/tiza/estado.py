@@ -4,7 +4,8 @@
 validación al leer: la estructura de secciones (``estructura.json``), el registro
 de lo verificado en pruebas (``verificados.json``), las vistas previas
 (``preview/``), el informe (``informe.json``) y la importación de una copia de
-seguridad (``copia.json``, ``copia/<cmid>.html`` y ``copias/``).
+seguridad (``copia.json``, ``copia/<cmid>.html`` y ``copias/``) y las huellas de lo que montó
+tiza en el calificador (``calificador.json``).
 
 Aquí no se habla con el aula ni se importa python-moodle: el lado del agente
 (``tiza comprobar``) puede usar este módulo sin cargar nada del aula. La
@@ -43,6 +44,7 @@ __all__ = [
     "CARPETA_PREVIEW",
     "ErrorEstado",
     "Estructura",
+    "FICHERO_CALIFICADOR",
     "FICHERO_COPIA",
     "FICHERO_ESTRUCTURA",
     "FICHERO_INFORME",
@@ -54,11 +56,13 @@ __all__ = [
     "buscar_seccion",
     "cargar_copia",
     "cargar_estructura",
+    "cargar_huellas",
     "cargar_verificados",
     "comprobar_puerta_real",
     "escribir_copia",
     "escribir_estructura",
     "guardar_huella_de_copia",
+    "guardar_huellas",
     "guardar_verificado",
     "guardar_version_de_copia",
     "huellas_de_copia",
@@ -87,6 +91,8 @@ _AVISO_CAMBIADA = re.compile(
     r"El nombre, el texto o las fechas cambiaron en el aula desde la importación\. "
     r"Tu fichero no se ha tocado; la versión nueva está en \.tiza/copia/\d+\.html\. ?"
 )
+FICHERO_CALIFICADOR = "calificador.json"  # la huella de cada nodo del calificador que montó tiza
+MAX_CALIFICADOR_JSON = 16 * 1024 * 1024  # calificador.json, al leerlo
 FICHERO_COPIA = "copia.json"  # el resumen de lo que ``tiza importar`` hizo con una copia
 CARPETA_COPIA = "copia"  # ``copia/<cmid>.html``: la versión nueva de una actividad ya importada
 CARPETA_COPIAS = "copias"  # donde ``tiza copia`` deja los .mbz que pide a la sesión
@@ -344,6 +350,79 @@ def reservar_copia(dir_tiza: str | Path, curso: str, momento: datetime, temporal
             raise
         return destino
     raise FicheroNoSeguro("no_regular")
+
+
+_HUELLA = re.compile(r"[0-9a-f]{64}")
+_CLAVE_DE_NODO = re.compile(r"[^\x00-\x1f\x7f-\x9f]{1,255}")
+_CURSO_DE_HUELLAS = re.compile(r"[0-9]{1,18}")
+
+
+def _validar_calificador(datos: Any) -> None:
+    """Esquema cerrado de ``calificador.json``: ``{version: 1, cursos: {id: {nodos: {id: sha256}}}}``."""
+    if not isinstance(datos, dict) or set(datos) != {"version", "cursos"}:
+        raise ErrorEstado("CALIFICADOR_INVALIDO")
+    if datos["version"] != 1 or isinstance(datos["version"], bool):
+        raise ErrorEstado("CALIFICADOR_INVALIDO")
+    cursos = datos["cursos"]
+    if not isinstance(cursos, dict):
+        raise ErrorEstado("CALIFICADOR_INVALIDO")
+    for curso, entrada in cursos.items():
+        if not isinstance(curso, str) or not _CURSO_DE_HUELLAS.fullmatch(curso):
+            raise ErrorEstado("CALIFICADOR_INVALIDO")
+        if not isinstance(entrada, dict) or set(entrada) != {"nodos"}:
+            raise ErrorEstado("CALIFICADOR_INVALIDO")
+        nodos = entrada["nodos"]
+        if not isinstance(nodos, dict):
+            raise ErrorEstado("CALIFICADOR_INVALIDO")
+        for clave, huella in nodos.items():
+            if not isinstance(clave, str) or not _CLAVE_DE_NODO.fullmatch(clave):
+                raise ErrorEstado("CALIFICADOR_INVALIDO")
+            if not isinstance(huella, str) or not _HUELLA.fullmatch(huella):
+                raise ErrorEstado("CALIFICADOR_INVALIDO")
+
+
+def _cargar_calificador(dir_tiza: str | Path) -> dict | None:
+    """``calificador.json`` validado, o ``None`` si no existe; fuera del esquema es inválido."""
+    ruta = Path(dir_tiza) / FICHERO_CALIFICADOR
+    try:
+        modo = os.lstat(ruta).st_mode
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ErrorEstado("CALIFICADOR_INVALIDO") from exc
+    if not stat.S_ISREG(modo):  # un directorio, una FIFO o un enlace: no es el de tiza
+        raise ErrorEstado("CALIFICADOR_INVALIDO")
+    try:
+        datos = json.loads(leer_bytes_acotado(ruta, MAX_CALIFICADOR_JSON).decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ErrorEstado("CALIFICADOR_INVALIDO") from exc
+    _validar_calificador(datos)
+    return datos
+
+
+def cargar_huellas(dir_tiza: str | Path, curso: int) -> dict[str, str]:
+    """Las huellas de los nodos del calificador que montó tiza en ``curso`` (idnumber -> sha256).
+
+    Sin ``calificador.json`` o sin entrada para el curso, ``{}``: tiza no recuerda nada y
+    adopta lo que haya. Un fichero fuera del esquema es ``CALIFICADOR_INVALIDO``.
+    """
+    datos = _cargar_calificador(dir_tiza)
+    if datos is None:
+        return {}
+    entrada = datos["cursos"].get(str(curso))
+    return dict(entrada["nodos"]) if entrada else {}
+
+
+def guardar_huellas(dir_tiza: str | Path, curso: int, nodos: Mapping[str, str]) -> Path:
+    """Guarda las huellas de ``curso`` (sustituye las anteriores) y deja intactos los demás cursos.
+
+    Valida antes de escribir: lo que no case con el esquema no llega al disco.
+    """
+    datos = _cargar_calificador(dir_tiza) or {"version": 1, "cursos": {}}
+    datos["cursos"][str(int(curso))] = {"nodos": dict(nodos)}
+    _validar_calificador(datos)
+    asegurar_directorio(Path(dir_tiza))
+    return escribir_json(Path(dir_tiza) / FICHERO_CALIFICADOR, datos)
 
 
 def _validar_copia(datos: Any) -> None:
