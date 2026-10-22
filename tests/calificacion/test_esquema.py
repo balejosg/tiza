@@ -179,3 +179,21 @@ def test_extension_no_yaml(tmp_path: Path) -> None:
     with pytest.raises(ErrorCalificacion) as info:
         cargar_esquema(tmp_path / "x.txt", tmp_path)
     assert info.value.codigo == "FORMATO_NO_ADMITIDO"
+
+
+@pytest.mark.parametrize("valor", [".nan", ".inf", "-.inf"])
+@pytest.mark.parametrize(
+    ("antes", "ruta"),
+    [
+        ("peso: 40", "elementos[0].peso"),
+        ("si_alguno_menor_que: 5", "final.tope.si_alguno_menor_que"),
+        ("maximo: 4", "final.tope.maximo"),
+    ],
+)
+def test_numero_no_finito(tmp_path: Path, valor: str, antes: str, ruta: str) -> None:
+    clave = antes.split(":")[0]
+    sustituido = f"{clave}: {valor}"
+    error = _codigo(tmp_path, FP.replace(antes, sustituido, 1))
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert ruta in error.detalle
+    assert "línea" in error.detalle
