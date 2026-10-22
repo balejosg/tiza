@@ -1451,7 +1451,8 @@ class Moodle:
     def bloquear_total(self, curso: int, item_id: int) -> None:
         """Bloquea el total con la acción del menú sobre ``ig<id>``; nunca ``cg`` (cascada).
 
-        tiza nunca desbloquea. Quien llama comprueba el bloqueo al releer.
+        tiza nunca desbloquea. Que el aula acepte la orden no prueba que bloquee:
+        ``Ejecucion`` relee el calificador después y exige ``bloqueado`` en cada total.
         """
         self._accion_del_calificador(
             "grade/edit/tree/action.php",

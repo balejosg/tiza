@@ -22,7 +22,7 @@ MENSAJES: dict[str, str] = {
     "ESQUEMA_FUERA_DE_CARPETA": "El esquema de calificación debe estar dentro de la carpeta de la asignatura. Indica su ruta desde esa carpeta.",
     "CARPETA_DEMASIADO_GRANDE": "La carpeta tiene demasiados ficheros .md y .html para montar el calificador (el máximo son 500). Saca de la carpeta los que no sean de este curso.",
     "ACTIVIDAD_EN_EVALUACION_CERRADA": "Una actividad nueva cae en una evaluación cerrada: no se coloca en el calificador, ni sus copias, porque tiza no toca lo cerrado. Si debe contar, reábrela a mano en el aula y vuelve a montar.",
-    "BLOQUEO_FALLIDO": "No se pudo bloquear un total del calificador que tiene notas, así que no se ha movido nada más en ese curso. Vuelve a intentarlo; si se repite, revisa el calificador del curso en el aula.",
+    "BLOQUEO_FALLIDO": "No se pudo bloquear un total del calificador (uno con notas o una evaluación que se cierra): el aula no lo dejó bloqueado, así que no se ha movido nada más en ese curso. Vuelve a intentarlo; si se repite, revisa el calificador en el aula.",
     "ORIGEN_INVALIDO": "El campo «origen» del fichero no es válido: debe tener solo «curso» y «cmid», con números enteros positivos. Lo escribe «tiza importar»; no lo cambies a mano.",
     # Sesión y buzón
     "SIN_SESION": "No hay ninguna sesión abierta. En tu terminal, dentro de la carpeta de la asignatura, ejecuta «tiza empezar» y déjala abierta.",

@@ -15,9 +15,10 @@ from __future__ import annotations
 from tiza.calificacion.reconciliar import Operacion
 from tiza.publicar import AulaVirtual, ErrorPublicacion
 
-__all__ = ["Ejecucion", "FORMULA_NO_VALIDA", "TIPOS_DE_BLOQUEO"]
+__all__ = ["Ejecucion", "FORMULA_NO_VALIDA", "SIN_EFECTO", "TIPOS_DE_BLOQUEO"]
 
 FORMULA_NO_VALIDA = "FORMULA_NO_VALIDA"
+SIN_EFECTO = "BLOQUEO_SIN_EFECTO"  # detalle de BLOQUEO_FALLIDO: el aula aceptó y no bloqueó
 TIPOS_DE_BLOQUEO = ("bloquear_ajeno", "bloquear_cerrada")
 _TIPOS_DE_FORMULA = ("fijar_formula", "fijar_total_curso")
 
@@ -80,9 +81,16 @@ class Ejecucion:
         """Ejecuta en orden; un ``ErrorPublicacion`` para en seco (``self.hechas`` dice hasta dónde).
 
         Un ``bloquear_ajeno`` fallido es ``BLOQUEO_FALLIDO`` (``detalle`` lleva el código del
-        aula): si no se pudo proteger un total con notas, no se mueve nada más en ese curso.
+        aula): si no se pudo proteger un total con notas, no se mueve nada más en ese curso. Que
+        el aula acepte la orden no basta: al acabar cada tanda de bloqueos (los ajenos, antes de
+        mover nada; los cierres, antes de borrar) se relee el calificador y cada total debe
+        estar bloqueado; si no, también es ``BLOQUEO_FALLIDO``.
         """
+        tanda: list[Operacion] = []
         for op in operaciones:
+            if tanda and op.tipo != tanda[0].tipo:
+                self._verificar_bloqueos(tanda)
+                tanda = []
             try:
                 self._una(op)
             except ErrorPublicacion as exc:
@@ -97,6 +105,18 @@ class Ejecucion:
                     continue
                 raise
             self.hechas.append(op)
+            if op.tipo in TIPOS_DE_BLOQUEO:
+                tanda.append(op)
+        self._verificar_bloqueos(tanda)
+
+    def _verificar_bloqueos(self, bloqueos: list[Operacion]) -> None:
+        """Relee el calificador y exige ``bloqueado`` en cada total que se acaba de bloquear."""
+        if not bloqueos:
+            return
+        self._releida = None  # lo cacheado es anterior al bloqueo
+        bloqueados = {n.item_id for n in self.aula.calificador(self.curso).nodos if n.bloqueado}
+        if any(op.item_id not in bloqueados for op in bloqueos):
+            raise ErrorPublicacion("BLOQUEO_FALLIDO", SIN_EFECTO)
 
     def _una(self, op: Operacion) -> None:
         aula, curso = self.aula, self.curso

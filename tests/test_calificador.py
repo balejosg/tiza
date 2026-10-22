@@ -571,6 +571,43 @@ def test_bloqueo_fallido_para_el_curso(tmp_path):
     assert estado.cargar_huellas(carpeta / ".tiza", 5678) == {}
 
 
+def bloqueo_que_no_bloquea(moodle: MoodleFalso) -> None:
+    """El aula acepta la orden de bloquear (303) y no bloquea nada."""
+    moodle.bloquear_total = lambda curso, item_id: MoodleFalso.bloquear_total(
+        moodle, curso, item_id
+    )
+
+
+def test_un_bloqueo_ajeno_que_el_aula_acepta_sin_bloquear_es_bloqueo_fallido(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = aula_con_anterior()
+    bloqueo_que_no_bloquea(moodle)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert documento["resultado"] == "error"
+    assert "BLOQUEO_FALLIDO" in documento["errores"]
+    # se comprobó con una relectura y no se movió nada antes de que el total estuviera bloqueado
+    assert moodle.metodos() == ["bloquear_total"]
+    assert pasos(documento, "CALIFICADOR_BLOQUEAR")[0]["resultado"] == "fallo"
+    assert moodle.nodos["cg50"].bloqueado is False
+
+
+def test_un_cierre_que_el_aula_acepta_sin_bloquear_es_un_error_del_curso(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    moodle.escrituras.clear()
+    cerrada = ESQUEMA.replace(
+        "{nombre: 1.ª evaluación, secciones: [1]}",
+        "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
+    )
+    (carpeta / "calificacion.yaml").write_text(cerrada, encoding="utf-8")
+    bloqueo_que_no_bloquea(moodle)
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "error"
+    assert "BLOQUEO_FALLIDO" in documento["errores"]
+    assert pasos(documento, "CALIFICADOR_BLOQUEAR")[0]["resultado"] == "fallo"
+
+
 def test_un_fallo_a_medias_guarda_las_huellas_de_lo_hecho_y_se_cuenta(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     moodle = AulaViva()
