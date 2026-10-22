@@ -384,6 +384,29 @@ def test_calificador_cierra_evaluacion(tmp_path):
     assert moodle.por_id("TZ_E_RA1").peso == 50.0
 
 
+def test_primer_montaje_con_una_evaluacion_cerrada_la_crea_y_la_bloquea_al_final(tmp_path):
+    carpeta = carpeta_fp(
+        tmp_path,
+        ESQUEMA.replace(
+            "{nombre: 1.ª evaluación, secciones: [1]}",
+            "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
+        ),
+    )
+    moodle = AulaViva()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    v1 = moodle.por_id("TZ_V_1")
+    assert v1.bloqueado and moodle.por_id("TZ_V_1_RA1").padre_eid == v1.eid
+    assert not moodle.por_id("TZ_V_2").bloqueado
+    assert moodle.metodos().count("bloquear_total") == 1
+    assert moodle.metodos()[-1] == "bloquear_total"  # lo último de todo
+    assert acciones(documento) == {"a.md": "colocada", "c.md": "colocada", "d.md": "colocada"}
+    assert pasos(documento, "CALIFICADOR_BLOQUEAR")[0]["detalle"] == "1"
+    moodle.escrituras.clear()
+    otra = atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.escrituras == [] and otra["resultado"] == "ok"
+
+
 # --------------------------------------------------------------------------- #
 # Escena 3: ya había un calificador
 # --------------------------------------------------------------------------- #

@@ -104,6 +104,7 @@ CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
 # llano en :mod:`tiza.mensajes`.
 AVISOS = frozenset(
     {
+        "ACTIVIDAD_EN_EVALUACION_CERRADA",
         "ACTIVIDAD_PENDIENTE",
         "AUTOPRUEBA_FALLIDA",
         "CALIFICANDO_EN_PRUEBAS",
@@ -148,6 +149,11 @@ class Aviso:
     def __post_init__(self) -> None:
         if self.codigo not in AVISOS:
             raise ValueError(f"aviso desconocido: {self.codigo}")
+
+    @classmethod
+    def actividad_en_evaluacion_cerrada(cls, ruta: str) -> Aviso:
+        """``ruta``: el fichero nuevo en una evaluación cerrada, que se queda sin colocar."""
+        return cls("ACTIVIDAD_EN_EVALUACION_CERRADA", {"ruta": ruta})
 
     @classmethod
     def actividad_pendiente(cls, ruta: str) -> Aviso:
@@ -1670,6 +1676,8 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
     nombre = "el total del curso" if clave == rc.CURSO else nombres.get(clave, clave)
     if codigo == "ACTIVIDAD_PENDIENTE":
         return Aviso.actividad_pendiente(clave)
+    if codigo == "ACTIVIDAD_EN_EVALUACION_CERRADA":
+        return Aviso.actividad_en_evaluacion_cerrada(clave)
     if codigo == "CAMBIADO_A_MANO":
         return Aviso.cambiado_a_mano(nombre)
     if codigo == "EVALUACION_CERRADA_EN_EL_AULA":
@@ -1829,7 +1837,14 @@ def calificador_con(
         if rec.operaciones:
             primera.ejecutar(rec.operaciones, tolerar_formulas=True)
             final = aula.calificador(curso)
-            ajustes = rc.pasada2(plan.deseado, final, plan.huellas, plan.cmids, a_mano=rec.a_mano)
+            ajustes = rc.pasada2(
+                plan.deseado,
+                final,
+                plan.huellas,
+                plan.cmids,
+                a_mano=rec.a_mano,
+                por_cerrar=rec.por_cerrar,
+            )
             if ajustes:
                 segunda = Ejecucion(aula, curso, final.decimal)
                 segunda.ejecutar(ajustes, tolerar_formulas=False)

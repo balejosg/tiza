@@ -76,6 +76,7 @@ TIPOS = set(tipos.TIPOS)
 PASOS = (
     frozenset(
         {
+            "ACTIVIDAD_EN_EVALUACION_CERRADA",
             "ACTIVIDAD_PENDIENTE",
             "BORRAR_COPIA",
             "BORRAR_SECCION",

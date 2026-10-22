@@ -214,6 +214,11 @@ class TestAvisos:
                 "Aún no está en el aula, no cuenta todavía: unidad/c.md",
             ),
             (
+                publicacion.Aviso.actividad_en_evaluacion_cerrada("unidad/e.md"),
+                "Es nueva en una evaluación cerrada: no se coloca en el calificador, ni sus "
+                "copias (la evaluación no se toca): unidad/e.md",
+            ),
+            (
                 publicacion.Aviso.cambiado_a_mano("Redes"),
                 "Lo cambiaste a mano en el aula y tiza no lo toca: Redes",
             ),

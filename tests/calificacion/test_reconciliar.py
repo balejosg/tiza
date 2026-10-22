@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -175,8 +176,8 @@ def montar(esquema=FP, documentos=None, anterior=False, aula=None, huellas=None,
     huellas = huellas or {}
     rec = reconciliar(d, aula, huellas, cmids)
     aula = aplicar(aula, rec.operaciones)
-    aula = aplicar(aula, pasada2(d, aula, huellas, cmids, a_mano=rec.a_mano))
-    return d, aula
+    ajustes = pasada2(d, aula, huellas, cmids, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+    return d, aplicar(aula, ajustes)
 
 
 def tipos(operaciones) -> list[str]:
@@ -799,3 +800,120 @@ def test_pasada2_y_borrar_no_tocan_una_evaluacion_cerrada() -> None:
     assert not [o for o in rec.operaciones if o.tipo == "borrar" and o.eid in eids]
     # fuera de la cerrada sí hay trabajo: no es un test vacío
     assert any(o.tipo == "fijar_peso" and o.idnumber == "TZ_E_RA2" for o in rec.operaciones)
+
+
+# --------------------------------------------------------------------------- #
+# Una actividad cuya colocación cae en una evaluación cerrada
+# --------------------------------------------------------------------------- #
+
+FP_TOPE_CERRADA = Esquema("elementos", EL, EVS_CERRADA, Final("elementos", Tope(5.0, 4.0)))
+ESO_CERRADA = Esquema(
+    "evaluaciones",
+    (Elemento("RA1", "Redes", 60.0), Elemento("RA2", "Sistemas", 40.0)),
+    (Evaluacion("Primera", (1,), 40.0, cerrada=True), Evaluacion("Segunda", (2,), 60.0)),
+    Final("evaluaciones"),
+)
+CMIDS_E = {**CMIDS, "e.md": 14}
+
+
+def referencias_rotas(aula: CalificadorAula) -> list[str]:
+    """Las referencias ``[[ID]]`` de las fórmulas que no apuntan a ningún número de ID del aula."""
+    ids = {n.idnumber for n in aula.nodos if n.idnumber}
+    return sorted(
+        {
+            ref
+            for n in aula.nodos
+            for ref in re.findall(r"\[\[([^\]]+)\]\]", n.formula or "")
+            if ref not in ids
+        }
+    )
+
+
+def con_actividad_nueva_en_cerrada(abierto, cerrado, peso_e: float):
+    """Un montaje con la 1.ª evaluación bloqueada y una actividad nueva (e.md) en su sección."""
+    _, aula = montar(abierto)
+    v1 = por_id(aula, "TZ_V_1")
+    aula = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, bloqueado=True) if n.eid == v1.eid else n for n in aula.nodos
+        ),
+        decimal=".",
+    )
+    huellas = huellas_de(aula, CMIDS)
+    aula = CalificadorAula(nodos=(*aula.nodos, actividad(14)), decimal=".")
+    resto = (100 - peso_e) / 100
+    documentos = [
+        doc("a.md", 1, RA1=60 * resto),
+        doc("d.md", 1, RA1=40 * resto, RA2=50),
+        doc("c.md", 2, RA2=50),
+        doc("e.md", 1, RA1=peso_e),
+    ]
+    d = deseado(cerrado, documentos, False, CARPETA)
+    return d, aula, huellas
+
+
+@pytest.mark.parametrize(
+    ("abierto", "cerrado"),
+    [(FP, FP), (FP_TOPE, FP_TOPE_CERRADA), (ESO, ESO_CERRADA)],
+    ids=["elementos", "elementos-con-tope", "evaluaciones"],
+)
+@pytest.mark.parametrize("peso_e", [0.0, 20.0])
+def test_actividad_nueva_en_evaluacion_cerrada_queda_sin_colocar_con_todo_lo_suyo(
+    abierto, cerrado, peso_e
+) -> None:
+    d, aula, huellas = con_actividad_nueva_en_cerrada(abierto, cerrado, peso_e)
+    rec = reconciliar(d, aula, huellas, CMIDS_E)
+    assert ("ACTIVIDAD_EN_EVALUACION_CERRADA", "e.md") in rec.avisos
+    assert "e.md" in rec.sin_colocar
+    suyos = {n.idnumber for n in d.nodos if n.formula_de == "e.md" or n.idnumber == "e.md"}
+    suyos |= {n.idnumber for n in d.nodos if n.formula_de in suyos}
+    assert len(suyos) > 1
+    assert not [o for o in rec.operaciones if o.idnumber in suyos or o.ruta == "e.md"]
+    assert not [o for o in rec.operaciones if o.cmid == 14]
+    final = aplicar(aula, rec.operaciones)
+    final = aplicar(final, pasada2(d, final, huellas, CMIDS_E, a_mano=rec.a_mano))
+    assert referencias_rotas(final) == []
+    otra = reconciliar(d, final, huellas_de(final, CMIDS_E), CMIDS_E)
+    assert otra.operaciones == ()
+
+
+def test_actividad_ya_colocada_en_su_evaluacion_cerrada_no_es_sin_colocar() -> None:
+    aula, huellas = montaje_cerrado()
+    rec = reconciliar(deseado(FP_CERRADA, docs(), False, CARPETA), aula, huellas, CMIDS)
+    assert rec.sin_colocar == frozenset()
+    assert not [av for av in rec.avisos if av[0] == "ACTIVIDAD_EN_EVALUACION_CERRADA"]
+
+
+@pytest.mark.parametrize(
+    "cerrado", [FP_TOPE_CERRADA, ESO_CERRADA, FP_CERRADA], ids=["tope", "evaluaciones", "50-50"]
+)
+def test_primer_montaje_con_evaluacion_cerrada_la_crea_y_la_bloquea_al_final(cerrado) -> None:
+    d = deseado(cerrado, docs(), False, CARPETA)
+    aula = aula_inicial()
+    rec = reconciliar(d, aula, {}, CMIDS)
+    assert rec.por_cerrar == frozenset({"TZ_V_1"})
+    assert not [av for av in rec.avisos if av[0] == "ACTIVIDAD_EN_EVALUACION_CERRADA"]
+    # se crea con normalidad: sus categorías y la colocación de sus actividades
+    creadas = {o.idnumber for o in rec.operaciones if o.tipo == "crear_categoria"}
+    assert {"TZ_V_1", "TZ_V_2"} <= creadas
+    assert "TZ_V_1_RA1" in creadas
+    final = aplicar(aula, rec.operaciones)
+    ajustes = pasada2(d, final, {}, CMIDS, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+    # el bloqueo va después de los ajustes de la segunda pasada, y es lo último
+    assert ajustes[-1].tipo == "bloquear_cerrada" and ajustes[-1].idnumber == "TZ_V_1"
+    assert ajustes[-1].item_id == por_id(final, "TZ_V_1").item_id
+    final = aplicar(final, ajustes)
+    assert por_id(final, "TZ_V_1").bloqueado is True
+    assert por_id(final, "TZ_V_2").bloqueado is False
+    assert referencias_rotas(final) == []
+    # y a la vez siguiente converge: ya cerrada, no hay nada que hacer
+    otra = reconciliar(d, final, huellas_de(final, CMIDS), CMIDS)
+    assert otra.operaciones == () and otra.por_cerrar == frozenset()
+    # mismo árbol que sin cerrar
+    _, abierta = montar(
+        dataclasses.replace(
+            cerrado,
+            evaluaciones=tuple(dataclasses.replace(e, cerrada=False) for e in cerrado.evaluaciones),
+        )
+    )
+    assert {n.idnumber for n in final.nodos} == {n.idnumber for n in abierta.nodos}

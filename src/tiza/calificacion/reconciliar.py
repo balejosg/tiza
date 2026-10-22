@@ -8,9 +8,12 @@ de escritura de ``Moodle``.
 
 Qué respeta, por este orden:
 
-* una evaluación cerrada (``TZ_V_<n>`` bloqueada en el aula, o ``cerrada: true`` en el esquema):
-  nada de lo que cuelga de ella se crea, cambia, mueve ni borra, ni ella misma; tiza nunca
-  desbloquea;
+* una evaluación cerrada (``TZ_V_<n>`` bloqueada en el aula, o ``cerrada: true`` en el esquema
+  y ya existente): nada de lo que cuelga de ella se crea, cambia, mueve ni borra, ni ella misma;
+  tiza nunca desbloquea. Una actividad nueva en una sección de una evaluación cerrada se queda
+  sin colocar, con todas sus copias e indicadores (``ACTIVIDAD_EN_EVALUACION_CERRADA``). Una
+  evaluación ``cerrada: true`` que aún no existe en el aula se crea con normalidad y se bloquea
+  al final de la segunda pasada («cerrar es marcar y volver a montar»);
 * lo que el docente cambió a mano en lo de tiza (D3): si el aula difiere de la huella, ese nodo no
   se toca (ni su peso ni su fórmula); sus hijos sí se gestionan;
 * las notas: un nodo de tiza que ya no está en el esquema pero tiene notas se queda, y una
@@ -71,6 +74,7 @@ TIPOS = (
     "borrar",
 )
 AVISOS = (
+    "ACTIVIDAD_EN_EVALUACION_CERRADA",
     "ACTIVIDAD_PENDIENTE",
     "CAMBIADO_A_MANO",
     "EVALUACION_CERRADA_EN_EL_AULA",
@@ -135,12 +139,18 @@ class Reconciliacion:
     ``eid`` de la categoría ajena (puede no tener número de ID). ``a_mano`` son las claves
     (idnumber o ``CURSO``) cuyo estado en el aula difería de su huella: hay que pasárselas a
     ``pasada2`` para que no confunda con un cambio del docente lo que haga la propia primera pasada.
+    ``por_cerrar`` son las evaluaciones ``cerrada: true`` que aún no existían y la primera pasada
+    crea: ``pasada2`` las ajusta y las bloquea al final. ``sin_colocar`` son las rutas de las
+    actividades que están en el aula pero esta pasada no coloca (evaluación cerrada o cambiadas
+    a mano).
     """
 
     operaciones: tuple[Operacion, ...]
     avisos: tuple[tuple[str, str], ...]
     anterior: bool
     a_mano: frozenset[str] = frozenset()
+    por_cerrar: frozenset[str] = frozenset()
+    sin_colocar: frozenset[str] = frozenset()
 
 
 # --------------------------------------------------------------------------- #
@@ -282,6 +292,7 @@ class _Plan:
         cmids: dict[str, int],
         a_mano: frozenset[str] | None,
         solo_ajustes: bool,
+        por_cerrar: frozenset[str] | None = None,
     ) -> None:
         self.d = deseado
         self.aula = aula
@@ -299,7 +310,14 @@ class _Plan:
             n.idnumber for n in aula.nodos if _EVALUACION.fullmatch(n.idnumber) and n.bloqueado
         }
         self.bloqueadas_en_aula = evaluaciones_cerradas
-        self.cerradas = set(deseado.cerradas) | evaluaciones_cerradas
+        if por_cerrar is None:  # primera pasada: las cerradas del esquema que aún no existen
+            por_cerrar = frozenset(c for c in deseado.cerradas if c not in self.idx.por_id)
+        self.por_cerrar = por_cerrar
+        self.cerradas = {
+            c for c in deseado.cerradas if c in self.idx.por_id and c not in por_cerrar
+        } | evaluaciones_cerradas
+        self.sin_colocar: set[str] = set()
+        self.en_cerrada: set[str] = set()  # sin colocar porque su sitio cae en una cerrada
         self.omitidos = self._omitidos()
         self.avisos: dict[tuple[str, str], None] = {}
         self.ajeno: list[Operacion] = []
@@ -331,8 +349,15 @@ class _Plan:
         return self._id_efectivo(fuente) if fuente in self.rutas else fuente
 
     def _omitidos(self) -> set[str]:
-        """Las actividades pendientes (sin cmid o sin elemento en el aula) y lo que cuelga de ellas."""
+        """Las actividades que no se colocan y todo lo que cuelga de ellas.
+
+        Son las pendientes (sin cmid o sin elemento en el aula) y las nuevas en una evaluación
+        cerrada: sin número de ID ni sitio, nada puede referenciarlas.
+        """
         pendientes = {r for r in sorted(self.rutas) if self._actividad_aula(r) is None}
+        self.en_cerrada = self._nuevas_en_cerrada(pendientes)
+        self.sin_colocar |= self.en_cerrada
+        pendientes |= self.en_cerrada
         omitidos = set(pendientes)
         for n in self.d.nodos:
             if n.clase == "copia" and n.formula_de in pendientes:
@@ -341,6 +366,21 @@ class _Plan:
             if n.clase == "indicador" and n.formula_de in omitidos:
                 omitidos.add(n.idnumber)
         return omitidos
+
+    def _nuevas_en_cerrada(self, pendientes: set[str]) -> set[str]:
+        """Las actividades del aula aún sin colocar cuyo sitio (real o copia) cae en una cerrada."""
+        resultado: set[str] = set()
+        for ruta, padre in self.d.actividades:
+            act = self._actividad_aula(ruta)
+            if ruta in pendientes or act is None:
+                continue
+            destino = self.idx.por_id.get(padre)
+            if act.idnumber and destino is not None and act.padre_eid == destino.eid:
+                continue  # ya colocada: lo de la cerrada ya estaba
+            sitios = [padre, *(n.padre for n in self.d.nodos if n.formula_de == ruta)]
+            if any(self._cerrado_deseado(sitio) for sitio in sitios):
+                resultado.add(ruta)
+        return resultado
 
     def _cerrado_deseado(self, idnumber: str | None) -> bool:
         while idnumber is not None:
@@ -400,6 +440,8 @@ class _Plan:
         pendientes = [r for r in sorted(self.rutas) if self._actividad_aula(r) is None]
         for ruta in pendientes:
             self._aviso("ACTIVIDAD_PENDIENTE", ruta)
+        for ruta in sorted(self.en_cerrada):
+            self._aviso("ACTIVIDAD_EN_EVALUACION_CERRADA", ruta)
         for n in self.aula.nodos:
             if n.idnumber in self.bloqueadas_en_aula and n.idnumber not in self.d.cerradas:
                 self._aviso("EVALUACION_CERRADA_EN_EL_AULA", n.idnumber)
@@ -413,21 +455,24 @@ class _Plan:
         self._dejan_de_contar()
         self._total_del_curso()
         self._sobrantes()
-        if not self.solo_ajustes:
-            self._cierres()
+        self._cierres()
 
     def _actividad(self, nodo: Nodo) -> None:
         ruta = nodo.idnumber
         act = self._actividad_aula(ruta)
         assert act is not None
+        destino = self.idx.por_id.get(nodo.padre) if nodo.padre else None
+        en_su_sitio = destino is not None and act.padre_eid == destino.eid
         if self._cerrado_aula(act):
+            if not en_su_sitio:
+                self.sin_colocar.add(ruta)
             return
         clave = self._id_efectivo(ruta)
         if clave in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", ruta)
+            if not en_su_sitio:
+                self.sin_colocar.add(ruta)
             return
-        destino = self.idx.por_id.get(nodo.padre) if nodo.padre else None
-        en_su_sitio = destino is not None and act.padre_eid == destino.eid
         colocada = False
         if not self.solo_ajustes and (not en_su_sitio or not act.idnumber):
             if not en_su_sitio:
@@ -625,7 +670,14 @@ class _Plan:
             )
 
     def _cierres(self) -> None:
+        """Bloquea las cerradas del esquema.
+
+        Las que ya existían, en la primera pasada. Las que se acaban de crear, en la segunda:
+        un total bloqueado ya no admite los ajustes de pesos y fórmulas que esa pasada repite.
+        """
         for idnumber in self.d.cerradas:
+            if (idnumber in self.por_cerrar) != self.solo_ajustes:
+                continue
             nodo = self.idx.por_id.get(idnumber)
             if nodo is not None and not nodo.bloqueado:
                 self.cierre.append(
@@ -695,7 +747,7 @@ class _Plan:
     # -- el resultado ------------------------------------------------------
 
     def ajustes(self) -> tuple[Operacion, ...]:
-        return tuple(self.peso + self.maximo + self.formula)
+        return tuple(self.peso + self.maximo + self.formula + self.cierre)
 
     def todo(self) -> tuple[Operacion, ...]:
         return tuple(
@@ -730,6 +782,8 @@ def reconciliar(
         avisos=tuple(plan.avisos),
         anterior=hay_anterior(aula),
         a_mano=frozenset(plan.a_mano),
+        por_cerrar=plan.por_cerrar,
+        sin_colocar=frozenset(plan.sin_colocar),
     )
 
 
@@ -739,13 +793,16 @@ def pasada2(
     huellas: dict[str, str],
     cmids: dict[str, int],
     a_mano: frozenset[str] | None = None,
+    por_cerrar: frozenset[str] = frozenset(),
 ) -> tuple[Operacion, ...]:
     """La segunda pasada, sobre el aula releída tras ejecutar la primera.
 
     Solo ``fijar_peso``, ``fijar_maximo``, ``fijar_formula`` y ``fijar_total_curso`` que sigan
-    haciendo falta. Pásale ``a_mano=reconciliacion.a_mano``: sin él, lo que la primera pasada
-    cambió en el aula se compara con las huellas de antes y parece cosa del docente.
+    haciendo falta, y al final el ``bloquear_cerrada`` de las evaluaciones que la primera pasada
+    creó con ``cerrada: true``. Pásale ``a_mano=reconciliacion.a_mano`` (sin él, lo que la
+    primera pasada cambió en el aula se compara con las huellas de antes y parece cosa del
+    docente) y ``por_cerrar=reconciliacion.por_cerrar``.
     """
-    plan = _Plan(deseado, aula, huellas, cmids, a_mano, True)
+    plan = _Plan(deseado, aula, huellas, cmids, a_mano, True, por_cerrar)
     plan.planificar()
     return plan.ajustes()

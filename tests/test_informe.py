@@ -503,6 +503,7 @@ class TestCalificador:
             "CALIFICADOR_BLOQUEAR",
             "CALIFICADOR_COLOCAR",
             "ACTIVIDAD_PENDIENTE",
+            "ACTIVIDAD_EN_EVALUACION_CERRADA",
             "CAMBIADO_A_MANO",
             "ELEMENTO_CON_NOTAS_QUITADO",
             "ELEMENTO_SIN_ACTIVIDADES",

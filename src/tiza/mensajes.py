@@ -549,6 +549,15 @@ def lineas_de_error(codigo: str, detalle: str = "") -> tuple[Linea, ...]:
     return tuple(lineas)
 
 
+def _actividad_en_evaluacion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "Es nueva en una evaluación cerrada: no se coloca en el calificador, ni sus copias "
+            f"(la evaluación no se toca): {texto_seguro(datos['ruta'], 200)}"
+        ),
+    )
+
+
 def _actividad_pendiente(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(f"Aún no está en el aula, no cuenta todavía: {texto_seguro(datos['ruta'], 200)}"),
@@ -728,6 +737,7 @@ def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 
 
 _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
+    "ACTIVIDAD_EN_EVALUACION_CERRADA": _actividad_en_evaluacion_cerrada,
     "ACTIVIDAD_PENDIENTE": _actividad_pendiente,
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
     "CALIFICANDO_EN_PRUEBAS": _calificando_en_pruebas,

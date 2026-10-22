@@ -628,6 +628,9 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
     doc = publicacion.DocumentoResumen("t.md", "pagina", "T", 3, None)
     return {
         "AUTOPRUEBA_FALLIDA": publicacion.Aviso.autoprueba_fallida(),
+        "ACTIVIDAD_EN_EVALUACION_CERRADA": publicacion.Aviso.actividad_en_evaluacion_cerrada(
+            "t.md"
+        ),
         "ACTIVIDAD_PENDIENTE": publicacion.Aviso.actividad_pendiente("t.md"),
         "CALIFICANDO_EN_PRUEBAS": publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
         "CAMBIADA_EN_EL_AULA": publicacion.Aviso.cambiada_en_el_aula("T"),
