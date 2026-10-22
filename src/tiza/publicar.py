@@ -409,7 +409,7 @@ class AulaVirtual(Protocol):
 
     def fijar_peso(self, curso: int, eid: str, peso: float) -> None: ...
 
-    def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str = ".") -> None: ...
+    def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str) -> None: ...
 
     def bloquear_total(self, curso: int, item_id: int) -> None: ...
 
@@ -421,7 +421,7 @@ class AulaVirtual(Protocol):
 
     def borrar_nodo(self, curso: int, eid: str) -> None: ...
 
-    def fijar_total_curso(self, curso: int, formula: str | None, decimal: str = ".") -> None: ...
+    def fijar_total_curso(self, curso: int, formula: str | None, decimal: str) -> None: ...
 
     def borrar_copia(self, nombre: str, curso_id: int) -> None: ...
 
@@ -1211,10 +1211,28 @@ class Moodle:
             timeout=TIEMPO_ESPERA,
         )
 
+    @staticmethod
+    def _guardado(respuesta: Any) -> bool:
+        """¿Es la respuesta una redirección de guardado? Una que va al login es sesión caducada."""
+        if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
+            return False
+        destino = (getattr(respuesta, "headers", None) or {}).get("Location", "")
+        if "/login/" in str(destino):
+            raise ErrorPublicacion("SESION_CADUCADA")
+        return True
+
     def _guardar(self, ruta: str, params: dict[str, int], cambios: dict[str, str]) -> None:
         respuesta = self._enviar_formulario(ruta, params, cambios)
-        if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
+        if not self._guardado(respuesta):
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+    def _es_raiz(self, curso: int, eid: str) -> bool:
+        """¿Es ``eid`` la categoría raíz del curso (la fila sin padre)?"""
+        pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
+        return any(
+            str(f.get("data-category")) == eid and "data-parent-category" not in f.attrs
+            for f in BeautifulSoup(pagina, "html.parser").find_all("tr")
+        )
 
     def _eids_del_arbol(self, curso: int) -> list[str]:
         pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
@@ -1262,7 +1280,8 @@ class Moodle:
             "aggregation": "13",
             "aggregateonlygraded": "1",
         }
-        if padre_eid:
+        if padre_eid is not None:
+            _validar_eid(padre_eid, "cg")
             cambios["parentcategory"] = padre_eid[2:]
         if peso is not None:
             cambios["grade_item_weightoverride"] = "1"
@@ -1292,7 +1311,8 @@ class Moodle:
             "grademax": _texto_numero(maximo),
             "grademin": "0",
         }
-        if padre_eid:
+        if padre_eid is not None:
+            _validar_eid(padre_eid, "cg")
             cambios["parentcategory"] = padre_eid[2:]
         if peso is not None:
             cambios["weightoverride"] = "1"
@@ -1311,6 +1331,7 @@ class Moodle:
 
     def fijar_peso(self, curso: int, eid: str, peso: float) -> None:
         """Sobrescribe el peso de una categoría (``cg<id>``) o de un elemento (``ig<id>``)."""
+        _validar_eid(eid)
         numero = int(eid[2:])
         if eid.startswith("cg"):
             self._guardar(
@@ -1328,7 +1349,7 @@ class Moodle:
                 {"weightoverride": "1", "aggregationcoef2": _texto_numero(peso)},
             )
 
-    def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str = ".") -> None:
+    def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str) -> None:
         """Fija la fórmula de un elemento calculado.
 
         ``formula`` va en la notación interna (separador «,», decimal con punto) y se traduce con
@@ -1342,10 +1363,9 @@ class Moodle:
                 {"courseid": curso, "id": item_id},
                 {"calculation": traducida},
             )
-            estado = getattr(respuesta, "status_code", 0)
-            if estado in (301, 302, 303):
+            if self._guardado(respuesta):
                 return
-            if estado != 200:
+            if getattr(respuesta, "status_code", 0) != 200:
                 raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
         raise ErrorPublicacion("FORMULA_NO_VALIDA")
 
@@ -1359,7 +1379,7 @@ class Moodle:
             allow_redirects=False,
             timeout=TIEMPO_ESPERA,
         )
-        if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
+        if not self._guardado(respuesta):
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
 
     def bloquear_total(self, curso: int, item_id: int) -> None:
@@ -1394,6 +1414,7 @@ class Moodle:
 
     def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None:
         """Mueve un elemento manual al principio de una categoría (``first=1``; espiga 2)."""
+        _validar_eid(categoria_eid, "cg")
         self._accion_del_calificador(
             "grade/edit/tree/index.php",
             {
@@ -1407,7 +1428,15 @@ class Moodle:
         )
 
     def borrar_nodo(self, curso: int, eid: str) -> None:
-        """Borra una copia o una categoría ``TZ_`` sin notas (quien llama lo garantiza)."""
+        """Borra un nodo del calificador por su ``eid``.
+
+        Aquí solo se valida la forma del eid y que no sea la categoría raíz (el total del
+        curso). Que sea una copia o una categoría ``TZ_`` sin notas lo decide quien llama
+        (la reconciliación, tarea 6); este método no lo comprueba.
+        """
+        _validar_eid(eid)
+        if eid.startswith("cg") and self._es_raiz(curso, eid):
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
         self._accion_del_calificador(
             "grade/edit/tree/index.php",
             {
@@ -1419,7 +1448,7 @@ class Moodle:
             },
         )
 
-    def fijar_total_curso(self, curso: int, formula: str | None, decimal: str = ".") -> None:
+    def fijar_total_curso(self, curso: int, formula: str | None, decimal: str) -> None:
         """El total del curso: con fórmula, calculado con máximo 10; sin ella, en porcentaje.
 
         Solo para un curso sin calificador anterior.
@@ -1435,8 +1464,11 @@ class Moodle:
         )
         if fila is None:
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
-        item_id = int(str(fila["data-itemid"]))
-        categoria = int(str(fila["data-category"])[2:])
+        try:
+            item_id = int(str(fila["data-itemid"]))
+            categoria = int(str(fila["data-category"])[2:])
+        except (KeyError, ValueError) as exc:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR") from exc
         parametros = {"courseid": curso, "id": categoria}
         if formula is None:
             self._guardar("grade/edit/tree/category.php", parametros, {"grade_item_display": "2"})
@@ -1781,6 +1813,15 @@ def _numero(texto: Any) -> float | None:
     return valor if valor == valor and abs(valor) != float("inf") else None
 
 
+_EID = re.compile(r"(cg|ig)\d+")
+
+
+def _validar_eid(eid: str, prefijo: str | None = None) -> None:
+    """Un ``eid`` es ``cg<id>`` o ``ig<id>``; otra cosa es un error propio, nunca ``ValueError``."""
+    if not isinstance(eid, str) or not _EID.fullmatch(eid) or (prefijo and eid[:2] != prefijo):
+        raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+
 def _texto_numero(valor: float) -> str:
     """Un número para un formulario o una fórmula: punto decimal y hasta 5 decimales."""
     texto = f"{round(float(valor), 5):.5f}".rstrip("0").rstrip(".")
@@ -1788,14 +1829,19 @@ def _texto_numero(valor: float) -> str:
 
 
 def formula_moodle(plantilla: str, decimal: str) -> str:
-    """La fórmula interna (separador «,», decimal con punto) en la sintaxis del aula.
+    """La fórmula interna en la sintaxis del aula.
+
+    La notación interna es la de Moodle en inglés (``min``, ``average``, ``floor``, separador
+    «,», decimal con punto).
 
     Si el aula muestra «,» como decimal, el separador de argumentos es «;»; con «.», se deja
     igual. Los decimales de la plantilla (siempre con punto) no se tocan.
     """
-    if decimal == ",":
-        return plantilla.replace(",", ";")
-    return plantilla
+    if decimal != ",":
+        return plantilla
+    # Solo las comas fuera de [[...]] (el número de ID es texto y no se toca).
+    partes = re.split(r"(\[\[.*?\]\])", plantilla)
+    return "".join(p if p.startswith("[[") else p.replace(",", ";") for p in partes)
 
 
 def formula_nota(total: str, contador: str) -> str:

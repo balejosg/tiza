@@ -309,8 +309,8 @@ class MoodleFalso:
     def fijar_peso(self, curso, eid, peso):
         self._escribir_calificador("fijar_peso", curso, eid, peso)
 
-    def fijar_formula(self, curso, item_id, formula, decimal="."):
-        self._escribir_calificador("fijar_formula", curso, item_id, formula)
+    def fijar_formula(self, curso, item_id, formula, decimal):
+        self._escribir_calificador("fijar_formula", curso, item_id, formula, decimal)
 
     def bloquear_total(self, curso, item_id):
         self._escribir_calificador("bloquear_total", curso, item_id)
@@ -324,8 +324,8 @@ class MoodleFalso:
     def borrar_nodo(self, curso, eid):
         self._escribir_calificador("borrar_nodo", curso, eid)
 
-    def fijar_total_curso(self, curso, formula, decimal="."):
-        self._escribir_calificador("fijar_total_curso", curso, formula)
+    def fijar_total_curso(self, curso, formula, decimal):
+        self._escribir_calificador("fijar_total_curso", curso, formula, decimal)
 
     def motor_de_formulas(self, curso_id):
         self.llamadas.append(("motor_de_formulas", curso_id))

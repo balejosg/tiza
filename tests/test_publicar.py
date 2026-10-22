@@ -4197,7 +4197,7 @@ def test_formula_reintenta():
         _RespuestaHttp("<div class='error'>Fórmula no válida</div>", status=200),
         _RespuestaHttp("", status=303, destino="x"),
     ]
-    moodle.fijar_formula(2, 169, "=[[A]]")
+    moodle.fijar_formula(2, 169, "=[[A]]", ".")
     assert len(sesion.posts) == 2
 
 
@@ -4208,7 +4208,7 @@ def test_formula_no_valida():
         _RespuestaHttp("<div>Fórmula no válida: texto de Moodle</div>", status=200),
     ]
     with pytest.raises(ErrorPublicacion) as exc:
-        moodle.fijar_formula(2, 169, "=[[A]]")
+        moodle.fijar_formula(2, 169, "=[[A]]", ".")
     assert exc.value.codigo == "FORMULA_NO_VALIDA"
     assert len(sesion.posts) == 2
     assert "texto de Moodle" not in str(exc.value) + exc.value.detalle
@@ -4273,7 +4273,7 @@ def test_colocar_actividad():
 def test_fijar_total_curso_con_formula():
     sesion = _SesionCalificador()
     moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
-    moodle.fijar_total_curso(2, "=[[TZ_NOTA_FINAL]]")
+    moodle.fijar_total_curso(2, "=[[TZ_NOTA_FINAL]]", ".")
     assert [u.rsplit("/", 1)[1] for u, _ in sesion.posts] == ["calculation.php", "category.php"]
     assert dict(sesion.posts[0][1])["calculation"] == "=[[TZ_NOTA_FINAL]]"
     assert dict(sesion.posts[1][1])["grade_item_grademax"] == "10"
@@ -4283,7 +4283,7 @@ def test_fijar_total_curso_con_formula():
 def test_fijar_total_curso_sin_formula_solo_porcentaje():
     sesion = _SesionCalificador()
     moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
-    moodle.fijar_total_curso(2, None)
+    moodle.fijar_total_curso(2, None, ".")
     assert len(sesion.posts) == 1
     url, campos = _campos(sesion)
     assert url.endswith("/category.php")
@@ -4299,7 +4299,99 @@ def test_el_doble_registra_las_escrituras_y_simula_fallos():
     assert aula.escrituras[1] == ("bloquear_total", 2, 162)
     aula.fallos["fijar_formula"] = ["FORMULA_NO_VALIDA"]
     with pytest.raises(ErrorPublicacion) as exc:
-        aula.fijar_formula(2, 169, "=[[A]]")
+        aula.fijar_formula(2, 169, "=[[A]]", ",")
     assert exc.value.codigo == "FORMULA_NO_VALIDA"
-    aula.fijar_formula(2, 169, "=[[A]]")  # el fallo se gasta
+    aula.fijar_formula(2, 169, "=[[A]]", ",")  # el fallo se gasta
     assert aula.escrituras[-1][0] == "fijar_formula"
+
+
+# --- Ronda de arreglo 1 ---
+
+
+def test_decimal_es_obligatorio():
+    import inspect
+
+    for clase in (publicar.AulaVirtual, publicar.Moodle, MoodleFalso):
+        for nombre in ("fijar_formula", "fijar_total_curso"):
+            parametro = inspect.signature(getattr(clase, nombre)).parameters["decimal"]
+            assert parametro.default is inspect.Parameter.empty, (clase, nombre)
+
+
+def test_el_doble_registra_el_decimal():
+    aula = MoodleFalso()
+    aula.fijar_formula(2, 169, "=[[A]]", ",")
+    aula.fijar_total_curso(2, None, ".")
+    assert aula.escrituras == [
+        ("fijar_formula", 2, 169, "=[[A]]", ","),
+        ("fijar_total_curso", 2, None, "."),
+    ]
+
+
+@pytest.mark.parametrize("eid", ["", "x", "cg", "ig1x", "cg-1", "CG1", "cg1 ", "1", "cg1\n"])
+def test_eid_mal_formado_es_error_propio(eid):
+    moodle, sesion = _moodle_calificador()
+    for llamada in (
+        lambda: moodle.borrar_nodo(2, eid),
+        lambda: moodle.fijar_peso(2, eid, 10),
+        lambda: moodle.mover_manual(2, 165, eid),
+        lambda: moodle.crear_categoria(2, "n", "TZ_X", eid, None, None),
+        lambda: moodle.crear_calculado(2, "n", "TZ_X", eid, None, 10),
+    ):
+        with pytest.raises(ErrorPublicacion) as exc:
+            llamada()
+        assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert sesion.posts == []
+    assert not any(p.get("action") == "delete" for _, p in sesion.gets)
+
+
+def test_borrar_nodo_rechaza_la_raiz_del_curso():
+    moodle, sesion = _moodle_calificador()
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.borrar_nodo(2, "cg1")
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert not any(p.get("action") == "delete" for _, p in sesion.gets)
+    moodle.borrar_nodo(2, "cg3")  # una categoría normal sí
+    assert sesion.gets[-1][1]["eid"] == "cg3"
+
+
+def test_fijar_total_curso_sin_itemid_es_error_propio():
+    arbol = (
+        "<html><body><form id='gradetreeform'><table>"
+        '<tr data-category="cg1" data-aggregation="13"></tr></table></form></body></html>'
+    )
+    moodle, sesion = _moodle_calificador(arbol=arbol)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.fijar_total_curso(2, "=[[A]]", ".")
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert sesion.posts == []
+
+
+def test_redireccion_al_login_es_sesion_caducada():
+    login = _RespuestaHttp("", status=303, destino="https://aula/login/index.php")
+    moodle, sesion = _moodle_calificador()
+    sesion.respuestas_post = [login]
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.fijar_peso(2, "ig165", 60)
+    assert exc.value.codigo == "SESION_CADUCADA"
+    moodle, sesion = _moodle_calificador()
+    sesion.respuestas_post = [login]
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.fijar_formula(2, 169, "=[[A]]", ".")
+    assert exc.value.codigo == "SESION_CADUCADA"
+
+
+def test_accion_con_redireccion_al_login_es_sesion_caducada():
+    class Sesion(_SesionCalificador):
+        def get(self, url, params=None, **kw):
+            if url.endswith("action.php"):
+                return _RespuestaHttp("", status=302, destino="https://aula/login/index.php")
+            return super().get(url, params, **kw)
+
+    moodle = publicar.Moodle("https://aula", Sesion(), "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.bloquear_total(2, 162)
+    assert exc.value.codigo == "SESION_CADUCADA"
+
+
+def test_formula_moodle_no_toca_las_comas_de_un_numero_de_id():
+    assert publicar.formula_moodle("=min([[A,B]],[[C]])", ",") == "=min([[A,B]];[[C]])"
