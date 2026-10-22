@@ -16,6 +16,7 @@ from tiza.publicar import (
     CAMPOS_FECHA_TAREA,
     CAMPOS_FINALIZACION_LEIDOS,
     DETALLE_INTENTOS_REPUBLICAR,
+    CalificadorAula,
     Contrasena,
     CopiaDescargada,
     ErrorPublicacion,
@@ -136,6 +137,8 @@ class MoodleFalso:
         self.imagenes_servidas = imagenes_servidas
         self.imagenes_esperadas: dict[int, int] = {}
         self.llamadas: list[tuple] = []
+        # Calificador por curso (``publicar.CalificadorAula``); sin configurar, uno vacío.
+        self.calificadores: dict[int, CalificadorAula] = {}
         self.cerradas = 0  # veces que se cerró la sesión del aula
         self.subidas: list[tuple[str, bytes]] = []
         # Formulario de cada módulo: como python-moodle, cada payload se fusiona
@@ -265,6 +268,12 @@ class MoodleFalso:
         self.llamadas.append(("imagenes_de_pregunta", cmid, pregunta_id))
         encontradas = self.imagenes_esperadas.get(pregunta_id, 0)
         return encontradas, (encontradas if self.imagenes_servidas else 0)
+
+    def calificador(self, curso_id):
+        self.llamadas.append(("calificador", curso_id))
+        if curso_id in self.calificadores:
+            return self.calificadores[curso_id]
+        return CalificadorAula(nodos=(), decimal=".")
 
     def motor_de_formulas(self, curso_id):
         self.llamadas.append(("motor_de_formulas", curso_id))

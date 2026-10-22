@@ -196,6 +196,7 @@ MENSAJES: dict[str, str] = {
     "COPIA_FORMATO": "La copia de seguridad de Moodle es un fichero con extensión .mbz. Indica ese fichero, dentro de la carpeta de la asignatura o en .tiza/copias.",
     "COPIA_AUSENTE": "No existe ese fichero .mbz. Comprueba el nombre y que está dentro de la carpeta de la asignatura o en .tiza/copias.",
     "COPIA_NO_PERMITIDA": "El aula no deja al profesor hacer la copia de este curso. Pide la copia a mano: en el curso, «Más» → «Copia de seguridad», sin marcar usuarios, y guarda el .mbz en la carpeta.",
+    "CALIFICADOR_NO_PERMITIDO": "El aula no deja al profesor gestionar el calificador de este curso (falta el permiso de calificaciones). Pide al administrador del aula que lo active; tiza no ha cambiado nada.",
     "COPIA_FALLIDA": "El aula no terminó la copia o no se pudo descargar. Vuelve a intentarlo; si se repite, haz la copia a mano en el curso («Más» → «Copia de seguridad»), sin marcar usuarios. Si el informe trae BORRAR_COPIA en fallo, la copia también quedó en tu zona de copias de Moodle («Restaurar»): bórrala allí.",
     "COPIA_RECHAZADA": "Has respondido que no. No se ha hecho ninguna copia.",
     "CUPO_COPIAS": "Se ha llegado al máximo de copias de esta sesión (3). Si hace falta otra, que el docente cierre la sesión y abra una nueva con tiza empezar; con una copia por vuelta basta.",

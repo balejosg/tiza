@@ -6,6 +6,7 @@ import re
 import types
 import urllib.request
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 import requests
@@ -3774,3 +3775,221 @@ class TestAdjuntosDeUnaTarea:
         publicar.publicar_documento(moodle, 5678, moodle.estructura(5678), doc, visible=None)
         antes_de_escribir = moodle.llamadas[: [c[0] for c in moodle.llamadas].index("actualizar")]
         assert not any(c[0] == "leer_modulo" for c in antes_de_escribir)
+
+
+# --------------------------------------------------------------------------- #
+# Calificador: leer la estructura sin leer notas
+# --------------------------------------------------------------------------- #
+
+FIXTURES_CALIFICADOR = Path(__file__).parent / "fixtures" / "calificador"
+
+
+def _fixture_calificador(nombre: str) -> str:
+    return (FIXTURES_CALIFICADOR / nombre).read_text(encoding="utf-8")
+
+
+def _formulario_item(*, locked=False, rescale=False, peso="0,0", sobrescrito=False, idnumber=""):
+    html = _fixture_calificador("item.html")
+    html = html.replace(
+        'name="idnumber" type="text" value=""', f'name="idnumber" type="text" value="{idnumber}"'
+    )
+    html = html.replace(
+        'name="aggregationcoef2" type="text" value="0,0"',
+        f'name="aggregationcoef2" type="text" value="{peso}"',
+    )
+    if locked:
+        html = html.replace(
+            'id="id_locked" name="locked" type="checkbox"',
+            'id="id_locked" name="locked" type="checkbox" checked=""',
+        )
+    if sobrescrito:
+        html = html.replace(
+            'id="id_weightoverride" name="weightoverride" type="checkbox"',
+            'id="id_weightoverride" name="weightoverride" type="checkbox" checked=""',
+        )
+    if rescale:
+        html = html.replace(
+            "</form>",
+            '<select name="rescalegrades"><option value="" selected></option></select></form>',
+        )
+    return html
+
+
+class _RespuestaHttp:
+    def __init__(self, texto="", status=200, destino=""):
+        self.text = texto
+        self.status_code = status
+        self.headers = {"Location": destino} if destino else {}
+        self.url = "https://aula/grade/edit/tree/index.php"
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError("fallo")
+
+
+class _SesionCalificador:
+    """Aula falsa del calificador: devuelve la página del árbol y los formularios por elemento."""
+
+    def __init__(
+        self, arbol=None, items=None, categorias=None, calculos=None, respuesta_arbol=None
+    ):
+        self.arbol = _fixture_calificador("setup-lleno.html") if arbol is None else arbol
+        self.items = items or {}
+        self.categorias = categorias or {}
+        self.calculos = calculos or {}
+        self.respuesta_arbol = respuesta_arbol
+        self.urls: list[str] = []
+
+    def get(self, url, params=None, allow_redirects=True, timeout=None):
+        self.urls.append(url if not params else f"{url}?{sorted(params.items())}")
+        if url.endswith("/grade/edit/tree/index.php"):
+            return self.respuesta_arbol or _RespuestaHttp(self.arbol)
+        ident = int(params["id"])
+        if url.endswith("/grade/edit/tree/item.php"):
+            return _RespuestaHttp(self.items.get(ident) or _formulario_item())
+        if url.endswith("/grade/edit/tree/category.php"):
+            return _RespuestaHttp(
+                self.categorias.get(ident) or _fixture_calificador("category.html")
+            )
+        if url.endswith("/grade/edit/tree/calculation.php"):
+            formula = self.calculos.get(ident, "")
+            return _RespuestaHttp(
+                f'<form action="/grade/edit/tree/calculation.php"><textarea name="calculation">{formula}</textarea></form>'
+            )
+        raise AssertionError(f"petición inesperada: {url}")
+
+
+def _calificador(**kwargs):
+    sesion = _SesionCalificador(**kwargs)
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    return moodle.calificador(2), sesion
+
+
+def _nodo(calificador, eid):
+    return next(n for n in calificador.nodos if n.eid == eid)
+
+
+def test_calificador_arbol():
+    cal, _ = _calificador()
+    assert _nodo(cal, "cg1").clase == "curso"
+    assert _nodo(cal, "cg1").padre_eid is None
+    categorias = [n for n in cal.nodos if n.clase == "categoria"]
+    assert [n.eid for n in categorias] == ["cg3", "cg4", "cg5"]
+    assert all(n.padre_eid == "cg1" for n in categorias)
+    assert _nodo(cal, "cg3").item_id == 162
+    assert _nodo(cal, "cg3").nombre == "Espiga RA1"
+    assert _nodo(cal, "cg3").maximo == 20.0
+    hijos = [n.eid for n in cal.nodos if n.padre_eid == "cg3"]
+    assert hijos == ["ig165", "ig166", "ig171"]
+    assert _nodo(cal, "ig165").maximo == 10.0
+    assert _nodo(cal, "ig165").clase == "manual"
+    assert _nodo(cal, "ig171").clase == "actividad"
+    assert _nodo(cal, "ig171").cmid == 258
+    assert _nodo(cal, "ig165").cmid is None
+    # Las filas de «total» de cada categoría no son nodos.
+    assert "ig162" not in {n.eid for n in cal.nodos}
+
+
+def test_calificador_lee_los_campos_de_cada_elemento():
+    cal, _ = _calificador(
+        items={165: _formulario_item(idnumber="TZ_A1", peso="40,0", sobrescrito=True)},
+        calculos={169: "=[[TZ_A1]]*1"},
+    )
+    nodo = _nodo(cal, "ig165")
+    assert nodo.idnumber == "TZ_A1"
+    assert nodo.peso == 40.0
+    assert nodo.sobrescrito is True
+    assert _nodo(cal, "ig166").sobrescrito is False
+    assert _nodo(cal, "ig169").clase == "calculado"
+    assert _nodo(cal, "ig169").formula == "=[[TZ_A1]]*1"
+    assert _nodo(cal, "ig165").formula is None
+
+
+def test_calificador_flags():
+    cal, _ = _calificador(
+        items={
+            165: _formulario_item(rescale=True),
+            166: _formulario_item(locked=True),
+        },
+    )
+    assert _nodo(cal, "ig165").tiene_notas is True
+    assert _nodo(cal, "ig165").bloqueado is False
+    assert _nodo(cal, "ig166").tiene_notas is False
+    assert _nodo(cal, "ig166").bloqueado is True
+    # Una categoría tiene notas si las tiene algún elemento de dentro.
+    assert _nodo(cal, "cg3").tiene_notas is True
+    assert _nodo(cal, "cg4").tiene_notas is False
+    assert _nodo(cal, "cg1").tiene_notas is True
+
+
+def test_calificador_bloqueo_de_categoria():
+    html = _fixture_calificador("category.html").replace(
+        'name="grade_item_locked" type="checkbox"',
+        'name="grade_item_locked" type="checkbox" checked=""',
+    )
+    cal, _ = _calificador(categorias={3: html})
+    assert _nodo(cal, "cg3").bloqueado is True
+    assert _nodo(cal, "cg4").bloqueado is False
+
+
+def test_decimal_coma():
+    cal, _ = _calificador(items={165: _formulario_item(peso="40,0")})
+    assert cal.decimal == ","
+
+
+def test_decimal_punto():
+    cal, _ = _calificador(items={165: _formulario_item(peso="40.0")})
+    assert cal.decimal == "."
+
+
+def test_sin_permiso():
+    redireccion = _RespuestaHttp("", status=303, destino="https://aula/login/index.php")
+    sesion = _SesionCalificador(respuesta_arbol=redireccion)
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+
+
+def test_sin_formulario_del_arbol_no_hay_permiso():
+    sesion = _SesionCalificador(arbol="<html><body>Sin permiso</body></html>")
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+
+
+def test_error_de_red_es_error_de_consulta():
+    class Sesion:
+        def get(self, *a, **k):
+            raise requests.ConnectionError("caído")
+
+    moodle = publicar.Moodle("https://aula", Sesion(), "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo in ("ERROR_CONSULTA", "SESION_CADUCADA")
+
+
+def test_no_lee_notas():
+    _, sesion = _calificador()
+    assert sesion.urls
+    assert not any("grade/report" in url for url in sesion.urls)
+    assert not any("grade/export" in url or "grade/import" in url for url in sesion.urls)
+
+
+def test_calificador_espera_entre_peticiones():
+    pausas: list[float] = []
+    sesion = _SesionCalificador()
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0.5, dormir=pausas.append)
+    moodle.calificador(2)
+    # Una pausa por petición (árbol, 3+1+1+1 formularios...): al menos una por cada GET.
+    assert len(pausas) == len(sesion.urls)
+
+
+def test_el_doble_devuelve_un_calificador_configurable():
+    aula = MoodleFalso()
+    assert aula.calificador(2) == publicar.CalificadorAula(nodos=(), decimal=".")
+    esperado = publicar.CalificadorAula(nodos=(), decimal=",")
+    aula.calificadores[2] = esperado
+    assert aula.calificador(2) is esperado
+    assert ("calificador", 2) in aula.llamadas

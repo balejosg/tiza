@@ -278,6 +278,37 @@ class ErrorPublicacion(Exception):
         self.queda_en_el_aula = False
 
 
+@dataclasses.dataclass(frozen=True)
+class NodoAula:
+    """Un elemento o categoría del calificador del aula. Solo estructura: jamás notas.
+
+    ``nombre`` lo ve únicamente el docente, a través de la presencia; nunca sale a ``informe``.
+    ``clase`` es ``curso``, ``categoria``, ``actividad``, ``manual`` o ``calculado``.
+    """
+
+    eid: str  # «cg<id>» (categoría o curso) o «ig<id>» (elemento)
+    item_id: int  # el grade_item (el del total, en una categoría)
+    idnumber: str
+    clase: str
+    nombre: str
+    padre_eid: str | None
+    peso: float | None
+    sobrescrito: bool
+    bloqueado: bool
+    tiene_notas: bool  # solo por la presencia de ``rescalegrades``; en una categoría, por sus hijos
+    formula: str | None
+    maximo: float | None
+    cmid: int | None
+
+
+@dataclasses.dataclass(frozen=True)
+class CalificadorAula:
+    """La estructura del calificador de un curso, en el orden de la página."""
+
+    nodos: tuple[NodoAula, ...]
+    decimal: str  # «,» o «.»: el separador que muestra el formulario (decide el de las fórmulas)
+
+
 # --------------------------------------------------------------------------- #
 # Adaptador del aula
 # --------------------------------------------------------------------------- #
@@ -351,6 +382,8 @@ class AulaVirtual(Protocol):
     def puede_copiar(self, curso_id: int) -> bool: ...
 
     def hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada: ...
+
+    def calificador(self, curso_id: int) -> CalificadorAula: ...
 
     def borrar_copia(self, nombre: str, curso_id: int) -> None: ...
 
@@ -980,6 +1013,133 @@ class Moodle:
 
     # --- Actividades H5P: despliegue e intentos ------------------------------
 
+    # ------------------------------------------------------------------ #
+    # Calificador (solo estructura: tiza no lee nunca notas)
+    # ------------------------------------------------------------------ #
+
+    def _pagina_del_calificador(self, ruta: str, params: dict[str, int]) -> str:
+        """El HTML de una página del calificador; una redirección es falta de permiso."""
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_CONSULTA",
+            self.sesion.get,
+            f"{self.base_url}/{ruta}",
+            params=params,
+            allow_redirects=False,
+            timeout=TIEMPO_ESPERA,
+        )
+        if 300 <= getattr(respuesta, "status_code", 200) < 400:
+            raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+        self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
+        return str(getattr(respuesta, "text", ""))
+
+    def calificador(self, curso_id: int) -> CalificadorAula:
+        """La estructura del calificador del curso: categorías, elementos, pesos, bloqueos y fórmulas.
+
+        Abre el árbol y el formulario de cada elemento y categoría, nunca un informe de notas
+        (``grade/report/``). Que un elemento tiene notas se sabe solo por la presencia del campo
+        ``rescalegrades`` de su formulario. Lo que devuelve es dato estructural; el texto de
+        Moodle no sale de aquí salvo los nombres, que solo ve el docente.
+        """
+        pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso_id})
+        sopa = BeautifulSoup(pagina, "html.parser")
+        if sopa.find("form", id="gradetreeform") is None:
+            raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+        filas = [
+            fila
+            for fila in sopa.find_all("tr")
+            if ("data-category" in fila.attrs or "data-itemid" in fila.attrs)
+            and "data-aggregationforcategory" not in fila.attrs
+        ]
+        parciales: list[dict[str, Any]] = []
+        for fila in filas:
+            es_categoria = "data-category" in fila.attrs
+            eid = str(fila["data-category"]) if es_categoria else f"ig{fila['data-itemid']}"
+            item_id = int(str(fila["data-itemid"]))
+            padre = fila.get("data-parent-category")
+            titulo = fila.find(class_="rowtitle")
+            enlace = fila.find("a", class_="gradeitemheader", href=_ENLACE_DE_ACTIVIDAD)
+            coincidencia = _ENLACE_DE_ACTIVIDAD.search(str(enlace["href"])) if enlace else None
+            if es_categoria:
+                ruta, numero = "grade/edit/tree/category.php", int(eid[2:])
+            else:
+                ruta, numero = "grade/edit/tree/item.php", item_id
+            formulario = BeautifulSoup(
+                self._pagina_del_calificador(ruta, {"courseid": curso_id, "id": numero}),
+                "html.parser",
+            )
+            if formulario.find("form") is None:
+                raise ErrorPublicacion("ERROR_CONSULTA")
+            pref = "grade_item_" if es_categoria else ""
+            if es_categoria or coincidencia is None:
+                texto = BeautifulSoup(
+                    self._pagina_del_calificador(
+                        "grade/edit/tree/calculation.php", {"courseid": curso_id, "id": item_id}
+                    ),
+                    "html.parser",
+                )
+                calculo = _campo_con_nombre(texto, "calculation")
+                if calculo is None:
+                    formula = ""
+                elif calculo.name == "textarea":
+                    formula = calculo.get_text().strip()
+                else:
+                    formula = str(calculo.get("value") or "").strip()
+            else:
+                formula = ""
+            parciales.append(
+                {
+                    "eid": eid,
+                    "item_id": item_id,
+                    "es_categoria": es_categoria,
+                    "idnumber": _valor_de_campo(formulario, pref + "idnumber"),
+                    "nombre": titulo.get_text(" ", strip=True) if titulo else "",
+                    "padre_eid": str(padre) if padre else None,
+                    "coef": _valor_de_campo(formulario, pref + "aggregationcoef2"),
+                    "grademax_formulario": _valor_de_campo(formulario, pref + "grademax"),
+                    "sobrescrito": _casilla_marcada(formulario, pref + "weightoverride"),
+                    "bloqueado": _casilla_marcada(formulario, pref + "locked"),
+                    "tiene_notas": _campo_con_nombre(formulario, "rescalegrades") is not None,
+                    "formula": formula or None,
+                    "maximo": _numero(fila.get("data-grademax")),
+                    "cmid": int(coincidencia.group(1)) if coincidencia else None,
+                }
+            )
+        # Una categoría tiene notas si las tiene algo de dentro.
+        padre_de = {p["eid"]: p["padre_eid"] for p in parciales}
+        con_notas: set[str] = set()
+        for p in parciales:
+            actual: str | None = p["eid"] if p["tiene_notas"] else None
+            while actual is not None and actual not in con_notas:
+                con_notas.add(actual)
+                actual = padre_de.get(actual)
+        nodos = []
+        for p in parciales:
+            if p["es_categoria"]:
+                clase = "categoria" if p["padre_eid"] else "curso"
+            elif p["cmid"] is not None:
+                clase = "actividad"
+            else:
+                clase = "calculado" if p["formula"] else "manual"
+            nodos.append(
+                NodoAula(
+                    eid=p["eid"],
+                    item_id=p["item_id"],
+                    idnumber=p["idnumber"],
+                    clase=clase,
+                    nombre=p["nombre"],
+                    padre_eid=p["padre_eid"],
+                    peso=None if clase == "curso" else _numero(p["coef"]),
+                    sobrescrito=p["sobrescrito"],
+                    bloqueado=p["bloqueado"],
+                    tiene_notas=p["eid"] in con_notas,
+                    formula=p["formula"],
+                    maximo=p["maximo"],
+                    cmid=p["cmid"],
+                )
+            )
+        return CalificadorAula(nodos=tuple(nodos), decimal=_decimal_visto(parciales))
+
     def comprobar_h5p(self, cmid: int) -> bool:
         """¿Arrancó H5P? El embed trae H5PIntegration con contents (espiga)."""
         html = self._leer_embed_h5p(cmid)
@@ -1287,6 +1447,46 @@ class Moodle:
 def _formulario_de(html: str, accion: re.Pattern[str]) -> Any:
     """El formulario de la página cuya acción cumple ``accion``, o ``None``."""
     return BeautifulSoup(html, "html.parser").find("form", attrs={"action": accion})
+
+
+_ENLACE_DE_ACTIVIDAD = re.compile(r"/mod/\w+/view\.php\?id=(\d+)")
+
+
+def _valor_de_campo(formulario: Any, nombre: str) -> str:
+    campo = _campo_con_nombre(formulario, nombre)
+    return str(campo.get("value") or "").strip() if campo is not None else ""
+
+
+def _campo_con_nombre(formulario: Any, nombre: str) -> Any:
+    return formulario.find(attrs={"name": nombre})
+
+
+def _casilla_marcada(formulario: Any, nombre: str) -> bool:
+    return any(
+        campo.get("type") == "checkbox" and campo.has_attr("checked")
+        for campo in formulario.find_all("input", attrs={"name": nombre})
+    )
+
+
+def _numero(texto: Any) -> float | None:
+    """«40,0» o «40.0» como número; ``None`` si no lo es (o no es finito)."""
+    try:
+        valor = float(str(texto).strip().replace(",", "."))
+    except ValueError:
+        return None
+    return valor if valor == valor and abs(valor) != float("inf") else None
+
+
+def _decimal_visto(parciales: list[dict[str, Any]]) -> str:
+    """El separador decimal que enseñan los formularios (pesos primero, luego el máximo)."""
+    for clave in ("coef", "grademax_formulario"):
+        for p in parciales:
+            texto = p[clave]
+            if "," in texto:
+                return ","
+            if "." in texto:
+                return "."
+    return "."
 
 
 def _campos_de_formulario(formulario: Any) -> list[tuple[str, str]]:
