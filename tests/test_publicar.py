@@ -4052,7 +4052,7 @@ def test_formula_tope():
     notas = ["TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2", "TZ_NOTA_E_RA3"]
     f = publicar.formula_tope(5, 4, notas)
     esperado = (
-        "=min([[TZ_TIZA]]/[[TZ_K_TIZA]]*10;4+1000*floor(min("
+        "=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10;4+1000*floor(min("
         "[[TZ_NOTA_E_RA1]];[[TZ_NOTA_E_RA2]];[[TZ_NOTA_E_RA3]])/5))"
     )
     assert publicar.formula_moodle(f, ",") == esperado

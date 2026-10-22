@@ -5,9 +5,12 @@ categorías, copias y calculados debe tener el calificador, con los pesos ya nor
 entre los hermanos que cuentan. Las actividades se identifican por su ruta relativa a la carpeta
 (en POSIX); poner los cmids y comparar con el aula es cosa de las tareas siguientes.
 
-Todo cuelga de ``TZ_TIZA``. Hay dos vistas de lo mismo: «por elementos» (``TZ_E_<id>``, con todo el
-curso) y «por evaluaciones» (``TZ_V_<n>``, con ``TZ_V_<n>_<id>`` dentro). La que da la final cuelga
-de ``TZ_TIZA``; la otra, de ``TZ_VISTA`` (peso 0). La actividad real vive en su primer elemento de
+Todo cuelga de ``TZ_TIZA``, que tiene siempre dos hijos (y un tercero con tope): ``TZ_FINAL``
+(peso 100) y ``TZ_VISTA`` (peso 0). Hay dos vistas de lo mismo: «por elementos» (``TZ_E_<id>``, con
+todo el curso) y «por evaluaciones» (``TZ_V_<n>``, con ``TZ_V_<n>_<id>`` dentro). La que da la
+final cuelga de ``TZ_FINAL``; la otra, de ``TZ_VISTA``. Ningún calculado referencia a un
+antepasado suyo (Moodle deja vacía una referencia circular): la nota final usa ``TZ_FINAL``, no
+``TZ_TIZA``. La actividad real vive en su primer elemento de
 ``evalua``, en la vista de ``organizacion``; en los demás sitios va una copia ``TZ_C_<huella>``. Solo
 si la final tiene tope hay ``TZ_NOTAS`` (peso 0), con las notas sobre 10 de los elementos y de la
 final calculadas con contadores.
@@ -22,10 +25,11 @@ from pathlib import Path
 from tiza.calificacion.esquema import TOLERANCIA_PESOS, ErrorCalificacion, Esquema
 from tiza.contenido import Documento
 
-__all__ = ["Deseado", "Nodo", "deseado"]
+__all__ = ["Deseado", "Nodo", "comprobar_sin_circulares", "deseado"]
 
 CLASES = ("contenedor", "categoria", "actividad", "copia", "contador", "indicador", "nota")
 RAIZ = "TZ_TIZA"
+FINAL = "TZ_FINAL"
 VISTA = "TZ_VISTA"
 NOTAS = "TZ_NOTAS"
 K_TIZA = "TZ_K_TIZA"
@@ -78,6 +82,23 @@ class _Actividad:
     nombre: str
     evaluacion: int  # índice (desde 0) de la evaluación en la que cae su sección
     evalua: tuple[tuple[str, float], ...]
+
+
+def comprobar_sin_circulares(nodos: tuple[Nodo, ...]) -> None:
+    """Falla si un calculado referencia a un antepasado suyo: Moodle lo dejaría vacío."""
+    padres = {n.idnumber: n.padre for n in nodos}
+    for n in nodos:
+        if n.formula_de is None:
+            continue
+        fuentes = set(n.formula_de) if isinstance(n.formula_de, tuple) else {n.formula_de}
+        padre = n.padre
+        while padre is not None:
+            if padre in fuentes:
+                raise ErrorCalificacion(
+                    "REFERENCIA_CIRCULAR",
+                    f"{n.idnumber} referencia a {padre}, que lo contiene: Moodle lo dejaría vacío",
+                )
+            padre = padres.get(padre)
 
 
 def _huella(texto: str) -> str:
@@ -316,7 +337,7 @@ class _Montaje:
                     f"TZ_K_{elemento.id}",
                 )
             )
-        self._agregar(Nodo(NOTA_FINAL, "nota", "Nota final (sobre 10)", NOTAS, 0.0, (RAIZ, K_TIZA)))
+        self._agregar(Nodo(NOTA_FINAL, "nota", "Nota final (sobre 10)", NOTAS, 0.0, (FINAL, K_TIZA)))
 
     def montar(self) -> Deseado:
         esquema = self.esquema
@@ -325,11 +346,12 @@ class _Montaje:
         self._agregar(
             Nodo(RAIZ, "contenedor", "Calificador de tiza", None, raiz, None, "porcentaje")
         )
-        # los hijos de TZ_TIZA van en orden: la vista que da la final, TZ_VISTA, TZ_NOTAS
+        # los hijos de TZ_TIZA van en orden: TZ_FINAL (la vista que da la final), TZ_VISTA, TZ_NOTAS
+        self._agregar(Nodo(FINAL, "categoria", "Final", RAIZ, 100.0, None, "porcentaje"))
         if por_elementos:
-            self._vista_elementos(RAIZ)
+            self._vista_elementos(FINAL)
         else:
-            self._vista_evaluaciones(RAIZ, True)
+            self._vista_evaluaciones(FINAL, True)
         nombre_vista = "Vista por evaluaciones" if por_elementos else "Vista por elementos"
         self._agregar(Nodo(VISTA, "contenedor", nombre_vista, RAIZ, 0.0, None, "porcentaje"))
         if por_elementos:
@@ -347,6 +369,7 @@ class _Montaje:
             )
         total_curso = None if self.anterior else (NOTA_FINAL if self.tope else "porcentaje")
         con_actividades = {e for a in self.actividades for e, _ in a.evalua}
+        comprobar_sin_circulares(tuple(self.nodos))
         return Deseado(
             nodos=tuple(self.nodos),
             total_curso=total_curso,

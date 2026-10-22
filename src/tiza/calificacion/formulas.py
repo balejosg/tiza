@@ -64,6 +64,6 @@ def formula_tope(umbral: float, maximo: float, notas: list[str]) -> str:
     """
     minimo = ",".join(f"[[{n}]]" for n in notas)
     return (
-        f"=min([[TZ_TIZA]]/[[TZ_K_TIZA]]*10,"
+        f"=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10,"
         f"{texto_numero(maximo)}+1000*floor(min({minimo})/{texto_numero(umbral)}))"
     )

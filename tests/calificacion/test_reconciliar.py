@@ -424,7 +424,7 @@ def test_montaje_completo_con_tope() -> None:
     d, aula = montar(FP_TOPE)
     nodos = {n.idnumber: n for n in aula.nodos}
     assert d.total_curso == "TZ_NOTA_FINAL"
-    assert nodos["TZ_NOTA_FINAL"].formula.startswith("=min([[TZ_TIZA]]/[[TZ_K_TIZA]]*10,")
+    assert nodos["TZ_NOTA_FINAL"].formula.startswith("=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10,")
     curso_ = next(n for n in aula.nodos if n.clase == "curso")
     assert curso_.formula == "=[[TZ_NOTA_FINAL]]"
     assert nodos["TZ_NOTA_E_RA1"].formula == "=[[TZ_E_RA1]]/[[TZ_K_RA1]]*10"

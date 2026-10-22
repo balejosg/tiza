@@ -152,11 +152,12 @@ def test_eso_por_evaluaciones() -> None:
     assert copia_de(d, "u1/a.md", "TZ_E_RA1")
     assert copia_de(d, "u2/b.md", "TZ_V_2_RA1")
     assert copia_de(d, "u2/b.md", "TZ_E_RA2")
-    assert nodo(d, "TZ_V_1").padre == "TZ_TIZA" and nodo(d, "TZ_V_1").peso == 30.0
+    assert nodo(d, "TZ_V_1").padre == "TZ_FINAL" and nodo(d, "TZ_V_1").peso == 30.0
     assert nodo(d, "TZ_V_3").peso == 40.0
     assert nodo(d, "TZ_VISTA").peso == 0.0
     assert nodo(d, "TZ_E_RA1").padre == "TZ_VISTA"
-    assert [n.idnumber for n in hijos(d, "TZ_TIZA")] == ["TZ_V_1", "TZ_V_2", "TZ_V_3", "TZ_VISTA"]
+    assert [n.idnumber for n in hijos(d, "TZ_FINAL")] == ["TZ_V_1", "TZ_V_2", "TZ_V_3"]
+    assert [n.idnumber for n in hijos(d, "TZ_TIZA")] == ["TZ_FINAL", "TZ_VISTA"]
 
 
 def test_anterior_va_en_contenedor() -> None:
@@ -171,13 +172,11 @@ def test_anterior_va_en_contenedor() -> None:
     d = deseado(FP_SIN_TOPE, completo(), False, CARPETA)
     assert d.total_curso == "porcentaje"
     assert nodo(d, "TZ_TIZA").peso == 100.0
-    assert [n.idnumber for n in hijos(d, "TZ_TIZA")] == [
-        "TZ_E_RA1",
-        "TZ_E_RA2",
-        "TZ_E_RA3",
-        "TZ_VISTA",
-    ]
-    assert [n.peso for n in hijos(d, "TZ_TIZA")] == [40.0, 30.0, 30.0, 0.0]
+    assert [n.idnumber for n in hijos(d, "TZ_TIZA")] == ["TZ_FINAL", "TZ_VISTA"]
+    assert [n.peso for n in hijos(d, "TZ_TIZA")] == [100.0, 0.0]
+    assert [n.idnumber for n in hijos(d, "TZ_FINAL")] == ["TZ_E_RA1", "TZ_E_RA2", "TZ_E_RA3"]
+    assert [n.peso for n in hijos(d, "TZ_FINAL")] == [40.0, 30.0, 30.0]
+    assert nodo(d, "TZ_FINAL").visualizacion == "porcentaje"
     assert [n.peso for n in hijos(d, "TZ_VISTA")] == [0.0, 0.0, 0.0]
 
 
@@ -234,7 +233,7 @@ def test_tope_monta_contador() -> None:
     assert [c.formula_de for c in copias] == ["TZ_K_RA1", "TZ_K_RA2", "TZ_K_RA3"]
     assert all(c.clase == "copia" and c.peso is None for c in copias)
     final = nodo(d, "TZ_NOTA_FINAL")
-    assert final.formula_de == ("TZ_TIZA", "TZ_K_TIZA") and final.padre == "TZ_NOTAS"
+    assert final.formula_de == ("TZ_FINAL", "TZ_K_TIZA") and final.padre == "TZ_NOTAS"
     assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2", "TZ_NOTA_E_RA3"))
     # los idnumber son únicos
     ids = [n.idnumber for n in d.nodos]
@@ -398,3 +397,35 @@ def test_peso_cero_sin_indicador() -> None:
     d = deseado(FP, ceros, False, CARPETA)
     assert nodo(d, "TZ_K_RA1").clase == "contador"
     assert hijos(d, "TZ_K_RA1") == []
+
+
+def _antepasados(d: Deseado, idnumber: str) -> set[str]:
+    por_id = {n.idnumber: n for n in d.nodos}
+    resultado: set[str] = set()
+    padre = por_id[idnumber].padre
+    while padre is not None:
+        resultado.add(padre)
+        padre = por_id[padre].padre
+    return resultado
+
+
+def test_ningun_calculado_referencia_a_un_antepasado() -> None:
+    casos = [(FP, completo()), (FP_SIN_TOPE, completo()), (ESO, [doc("u1/a.md", 1, RA1=100)])]
+    for esquema, docs in casos:
+        d = deseado(esquema, docs, False, CARPETA)
+        for n in d.nodos:
+            if n.formula_de is None:
+                continue
+            fuentes = n.formula_de if isinstance(n.formula_de, tuple) else (n.formula_de,)
+            assert not set(fuentes) & _antepasados(d, n.idnumber), n.idnumber
+
+
+def test_referencia_circular_se_rechaza() -> None:
+    from tiza.calificacion.deseado import comprobar_sin_circulares
+
+    d = deseado(FP, completo(), False, CARPETA)
+    malo = Nodo("TZ_NOTA_FINAL", "nota", "x", "TZ_NOTAS", 0.0, ("TZ_TIZA", "TZ_K_TIZA"))
+    nodos = tuple(malo if n.idnumber == "TZ_NOTA_FINAL" else n for n in d.nodos)
+    with pytest.raises(ErrorCalificacion) as e:
+        comprobar_sin_circulares(nodos)
+    assert e.value.codigo == "REFERENCIA_CIRCULAR"
