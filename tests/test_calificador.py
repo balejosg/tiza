@@ -819,3 +819,24 @@ def test_el_buzon_entero_con_el_calificador(tmp_path):
     datos = agente.peticion_calificador("calificacion.yaml", "pruebas")
     sesion.atender(datos)
     assert moodle.metodos().count("colocar_actividad") == 3
+
+
+def test_tras_un_fallo_lo_tocado_que_esta_a_mano_conserva_su_huella_antigua():
+    from types import SimpleNamespace
+
+    from tiza.calificacion.reconciliar import Operacion
+
+    final = CalificadorAula(
+        nodos=(nodo("cg1", "", "curso", None), nodo("cg3", "TZ_X", "categoria", "cg1", peso=5.0)),
+        decimal=".",
+    )
+    antigua = "a" * 64
+    plan = SimpleNamespace(
+        huellas={"TZ_X": antigua, "TZ_Y": "b" * 64},
+        cmids={},
+        reconciliacion=SimpleNamespace(a_mano=frozenset({"TZ_X"})),
+    )
+    nuevas = publicacion._huellas_tras_fallo(
+        final, plan, [Operacion("fijar_peso", idnumber="TZ_X")]
+    )
+    assert nuevas["TZ_X"] == antigua and nuevas["TZ_Y"] == "b" * 64

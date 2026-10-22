@@ -1780,7 +1780,9 @@ def _huellas_tras_fallo(
             tocadas.add(op.idnumber)
         if op.eid and op.eid in idnumber_de:
             tocadas.add(idnumber_de[op.eid])
-    nuevas = {k: v for k, v in plan.huellas.items() if k not in tocadas}
+    nuevas = {
+        k: v for k, v in plan.huellas.items() if k not in tocadas - plan.reconciliacion.a_mano
+    }
     for clave in tocadas - plan.reconciliacion.a_mano:
         if clave in ahora:
             nuevas[clave] = ahora[clave]

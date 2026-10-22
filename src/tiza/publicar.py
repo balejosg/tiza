@@ -1080,11 +1080,15 @@ class Moodle:
             destino = str((getattr(respuesta, "headers", None) or {}).get("Location", ""))
             if not destino or "/login/" in destino:
                 raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+            resuelta = urljoin(f"{self.base_url}/", destino)
+            propia, ajena = urlsplit(self.base_url), urlsplit(resuelta)
+            if (propia.scheme, propia.netloc) != (ajena.scheme, ajena.netloc):
+                raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")  # solo a su propia aula
             self._esperar()
             respuesta = self._reducir(
                 "ERROR_CONSULTA",
                 self.sesion.get,
-                urljoin(f"{self.base_url}/", destino),
+                resuelta,
                 allow_redirects=False,
                 timeout=TIEMPO_ESPERA,
             )

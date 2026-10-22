@@ -3992,6 +3992,31 @@ def test_redireccion_que_no_va_al_login_se_sigue_una_vez():
     assert sesion.gets[1][0] == "https://aula/grade/edit/tree/index.php"
 
 
+def test_redireccion_relativa_se_sigue():
+    sesion = _SesionConRedireccion("/grade/edit/tree/index.php")
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    assert moodle.calificador(2).nodos
+    assert sesion.gets[1][0] == "https://aula/grade/edit/tree/index.php"
+
+
+@pytest.mark.parametrize(
+    "destino",
+    [
+        "https://otro.ejemplo/grade/edit/tree/index.php",
+        "http://aula/grade/edit/tree/index.php",
+        "//otro.ejemplo/grade/edit/tree/index.php",
+        "https://aula/login/index.php",
+    ],
+)
+def test_redireccion_ajena_o_al_login_no_se_pide(destino):
+    sesion = _SesionConRedireccion(destino)
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+    assert len(sesion.gets) == 1  # no se pidió la redirección
+
+
 def test_dos_redirecciones_seguidas_son_falta_de_permiso():
     sesion = _SesionConRedireccion("https://aula/grade/edit/tree/index.php", veces=2)
     moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
