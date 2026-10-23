@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.27.0 — 2026-10-23
+
+### Añadido
+- **`tiza empezar` cierra la sesión que se quedó sin terminal.** Si la terminal de la sesión se cerraba (por ejemplo, el panel de terminal de Claude Desktop en Windows), la sesión seguía viva sin poder contestarle y un `tiza empezar` nuevo solo decía `SESION_YA_ABIERTA`. Ahora ofrece cerrarla y abrir otra. Si estaba esperando tu respuesta, no publica nada; si estaba publicando, termina antes de cerrarse (`SESION_ANTERIOR_OCUPADA` si tarda más de 30 segundos). Una sesión de una versión anterior hay que cerrarla todavía a mano, en el Administrador de tareas.
+
 ## 0.26.1 — 2026-10-23
 
 ### Corregido

@@ -29,6 +29,7 @@ import threading
 import time
 from collections.abc import Callable
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,7 @@ from .ficheros import FicheroNoSeguro, asegurar_directorio, escribir_json, leer_
 
 __all__ = [
     "ErrorBuzon",
+    "OtraSesion",
     "LATIDO_SEGUNDOS",
     "LATIDO_MAX",
     "ESPERA_POR_DEFECTO",
@@ -53,12 +55,15 @@ __all__ = [
     "atender",
     "borrar_sesion",
     "carpeta_buzon",
+    "carpeta_libre",
     "crear_sesion",
     "enviar",
     "huella_codigo",
+    "otra_sesion",
     "peticion_pendiente",
     "SesionAbierta",
     "sesion_activa",
+    "soltar",
     "validar_peticion",
 ]
 
@@ -342,6 +347,12 @@ def borrar_sesion(dir_tiza: str | Path) -> None:
     _borrar(carpeta_buzon(dir_tiza) / SESION)
 
 
+def soltar(dir_tiza: str | Path) -> None:
+    """La sesión se va sin pasar por ``abrir_sesion``: borra ``sesion.json`` y la reserva."""
+    borrar_sesion(dir_tiza)
+    _borrar(carpeta_buzon(dir_tiza) / RESERVA)
+
+
 def _reservar_carpeta(dir_tiza: str | Path, *, ahora: Callable[[], datetime] | None = None) -> Path:
     """Una sola «tiza sesion» por carpeta: dos atenderían la misma petición."""
     carpeta = _carpeta_propia(dir_tiza)
@@ -431,10 +442,13 @@ def abrir_sesion(
     *,
     intervalo: float = LATIDO_SEGUNDOS,
     ahora: Callable[[], datetime] | None = None,
+    al_latir: Callable[[], bool] | None = None,
 ):
     """Abre ``sesion.json`` con un hilo daemon que late hasta salir.
 
     Antes reserva la carpeta: si ya hay otra sesión, lanza SESION_YA_ABIERTA.
+    ``al_latir`` corre en el hilo de latido tras cada latido; si devuelve falso, la
+    sesión ya se ha ido (``soltar``) y deja de latir.
     """
     reserva = _reservar_carpeta(dir_tiza, ahora=ahora)
     try:
@@ -448,6 +462,8 @@ def abrir_sesion(
                     sesion.escribir()
                 except OSError:
                     continue  # p. ej. Windows con el fichero abierto: reintenta en el siguiente latido
+                if al_latir is not None and not al_latir():
+                    return
 
         hilo = threading.Thread(target=latir, name="tiza-latido", daemon=True)
         hilo.start()
@@ -504,6 +520,39 @@ def sesion_incompatible(
         return None
     version = datos.get("tiza")
     return version if isinstance(version, str) and version else "desconocida"
+
+
+@dataclass(frozen=True)
+class OtraSesion:
+    """Una sesión viva en la carpeta, de esta versión o de otra: su pid y si atiende algo."""
+
+    pid: int
+    atendiendo: bool
+
+
+def otra_sesion(
+    dir_tiza: str | Path,
+    *,
+    ahora: Callable[[], datetime] | None = None,
+    latido_max: float = LATIDO_MAX,
+) -> OtraSesion | None:
+    """La sesión que late en la carpeta, hable o no nuestro protocolo; None si no la hay.
+
+    El pid viene de ``sesion.json``, que el agente puede escribir: no basta para tocar
+    un proceso (lo confirma el directorio privado de la sesión, en :mod:`tiza.sesion`).
+    """
+    datos = _leer_json(carpeta_buzon(dir_tiza) / SESION)
+    if not _sesion_viva(datos, (ahora or ahora_utc)(), latido_max):
+        return None
+    return OtraSesion(datos["pid"], bool(_ID.match(str(datos.get("atendiendo") or ""))))
+
+
+def carpeta_libre(dir_tiza: str | Path, *, ahora: Callable[[], datetime] | None = None) -> bool:
+    """Nadie late en la carpeta ni la tiene reservada (o la reserva está abandonada)."""
+    if otra_sesion(dir_tiza, ahora=ahora) is not None:
+        return False
+    reserva = carpeta_buzon(dir_tiza) / RESERVA
+    return not reserva.exists() or _reserva_abandonada(dir_tiza, reserva, ahora=ahora)
 
 
 def caducidad(

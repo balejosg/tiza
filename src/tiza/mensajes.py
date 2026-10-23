@@ -37,6 +37,8 @@ from .publicacion import (
 __all__ = [
     "AUTOPRUEBA_TEXTO",
     "AVISO_AJENO",
+    "SESION_ANTERIOR_ATENDIENDO",
+    "SESION_ANTERIOR_TEXTO",
     "DetalleCalificador",
     "DetalleCopia",
     "DetalleCorto",
@@ -103,6 +105,13 @@ SIN_PRUEBAS_AVISO = (
     "Sin curso de pruebas: no habrá verificación previa y en real solo se publicará oculto."
 )
 AVISO_AJENO = "No aparece entre tus cursos: comprueba el id."
+SESION_ANTERIOR_TEXTO = (
+    "Ya hay una sesión de tiza abierta en esta carpeta (quizá en una terminal que se cerró)."
+)
+SESION_ANTERIOR_ATENDIENDO = (
+    "Está con una petición del agente: si espera tu respuesta, no se publicará; "
+    "si ya está publicando, terminará antes de cerrarse."
+)
 EXCEPCIONES_TEXTO = (
     "Las excepciones de fecha de alumnos concretos no cambian: revísalas en el aula si las hay."
 )
@@ -121,6 +130,7 @@ _CIERRE = {
         "tiza ha cambiado mientras la sesión estaba abierta; se cierra. Vuelve a abrirla."
     ),
     "docente": "Sesión cerrada.",
+    "otra": "Se ha abierto otra sesión en esta carpeta; esta se cierra.",
 }
 
 
@@ -672,6 +682,10 @@ def _cancelada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("Operación cancelada.", error=True),)
 
 
+def _cerrando_sesion_anterior(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("Cerrando la sesión anterior..."),)
+
+
 def _copia_queda_en_el_aula(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(
@@ -768,6 +782,10 @@ def _sesion_abierta(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _sesion_anterior_cerrada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("La sesión anterior se ha cerrado."),)
+
+
 def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea(texto_cierre(datos["motivo"])),)
 
@@ -780,6 +798,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
     "CAMBIADO_A_MANO": _cambiado_a_mano,
     "CANCELADA": _cancelada,
+    "CERRANDO_SESION_ANTERIOR": _cerrando_sesion_anterior,
     "COPIA_QUEDA_EN_EL_AULA": _copia_queda_en_el_aula,
     "CREANDO_SECCION": _creando_seccion,
     "CURSOS_GUARDADOS": _cursos_guardados,
@@ -799,6 +818,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "QUEDAN_MINUTOS": _quedan_minutos,
     "RESULTADO": _resultado,
     "SESION_ABIERTA": _sesion_abierta,
+    "SESION_ANTERIOR_CERRADA": _sesion_anterior_cerrada,
     "SESION_CERRADA": _sesion_cerrada,
 }
 

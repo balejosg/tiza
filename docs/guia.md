@@ -82,6 +82,13 @@ Mientras la sesión esté abierta, no entres al aula con el mismo usuario desde 
 navegador: el aula puede cerrar la sesión anterior. Si ocurre, `tiza`
 responde `SESION_CADUCADA` y la sesión se cierra; vuelve a abrirla.
 
+Abre la sesión en una terminal propia (en Windows, PowerShell o Terminal de
+Windows), no en el panel de terminal de la app del agente: si la app cierra ese
+panel, la sesión sigue viva sin que puedas contestar. Si te pasa, vuelve a
+ejecutar `tiza empezar` en la carpeta: te ofrece cerrar la sesión anterior y abrir
+otra. Si estaba publicando algo largo, como el calificador, se cierra al acabar
+(`SESION_ANTERIOR_OCUPADA`) y vuelves a lanzarlo entonces.
+
 El buzón `.tiza/buzon/` solo usa ficheros (ni red ni sockets), así que funciona
 dentro de los sandboxes de los agentes. Sin sesión abierta, `publicar` y
 `estructura` fallan con `SIN_SESION` y nunca piden la contraseña.

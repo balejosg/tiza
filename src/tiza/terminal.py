@@ -324,6 +324,12 @@ class PresenciaTerminal:
         print(mensajes.AUTOPRUEBA_TEXTO)
         return confirmar("¿Pasarla ahora?")
 
+    def cerrar_sesion_anterior(self, atendiendo: bool) -> bool:
+        print(mensajes.SESION_ANTERIOR_TEXTO)
+        if atendiendo:
+            print(mensajes.SESION_ANTERIOR_ATENDIENDO)
+        return confirmar("¿Cerrarla y abrir esta?")
+
     def confirmar_real(self, resumen: ResumenPublicacion) -> bool:
         detalle = mensajes.detalle_real(resumen)
         _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)

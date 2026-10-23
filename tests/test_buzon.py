@@ -1074,3 +1074,85 @@ class TestSoloFechasEnLaPeticion:
 
     def test_el_protocolo_sube_con_el_campo(self):
         assert buzon.VERSION_PROTOCOLO == 7  # 5: solo_fechas; 6: «copia»; 7: «calificador»
+
+
+class TestOtraSesion:
+    """Lo que ve un «tiza empezar» nuevo de la sesión que ya late en la carpeta."""
+
+    def test_sin_sesion_no_hay_otra_y_la_carpeta_esta_libre(self, tmp_path):
+        assert buzon.otra_sesion(tmp_path) is None
+        assert buzon.carpeta_libre(tmp_path) is True
+
+    def test_da_el_pid_y_si_atiende_una_peticion(self, tmp_path):
+        buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5), pid=4321)
+        assert buzon.otra_sesion(tmp_path) == buzon.OtraSesion(4321, False)
+        ruta = buzon.carpeta_buzon(tmp_path) / buzon.SESION
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        ruta.write_text(json.dumps({**datos, "atendiendo": "a" * 32}), encoding="utf-8")
+        assert buzon.otra_sesion(tmp_path) == buzon.OtraSesion(4321, True)
+
+    def test_tambien_ve_una_sesion_de_otro_protocolo(self, tmp_path):
+        buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5), pid=4321)
+        ruta = buzon.carpeta_buzon(tmp_path) / buzon.SESION
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        ruta.write_text(json.dumps({**datos, "version": 1}), encoding="utf-8")
+        assert buzon.sesion_activa(tmp_path) is False
+        assert buzon.otra_sesion(tmp_path) == buzon.OtraSesion(4321, False)
+
+    def test_una_sesion_que_ya_no_late_no_cuenta(self, tmp_path):
+        viejo = ahora() - timedelta(seconds=buzon.LATIDO_MAX + 1)
+        buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5), ahora=lambda: viejo)
+        assert buzon.otra_sesion(tmp_path) is None
+
+    def test_la_carpeta_no_esta_libre_con_una_reserva_reciente(self, tmp_path):
+        carpeta = buzon.carpeta_buzon(tmp_path)
+        carpeta.mkdir(parents=True)
+        (carpeta / buzon.RESERVA).write_text("1\n", encoding="utf-8")
+        assert buzon.carpeta_libre(tmp_path) is False
+        viejo = time.time() - buzon.LATIDO_MAX - 5
+        os.utime(carpeta / buzon.RESERVA, (viejo, viejo))
+        assert buzon.carpeta_libre(tmp_path) is True  # abandonada
+
+    def test_soltar_borra_la_sesion_y_la_reserva(self, tmp_path):
+        with buzon.abrir_sesion(tmp_path, ahora() + timedelta(minutes=1), intervalo=60):
+            assert buzon.carpeta_libre(tmp_path) is False
+            buzon.soltar(tmp_path)
+            assert buzon.carpeta_libre(tmp_path) is True
+            assert not (buzon.carpeta_buzon(tmp_path) / buzon.RESERVA).exists()
+
+
+class TestAlLatir:
+    def test_corre_tras_cada_latido(self, tmp_path):
+        latidos = threading.Event()
+        vistos: list[bool] = []
+
+        def al_latir():
+            vistos.append(buzon.sesion_activa(tmp_path))
+            if len(vistos) >= 3:
+                latidos.set()
+            return True
+
+        with buzon.abrir_sesion(
+            tmp_path, ahora() + timedelta(minutes=1), intervalo=0.01, al_latir=al_latir
+        ):
+            assert latidos.wait(5)
+        assert all(vistos)
+
+    def test_falso_deja_de_latir(self, tmp_path):
+        ruta = buzon.carpeta_buzon(tmp_path) / buzon.SESION
+        llamadas: list[int] = []
+
+        def al_latir():
+            llamadas.append(1)
+            buzon.soltar(tmp_path)  # la sesión se va
+            return False
+
+        with buzon.abrir_sesion(
+            tmp_path, ahora() + timedelta(minutes=1), intervalo=0.01, al_latir=al_latir
+        ):
+            limite = time.monotonic() + 5
+            while not llamadas and time.monotonic() < limite:
+                time.sleep(0.01)
+            time.sleep(0.1)  # varios intervalos: nadie vuelve a escribir sesion.json
+            assert llamadas == [1]
+            assert not ruta.exists()

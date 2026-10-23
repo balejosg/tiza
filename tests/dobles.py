@@ -523,6 +523,7 @@ class PresenciaFalsa:
         copia: bool = True,
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
+        cerrar_anterior: bool = False,
     ) -> None:
         self.password = password
         self._cursos = list(cursos)
@@ -536,6 +537,8 @@ class PresenciaFalsa:
         self._copia = copia
         self._sin_pruebas = sin_pruebas
         self._ampliar = list(ampliar)
+        self._cerrar_anterior = cerrar_anterior
+        self.anteriores_vistas: list[bool] = []  # «atendiendo» de cada sesión anterior
         self.passwords_pedidas: list[tuple[str, str]] = []
         self.cursos_vistos: list[list] = []
         self.resumenes: list = []
@@ -595,6 +598,10 @@ class PresenciaFalsa:
         self.sin_pruebas_pedidas += 1
         return self._sin_pruebas
 
+    def cerrar_sesion_anterior(self, atendiendo):
+        self.anteriores_vistas.append(atendiendo)
+        return self._cerrar_anterior
+
     def ofrecer_ampliacion(self, minutos, plazo):
         return self._ampliar.pop(0) if self._ampliar else False
 
@@ -636,6 +643,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "CAMBIADA_EN_EL_AULA": publicacion.Aviso.cambiada_en_el_aula("T"),
         "CAMBIADO_A_MANO": publicacion.Aviso.cambiado_a_mano("T"),
         "CANCELADA": publicacion.Aviso.cancelada(),
+        "CERRANDO_SESION_ANTERIOR": publicacion.Aviso.cerrando_sesion_anterior(),
         "COPIA_QUEDA_EN_EL_AULA": publicacion.Aviso.copia_queda_en_el_aula(),
         "CREANDO_SECCION": publicacion.Aviso.creando_seccion("Tema"),
         "CURSOS_GUARDADOS": publicacion.Aviso.cursos_guardados(Path("tiza.toml")),
@@ -661,5 +669,6 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "SESION_ABIERTA": publicacion.Aviso.sesion_abierta(
             datetime(2026, 10, 3, 10, 0, tzinfo=UTC)
         ),
+        "SESION_ANTERIOR_CERRADA": publicacion.Aviso.sesion_anterior_cerrada(),
         "SESION_CERRADA": publicacion.Aviso.sesion_cerrada("caducada"),
     }

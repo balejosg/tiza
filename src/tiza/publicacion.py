@@ -111,6 +111,7 @@ AVISOS = frozenset(
         "CAMBIADA_EN_EL_AULA",
         "CAMBIADO_A_MANO",
         "CANCELADA",
+        "CERRANDO_SESION_ANTERIOR",
         "COPIA_QUEDA_EN_EL_AULA",
         "CREANDO_SECCION",
         "CURSOS_GUARDADOS",
@@ -130,6 +131,7 @@ AVISOS = frozenset(
         "QUEDAN_MINUTOS",
         "RESULTADO",
         "SESION_ABIERTA",
+        "SESION_ANTERIOR_CERRADA",
         "SESION_CERRADA",
     }
 )
@@ -196,6 +198,10 @@ class Aviso:
         return cls("CANCELADA")
 
     @classmethod
+    def cerrando_sesion_anterior(cls) -> Aviso:
+        return cls("CERRANDO_SESION_ANTERIOR")
+
+    @classmethod
     def copia_queda_en_el_aula(cls) -> Aviso:
         return cls("COPIA_QUEDA_EN_EL_AULA")
 
@@ -258,6 +264,10 @@ class Aviso:
     @classmethod
     def sesion_abierta(cls, caduca: datetime) -> Aviso:
         return cls("SESION_ABIERTA", {"caduca": caduca})
+
+    @classmethod
+    def sesion_anterior_cerrada(cls) -> Aviso:
+        return cls("SESION_ANTERIOR_CERRADA")
 
     @classmethod
     def sesion_cerrada(cls, motivo: str) -> Aviso:
@@ -592,6 +602,11 @@ class Presencia(Protocol):
 
     def confirmar_sin_pruebas(self) -> bool:
         """¿Abrir la sesión sin curso de pruebas? (no habrá verificación previa)."""
+        ...
+
+    def cerrar_sesion_anterior(self, atendiendo: bool) -> bool:
+        """¿Cerrar la sesión que sigue abierta en esta carpeta (quizá en una terminal que se
+        cerró) y abrir esta? ``atendiendo``: está con una petición del agente."""
         ...
 
     def ofrecer_ampliacion(self, minutos: int, plazo: float) -> bool:

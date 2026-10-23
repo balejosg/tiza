@@ -90,7 +90,7 @@ def test_el_doble_cumple_la_interfaz_de_presencia():
         for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
-    assert len(metodos) == 13
+    assert len(metodos) == 14
     for nombre in metodos:
         esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaFalsa, nombre)).parameters)
@@ -542,3 +542,273 @@ def test_autoprueba_sin_permiso_de_copia(tmp_path, monkeypatch):
     assert sesion.autoprueba_con(MoodleFalso(), 1234, otra, PresenciaFalsa()) is True
     texto = (otra / ".tiza" / "informe.json").read_text(encoding="utf-8")
     assert "COPIA_A_MANO" not in texto
+
+
+# --------------------------------------------------------------------------- #
+# Cerrar la sesión anterior (su terminal se cerró y siguió viva)
+# --------------------------------------------------------------------------- #
+
+
+def sesion_anterior(carpeta: Path, *, atendiendo: bool = False) -> Path:
+    """Una sesión viva en la carpeta con su directorio privado; devuelve este directorio.
+
+    Es de este mismo proceso: el pid de ``sesion.json`` y el de la marca coinciden.
+    """
+    buzon.crear_sesion(carpeta / ".tiza", datetime.now(UTC) + timedelta(minutes=30))
+    if atendiendo:
+        ruta = buzon.carpeta_buzon(carpeta / ".tiza") / buzon.SESION
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        ruta.write_text(json.dumps({**datos, "atendiendo": "a" * 32}), encoding="utf-8")
+    return sesion.crear_dir_vistas(carpeta)
+
+
+def soltar_al_pedirlo(carpeta: Path, privado: Path) -> threading.Thread:
+    """La sesión anterior se va en cuanto otra le pide cerrarse."""
+
+    def esperar() -> None:
+        limite = time.monotonic() + 5
+        while not (privado / sesion.PEDIR_CIERRE).exists() and time.monotonic() < limite:
+            time.sleep(0.01)
+        buzon.soltar(carpeta / ".tiza")
+
+    hilo = threading.Thread(target=esperar, daemon=True)
+    hilo.start()
+    return hilo
+
+
+class TestMarcaPrivada:
+    def test_la_marca_lleva_carpeta_y_pid(self, tmp_path):
+        privado = sesion.crear_dir_vistas(tmp_path)
+        marca = json.loads((privado / "sesion.json").read_text(encoding="utf-8"))
+        assert marca == {"carpeta": str(tmp_path.resolve()), "pid": os.getpid()}
+
+    def test_encuentra_la_de_su_carpeta_y_pid_salvo_la_propia(self, tmp_path):
+        otra_carpeta = tmp_path / "otra"
+        otra_carpeta.mkdir()
+        anterior = sesion_anterior(tmp_path)  # viva: crear otro no la borra
+        propio = sesion.crear_dir_vistas(tmp_path)
+        sesion.crear_dir_vistas(otra_carpeta)
+        assert sesion._privados_de(tmp_path, os.getpid(), propio) == [anterior]
+        assert sesion._privados_de(tmp_path, os.getpid() + 1, propio) == []
+
+    def test_una_marca_con_pid_que_no_es_entero_no_vale(self, tmp_path):
+        privado = sesion.crear_dir_vistas(tmp_path)
+        (privado / "sesion.json").write_text(
+            json.dumps({"carpeta": str(tmp_path.resolve()), "pid": True}), encoding="utf-8"
+        )
+        assert sesion._privados_de(tmp_path, 1, None) == []
+
+
+class TestCerrarSesionAnterior:
+    """El «tiza empezar» nuevo: ofrece cerrar la anterior antes de pedir la contraseña."""
+
+    def test_sin_directorio_privado_no_ofrece_cerrarla(self, tmp_path, monkeypatch):
+        # Una sesión de una versión anterior, o un sesion.json que escribió el agente.
+        carpeta, atendidas = preparar_abrir(tmp_path, monkeypatch)
+        buzon.crear_sesion(carpeta / ".tiza", datetime.now(UTC) + timedelta(minutes=5))
+        presencia = PresenciaFalsa(cerrar_anterior=True)
+        assert sesion.abrir(carpeta, presencia, minutos=60) == 1
+        assert presencia.anteriores_vistas == []
+        assert presencia.passwords_pedidas == []
+        fallo = next(aviso for aviso in presencia.avisos if aviso.codigo == "FALLO")
+        assert fallo.datos["codigo"] == "SESION_YA_ABIERTA"
+        assert "no se puede cerrar desde aquí" in fallo.datos["detalle"]
+        assert atendidas == []
+
+    def test_un_pid_que_no_es_el_de_la_marca_no_vale(self, tmp_path, monkeypatch):
+        carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
+        privado = sesion_anterior(carpeta)
+        buzon.crear_sesion(
+            carpeta / ".tiza", datetime.now(UTC) + timedelta(minutes=5), pid=os.getpid() + 1
+        )
+        presencia = PresenciaFalsa(cerrar_anterior=True)
+        assert sesion.abrir(carpeta, presencia, minutos=60) == 1
+        assert presencia.anteriores_vistas == []
+        assert not (privado / sesion.PEDIR_CIERRE).exists()
+
+    def test_si_el_docente_dice_que_no_sigue_como_antes(self, tmp_path, monkeypatch):
+        carpeta, atendidas = preparar_abrir(tmp_path, monkeypatch)
+        privado = sesion_anterior(carpeta)
+        presencia = PresenciaFalsa(cerrar_anterior=False)
+        assert sesion.abrir(carpeta, presencia, minutos=60) == 1
+        assert presencia.anteriores_vistas == [False]
+        assert presencia.passwords_pedidas == []
+        assert not (privado / sesion.PEDIR_CIERRE).exists()
+        assert "SESION_YA_ABIERTA" in leer_informe(carpeta)["errores"]
+        assert atendidas == []
+
+    def test_le_dice_al_docente_si_atiende_una_peticion(self, tmp_path, monkeypatch):
+        carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
+        sesion_anterior(carpeta, atendiendo=True)
+        presencia = PresenciaFalsa(cerrar_anterior=False)
+        sesion.abrir(carpeta, presencia, minutos=60)
+        assert presencia.anteriores_vistas == [True]
+
+    def test_la_cierra_y_abre_la_nueva(self, tmp_path, monkeypatch):
+        carpeta, atendidas = preparar_abrir(tmp_path, monkeypatch)
+        privado = sesion_anterior(carpeta)
+        hilo = soltar_al_pedirlo(carpeta, privado)
+        presencia = PresenciaFalsa(cerrar_anterior=True)
+        assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
+        hilo.join(5)
+        assert (privado / sesion.PEDIR_CIERRE).exists()
+        codigos = presencia.codigos()
+        assert codigos.index("CERRANDO_SESION_ANTERIOR") < codigos.index("SESION_ANTERIOR_CERRADA")
+        assert presencia.passwords_pedidas  # después, el login de siempre
+        assert len(atendidas) == 1
+
+    def test_si_no_se_va_a_tiempo_deja_la_peticion(self, tmp_path, monkeypatch):
+        carpeta, atendidas = preparar_abrir(tmp_path, monkeypatch)
+        privado = sesion_anterior(carpeta)
+        monkeypatch.setattr(sesion, "ESPERA_CIERRE_SEGUNDOS", 0.2)
+        presencia = PresenciaFalsa(cerrar_anterior=True)
+        assert sesion.abrir(carpeta, presencia, minutos=60) == 1
+        assert (privado / sesion.PEDIR_CIERRE).exists()  # se irá sola al acabar
+        assert presencia.passwords_pedidas == []
+        assert "SESION_ANTERIOR_OCUPADA" in leer_informe(carpeta)["errores"]
+        assert atendidas == []
+
+
+class AulaQueSeCierra:
+    def __init__(self) -> None:
+        self.cerradas = 0
+
+    def cerrar(self) -> None:
+        self.cerradas += 1
+
+
+class TestCierrePedido:
+    """La sesión anterior, cuando otra de su carpeta le pide irse."""
+
+    def preparar(self, tmp_path):
+        dir_tiza = tmp_path / ".tiza"
+        privado = sesion.crear_dir_vistas(tmp_path)
+        salidas: list[tuple[int, bool, bool]] = []
+        aula = AulaQueSeCierra()
+
+        def salir(codigo):
+            carpeta = buzon.carpeta_buzon(dir_tiza)
+            salidas.append(
+                (codigo, (carpeta / buzon.SESION).exists(), (carpeta / buzon.RESERVA).exists())
+            )
+
+        cierre = sesion._Cierre(dir_tiza, privado, aula, threading.Event(), salir=salir)
+        return cierre, privado, salidas, aula
+
+    def test_sin_peticion_no_hace_nada(self, tmp_path):
+        cierre, _privado, salidas, _aula = self.preparar(tmp_path)
+        assert cierre.revisar() is True
+        assert not cierre.pedido.is_set() and not cierre.cerrar.is_set()
+        assert salidas == []
+
+    def test_sin_pregunta_en_curso_para_el_buzon(self, tmp_path):
+        cierre, privado, salidas, _aula = self.preparar(tmp_path)
+        (privado / sesion.PEDIR_CIERRE).touch()
+        assert cierre.revisar() is True
+        assert cierre.pedido.is_set() and cierre.cerrar.is_set()
+        assert salidas == []
+
+    def test_a_media_pregunta_se_va_en_el_acto(self, tmp_path):
+        cierre, privado, salidas, aula = self.preparar(tmp_path)
+        with buzon.abrir_sesion(tmp_path / ".tiza", datetime.now(UTC) + timedelta(minutes=5)):
+            cierre.esperando.set()  # la terminal se cerró en un «input»
+            (privado / sesion.PEDIR_CIERRE).touch()
+            assert cierre.revisar() is False
+        assert salidas == [(0, False, False)]  # ya había soltado la carpeta
+        assert aula.cerradas == 1
+        assert not privado.exists()
+
+    def test_la_pregunta_que_llega_tarde_tambien_sale(self, tmp_path):
+        # Pedido el cierre cuando ya estaba en marcha, la sesión se va en el latido siguiente.
+        cierre, privado, salidas, _aula = self.preparar(tmp_path)
+        (privado / sesion.PEDIR_CIERRE).touch()
+        assert cierre.revisar() is True
+        cierre.esperando.set()
+        assert cierre.revisar() is False
+        assert [codigo for codigo, *_ in salidas] == [0]
+
+
+class TestPresenciaVigilada:
+    def test_anota_que_espera_al_docente_mientras_pregunta(self, tmp_path):
+        cierre, *_ = TestCierrePedido().preparar(tmp_path)
+        vistos: list[bool] = []
+
+        class Presencia(PresenciaFalsa):
+            def confirmar_copia(self, resumen):
+                vistos.append(cierre.esperando.is_set())
+                return True
+
+        vigilada = sesion._PresenciaVigilada(Presencia(), cierre)
+        assert vigilada.confirmar_copia(None) is True
+        assert vistos == [True]
+        assert not cierre.esperando.is_set()
+
+    def test_pedido_el_cierre_responde_no_sin_preguntar(self, tmp_path):
+        cierre, *_ = TestCierrePedido().preparar(tmp_path)
+        presencia = PresenciaFalsa(real=True, ampliar=(True,))
+        vigilada = sesion._PresenciaVigilada(presencia, cierre)
+        cierre.pedido.set()
+        assert vigilada.confirmar_real("resumen") is False
+        assert vigilada.ofrecer_ampliacion(30, 300) is False
+        assert presencia.resumenes == []
+
+    def test_un_si_que_llega_despues_del_cierre_es_no(self, tmp_path):
+        cierre, *_ = TestCierrePedido().preparar(tmp_path)
+
+        class Presencia(PresenciaFalsa):
+            def confirmar_orden(self, resumen):
+                cierre.pedido.set()  # mientras el docente contestaba
+                return True
+
+        assert sesion._PresenciaVigilada(Presencia(), cierre).confirmar_orden(None) is False
+
+    def test_cumple_la_interfaz_de_presencia(self):
+        metodos = [
+            nombre
+            for nombre, valor in vars(publicacion.Presencia).items()
+            if callable(valor) and not nombre.startswith("_")
+        ]
+        for nombre in metodos:
+            esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
+            obtenido = list(
+                inspect.signature(getattr(sesion._PresenciaVigilada, nombre)).parameters
+            )
+            assert obtenido == esperado, nombre
+
+
+def test_la_sesion_abierta_se_cierra_cuando_otra_se_lo_pide(tmp_path, monkeypatch):
+    carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
+    original = buzon.abrir_sesion
+    monkeypatch.setattr(
+        buzon, "abrir_sesion", lambda *a, **k: original(*a, **{**k, "intervalo": 0.01})
+    )
+    vistos: list[bool] = []
+
+    def atender(*args, **opciones):
+        privado = next(
+            ruta
+            for ruta in sesion._raiz_vistas().glob("sesion-*")
+            if sesion._marca(ruta) == {"carpeta": str(carpeta.resolve()), "pid": os.getpid()}
+        )
+        (privado / sesion.PEDIR_CIERRE).touch()  # otro «tiza empezar» de la carpeta
+        limite = time.monotonic() + 5
+        while not opciones["parar"]() and time.monotonic() < limite:
+            time.sleep(0.01)
+        vistos.append(opciones["parar"]())
+        return False
+
+    monkeypatch.setattr(buzon, "atender", atender)
+    presencia = PresenciaFalsa(ampliar=(True,))
+    assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
+    assert vistos == [True]
+    assert presencia.avisos[-1] == publicacion.Aviso("SESION_CERRADA", {"motivo": "otra"})
+    assert buzon.carpeta_libre(carpeta / ".tiza")
+
+
+def test_no_borra_el_directorio_de_una_sesion_viva_de_otro_protocolo(tmp_path):
+    anterior = sesion_anterior(tmp_path)
+    ruta = buzon.carpeta_buzon(tmp_path / ".tiza") / buzon.SESION
+    datos = json.loads(ruta.read_text(encoding="utf-8"))
+    ruta.write_text(json.dumps({**datos, "version": 1}), encoding="utf-8")
+    sesion.crear_dir_vistas(tmp_path)
+    assert anterior.is_dir()

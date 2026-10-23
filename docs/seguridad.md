@@ -103,6 +103,13 @@ Delegación de Protección de Datos te pide un resumen, pásale
   con el mismo nombre de fichero no se pisan): lo que revisas es lo que se
   publica. La de `tiza comprobar` sigue en `.tiza/preview/`, pero tampoco se
   escribe a través de enlaces simbólicos.
+- **Cerrar la sesión anterior**: si la terminal de una sesión se cierra y la
+  sesión sigue viva, un `tiza empezar` nuevo en la misma carpeta ofrece cerrarla.
+  Se lo pide por un fichero en el directorio privado de esa sesión, no por el
+  buzón: el agente no puede cerrar tu sesión ni hacer que tiza toque un proceso que
+  él elija (el pid de `.tiza/buzon/sesion.json` solo vale si coincide con el de ese
+  directorio). tiza no mata procesos: la sesión se cierra sola. Si estaba esperando
+  tu respuesta, no publica nada; si estaba publicando, termina antes de cerrarse.
 - **Contenido seguro**: el HTML se valida con una lista blanca sobre el árbol que
   construye un navegador (html5lib), y lo que se publica es ese árbol validado.
   Se admiten las etiquetas de texto, listas, tablas, enlaces, imágenes y

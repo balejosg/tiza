@@ -162,7 +162,10 @@ en español.
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
   autoprueba y el ciclo de la sesión). Solo habla con el docente a través de una
   `Presencia` y no importa `terminal` ni `cli`; todo recibe la carpeta de la
-  asignatura, nunca usa el directorio actual.
+  asignatura, nunca usa el directorio actual. Una sesión nueva puede pedir a la
+  anterior de la misma carpeta que se cierre (`_cerrar_anterior` y `_Cierre`): el
+  aviso va por un fichero en el directorio privado de vistas de esa sesión, nunca por
+  el buzón, y es ella la que se va; tiza no mata procesos.
 - `src/tiza/sesion_abierta.py`: la sesión ya abierta: su estado (aula,
   configuración capturada, presencia, nombres, vistas y lo que solo vive en
   memoria: cupo y verificados) y la interfaz que atiende una petición del buzón
@@ -219,7 +222,7 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.26.1`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.27.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y

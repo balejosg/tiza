@@ -638,3 +638,15 @@ def test_confirmar_copia_hace_la_pregunta_exacta_y_sanea_el_nombre(monkeypatch, 
     assert "\x1b" not in salida
     monkeypatch.setattr(terminal, "confirmar", lambda pregunta: False)
     assert terminal.PresenciaTerminal().confirmar_copia(resumen) is False
+
+
+def test_cerrar_sesion_anterior_avisa_si_atiende_algo(monkeypatch, capsys):
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "s")
+    presencia = terminal.PresenciaTerminal()
+    assert presencia.cerrar_sesion_anterior(False) is True
+    salida = capsys.readouterr().out
+    assert "terminal que se cerró" in salida
+    assert "petición del agente" not in salida
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+    assert presencia.cerrar_sesion_anterior(True) is False
+    assert "petición del agente" in capsys.readouterr().out
