@@ -200,7 +200,7 @@ def test_ejemplo_con_criterios_carga_con_pesos_y_casilla_manual():
 def test_guia_calificador_existe_se_cita_y_nombra_sus_codigos():
     assert GUIA_CALIFICADOR.is_file()
     texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
-    assert len(texto.splitlines()) <= 180
+    assert len(texto.splitlines()) <= 150
     assert "guias/calificador.md" in SKILL.read_text(encoding="utf-8")
     for codigo in CODIGOS_CALIFICADOR:
         assert codigo in texto, f"la guía del calificador no nombra {codigo}"
@@ -215,10 +215,14 @@ def test_guia_calificador_muestra_el_ejemplo_tal_cual(tmp_path):
     cargar_esquema(ruta, tmp_path)
 
 
-def test_guia_calificador_muestra_el_ejemplo_con_criterios_tal_cual():
-    bloques = _bloques_yaml(GUIA_CALIFICADOR.read_text(encoding="utf-8"))
-    assert len(bloques) == 2
-    assert bloques[1] == EJEMPLO_CALIFICADOR_CRITERIOS.read_text(encoding="utf-8")
+def test_guia_calificador_fragmento_de_criterios_esta_en_el_ejemplo():
+    texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
+    assert "ejemplos/calificacion-criterios.yaml" in texto
+    bloques = _bloques_yaml(texto)
+    assert len(bloques) == 3
+    ejemplo = EJEMPLO_CALIFICADOR_CRITERIOS.read_text(encoding="utf-8")
+    for fragmento in bloques[1:]:
+        assert fragmento in ejemplo
 
 
 def test_skill_carga_la_guia_del_calificador_en_su_seccion():

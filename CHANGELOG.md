@@ -7,8 +7,7 @@ se avisa aquí con **Cambia**.
 ## 0.28.0 — 2026-10-23
 
 ### Añadido
-- **Criterios de evaluación en el calificador.** Cada competencia o resultado de aprendizaje puede llevar sus criterios, con peso y código (`1.1`, `RA1.a`). La nota sale de instrumento → criterio → competencia → final, y se ve en cada nivel. Las actividades pueden evaluarse con criterios en `evalua`.
-- **Casillas manuales para lo que no está en el aula.** `instrumentos` (examen en papel, observación) crea una casilla sobre 10 que pones tú a mano en el calificador; tiza nunca la toca. Quitar un instrumento con notas lo deja con peso 0.
+- **Criterios de evaluación y casillas manuales en el calificador.** Cada competencia o resultado puede llevar criterios con peso, y la nota sale de instrumento → criterio → competencia → final, visible en cada nivel. Los `instrumentos` (examen en papel, observación) son casillas sobre 10 que pones tú a mano; tiza nunca las toca.
 
 ## 0.27.0 — 2026-10-23
 
