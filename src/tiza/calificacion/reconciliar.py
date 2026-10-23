@@ -88,6 +88,7 @@ _PREFIJO = "TZ_"
 _EVALUACION = re.compile(r"TZ_V_[0-9]+")
 _CLASES_CATEGORIA = ("contenedor", "categoria", "contador")
 _MAXIMO_NOTA = 10.0
+_PREFIJO_MANUAL = "TZ_M_"  # las casillas manuales: el docente pone las notas a mano
 _MAXIMO_SIN_DATO = 100.0
 
 
@@ -414,17 +415,21 @@ class _Plan:
 
     def _maximo(self, nodo: Nodo) -> float:
         """El máximo que debe tener un calculado."""
-        if nodo.clase == "nota":
+        if nodo.clase in ("nota", "manual"):
             return _MAXIMO_NOTA
         if nodo.clase == "indicador":
             fuente = nodo.formula_de
             assert isinstance(fuente, str)
-            if fuente in self.dnodos and fuente not in self.rutas:  # una copia de actividad
-                fuente = self.dnodos[fuente].formula_de  # type: ignore[assignment]
+            if fuente in self.dnodos and fuente not in self.rutas:  # una copia o una casilla
+                fuente = self.dnodos[fuente].formula_de or fuente  # type: ignore[assignment]
+            if str(fuente).startswith(_PREFIJO_MANUAL):
+                return _MAXIMO_NOTA
             return self._maximo_actividad(str(fuente))
         fuente = nodo.formula_de
         if isinstance(fuente, str) and fuente in self.rutas:
             return self._maximo_actividad(fuente)
+        if isinstance(fuente, str) and fuente.startswith(_PREFIJO_MANUAL):
+            return _MAXIMO_NOTA
         # TZ_KC_<id>: el máximo completo de TZ_E_<id>, que solo se conoce con las actividades dentro
         elemento = self.idx.por_id.get(f"{_PREFIJO}E_{nodo.idnumber[len(_PREFIJO + 'KC_') :]}")
         if elemento is not None and elemento.maximo is not None:
@@ -577,8 +582,8 @@ class _Plan:
                     peso=nodo.peso,
                 )
             )
-        if not calculado:
-            return
+        if not calculado or nodo.clase == "manual":
+            return  # una casilla manual: tiza nunca toca su máximo ni le pone fórmula
         maximo = self._maximo(nodo)
         if not movido and not _cerca(existente.maximo, maximo):
             self.maximo.append(
@@ -630,7 +635,7 @@ class _Plan:
         # Moodle reescala los pesos al añadir dentro: se fijan al final, con todo creado
         if nodo.peso is not None:
             self.peso.append(Operacion("fijar_peso", idnumber=nodo.idnumber, peso=nodo.peso))
-        if calculado:
+        if calculado and nodo.clase != "manual":
             self.formula.append(
                 Operacion("fijar_formula", idnumber=nodo.idnumber, formula=self._formula(nodo))
             )

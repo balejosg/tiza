@@ -12,7 +12,14 @@ import pytest
 
 from tiza.calificacion import reconciliar as rc
 from tiza.calificacion.deseado import Deseado, deseado
-from tiza.calificacion.esquema import Elemento, Esquema, Evaluacion, Final, Tope
+from tiza.calificacion.esquema import (
+    Elemento,
+    Esquema,
+    Evaluacion,
+    Final,
+    Instrumento,
+    Tope,
+)
 from tiza.calificacion.reconciliar import (
     Operacion,
     Reconciliacion,
@@ -128,10 +135,13 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
             k = siguiente[0]
             categoria = t == "crear_categoria"
             eid = f"{'cg' if categoria else 'ig'}{k}"
+            clase = "categoria" if categoria else "calculado"
+            if op.idnumber.startswith("TZ_M_"):
+                clase = "manual"  # sin fórmula: así lo lee el aula
             nodos[eid] = nodo_aula(
                 eid,
                 op.idnumber,
-                "categoria" if categoria else "calculado",
+                clase,
                 padre_de(op),
                 nombre=op.nombre or "",
                 peso=op.peso,
@@ -990,3 +1000,184 @@ def test_primer_montaje_con_evaluacion_cerrada_la_crea_y_la_bloquea_al_final(cer
         )
     )
     assert {n.idnumber for n in final.nodos} == {n.idnumber for n in abierta.nodos}
+
+
+# --------------------------------------------------------------------------- #
+# Las casillas manuales (instrumentos sin actividad en el aula)
+# --------------------------------------------------------------------------- #
+
+CMIDS_M = {"a.md": 11, "d.md": 12}
+EXPOSICION = Instrumento("exp", "Exposición", 1, (("RA1", 50.0),))
+FP_M = dataclasses.replace(FP, instrumentos=(EXPOSICION,))
+FP_M_TOPE = dataclasses.replace(FP_TOPE, instrumentos=(EXPOSICION,))
+
+
+def docs_m(ra1: int = 50) -> list[Documento]:
+    return [doc("a.md", 1, RA1=ra1), doc("d.md", 1, RA2=100)]
+
+
+def montar_m(esquema=FP_M, aula=None, huellas=None):
+    return montar(esquema, docs_m(), aula=aula, huellas=huellas, cmids=CMIDS_M)
+
+
+def copias_de(d: Deseado, fuente: str) -> list:
+    return [n for n in d.nodos if n.clase == "copia" and n.formula_de == fuente]
+
+
+def con_nodo(aula: CalificadorAula, eid: str, **kw) -> CalificadorAula:
+    return CalificadorAula(
+        nodos=tuple(dataclasses.replace(n, **kw) if n.eid == eid else n for n in aula.nodos),
+        decimal=aula.decimal,
+    )
+
+
+def test_alta_de_una_casilla_manual_y_de_su_copia() -> None:
+    d = deseado(FP_M, docs_m(), False, CARPETA)
+    rec = reconciliar(d, aula_inicial(CMIDS_M), {}, CMIDS_M)
+    real = next(n for n in d.nodos if n.idnumber == "TZ_M_exp")
+    altas = [o for o in rec.operaciones if o.idnumber == "TZ_M_exp"]
+    assert [o.tipo for o in altas] == ["crear_calculado", "fijar_peso"]
+    assert (altas[0].maximo, altas[0].padre, altas[0].peso, altas[0].nombre) == (
+        10.0,
+        real.padre,
+        real.peso,
+        "Exposición",
+    )
+    assert altas[1].peso == real.peso
+    for copia in copias_de(d, "TZ_M_exp"):
+        ops = [o for o in rec.operaciones if o.idnumber == copia.idnumber]
+        assert [o.tipo for o in ops] == ["crear_calculado", "fijar_peso", "fijar_formula"]
+        assert ops[0].maximo == 10.0
+        assert ops[2].formula == "=[[TZ_M_exp]]"
+    assert not [o for o in rec.operaciones if o.tipo == "colocar" and o.cmid is None]
+    assert ("ACTIVIDAD_PENDIENTE", "TZ_M_exp") not in rec.avisos
+    assert not [a for a in rec.avisos if a[0] == "ACTIVIDAD_PENDIENTE"]
+
+
+def test_la_referencia_de_una_casilla_es_su_idnumber() -> None:
+    d = deseado(FP_M, docs_m(), False, CARPETA)
+    plan = rc._Plan(d, aula_inicial(CMIDS_M), {}, CMIDS_M, None, False)
+    assert plan._referencia("TZ_M_exp") == "TZ_M_exp"
+
+
+def test_la_casilla_montada_converge_sin_operaciones() -> None:
+    d, aula = montar_m()
+    manual = por_id(aula, "TZ_M_exp")
+    assert manual.clase == "manual" and manual.formula is None and manual.maximo == 10.0
+    assert referencias_rotas(aula) == []
+    huellas = huellas_de(aula, CMIDS_M)
+    otra = reconciliar(d, aula, huellas, CMIDS_M)
+    assert otra.operaciones == () and otra.avisos == ()
+    assert pasada2(d, aula, huellas, CMIDS_M) == ()
+
+
+def test_casilla_existente_con_otro_maximo_no_se_toca() -> None:
+    d, aula = montar_m()
+    huellas = huellas_de(aula, CMIDS_M)
+    manual = por_id(aula, "TZ_M_exp")
+    aula = con_nodo(aula, manual.eid, maximo=25.0)
+    rec = reconciliar(d, aula, huellas, CMIDS_M)
+    assert [o for o in rec.operaciones if o.eid == manual.eid] == []
+    assert "fijar_maximo" not in tipos(rec.operaciones)
+    assert "fijar_formula" not in tipos([o for o in rec.operaciones if o.eid == manual.eid])
+    assert pasada2(d, aula, huellas, CMIDS_M) == ()
+
+
+def test_casilla_en_otro_padre_se_mueve() -> None:
+    d, aula = montar_m()
+    huellas = huellas_de(aula, CMIDS_M)
+    manual = por_id(aula, "TZ_M_exp")
+    otro = por_id(aula, "TZ_E_RA2")
+    rec = reconciliar(d, con_nodo(aula, manual.eid, padre_eid=otro.eid), huellas, CMIDS_M)
+    # el padre difiere de la huella: es un cambio a mano y no se toca
+    assert [o for o in rec.operaciones if o.eid == manual.eid] == []
+    assert ("CAMBIADO_A_MANO", "TZ_M_exp") in rec.avisos
+    # sin huella (tiza no recuerda nada) sí la coloca donde toca
+    rec = reconciliar(d, con_nodo(aula, manual.eid, padre_eid=otro.eid), {}, CMIDS_M)
+    ops = [o for o in rec.operaciones if o.eid == manual.eid]
+    assert [o.tipo for o in ops] == ["mover_manual", "fijar_peso"]
+    assert ops[0].padre == next(n.padre for n in d.nodos if n.idnumber == "TZ_M_exp")
+    assert "fijar_maximo" not in tipos(rec.operaciones)
+
+
+def test_casilla_cambiada_a_mano_no_se_toca() -> None:
+    d, aula = montar_m()
+    huellas = huellas_de(aula, CMIDS_M)
+    manual = por_id(aula, "TZ_M_exp")
+    # el docente le puso una fórmula: pasa a ser un calculado y la huella cambia
+    cambiada = con_nodo(aula, manual.eid, clase="calculado", formula="=1+1", peso=7.0)
+    rec = reconciliar(d, cambiada, huellas, CMIDS_M)
+    assert ("CAMBIADO_A_MANO", "TZ_M_exp") in rec.avisos
+    assert [o for o in rec.operaciones if o.eid == manual.eid] == []
+    # y un peso cambiado a mano tampoco se pisa
+    pesada = con_nodo(aula, manual.eid, peso=7.0)
+    rec = reconciliar(d, pesada, huellas, CMIDS_M)
+    assert ("CAMBIADO_A_MANO", "TZ_M_exp") in rec.avisos
+    assert [o for o in rec.operaciones if o.eid == manual.eid] == []
+
+
+def test_casilla_con_peso_distinto_se_corrige_si_no_hay_huella() -> None:
+    d, aula = montar_m()
+    manual = por_id(aula, "TZ_M_exp")
+    rec = reconciliar(d, con_nodo(aula, manual.eid, peso=7.0), {}, CMIDS_M)
+    assert [(o.tipo, o.peso) for o in rec.operaciones if o.eid == manual.eid] == [
+        ("fijar_peso", 50.0)
+    ]
+
+
+def test_copia_de_una_casilla_en_evaluacion_cerrada_no_se_toca() -> None:
+    d, aula = montar_m()
+    huellas = huellas_de(aula, CMIDS_M)
+    copia = next(c for c in copias_de(d, "TZ_M_exp") if c.padre == "TZ_V_1_RA1")
+    en_aula = por_id(aula, copia.idnumber)
+    aula = con_nodo(aula, por_id(aula, "TZ_V_1").eid, bloqueado=True)
+    aula = con_nodo(aula, en_aula.eid, peso=3.0)
+    rec = reconciliar(d, aula, huellas, CMIDS_M)
+    assert not [o for o in rec.operaciones if o.eid == en_aula.eid]
+
+
+def test_indicador_de_una_casilla_con_tope_tiene_maximo_10() -> None:
+    d, aula = montar_m(FP_M_TOPE)
+    indicadores = [n for n in d.nodos if n.clase == "indicador"]
+    reales = [n for n in indicadores if n.formula_de == "TZ_M_exp"]
+    copias = {c.idnumber for c in copias_de(d, "TZ_M_exp")}
+    de_copia = [n for n in indicadores if n.formula_de in copias]
+    assert reales or de_copia
+    for n in reales + de_copia:
+        assert por_id(aula, n.idnumber).maximo == 10.0
+    assert por_id(aula, "TZ_M_exp").maximo == 10.0
+    assert referencias_rotas(aula) == []
+    huellas = huellas_de(aula, CMIDS_M)
+    assert reconciliar(d, aula, huellas, CMIDS_M).operaciones == ()
+    assert pasada2(d, aula, huellas, CMIDS_M) == ()
+    # un máximo distinto en el aula de un indicador de casilla se corrige a 10
+    n = (reales + de_copia)[0]
+    rota = con_nodo(aula, por_id(aula, n.idnumber).eid, maximo=100.0)
+    rec = reconciliar(d, rota, {}, CMIDS_M)
+    assert [o.maximo for o in rec.operaciones if o.tipo == "fijar_maximo"][:1] == [10.0]
+
+
+def test_casilla_quitada_del_esquema_sin_notas_se_borra() -> None:
+    _, aula = montar_m()
+    huellas = huellas_de(aula, CMIDS_M)
+    d1 = deseado(FP, docs_m(100), False, CARPETA)
+    rec = reconciliar(d1, aula, huellas, CMIDS_M)
+    borrados = {o.idnumber for o in rec.operaciones if o.tipo == "borrar"}
+    copias = {n.idnumber for n in aula.nodos if n.formula == "=[[TZ_M_exp]]"}
+    assert copias and "TZ_M_exp" in borrados
+    assert copias <= borrados
+    assert not [a for a in rec.avisos if a[0] == "ELEMENTO_CON_NOTAS_QUITADO"]
+
+
+def test_casilla_quitada_del_esquema_con_notas_se_queda_con_peso_cero() -> None:
+    _, aula = montar_m()
+    huellas = huellas_de(aula, CMIDS_M)
+    manual = por_id(aula, "TZ_M_exp")
+    aula = con_nodo(aula, manual.eid, tiene_notas=True)
+    d1 = deseado(FP, docs_m(100), False, CARPETA)
+    rec = reconciliar(d1, aula, huellas, CMIDS_M)
+    assert ("ELEMENTO_CON_NOTAS_QUITADO", "TZ_M_exp") in rec.avisos
+    assert "TZ_M_exp" not in {o.idnumber for o in rec.operaciones if o.tipo == "borrar"}
+    assert [
+        (o.peso) for o in rec.operaciones if o.tipo == "fijar_peso" and o.eid == manual.eid
+    ] == [0.0]
