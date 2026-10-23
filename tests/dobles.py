@@ -649,6 +649,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "CURSOS_GUARDADOS": publicacion.Aviso.cursos_guardados(Path("tiza.toml")),
         "ELEMENTO_CON_NOTAS_QUITADO": publicacion.Aviso.elemento_con_notas_quitado("T"),
         "ELEMENTO_SIN_ACTIVIDADES": publicacion.Aviso.elemento_sin_actividades("RA1"),
+        "CRITERIOS_SIN_PESO": publicacion.Aviso.criterios_sin_peso("RA1"),
         "ERROR_INTERNO": publicacion.Aviso.error_interno("RuntimeError"),
         "ESTRUCTURA_NO_LEIDA": publicacion.Aviso.estructura_no_leida(),
         "EVALUACION_CERRADA_EN_EL_AULA": publicacion.Aviso.evaluacion_cerrada_en_el_aula("T"),

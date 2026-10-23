@@ -235,6 +235,10 @@ class TestAvisos:
                 "Ninguna actividad cuenta para RA3 todavía.",
             ),
             (
+                publicacion.Aviso.criterios_sin_peso("RA1"),
+                "Los criterios de RA1 no llevan peso: tiza los pesa igual.",
+            ),
+            (
                 publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
                 "El agente pide montar el calificador en pruebas con «calificacion.yaml».",
             ),

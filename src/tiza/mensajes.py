@@ -634,6 +634,15 @@ def _elemento_con_notas_quitado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _criterios_sin_peso(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"Los criterios de {texto_seguro(datos['elemento'], 40)} no llevan peso: "
+            "tiza los pesa igual."
+        ),
+    )
+
+
 def _elemento_sin_actividades(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea(f"Ninguna actividad cuenta para {texto_seguro(datos['elemento'], 40)} todavía."),)
 
@@ -801,6 +810,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "CERRANDO_SESION_ANTERIOR": _cerrando_sesion_anterior,
     "COPIA_QUEDA_EN_EL_AULA": _copia_queda_en_el_aula,
     "CREANDO_SECCION": _creando_seccion,
+    "CRITERIOS_SIN_PESO": _criterios_sin_peso,
     "CURSOS_GUARDADOS": _cursos_guardados,
     "ELEMENTO_CON_NOTAS_QUITADO": _elemento_con_notas_quitado,
     "ELEMENTO_SIN_ACTIVIDADES": _elemento_sin_actividades,

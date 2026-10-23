@@ -161,7 +161,8 @@ class AulaViva(MoodleFalso):
 
     def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo):
         eid = super().crear_calculado(curso, nombre, idnumber, padre_eid, peso, maximo)
-        return self._crear(eid, idnumber, "calculado", nombre, padre_eid, peso, maximo)
+        clase = "manual" if idnumber.startswith("TZ_M_") else "calculado"  # sin fórmula: manual
+        return self._crear(eid, idnumber, clase, nombre, padre_eid, peso, maximo)
 
     def fijar_maximo(self, curso, item_id, maximo):
         super().fijar_maximo(curso, item_id, maximo)
@@ -1137,3 +1138,76 @@ def test_tras_un_fallo_lo_tocado_que_esta_a_mano_conserva_su_huella_antigua():
         final, plan, [Operacion("fijar_peso", idnumber="TZ_X")]
     )
     assert nuevas["TZ_X"] == antigua and nuevas["TZ_Y"] == "b" * 64
+
+
+# --------------------------------------------------------------------------- #
+# Criterios e instrumentos: avisos y errores hasta el informe y el docente
+# --------------------------------------------------------------------------- #
+
+ESQUEMA_CRITERIOS = """\
+organizacion: elementos
+elementos:
+  - id: CE1
+    nombre: Redes
+    peso: 60
+    criterios: [{id: CE1_1, nombre: Configura}, {id: CE1_2, nombre: Documenta}]
+  - {id: CE2, nombre: Sistemas, peso: 40}
+evaluaciones:
+  - {nombre: 1.ª evaluación, secciones: [1]}
+  - {nombre: 2.ª evaluación, secciones: [2]}
+final: {de: elementos}
+"""
+ESQUEMA_CON_MANUAL = (
+    ESQUEMA_CRITERIOS
+    + "instrumentos: [{id: EXAMEN1, nombre: Examen, seccion: 2, evalua: {CE2: 50}}]\n"
+)
+ACTIVIDADES_CRITERIOS = (
+    ("a", 1, 11, {"CE1_1": 100}),
+    ("d", 1, 12, {"CE1_2": 100}),
+    ("c", 2, 13, {"CE2": 100}),
+)
+ACTIVIDADES_CON_MANUAL = (
+    ("a", 1, 11, {"CE1_1": 100}),
+    ("d", 1, 12, {"CE1_2": 100}),
+    ("c", 2, 13, {"CE2": 50}),
+)
+
+
+def test_criterio_sin_peso_avisa_y_el_docente_lo_lee(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CRITERIOS, ACTIVIDADES_CRITERIOS)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CRITERIOS))
+    presencia = PresenciaFalsa(real=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok"
+    assert pasos(documento, "CRITERIOS_SIN_PESO")[0]["detalle"] == "1"
+    avisos = [a for r in presencia.resumenes_calificador for a in r.avisos]
+    assert publicacion.Aviso.criterios_sin_peso("CE1") in avisos
+    textos = [
+        linea.texto
+        for aviso in avisos
+        if aviso.codigo == "CRITERIOS_SIN_PESO"
+        for linea in mensajes.lineas_de_aviso(aviso)
+    ]
+    assert textos == ["Los criterios de CE1 no llevan peso: tiza los pesa igual."]
+
+
+def test_evalua_que_nombra_un_elemento_con_criterios_es_error(tmp_path):
+    actividades = (("a", 1, 11, {"CE1": 100}), *ACTIVIDADES_CRITERIOS[1:])
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CRITERIOS, actividades)
+    resultado = agente.comprobar(carpeta, ["calificacion.yaml"])
+    assert resultado.informe["errores"] == ["ELEMENTO_CON_CRITERIOS"]
+    moodle = AulaViva()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["errores"] == ["ELEMENTO_CON_CRITERIOS"]
+    assert moodle.llamadas == []
+
+
+def test_montaje_con_criterios_y_casilla_manual_termina_sin_errores(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CON_MANUAL, ACTIVIDADES_CON_MANUAL)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CON_MANUAL))
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert documento["resultado"] == "ok"
+    assert documento["errores"] == []
+    assert moodle.por_id("TZ_E_CE1_1").clase == "categoria"
+    assert moodle.por_id("TZ_E_CE1_2").clase == "categoria"
+    assert moodle.por_id("TZ_M_EXAMEN1").clase == "manual"

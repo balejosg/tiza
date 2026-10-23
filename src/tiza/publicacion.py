@@ -114,6 +114,7 @@ AVISOS = frozenset(
         "CERRANDO_SESION_ANTERIOR",
         "COPIA_QUEDA_EN_EL_AULA",
         "CREANDO_SECCION",
+        "CRITERIOS_SIN_PESO",
         "CURSOS_GUARDADOS",
         "ELEMENTO_CON_NOTAS_QUITADO",
         "ELEMENTO_SIN_ACTIVIDADES",
@@ -174,6 +175,11 @@ class Aviso:
     def cambiado_a_mano(cls, nombre: str) -> Aviso:
         """``nombre``: lo que el docente cambió en el aula y tiza no toca (viene del aula)."""
         return cls("CAMBIADO_A_MANO", {"nombre": nombre})
+
+    @classmethod
+    def criterios_sin_peso(cls, elemento: str) -> Aviso:
+        """``elemento``: el id del esquema cuyos criterios no llevan peso."""
+        return cls("CRITERIOS_SIN_PESO", {"elemento": elemento})
 
     @classmethod
     def elemento_con_notas_quitado(cls, nombre: str) -> Aviso:
@@ -1711,6 +1717,8 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
         return Aviso.elemento_con_notas_quitado(nombre)
     if codigo == "ELEMENTO_SIN_ACTIVIDADES":
         return Aviso.elemento_sin_actividades(clave)
+    if codigo == "CRITERIOS_SIN_PESO":
+        return Aviso.criterios_sin_peso(clave)
     return None  # TOTAL_AJENO_BLOQUEADO ya sale en «se bloquean los totales de…»
 
 

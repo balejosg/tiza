@@ -90,6 +90,7 @@ PASOS = (
             "COPIA_A_MANO",
             "COPIAR",
             "CREAR_SECCION",
+            "CRITERIOS_SIN_PESO",
             "CURSO",
             "CURSO_OMITIDO",
             "DEPENDENCIA_SIN_FINALIZACION",
