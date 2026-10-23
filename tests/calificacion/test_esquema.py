@@ -377,3 +377,19 @@ def test_ids_con_guion_bajo(tmp_path: Path) -> None:
     assert error.codigo == "ESQUEMA_INVALIDO"
     assert "elementos[1].id" in error.detalle
     assert "_" in error.detalle
+
+
+@pytest.mark.parametrize("peso", ["0", "-5", '"30"', "true", "null"])
+def test_peso_de_criterio_invalido(tmp_path: Path, peso: str) -> None:
+    error = _codigo(tmp_path, CON_CRITERIOS.replace("peso: 30}", f"peso: {peso}}}"))
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "elementos[0].criterios[1].peso" in error.detalle
+
+
+def test_id_con_guion_bajo_demasiado_largo(tmp_path: Path) -> None:
+    assert (
+        _cargar(tmp_path, FP.replace("id: RA2", "id: A_" + "b" * 14)).elementos[1].id.endswith("b")
+    )
+    error = _codigo(tmp_path, FP.replace("id: RA2", "id: A_" + "b" * 15))  # 17 caracteres
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "elementos[1].id" in error.detalle

@@ -9,11 +9,11 @@ lenguaje de fórmulas. Los errores llevan la ruta YAML de lo que falla
 from __future__ import annotations
 
 import math
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from tiza.contenido import id_evalua_valido, peso_evalua_valido
 from tiza.escritura import ErrorEscritura
 from tiza.escritura.relleno import cargar_yaml_sin_alias, dentro_de_la_carpeta
 
@@ -31,8 +31,6 @@ __all__ = [
 
 EXTENSIONES_ESQUEMA = frozenset({".yaml"})
 TOLERANCIA_PESOS = 0.01
-_RE_ID = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,15}")
-MAX_PESO_EVALUA = 100  # peso máximo de un elemento en «evalua» de un instrumento
 
 
 class ErrorCalificacion(Exception):
@@ -165,7 +163,7 @@ class _Lector:
             )
 
     def id_(self, valor: Any, ruta: str) -> str:
-        if not isinstance(valor, str) or not _RE_ID.fullmatch(valor):
+        if not id_evalua_valido(valor):
             raise self.invalido(
                 ruta,
                 "debe empezar por una letra y tener solo letras, cifras o _ (16 como mucho)",
@@ -265,12 +263,7 @@ class _Lector:
         for clave, peso in valor.items():
             destino = f"{ruta}.{clave}"
             self.id_(clave, destino)
-            if (
-                isinstance(peso, bool)
-                or not isinstance(peso, int | float)
-                or not 0 <= peso <= MAX_PESO_EVALUA
-                or round(peso, 2) != peso
-            ):
+            if not peso_evalua_valido(peso):
                 raise self.invalido(destino, "debe ser un número de 0 a 100 con hasta 2 decimales")
             salida.append((clave, peso))
         return tuple(salida)

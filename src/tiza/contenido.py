@@ -68,7 +68,7 @@ CAMPOS_ORIGEN = ("curso", "cmid")
 CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
 MAX_DEPENDENCIAS = 10
 MAX_PESO_EVALUA = 100  # peso máximo de un resultado de aprendizaje en «evalua»
-_RE_ID_EVALUA = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,15}")
+RE_ID_EVALUA = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,15}")
 MAX_PAQUETE_H5P_BYTES = 64 * 1024 * 1024  # el .h5p subido
 PREFIJO_IMAGEN = "tiza-imagen:"  # lo que lleva el src de una imagen de pregunta en el HTML
 MAX_IMAGEN_PREGUNTA_BYTES = 1024 * 1024  # cada imagen de una pregunta
@@ -408,6 +408,21 @@ def _ids_repetidos_en_evalua(raiz: yaml.Node | None) -> bool:
     return False
 
 
+def id_evalua_valido(clave: Any) -> bool:
+    """Regla de los ids de ``evalua`` (y de elementos, criterios e instrumentos del calificador)."""
+    return isinstance(clave, str) and RE_ID_EVALUA.fullmatch(clave) is not None
+
+
+def peso_evalua_valido(peso: Any) -> bool:
+    """Un peso de ``evalua``: número (no bool) de 0 a 100 con hasta 2 decimales."""
+    return (
+        not isinstance(peso, bool)
+        and isinstance(peso, int | float)
+        and 0 <= peso <= MAX_PESO_EVALUA
+        and round(peso, 2) == peso
+    )
+
+
 def _validar_evalua(datos: dict[str, Any]) -> tuple[tuple[str, float], ...] | None:
     if "evalua" not in datos:
         return None
@@ -418,17 +433,12 @@ def _validar_evalua(datos: dict[str, Any]) -> tuple[tuple[str, float], ...] | No
         )
     salida: list[tuple[str, float]] = []
     for clave, peso in valor.items():
-        if not isinstance(clave, str) or not _RE_ID_EVALUA.fullmatch(clave):
+        if not id_evalua_valido(clave):
             raise ErrorContenido(
                 "EVALUA_INVALIDO",
                 "cada id de evalua empieza por letra, usa letras, cifras o _ y tiene hasta 16",
             )
-        if (
-            isinstance(peso, bool)
-            or not isinstance(peso, int | float)
-            or not 0 <= peso <= MAX_PESO_EVALUA
-            or round(peso, 2) != peso
-        ):
+        if not peso_evalua_valido(peso):
             raise ErrorContenido(
                 "EVALUA_INVALIDO",
                 f"el peso de «{clave}» debe ser un número de 0 a 100 con hasta 2 decimales",
