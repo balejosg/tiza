@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Corregido
+- **`tiza actualizar` funciona en Windows.** Fallaba siempre con «Access is denied (os error 5)»: Windows no deja reemplazar tiza mientras está en marcha. Ahora la instalación sigue en otra ventana, en cuanto se cierra tiza; lo mismo al aceptar la actualización que ofrece `tiza empezar`.
+
 ## 0.26.0 — 2026-10-22
 
 ### Añadido

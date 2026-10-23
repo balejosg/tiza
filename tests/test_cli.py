@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 import json
+import sys
 import tomllib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -768,13 +770,61 @@ class TestActualizar:
         assert cli.main(["actualizar"]) == 0
         assert ejecutadas[0][-1] == f"tiza @ {WHEEL}"
 
-    @pytest.mark.parametrize("sistema", ["win32", "darwin"])
-    def test_en_windows_y_macos_lleva_la_ventana_aunque_no_estuviera(
-        self, ejecutadas, monkeypatch, sistema
-    ):
-        monkeypatch.setattr(cli.sys, "platform", sistema)
+    def test_en_macos_lleva_la_ventana_aunque_no_estuviera(self, ejecutadas, monkeypatch):
+        monkeypatch.setattr(cli.sys, "platform", "darwin")
         assert cli.main(["actualizar"]) == 0
         assert ejecutadas[0][-1] == f"tiza[ventana] @ {WHEEL}"
+
+    @pytest.fixture
+    def lanzadas(self, monkeypatch):
+        """Windows: lo que se lanzaría en otra consola (sin lanzar nada)."""
+        lanzadas: list[tuple[list[str], dict]] = []
+        monkeypatch.setattr(cli.sys, "platform", "win32")
+        monkeypatch.setattr(cli.subprocess, "Popen", lambda orden, **k: lanzadas.append((orden, k)))
+        return lanzadas
+
+    def test_en_windows_instala_en_otra_consola_cuando_tiza_termina(
+        self, ejecutadas, lanzadas, capsys
+    ):
+        # uv no puede borrar el python.exe ni el tiza.exe en marcha (os error 5).
+        assert cli.main(["actualizar"]) == 0
+        assert ejecutadas == []
+        [(orden, opciones)] = lanzadas
+        assert orden[:3] == ["powershell.exe", "-NoProfile", "-EncodedCommand"]
+        assert opciones["creationflags"] == 0x10  # CREATE_NEW_CONSOLE
+        entorno = opciones["env"]
+        assert entorno["TIZA_ACT_PID"] == str(cli.os.getpid())
+        assert entorno["TIZA_ACT_UV"] == "/bin/uv"
+        assert entorno["TIZA_ACT_REF"] == "v0.10.0"
+        assert entorno["TIZA_ACT_PYTHON"] == "3.13"
+        assert entorno["TIZA_ACT_VENTANA"] == "1"
+        assert entorno["TIZA_ACT_PAQUETES"].split("|") == [
+            f"tiza[ventana] @ {WHEEL}",
+            f"tiza @ {WHEEL}",
+            f"tiza[ventana] @ {ZIP}",
+            f"tiza @ {ZIP}",
+        ]
+        assert "otra ventana" in capsys.readouterr().out
+
+    def test_en_windows_el_guion_es_fijo_y_espera_a_tiza(self, ejecutadas, lanzadas):
+        # Los datos van por el entorno: nada de lo que varía entra en el código.
+        assert cli.main(["actualizar"]) == 0
+        guion = base64.b64decode(lanzadas[0][0][3]).decode("utf-16-le")
+        assert guion == cli._GUION_WINDOWS
+        assert "Wait-Process -Id ([int]$env:TIZA_ACT_PID)" in guion
+        assert guion.index("Wait-Process") < guion.index("tool install --force")
+        assert "instalar-skill" in guion and "Read-Host" in guion
+
+    def test_en_windows_si_no_se_abre_la_consola_falla(self, ejecutadas, monkeypatch, capsys):
+        monkeypatch.setattr(cli.sys, "platform", "win32")
+
+        def sin_consola(*_a, **_k):
+            raise OSError("no")
+
+        monkeypatch.setattr(cli.subprocess, "Popen", sin_consola)
+        assert cli.main(["actualizar"]) == 1
+        assert ejecutadas == []
+        assert "ACTUALIZACION_FALLIDA" in capsys.readouterr().err
 
     def test_si_la_ventana_no_se_instala_sigue_sin_ella(self, ejecutadas, monkeypatch, capsys):
         monkeypatch.setattr(cli.sys, "platform", "darwin")
@@ -1625,6 +1675,7 @@ class TestEmpezar:
         assert codigo == 0 and atendidas == []
         assert instaladas == [("/bin/uv", "v9.0.0")]
         assert "Vuelve a abrir la sesión" in salida
+        assert ("otra ventana" in salida) == (sys.platform == "win32")
 
     def test_si_la_actualizacion_falla_sigue_con_la_que_tiene(self, tmp_path, monkeypatch):
         escribir_pagina(tmp_path)

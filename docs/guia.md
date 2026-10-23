@@ -299,7 +299,9 @@ defecto: si la quieres, ejecuta el instalador con `TIZA_VENTANA=1` delante
 terminal.
 
 Para actualizar, `tiza actualizar` instala la última versión publicada (o la de
-`TIZA_REF`, si la defines) y reinstala la skill; conserva la ventana si la tenías. Además, `tiza empezar` te
+`TIZA_REF`, si la defines) y reinstala la skill; conserva la ventana si la tenías. En
+Windows la instalación sigue en otra ventana, cuando `tiza` ya se ha cerrado (Windows no deja
+reemplazar un programa en marcha): espera a que diga que ha terminado. Además, `tiza empezar` te
 avisa cuando hay una versión nueva y te ofrece instalarla. Hasta la
 0.5.1, `tiza actualizar` no salía de la etiqueta instalada: desde esas
 versiones, vuelve a ejecutar el instalador una vez.

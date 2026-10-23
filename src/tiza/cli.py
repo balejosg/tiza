@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import importlib.resources
 import importlib.util
 import json
@@ -666,15 +667,20 @@ def _actualizar() -> int:
 
 
 def _instalar_version(uv: str, ref: str) -> bool:
-    """Instala tiza ``ref`` con uv y reinstala la skill; False (con el error impreso) si falla."""
+    """Instala tiza ``ref`` con uv y reinstala la skill; False (con el error impreso) si falla.
+
+    En Windows no se puede: uv borra el entorno de tiza y Windows no deja borrar el
+    ``python.exe`` ni el ``tiza.exe`` que están en marcha (os error 5). Allí la instalación
+    sigue en otra consola, cuando esta tiza ya ha terminado (``_instalar_aparte``).
+    """
     con_ventana = _quiere_ventana()  # sin el extra, la actualización dejaría sin ventana
+    paquetes = _paquetes(ref, con_ventana)
+    if sys.platform == "win32":
+        return _instalar_aparte(uv, ref, paquetes, con_ventana)
     instalado = False
-    for origen in _origenes(ref):
-        if con_ventana and _uv_instala(uv, f"tiza[ventana] @ {origen}"):
-            instalado = True
-            break
-        if _uv_instala(uv, f"tiza @ {origen}"):
-            if con_ventana:
+    for paquete in paquetes:
+        if _uv_instala(uv, paquete):
+            if con_ventana and not paquete.startswith("tiza[ventana]"):
                 print("No se pudo instalar la ventana de entrada: se entrará con la contraseña.")
             instalado = True
             break
@@ -687,6 +693,84 @@ def _instalar_version(uv: str, ref: str) -> bool:
         _imprimir_error("SKILL_NO_INSTALADA", "no se pudo reinstalar la skill.")
         return False
     print("Si tienes «tiza sesion» abierta, ciérrala (Ctrl+C) y vuelve a abrirla.")
+    return True
+
+
+def _paquetes(ref: str, con_ventana: bool) -> list[str]:
+    """Lo que se pide a uv, en orden: de cada origen, con la ventana y, si no, sin ella."""
+    paquetes: list[str] = []
+    for origen in _origenes(ref):
+        if con_ventana:
+            paquetes.append(f"tiza[ventana] @ {origen}")
+        paquetes.append(f"tiza @ {origen}")
+    return paquetes
+
+
+# La actualización en Windows, en PowerShell. Es fija: los datos llegan por el entorno
+# (TIZA_ACT_*), así que nada de lo que varía se interpreta como código.
+_GUION_WINDOWS = """
+$ErrorActionPreference = 'Continue'
+$Host.UI.RawUI.WindowTitle = 'Actualizar tiza'
+Write-Host "Actualizando tiza a «$env:TIZA_ACT_REF». Esperando a que se cierre tiza..."
+Wait-Process -Id ([int]$env:TIZA_ACT_PID) -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+$uv = $env:TIZA_ACT_UV
+$hecho = $false
+foreach ($paquete in $env:TIZA_ACT_PAQUETES.Split('|')) {
+    & $uv tool install --force --python $env:TIZA_ACT_PYTHON $paquete
+    if ($LASTEXITCODE -eq 0) {
+        $hecho = $true
+        if ($env:TIZA_ACT_VENTANA -eq '1' -and -not $paquete.StartsWith('tiza[ventana]')) {
+            Write-Host 'No se pudo instalar la ventana de entrada: se entrará con la contraseña.'
+        }
+        break
+    }
+}
+Write-Host ''
+if ($hecho) {
+    $tiza = Join-Path ((& $uv tool dir --bin) | Select-Object -First 1) 'tiza.exe'
+    & $tiza instalar-skill
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host 'tiza está actualizada. Ya puedes cerrar esta ventana y volver a abrir la sesión.'
+    } else {
+        Write-Host 'ERROR [SKILL_NO_INSTALADA]: no se pudo reinstalar la skill.'
+        Write-Host 'Qué hacer: ejecuta «tiza instalar-skill».'
+    }
+} else {
+    Write-Host 'ERROR [ACTUALIZACION_FALLIDA]: no se pudo actualizar tiza.'
+    Write-Host ('Qué hacer: cierra todas las ventanas donde esté abierto tiza (también ' +
+        '«tiza sesion») y vuelve a ejecutar «tiza actualizar».')
+}
+Read-Host 'Pulsa Intro para cerrar esta ventana'
+"""
+
+
+def _instalar_aparte(uv: str, ref: str, paquetes: list[str], con_ventana: bool) -> bool:
+    """Windows: lanza la actualización en otra consola, que espera a que esta tiza termine."""
+    entorno = dict(os.environ)
+    entorno.update(
+        {
+            "TIZA_ACT_PID": str(os.getpid()),
+            "TIZA_ACT_REF": ref,
+            "TIZA_ACT_UV": uv,
+            "TIZA_ACT_PYTHON": PYTHON_INSTALADO,
+            "TIZA_ACT_PAQUETES": "|".join(paquetes),
+            "TIZA_ACT_VENTANA": "1" if con_ventana else "0",
+        }
+    )
+    guion = base64.b64encode(_GUION_WINDOWS.encode("utf-16-le")).decode("ascii")
+    orden = ["powershell.exe", "-NoProfile", "-EncodedCommand", guion]
+    try:
+        subprocess.Popen(
+            orden, env=entorno, creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0x10)
+        )
+    except OSError:
+        _imprimir_error("ACTUALIZACION_FALLIDA", "no se pudo abrir la ventana de la actualización.")
+        return False
+    print(
+        "La actualización sigue en otra ventana, en cuanto se cierre tiza: ahí verás cuándo "
+        "termina. Si tienes «tiza sesion» abierta, ciérrala (Ctrl+C) antes."
+    )
     return True
 
 
@@ -738,7 +822,10 @@ def _ofrecer_actualizacion() -> bool:
     if uv is None or not _instalar_version(uv, nueva):
         print("Se sigue con la versión que tienes.")
         return False
-    print("tiza está actualizada. Vuelve a abrir la sesión para usar la versión nueva.")
+    if sys.platform == "win32":
+        print("Vuelve a abrir la sesión cuando la otra ventana diga que tiza está actualizada.")
+    else:
+        print("tiza está actualizada. Vuelve a abrir la sesión para usar la versión nueva.")
     return True
 
 
