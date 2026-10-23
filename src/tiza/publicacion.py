@@ -98,6 +98,9 @@ __all__ = [
 AVISO_DEBUG = "AVISO: salida de depuración; no la compartas."
 MAX_PUBLICACIONES_PRUEBAS = 50  # por sesión: frena a un agente en bucle
 CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
+# Moodle reescala los pesos de los hermanos al guardar uno: fijarlos converge, pero no de golpe.
+# Tope de repasos de la segunda pasada del calificador (cada uno suele dividir el error por 4).
+MAX_PASADAS_DE_AJUSTE = 8
 
 # Lo que la publicación y la sesión cuentan al docente. Cada aviso tiene su
 # constructor tipado en ``Aviso`` (dueño de las claves de ``datos``) y su texto
@@ -1878,6 +1881,47 @@ def _huellas_tras_fallo(
     return nuevas
 
 
+def _ajustar(
+    aula: AulaVirtual,
+    curso: int,
+    plan: PlanCalificador,
+    final: CalificadorAula,
+    segundas: list[Ejecucion],
+) -> CalificadorAula:
+    """La segunda pasada sobre el aula releída: repite los ajustes hasta que no quede ninguno.
+
+    Moodle reescala los pesos de los hermanos al guardar cada uno, así que fijarlos de una vez
+    no basta: se repite (con tope) hasta que el aula coincide con lo deseado. Los repasos no
+    bloquean nada (un total bloqueado ya no admite ajustes): los cierres van al final, con todo
+    estable. Cada ejecución se añade a ``segundas`` y se devuelve el aula releída.
+    """
+    rec = plan.reconciliacion
+
+    def ajustes_de(leida: CalificadorAula, cierres: frozenset[str]) -> tuple[rc.Operacion, ...]:
+        return rc.pasada2(
+            plan.deseado,
+            leida,
+            plan.huellas,
+            plan.cmids,
+            a_mano=rec.a_mano,
+            por_cerrar=cierres,
+        )
+
+    def ejecutar(leida: CalificadorAula, ajustes: tuple[rc.Operacion, ...]) -> CalificadorAula:
+        segunda = Ejecucion(aula, curso, leida.decimal)
+        segundas.append(segunda)
+        segunda.ejecutar(ajustes, tolerar_formulas=False)
+        return aula.calificador(curso, segunda.tocados)
+
+    for _ in range(MAX_PASADAS_DE_AJUSTE):
+        ajustes = ajustes_de(final, frozenset())
+        if not ajustes:
+            break
+        final = ejecutar(final, ajustes)
+    cierres = ajustes_de(final, rec.por_cerrar)
+    return ejecutar(final, cierres) if cierres else final
+
+
 def calificador_con(
     aula: AulaVirtual,
     entorno: str,
@@ -1893,8 +1937,9 @@ def calificador_con(
 
     Flujo: ``calificador(curso)`` → ``hay_anterior`` → ``deseado`` → ``reconciliar`` (todo eso es
     ``preparar_calificador``; con ``plan`` ya se hizo y es lo que vio el docente al confirmar) →
-    las operaciones en orden → releer → ``pasada2`` una vez → releer si hubo algo que ajustar →
-    guardar las huellas. Las relecturas abren solo los formularios de lo que se tocó. Si falla un ``bloquear_ajeno`` no se ejecuta nada más en el curso
+    las operaciones en orden → releer → ``pasada2`` (repetida, con tope, mientras haya pesos o
+    fórmulas que ajustar: Moodle reescala los pesos de los hermanos al guardar cada uno) y, ya
+    estable, el bloqueo de las evaluaciones cerradas → guardar las huellas. Las relecturas abren solo los formularios de lo que se tocó. Si falla un ``bloquear_ajeno`` no se ejecuta nada más en el curso
     (``BLOQUEO_FALLIDO``). Cualquier otro fallo para en seco, y se guardan las huellas de lo ya
     hecho para que repetir el comando converja sin tomarlo por cambios a mano.
     """
@@ -1910,33 +1955,22 @@ def calificador_con(
         return borrador.documento("error")
     rec = plan.reconciliacion
     primera = Ejecucion(aula, curso, plan.aula_antes.decimal)
-    segunda: Ejecucion | None = None
+    segundas: list[Ejecucion] = []
     final = plan.aula_antes
     try:
         if rec.hay_trabajo:
             primera.ejecutar(rec.operaciones, tolerar_formulas=True)
             final = aula.calificador(curso, primera.tocados)
-            ajustes = rc.pasada2(
-                plan.deseado,
-                final,
-                plan.huellas,
-                plan.cmids,
-                a_mano=rec.a_mano,
-                por_cerrar=rec.por_cerrar,
-            )
-            if ajustes:
-                segunda = Ejecucion(aula, curso, final.decimal)
-                segunda.ejecutar(ajustes, tolerar_formulas=False)
-                final = aula.calificador(curso, segunda.tocados)
+            final = _ajustar(aula, curso, plan, final, segundas)
     except ErrorPublicacion as exc:
-        hechas = len(primera.hechas) + (len(segunda.hechas) if segunda else 0)
+        hechas = len(primera.hechas) + sum(len(s.hechas) for s in segundas)
         if exc.codigo == "BLOQUEO_FALLIDO":
             borrador.fallo("CALIFICADOR_BLOQUEAR", exc.detalle or None)
         else:
             borrador.fallo("CALIFICADOR", f"{exc.codigo} tras {hechas} cambios")
         borrador.error(exc.codigo)
         depurar(exc, debug)
-        hechas_antes = [*primera.hechas, *(segunda.hechas if segunda else [])]
+        hechas_antes = [*primera.hechas, *(op for s in segundas for op in s.hechas)]
         if hechas_antes:
             try:
                 estado.guardar_huellas(
@@ -1948,7 +1982,7 @@ def calificador_con(
                 borrador.fallo("HUELLA_NO_GUARDADA", "calificador")
         return borrador.documento("error")
 
-    hechas_todas = list(primera.hechas) + (list(segunda.hechas) if segunda else [])
+    hechas_todas = [*primera.hechas, *(op for s in segundas for op in s.hechas)]
     borrador.paso(
         "CALIFICADOR", detalle=f"{len(hechas_todas)} cambios" if hechas_todas else "sin cambios"
     )

@@ -23,7 +23,8 @@ Qué respeta, por este orden:
 
 El montaje va en dos pasadas (Moodle reescala pesos al añadir dentro y una fórmula entre
 categorías recién creadas puede fallar la primera vez): ``reconciliar`` da la primera y, tras
-ejecutarla y releer el aula, ``pasada2`` da solo los ajustes que sigan haciendo falta.
+ejecutarla y releer el aula, ``pasada2`` da solo los ajustes que sigan haciendo falta (quien
+ejecuta la repite, con tope, mientras Moodle siga reescalando pesos).
 """
 
 from __future__ import annotations

@@ -105,7 +105,14 @@ def secciones_de(actividades=ACTIVIDADES) -> list[dict]:
 class AulaViva(MoodleFalso):
     """El calificador de un curso, que cambia con lo que se le escribe."""
 
-    def __init__(self, extra: list[NodoAula] | None = None, *, perturbar: bool = False, **kw):
+    def __init__(
+        self,
+        extra: list[NodoAula] | None = None,
+        *,
+        perturbar: bool = False,
+        reescalar: bool = False,
+        **kw,
+    ):
         super().__init__(secciones=kw.pop("secciones", secciones_de()), **kw)
         base = [nodo(CURSO_EID, "", "curso", None, nombre="Curso")]
         self.nodos: dict[str, NodoAula] = {
@@ -113,6 +120,9 @@ class AulaViva(MoodleFalso):
         }
         self.decimal = "."
         self.perturbar = perturbar  # Moodle reescala un peso hermano al guardar el de RA2
+        # Moodle (agregación Natural): si los pesos propios de los hijos de una categoría suman
+        # más de 100, los reescala para que sumen 100 cada vez que cambia uno
+        self.reescalar = reescalar
         self.relecturas: list[set[str] | None] = []  # los ``tocados`` de cada lectura
 
     # -- lectura ----------------------------------------------------------
@@ -139,6 +149,18 @@ class AulaViva(MoodleFalso):
             if (eid is not None and n.eid == eid) or (item_id is not None and n.item_id == item_id)
         )
         self.nodos[n.eid] = dataclasses.replace(n, **kw)
+
+    def _reescalar(self, padre_eid: str | None) -> None:
+        """Si todos los hijos llevan peso propio y no suman 100, Moodle los reescala a 100."""
+        if not self.reescalar or padre_eid is None:
+            return
+        hijos = [h for h in self.nodos.values() if h.padre_eid == padre_eid]
+        if not hijos or not all(h.sobrescrito and h.peso is not None for h in hijos):
+            return
+        total = sum(h.peso for h in hijos)
+        if total > 0 and abs(total - 100) > 0.001:
+            for h in hijos:
+                self.nodos[h.eid] = dataclasses.replace(h, peso=round(h.peso * 100 / total, 3))
 
     def _crear(self, eid, idnumber, clase, nombre, padre_eid, peso, maximo=None) -> str:
         self.nodos[eid] = nodo(
@@ -171,6 +193,7 @@ class AulaViva(MoodleFalso):
     def fijar_peso(self, curso, eid, peso):
         super().fijar_peso(curso, eid, peso)
         self._cambiar(eid, None, peso=peso, sobrescrito=True)
+        self._reescalar(self.nodos[eid].padre_eid)
         if self.perturbar and self.nodos[eid].idnumber == "TZ_E_RA2":
             self.perturbar = False  # una sola vez: Moodle reescala a RA1 al guardar RA2
             self._cambiar(self.por_id("TZ_E_RA1").eid, None, peso=1.0)
@@ -1238,3 +1261,88 @@ def test_un_esquema_sin_instrumentos_no_menciona_casillas(tmp_path):
     resumen = presencia.resumenes_calificador[0]
     assert resumen.casillas == ()
     assert not [x for x in mensajes.detalle_calificador(resumen).lineas if "casillas" in x]
+
+
+# --------------------------------------------------------------------------- #
+# Un calificador ya montado que gana criterios y una casilla converge enseguida
+# --------------------------------------------------------------------------- #
+
+ESQUEMA_CRITERIOS_CON_PESO = ESQUEMA_CRITERIOS.replace(
+    "{id: CE1_1, nombre: Configura}, {id: CE1_2, nombre: Documenta}",
+    "{id: CE1_1, nombre: Configura, peso: 40}, {id: CE1_2, nombre: Documenta, peso: 60}",
+)
+
+
+def test_cambiar_los_pesos_de_un_calificador_montado_converge_en_el_segundo_montaje(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CRITERIOS, ACTIVIDADES_CRITERIOS)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CRITERIOS), reescalar=True)
+    atender(pedir(carpeta), moodle, carpeta)
+    moodle.escrituras.clear()
+    atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.escrituras == []  # montado desde cero converge a la primera
+    # los criterios, que pesaban igual (50/50), pasan a 40/60: Moodle reescala los hermanos
+    carpeta_fp(tmp_path, ESQUEMA_CRITERIOS_CON_PESO, ACTIVIDADES_CRITERIOS)
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert moodle.por_id("TZ_E_CE1_1").peso == pytest.approx(40.0, abs=0.01)
+    assert moodle.por_id("TZ_E_CE1_2").peso == pytest.approx(60.0, abs=0.01)
+    moodle.escrituras.clear()
+    atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.escrituras == []
+
+
+ESQUEMA_PLANO_TOPE = ESQUEMA.replace(
+    "final: {de: elementos}", "final: {de: elementos, tope: {si_alguno_menor_que: 5, maximo: 4}}"
+)
+ESQUEMA_AMPLIADO = """\
+organizacion: elementos
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 60
+    criterios: [{id: CE1, nombre: Configura, peso: 40}, {id: CE2, nombre: Documenta, peso: 60}]
+  - {id: RA2, nombre: Sistemas, peso: 40}
+evaluaciones:
+  - {nombre: 1.ª evaluación, secciones: [1]}
+  - {nombre: 2.ª evaluación, secciones: [2]}
+final: {de: elementos, tope: {si_alguno_menor_que: 5, maximo: 4}}
+instrumentos: [{id: EXAMEN, nombre: Examen, seccion: 2, evalua: {CE2: 20, RA2: 20}}]
+"""
+ACTIVIDADES_AMPLIADAS = (
+    ("a", 1, 11, {"CE1": 60, "CE2": 50}),
+    ("d", 1, 12, {"CE1": 40, "CE2": 30, "RA2": 50}),
+    ("c", 2, 13, {"RA2": 30}),
+)
+
+
+def test_ampliar_un_calificador_montado_converge_en_el_segundo_montaje(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_PLANO_TOPE)
+    moodle = AulaViva(reescalar=True)
+    atender(pedir(carpeta), moodle, carpeta)
+    moodle.escrituras.clear()
+    assert atender(pedir(carpeta), moodle, carpeta)["resultado"] == "ok"
+    assert moodle.escrituras == []
+    carpeta_fp(tmp_path, ESQUEMA_AMPLIADO, ACTIVIDADES_AMPLIADAS)
+    moodle.escrituras.clear()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert moodle.escrituras
+    moodle.escrituras.clear()
+    atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.escrituras == []
+
+
+def test_si_el_aula_nunca_deja_el_peso_donde_se_pide_los_repasos_tienen_tope(tmp_path):
+    class Terca(AulaViva):
+        def fijar_peso(self, curso, eid, peso):
+            super().fijar_peso(curso, eid, peso)
+            if self.nodos[eid].idnumber == "TZ_E_RA1":
+                self._cambiar(eid, None, peso=1.0)  # Moodle lo vuelve a mover siempre
+
+    carpeta = carpeta_fp(tmp_path)
+    moodle = Terca()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok"
+    eid = moodle.por_id("TZ_E_RA1").eid
+    escrituras = [e for e in moodle.escrituras if e[0] == "fijar_peso" and e[2] == eid]
+    assert 1 < len(escrituras) <= publicacion.MAX_PASADAS_DE_AJUSTE + 2
