@@ -8,6 +8,7 @@ se avisa aquí con **Cambia**.
 
 ### Corregido
 - **`tiza calificador` en un curso grande.** Medido en un módulo de 60 actividades: montar el calificador la primera vez tardaba 30 minutos y el agente dejaba de esperar a los 10 (`SIN_RESPUESTA`), o daba la sesión por cerrada si caducaba a medias. Ahora cada alta lee el árbol del calificador una vez en vez de dos, y tras escribir solo se vuelven a abrir los formularios de lo que se ha tocado. El agente espera hasta una hora, y la sesión no se da por cerrada mientras atiende una petición: la termina antes de cerrarse.
+- **`tiza aislar` en Windows quita los permisos de más.** Si Claude Code permitía comandos que el agente no debe ejecutar (por ejemplo, aprobados con «no volver a preguntar»), la revisión lo marcaba como falta pero `tiza aislar` y `tiza empezar` respondían «No hay nada que añadir» y la carpeta seguía sin aislar. Ahora se quitan de `.claude/settings.json` y `.claude/settings.local.json`, la falta dice en qué fichero están, los del perfil global se indican para quitarlos a mano y `tiza empezar` dice qué sigue faltando.
 - **`tiza actualizar` funciona en Windows.** Fallaba siempre con «Access is denied (os error 5)»: Windows no deja reemplazar tiza mientras está en marcha. Ahora la instalación sigue en otra ventana, en cuanto se cierra tiza; lo mismo al aceptar la actualización que ofrece `tiza empezar`.
 
 ## 0.26.0 — 2026-10-22

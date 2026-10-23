@@ -1040,7 +1040,7 @@ def _aislar(args) -> int:
 def _aplicar_escrituras(escrituras: list[tuple[Path, str, list[str]]]) -> bool:
     """Enseña los cambios, confirma y escribe con copia; True si se aplicaron o no había nada."""
     if not escrituras:
-        print("No hay nada que añadir.")
+        print("No hay nada que cambiar.")
         return True
     print("Se van a hacer estos cambios:")
     for ruta, _texto, cambios in escrituras:
@@ -1124,6 +1124,24 @@ def _aislar_global(args, servidor: str | None) -> int:
     return _revisar(args)
 
 
+def _quitar_permisos_de_mas(
+    escrituras: list[tuple[Path, str, list[str]]], carpeta: Path, home: Path
+) -> None:
+    """Windows: quita los comandos de más de settings.local.json; los del global, a mano."""
+    local = carpeta / ".claude" / "settings.local.json"
+    if local.exists() and not local.is_file():
+        raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", local.name)
+    nuevo, cambios = aislamiento.quitar_permisos_de_mas(aislamiento.leer_json(local))
+    if cambios:
+        escrituras.append((local, json.dumps(nuevo, ensure_ascii=False, indent=2) + "\n", cambios))
+    # El global vale para todos los proyectos: tiza no lo edita en Windows.
+    for regla in aislamiento.shell_de_mas(aislamiento.leer_json(aislamiento.ruta_claude(home))):
+        print(
+            f"Quita a mano de {aislamiento.ruta_claude(home)} la regla «{regla}» de "
+            "permissions.allow: deja al agente ejecutar comandos que no debe."
+        )
+
+
 def _aislar_carpeta(carpeta: Path, servidor: str | None) -> bool | None:
     """Aislamiento de esta carpeta; None si el docente cancela."""
     home, sistema = _home(), _sistema()
@@ -1147,6 +1165,8 @@ def _aislar_carpeta(carpeta: Path, servidor: str | None) -> bool | None:
         if cambios:
             texto = json.dumps(nuevo, ensure_ascii=False, indent=2) + "\n"
             escrituras.append((ruta, texto, cambios))
+        if sistema == "Windows":
+            _quitar_permisos_de_mas(escrituras, carpeta, home)
     if (home / ".codex").is_dir():
         ruta = aislamiento.ruta_codex_proyecto(carpeta)
         if ruta.exists() and not ruta.is_file():
@@ -1620,6 +1640,11 @@ def _empezar(args) -> int:
             if resultado is None:
                 return _abortado(comando)
             aislada = resultado
+            if not aislada:
+                print("Sigue faltando:")
+                for c in aislamiento.revisar(_home(), _sistema(), carpeta):
+                    if c.estado == "falta":
+                        print(f"  - {c.agente}: {c.texto}")
         if not aislada and not terminal.confirmar("¿Seguir sin aislar el agente?"):
             return _abortado(comando)
     return sesion.abrir(

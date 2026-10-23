@@ -964,7 +964,8 @@ class TestClaudeWindows:
         nuevo["permissions"]["allow"].append(regla)
         textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))
         assert textos == [
-            "allow permite comandos que el agente no debe ejecutar; quítalos (1 reglas)"
+            "allow permite comandos que el agente no debe ejecutar; quítalos"
+            " (1 reglas, en ~/.claude/settings.json)"
         ]
 
     def test_revisar_allow_de_shell_en_una_capa_de_proyecto_falta(self):
@@ -972,8 +973,35 @@ class TestClaudeWindows:
         proyecto = [(".claude/settings.local.json", {"permissions": {"allow": ["Bash(curl *)"]}})]
         textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", proyecto, servidor=SERVIDOR))
         assert textos == [
-            "allow permite comandos que el agente no debe ejecutar; quítalos (1 reglas)"
+            "allow permite comandos que el agente no debe ejecutar; quítalos"
+            " (1 reglas, en .claude/settings.local.json)"
         ]
+
+    def test_el_perfil_quita_los_comandos_de_shell_de_mas(self):
+        ajustes = {"permissions": {"allow": ["Read", "Bash(curl *)", "PowerShell(tiza empezar)"]}}
+        nuevo, cambios = self.perfil(ajustes, servidor=SERVIDOR)
+        allow = nuevo["permissions"]["allow"]
+        assert "Read" in allow  # lo que no es de shell se conserva
+        assert "Bash(curl *)" not in allow
+        assert "PowerShell(tiza empezar)" not in allow
+        assert "dejar de permitir Bash(curl *)" in cambios
+        assert "dejar de permitir PowerShell(tiza empezar)" in cambios
+        assert faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR)) == []
+
+    def test_quitar_permisos_de_mas_solo_toca_el_allow_de_shell(self):
+        local = {
+            "permissions": {"allow": ["Bash(tiza leer *)", "Bash(ls:*)", "WebSearch"]},
+            "env": {"X": "1"},
+        }
+        nuevo, cambios = aislamiento.quitar_permisos_de_mas(local)
+        assert nuevo == {
+            "permissions": {"allow": ["Bash(tiza leer *)", "WebSearch"]},
+            "env": {"X": "1"},
+        }
+        assert cambios == ["dejar de permitir Bash(ls:*)"]
+        assert local["permissions"]["allow"][1] == "Bash(ls:*)"  # no muta la entrada
+        assert aislamiento.quitar_permisos_de_mas(nuevo) == (nuevo, [])
+        assert aislamiento.quitar_permisos_de_mas({"permissions": []}) == ({"permissions": []}, [])
 
     def test_revisar_additional_directories_falta(self):
         nuevo, _ = self.perfil(servidor=SERVIDOR)

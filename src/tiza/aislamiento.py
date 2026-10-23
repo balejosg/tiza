@@ -30,6 +30,7 @@ __all__ = [
     "COPILOT",
     "Comprobacion",
     "ErrorAislamiento",
+    "GLOBAL_CLAUDE",
     "OPENCODE",
     "configuracion_opencode",
     "contenido_opencode",
@@ -37,6 +38,7 @@ __all__ = [
     "fusionar_codex",
     "fusionar_confianza_codex",
     "leer_json",
+    "quitar_permisos_de_mas",
     "regla_ruta",
     "reglas_agente_windows",
     "reglas_lectura_windows",
@@ -56,6 +58,7 @@ __all__ = [
     "rutas_privadas",
     "rutas_reabiertas",
     "servidor_configurado",
+    "shell_de_mas",
 ]
 
 
@@ -160,6 +163,34 @@ def _es_regla_de_shell(regla: object) -> bool:
     return isinstance(regla, str) and (
         regla in _SHELLS or any(regla.startswith(f"{shell}(") for shell in _SHELLS)
     )
+
+
+def shell_de_mas(ajustes: dict) -> list[str]:
+    """Reglas ``allow`` de shell de unos ajustes que no son los comandos de tiza del agente."""
+    permitidas = reglas_agente_windows()
+    allow = _lista(_seccion(ajustes, "permissions"), "allow")
+    return [r for r in allow if _es_regla_de_shell(r) and r not in permitidas]
+
+
+def _quitar_shell_de_mas(permisos: dict, cambios: list[str]) -> None:
+    de_mas = shell_de_mas({"permissions": permisos})
+    if de_mas:
+        permisos["allow"] = [r for r in permisos["allow"] if r not in de_mas]
+        cambios += [f"dejar de permitir {r}" for r in de_mas]
+
+
+def quitar_permisos_de_mas(ajustes: dict) -> tuple[dict, list[str]]:
+    """Windows, para ``.claude/settings.local.json``: quita solo las reglas ``allow`` de shell de más.
+
+    Claude Code guarda ahí lo que el docente aprueba con «no volver a preguntar»; lo
+    demás de ese fichero no se toca.
+    """
+    nuevo = copy.deepcopy(ajustes)
+    cambios: list[str] = []
+    permisos = nuevo.get("permissions")
+    if isinstance(permisos, dict):
+        _quitar_shell_de_mas(permisos, cambios)
+    return nuevo, cambios
 
 
 def regla_ruta(ruta: str) -> str:
@@ -409,7 +440,7 @@ def revisar_claude(
     permisos = _seccion(efectivos, "permissions")
     if sistema == "Windows":
         return _revisar_claude_windows(
-            lista, efectivos, proyecto, home=home, carpeta=carpeta, servidor=servidor
+            lista, ajustes, efectivos, proyecto, home=home, carpeta=carpeta, servidor=servidor
         )
     _comprobar(lista, CLAUDE, sandbox.get("enabled") is True, "sandbox activado")
     _comprobar(
@@ -563,6 +594,7 @@ def _reglas_tiza_windows(accion: str) -> list[str]:
 
 def _revisar_claude_windows(
     lista: list[Comprobacion],
+    ajustes: dict,
     efectivos: dict,
     proyecto: Sequence[tuple[str, dict]],
     *,
@@ -597,14 +629,17 @@ def _revisar_claude_windows(
         "comandos de tiza del agente permitidos"
         + (f" (faltan {len(sin_permitir)} reglas)" if sin_permitir else ""),
     )
-    de_mas = [r for r in allow if _es_regla_de_shell(r) and r not in reglas_agente_windows()]
+    de_mas = shell_de_mas(efectivos)
     if de_mas:
+        donde = [
+            nombre for nombre, datos in [(GLOBAL_CLAUDE, ajustes), *proyecto] if shell_de_mas(datos)
+        ]
         lista.append(
             Comprobacion(
                 CLAUDE,
                 "falta",
                 "allow permite comandos que el agente no debe ejecutar; quítalos"
-                f" ({len(de_mas)} reglas)",
+                f" ({len(de_mas)} reglas, en {', '.join(donde)})",
             )
         )
     if _lista(permisos, "additionalDirectories"):
@@ -822,6 +857,7 @@ def _fusionar_claude_windows(
     if permisos.get("blockReadsOutsideWorkingDirectories") is not True:
         permisos["blockReadsOutsideWorkingDirectories"] = True
         cambios.append("impedir leer fuera de la carpeta")
+    _quitar_shell_de_mas(permisos, cambios)
     _anadir(permisos, ("allow",), reglas_agente_windows(), cambios, "permitir {}")
     denegar = [
         *reglas_lectura_windows(),
@@ -841,6 +877,9 @@ OPENCODE = "opencode"
 COPILOT = "GitHub Copilot"
 CONFIG_OPENCODE = ("opencode.json", "opencode.jsonc")
 _MODOS_CODEX = {"read-only", "workspace-write"}
+
+
+GLOBAL_CLAUDE = "~/.claude/settings.json"
 
 
 def ruta_claude(home: Path) -> Path:

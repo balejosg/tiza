@@ -238,7 +238,11 @@ Ten en cuenta:
 - Hace falta Claude Code 2.1.257 o posterior. `tiza revisar` comprueba el perfil
   en Windows y marca como falta el bloque `sandbox` antiguo, si lo tienes.
   También marca como falta cualquier permiso de shell añadido a mano y
-  `additionalDirectories`.
+  `additionalDirectories`, y dice en qué fichero está el permiso de más.
+  `tiza aislar` quita esos permisos de `.claude/settings.json` y de
+  `.claude/settings.local.json` (donde Claude Code guarda lo que apruebas con
+  «no volver a preguntar»); los de `~/.claude/settings.json` te dice cuáles
+  quitar a mano, porque ese fichero vale para todos tus proyectos.
 - Si la carpeta de la asignatura está dentro de Descargas, tiza no puede
   denegar Descargas con una regla: Claude Code no permite reabrir una subcarpeta.
   El resto de Descargas lo protegen `blockReadsOutsideWorkingDirectories` y los

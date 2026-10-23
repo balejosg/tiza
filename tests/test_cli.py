@@ -1371,6 +1371,29 @@ class TestAislar:
         assert not (home / ".claude" / "settings.json").exists()
         assert cli.main(["revisar"]) == 0
 
+    def test_aislar_carpeta_en_windows_quita_los_comandos_de_mas(self, tmp_path, monkeypatch):
+        home, carpeta = self.preparar_proyecto(tmp_path, monkeypatch)
+        monkeypatch.setattr(cli, "_sistema", lambda: "Windows")
+        (carpeta / ".claude").mkdir()
+        local = carpeta / ".claude" / "settings.local.json"
+        local.write_text(
+            json.dumps({"permissions": {"allow": ["PowerShell(tiza sesion *)", "WebSearch"]}}),
+            encoding="utf-8",
+        )
+        (home / ".claude" / "settings.json").write_text(
+            json.dumps({"permissions": {"allow": ["Bash(curl *)"]}}), encoding="utf-8"
+        )
+        salida = simular_terminal(monkeypatch)
+        responder(monkeypatch, ["s"])
+        cli.main(["aislar"])
+        assert json.loads(local.read_text("utf-8")) == {"permissions": {"allow": ["WebSearch"]}}
+        texto = salida.contenido()
+        assert "dejar de permitir PowerShell(tiza sesion *)" in texto
+        # El global no se toca en Windows: se dice qué quitar a mano.
+        global_ = json.loads((home / ".claude" / "settings.json").read_text("utf-8"))
+        assert global_["permissions"]["allow"] == ["Bash(curl *)"]
+        assert "Quita a mano" in texto and "Bash(curl *)" in texto
+
     def test_aislar_crea_opencode_si_no_existe(self, tmp_path, monkeypatch):
         home, carpeta = self.preparar_proyecto(tmp_path, monkeypatch)
         (home / ".config" / "opencode").mkdir(parents=True)
