@@ -68,7 +68,7 @@ CAMPOS_ORIGEN = ("curso", "cmid")
 CAMPOS_RESTRICCIONES = {"desde", "hasta", "completar", "ocultar_si_no_cumple"}
 MAX_DEPENDENCIAS = 10
 MAX_PESO_EVALUA = 100  # peso máximo de un resultado de aprendizaje en «evalua»
-_RE_ID_EVALUA = re.compile(r"[A-Za-z][A-Za-z0-9]{0,15}")
+_RE_ID_EVALUA = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,15}")
 MAX_PAQUETE_H5P_BYTES = 64 * 1024 * 1024  # el .h5p subido
 PREFIJO_IMAGEN = "tiza-imagen:"  # lo que lleva el src de una imagen de pregunta en el HTML
 MAX_IMAGEN_PREGUNTA_BYTES = 1024 * 1024  # cada imagen de una pregunta
@@ -421,7 +421,7 @@ def _validar_evalua(datos: dict[str, Any]) -> tuple[tuple[str, float], ...] | No
         if not isinstance(clave, str) or not _RE_ID_EVALUA.fullmatch(clave):
             raise ErrorContenido(
                 "EVALUA_INVALIDO",
-                "cada id de evalua empieza por letra, usa letras y cifras y tiene hasta 16",
+                "cada id de evalua empieza por letra, usa letras, cifras o _ y tiene hasta 16",
             )
         if (
             isinstance(peso, bool)

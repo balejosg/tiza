@@ -2294,6 +2294,10 @@ class TestEvalua:
         doc = cargar(escribir(tmp_path, tarea(evalua="{RA3: 25, RA1: 40}")))
         assert doc.evalua == (("RA3", 25), ("RA1", 40))
 
+    def test_admite_guion_bajo_en_los_ids(self, tmp_path):
+        doc = cargar(escribir(tmp_path, tarea(evalua="{CE1_1: 20, RA1_CE2: 10}")))
+        assert doc.evalua == (("CE1_1", 20), ("RA1_CE2", 10))
+
     def test_sin_evalua_es_none(self, tmp_path):
         assert cargar(escribir(tmp_path, pagina())).evalua is None
 
@@ -2311,7 +2315,7 @@ class TestEvalua:
             "{RA1: true}",
             "[RA1]",
             '{"1RA": 10}',
-            "{RA_1: 10}",
+            "{_RA1: 10}",
             "{RA1: null}",
             "{RA1: 10, RA1: 20}",
         ],

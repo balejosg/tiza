@@ -19,17 +19,20 @@ from tiza.escritura.relleno import cargar_yaml_sin_alias, dentro_de_la_carpeta
 
 __all__ = [
     "ErrorCalificacion",
+    "Criterio",
     "Elemento",
     "Esquema",
     "Evaluacion",
     "Final",
+    "Instrumento",
     "Tope",
     "cargar_esquema",
 ]
 
 EXTENSIONES_ESQUEMA = frozenset({".yaml"})
 TOLERANCIA_PESOS = 0.01
-_RE_ID = re.compile(r"[A-Za-z][A-Za-z0-9]{0,15}")
+_RE_ID = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,15}")
+MAX_PESO_EVALUA = 100  # peso máximo de un elemento en «evalua» de un instrumento
 
 
 class ErrorCalificacion(Exception):
@@ -42,11 +45,30 @@ class ErrorCalificacion(Exception):
 
 
 @dataclass(frozen=True)
+class Criterio:
+    id: str
+    nombre: str
+    peso: float | None
+    codigo: str | None = None
+
+
+@dataclass(frozen=True)
 class Elemento:
     id: str
     nombre: str
     peso: float
     codigo: str | None = None
+    criterios: tuple[Criterio, ...] = ()
+
+
+@dataclass(frozen=True)
+class Instrumento:
+    """Casilla manual: no tiene actividad en el aula, solo sección y qué elementos evalúa."""
+
+    id: str
+    nombre: str
+    seccion: int | str
+    evalua: tuple[tuple[str, float], ...]
 
 
 @dataclass(frozen=True)
@@ -75,6 +97,7 @@ class Esquema:
     elementos: tuple[Elemento, ...]
     evaluaciones: tuple[Evaluacion, ...]
     final: Final
+    instrumentos: tuple[Instrumento, ...] = ()
 
 
 class _Lector:
@@ -141,33 +164,116 @@ class _Lector:
                 "PESOS_NO_SUMAN_100", ruta, f"los pesos de {ruta} suman {total:g} y deben sumar 100"
             )
 
+    def id_(self, valor: Any, ruta: str) -> str:
+        if not isinstance(valor, str) or not _RE_ID.fullmatch(valor):
+            raise self.invalido(
+                ruta,
+                "debe empezar por una letra y tener solo letras, cifras o _ (16 como mucho)",
+            )
+        return valor
+
     def elementos(self, valor: Any) -> tuple[Elemento, ...]:
         resultado: list[Elemento] = []
-        vistos: set[str] = set()
+        vistos: set[str] = set()  # ids de elementos y de criterios, en un solo espacio
         for i, bruto in enumerate(self.lista(valor, "elementos")):
             ruta = f"elementos[{i}]"
             datos = self.mapa(
-                bruto, ruta, ("id", "nombre", "peso", "codigo"), ("id", "nombre", "peso")
+                bruto,
+                ruta,
+                ("id", "nombre", "peso", "codigo", "criterios"),
+                ("id", "nombre", "peso"),
             )
-            id_ = datos["id"]
-            if not isinstance(id_, str) or not _RE_ID.fullmatch(id_):
-                raise self.invalido(
-                    f"{ruta}.id",
-                    "debe empezar por una letra y tener solo letras y cifras (16 como mucho)",
-                )
+            id_ = self.id_(datos["id"], f"{ruta}.id")
             if id_ in vistos:
                 raise self.error("ID_REPETIDO", f"{ruta}.id", f"el id «{id_}» está repetido")
             vistos.add(id_)
             codigo = self.texto(datos["codigo"], f"{ruta}.codigo") if "codigo" in datos else None
+            criterios = (
+                self.criterios(datos["criterios"], f"{ruta}.criterios", vistos)
+                if "criterios" in datos
+                else ()
+            )
             resultado.append(
                 Elemento(
                     id_,
                     self.texto(datos["nombre"], f"{ruta}.nombre"),
                     self.peso(datos["peso"], f"{ruta}.peso"),
                     codigo,
+                    criterios,
                 )
             )
         return tuple(resultado)
+
+    def criterios(self, valor: Any, ruta: str, vistos: set[str]) -> tuple[Criterio, ...]:
+        resultado: list[Criterio] = []
+        for j, bruto in enumerate(self.lista(valor, ruta)):
+            destino = f"{ruta}[{j}]"
+            datos = self.mapa(bruto, destino, ("id", "nombre", "peso", "codigo"), ("id", "nombre"))
+            id_ = self.id_(datos["id"], f"{destino}.id")
+            if id_ in vistos:
+                raise self.error("ID_REPETIDO", f"{destino}.id", f"el id «{id_}» está repetido")
+            vistos.add(id_)
+            codigo = self.texto(datos["codigo"], f"{destino}.codigo") if "codigo" in datos else None
+            peso = self.peso(datos["peso"], f"{destino}.peso") if "peso" in datos else None
+            resultado.append(
+                Criterio(id_, self.texto(datos["nombre"], f"{destino}.nombre"), peso, codigo)
+            )
+        con_peso = [c.peso for c in resultado if c.peso is not None]
+        if con_peso:
+            if len(con_peso) != len(resultado):
+                raise self.invalido(ruta, "o todos los criterios llevan peso o ninguno")
+            self.suman_100(con_peso, ruta)
+        return tuple(resultado)
+
+    def seccion(self, valor: Any, ruta: str) -> tuple[int | str, int | str]:
+        """Una sección (número >= 0 o nombre): devuelve (clave para comparar, valor)."""
+        if isinstance(valor, bool) or not isinstance(valor, (int, str)):
+            raise self.invalido(ruta, "debe ser un número de sección o un nombre")
+        if isinstance(valor, int):
+            if valor < 0:
+                raise self.invalido(ruta, "el número de sección no puede ser negativo")
+            return valor, valor
+        valor = self.texto(valor, ruta)
+        return valor.casefold(), valor
+
+    def instrumentos(self, valor: Any) -> tuple[Instrumento, ...]:
+        resultado: list[Instrumento] = []
+        vistos: set[str] = set()
+        for i, bruto in enumerate(self.lista(valor, "instrumentos")):
+            ruta = f"instrumentos[{i}]"
+            claves = ("id", "nombre", "seccion", "evalua")
+            datos = self.mapa(bruto, ruta, claves, claves)
+            id_ = self.id_(datos["id"], f"{ruta}.id")
+            if id_ in vistos:
+                raise self.error("ID_REPETIDO", f"{ruta}.id", f"el id «{id_}» está repetido")
+            vistos.add(id_)
+            resultado.append(
+                Instrumento(
+                    id_,
+                    self.texto(datos["nombre"], f"{ruta}.nombre"),
+                    self.seccion(datos["seccion"], f"{ruta}.seccion")[1],
+                    self.evalua(datos["evalua"], f"{ruta}.evalua"),
+                )
+            )
+        return tuple(resultado)
+
+    def evalua(self, valor: Any, ruta: str) -> tuple[tuple[str, float], ...]:
+        """Las mismas reglas que el ``evalua`` de una actividad (``contenido._validar_evalua``)."""
+        if not isinstance(valor, dict) or not valor:
+            raise self.invalido(ruta, "debe ser un mapa de ids a pesos, como {RA1: 40, RA3: 25}")
+        salida: list[tuple[str, float]] = []
+        for clave, peso in valor.items():
+            destino = f"{ruta}.{clave}"
+            self.id_(clave, destino)
+            if (
+                isinstance(peso, bool)
+                or not isinstance(peso, int | float)
+                or not 0 <= peso <= MAX_PESO_EVALUA
+                or round(peso, 2) != peso
+            ):
+                raise self.invalido(destino, "debe ser un número de 0 a 100 con hasta 2 decimales")
+            salida.append((clave, peso))
+        return tuple(salida)
 
     def evaluaciones(self, valor: Any, con_peso: bool) -> tuple[Evaluacion, ...]:
         resultado: list[Evaluacion] = []
@@ -183,15 +289,7 @@ class _Lector:
             secciones: list[int | str] = []
             for j, seccion in enumerate(self.lista(datos["secciones"], f"{ruta}.secciones")):
                 destino = f"{ruta}.secciones[{j}]"
-                if isinstance(seccion, bool) or not isinstance(seccion, (int, str)):
-                    raise self.invalido(destino, "debe ser un número de sección o un nombre")
-                if isinstance(seccion, int):
-                    if seccion < 0:
-                        raise self.invalido(destino, "el número de sección no puede ser negativo")
-                    clave: int | str = seccion
-                else:
-                    seccion = self.texto(seccion, destino)
-                    clave = seccion.casefold()
+                clave, seccion = self.seccion(seccion, destino)
                 if clave in vistas:
                     raise self.error(
                         "SECCION_REPETIDA",
@@ -259,7 +357,10 @@ def cargar_esquema(ruta: Path, carpeta: Path) -> Esquema:
         raise ErrorCalificacion(codigo, error.detalle) from None
     lector = _Lector(lineas)
     datos = lector.mapa(
-        datos, "", ("organizacion", "elementos", "evaluaciones", "final"), ("organizacion", "final")
+        datos,
+        "",
+        ("organizacion", "elementos", "evaluaciones", "final", "instrumentos"),
+        ("organizacion", "final"),
     )
     organizacion = datos["organizacion"]
     if organizacion not in ("elementos", "evaluaciones"):
@@ -278,4 +379,5 @@ def cargar_esquema(ruta: Path, carpeta: Path) -> Esquema:
         lector.suman_100([e.peso for e in elementos], "elementos")
     else:
         lector.suman_100([e.peso for e in evaluaciones if e.peso is not None], "evaluaciones")
-    return Esquema(organizacion, elementos, evaluaciones, final)
+    instrumentos = lector.instrumentos(datos["instrumentos"]) if "instrumentos" in datos else ()
+    return Esquema(organizacion, elementos, evaluaciones, final, instrumentos)
