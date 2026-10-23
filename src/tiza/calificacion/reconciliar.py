@@ -330,6 +330,7 @@ class _Plan:
         self.cerradas = set(evaluaciones_cerradas)  # solo las bloqueadas en el aula son intocables
         self.sin_colocar: set[str] = set()
         self.en_cerrada: set[str] = set()  # sin colocar porque su sitio cae en una cerrada
+        self.casillas_en_cerrada: set[str] = set()  # casillas nuevas con sitio en una cerrada
         self.omitidos = self._omitidos()
         self.avisos: dict[tuple[str, str], None] = {}
         self.ajeno: list[Operacion] = []
@@ -370,6 +371,8 @@ class _Plan:
         self.en_cerrada = self._nuevas_en_cerrada(pendientes)
         self.sin_colocar |= self.en_cerrada
         pendientes |= self.en_cerrada
+        self.casillas_en_cerrada = self._casillas_nuevas_en_cerrada()
+        pendientes |= self.casillas_en_cerrada
         omitidos = set(pendientes)
         for n in self.d.nodos:
             if n.clase == "copia" and n.formula_de in pendientes:
@@ -394,6 +397,17 @@ class _Plan:
                 resultado.add(ruta)
         return resultado
 
+    def _casillas_nuevas_en_cerrada(self) -> set[str]:
+        """Las casillas manuales aún no creadas cuyo sitio (real o copia) cae en una cerrada."""
+        resultado: set[str] = set()
+        for nodo in self.d.nodos:
+            if nodo.clase != "manual" or nodo.idnumber in self.idx.por_id:
+                continue
+            sitios = [nodo.padre, *(n.padre for n in self.d.nodos if n.formula_de == nodo.idnumber)]
+            if any(self._cerrado_deseado(sitio) for sitio in sitios):
+                resultado.add(nodo.idnumber)
+        return resultado
+
     def _cerrado_deseado(self, idnumber: str | None) -> bool:
         while idnumber is not None:
             if idnumber in self.cerradas:
@@ -413,6 +427,13 @@ class _Plan:
         act = self._actividad_aula(ruta)
         return act.maximo if act is not None and act.maximo is not None else _MAXIMO_SIN_DATO
 
+    def _maximo_casilla(self, idnumber: str) -> float:
+        """El máximo de una casilla en el aula (el docente puede cambiarlo); 10 si aún no existe."""
+        casilla = self.idx.por_id.get(idnumber)
+        return (
+            casilla.maximo if casilla is not None and casilla.maximo is not None else _MAXIMO_NOTA
+        )
+
     def _maximo(self, nodo: Nodo) -> float:
         """El máximo que debe tener un calculado."""
         if nodo.clase in ("nota", "manual"):
@@ -423,13 +444,13 @@ class _Plan:
             if fuente in self.dnodos and fuente not in self.rutas:  # una copia o una casilla
                 fuente = self.dnodos[fuente].formula_de or fuente  # type: ignore[assignment]
             if str(fuente).startswith(_PREFIJO_MANUAL):
-                return _MAXIMO_NOTA
+                return self._maximo_casilla(str(fuente))
             return self._maximo_actividad(str(fuente))
         fuente = nodo.formula_de
         if isinstance(fuente, str) and fuente in self.rutas:
             return self._maximo_actividad(fuente)
         if isinstance(fuente, str) and fuente.startswith(_PREFIJO_MANUAL):
-            return _MAXIMO_NOTA
+            return self._maximo_casilla(fuente)
         # TZ_KC_<id>: el máximo completo de TZ_E_<id>, que solo se conoce con las actividades dentro
         elemento = self.idx.por_id.get(f"{_PREFIJO}E_{nodo.idnumber[len(_PREFIJO + 'KC_') :]}")
         if elemento is not None and elemento.maximo is not None:
@@ -456,7 +477,7 @@ class _Plan:
         pendientes = [r for r in sorted(self.rutas) if self._actividad_aula(r) is None]
         for ruta in pendientes:
             self._aviso("ACTIVIDAD_PENDIENTE", ruta)
-        for ruta in sorted(self.en_cerrada):
+        for ruta in sorted(self.en_cerrada | self.casillas_en_cerrada):
             self._aviso("ACTIVIDAD_EN_EVALUACION_CERRADA", ruta)
         for n in self.aula.nodos:
             if n.idnumber in self.bloqueadas_en_aula and n.idnumber not in self.d.cerradas:
@@ -708,6 +729,10 @@ class _Plan:
             nivel += 1
             nodo = padre
 
+    def _de_contador(self, nodo: NodoAula) -> bool:
+        padre = self.idx.padre(nodo)
+        return padre is not None and padre.idnumber.startswith(f"{_PREFIJO}K_")
+
     def _sobrantes(self) -> None:
         """Los nodos de tiza que ya no están en el esquema.
 
@@ -722,7 +747,8 @@ class _Plan:
             and n.idnumber not in self.dnodos
             and not self._cerrado_aula(n)
         ]
-        con_notas = {n.eid for n in candidatos if n.tiene_notas}
+        # lo que cuelga de un contador es calculado y no guarda nada del docente: se borra siempre
+        con_notas = {n.eid for n in candidatos if n.tiene_notas and not self._de_contador(n)}
         for n in candidatos:
             if n.eid in con_notas and not any(
                 h.eid in con_notas for h in self.idx.hijos.get(n.eid, [])

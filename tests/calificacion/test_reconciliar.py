@@ -13,6 +13,7 @@ import pytest
 from tiza.calificacion import reconciliar as rc
 from tiza.calificacion.deseado import Deseado, deseado
 from tiza.calificacion.esquema import (
+    Criterio,
     Elemento,
     Esquema,
     Evaluacion,
@@ -1078,9 +1079,11 @@ def test_casilla_existente_con_otro_maximo_no_se_toca() -> None:
     aula = con_nodo(aula, manual.eid, maximo=25.0)
     rec = reconciliar(d, aula, huellas, CMIDS_M)
     assert [o for o in rec.operaciones if o.eid == manual.eid] == []
-    assert "fijar_maximo" not in tipos(rec.operaciones)
-    assert "fijar_formula" not in tipos([o for o in rec.operaciones if o.eid == manual.eid])
-    assert pasada2(d, aula, huellas, CMIDS_M) == ()
+    # solo se ajustan sus copias (a su máximo), nunca la casilla
+    assert {o.tipo for o in rec.operaciones} == {"fijar_maximo"}
+    assert {o.maximo for o in rec.operaciones} == {25.0}
+    final = aplicar(aula, rec.operaciones)
+    assert pasada2(d, final, huellas, CMIDS_M, a_mano=rec.a_mano) == ()
 
 
 def test_casilla_en_otro_padre_se_mueve() -> None:
@@ -1181,3 +1184,117 @@ def test_casilla_quitada_del_esquema_con_notas_se_queda_con_peso_cero() -> None:
     assert [
         (o.peso) for o in rec.operaciones if o.tipo == "fijar_peso" and o.eid == manual.eid
     ] == [0.0]
+
+
+def test_casilla_nueva_con_su_sitio_en_una_evaluacion_bloqueada_no_se_crea() -> None:
+    eso_m = dataclasses.replace(ESO, instrumentos=(EXPOSICION,))
+    _, aula = montar(ESO, docs_m(100), cmids=CMIDS_M)
+    huellas = huellas_de(aula, CMIDS_M)
+    aula = con_nodo(aula, por_id(aula, "TZ_V_1").eid, bloqueado=True)
+    d = deseado(eso_m, docs_m(), False, CARPETA)
+    assert copias_de(d, "TZ_M_exp")  # hay copias fuera de la evaluación cerrada
+    rec = reconciliar(d, aula, huellas, CMIDS_M)
+    assert ("ACTIVIDAD_EN_EVALUACION_CERRADA", "TZ_M_exp") in rec.avisos
+    referencias = [
+        o
+        for o in rec.operaciones
+        if "TZ_M_exp" in (o.idnumber or "") or "TZ_M_exp" in (o.formula or "")
+    ]
+    assert referencias == []
+    copias = {c.idnumber for c in copias_de(d, "TZ_M_exp")}
+    assert not [o for o in rec.operaciones if o.idnumber in copias]
+    ajustes = pasada2(d, aplicar(aula, rec.operaciones), huellas, CMIDS_M, a_mano=rec.a_mano)
+    assert not [o for o in ajustes if "TZ_M_exp" in (o.idnumber or "") + (o.formula or "")]
+
+
+def test_las_copias_y_los_indicadores_de_una_casilla_siguen_su_maximo_en_el_aula() -> None:
+    d, aula = montar_m(FP_M_TOPE)
+    huellas = huellas_de(aula, CMIDS_M)
+    manual = por_id(aula, "TZ_M_exp")
+    aula = con_nodo(aula, manual.eid, maximo=100.0)
+    rec = reconciliar(d, aula, huellas, CMIDS_M)
+    # la casilla del docente no se toca; sus copias e indicadores se ponen a su máximo
+    assert [o for o in rec.operaciones if o.eid == manual.eid] == []
+    derivados = {c.idnumber for c in copias_de(d, "TZ_M_exp")}
+    derivados |= {
+        n.idnumber for n in d.nodos if n.clase == "indicador" and n.formula_de in derivados
+    }
+    derivados |= {
+        n.idnumber for n in d.nodos if n.clase == "indicador" and n.formula_de == "TZ_M_exp"
+    }
+    maximos = {o.idnumber: o.maximo for o in rec.operaciones if o.tipo == "fijar_maximo"}
+    assert derivados and set(maximos) == derivados
+    assert set(maximos.values()) == {100.0}
+    final = aplicar(aula, rec.operaciones)
+    otra = pasada2(d, final, huellas, CMIDS_M, a_mano=rec.a_mano)
+    assert not [o for o in otra if o.idnumber in derivados]
+    # y una casilla nueva se crea con 10 y sus copias también
+    nueva = reconciliar(d, aula_inicial(CMIDS_M), {}, CMIDS_M)
+    creadas = {o.idnumber: o.maximo for o in nueva.operaciones if o.tipo == "crear_calculado"}
+    assert {creadas[i] for i in derivados} == {10.0}
+
+
+def test_el_indicador_sobrante_de_un_contador_se_borra_aunque_tenga_notas() -> None:
+    _, aula = montar(FP_TOPE)
+    huellas = huellas_de(aula, CMIDS)
+    esquema = dataclasses.replace(
+        FP_TOPE,
+        elementos=(
+            Elemento(
+                "RA1",
+                "Redes",
+                60.0,
+                criterios=(Criterio("C1", "Uno", 50.0), Criterio("C2", "Dos", 50.0)),
+            ),
+            EL[1],
+        ),
+    )
+    docs_c = [doc("a.md", 1, C1=100), doc("d.md", 1, RA2=100), doc("c.md", 2, C2=100)]
+    d = deseado(esquema, docs_c, False, CARPETA)
+    nuevos = {n.idnumber for n in d.nodos}
+    antiguos = [
+        n
+        for n in aula.nodos
+        if n.idnumber.startswith("TZ_I_")
+        and n.padre_eid == por_id(aula, "TZ_K_RA1").eid
+        and n.idnumber not in nuevos
+    ]
+    assert antiguos
+    for n in antiguos:
+        aula = con_nodo(aula, n.eid, tiene_notas=True)
+    huellas = huellas_de(aula, CMIDS)
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    borrados = {o.idnumber for o in rec.operaciones if o.tipo == "borrar"}
+    assert {n.idnumber for n in antiguos} <= borrados
+    assert not [a for a in rec.avisos if a[0] == "ELEMENTO_CON_NOTAS_QUITADO"]
+
+
+def test_criterios_anidados_con_casilla_y_tope_convergen() -> None:
+    esquema = Esquema(
+        "elementos",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                60.0,
+                criterios=(Criterio("C1", "Uno", 50.0), Criterio("C2", "Dos", 50.0)),
+            ),
+            EL[1],
+        ),
+        EVS,
+        Final("elementos", Tope(5.0, 4.0)),
+        instrumentos=(Instrumento("exp", "Exposición", 1, (("C2", 50.0),)),),
+    )
+    documentos = [doc("a.md", 1, C1=100), doc("d.md", 1, C2=50, RA2=50), doc("c.md", 2, RA2=50)]
+    d = deseado(esquema, documentos, False, CARPETA)
+    aula = aula_inicial(CMIDS)
+    rec = reconciliar(d, aula, {}, CMIDS)
+    aula = aplicar(aula, rec.operaciones)
+    ajustes = pasada2(d, aula, {}, CMIDS, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+    aula = aplicar(aula, ajustes)
+    assert referencias_rotas(aula) == []
+    assert por_id(aula, "TZ_M_exp").clase == "manual"
+    huellas = huellas_de(aula, CMIDS)
+    assert pasada2(d, aula, huellas, CMIDS) == ()
+    otra = reconciliar(d, aula, huellas, CMIDS)
+    assert otra.operaciones == () and otra.avisos == ()
