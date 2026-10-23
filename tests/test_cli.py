@@ -2135,12 +2135,14 @@ class TestCalificadorEnCli:
         monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
         capturado: dict = {}
 
-        def enviar(dir_tiza, peticion, *a, **k):
+        def enviar(dir_tiza, peticion, espera, *a, **k):
             capturado["peticion"] = peticion
+            capturado["espera"] = espera
             return informe_ok(comando="calificador", entorno="real", curso=5678)
 
         monkeypatch.setattr(buzon, "enviar", enviar)
         assert cli.main(["calificador", "calificacion.yaml", "--en", "real"]) == 0
+        assert capturado["espera"] == buzon.ESPERA_CALIFICADOR > buzon.ESPERA_POR_DEFECTO
         enviada = capturado["peticion"]
         assert (enviada["comando"], enviada["entorno"], enviada["ficheros"]) == (
             "calificador",

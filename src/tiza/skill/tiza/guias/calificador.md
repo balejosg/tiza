@@ -100,14 +100,14 @@ corregirla, lo hace a mano en el aula.
    `ACTIVIDAD_PENDIENTE` (no es un error): vuelve a montar cuando esté publicada.
 3. `tiza calificador calificacion.yaml --en pruebas`: sin pregunta, gasta uno del cupo de la
    sesión. Revisa el resultado en el curso de pruebas.
-4. `tiza calificador calificacion.yaml --en real`: el docente confirma `[s/N]` curso por curso,
-   con lo que va a pasar en lenguaje llano. Lanza el comando con el mayor tiempo de espera que
-   permita tu herramienta, como en `tiza publicar`.
+4. `tiza calificador calificacion.yaml --en real`: el docente confirma `[s/N]` curso por curso.
 
-En el informe, cada actividad sale como `colocada`, `ya_estaba`, `pendiente` (aún no está en el
-aula) o `sin_colocar` (está en el aula y tiza no la coloca: evaluación cerrada o cambiada a
-mano), y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se
-hizo. Sin sesión, `SIN_SESION`: pide al docente que ejecute `tiza empezar`.
+Lánzalo en segundo plano o con el mayor tiempo de espera de tu herramienta: espera hasta una hora,
+y montar un curso grande la primera vez pasa de 10 minutos. Si te lo corta, la sesión acaba lo
+empezado: vuelve a lanzarlo (espera su turno y lo hecho no se repite). En el informe, cada
+actividad sale `colocada`, `ya_estaba`, `pendiente` (aún no está en el aula) o `sin_colocar`
+(evaluación cerrada o cambiada a mano), y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y
+`CALIFICADOR_COLOCAR` dicen qué se hizo. Sin sesión, `SIN_SESION`: pide `tiza empezar`.
 
 ## 8. Lo que tiza no hace
 

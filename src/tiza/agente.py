@@ -420,13 +420,14 @@ def calificador(
     esquema: str,
     entorno: str,
     *,
-    espera: float = buzon.ESPERA_POR_DEFECTO,
+    espera: float = buzon.ESPERA_CALIFICADOR,
     cancelar: threading.Event | None = None,
 ) -> dict:
     """Pide a la sesión del docente que monte el calificador del curso según ``esquema``.
 
     En real, el docente confirma en su terminal, curso por curso, con lo que va a pasar. Antes
-    se puede comprobar el esquema sin red con ``comprobar``. Sin sesión, ``SIN_SESION``.
+    se puede comprobar el esquema sin red con ``comprobar``. Sin sesión, ``SIN_SESION``. Espera
+    hasta una hora (``buzon.ESPERA_CALIFICADOR``): montar un curso grande pasa de 10 minutos.
     """
     return _enviar(carpeta, peticion_calificador(esquema, entorno), espera, cancelar)
 

@@ -495,6 +495,7 @@ def _atender(
             al_fallar=lambda exc: _error_interno(exc, presencia, debug),
             al_esperar=_aviso_previo(abierta, presencia),
             parar=cerrar.is_set if cerrar is not None else None,
+            sesion=abierta,
         )
         if cerrar is not None and cerrar.is_set():
             presencia.informar(Aviso.sesion_cerrada("docente"))

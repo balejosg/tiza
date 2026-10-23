@@ -9,7 +9,9 @@ tiene la sesión Moodle en memoria, las atiende en la terminal del docente.
 Protocolo (solo biblioteca estándar, sin red ni sockets):
 
 - ``sesion.json``: lo escribe el docente. Lleva un latido que un hilo daemon
-  actualiza cada pocos segundos y una caducidad; se borra al cerrar.
+  actualiza cada pocos segundos, una caducidad y la petición que está atendiendo
+  (``atendiendo``); se borra al cerrar. Mientras atiende una y late, sigue viva
+  aunque haya pasado la caducidad: la termina antes de cerrarse.
 - ``<id>.peticion.json``: lo escribe el agente.
 - ``<id>.respuesta.json``: lo escribe el docente; es un informe ya validado.
 
@@ -39,6 +41,7 @@ __all__ = [
     "LATIDO_SEGUNDOS",
     "LATIDO_MAX",
     "ESPERA_POR_DEFECTO",
+    "ESPERA_CALIFICADOR",
     "MAX_FICHEROS",
     "MAX_PETICION_BYTES",
     "VERSION_PROTOCOLO",
@@ -68,6 +71,7 @@ SUFIJO_RESPUESTA = ".respuesta.json"
 LATIDO_SEGUNDOS = 5.0
 LATIDO_MAX = 20.0
 ESPERA_POR_DEFECTO = 600.0
+ESPERA_CALIFICADOR = 3600.0  # montar el calificador de un curso grande pasa de 10 minutos
 INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
@@ -299,7 +303,11 @@ _HUELLA_SESION = huella_codigo()  # el código que este proceso cargó al arranc
 
 
 def _escribir_sesion(
-    ruta: Path, caduca: datetime, pid: int | None, ahora: Callable[[], datetime] | None
+    ruta: Path,
+    caduca: datetime,
+    pid: int | None,
+    ahora: Callable[[], datetime] | None,
+    atendiendo: str | None = None,
 ) -> None:
     momento = (ahora or ahora_utc)()
     escribir_json(
@@ -311,6 +319,7 @@ def _escribir_sesion(
             "caduca": _aware(caduca).isoformat(),
             "latido": momento.isoformat(),
             "huella": _HUELLA_SESION,
+            "atendiendo": atendiendo,
         },
     )
 
@@ -388,12 +397,21 @@ class SesionAbierta:
     ) -> None:
         self.ruta = ruta
         self.caduca = _aware(caduca)
+        self.atendiendo: str | None = None  # id de la petición en curso
         self._ahora = ahora
         self._cerrojo = threading.Lock()  # latido y ampliación comparten el .tmp
 
     def escribir(self) -> None:
         with self._cerrojo:
-            _escribir_sesion(self.ruta, self.caduca, None, self._ahora)
+            _escribir_sesion(self.ruta, self.caduca, None, self._ahora, self.atendiendo)
+
+    def atender(self, id_: str | None) -> None:
+        """Anuncia la petición en curso (``None`` al acabar): la sesión no caduca a medias."""
+        self.atendiendo = id_
+        try:
+            self.escribir()
+        except OSError:
+            pass  # lo escribe el siguiente latido
 
     def ampliar(self, nueva: datetime) -> None:
         nueva = _aware(nueva)
@@ -444,14 +462,19 @@ def abrir_sesion(
 
 
 def _sesion_viva(datos: Any, momento: datetime, latido_max: float) -> bool:
-    """Fichero de sesión con pid, caducidad futura y latido reciente (sin mirar el protocolo)."""
+    """Fichero de sesión con pid, latido reciente y caducidad futura (sin mirar el protocolo).
+
+    Pasada la caducidad sigue viva mientras atiende una petición: la acaba antes de cerrarse.
+    """
     if not isinstance(datos, dict):
         return False
     if isinstance(datos.get("pid"), bool) or not isinstance(datos.get("pid"), int):
         return False
     caduca = _fecha(datos.get("caduca"))
     latido = _fecha(datos.get("latido"))
-    if caduca is None or latido is None or momento >= caduca:
+    if caduca is None or latido is None:
+        return False
+    if momento >= caduca and not _ID.match(str(datos.get("atendiendo") or "")):
         return False
     return (momento - latido).total_seconds() < latido_max
 
@@ -572,13 +595,14 @@ def atender(
     al_fallar: Callable[[BaseException], None] | None = None,
     al_esperar: Callable[[], None] | None = None,
     parar: Callable[[], bool] | None = None,
+    sesion: SesionAbierta | None = None,
 ) -> bool:
     """Atiende peticiones, de una en una, hasta ``caduca``.
 
     Devuelve verdadero si para porque ``terminar(respuesta)`` lo pide (por
     ejemplo, la sesión del aula ha caducado) y falso si llega a ``caduca``.
     ``parar()`` verdadero: deja de atender y devuelve falso (el docente cerró
-    la sesión).
+    la sesión). Con ``sesion``, anuncia en ``sesion.json`` la petición en curso.
     """
     reloj = ahora or ahora_utc
     limite = _aware(caduca)
@@ -590,7 +614,7 @@ def atender(
         for ruta in sorted(carpeta.glob(f"*{SUFIJO_PETICION}")):
             if reloj() >= limite or (parar is not None and parar()):
                 return False
-            documento = _atender_una(carpeta, ruta, procesar, al_fallar)
+            documento = _atender_una(carpeta, ruta, procesar, al_fallar, sesion)
             if documento is not None and terminar is not None and terminar(documento):
                 return True
         if al_esperar is not None:
@@ -604,6 +628,7 @@ def _atender_una(
     ruta: Path,
     procesar: Callable[[dict], dict],
     al_fallar: Callable[[BaseException], None] | None = None,
+    sesion: SesionAbierta | None = None,
 ) -> dict | None:
     peticion = _leer_json(ruta)
     if not isinstance(peticion, dict):
@@ -614,24 +639,30 @@ def _atender_una(
     except ErrorBuzon:
         _borrar(ruta)
         return None
-    if not codigo_intacto():
-        # tiza cambió en disco con la sesión abierta: no se publica con el código viejo.
-        documento = _informe_error(peticion, "SESION_DESACTUALIZADA")
-    else:
+    if sesion is not None:
+        sesion.atender(peticion["id"])
+    try:
+        if not codigo_intacto():
+            # tiza cambió en disco con la sesión abierta: no se publica con el código viejo.
+            documento = _informe_error(peticion, "SESION_DESACTUALIZADA")
+        else:
+            try:
+                documento = procesar(peticion)
+            except Exception as exc:  # noqa: BLE001 - último cortafuegos del lado del docente
+                if al_fallar is not None:
+                    al_fallar(exc)
+                documento = _informe_error(peticion, "ERROR_INTERNO")
         try:
-            documento = procesar(peticion)
-        except Exception as exc:  # noqa: BLE001 - último cortafuegos del lado del docente
+            informe.validar(documento)
+        except informe.ErrorInforme as exc:
             if al_fallar is not None:
                 al_fallar(exc)
             documento = _informe_error(peticion, "ERROR_INTERNO")
-    try:
-        informe.validar(documento)
-    except informe.ErrorInforme as exc:
-        if al_fallar is not None:
-            al_fallar(exc)
-        documento = _informe_error(peticion, "ERROR_INTERNO")
-    escribir_json(carpeta / f"{peticion['id']}{SUFIJO_RESPUESTA}", documento)
-    _borrar(ruta)
+        escribir_json(carpeta / f"{peticion['id']}{SUFIJO_RESPUESTA}", documento)
+        _borrar(ruta)
+    finally:
+        if sesion is not None:
+            sesion.atender(None)
     return documento
 
 

@@ -1477,6 +1477,7 @@ def _calificador(args) -> int:
             "calificador",
             agente.peticion_calificador(args.esquema, args.en),
             dir_tiza,
+            espera=buzon.ESPERA_CALIFICADOR,
             debug=args.debug,
         )
     version = buzon.sesion_incompatible(dir_tiza)

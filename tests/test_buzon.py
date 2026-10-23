@@ -333,6 +333,45 @@ class TestSesionActiva:
         buzon.borrar_sesion(tmp_path)
         assert buzon.sesion_activa(tmp_path) is False
 
+    def test_caducada_sigue_viva_mientras_atiende_una_peticion(self, tmp_path):
+        carpeta = buzon.carpeta_buzon(tmp_path)
+        carpeta.mkdir(parents=True)
+        ruta = carpeta / "sesion.json"
+
+        def escribir(atendiendo):
+            datos = {
+                "version": buzon.VERSION_PROTOCOLO,
+                "pid": 1,
+                "caduca": (ahora() - timedelta(minutes=1)).isoformat(),
+                "latido": ahora().isoformat(),
+                "atendiendo": atendiendo,
+            }
+            ruta.write_text(json.dumps(datos), encoding="utf-8")
+
+        escribir("a" * 32)
+        assert buzon.sesion_activa(tmp_path) is True
+        for atendiendo in (None, "", "no es un id", 7):
+            escribir(atendiendo)
+            assert buzon.sesion_activa(tmp_path) is False
+
+    def test_atendiendo_sin_latido_no_esta_viva(self, tmp_path):
+        carpeta = buzon.carpeta_buzon(tmp_path)
+        carpeta.mkdir(parents=True)
+        viejo = ahora() - timedelta(minutes=5)
+        (carpeta / "sesion.json").write_text(
+            json.dumps(
+                {
+                    "version": buzon.VERSION_PROTOCOLO,
+                    "pid": 1,
+                    "caduca": viejo.isoformat(),
+                    "latido": viejo.isoformat(),
+                    "atendiendo": "a" * 32,
+                }
+            ),
+            encoding="utf-8",
+        )
+        assert buzon.sesion_activa(tmp_path) is False
+
 
 class TestAbrirSesion:
     def test_abre_late_y_borra(self, tmp_path):
@@ -736,6 +775,37 @@ def test_atender_avisa_si_la_respuesta_no_cumple_el_esquema(tmp_path):
         terminar=lambda documento: True,
     )
     assert len(fallos) == 1
+
+
+def test_atender_anuncia_la_peticion_en_curso_aunque_caduque_a_medias(tmp_path):
+    carpeta = buzon.carpeta_buzon(tmp_path)
+    carpeta.mkdir(parents=True)
+    vistas = []
+
+    with buzon.abrir_sesion(tmp_path, ahora() + timedelta(seconds=0.5), intervalo=60) as sesion:
+
+        def procesar(peticion):
+            time.sleep(0.6)  # la sesión caduca mientras trabaja
+            datos = json.loads((carpeta / "sesion.json").read_text(encoding="utf-8"))
+            vistas.append((datos["atendiendo"], buzon.sesion_activa(tmp_path)))
+            return informe_ok(peticion)
+
+        def dormir(_segundos):
+            if not vistas:
+                crear_peticion(carpeta, peticion_valida())
+
+        buzon.atender(
+            tmp_path,
+            procesar,
+            sesion.caduca,
+            intervalo=0.01,
+            dormir=dormir,
+            terminar=lambda documento: True,
+            sesion=sesion,
+        )
+        datos = json.loads((carpeta / "sesion.json").read_text(encoding="utf-8"))
+    assert vistas == [("a" * 32, True)]
+    assert datos["atendiendo"] is None
 
 
 class TestUnaSolaSesion:
