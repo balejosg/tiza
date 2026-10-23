@@ -20,7 +20,7 @@ import secrets
 import shutil
 import tempfile
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Collection, Iterator, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import unquote, urljoin, urlsplit
@@ -391,7 +391,9 @@ class AulaVirtual(Protocol):
 
     def hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada: ...
 
-    def calificador(self, curso_id: int) -> CalificadorAula: ...
+    def calificador(
+        self, curso_id: int, tocados: Collection[str] | None = None
+    ) -> CalificadorAula: ...
 
     def crear_categoria(
         self,
@@ -451,6 +453,11 @@ class Moodle:
         self._pausa = pausa
         self._dormir = dormir
         self._nombres_de_copia: set[str] = set()  # los que ya usó esta sesión del aula
+        # Calificador: lo visto en la última lectura de cada curso, para no repetir peticiones
+        # (los ``eid`` del árbol y lo leído de cada formulario). Solo lo usan las altas y las
+        # relecturas con ``tocados`` dentro de una misma ejecución.
+        self._arbol: dict[int, set[str]] = {}
+        self._formularios: dict[int, dict[str, dict[str, Any]]] = {}
 
     def _esperar(self) -> None:
         """Peticiones secuenciales con una pausa corta."""
@@ -1126,13 +1133,20 @@ class Moodle:
             return calculo.get_text().strip()
         return str(calculo.get("value") or "").strip()
 
-    def calificador(self, curso_id: int) -> CalificadorAula:
+    def calificador(self, curso_id: int, tocados: Collection[str] | None = None) -> CalificadorAula:
         """La estructura del calificador del curso: categorías, elementos, pesos, bloqueos y fórmulas.
 
         Abre el árbol y el formulario de cada elemento y categoría, nunca un informe de notas
         (``grade/report/``). Que un elemento tiene notas se sabe solo por la presencia del campo
         ``rescalegrades`` de su formulario. Lo que devuelve es dato estructural; el texto de
         Moodle no sale de aquí salvo los nombres, que solo ve el docente.
+
+        ``tocados`` (los ``eid`` que se acaban de cambiar; ``ig<n>`` vale también para el total
+        de una categoría, que es el elemento ``n``) es releer tras escribir: el árbol se lee
+        entero, pero los formularios solo de lo tocado, lo nuevo, lo movido y los hermanos de
+        todo eso (Moodle normaliza los pesos de una categoría), y del curso; lo demás sale de la
+        lectura anterior. Si algo desapareció (un borrado), se relee todo: una fórmula podía
+        apuntar a lo borrado. Sin ``tocados``, o sin lectura anterior, se lee todo.
         """
         pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso_id})
         sopa = BeautifulSoup(pagina, "html.parser")
@@ -1144,6 +1158,8 @@ class Moodle:
             if ("data-category" in fila.attrs or "data-itemid" in fila.attrs)
             and "data-aggregationforcategory" not in fila.attrs
         ]
+        previos = self._formularios.get(curso_id) if tocados is not None else None
+        releer = None if previos is None else _a_releer(filas, previos, tocados or ())
         parciales: list[dict[str, Any]] = []
         for fila in filas:
             es_categoria = "data-category" in fila.attrs
@@ -1153,6 +1169,17 @@ class Moodle:
             titulo = fila.find(class_="rowtitle")
             enlace = fila.find("a", class_="gradeitemheader", href=_ENLACE_DE_ACTIVIDAD)
             coincidencia = _ENLACE_DE_ACTIVIDAD.search(str(enlace["href"])) if enlace else None
+            if previos is not None and releer is not None and eid not in releer:
+                anterior = dict(previos[eid])
+                anterior.update(
+                    item_id=item_id,
+                    nombre=titulo.get_text(" ", strip=True) if titulo else "",
+                    padre_eid=str(padre) if padre else None,
+                    maximo=_numero(fila.get("data-grademax")),
+                    cmid=int(coincidencia.group(1)) if coincidencia else None,
+                )
+                parciales.append(anterior)
+                continue
             if es_categoria:
                 ruta, numero = "grade/edit/tree/category.php", int(eid[2:])
             else:
@@ -1186,6 +1213,8 @@ class Moodle:
                     "cmid": int(coincidencia.group(1)) if coincidencia else None,
                 }
             )
+        self._arbol[curso_id] = {p["eid"] for p in parciales}
+        self._formularios[curso_id] = {p["eid"]: p for p in parciales}
         # Una categoría tiene notas si las tiene algo de dentro.
         padre_de = {p["eid"]: p["padre_eid"] for p in parciales}
         con_notas: set[str] = set()
@@ -1297,28 +1326,49 @@ class Moodle:
             for f in BeautifulSoup(pagina, "html.parser").find_all("tr")
         )
 
-    def _eids_del_arbol(self, curso: int) -> list[str]:
+    def _filas_del_arbol(self, curso: int) -> dict[str, str | None]:
+        """Los ``eid`` del árbol, en orden, con el ``eid`` de su categoría (``None``: la raíz)."""
         pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
         sopa = BeautifulSoup(pagina, "html.parser")
-        eids: list[str] = []
+        filas: dict[str, str | None] = {}
         for fila in sopa.find_all("tr"):
             if "data-aggregationforcategory" in fila.attrs:
                 continue
+            padre = fila.get("data-parent-category")
             if "data-category" in fila.attrs:
-                eids.append(str(fila["data-category"]))
+                filas[str(fila["data-category"])] = str(padre) if padre else None
             elif "data-itemid" in fila.attrs:
-                eids.append(f"ig{fila['data-itemid']}")
-        return eids
+                filas[f"ig{fila['data-itemid']}"] = str(padre) if padre else None
+        return filas
 
     def _crear_y_buscar(
-        self, curso: int, ruta: str, params: dict[str, int], cambios: dict[str, str], prefijo: str
+        self,
+        curso: int,
+        ruta: str,
+        params: dict[str, int],
+        cambios: dict[str, str],
+        prefijo: str,
+        padre_eid: str | None,
     ) -> str:
-        """Envía el formulario de alta y devuelve el ``eid`` nuevo (el que aparece en el árbol)."""
-        antes = set(self._eids_del_arbol(curso))
+        """Envía el formulario de alta y devuelve el ``eid`` nuevo (el que aparece en el árbol).
+
+        El árbol de antes es el de la última lectura (``calificador`` o el alta anterior), así
+        que cada alta lee el árbol una vez, no dos. Si aparece más de uno nuevo (lo recordado
+        es de antes de otra alta, p. ej. una actividad publicada), el de tiza es el que cuelga
+        de la categoría pedida.
+        """
+        antes = self._arbol.pop(curso, None)
+        if antes is None:
+            antes = set(self._filas_del_arbol(curso))
         self._guardar(ruta, params, cambios)
-        nuevos = [
-            e for e in self._eids_del_arbol(curso) if e not in antes and e.startswith(prefijo)
-        ]
+        filas = self._filas_del_arbol(curso)
+        if not filas:  # la página de recálculo, que no trae el árbol
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        self._arbol[curso] = set(filas)
+        nuevos = [e for e in filas if e not in antes and e.startswith(prefijo)]
+        if len(nuevos) > 1:
+            raiz = next((e for e, padre in filas.items() if padre is None), None)
+            nuevos = [e for e in nuevos if filas[e] == (padre_eid or raiz)]
         if len(nuevos) != 1:
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
         return nuevos[0]
@@ -1352,7 +1402,12 @@ class Moodle:
         if visualizacion == "porcentaje":
             cambios["grade_item_display"] = "2"
         return self._crear_y_buscar(
-            curso, "grade/edit/tree/category.php", {"courseid": curso, "id": 0}, cambios, "cg"
+            curso,
+            "grade/edit/tree/category.php",
+            {"courseid": curso, "id": 0},
+            cambios,
+            "cg",
+            padre_eid,
         )
 
     def crear_calculado(
@@ -1381,7 +1436,7 @@ class Moodle:
             cambios["weightoverride"] = "1"
             cambios["aggregationcoef2"] = _texto_numero(peso)
         return self._crear_y_buscar(
-            curso, "grade/edit/tree/item.php", {"courseid": curso}, cambios, "ig"
+            curso, "grade/edit/tree/item.php", {"courseid": curso}, cambios, "ig", padre_eid
         )
 
     def fijar_maximo(self, curso: int, item_id: int, maximo: float) -> None:
@@ -1910,6 +1965,41 @@ def _validar_eid(eid: str, prefijo: str | None = None) -> None:
 
 
 _PETICIONES_POR_RECALCULO = 3
+
+
+def _a_releer(
+    filas: list[Any], previos: dict[str, dict[str, Any]], tocados: Collection[str]
+) -> set[str]:
+    """Los ``eid`` cuyo formulario hay que volver a abrir tras escribir (``Moodle.calificador``).
+
+    Lo tocado, lo nuevo, lo movido o con otro máximo, todos los hijos de sus categorías (la de
+    antes y la de ahora) y la raíz. Si desapareció algo, todo.
+    """
+    padres: dict[str, str | None] = {}
+    maximos: dict[str, float | None] = {}
+    por_item: dict[str, str] = {}
+    for fila in filas:
+        eid = (
+            str(fila["data-category"])
+            if "data-category" in fila.attrs
+            else f"ig{fila['data-itemid']}"
+        )
+        padre = fila.get("data-parent-category")
+        padres[eid] = str(padre) if padre else None
+        maximos[eid] = _numero(fila.get("data-grademax"))
+        por_item[f"ig{fila['data-itemid']}"] = eid  # el total de una categoría es su elemento
+    if set(previos) - set(padres):
+        return set(padres)
+    cambiados = {por_item.get(t, t) for t in tocados}
+    for eid, padre in padres.items():
+        anterior = previos.get(eid)
+        if anterior is None or anterior["padre_eid"] != padre or anterior["maximo"] != maximos[eid]:
+            cambiados.add(eid)
+    categorias = {padres.get(e) for e in cambiados} | {
+        previos[e]["padre_eid"] for e in cambiados if e in previos
+    }
+    releer = cambiados | {e for e, padre in padres.items() if padre is None or padre in categorias}
+    return releer & set(padres)
 
 
 def _es_recalculo(html: str) -> bool:

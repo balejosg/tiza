@@ -274,7 +274,7 @@ class MoodleFalso:
         encontradas = self.imagenes_esperadas.get(pregunta_id, 0)
         return encontradas, (encontradas if self.imagenes_servidas else 0)
 
-    def calificador(self, curso_id):
+    def calificador(self, curso_id, tocados=None):
         self.llamadas.append(("calificador", curso_id))
         if curso_id in self.calificadores:
             return self.calificadores[curso_id]

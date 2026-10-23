@@ -7,6 +7,7 @@ se avisa aquí con **Cambia**.
 ## Sin publicar
 
 ### Corregido
+- **`tiza calificador` en un curso grande.** Medido en un módulo de 60 actividades: montar el calificador la primera vez tardaba 30 minutos y el agente dejaba de esperar a los 10 (`SIN_RESPUESTA`), o daba la sesión por cerrada si caducaba a medias. Ahora cada alta lee el árbol del calificador una vez en vez de dos, y tras escribir solo se vuelven a abrir los formularios de lo que se ha tocado. El agente espera hasta una hora, y la sesión no se da por cerrada mientras atiende una petición: la termina antes de cerrarse.
 - **`tiza actualizar` funciona en Windows.** Fallaba siempre con «Access is denied (os error 5)»: Windows no deja reemplazar tiza mientras está en marcha. Ahora la instalación sigue en otra ventana, en cuanto se cierra tiza; lo mismo al aceptar la actualización que ofrece `tiza empezar`.
 
 ## 0.26.0 — 2026-10-22

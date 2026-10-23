@@ -4,7 +4,8 @@ Lo que ``reconciliar`` decide son ``Operacion`` con ``idnumber`` y ``padre`` por
 aquí se traducen a las llamadas de ``Moodle`` (``AulaVirtual``). Lo que se crea en la propia
 ejecución no tiene aún ``eid``: se recuerda el que devuelve ``crear_*`` y se resuelve por
 ``idnumber``. Si falta un dato que solo da el aula (el ``item_id`` del total de una categoría
-nueva), se relee el calificador una vez.
+nueva), se relee el calificador una vez. Cada operación anota lo que toca (``tocados``): las
+relecturas abren solo esos formularios (``Moodle.calificador``).
 
 Para en el primer fallo, salvo una fórmula que el aula rechaza en la primera pasada: eso lo
 espera la segunda pasada (Moodle lo rechaza a veces mientras sus categorías se acaban de crear).
@@ -33,6 +34,9 @@ class Ejecucion:
         self.eids: dict[str, str] = {}  # idnumber -> eid de lo creado en esta ejecución
         self.hechas: list[Operacion] = []
         self.formulas_pendientes = 0  # rechazadas y toleradas: la segunda pasada las repite
+        self.tocados: set[str] = (
+            set()
+        )  # eids cambiados («ig<n>»: también el total de una categoría)
         self._releida: dict[str, tuple[str, int]] | None = None
 
     # -- resolución --------------------------------------------------------
@@ -41,7 +45,7 @@ class Ejecucion:
         if self._releida is None:
             self._releida = {
                 n.idnumber: (n.eid, n.item_id)
-                for n in self.aula.calificador(self.curso).nodos
+                for n in self.aula.calificador(self.curso, self.tocados).nodos
                 if n.idnumber
             }
         return self._releida
@@ -114,7 +118,9 @@ class Ejecucion:
         if not bloqueos:
             return
         self._releida = None  # lo cacheado es anterior al bloqueo
-        bloqueados = {n.item_id for n in self.aula.calificador(self.curso).nodos if n.bloqueado}
+        bloqueados = {
+            n.item_id for n in self.aula.calificador(self.curso, self.tocados).nodos if n.bloqueado
+        }
         if any(op.item_id not in bloqueados for op in bloqueos):
             raise ErrorPublicacion("BLOQUEO_FALLIDO", SIN_EFECTO)
 
@@ -123,6 +129,7 @@ class Ejecucion:
         tipo = op.tipo
         if tipo in TIPOS_DE_BLOQUEO:
             assert op.item_id is not None
+            self.tocados.add(f"ig{op.item_id}")
             aula.bloquear_total(curso, op.item_id)
         elif tipo == "crear_categoria":
             assert op.idnumber is not None and op.nombre is not None
@@ -139,6 +146,10 @@ class Ejecucion:
             padre = self._padre(op)
             if padre is None or not padre.startswith("cg"):
                 raise ErrorPublicacion("ESCRITURA_CALIFICADOR", "la categoría de destino no existe")
+            if op.eid is not None:
+                self.tocados.add(op.eid)
+            if op.item_id is not None:
+                self.tocados.add(f"ig{op.item_id}")
             aula.colocar_actividad(
                 curso, op.cmid, int(padre[2:]), op.idnumber if op.poner_idnumber else None
             )
@@ -146,20 +157,25 @@ class Ejecucion:
             padre = self._padre(op)
             if padre is None:
                 raise ErrorPublicacion("ESCRITURA_CALIFICADOR", "la categoría de destino no existe")
+            self.tocados.add(f"ig{self._item(op)}")
             aula.mover_manual(curso, self._item(op), padre)
         elif tipo == "fijar_peso":
             assert op.peso is not None
+            self.tocados.add(self._eid(op))
             aula.fijar_peso(curso, self._eid(op), op.peso)
         elif tipo == "fijar_maximo":
             assert op.maximo is not None
+            self.tocados.add(f"ig{self._item(op)}")
             aula.fijar_maximo(curso, self._item(op), op.maximo)
         elif tipo == "fijar_formula":
             assert op.formula is not None
+            self.tocados.add(f"ig{self._item(op)}")
             aula.fijar_formula(curso, self._item(op), op.formula, self.decimal)
-        elif tipo == "fijar_total_curso":
+        elif tipo == "fijar_total_curso":  # la raíz se relee siempre
             aula.fijar_total_curso(curso, op.formula, self.decimal)
         elif tipo == "borrar":
             assert op.eid is not None
+            self.tocados.add(op.eid)
             aula.borrar_nodo(curso, op.eid)
         else:  # pragma: no cover - ``reconciliar.TIPOS`` es la lista cerrada
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR", "operación desconocida")

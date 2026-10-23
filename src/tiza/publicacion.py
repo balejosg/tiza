@@ -1847,7 +1847,7 @@ def calificador_con(
     Flujo: ``calificador(curso)`` → ``hay_anterior`` → ``deseado`` → ``reconciliar`` (todo eso es
     ``preparar_calificador``; con ``plan`` ya se hizo y es lo que vio el docente al confirmar) →
     las operaciones en orden → releer → ``pasada2`` una vez → releer si hubo algo que ajustar →
-    guardar las huellas. Si falla un ``bloquear_ajeno`` no se ejecuta nada más en el curso
+    guardar las huellas. Las relecturas abren solo los formularios de lo que se tocó. Si falla un ``bloquear_ajeno`` no se ejecuta nada más en el curso
     (``BLOQUEO_FALLIDO``). Cualquier otro fallo para en seco, y se guardan las huellas de lo ya
     hecho para que repetir el comando converja sin tomarlo por cambios a mano.
     """
@@ -1868,7 +1868,7 @@ def calificador_con(
     try:
         if rec.hay_trabajo:
             primera.ejecutar(rec.operaciones, tolerar_formulas=True)
-            final = aula.calificador(curso)
+            final = aula.calificador(curso, primera.tocados)
             ajustes = rc.pasada2(
                 plan.deseado,
                 final,
@@ -1880,7 +1880,7 @@ def calificador_con(
             if ajustes:
                 segunda = Ejecucion(aula, curso, final.decimal)
                 segunda.ejecutar(ajustes, tolerar_formulas=False)
-                final = aula.calificador(curso)
+                final = aula.calificador(curso, segunda.tocados)
     except ErrorPublicacion as exc:
         hechas = len(primera.hechas) + (len(segunda.hechas) if segunda else 0)
         if exc.codigo == "BLOQUEO_FALLIDO":

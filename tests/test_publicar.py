@@ -4290,6 +4290,86 @@ def test_crear_calculado_sin_peso():
     assert campos["grademax"] == "7.5"
 
 
+def _lecturas_del_arbol(sesion):
+    return sum(1 for u, p in sesion.gets if u.endswith("/index.php") and not p.get("action"))
+
+
+def test_alta_tras_leer_el_calificador_lee_el_arbol_una_vez():
+    moodle, sesion = _moodle_calificador()
+    moodle.calificador(2)
+    antes = _lecturas_del_arbol(sesion)
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    assert moodle.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, None) == "cg9"
+    assert _lecturas_del_arbol(sesion) - antes == 1
+
+
+def test_alta_con_otro_elemento_nuevo_elige_el_de_su_categoria():
+    moodle, sesion = _moodle_calificador()
+    moodle.calificador(2)
+    nuevas = (
+        '<tr class="item cg1" data-itemid="902" data-parent-category="cg1" id="grade-item-ig902"></tr>'
+        '<tr class="item cg1" data-itemid="901" data-parent-category="cg3" id="grade-item-ig901"></tr>'
+    )
+    sesion.arbol_despues = _fixture_calificador("setup-lleno.html").replace(
+        "</table>", nuevas + "</table>", 1
+    )
+    assert moodle.crear_calculado(2, "I", "TZ_I_1", "cg3", None, 1) == "ig901"
+
+
+def _formularios_abiertos(sesion, desde):
+    return {
+        (u.rsplit("/", 1)[1], p.get("id"))
+        for u, p in sesion.gets[desde:]
+        if not u.endswith("/index.php")
+    }
+
+
+def test_releer_solo_abre_lo_tocado_sus_hermanos_y_la_raiz():
+    moodle, sesion = _moodle_calificador(calculos={169: "=[[A]]*1"})
+    moodle.calificador(2)
+    desde = len(sesion.gets)
+    sesion.items[167] = _formulario_item(idnumber="TZ_X", peso="25,0", sobrescrito=True)
+    sesion.calculos[169] = "=[[B]]*1"  # no tocado: no se vuelve a abrir
+    cal = moodle.calificador(2, {"ig167"})
+    abiertos = _formularios_abiertos(sesion, desde)
+    assert ("item.php", 167) in abiertos and ("category.php", 1) in abiertos
+    assert not {("item.php", 165), ("calculation.php", 169), ("category.php", 3)} & abiertos
+    assert _nodo(cal, "ig167").idnumber == "TZ_X" and _nodo(cal, "ig167").peso == 25.0
+    assert _nodo(cal, "ig169").formula == "=[[A]]*1"
+    assert [n.eid for n in cal.nodos] == [n.eid for n in moodle.calificador(2).nodos]
+
+
+def test_releer_el_total_de_una_categoria_es_releer_la_categoria():
+    moodle, sesion = _moodle_calificador()
+    moodle.calificador(2)
+    desde = len(sesion.gets)
+    moodle.calificador(2, {"ig163"})  # el elemento total de cg4
+    assert ("category.php", 4) in _formularios_abiertos(sesion, desde)
+
+
+def test_releer_con_un_maximo_cambiado_abre_sus_hermanos():
+    moodle, sesion = _moodle_calificador()
+    moodle.calificador(2)
+    desde = len(sesion.gets)
+    sesion.arbol = re.sub(
+        r'(<tr [^>]*data-itemid="167"[^>]*data-grademax=")10\.00000',
+        r"\g<1>20.00000",
+        sesion.arbol,
+    )
+    assert 'data-grademax="20.00000"' in sesion.arbol
+    moodle.calificador(2, set())
+    assert ("item.php", 167) in _formularios_abiertos(sesion, desde)
+
+
+def test_releer_tras_un_borrado_lo_lee_todo():
+    moodle, sesion = _moodle_calificador()
+    moodle.calificador(2)
+    desde = len(sesion.gets)
+    sesion.arbol = re.sub(r'<tr [^>]*data-itemid="170"[^>]*>', "<tr>", sesion.arbol)
+    moodle.calificador(2, {"ig170"})
+    assert ("item.php", 165) in _formularios_abiertos(sesion, desde)
+
+
 def test_fijar_maximo_y_peso():
     moodle, sesion = _moodle_calificador()
     moodle.fijar_maximo(2, 165, 30)

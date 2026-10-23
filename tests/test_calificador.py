@@ -113,11 +113,13 @@ class AulaViva(MoodleFalso):
         }
         self.decimal = "."
         self.perturbar = perturbar  # Moodle reescala un peso hermano al guardar el de RA2
+        self.relecturas: list[set[str] | None] = []  # los ``tocados`` de cada lectura
 
     # -- lectura ----------------------------------------------------------
 
-    def calificador(self, curso_id):
+    def calificador(self, curso_id, tocados=None):
         self.llamadas.append(("calificador", curso_id))
+        self.relecturas.append(None if tocados is None else set(tocados))
         for _ in range(6):  # el máximo de una categoría Natural es la suma de sus hijos
             for n in list(self.nodos.values()):
                 if n.clase == "categoria":
@@ -291,6 +293,19 @@ def test_calificador_fp_curso_vacio(tmp_path):
     # el informe lo cuenta con códigos y recuentos
     assert pasos(documento, "CALIFICADOR")[0]["resultado"] == "ok"
     assert pasos(documento, "CALIFICADOR_COLOCAR")[0]["detalle"] == "3"
+
+
+def test_las_relecturas_tras_escribir_dicen_lo_tocado(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(perturbar=True)
+    atender(pedir(carpeta), moodle, carpeta)
+    primera, *relecturas = moodle.relecturas
+    assert primera is None  # la lectura inicial es completa
+    assert relecturas and all(r is not None for r in relecturas)
+    pesados = {e[2] for e in moodle.escrituras if e[0] == "fijar_peso"}
+    colocadas = {f"ig{n.item_id}" for n in moodle.nodos.values() if n.clase == "actividad"}
+    assert pesados and pesados <= set().union(*relecturas)
+    assert colocadas <= set().union(*relecturas)
 
 
 def test_calificador_vuelve_a_dejarlo_igual_sin_tocar_nada(tmp_path):
