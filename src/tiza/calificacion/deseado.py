@@ -401,7 +401,15 @@ class _Montaje:
     def _vista_evaluaciones(self, padre: str, da_la_final: bool) -> None:
         evaluaciones = self.esquema.evaluaciones
         if da_la_final:
-            pesos = normalizar_pesos([e.peso or 0.0 for e in evaluaciones])
+            # una evaluación cuyo contenido pesa todo 0 no aporta (``_nula``), como un criterio
+            pesos = normalizar_pesos(
+                [
+                    0.0
+                    if self._nula([h for e in self.esquema.elementos for h in _hojas_de(e)], n)
+                    else evaluacion.peso or 0.0
+                    for n, evaluacion in enumerate(evaluaciones)
+                ]
+            )
         else:
             pesos = [0.0] * len(evaluaciones)
         for n, (evaluacion, peso) in enumerate(zip(evaluaciones, pesos, strict=True), 1):

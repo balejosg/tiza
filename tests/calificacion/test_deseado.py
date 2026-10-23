@@ -886,3 +886,36 @@ def test_elemento_cuyas_hojas_pesan_todas_cero_no_aporta_a_la_final() -> None:
     ]
     # CA2 no tiene ninguna actividad: se queda como siempre (Moodle ignora una categoría vacía)
     assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [0.0, 100.0]
+
+
+def test_evaluacion_cuyo_contenido_pesa_todo_cero_no_aporta_a_la_final() -> None:
+    # la 2.ª evaluación solo tiene una actividad con CA1: 0; la 1.ª y la 3.ª aportan
+    tres = (
+        Evaluacion("Primera", (1,), 30.0),
+        Evaluacion("Segunda", (2,), 50.0),
+        Evaluacion("Tercera", (3,), 20.0),
+    )
+    esquema = Esquema(
+        "evaluaciones", (TRES_CRITERIOS,), tres, Final("evaluaciones", Tope(5.0, 4.0)), ()
+    )
+    docs = [doc("u1/a.md", 1, CA1=100), doc("u2/b.md", 2, CA1=0), doc("u3/c.md", 3, CA2=100)]
+    d = deseado(esquema, docs, False, CARPETA)
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_FINAL")] == [
+        ("TZ_V_1", 60.0),
+        ("TZ_V_2", 0.0),
+        ("TZ_V_3", 40.0),
+    ]
+    # su contenido sigue montado, con peso 0
+    assert [n.peso for n in hijos(d, "TZ_V_2_RA1")] == [0.0]
+    # con alguna actividad de peso > 0 la evaluación sigue contando
+    docs.append(doc("u2/d.md", 2, CA3=100))
+    d = deseado(esquema, docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_FINAL")] == [30.0, 50.0, 20.0]
+
+
+def test_final_con_todo_nulo_pesa_0_sin_fallar_en_las_dos_organizaciones() -> None:
+    docs = [doc("u1/a.md", 1, CA1=0), doc("u2/b.md", 2, CA2=0), doc("u1/c.md", 1, RA2=0)]
+    for organizacion in ("elementos", "evaluaciones"):
+        d = deseado(con_criterios(organizacion, Tope(5.0, 4.0)), docs, False, CARPETA)
+        assert {n.peso for n in hijos(d, "TZ_FINAL")} == {0.0}, organizacion
+        assert hijos(d, "TZ_K_RA1") == []

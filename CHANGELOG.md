@@ -7,7 +7,7 @@ se avisa aquí con **Cambia**.
 ## 0.28.0 — 2026-10-23
 
 ### Añadido
-- **Criterios de evaluación y casillas manuales en el calificador.** Cada competencia o resultado puede llevar criterios con peso, y la nota sale de instrumento → criterio → competencia → final, visible en cada nivel. Los `instrumentos` (examen en papel, observación) son casillas sobre 10 que pones tú a mano; tiza nunca las toca. Un criterio cuyas actividades pesan todas 0 no cuenta, como el que no tiene actividades.
+- **Criterios de evaluación y casillas manuales en el calificador.** Cada competencia o resultado puede llevar criterios con peso, y la nota sale de instrumento → criterio → competencia → final, visible en cada nivel. Los `instrumentos` (examen en papel, observación) son casillas sobre 10 que pones tú a mano; tiza nunca las toca. Un criterio, un elemento o una evaluación cuyas actividades pesan todas 0 no cuenta, como el que no tiene actividades.
 
 ## 0.27.0 — 2026-10-23
 
