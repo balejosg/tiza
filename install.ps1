@@ -4,7 +4,7 @@
 # (por ejemplo "main" para la última versión).
 $ErrorActionPreference = "Stop"
 
-$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.26.1" }
+$ref = if ($env:TIZA_REF) { $env:TIZA_REF } else { "v0.27.0" }
 # Sin git. Una versión publicada (vX.Y.Z) se instala desde el wheel de su release, que no
 # hay que construir; si aún no está subido, desde el .zip. Una rama o un commit, desde el
 # .zip. Las referencias con «/» (ramas con barra, solo para desarrollo) necesitan git.
