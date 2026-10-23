@@ -217,7 +217,7 @@ def test_guia_calificador_muestra_el_ejemplo_tal_cual(tmp_path):
 
 def test_guia_calificador_fragmento_de_criterios_esta_en_el_ejemplo():
     texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
-    assert "ejemplos/calificacion-criterios.yaml" in texto
+    assert "ejemplos/calificacion-criterios.yaml" not in texto  # la skill instalada no lo trae
     bloques = _bloques_yaml(texto)
     assert len(bloques) == 3
     ejemplo = EJEMPLO_CALIFICADOR_CRITERIOS.read_text(encoding="utf-8")

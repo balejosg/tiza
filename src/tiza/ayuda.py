@@ -10,15 +10,15 @@ from __future__ import annotations
 __all__ = ["MENSAJES", "explicar"]
 
 MENSAJES: dict[str, str] = {
-    "EVALUA_INVALIDO": "El campo «evalua» no es válido: debe ser un mapa de ids (letra y hasta 15 letras o cifras más) a pesos de 0 a 100 con hasta 2 decimales, sin ids repetidos. Por ejemplo: evalua: {RA1: 40, RA3: 25}.",
+    "EVALUA_INVALIDO": "El campo «evalua» no es válido: debe ser un mapa de ids (letra y hasta 15 letras, cifras o «_» más) a pesos de 0 a 100 con hasta 2 decimales, sin ids repetidos. Por ejemplo: evalua: {RA1: 40, RA3: 25}.",
     "ELEMENTO_DESCONOCIDO": "Una actividad nombra en «evalua» un elemento o un criterio que no está en calificacion.yaml. Corrige el id en el .md o añádelo al esquema.",
     "ELEMENTO_CON_CRITERIOS": "Una actividad o un instrumento nombra en «evalua» un elemento que tiene criterios. Nombra sus criterios (por ejemplo CE1_1 en vez de CE1).",
     "EVALUA_NO_CALIFICABLE": "Una página o un área de texto y medios no tiene nota en Moodle, así que no puede llevar «evalua». Quita el campo o convierte la actividad en una tarea, un cuestionario o un contenido H5P.",
     "SECCION_SIN_EVALUACION": "La sección de una actividad con «evalua» no cae en ninguna evaluación de calificacion.yaml. Añade esa sección a una evaluación o cambia la de la actividad.",
     "REFERENCIA_CIRCULAR": "Un cálculo del calificador referencia a la categoría que lo contiene y Moodle lo dejaría vacío. Es un fallo de tiza: no cambies nada a mano y avisa al mantenedor.",
-    "PESOS_NO_SUMAN_100": "Los pesos de «evalua» de las actividades de un elemento no suman 100 en todo el curso. Ajusta los pesos de ese elemento para que sumen 100 (o déjalos todos a 0).",
+    "PESOS_NO_SUMAN_100": "Los pesos de «evalua» de las actividades e instrumentos de un elemento (o de cada uno de sus criterios, si los tiene) no suman 100 en todo el curso. Ajusta esos pesos para que sumen 100 (o déjalos todos a 0).",
     "ESQUEMA_INVALIDO": "El esquema de calificación (.yaml) tiene un error: el mensaje dice la ruta y la línea. Corrígelo y repite «tiza comprobar» con él antes de pedir el calificador.",
-    "ID_REPETIDO": "Dos elementos del esquema de calificación tienen el mismo id. Cada elemento (RA1, RA2…) lleva un id distinto.",
+    "ID_REPETIDO": "Dos elementos, criterios o instrumentos del esquema de calificación tienen el mismo id. Cada uno (RA1, CE1_1, EXAMEN1…) lleva un id distinto.",
     "SECCION_REPETIDA": "Una sección aparece en dos evaluaciones del esquema de calificación. Cada sección pertenece a una sola evaluación.",
     "TOPE_SIN_ELEMENTOS": "El tope («final.tope») solo vale cuando la nota final se calcula con elementos («final: {de: elementos}»). Quita el tope o cambia la final a elementos.",
     "ESQUEMA_FUERA_DE_CARPETA": "El esquema de calificación debe estar dentro de la carpeta de la asignatura. Indica su ruta desde esa carpeta.",

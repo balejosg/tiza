@@ -38,8 +38,7 @@ final:
   tope: {si_alguno_menor_que: 5, maximo: 4}
 ```
 
-Con criterios e instrumentos (ESO), el ejemplo completo está en `ejemplos/calificacion-criterios.yaml`.
-Estos son los fragmentos nuevos:
+Con criterios e instrumentos (ESO), esto es lo que cambia sobre el ejemplo de arriba:
 
 ```yaml
 elementos:
