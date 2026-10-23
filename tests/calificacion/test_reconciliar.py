@@ -961,6 +961,44 @@ def test_actividad_nueva_en_evaluacion_cerrada_queda_sin_colocar_con_todo_lo_suy
     assert otra.operaciones == ()
 
 
+def como_moodle(aula: CalificadorAula) -> CalificadorAula:
+    """Moodle reescala a 100 los pesos sobrescritos de los hijos de una categoría."""
+    nodos = {n.eid: n for n in aula.nodos}
+    for padre in {n.padre_eid for n in aula.nodos if n.padre_eid}:
+        hijos = [
+            n
+            for n in nodos.values()
+            if n.padre_eid == padre and n.sobrescrito and n.peso and n.clase != "indicador"
+        ]
+        total = sum(n.peso for n in hijos)
+        if hijos and total:
+            for n in hijos:
+                nodos[n.eid] = dataclasses.replace(n, peso=round(n.peso * 100 / total, 2))
+    return CalificadorAula(nodos=tuple(nodos.values()), decimal=aula.decimal)
+
+
+@pytest.mark.parametrize(
+    ("abierto", "cerrado"),
+    [(FP, FP), (FP_TOPE, FP_TOPE_CERRADA), (ESO, ESO_CERRADA)],
+    ids=["elementos", "elementos-con-tope", "evaluaciones"],
+)
+def test_los_hermanos_de_una_actividad_omitida_se_pesan_sin_ella(abierto, cerrado) -> None:
+    """Con e.md omitida (20 %), lo que queda en su criterio se reparte el 100: converge a la 2.ª."""
+    d, aula, huellas = con_actividad_nueva_en_cerrada(abierto, cerrado, 20.0)
+    for _ in range(2):
+        rec = reconciliar(d, aula, huellas, CMIDS_E)
+        aula = como_moodle(aplicar(aula, rec.operaciones))
+        ajustes = pasada2(d, aula, huellas, CMIDS_E, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+        aula = como_moodle(aplicar(aula, ajustes))
+        huellas = huellas_de(aula, CMIDS)
+    otra = reconciliar(d, aula, huellas, CMIDS_E)
+    assert otra.operaciones == ()
+    assert pasada2(d, aula, huellas, CMIDS_E, a_mano=otra.a_mano) == ()
+    # los hermanos de e.md siguen sumando 100 sin ella
+    ra1 = [n for n in aula.nodos if n.padre_eid == por_id(aula, "TZ_E_RA1").eid]
+    assert sum(n.peso or 0 for n in ra1) == pytest.approx(100.0)
+
+
 def test_actividad_ya_colocada_en_su_evaluacion_cerrada_no_es_sin_colocar() -> None:
     aula, huellas = montaje_cerrado()
     rec = reconciliar(deseado(FP_CERRADA, docs(), False, CARPETA), aula, huellas, CMIDS)
@@ -1205,6 +1243,22 @@ def test_casilla_nueva_con_su_sitio_en_una_evaluacion_bloqueada_no_se_crea() -> 
     assert not [o for o in rec.operaciones if o.idnumber in copias]
     ajustes = pasada2(d, aplicar(aula, rec.operaciones), huellas, CMIDS_M, a_mano=rec.a_mano)
     assert not [o for o in ajustes if "TZ_M_exp" in (o.idnumber or "") + (o.formula or "")]
+
+
+def test_casilla_omitida_en_cerrada_no_cuenta_en_el_peso_de_sus_hermanas_y_converge() -> None:
+    eso_m = dataclasses.replace(ESO, instrumentos=(EXPOSICION,))
+    _, aula = montar(ESO, docs_m(100), cmids=CMIDS_M)
+    aula = con_nodo(aula, por_id(aula, "TZ_V_1").eid, bloqueado=True)
+    d = deseado(eso_m, docs_m(), False, CARPETA)
+    huellas = huellas_de(aula, CMIDS_M)
+    for _ in range(2):
+        rec = reconciliar(d, aula, huellas, CMIDS_M)
+        aula = como_moodle(aplicar(aula, rec.operaciones))
+        ajustes = pasada2(d, aula, huellas, CMIDS_M, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+        aula = como_moodle(aplicar(aula, ajustes))
+        huellas = huellas_de(aula, CMIDS_M)
+    assert reconciliar(d, aula, huellas, CMIDS_M).operaciones == ()
+    assert pasada2(d, aula, huellas, CMIDS_M) == ()
 
 
 def test_las_copias_y_los_indicadores_de_una_casilla_siguen_su_maximo_en_el_aula() -> None:

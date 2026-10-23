@@ -38,7 +38,7 @@ from tiza.calificacion.esquema import (
 )
 from tiza.contenido import Documento
 
-__all__ = ["Deseado", "Nodo", "comprobar_sin_circulares", "deseado"]
+__all__ = ["Deseado", "Nodo", "comprobar_sin_circulares", "deseado", "normalizar_pesos"]
 
 CLASES = (
     "contenedor",
@@ -147,7 +147,7 @@ def _ruta_relativa(ruta: Path, carpeta: Path) -> str:
         return ruta.as_posix()
 
 
-def _normalizar(pesos: list[float]) -> list[float]:
+def normalizar_pesos(pesos: list[float]) -> list[float]:
     """Pesos a 100 entre los que cuentan (> 0), con 2 decimales y el ajuste en el último.
 
     Los de peso 0 se quedan en 0; si todos pesan 0, todos se quedan en 0.
@@ -322,7 +322,7 @@ class _Montaje:
         self, elementos: list[Elemento], evaluacion: int | None = None
     ) -> list[float]:
         """Los pesos de unos elementos, normalizados a 100 sin los que no aportan."""
-        return _normalizar(
+        return normalizar_pesos(
             [0.0 if self._nula(_hojas_de(e), evaluacion) else e.peso for e in elementos]
         )
 
@@ -333,7 +333,7 @@ class _Montaje:
 
         Un criterio que no aporta (``_nula``) pesa 0 y los demás se reparten el 100.
         """
-        return _normalizar(
+        return normalizar_pesos(
             [
                 0.0 if self._nula([c.id], evaluacion) else 1.0 if c.peso is None else c.peso
                 for c in criterios
@@ -348,7 +348,7 @@ class _Montaje:
         ``cuenta`` es que el contenedor pesa algo para su elemento: si no, sus hijos no dan
         indicador al contador.
         """
-        pesos = _normalizar([dict(a.evalua)[hoja] for a in actividades])
+        pesos = normalizar_pesos([dict(a.evalua)[hoja] for a in actividades])
         for a, peso in zip(actividades, pesos, strict=True):
             if self._es_real(a, hoja, vista):
                 clase = "manual" if a.manual else "actividad"
@@ -401,7 +401,7 @@ class _Montaje:
     def _vista_evaluaciones(self, padre: str, da_la_final: bool) -> None:
         evaluaciones = self.esquema.evaluaciones
         if da_la_final:
-            pesos = _normalizar([e.peso or 0.0 for e in evaluaciones])
+            pesos = normalizar_pesos([e.peso or 0.0 for e in evaluaciones])
         else:
             pesos = [0.0] * len(evaluaciones)
         for n, (evaluacion, peso) in enumerate(zip(evaluaciones, pesos, strict=True), 1):

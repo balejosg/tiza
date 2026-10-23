@@ -35,7 +35,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from tiza import estado
-from tiza.calificacion.deseado import NOTA_FINAL, Deseado, Nodo
+from tiza.calificacion.deseado import NOTA_FINAL, Deseado, Nodo, normalizar_pesos
 from tiza.calificacion.esquema import TOLERANCIA_PESOS
 from tiza.calificacion.formulas import (
     formula_copia,
@@ -332,6 +332,7 @@ class _Plan:
         self.en_cerrada: set[str] = set()  # sin colocar porque su sitio cae en una cerrada
         self.casillas_en_cerrada: set[str] = set()  # casillas nuevas con sitio en una cerrada
         self.omitidos = self._omitidos()
+        self.pesos = self._pesos_sin_omitidos()
         self.avisos: dict[tuple[str, str], None] = {}
         self.ajeno: list[Operacion] = []
         self.alta: list[Operacion] = []
@@ -381,6 +382,28 @@ class _Plan:
             if n.clase == "indicador" and n.formula_de in omitidos:
                 omitidos.add(n.idnumber)
         return omitidos
+
+    def _pesos_sin_omitidos(self) -> dict[str, float]:
+        """Los pesos de las hermanas de lo omitido, repartidos entre las que sí se colocan.
+
+        Lo omitido no está en el aula y Moodle reescala a 100 las demás: contar su peso
+        (``deseado`` no lo sabe) haría que cada montaje las volviera a fijar.
+        """
+        grupos: dict[str, list[Nodo]] = {}
+        for n in self.d.nodos:
+            if n.clase in ("actividad", "manual", "copia") and n.peso is not None and n.padre:
+                grupos.setdefault(n.padre, []).append(n)
+        resultado: dict[str, float] = {}
+        for hermanas in grupos.values():
+            if not any(h.idnumber in self.omitidos for h in hermanas):
+                continue
+            quedan = [h for h in hermanas if h.idnumber not in self.omitidos]
+            pesos = normalizar_pesos([h.peso or 0.0 for h in quedan])
+            resultado.update((h.idnumber, p) for h, p in zip(quedan, pesos, strict=True))
+        return resultado
+
+    def _peso(self, nodo: Nodo) -> float | None:
+        return self.pesos.get(nodo.idnumber, nodo.peso)
 
     def _nuevas_en_cerrada(self, pendientes: set[str]) -> set[str]:
         """Las actividades del aula aún sin colocar cuyo sitio (real o copia) cae en una cerrada."""
@@ -531,11 +554,10 @@ class _Plan:
             colocada = True
         elif not en_su_sitio:
             return  # en la segunda pasada no se ajusta lo que no está donde debe
-        if nodo.peso is not None and (colocada or not _peso_correcto(act, nodo.peso)):
+        peso = self._peso(nodo)
+        if peso is not None and (colocada or not _peso_correcto(act, peso)):
             self.peso.append(
-                Operacion(
-                    "fijar_peso", idnumber=clave, eid=act.eid, item_id=act.item_id, peso=nodo.peso
-                )
+                Operacion("fijar_peso", idnumber=clave, eid=act.eid, item_id=act.item_id, peso=peso)
             )
 
     def _bloquear_ajena(self, act: NodoAula) -> None:
@@ -593,14 +615,15 @@ class _Plan:
             else:  # tiza no sabe mover categorías: se respeta donde estén y se avisa
                 self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
                 return
-        if nodo.peso is not None and (movido or not _peso_correcto(existente, nodo.peso)):
+        peso = self._peso(nodo)
+        if peso is not None and (movido or not _peso_correcto(existente, peso)):
             self.peso.append(
                 Operacion(
                     "fijar_peso",
                     idnumber=nodo.idnumber,
                     eid=existente.eid,
                     item_id=existente.item_id,
-                    peso=nodo.peso,
+                    peso=peso,
                 )
             )
         if not calculado or nodo.clase == "manual":
@@ -629,6 +652,7 @@ class _Plan:
             )
 
     def _crear(self, nodo: Nodo, calculado: bool, padre: NodoAula | None) -> None:
+        peso = self._peso(nodo)
         if calculado:
             self.alta.append(
                 Operacion(
@@ -637,7 +661,7 @@ class _Plan:
                     nombre=nodo.nombre,
                     padre=nodo.padre,
                     padre_eid=padre.eid if padre else None,
-                    peso=nodo.peso,
+                    peso=peso,
                     maximo=self._maximo(nodo),
                 )
             )
@@ -649,13 +673,13 @@ class _Plan:
                     nombre=nodo.nombre,
                     padre=nodo.padre,
                     padre_eid=padre.eid if padre else None,
-                    peso=nodo.peso,
+                    peso=peso,
                     visualizacion=nodo.visualizacion,
                 )
             )
         # Moodle reescala los pesos al añadir dentro: se fijan al final, con todo creado
-        if nodo.peso is not None:
-            self.peso.append(Operacion("fijar_peso", idnumber=nodo.idnumber, peso=nodo.peso))
+        if peso is not None:
+            self.peso.append(Operacion("fijar_peso", idnumber=nodo.idnumber, peso=peso))
         if calculado and nodo.clase != "manual":
             self.formula.append(
                 Operacion("fijar_formula", idnumber=nodo.idnumber, formula=self._formula(nodo))
