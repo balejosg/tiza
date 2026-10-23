@@ -1288,6 +1288,40 @@ def test_las_copias_y_los_indicadores_de_una_casilla_siguen_su_maximo_en_el_aula
     assert {creadas[i] for i in derivados} == {10.0}
 
 
+def test_casilla_borrada_a_mano_se_recrea_y_repara_las_formulas_que_dependen_de_ella() -> None:
+    d, aula = montar_m(FP_M_TOPE)
+    huellas = huellas_de(aula, CMIDS_M)
+    casilla = por_id(aula, "TZ_M_exp")
+    dependientes = {c.idnumber for c in copias_de(d, "TZ_M_exp")}
+    dependientes |= {
+        n.idnumber for n in d.nodos if n.clase == "indicador" and n.formula_de in dependientes
+    }
+    dependientes |= {
+        n.idnumber for n in d.nodos if n.clase == "indicador" and n.formula_de == "TZ_M_exp"
+    }
+    assert len(dependientes) >= 2
+    # el docente borra la casilla: Moodle deja en las demás la referencia al item que ya no existe
+    rota = "=##gi999## * 0 + 10"
+    nodos = []
+    for n in aula.nodos:
+        if n.eid == casilla.eid:
+            continue
+        nodos.append(dataclasses.replace(n, formula=rota) if n.idnumber in dependientes else n)
+    aula = CalificadorAula(nodos=tuple(nodos), decimal=aula.decimal)
+    rec = reconciliar(d, aula, huellas, CMIDS_M)
+    assert not [a for a in rec.avisos if a[0] == "CAMBIADO_A_MANO"]
+    assert not dependientes & rec.a_mano
+    assert [o.tipo for o in rec.operaciones if o.idnumber == "TZ_M_exp"][0] == "crear_calculado"
+    reparadas = {o.idnumber for o in rec.operaciones if o.tipo == "fijar_formula"}
+    assert dependientes <= reparadas
+    final = aplicar(aula, rec.operaciones)
+    final = aplicar(final, pasada2(d, final, huellas, CMIDS_M, a_mano=rec.a_mano))
+    assert referencias_rotas(final) == []
+    assert "##" not in "".join(n.formula or "" for n in final.nodos)
+    otra = reconciliar(d, final, huellas_de(final, CMIDS_M), CMIDS_M)
+    assert otra.operaciones == () and otra.avisos == ()
+
+
 def test_el_indicador_sobrante_de_un_contador_se_borra_aunque_tenga_notas() -> None:
     _, aula = montar(FP_TOPE)
     huellas = huellas_de(aula, CMIDS)

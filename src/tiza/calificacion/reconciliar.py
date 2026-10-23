@@ -319,7 +319,12 @@ class _Plan:
         self.huellas = huellas
         if a_mano is None:
             actuales = huellas_de(aula, cmids)
-            a_mano = frozenset(k for k, h in actuales.items() if k in huellas and huellas[k] != h)
+            rotas = self._de_casillas_nuevas()
+            a_mano = frozenset(
+                k
+                for k, h in actuales.items()
+                if k in huellas and huellas[k] != h and k not in rotas
+            )
         self.a_mano = a_mano
         evaluaciones_cerradas = {
             n.idnumber for n in aula.nodos if _EVALUACION.fullmatch(n.idnumber) and n.bloqueado
@@ -383,6 +388,24 @@ class _Plan:
             if n.clase == "indicador" and n.formula_de in omitidos:
                 omitidos.add(n.idnumber)
         return omitidos
+
+    def _de_casillas_nuevas(self) -> set[str]:
+        """Las copias e indicadores de una casilla manual que tiza va a crear (otra vez).
+
+        Si el docente borró la casilla, Moodle les dejó la fórmula apuntando al elemento que ya no
+        existe: no es un cambio a mano, y al crear la casilla se vuelve a fijar su fórmula.
+        """
+        nuevas = {
+            n.idnumber
+            for n in self.d.nodos
+            if n.clase == "manual" and n.idnumber not in self.idx.por_id
+        }
+        dependientes: set[str] = set()
+        for clase in ("copia", "indicador"):
+            for n in self.d.nodos:
+                if n.clase == clase and n.formula_de in nuevas | dependientes:
+                    dependientes.add(n.idnumber)
+        return dependientes
 
     def _pesos_sin_omitidos(self) -> dict[str, float]:
         """Los pesos de las hermanas de lo omitido, repartidos entre las que sí se colocan.
