@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.28.0 — 2026-10-23
+
+### Añadido
+- **Criterios de evaluación en el calificador.** Cada competencia o resultado de aprendizaje puede llevar sus criterios, con peso y código (`1.1`, `RA1.a`). La nota sale de instrumento → criterio → competencia → final, y se ve en cada nivel. Las actividades pueden evaluarse con criterios en `evalua`.
+- **Casillas manuales para lo que no está en el aula.** `instrumentos` (examen en papel, observación) crea una casilla sobre 10 que pones tú a mano en el calificador; tiza nunca la toca. Quitar un instrumento con notas lo deja con peso 0.
+
 ## 0.27.0 — 2026-10-23
 
 ### Añadido
