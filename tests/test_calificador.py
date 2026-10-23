@@ -1211,3 +1211,30 @@ def test_montaje_con_criterios_y_casilla_manual_termina_sin_errores(tmp_path):
     assert moodle.por_id("TZ_E_CE1_1").clase == "categoria"
     assert moodle.por_id("TZ_E_CE1_2").clase == "categoria"
     assert moodle.por_id("TZ_M_EXAMEN1").clase == "manual"
+
+
+def test_el_resumen_real_cuenta_las_hojas_y_nombra_las_casillas_manuales(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CON_MANUAL, ACTIVIDADES_CON_MANUAL)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CON_MANUAL))
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    detalle = mensajes.detalle_calificador(presencia.resumenes_calificador[0])
+    linea_ce1 = next(x for x in detalle.lineas if x.startswith("CE1"))
+    assert "todavía sin actividades" not in linea_ce1
+    assert "a 100" in linea_ce1.replace(" %", "") and "d 100" in linea_ce1.replace(" %", "")
+    linea_ce2 = next(x for x in detalle.lineas if x.startswith("CE2"))
+    assert "Examen" in linea_ce2 and "c " in linea_ce2
+    assert any(
+        x.startswith("Se crean casillas de calificación manual") and "Examen" in x
+        for x in detalle.lineas
+    )
+
+
+def test_un_esquema_sin_instrumentos_no_menciona_casillas(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CRITERIOS, ACTIVIDADES_CRITERIOS)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CRITERIOS))
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    resumen = presencia.resumenes_calificador[0]
+    assert resumen.casillas == ()
+    assert not [x for x in mensajes.detalle_calificador(resumen).lineas if "casillas" in x]

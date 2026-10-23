@@ -37,7 +37,7 @@ from .calificacion import reconciliar as rc
 from .calificacion.deseado import Deseado
 from .calificacion.deseado import deseado as calcular_deseado
 from .calificacion.ejecutar import TIPOS_DE_BLOQUEO, Ejecucion
-from .calificacion.esquema import ErrorCalificacion, Esquema
+from .calificacion.esquema import Elemento, ErrorCalificacion, Esquema
 from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
 from .estado import ErrorEstado
@@ -481,6 +481,7 @@ class ResumenCalificador:
     ``"porcentaje"`` o ``"nota_final"`` cuando el plan cambia el total del curso (solo sin
     calificador anterior); ``tope``: ``(umbral, máximo)`` de la regla de la final, si la hay;
     ``quita``: nombres (del aula) de lo de tiza que se borra, que no tiene notas.
+    ``casillas``: nombres (del esquema) de las casillas manuales de instrumentos que se crean.
     """
 
     curso: int
@@ -498,6 +499,7 @@ class ResumenCalificador:
     total_curso: str | None = None
     tope: tuple[float, float] | None = None
     quita: tuple[str, ...] = ()
+    casillas: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1704,6 +1706,8 @@ def preparar_calificador(
 def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
     """El aviso de la reconciliación en el tipo que sabe contar la presencia (``None``: no cuenta)."""
     nombres = {n.idnumber: n.nombre for n in plan.aula_antes.nodos if n.idnumber}
+    if codigo == "ACTIVIDAD_EN_EVALUACION_CERRADA" and clave.startswith("TZ_M_"):
+        clave = next((n.nombre for n in plan.deseado.nodos if n.idnumber == clave), clave)
     nombre = "el total del curso" if clave == rc.CURSO else nombres.get(clave, clave)
     if codigo == "ACTIVIDAD_PENDIENTE":
         return Aviso.actividad_pendiente(clave)
@@ -1720,6 +1724,26 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
     if codigo == "CRITERIOS_SIN_PESO":
         return Aviso.criterios_sin_peso(clave)
     return None  # TOTAL_AJENO_BLOQUEADO ya sale en «se bloquean los totales de…»
+
+
+def _actividades_de_hojas(
+    elemento: Elemento, plan: PlanCalificador, esquema: Esquema
+) -> tuple[tuple[str, float], ...]:
+    """Las actividades (ficheros e instrumentos) de las hojas de un elemento, con su peso."""
+    hojas = {c.id for c in elemento.criterios} or {elemento.id}
+    ficheros = tuple(
+        (doc.nombre, peso)
+        for doc in plan.documentos
+        for id_, peso in doc.evalua or ()
+        if id_ in hojas and peso > 0
+    )
+    instrumentos = tuple(
+        (i.nombre, peso)
+        for i in esquema.instrumentos
+        for id_, peso in i.evalua
+        if id_ in hojas and peso > 0
+    )
+    return ficheros + instrumentos
 
 
 def resumen_calificador(
@@ -1742,12 +1766,7 @@ def resumen_calificador(
         ElementoCalificador(
             e.id,
             e.peso if esquema.final.de == "elementos" else None,
-            tuple(
-                (doc.nombre, peso)
-                for doc in plan.documentos
-                for id_, peso in doc.evalua or ()
-                if id_ == e.id and peso > 0
-            ),
+            _actividades_de_hojas(e, plan, esquema),
         )
         for e in esquema.elementos
     )
@@ -1797,6 +1816,11 @@ def resumen_calificador(
             if ev.cerrada
         ),
         avisos=tuple(avisos),
+        casillas=tuple(
+            op.nombre or op.idnumber or ""
+            for op in operaciones
+            if op.tipo == "crear_calculado" and (op.idnumber or "").startswith("TZ_M_")
+        ),
         posicion=posicion,
         total=total,
         anterior=plan.reconciliacion.anterior,

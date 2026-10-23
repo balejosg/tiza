@@ -517,6 +517,11 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
         lineas.append(f"Se bloquean los totales de: {_lista(resumen.bloquea)} (tienen notas)")
     if resumen.mueve:
         lineas.append(f"Pasan al calificador de tiza: {_lista(resumen.mueve)}")
+    if resumen.casillas:
+        lineas.append(
+            "Se crean casillas de calificación manual, que rellenas tú en el aula: "
+            f"{_lista(resumen.casillas)}"
+        )
     if resumen.ids_nuevos:
         lineas.append(f"Se añade número de ID a: {_lista(resumen.ids_nuevos)}")
     if resumen.quita:
