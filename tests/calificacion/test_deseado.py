@@ -2,18 +2,21 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from pathlib import Path
 
 import pytest
 
-from tiza.calificacion.deseado import Deseado, Nodo, deseado
+from tiza.calificacion.deseado import Deseado, Nodo, comprobar_sin_circulares, deseado
 from tiza.calificacion.esquema import (
+    Criterio,
     Elemento,
     ErrorCalificacion,
     Esquema,
     Evaluacion,
     Final,
+    Instrumento,
     Tope,
 )
 from tiza.contenido import Documento
@@ -429,3 +432,374 @@ def test_referencia_circular_se_rechaza() -> None:
     with pytest.raises(ErrorCalificacion) as e:
         comprobar_sin_circulares(nodos)
     assert e.value.codigo == "REFERENCIA_CIRCULAR"
+
+
+# ---- compatibilidad: un esquema sin criterios ni instrumentos da el árbol de siempre ----
+
+
+def test_sin_criterios_ni_instrumentos_el_arbol_no_cambia() -> None:
+    """Fijado a mano con la salida del código anterior a los criterios: no debe cambiar."""
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 60.0), Elemento("RA2", "Sistemas", 40.0)),
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))),
+        Final("elementos", Tope(5.0, 4.0)),
+    )
+    docs = [
+        doc("u1/a.md", 1, RA1=60),
+        doc("u1/b.md", 1, RA1=40, RA2=50),
+        doc("u2/c.md", 2, RA2=50),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    esperados = (
+        ("TZ_TIZA", "contenedor", "Calificador de tiza", None, 100.0, None, "porcentaje"),
+        ("TZ_FINAL", "categoria", "Final", "TZ_TIZA", 100.0, None, "porcentaje"),
+        ("TZ_E_RA1", "categoria", "Redes", "TZ_FINAL", 60.0, None, "porcentaje"),
+        ("u1/a.md", "actividad", "a", "TZ_E_RA1", 60.0, None, None),
+        ("u1/b.md", "actividad", "b", "TZ_E_RA1", 40.0, None, None),
+        ("TZ_E_RA2", "categoria", "Sistemas", "TZ_FINAL", 40.0, None, "porcentaje"),
+        ("TZ_C_7e4917d23e", "copia", "b (copia)", "TZ_E_RA2", 50.0, "u1/b.md", None),
+        ("u2/c.md", "actividad", "c", "TZ_E_RA2", 50.0, None, None),
+        ("TZ_VISTA", "contenedor", "Vista por evaluaciones", "TZ_TIZA", 0.0, None, "porcentaje"),
+        ("TZ_V_1", "categoria", "Primera", "TZ_VISTA", 0.0, None, "porcentaje"),
+        ("TZ_V_1_RA1", "categoria", "Redes", "TZ_V_1", 60.0, None, "porcentaje"),
+        ("TZ_C_23bf9b2a59", "copia", "a (copia)", "TZ_V_1_RA1", 60.0, "u1/a.md", None),
+        ("TZ_C_fe18f95b1f", "copia", "b (copia)", "TZ_V_1_RA1", 40.0, "u1/b.md", None),
+        ("TZ_V_1_RA2", "categoria", "Sistemas", "TZ_V_1", 40.0, None, "porcentaje"),
+        ("TZ_C_7f1d95902d", "copia", "b (copia)", "TZ_V_1_RA2", 100.0, "u1/b.md", None),
+        ("TZ_V_2", "categoria", "Segunda", "TZ_VISTA", 0.0, None, "porcentaje"),
+        ("TZ_V_2_RA2", "categoria", "Sistemas", "TZ_V_2", 100.0, None, "porcentaje"),
+        ("TZ_C_65cde091fa", "copia", "c (copia)", "TZ_V_2_RA2", 100.0, "u2/c.md", None),
+        ("TZ_NOTAS", "contenedor", "Notas (sobre 10)", "TZ_TIZA", 0.0, None, "porcentaje"),
+        ("TZ_K_RA1", "contador", "Contador RA1", "TZ_NOTAS", 0.0, None, None),
+        ("TZ_I_d53cf958c4", "indicador", "Indicador a", "TZ_K_RA1", None, "u1/a.md", None),
+        ("TZ_I_f019ebaaf5", "indicador", "Indicador b", "TZ_K_RA1", None, "u1/b.md", None),
+        (
+            "TZ_NOTA_E_RA1",
+            "nota",
+            "Redes (sobre 10)",
+            "TZ_NOTAS",
+            0.0,
+            ("TZ_E_RA1", "TZ_K_RA1"),
+            None,
+        ),
+        ("TZ_K_RA2", "contador", "Contador RA2", "TZ_NOTAS", 0.0, None, None),
+        ("TZ_I_d99edaccfc", "indicador", "Indicador b", "TZ_K_RA2", None, "TZ_C_7e4917d23e", None),
+        ("TZ_I_32ed0640fc", "indicador", "Indicador c", "TZ_K_RA2", None, "u2/c.md", None),
+        (
+            "TZ_NOTA_E_RA2",
+            "nota",
+            "Sistemas (sobre 10)",
+            "TZ_NOTAS",
+            0.0,
+            ("TZ_E_RA2", "TZ_K_RA2"),
+            None,
+        ),
+        ("TZ_K_TIZA", "contador", "Contador final", "TZ_NOTAS", 0.0, None, None),
+        ("TZ_KC_RA1", "copia", "Contador RA1 (copia)", "TZ_K_TIZA", None, "TZ_K_RA1", None),
+        ("TZ_KC_RA2", "copia", "Contador RA2 (copia)", "TZ_K_TIZA", None, "TZ_K_RA2", None),
+        (
+            "TZ_NOTA_FINAL",
+            "nota",
+            "Nota final (sobre 10)",
+            "TZ_NOTAS",
+            0.0,
+            ("TZ_FINAL", "TZ_K_TIZA"),
+            None,
+        ),
+    )
+    assert [
+        (n.idnumber, n.clase, n.nombre, n.padre, n.peso, n.formula_de, n.visualizacion)
+        for n in d.nodos
+    ] == list(esperados)
+    assert d.total_curso == "TZ_NOTA_FINAL"
+    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2"))
+    assert d.cerradas == ()
+    assert d.actividades == (
+        ("u1/a.md", "TZ_E_RA1"),
+        ("u1/b.md", "TZ_E_RA1"),
+        ("u2/c.md", "TZ_E_RA2"),
+    )
+    assert d.avisos == ()
+
+
+# ---- criterios e instrumentos ----
+
+RA1_CRITERIOS = Elemento(
+    "RA1",
+    "Redes",
+    60.0,
+    criterios=(
+        Criterio("CA1", "Criterio a", 70.0, None),
+        Criterio("CA2", "Criterio b", 30.0, None),
+    ),
+)
+RA2_SIMPLE = Elemento("RA2", "Sistemas", 40.0)
+DOS_EVALUACIONES = (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+
+
+def con_criterios(
+    organizacion: str = "elementos",
+    tope: Tope | None = None,
+    elementos: tuple[Elemento, ...] = (RA1_CRITERIOS, RA2_SIMPLE),
+    instrumentos: tuple[Instrumento, ...] = (),
+) -> Esquema:
+    evaluaciones = DOS_EVALUACIONES
+    if organizacion == "evaluaciones":
+        evaluaciones = (Evaluacion("Primera", (1,), 50.0), Evaluacion("Segunda", (2,), 50.0))
+    return Esquema(organizacion, elementos, evaluaciones, Final(organizacion, tope), instrumentos)
+
+
+def test_elemento_con_criterios_y_elemento_sin_criterios_en_las_dos_vistas() -> None:
+    docs = [
+        doc("u1/a.md", 1, CA1=100),
+        doc("u2/b.md", 2, CA2=100),
+        doc("u1/c.md", 1, RA2=100),
+    ]
+    d = deseado(con_criterios(), docs, False, CARPETA)
+    # vista por elementos: elemento -> criterio -> actividad
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_FINAL")] == [
+        ("TZ_E_RA1", 60.0),
+        ("TZ_E_RA2", 40.0),
+    ]
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_E_RA1")] == [
+        ("TZ_E_CA1", 70.0),
+        ("TZ_E_CA2", 30.0),
+    ]
+    ca1 = nodo(d, "TZ_E_CA1")
+    assert (ca1.clase, ca1.nombre, ca1.visualizacion) == ("categoria", "Criterio a", "porcentaje")
+    assert [(n.idnumber, n.clase, n.peso) for n in hijos(d, "TZ_E_CA1")] == [
+        ("u1/a.md", "actividad", 100.0)
+    ]
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_E_CA2")] == [("u2/b.md", 100.0)]
+    assert [n.idnumber for n in hijos(d, "TZ_E_RA2")] == ["u1/c.md"]
+    # vista por evaluaciones: solo lo que tiene algo en cada evaluación, renormalizado
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_1")] == [
+        ("TZ_V_1_RA1", 60.0),
+        ("TZ_V_1_RA2", 40.0),
+    ]
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_1_RA1")] == [("TZ_V_1_CA1", 100.0)]
+    assert nodo(d, "TZ_V_1_CA1").nombre == "Criterio a"
+    assert nodo(d, "TZ_V_1_CA1").visualizacion == "porcentaje"
+    copia = copia_de(d, "u1/a.md", "TZ_V_1_CA1")
+    assert copia.peso == 100.0
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_2")] == [("TZ_V_2_RA1", 100.0)]
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_2_RA1")] == [("TZ_V_2_CA2", 100.0)]
+    assert not [n for n in d.nodos if n.idnumber == "TZ_V_2_CA1"]
+    assert copia_de(d, "u1/c.md", "TZ_V_1_RA2").peso == 100.0
+    assert d.avisos == ()
+
+
+def test_criterios_sin_peso_pesan_igual_y_avisan() -> None:
+    sin_peso = Elemento(
+        "RA1",
+        "Redes",
+        60.0,
+        criterios=tuple(Criterio(f"CA{i}", f"Criterio {i}", None, None) for i in (1, 2, 3)),
+    )
+    docs = [doc("u1/a.md", 1, CA1=100), doc("u1/b.md", 1, CA2=100), doc("u1/c.md", 1, CA3=100)]
+    esquema = con_criterios(elementos=(sin_peso, RA2_SIMPLE))
+    d = deseado(esquema, docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [33.33, 33.33, 33.34]
+    assert [n.peso for n in hijos(d, "TZ_V_1_RA1")] == [33.33, 33.33, 33.34]
+    # el aviso va antes que los de elementos sin actividades
+    assert d.avisos == (("CRITERIOS_SIN_PESO", "RA1"), ("ELEMENTO_SIN_ACTIVIDADES", "RA2"))
+
+
+def test_la_vista_por_evaluaciones_renormaliza_los_criterios_presentes() -> None:
+    tres = Elemento(
+        "RA1",
+        "Redes",
+        100.0,
+        criterios=(
+            Criterio("CA1", "Uno", 50.0, None),
+            Criterio("CA2", "Dos", 30.0, None),
+            Criterio("CA3", "Tres", 20.0, None),
+        ),
+    )
+    docs = [
+        doc("u1/a.md", 1, CA1=100),
+        doc("u2/b.md", 2, CA2=100),
+        doc("u1/c.md", 1, CA3=100),
+    ]
+    d = deseado(con_criterios(elementos=(tres,)), docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [50.0, 30.0, 20.0]
+    # primera evaluación: solo CA1 y CA3 -> 50/70 y 20/70
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_1_RA1")] == [
+        ("TZ_V_1_CA1", 71.43),
+        ("TZ_V_1_CA3", 28.57),
+    ]
+    # segunda: solo CA2 -> 100
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_2_RA1")] == [("TZ_V_2_CA2", 100.0)]
+
+
+def test_actividad_en_dos_criterios_de_elementos_distintos() -> None:
+    ra2 = Elemento("RA2", "Sistemas", 40.0, criterios=(Criterio("CB1", "Criterio c", None, None),))
+    docs = [doc("u1/x.md", 1, CA1=100, CB1=100), doc("u2/b.md", 2, CA2=100)]
+    for organizacion, real, copias in (
+        (
+            "elementos",
+            "TZ_E_CA1",
+            ["TZ_E_CB1", "TZ_V_1_CA1", "TZ_V_1_CB1"],
+        ),
+        (
+            "evaluaciones",
+            "TZ_V_1_CA1",
+            ["TZ_E_CA1", "TZ_E_CB1", "TZ_V_1_CB1"],
+        ),
+    ):
+        d = deseado(
+            con_criterios(organizacion, elementos=(RA1_CRITERIOS, ra2)), docs, False, CARPETA
+        )
+        reales = [n for n in d.nodos if n.idnumber == "u1/x.md"]
+        assert [(n.clase, n.padre) for n in reales] == [("actividad", real)], organizacion
+        for padre in copias:
+            assert copia_de(d, "u1/x.md", padre).peso == 100.0, (organizacion, padre)
+        assert len([n for n in d.nodos if n.formula_de == "u1/x.md"]) == 3
+        assert dict(d.actividades)["u1/x.md"] == real
+    ids = [n.idnumber for n in d.nodos]
+    assert len(ids) == len(set(ids))
+
+
+INSTRUMENTO = Instrumento("exposicion", "Exposición", 1, (("CA1", 50.0), ("RA2", 100.0)))
+
+
+def test_instrumento_manual_real_y_copias() -> None:
+    docs = [doc("u1/a.md", 1, CA1=50), doc("u2/b.md", 2, CA2=100)]
+    d = deseado(con_criterios(instrumentos=(INSTRUMENTO,)), docs, False, CARPETA)
+    real = nodo(d, "TZ_M_exposicion")
+    assert (real.clase, real.nombre, real.padre, real.peso, real.formula_de) == (
+        "manual",
+        "Exposición",
+        "TZ_E_CA1",
+        50.0,
+        None,
+    )
+    # primero las actividades de fichero y luego el instrumento
+    assert [n.idnumber for n in hijos(d, "TZ_E_CA1")] == ["u1/a.md", "TZ_M_exposicion"]
+    assert [n.peso for n in hijos(d, "TZ_E_CA1")] == [50.0, 50.0]
+    copias = [n for n in d.nodos if n.formula_de == "TZ_M_exposicion"]
+    assert {n.padre for n in copias} == {"TZ_V_1_CA1", "TZ_E_RA2", "TZ_V_1_RA2"}
+    assert all(n.clase == "copia" and n.nombre == "Exposición (copia)" for n in copias)
+    assert copia_de(d, "TZ_M_exposicion", "TZ_V_1_CA1").peso == 50.0
+    # la huella es la de siempre, con TZ_M_<id> como ruta
+    huella = hashlib.sha256(b"TZ_M_exposicion|RA2|E").hexdigest()[:10]
+    assert copia_de(d, "TZ_M_exposicion", "TZ_E_RA2").idnumber == f"TZ_C_{huella}"
+    # no es un fichero con cmid
+    assert "TZ_M_exposicion" not in dict(d.actividades)
+    assert not [n for n in d.nodos if n.clase == "manual" and n.idnumber != "TZ_M_exposicion"]
+
+
+def test_instrumento_real_en_la_vista_por_evaluaciones() -> None:
+    d = deseado(
+        con_criterios("evaluaciones", instrumentos=(INSTRUMENTO,)),
+        [doc("u1/a.md", 1, CA1=50)],
+        False,
+        CARPETA,
+    )
+    assert nodo(d, "TZ_M_exposicion").padre == "TZ_V_1_CA1"
+    assert copia_de(d, "TZ_M_exposicion", "TZ_E_CA1")
+    assert nodo(d, "TZ_M_exposicion").clase == "manual"
+
+
+def test_evalua_que_nombra_un_elemento_con_criterios() -> None:
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(con_criterios(), [doc("u1/a.md", 1, RA1=100)], False, CARPETA)
+    assert info.value.codigo == "ELEMENTO_CON_CRITERIOS"
+    assert (
+        info.value.detalle
+        == "u1/a.md: evalua nombra «RA1», que tiene criterios: nombra sus criterios"
+    )
+    malo = Instrumento("exposicion", "Exposición", 1, (("RA1", 100.0),))
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(con_criterios(instrumentos=(malo,)), [], False, CARPETA)
+    assert info.value.codigo == "ELEMENTO_CON_CRITERIOS"
+    assert info.value.detalle.startswith("instrumentos[0]: ")
+
+
+def test_criterio_inexistente_es_elemento_desconocido() -> None:
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(con_criterios(), [doc("u1/a.md", 1, CA9=100)], False, CARPETA)
+    assert info.value.codigo == "ELEMENTO_DESCONOCIDO"
+    assert "u1/a.md" in info.value.detalle and "CA9" in info.value.detalle
+    assert "ni los criterios" in info.value.detalle
+    malo = Instrumento("exposicion", "Exposición", 1, (("CA9", 100.0),))
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(con_criterios(instrumentos=(malo,)), [], False, CARPETA)
+    assert info.value.codigo == "ELEMENTO_DESCONOCIDO"
+    assert "instrumentos[0]" in info.value.detalle
+
+
+def test_los_pesos_se_comprueban_por_hoja_contando_instrumentos() -> None:
+    docs = [doc("u1/a.md", 1, CA1=60)]
+    instrumento = Instrumento("exposicion", "Exposición", 1, (("CA1", 60.0),))
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(con_criterios(instrumentos=(instrumento,)), docs, False, CARPETA)
+    assert info.value.codigo == "PESOS_NO_SUMAN_100"
+    assert info.value.detalle.startswith("CA1: ") and "120" in info.value.detalle
+    assert "u1/a.md" in info.value.detalle and "TZ_M_exposicion" in info.value.detalle
+    # suman 100 con el instrumento (y CA2, RA2 sin nada: suman 0)
+    ok = Instrumento("exposicion", "Exposición", 1, (("CA1", 40.0),))
+    d = deseado(con_criterios(instrumentos=(ok,)), docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_CA1")] == [60.0, 40.0]
+
+
+def test_instrumento_en_seccion_sin_evaluacion() -> None:
+    malo = Instrumento("exposicion", "Exposición", 9, (("CA1", 100.0),))
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(con_criterios(instrumentos=(malo,)), [], False, CARPETA)
+    assert info.value.codigo == "SECCION_SIN_EVALUACION"
+    assert "instrumentos[0]" in info.value.detalle
+
+
+def test_elemento_con_criterios_cuenta_los_instrumentos_como_actividades() -> None:
+    solo = Instrumento("exposicion", "Exposición", 1, (("CA2", 100.0),))
+    d = deseado(con_criterios(instrumentos=(solo,)), [], False, CARPETA)
+    assert d.avisos == (("ELEMENTO_SIN_ACTIVIDADES", "RA2"),)
+    assert d.actividades == ()
+
+
+def test_con_tope_los_indicadores_cubren_los_hijos_de_los_criterios() -> None:
+    docs = [
+        doc("u1/a.md", 1, CA1=100),
+        doc("u1/b.md", 1, CA2=60),
+        doc("u2/c.md", 2, CA2=40, RA2=100),
+    ]
+    instrumento = Instrumento("exposicion", "Exposición", 1, (("CA1", 0.0),))
+    # el instrumento pesa 0 en CA1 (que suma 100 con a.md) y no cuenta
+    d = deseado(
+        con_criterios(tope=Tope(5.0, 4.0), instrumentos=(instrumento,)), docs, False, CARPETA
+    )
+    en_criterios = [h for c in ("TZ_E_CA1", "TZ_E_CA2") for h in hijos(d, c) if h.peso]
+    indicadores = hijos(d, "TZ_K_RA1")
+    assert [i.formula_de for i in indicadores] == [h.idnumber for h in en_criterios]
+    assert len(indicadores) == 3
+    assert "TZ_M_exposicion" not in {i.formula_de for i in indicadores}
+    assert nodo(d, "TZ_NOTA_E_RA1").formula_de == ("TZ_E_RA1", "TZ_K_RA1")
+    # c.md es real en CA2 (su primera hoja): en RA2 está su copia
+    assert [i.formula_de for i in hijos(d, "TZ_K_RA2")] == [hijos(d, "TZ_E_RA2")[0].idnumber]
+    for i in indicadores:
+        assert re.fullmatch(r"TZ_I_[0-9a-f]{10}", i.idnumber)
+    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2"))
+    ids = [n.idnumber for n in d.nodos]
+    assert len(ids) == len(set(ids))
+
+
+def test_el_indicador_de_una_casilla_real_apunta_a_su_idnumber() -> None:
+    instrumento = Instrumento("exposicion", "Exposición", 1, (("CA1", 100.0),))
+    d = deseado(con_criterios(tope=Tope(5.0, 4.0), instrumentos=(instrumento,)), [], False, CARPETA)
+    assert [i.formula_de for i in hijos(d, "TZ_K_RA1")] == ["TZ_M_exposicion"]
+
+
+def test_criterios_e_instrumentos_sin_referencias_circulares() -> None:
+    docs = [doc("u1/a.md", 1, CA1=50), doc("u2/b.md", 2, CA2=100)]
+    for organizacion in ("elementos", "evaluaciones"):
+        esquema = con_criterios(organizacion, Tope(5.0, 4.0), instrumentos=(INSTRUMENTO,))
+        d = deseado(esquema, docs, False, CARPETA)
+        comprobar_sin_circulares(d.nodos)
+        for n in d.nodos:
+            if n.formula_de is None:
+                continue
+            fuentes = n.formula_de if isinstance(n.formula_de, tuple) else (n.formula_de,)
+            assert not set(fuentes) & _antepasados(d, n.idnumber), n.idnumber
+        assert d.avisos == ()

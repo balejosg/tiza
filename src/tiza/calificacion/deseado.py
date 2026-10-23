@@ -10,10 +10,17 @@ Todo cuelga de ``TZ_TIZA``, que tiene siempre dos hijos (y un tercero con tope):
 todo el curso) y «por evaluaciones» (``TZ_V_<n>``, con ``TZ_V_<n>_<id>`` dentro). La que da la
 final cuelga de ``TZ_FINAL``; la otra, de ``TZ_VISTA``. Ningún calculado referencia a un
 antepasado suyo (Moodle deja vacía una referencia circular): la nota final usa ``TZ_FINAL``, no
-``TZ_TIZA``. La actividad real vive en su primer elemento de
-``evalua``, en la vista de ``organizacion``; en los demás sitios va una copia ``TZ_C_<huella>``. Solo
-si la final tiene tope hay ``TZ_NOTAS`` (peso 0), con las notas sobre 10 de los elementos y de la
-final calculadas con contadores.
+``TZ_TIZA``. La actividad real vive en su primera hoja de ``evalua``, en la vista de
+``organizacion``; en los demás sitios va una copia ``TZ_C_<huella>``. Solo si la final tiene tope
+hay ``TZ_NOTAS`` (peso 0), con las notas sobre 10 de los elementos y de la final calculadas con
+contadores.
+
+Una **hoja** es un criterio o un elemento sin criterios: ``evalua`` solo nombra hojas. Un elemento
+con criterios tiene un nivel más: ``TZ_E_<elem>`` contiene ``TZ_E_<crit>`` (y esa, lo suyo) y
+``TZ_V_<n>_<elem>`` contiene ``TZ_V_<n>_<crit>``. Un instrumento del esquema (``instrumentos``)
+es una actividad sin fichero en el aula: su pieza real es una casilla manual ``TZ_M_<id>`` (clase
+``manual``) y en los demás sitios va una copia suya. Un esquema sin criterios ni instrumentos da el
+mismo árbol de siempre.
 """
 
 from __future__ import annotations
@@ -22,12 +29,26 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from tiza.calificacion.esquema import TOLERANCIA_PESOS, ErrorCalificacion, Esquema
+from tiza.calificacion.esquema import (
+    TOLERANCIA_PESOS,
+    Criterio,
+    ErrorCalificacion,
+    Esquema,
+)
 from tiza.contenido import Documento
 
 __all__ = ["Deseado", "Nodo", "comprobar_sin_circulares", "deseado"]
 
-CLASES = ("contenedor", "categoria", "actividad", "copia", "contador", "indicador", "nota")
+CLASES = (
+    "contenedor",
+    "categoria",
+    "actividad",
+    "manual",
+    "copia",
+    "contador",
+    "indicador",
+    "nota",
+)
 RAIZ = "TZ_TIZA"
 FINAL = "TZ_FINAL"
 VISTA = "TZ_VISTA"
@@ -44,7 +65,10 @@ class Nodo:
 
     ``peso`` es el peso sobrescrito en su padre (``None``: sin peso sobrescrito, los hijos de un
     ``contador``). ``formula_de`` es, en una ``copia`` y un ``indicador``, el ``idnumber`` (o la
-    ruta de la actividad) que reflejan; en una ``nota``, la pareja (total, contador).
+    ruta de la actividad) que reflejan; en una ``nota``, la pareja (total, contador). La clase
+    ``manual`` es la casilla de calificación manual de un instrumento (``TZ_M_<id>``, sin
+    ``formula_de``); sus copias llevan ``formula_de="TZ_M_<id>"``. Las categorías son
+    ``TZ_E_<elem>``, ``TZ_E_<crit>``, ``TZ_V_<n>``, ``TZ_V_<n>_<elem>`` y ``TZ_V_<n>_<crit>``.
     """
 
     idnumber: str
@@ -82,6 +106,7 @@ class _Actividad:
     nombre: str
     evaluacion: int  # índice (desde 0) de la evaluación en la que cae su sección
     evalua: tuple[tuple[str, float], ...]
+    manual: bool = False  # un instrumento: su ruta es el idnumber ``TZ_M_<id>`` de la casilla
 
 
 def comprobar_sin_circulares(nodos: tuple[Nodo, ...]) -> None:
@@ -137,53 +162,90 @@ def _normalizar(pesos: list[float]) -> list[float]:
     return resultado
 
 
+def _hojas(esquema: Esquema) -> list[tuple[str, str]]:
+    """Las hojas (criterios, o elementos sin criterios) con su elemento, en el orden del esquema."""
+    return [
+        (hoja, elemento.id)
+        for elemento in esquema.elementos
+        for hoja in ([c.id for c in elemento.criterios] or [elemento.id])
+    ]
+
+
+def _validar(
+    esquema: Esquema,
+    ruta: str,
+    evalua: tuple[tuple[str, float], ...],
+    seccion: int | str,
+) -> int:
+    """Comprueba el ``evalua`` y la sección de una actividad o instrumento; da su evaluación."""
+    hojas = {hoja for hoja, _ in _hojas(esquema)}
+    con_criterios = {e.id for e in esquema.elementos if e.criterios}
+    for id_, _ in evalua:
+        if id_ in con_criterios:
+            raise ErrorCalificacion(
+                "ELEMENTO_CON_CRITERIOS",
+                f"{ruta}: evalua nombra «{id_}», que tiene criterios: nombra sus criterios",
+            )
+        if id_ not in hojas:
+            raise ErrorCalificacion(
+                "ELEMENTO_DESCONOCIDO",
+                f"{ruta}: evalua nombra «{id_}», que no está entre los elementos ni los "
+                "criterios de calificacion.yaml",
+            )
+    evaluacion = next(
+        (
+            i
+            for i, ev in enumerate(esquema.evaluaciones)
+            if any(_misma_seccion(seccion, s) for s in ev.secciones)
+        ),
+        None,
+    )
+    if evaluacion is None:
+        raise ErrorCalificacion(
+            "SECCION_SIN_EVALUACION",
+            f"{ruta}: la sección «{seccion}» no está en ninguna evaluación de calificacion.yaml",
+        )
+    return evaluacion
+
+
 def _actividades(esquema: Esquema, documentos: list[Documento], carpeta: Path) -> list[_Actividad]:
-    """Las actividades que cuentan, ordenadas por ruta y validadas una a una."""
-    ids = {e.id for e in esquema.elementos}
+    """Las actividades que cuentan, validadas una a una.
+
+    Primero las de fichero, ordenadas por ruta, y luego los instrumentos, en el orden del esquema.
+    """
     resultado: list[_Actividad] = []
     for documento in sorted(documentos, key=lambda d: _ruta_relativa(d.ruta, carpeta)):
         if documento.evalua is None:
             continue
         ruta = _ruta_relativa(documento.ruta, carpeta)
-        for id_, _ in documento.evalua:
-            if id_ not in ids:
-                raise ErrorCalificacion(
-                    "ELEMENTO_DESCONOCIDO",
-                    f"{ruta}: evalua nombra «{id_}», que no está entre los elementos de "
-                    "calificacion.yaml",
-                )
-        evaluacion = next(
-            (
-                i
-                for i, ev in enumerate(esquema.evaluaciones)
-                if any(_misma_seccion(documento.seccion, s) for s in ev.secciones)
-            ),
-            None,
-        )
-        if evaluacion is None:
-            raise ErrorCalificacion(
-                "SECCION_SIN_EVALUACION",
-                f"{ruta}: la sección «{documento.seccion}» no está en ninguna evaluación de "
-                "calificacion.yaml",
-            )
+        evaluacion = _validar(esquema, ruta, documento.evalua, documento.seccion)
         resultado.append(_Actividad(ruta, documento.nombre, evaluacion, documento.evalua))
+    for i, instrumento in enumerate(esquema.instrumentos):
+        evaluacion = _validar(
+            esquema, f"instrumentos[{i}]", instrumento.evalua, instrumento.seccion
+        )
+        resultado.append(
+            _Actividad(
+                f"TZ_M_{instrumento.id}",
+                instrumento.nombre,
+                evaluacion,
+                instrumento.evalua,
+                manual=True,
+            )
+        )
     return resultado
 
 
 def _comprobar_pesos(esquema: Esquema, actividades: list[_Actividad]) -> None:
-    for elemento in esquema.elementos:
-        pesos = [
-            (a.ruta, dict(a.evalua)[elemento.id])
-            for a in actividades
-            if elemento.id in dict(a.evalua)
-        ]
+    """Los pesos de lo que evalúa cada hoja suman 0 o 100."""
+    for hoja, _ in _hojas(esquema):
+        pesos = [(a.ruta, dict(a.evalua)[hoja]) for a in actividades if hoja in dict(a.evalua)]
         total = round(sum(p for _, p in pesos), 2)
         if total != 0 and round(abs(total - 100), 2) > TOLERANCIA_PESOS:
             rutas = ", ".join(r for r, _ in pesos[:5]) + (", …" if len(pesos) > 5 else "")
             raise ErrorCalificacion(
                 "PESOS_NO_SUMAN_100",
-                f"{elemento.id}: los pesos de sus actividades suman {total:g} y deben sumar "
-                f"100 ({rutas})",
+                f"{hoja}: los pesos de sus actividades suman {total:g} y deben sumar 100 ({rutas})",
             )
 
 
@@ -209,47 +271,67 @@ class _Montaje:
         self.vista_real = (
             _VISTA_ELEMENTOS if esquema.organizacion == "elementos" else _VISTA_EVALUACIONES
         )
-        self.nombres = {e.id: e.nombre for e in esquema.elementos}
+        self.elemento_de_hoja = dict(_hojas(esquema))
         self.nodos: list[Nodo] = []
         self.copias = self._numerar_copias()
-        # elemento -> hijos de TZ_E_<id> que cuentan (peso > 0), en orden: los indicadores del contador
+        # elemento -> hijos de sus hojas (en TZ_E_...) que cuentan (peso > 0), en orden: los
+        # indicadores del contador
         self.hijos_de_elemento: dict[str, list[tuple[str, str]]] = {}
 
     def _lugares(self, actividad: _Actividad) -> list[tuple[str, str]]:
-        """Los sitios (elemento, vista) donde va la actividad, real o copia."""
+        """Los sitios (hoja, vista) donde va la actividad, real o copia."""
         return [
-            (e, v) for e, _ in actividad.evalua for v in (_VISTA_ELEMENTOS, _VISTA_EVALUACIONES)
+            (h, v) for h, _ in actividad.evalua for v in (_VISTA_ELEMENTOS, _VISTA_EVALUACIONES)
         ]
 
     def _numerar_copias(self) -> dict[tuple[str, str, str], str]:
-        """``TZ_C_<huella>`` por (ruta, elemento, vista): estable al añadir o quitar actividades."""
+        """``TZ_C_<huella>`` por (ruta, hoja, vista): estable al añadir o quitar actividades."""
         return {
-            (a.ruta, elemento, vista): f"TZ_C_{_huella(f'{a.ruta}|{elemento}|{vista}')}"
+            (a.ruta, hoja, vista): f"TZ_C_{_huella(f'{a.ruta}|{hoja}|{vista}')}"
             for a in self.actividades
-            for elemento, vista in self._lugares(a)
-            if not self._es_real(a, elemento, vista)
+            for hoja, vista in self._lugares(a)
+            if not self._es_real(a, hoja, vista)
         }
 
-    def _es_real(self, actividad: _Actividad, elemento: str, vista: str) -> bool:
-        return elemento == actividad.evalua[0][0] and vista == self.vista_real
+    def _es_real(self, actividad: _Actividad, hoja: str, vista: str) -> bool:
+        return hoja == actividad.evalua[0][0] and vista == self.vista_real
 
     def _agregar(self, nodo: Nodo) -> None:
         self.nodos.append(nodo)
 
+    def _de_hoja(self, hoja: str, evaluacion: int | None = None) -> list[_Actividad]:
+        """Lo que evalúa la hoja (en una evaluación, si se da), en el orden de ``actividades``."""
+        return [
+            a
+            for a in self.actividades
+            if hoja in dict(a.evalua) and (evaluacion is None or a.evaluacion == evaluacion)
+        ]
+
+    def _pesos_de_criterios(self, criterios: list[Criterio]) -> list[float]:
+        """Los pesos de unos criterios del elemento, normalizados a 100 (iguales si no llevan)."""
+        return _normalizar([1.0 if c.peso is None else c.peso for c in criterios])
+
     def _hijos_actividad(
-        self, padre: str, elemento: str, vista: str, actividades: list[_Actividad]
+        self, padre: str, hoja: str, vista: str, actividades: list[_Actividad], cuenta: bool = True
     ) -> None:
-        """Las actividades (reales o copias) de un contenedor, con el peso renormalizado."""
-        pesos = _normalizar([dict(a.evalua)[elemento] for a in actividades])
+        """Las actividades (reales o copias) de un contenedor, con el peso renormalizado.
+
+        ``cuenta`` es que el contenedor pesa algo para su elemento: si no, sus hijos no dan
+        indicador al contador.
+        """
+        pesos = _normalizar([dict(a.evalua)[hoja] for a in actividades])
         for a, peso in zip(actividades, pesos, strict=True):
-            if self._es_real(a, elemento, vista):
-                hijo = Nodo(a.ruta, "actividad", a.nombre, padre, peso)
+            if self._es_real(a, hoja, vista):
+                clase = "manual" if a.manual else "actividad"
+                hijo = Nodo(a.ruta, clase, a.nombre, padre, peso)
             else:
-                idnumber = self.copias[(a.ruta, elemento, vista)]
+                idnumber = self.copias[(a.ruta, hoja, vista)]
                 hijo = Nodo(idnumber, "copia", f"{a.nombre} (copia)", padre, peso, a.ruta)
             self._agregar(hijo)
-            if vista == _VISTA_ELEMENTOS and peso > 0:
-                self.hijos_de_elemento.setdefault(elemento, []).append((hijo.idnumber, a.nombre))
+            if vista == _VISTA_ELEMENTOS and peso > 0 and cuenta:
+                self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
+                    (hijo.idnumber, a.nombre)
+                )
 
     def _vista_elementos(self, padre: str) -> None:
         pesos = _normalizar([e.peso for e in self.esquema.elementos])
@@ -258,8 +340,34 @@ class _Montaje:
             self._agregar(
                 Nodo(idnumber, "categoria", elemento.nombre, padre, peso, None, "porcentaje")
             )
-            propias = [a for a in self.actividades if elemento.id in dict(a.evalua)]
-            self._hijos_actividad(idnumber, elemento.id, _VISTA_ELEMENTOS, propias)
+            if not elemento.criterios:
+                self._hijos_actividad(
+                    idnumber, elemento.id, _VISTA_ELEMENTOS, self._de_hoja(elemento.id)
+                )
+                continue
+            criterios = list(elemento.criterios)
+            for criterio, peso_criterio in zip(
+                criterios, self._pesos_de_criterios(criterios), strict=True
+            ):
+                interior = f"TZ_E_{criterio.id}"
+                self._agregar(
+                    Nodo(
+                        interior,
+                        "categoria",
+                        criterio.nombre,
+                        idnumber,
+                        peso_criterio,
+                        None,
+                        "porcentaje",
+                    )
+                )
+                self._hijos_actividad(
+                    interior,
+                    criterio.id,
+                    _VISTA_ELEMENTOS,
+                    self._de_hoja(criterio.id),
+                    cuenta=peso_criterio > 0,
+                )
 
     def _vista_evaluaciones(self, padre: str, da_la_final: bool) -> None:
         evaluaciones = self.esquema.evaluaciones
@@ -275,7 +383,7 @@ class _Montaje:
             presentes = [
                 e
                 for e in self.esquema.elementos
-                if any(a.evaluacion == n - 1 and e.id in dict(a.evalua) for a in self.actividades)
+                if any(self._de_hoja(hoja, n - 1) for hoja in [c.id for c in e.criterios] or [e.id])
             ]
             for elemento, peso_elemento in zip(
                 presentes, _normalizar([e.peso for e in presentes]), strict=True
@@ -292,12 +400,36 @@ class _Montaje:
                         "porcentaje",
                     )
                 )
-                propias = [
-                    a
-                    for a in self.actividades
-                    if a.evaluacion == n - 1 and elemento.id in dict(a.evalua)
-                ]
-                self._hijos_actividad(interior, elemento.id, _VISTA_EVALUACIONES, propias)
+                if not elemento.criterios:
+                    self._hijos_actividad(
+                        interior,
+                        elemento.id,
+                        _VISTA_EVALUACIONES,
+                        self._de_hoja(elemento.id, n - 1),
+                    )
+                    continue
+                con_algo = [c for c in elemento.criterios if self._de_hoja(c.id, n - 1)]
+                for criterio, peso_criterio in zip(
+                    con_algo, self._pesos_de_criterios(con_algo), strict=True
+                ):
+                    dentro = f"TZ_V_{n}_{criterio.id}"
+                    self._agregar(
+                        Nodo(
+                            dentro,
+                            "categoria",
+                            criterio.nombre,
+                            interior,
+                            peso_criterio,
+                            None,
+                            "porcentaje",
+                        )
+                    )
+                    self._hijos_actividad(
+                        dentro,
+                        criterio.id,
+                        _VISTA_EVALUACIONES,
+                        self._de_hoja(criterio.id, n - 1),
+                    )
 
     def _notas(self) -> None:
         self._agregar(Nodo(NOTAS, "contenedor", "Notas (sobre 10)", RAIZ, 0.0, None, "porcentaje"))
@@ -370,7 +502,7 @@ class _Montaje:
                 tuple(f"TZ_NOTA_E_{e.id}" for e in esquema.elementos),
             )
         total_curso = None if self.anterior else (NOTA_FINAL if self.tope else "porcentaje")
-        con_actividades = {e for a in self.actividades for e, _ in a.evalua}
+        con_actividades = {self.elemento_de_hoja[h] for a in self.actividades for h, _ in a.evalua}
         comprobar_sin_circulares(tuple(self.nodos))
         return Deseado(
             nodos=tuple(self.nodos),
@@ -379,6 +511,11 @@ class _Montaje:
             cerradas=tuple(f"TZ_V_{n}" for n, e in enumerate(esquema.evaluaciones, 1) if e.cerrada),
             actividades=self._actividades_reales(),
             avisos=tuple(
+                ("CRITERIOS_SIN_PESO", e.id)
+                for e in esquema.elementos
+                if e.criterios and e.criterios[0].peso is None
+            )
+            + tuple(
                 ("ELEMENTO_SIN_ACTIVIDADES", e.id)
                 for e in esquema.elementos
                 if e.id not in con_actividades
