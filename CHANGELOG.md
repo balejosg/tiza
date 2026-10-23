@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.26.1 — 2026-10-23
 
 ### Corregido
 - **`tiza calificador` en un curso grande.** Medido en un módulo de 60 actividades: montar el calificador la primera vez tardaba 30 minutos y el agente dejaba de esperar a los 10 (`SIN_RESPUESTA`), o daba la sesión por cerrada si caducaba a medias. Ahora cada alta lee el árbol del calificador una vez en vez de dos, y tras escribir solo se vuelven a abrir los formularios de lo que se ha tocado. El agente espera hasta una hora, y la sesión no se da por cerrada mientras atiende una petición: la termina antes de cerrarse.
