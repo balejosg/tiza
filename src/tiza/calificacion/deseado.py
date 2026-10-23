@@ -32,6 +32,7 @@ from pathlib import Path
 from tiza.calificacion.esquema import (
     TOLERANCIA_PESOS,
     Criterio,
+    Elemento,
     ErrorCalificacion,
     Esquema,
 )
@@ -162,13 +163,14 @@ def _normalizar(pesos: list[float]) -> list[float]:
     return resultado
 
 
+def _hojas_de(elemento: Elemento) -> list[str]:
+    """Las hojas de un elemento: sus criterios, o él mismo si no tiene."""
+    return [c.id for c in elemento.criterios] or [elemento.id]
+
+
 def _hojas(esquema: Esquema) -> list[tuple[str, str]]:
     """Las hojas (criterios, o elementos sin criterios) con su elemento, en el orden del esquema."""
-    return [
-        (hoja, elemento.id)
-        for elemento in esquema.elementos
-        for hoja in ([c.id for c in elemento.criterios] or [elemento.id])
-    ]
+    return [(hoja, elemento.id) for elemento in esquema.elementos for hoja in _hojas_de(elemento)]
 
 
 def _validar(
@@ -307,9 +309,36 @@ class _Montaje:
             if hoja in dict(a.evalua) and (evaluacion is None or a.evaluacion == evaluacion)
         ]
 
-    def _pesos_de_criterios(self, criterios: list[Criterio]) -> list[float]:
-        """Los pesos de unos criterios del elemento, normalizados a 100 (iguales si no llevan)."""
-        return _normalizar([1.0 if c.peso is None else c.peso for c in criterios])
+    def _nula(self, hojas: list[str], evaluacion: int | None = None) -> bool:
+        """Tiene actividades (en la evaluación, si se da) pero ninguna pesa > 0 en su ``evalua``.
+
+        Moodle daría por completa una categoría así (máximo 0): no aporta a su padre, como la
+        que no tiene actividades, y sus hermanos se renormalizan sin ella.
+        """
+        pesos = [dict(a.evalua)[h] for h in hojas for a in self._de_hoja(h, evaluacion)]
+        return bool(pesos) and not any(p > 0 for p in pesos)
+
+    def _pesos_de_elementos(
+        self, elementos: list[Elemento], evaluacion: int | None = None
+    ) -> list[float]:
+        """Los pesos de unos elementos, normalizados a 100 sin los que no aportan."""
+        return _normalizar(
+            [0.0 if self._nula(_hojas_de(e), evaluacion) else e.peso for e in elementos]
+        )
+
+    def _pesos_de_criterios(
+        self, criterios: list[Criterio], evaluacion: int | None = None
+    ) -> list[float]:
+        """Los pesos de unos criterios del elemento, normalizados a 100 (iguales si no llevan).
+
+        Un criterio que no aporta (``_nula``) pesa 0 y los demás se reparten el 100.
+        """
+        return _normalizar(
+            [
+                0.0 if self._nula([c.id], evaluacion) else 1.0 if c.peso is None else c.peso
+                for c in criterios
+            ]
+        )
 
     def _hijos_actividad(
         self, padre: str, hoja: str, vista: str, actividades: list[_Actividad], cuenta: bool = True
@@ -334,7 +363,7 @@ class _Montaje:
                 )
 
     def _vista_elementos(self, padre: str) -> None:
-        pesos = _normalizar([e.peso for e in self.esquema.elementos])
+        pesos = self._pesos_de_elementos(list(self.esquema.elementos))
         for elemento, peso in zip(self.esquema.elementos, pesos, strict=True):
             idnumber = f"TZ_E_{elemento.id}"
             self._agregar(
@@ -383,10 +412,10 @@ class _Montaje:
             presentes = [
                 e
                 for e in self.esquema.elementos
-                if any(self._de_hoja(hoja, n - 1) for hoja in [c.id for c in e.criterios] or [e.id])
+                if any(self._de_hoja(hoja, n - 1) for hoja in _hojas_de(e))
             ]
             for elemento, peso_elemento in zip(
-                presentes, _normalizar([e.peso for e in presentes]), strict=True
+                presentes, self._pesos_de_elementos(presentes, n - 1), strict=True
             ):
                 interior = f"TZ_V_{n}_{elemento.id}"
                 self._agregar(
@@ -410,7 +439,7 @@ class _Montaje:
                     continue
                 con_algo = [c for c in elemento.criterios if self._de_hoja(c.id, n - 1)]
                 for criterio, peso_criterio in zip(
-                    con_algo, self._pesos_de_criterios(con_algo), strict=True
+                    con_algo, self._pesos_de_criterios(con_algo, n - 1), strict=True
                 ):
                     dentro = f"TZ_V_{n}_{criterio.id}"
                     self._agregar(

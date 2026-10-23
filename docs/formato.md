@@ -237,7 +237,8 @@ evalua: {RA1: 40, RA3: 25}   # id: peso de 0 a 100, con hasta 2 decimales
 ```
 
 - Los ids empiezan por letra, siguen con letras, cifras o `_`, y tienen hasta 16 caracteres.
-  Un peso de 0 deja la actividad sin peso, pero se queda en el calificador.
+  Un peso de 0 deja la actividad sin peso, pero se queda en el calificador. Si todo lo que
+  evalúa un criterio (o un elemento) pesa 0, ese criterio no cuenta: sus hermanos se reparten el 100.
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
   elemento da `ELEMENTO_CON_CRITERIOS`.
 - Un id repetido o un mapa vacío dan error (`EVALUA_INVALIDO`). Que el id exista

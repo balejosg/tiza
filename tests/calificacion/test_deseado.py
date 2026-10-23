@@ -803,3 +803,86 @@ def test_criterios_e_instrumentos_sin_referencias_circulares() -> None:
             fuentes = n.formula_de if isinstance(n.formula_de, tuple) else (n.formula_de,)
             assert not set(fuentes) & _antepasados(d, n.idnumber), n.idnumber
         assert d.avisos == ()
+
+
+# ---- hojas cuyas actividades pesan todas 0 ----
+
+TRES_CRITERIOS = Elemento(
+    "RA1",
+    "Redes",
+    100.0,
+    criterios=(
+        Criterio("CA1", "Uno", 50.0, None),
+        Criterio("CA2", "Dos", 30.0, None),
+        Criterio("CA3", "Tres", 20.0, None),
+    ),
+)
+
+
+def test_criterio_con_todo_a_peso_cero_no_aporta_y_renormaliza_a_sus_hermanos() -> None:
+    # CA2 solo tiene una actividad con peso 0 en evalua: Moodle la daría por completa (100 %)
+    docs = [doc("u1/a.md", 1, CA1=100), doc("u1/b.md", 1, CA2=0), doc("u1/c.md", 1, CA3=100)]
+    for organizacion in ("elementos", "evaluaciones"):
+        d = deseado(
+            con_criterios(organizacion, Tope(5.0, 4.0), elementos=(TRES_CRITERIOS,)),
+            docs,
+            False,
+            CARPETA,
+        )
+        for prefijo in ("TZ_E_", "TZ_V_1_"):
+            assert [(n.idnumber, n.peso) for n in hijos(d, f"{prefijo}RA1")] == [
+                (f"{prefijo}CA1", 71.43),
+                (f"{prefijo}CA2", 0.0),
+                (f"{prefijo}CA3", 28.57),
+            ], (organizacion, prefijo)
+        # el criterio sigue existiendo y su actividad, colocada con peso 0
+        assert [n.peso for n in hijos(d, "TZ_E_CA2")] == [0.0]
+        # y no da indicador al contador
+        con_peso = {
+            h.idnumber for c in ("TZ_E_CA1", "TZ_E_CA2", "TZ_E_CA3") for h in hijos(d, c) if h.peso
+        }
+        assert {i.formula_de for i in hijos(d, "TZ_K_RA1")} == con_peso
+        assert len(con_peso) == 2
+
+
+def test_criterio_con_actividades_de_peso_cero_y_positivo_sigue_contando() -> None:
+    docs = [doc("u1/a.md", 1, CA1=100), doc("u1/b.md", 1, CA2=0), doc("u1/c.md", 1, CA2=100)]
+    d = deseado(con_criterios(elementos=(TRES_CRITERIOS,)), docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [50.0, 30.0, 20.0]  # CA3 vacío: no se toca
+    assert [n.peso for n in hijos(d, "TZ_E_CA2")] == [0.0, 100.0]
+
+
+def test_la_vista_por_evaluaciones_cuenta_los_pesos_dentro_de_cada_evaluacion() -> None:
+    # CA2 solo pesa 0 en la 1.ª evaluación (b.md) y pesa > 0 en la 2.ª (c.md)
+    docs = [
+        doc("u1/a.md", 1, CA1=100),
+        doc("u1/b.md", 1, CA2=0),
+        doc("u2/c.md", 2, CA2=100),
+    ]
+    d = deseado(con_criterios(elementos=(TRES_CRITERIOS,)), docs, False, CARPETA)
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_1_RA1")] == [
+        ("TZ_V_1_CA1", 100.0),
+        ("TZ_V_1_CA2", 0.0),
+    ]
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_2_RA1")] == [("TZ_V_2_CA2", 100.0)]
+
+
+def test_elemento_cuyas_hojas_pesan_todas_cero_no_aporta_a_la_final() -> None:
+    # RA2 (sin criterios) solo tiene una actividad de peso 0; RA1 tiene un criterio con todo a 0
+    docs = [doc("u1/a.md", 1, CA1=0), doc("u1/b.md", 1, RA2=0)]
+    otro = Elemento("RA3", "Seguridad", 50.0)
+    elementos = (RA1_CRITERIOS, RA2_SIMPLE, otro)
+    docs.append(doc("u1/c.md", 1, RA3=100))
+    d = deseado(con_criterios(elementos=elementos), docs, False, CARPETA)
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_FINAL")] == [
+        ("TZ_E_RA1", 0.0),
+        ("TZ_E_RA2", 0.0),
+        ("TZ_E_RA3", 100.0),
+    ]
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_V_1")] == [
+        ("TZ_V_1_RA1", 0.0),
+        ("TZ_V_1_RA2", 0.0),
+        ("TZ_V_1_RA3", 100.0),
+    ]
+    # CA2 no tiene ninguna actividad: se queda como siempre (Moodle ignora una categoría vacía)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [0.0, 100.0]

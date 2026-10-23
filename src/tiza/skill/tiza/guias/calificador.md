@@ -82,6 +82,7 @@ su nota. Una actividad sin `evalua` no entra en el calificador. Una página o un
 no tienen nota en Moodle: con `evalua` dan `EVALUA_NO_CALIFICABLE`, también en `tiza comprobar`.
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
   elemento da `ELEMENTO_CON_CRITERIOS`. Los pesos de lo que evalúa cada criterio suman 100.
+  Un criterio (o elemento) cuyas actividades pesan todas 0 no cuenta en la nota.
 - **Casillas manuales** (`instrumentos`): tiza crea la casilla (sobre 10) en su primer criterio y
   copias en los demás. La nota la pone el docente a mano en el calificador; tiza nunca la toca ni
   cambia su máximo. Un instrumento tiene una sola nota, que va a todos sus criterios. Quitar uno
