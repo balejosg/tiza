@@ -228,7 +228,7 @@ restricciones:
 ## Calificador: `evalua`
 
 Las tareas, los cuestionarios y los contenidos H5P pueden declarar con qué resultados
-de aprendizaje se evalúan y con qué peso, para colocarlos en el calificador del curso.
+de aprendizaje o criterios se evalúan y con qué peso, para colocarlos en el calificador del curso.
 Una página o un área de texto y medios no tienen nota en Moodle: con `evalua` dan
 error (`EVALUA_NO_CALIFICABLE`), también en `tiza comprobar`.
 
@@ -236,8 +236,10 @@ error (`EVALUA_NO_CALIFICABLE`), también en `tiza comprobar`.
 evalua: {RA1: 40, RA3: 25}   # id: peso de 0 a 100, con hasta 2 decimales
 ```
 
-- Los ids empiezan por letra, usan letras y cifras y tienen hasta 16 caracteres.
+- Los ids empiezan por letra, siguen con letras, cifras o `_`, y tienen hasta 16 caracteres.
   Un peso de 0 deja la actividad sin peso, pero se queda en el calificador.
+- Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
+  elemento da `ELEMENTO_CON_CRITERIOS`.
 - Un id repetido o un mapa vacío dan error (`EVALUA_INVALIDO`). Que el id exista
   en el esquema del curso se comprueba al colocar la actividad, no al leer el `.md`.
 - Cambiar `evalua` no cambia el hash de la actividad: no hace falta volver a
@@ -253,6 +255,7 @@ o criterios) hay, cuánto pesa cada uno, qué evaluaciones hay y un tope opciona
 organizacion: elementos            # o evaluaciones (ESO y Bachillerato)
 elementos:                         # con organizacion elementos o final de elementos
   - {id: RA1, nombre: "Redes locales", peso: 40, codigo: RA1}   # peso 0-100; suman 100
+    # con criterios: criterios: [{id: CE1_1, nombre: "Criterio 1.1", peso: 40, codigo: "1.1"}, ...]
 evaluaciones:
   - {nombre: "1.ª evaluación", secciones: [1, 2, 3], cerrada: false}   # secciones de «seccion:»
 final:
@@ -260,7 +263,13 @@ final:
   tope: {si_alguno_menor_que: 5, maximo: 4}   # opcional, solo con de: elementos
 ```
 
-- `id`: empieza por letra, letras y cifras, 16 como mucho. Los ids repetidos dan `ID_REPETIDO`.
+- `id`: letra inicial y luego letras, cifras o `_`, 16 como mucho. Los ids repetidos dan `ID_REPETIDO`.
+- `criterios` (opcional en cada elemento): `{id, nombre, peso?, codigo?}`. Con pesos, van en todos
+  o en ninguno y suman 100; sin pesos pesan igual y sale `CRITERIOS_SIN_PESO`. Elementos y criterios
+  no repiten `id`. `codigo` es el código legible (`1.1`, `RA1.a`).
+- `instrumentos` (opcional): casillas manuales para lo que no está en el aula (examen en papel,
+  observación), `{id, nombre, seccion, evalua}`. tiza crea la casilla (sobre 10) en su primer
+  criterio y copias en los demás; la nota la pone el docente a mano y tiza nunca la toca.
 - Una sección solo puede estar en una evaluación (`SECCION_REPETIDA`). Una actividad con `evalua`
   en una sección que no es de ninguna evaluación da `SECCION_SIN_EVALUACION`.
 - `cerrada: true` bloquea la evaluación en el aula al terminar de montar (si no estaba completa,

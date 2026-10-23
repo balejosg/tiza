@@ -86,6 +86,11 @@ def _bloque_yaml(texto: str) -> str:
     return bloque + "\n"
 
 
+def _bloques_yaml(texto: str) -> list[str]:
+    """Todos los bloques ```yaml de la guía, sin las vallas."""
+    return [trozo.partition("\n```")[0] + "\n" for trozo in texto.split("```yaml\n")[1:]]
+
+
 def test_guia_programacion_existe_y_se_cita(tmp_path):
     assert GUIA_PROGRAMACION.is_file()
     assert "guias/programacion.md" in SKILL.read_text(encoding="utf-8")
@@ -150,6 +155,9 @@ def test_skill_copia_rechazada_no_se_abre():
 
 GUIA_CALIFICADOR = SKILL.parent / "guias/calificador.md"
 EJEMPLO_CALIFICADOR = Path(__file__).resolve().parent.parent / "ejemplos/calificacion.yaml"
+EJEMPLO_CALIFICADOR_CRITERIOS = (
+    Path(__file__).resolve().parent.parent / "ejemplos/calificacion-criterios.yaml"
+)
 # Los códigos que la guía nombra: el agente los ve en el informe o en la salida y debe conocerlos.
 CODIGOS_CALIFICADOR = (
     "ESQUEMA_INVALIDO",
@@ -165,6 +173,8 @@ CODIGOS_CALIFICADOR = (
     "CAMBIADO_A_MANO",
     "EVALUACION_CERRADA_EN_EL_AULA",
     "ELEMENTO_CON_NOTAS_QUITADO",
+    "ELEMENTO_CON_CRITERIOS",
+    "CRITERIOS_SIN_PESO",
     "BLOQUEO_FALLIDO",
     "CALIFICADOR_INVALIDO",
     "SIN_SESION",
@@ -179,10 +189,18 @@ def test_ejemplo_del_calificador_carga_con_tope_y_tres_evaluaciones():
     assert esquema.final.tope is not None
 
 
+def test_ejemplo_con_criterios_carga_con_pesos_y_casilla_manual():
+    esquema = cargar_esquema(EJEMPLO_CALIFICADOR_CRITERIOS, EJEMPLO_CALIFICADOR_CRITERIOS.parent)
+    ce1, ce2 = esquema.elementos
+    assert [c.id for c in ce1.criterios] == ["CE1_1", "CE1_2"]
+    assert [c.peso for c in ce2.criterios] == [None, None]
+    assert [i.id for i in esquema.instrumentos] == ["EXAMEN1"]
+
+
 def test_guia_calificador_existe_se_cita_y_nombra_sus_codigos():
     assert GUIA_CALIFICADOR.is_file()
     texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
-    assert len(texto.splitlines()) <= 130
+    assert len(texto.splitlines()) <= 180
     assert "guias/calificador.md" in SKILL.read_text(encoding="utf-8")
     for codigo in CODIGOS_CALIFICADOR:
         assert codigo in texto, f"la guía del calificador no nombra {codigo}"
@@ -195,6 +213,12 @@ def test_guia_calificador_muestra_el_ejemplo_tal_cual(tmp_path):
     ruta = tmp_path / "calificacion.yaml"
     ruta.write_text(bloque, encoding="utf-8")
     cargar_esquema(ruta, tmp_path)
+
+
+def test_guia_calificador_muestra_el_ejemplo_con_criterios_tal_cual():
+    bloques = _bloques_yaml(GUIA_CALIFICADOR.read_text(encoding="utf-8"))
+    assert len(bloques) == 2
+    assert bloques[1] == EJEMPLO_CALIFICADOR_CRITERIOS.read_text(encoding="utf-8")
 
 
 def test_skill_carga_la_guia_del_calificador_en_su_seccion():

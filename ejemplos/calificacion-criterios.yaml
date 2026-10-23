@@ -1,0 +1,25 @@
+# ESO: dos competencias específicas con sus criterios, tres evaluaciones y un examen en papel.
+organizacion: elementos
+elementos:
+  - id: CE1
+    nombre: "Competencia específica 1"
+    peso: 60
+    codigo: "CE1"
+    criterios:
+      - {id: CE1_1, nombre: "Criterio 1.1", peso: 40, codigo: "1.1"}
+      - {id: CE1_2, nombre: "Criterio 1.2", peso: 60, codigo: "1.2"}
+  - id: CE2
+    nombre: "Competencia específica 2"
+    peso: 40
+    criterios:
+      - {id: CE2_1, nombre: "Criterio 2.1"}
+      - {id: CE2_3, nombre: "Criterio 2.3"}
+evaluaciones:
+  - {nombre: "1.ª evaluación", secciones: [1, 2]}
+  - {nombre: "2.ª evaluación", secciones: [3, 4]}
+  - {nombre: "3.ª evaluación", secciones: [5, 6]}
+instrumentos:
+  - {id: EXAMEN1, nombre: "Examen escrito UD2", seccion: 2, evalua: {CE1_1: 50, CE2_1: 100}}
+final:
+  de: elementos
+  tope: {si_alguno_menor_que: 5, maximo: 4}
