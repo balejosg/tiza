@@ -302,6 +302,8 @@ class TestBuzon:
 
     def test_las_peticiones_son_validas(self):
         buzon.validar_peticion(agente.peticion_estructura())
+        buzon.validar_peticion(agente.peticion_estructura(["a.md", "b.html"]))
+        assert agente.peticion_estructura()["ficheros"] == []
         buzon.validar_peticion(agente.peticion_publicar(["a.md"], "real", None))
 
 

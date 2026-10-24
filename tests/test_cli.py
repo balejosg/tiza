@@ -601,6 +601,22 @@ class TestBuzonAgente:
         assert capturado["peticion"]["ficheros"] == []
         assert "Informe: ok" in salida.contenido()
 
+    def test_estructura_con_cambios_deja_la_peticion_con_esos_ficheros(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        capturado: dict = {}
+
+        def enviar(dir_tiza, peticion, *a, **k):
+            capturado["peticion"] = peticion
+            return informe_ok(comando="estructura", entorno=None, curso=None)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        assert cli.main(["estructura", "--cambios", "a.html", "b.md"]) == 0
+        assert capturado["peticion"]["ficheros"] == ["a.html", "b.md"]
+        assert capturado["peticion"]["entorno"] is None
+        buzon.validar_peticion(capturado["peticion"])
+
 
 def procesar(peticion, moodle, cfg, base, _dir_tiza=None, **opciones):
     """Lo que hace «tiza sesion» con una petición, con la presencia de la terminal."""

@@ -479,6 +479,25 @@ class TestOrdenar:
             Fichero(nombre="a.md", tipo="pagina", accion="reordenada")
 
 
+class TestEstructuraCambios:
+    """``tiza estructura --cambios``: una acción por fichero y curso real."""
+
+    @pytest.mark.parametrize("accion", ["cambiada", "sin_cambios", "sin_registro"])
+    def test_las_acciones_valen(self, accion):
+        documento = crear(
+            "estructura",
+            "ok",
+            [Paso("LOGIN")],
+            [Fichero(nombre="a.md", tipo="pagina", cmid=7, accion=accion, curso=2)],
+            [],
+        )
+        validar(documento)
+
+    def test_una_accion_inventada_no_vale(self):
+        with pytest.raises(ErrorInforme):
+            Fichero(nombre="a.md", tipo="pagina", accion="retocada")
+
+
 class TestCalificador:
     """El informe de ``tiza calificador``: sus pasos, sus acciones por actividad y sus recuentos."""
 

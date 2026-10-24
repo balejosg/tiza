@@ -20,7 +20,7 @@ import secrets
 import shutil
 import tempfile
 import time
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Collection, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import unquote, urljoin, urlsplit
@@ -2538,13 +2538,9 @@ def _publicar_congelado(
             # El formulario de edición que se carga para actualizar: lo que hay en el aula
             # se compara aquí y no sale; solo llega un código.
             leido = moodle.leer_modulo(encontrado["cmid"])
-            tipo = tipos.obtener(doc.tipo)
-            en_el_aula = tipos.huella_del_formulario(tipo, doc, leido)
             # Como estaba en la copia, o ya con lo que tiza iba a escribir (un intento anterior
             # escribió y falló al verificar): en los dos casos no hay cambio ajeno que perder.
-            if en_el_aula != huella_aula and en_el_aula != tipos.huella_de_lo_enviado(
-                tipo, doc, html_para_moodle(doc)
-            ):
+            if _formulario_cambiado(doc, huella_aula, leido):
                 raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
     elif comprobar_registro and not sobrescribir:
         # Lo hallado por el registro y con base en él: ¿lo retocó el docente a mano desde la
@@ -3015,17 +3011,39 @@ def _marca_sin_juntar(doc: Documento, entrada: Publicado) -> bool:
     return entrada.marca is not None and entrada.marca in (doc.sha256_fichero, MARCA_ILEGIBLE)
 
 
-def _huella_cambiada(doc: Documento, entrada: Publicado, leido: dict) -> bool:
-    """¿Difiere el formulario ``leido`` de la base guardada y de lo que tiza iba a enviar?
+def _formulario_cambiado(doc: Documento, base: str, leido: dict) -> bool:
+    """¿Difiere el formulario ``leido`` de la huella ``base`` y de lo que tiza iba a enviar?
 
     Lo segundo cubre un intento anterior que escribió y falló al verificar: el aula ya tiene lo
     de tiza y no hay cambio ajeno que perder. Solo se compara; la huella nunca sale de aquí.
+    Vale para la base del registro y para la de ``copia.json``.
     """
     tipo = tipos.obtener(doc.tipo)
     en_el_aula = tipos.huella_del_formulario(tipo, doc, leido)
-    return en_el_aula != entrada.huella and en_el_aula != tipos.huella_de_lo_enviado(
+    return en_el_aula != base and en_el_aula != tipos.huella_de_lo_enviado(
         tipo, doc, html_para_moodle(doc)
     )
+
+
+def _huella_cambiada(doc: Documento, entrada: Publicado, leido: dict) -> bool:
+    """¿Difiere el formulario ``leido`` de la base de la entrada del registro y de lo enviado?"""
+    assert entrada.huella is not None  # ``_entrada_vigilada`` solo da entradas con huella
+    return _formulario_cambiado(doc, entrada.huella, leido)
+
+
+def _retocada(moodle: AulaVirtual, doc: Documento, base: str, sin_juntar: bool, cmid: int) -> bool:
+    """¿Cambió el docente la actividad ``cmid`` desde que tiza guardó la huella ``base``?
+
+    Con la marca sin juntar ya se sabe sin leer el aula. Si no se puede leer el formulario, no se
+    sabe: cuenta como cambiado, para no pisar a ciegas.
+    """
+    if sin_juntar:
+        return True
+    try:
+        leido = moodle.leer_modulo(cmid)
+    except ErrorPublicacion:
+        return True
+    return _formulario_cambiado(doc, base, leido)
 
 
 def cambio_a_mano(moodle: AulaVirtual, secciones: list[dict], doc: Documento, curso: int) -> bool:
@@ -3043,14 +3061,45 @@ def cambio_a_mano(moodle: AulaVirtual, secciones: list[dict], doc: Documento, cu
     entrada = _entrada_vigilada(doc, curso, loc)
     if entrada is None:
         return False
-    if _marca_sin_juntar(doc, entrada):
-        return True
-    assert loc.modulo is not None
+    assert entrada.huella is not None and loc.modulo is not None
+    return _retocada(
+        moodle, doc, entrada.huella, _marca_sin_juntar(doc, entrada), loc.modulo["cmid"]
+    )
+
+
+def cambio_desde_la_base(
+    moodle: AulaVirtual,
+    secciones: list[dict],
+    doc: Documento,
+    curso: int,
+    huellas: Mapping[int, str],
+    marcas: Mapping[int, str],
+) -> tuple[bool | None, int | None]:
+    """(¿lo retocó el docente?, cmid de la actividad) de ``doc`` en el curso real ``curso``.
+
+    La regla de la publicación (``cambio_a_mano``), ampliada a lo hallado por ``origen``, cuya base
+    es ``copia.json`` (``huellas``/``marcas`` por cmid). El primer valor es ``None`` si no hay base
+    con la que comparar: la actividad no está, no la halló el registro o el ``origen``, o su
+    entrada no tiene huella. Solo lectura.
+    """
     try:
-        leido = moodle.leer_modulo(loc.modulo["cmid"])
-    except ErrorPublicacion:
-        return True
-    return _huella_cambiada(doc, entrada, leido)
+        loc = localizar(secciones, doc, curso)
+    except (ErrorPublicacion, TypeError, ValueError):
+        return None, None
+    cmid = loc.modulo["cmid"] if loc.modulo is not None else None
+    if loc.por == "origen" and loc.modulo is not None:
+        base = huellas.get(loc.modulo["cmid"])
+        if base is None:
+            return None, cmid
+        marca = marcas.get(loc.modulo["cmid"])
+        sin_juntar = marca in (doc.sha256_fichero, MARCA_ILEGIBLE)
+        return _retocada(moodle, doc, base, sin_juntar, loc.modulo["cmid"]), cmid
+    entrada = _entrada_vigilada(doc, curso, loc)
+    if entrada is None or entrada.huella is None or loc.modulo is None:
+        return None, cmid
+    return _retocada(
+        moodle, doc, entrada.huella, _marca_sin_juntar(doc, entrada), loc.modulo["cmid"]
+    ), cmid
 
 
 def modulos_fuera(secciones: list[dict], doc: Documento) -> list[tuple[dict, dict]]:

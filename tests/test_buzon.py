@@ -128,11 +128,10 @@ class TestValidarPeticion:
         with pytest.raises(buzon.ErrorBuzon):
             buzon.validar_peticion(peticion_valida(ficheros=[]))
 
-    def test_estructura_no_admite_ficheros(self):
-        with pytest.raises(buzon.ErrorBuzon):
-            buzon.validar_peticion(
-                peticion_valida(comando="estructura", ficheros=["pagina.md"], entorno=None)
-            )
+    def test_estructura_admite_ficheros(self):
+        buzon.validar_peticion(
+            peticion_valida(comando="estructura", ficheros=["pagina.md"], entorno=None)
+        )
 
     def test_estructura_no_admite_entorno(self):
         with pytest.raises(buzon.ErrorBuzon):

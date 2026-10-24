@@ -127,6 +127,14 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     estructura = sub.add_parser("estructura", help="lee las secciones de los cursos (autenticado)")
+    estructura.add_argument(
+        "--cambios",
+        nargs="+",
+        default=[],
+        metavar="FICHERO",
+        help="dice, en cada curso real, si retocaste a mano en el aula esas actividades desde "
+        "la última vez que tiza las publicó o importó",
+    )
     estructura.add_argument("--debug", action="store_true")
 
     publicar_parser = sub.add_parser(
@@ -1261,6 +1269,19 @@ def _estructura_directa(args) -> int:
         return salida
     if not cfg.reales:
         return _fallo(comando, "CURSO_NO_CONFIGURADO", "real")
+    base = Path.cwd().resolve()
+    documentos = []
+    for nombre in args.cambios:
+        try:
+            documentos.append(contenido.cargar(nombre, raiz=base))
+        except ErrorContenido as exc:
+            return _fallo(
+                comando,
+                exc.codigo,
+                mensajes.texto_seguro(f"{Path(nombre).name}: {exc.detalle}", 300),
+                exc=exc,
+                debug=args.debug,
+            )
     destinos = [("pruebas", cfg.cursos["pruebas"])] if "pruebas" in cfg.cursos else []
     destinos += [("real", curso) for curso in cfg.reales]
     for nombre, curso in destinos:
@@ -1274,7 +1295,9 @@ def _estructura_directa(args) -> int:
     except ErrorPublicacion as exc:
         return _fallo(comando, exc.codigo, exc.detalle, exc=exc, debug=args.debug)
     with publicar.sesion_del_aula(moodle):
-        documento = sesion_abierta.estructura_con(moodle, cfg, Path.cwd(), debug=args.debug)
+        documento = sesion_abierta.estructura_con(
+            moodle, cfg, Path.cwd(), ficheros=documentos, debug=args.debug
+        )
         _escribir(documento)
         return 0 if documento["resultado"] == "ok" else 1
 
@@ -1573,7 +1596,7 @@ def _publicar_por_buzon(args, dir_tiza: Path) -> int:
 
 
 def _estructura_por_buzon(args, dir_tiza: Path) -> int:
-    peticion = agente.peticion_estructura()
+    peticion = agente.peticion_estructura(args.cambios)
     return _responder_buzon("estructura", peticion, dir_tiza, debug=args.debug)
 
 

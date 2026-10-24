@@ -252,8 +252,7 @@ def validar_peticion(peticion: Any) -> None:
         if peticion["solo_fechas"]:
             raise ErrorBuzon("PETICION_INVALIDA", "copia no admite solo_fechas")
     elif peticion["comando"] == "estructura":
-        if ficheros:
-            raise ErrorBuzon("PETICION_INVALIDA", "estructura no admite ficheros")
+        # ``ficheros`` (opcionales) son las actividades cuyo retoque en el aula se quiere saber.
         if entorno is not None:
             raise ErrorBuzon("PETICION_INVALIDA", "estructura no admite entorno")
         if peticion["solo_fechas"]:

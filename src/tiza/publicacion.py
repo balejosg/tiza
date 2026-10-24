@@ -1268,6 +1268,31 @@ def cambiadas_en_el_aula(
     return tuple(doc for doc in documentos if publicar.cambio_a_mano(aula, secciones, doc, curso))
 
 
+def cambios_en_el_aula(
+    aula: AulaVirtual,
+    secciones: list[dict],
+    documentos: Sequence[Documento],
+    curso: int,
+    dir_tiza: Path,
+) -> list[informe.Fichero]:
+    """Un ``Fichero`` por documento: ``cambiada``, ``sin_cambios`` o ``sin_registro`` en ``curso``.
+
+    Para ``tiza estructura --cambios`` (solo cursos reales; el llamador no pide el de pruebas). Con
+    la regla de la publicación (``publicar.cambio_desde_la_base``); no escribe nada ni lleva texto
+    del aula. ``copia.json`` solo se lee si algún documento viene de este curso por su ``origen``
+    (``ErrorEstado`` si no vale).
+    """
+    huellas, marcas = _guardado_de_copia(dir_tiza, curso, list(documentos))
+    ficheros = []
+    for doc in documentos:
+        cambiada, cmid = publicar.cambio_desde_la_base(aula, secciones, doc, curso, huellas, marcas)
+        accion = "sin_registro" if cambiada is None else "cambiada" if cambiada else "sin_cambios"
+        ficheros.append(
+            informe.Fichero(doc.ruta.name, doc.tipo, cmid=cmid, accion=accion, curso=curso)
+        )
+    return ficheros
+
+
 def _borrada(secciones: list[dict], doc: Documento, curso: int | None) -> bool:
     """¿La daba el registro por publicada en este curso y ya no está en el aula?"""
     try:

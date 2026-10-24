@@ -377,12 +377,13 @@ def peticion_copia(curso: str, ficheros: Sequence[str] = ()) -> dict:
     }
 
 
-def peticion_estructura() -> dict:
+def peticion_estructura(cambios: Sequence[str] = ()) -> dict:
+    """Petición de estructura; con ``cambios``, también si el docente retocó esas actividades."""
     return {
         "version": buzon.VERSION_PROTOCOLO,
         "id": uuid.uuid4().hex,
         "comando": "estructura",
-        "ficheros": [],
+        "ficheros": list(cambios),
         "entorno": None,
         "visible": None,
         "solo_fechas": False,
@@ -454,11 +455,17 @@ def copia(
 def estructura(
     carpeta: str | Path,
     *,
+    cambios: Sequence[str] = (),
     espera: float = buzon.ESPERA_POR_DEFECTO,
     cancelar: threading.Event | None = None,
 ) -> dict:
-    """Pide a la sesión del docente que actualice ``.tiza/estructura.json``."""
-    return _enviar(carpeta, peticion_estructura(), espera, cancelar)
+    """Pide a la sesión del docente que actualice ``.tiza/estructura.json``.
+
+    Con ``cambios`` (ficheros de la carpeta), el informe dice además, por curso real, si el
+    docente retocó a mano esas actividades desde que tiza las publicó o importó (``cambiada``,
+    ``sin_cambios`` o ``sin_registro``). Parámetro nuevo: la versión menor sube en su tarea.
+    """
+    return _enviar(carpeta, peticion_estructura(cambios), espera, cancelar)
 
 
 def estado_sesion(carpeta: str | Path) -> dict:

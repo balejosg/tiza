@@ -19,7 +19,7 @@ registro de verificados en memoria.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -49,11 +49,24 @@ def registrar(documento: dict, carpeta: Path, presencia: Presencia) -> dict:
     return documento
 
 
-def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool = False) -> dict:
-    """Con el aula ya abierta: lee y guarda la estructura de los cursos configurados."""
+def estructura_con(
+    aula: AulaVirtual,
+    cfg: Config,
+    carpeta: Path,
+    *,
+    ficheros: Sequence[Documento] = (),
+    debug: bool = False,
+) -> dict:
+    """Con el aula ya abierta: lee y guarda la estructura de los cursos configurados.
+
+    Con ``ficheros``, el informe lleva además un ``Fichero`` por documento y curso real que dice
+    si el docente retocó la actividad a mano (``cambiada``, ``sin_cambios`` o ``sin_registro``).
+    Sin ellos no se lee nada más. El curso de pruebas no se comprueba.
+    """
     borrador = informe.Borrador("estructura")
     borrador.paso("LOGIN")
     cursos: dict[str, Any] = {}
+    cambios: list[informe.Fichero] = []
     try:
         destinos: list[tuple[str, int]] = []
         if "pruebas" in cfg.cursos:
@@ -77,6 +90,14 @@ def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool
             else:
                 cursos[nombre] = curso
             borrador.paso("ESTRUCTURA", detalle=f"{nombre}: {len(secciones)} secciones")
+            if ficheros and nombre == "real":
+                cambios += publicacion.cambios_en_el_aula(
+                    aula, secciones, ficheros, curso_id, Path(carpeta) / rutas.CARPETA_TRABAJO
+                )
+    except estado.ErrorEstado as exc:  # ``copia.json`` que no vale
+        borrador.fallo("ESTRUCTURA", exc.codigo)
+        borrador.error(exc.codigo)
+        return borrador.documento("error")
     except ErrorPublicacion as exc:
         borrador.fallo("ESTRUCTURA", exc.codigo)
         borrador.error(exc.codigo)
@@ -88,6 +109,8 @@ def estructura_con(aula: AulaVirtual, cfg: Config, carpeta: Path, *, debug: bool
         borrador.fallo("ESTRUCTURA", exc.codigo)
         borrador.error(exc.codigo)
         return borrador.documento("error")
+    for fichero in cambios:
+        borrador.fichero(fichero)
     return borrador.documento()
 
 
@@ -163,7 +186,18 @@ class SesionAbierta:
         if comando == "estructura":
             if not self.cfg.reales:
                 return informe.crear(comando, "error", [], [], ["CURSO_NO_CONFIGURADO"])
-            documento = estructura_con(self.aula, self.cfg, base, debug=self.debug)
+            pedidos: list[Documento] = []
+            for nombre in peticion["ficheros"]:
+                ruta = _ruta_dentro(base, nombre)
+                if ruta is None:
+                    return informe.crear(comando, "error", [], [], ["RUTA_FUERA_DE_CARPETA"])
+                try:
+                    pedidos.append(contenido.cargar(ruta, raiz=base))
+                except ErrorContenido as exc:
+                    return informe.crear(comando, "error", [], [], [exc.codigo])
+            documento = estructura_con(
+                self.aula, self.cfg, base, ficheros=pedidos, debug=self.debug
+            )
             return registrar(documento, base, self.presencia)
         if comando == "copia":
             dir_tiza = base / rutas.CARPETA_TRABAJO

@@ -65,6 +65,9 @@ ACCIONES = {
     "renombrada",  # se actualizó la misma actividad con otro nombre (no se duplicó)
     "ordenada",
     "sin_cambios",
+    # tiza estructura --cambios: ¿retocó el docente la actividad a mano desde que tiza la dejó?
+    "cambiada",
+    "sin_registro",  # tiza no tiene base con la que comparar (o la actividad no está)
     # tiza calificador: dónde queda cada actividad en el calificador
     "colocada",
     "ya_estaba",
