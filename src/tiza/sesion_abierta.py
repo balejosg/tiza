@@ -115,7 +115,7 @@ class SesionAbierta:
     # Solo lo publicado en pruebas en esta sesión: la puerta de real lo lee de aquí,
     # nunca de verificados.json (el agente puede escribir ese fichero).
     verificados: dict[str, estado.Verificado] = field(default_factory=dict)
-    cupo: dict = field(default_factory=lambda: {"pruebas": 0, "copias": 0})
+    cupo: dict = field(default_factory=lambda: {"pruebas": 0, "copias": 0, "copias_actividad": 0})
 
     def _calificador(self, peticion: dict, base: Path, entorno: str, curso: int | None) -> dict:
         """``tiza calificador``: el esquema y todas las actividades de la carpeta, no solo los
@@ -167,17 +167,31 @@ class SesionAbierta:
             return registrar(documento, base, self.presencia)
         if comando == "copia":
             dir_tiza = base / rutas.CARPETA_TRABAJO
-            documento = publicacion.copiar_curso(
-                self.aula,
-                self.cfg,
-                peticion["curso"],
-                base,
-                self.presencia,
-                self.cupo,
-                nombres=self.nombres,
-                vigente=lambda: buzon.peticion_pendiente(dir_tiza, peticion["id"]),
-                debug=self.debug,
-            )
+            if peticion["ficheros"]:
+                documento = publicacion.copiar_actividades(
+                    self.aula,
+                    self.cfg,
+                    peticion["curso"],
+                    peticion["ficheros"],
+                    base,
+                    self.presencia,
+                    self.cupo,
+                    nombres=self.nombres,
+                    vigente=lambda: buzon.peticion_pendiente(dir_tiza, peticion["id"]),
+                    debug=self.debug,
+                )
+            else:
+                documento = publicacion.copiar_curso(
+                    self.aula,
+                    self.cfg,
+                    peticion["curso"],
+                    base,
+                    self.presencia,
+                    self.cupo,
+                    nombres=self.nombres,
+                    vigente=lambda: buzon.peticion_pendiente(dir_tiza, peticion["id"]),
+                    debug=self.debug,
+                )
             return registrar(documento, base, self.presencia)
         entorno = peticion["entorno"]
         cursos_de_entorno: tuple[int, ...] = (

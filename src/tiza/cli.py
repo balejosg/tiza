@@ -195,6 +195,14 @@ def _parser() -> argparse.ArgumentParser:
         "curso",
         help="«pruebas», «real» (si solo hay un curso real) o el id de un curso de tiza.toml",
     )
+    copia.add_argument(
+        "--actividad",
+        action="append",
+        default=[],
+        metavar="FICHERO",
+        help="copia solo de esta actividad (un fichero de la carpeta ya publicado en el curso "
+        "real); se puede repetir. Sin ella, la copia es del curso entero",
+    )
     copia.add_argument("--debug", action="store_true")
 
     autoprueba = sub.add_parser(
@@ -1521,7 +1529,7 @@ def _copia(args) -> int:
     dir_tiza = _dir_tiza()
     if buzon.sesion_activa(dir_tiza):
         return _responder_buzon(
-            "copia", agente.peticion_copia(args.curso), dir_tiza, debug=args.debug
+            "copia", agente.peticion_copia(args.curso, args.actividad), dir_tiza, debug=args.debug
         )
     version = buzon.sesion_incompatible(dir_tiza)
     if version is not None:

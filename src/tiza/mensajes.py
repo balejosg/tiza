@@ -574,11 +574,25 @@ class DetalleCopia:
     curso: str
     entorno: str
     pregunta: str
+    actividades: tuple[str, ...] = ()  # una por línea; vacío = la copia es del curso entero
 
 
 def detalle_copia(resumen: ResumenCopia) -> DetalleCopia:
-    """La pregunta de la copia del curso, con el nombre del curso saneado (viene del aula)."""
+    """La pregunta de la copia del curso, con el nombre del curso saneado (viene del aula).
+
+    Con ``actividades`` (nombres tal como están en el fichero), la copia es de esas actividades.
+    """
     nombre = texto_seguro(resumen.nombre_curso, 80) if resumen.nombre_curso else None
+    if resumen.actividades:
+        return DetalleCopia(
+            curso=describir_curso(resumen.curso, resumen.nombre_curso),
+            entorno=resumen.entorno,
+            pregunta=(
+                "¿Hacer una copia de seguridad de estas actividades, sin datos de alumnos, "
+                "para juntar tus cambios?"
+            ),
+            actividades=tuple(texto_seguro(a, 80) for a in resumen.actividades),
+        )
     return DetalleCopia(
         curso=describir_curso(resumen.curso, resumen.nombre_curso),
         entorno=resumen.entorno,

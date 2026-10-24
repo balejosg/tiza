@@ -640,6 +640,22 @@ def test_confirmar_copia_hace_la_pregunta_exacta_y_sanea_el_nombre(monkeypatch, 
     assert terminal.PresenciaTerminal().confirmar_copia(resumen) is False
 
 
+def test_confirmar_copia_de_actividades_enseña_la_lista_con_nombres_saneados(monkeypatch, capsys):
+    preguntas: list = []
+    monkeypatch.setattr(terminal, "confirmar", lambda pregunta: preguntas.append(pregunta) or True)
+    resumen = publicacion.ResumenCopia(
+        5678, "Mates", "real", ("Repaso\x1b[2J de fracciones", "Tarea 1")
+    )
+    assert terminal.PresenciaTerminal().confirmar_copia(resumen) is True
+    assert preguntas == [
+        "¿Hacer una copia de seguridad de estas actividades, sin datos de alumnos, para juntar "
+        "tus cambios?"
+    ]
+    salida = capsys.readouterr().out
+    assert "  · Repaso[2J de fracciones" in salida and "  · Tarea 1" in salida
+    assert "\x1b" not in salida
+
+
 def test_cerrar_sesion_anterior_avisa_si_atiende_algo(monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", lambda _prompt="": "s")
     presencia = terminal.PresenciaTerminal()

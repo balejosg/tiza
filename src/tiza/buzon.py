@@ -246,8 +246,9 @@ def validar_peticion(peticion: Any) -> None:
             raise ErrorBuzon(
                 "PETICION_INVALIDA", "curso debe ser el nombre de un curso de tiza.toml"
             )
-        if ficheros or entorno is not None or peticion["visible"] is not None:
-            raise ErrorBuzon("PETICION_INVALIDA", "copia solo admite curso")
+        # ``ficheros`` (vacío = el curso entero) son las actividades de las que se quiere copia.
+        if entorno is not None or peticion["visible"] is not None:
+            raise ErrorBuzon("PETICION_INVALIDA", "copia solo admite curso y ficheros")
         if peticion["solo_fechas"]:
             raise ErrorBuzon("PETICION_INVALIDA", "copia no admite solo_fechas")
     elif peticion["comando"] == "estructura":

@@ -568,9 +568,10 @@ def _copia_hecha(**cambios) -> informe.CopiaHecha:
 
 
 def test_el_informe_de_copia_lleva_la_copia_y_valida():
-    documento = crear("copia", "ok", [Paso("COPIAR", detalle="2048 bytes")], copia=_copia_hecha())
+    documento = crear("copia", "ok", [Paso("COPIAR", detalle="2048 bytes")], copia=[_copia_hecha()])
     validar(documento)
-    assert documento["copia"]["actividades"] == {"assign": 1, "page": 3}
+    assert documento["copia"][0]["actividades"] == {"assign": 1, "page": 3}
+    assert documento["copia"][0]["cmid"] is None
     assert any(
         "Copia pruebas: .tiza/copias/pruebas-20261019-1030.mbz" in l for l in resumen(documento)
     )
@@ -581,9 +582,9 @@ def test_el_informe_de_copia_lleva_la_copia_y_valida():
 
 def test_solo_el_informe_de_copia_lleva_copia():
     with pytest.raises(ErrorInforme) as exc:
-        crear("publicar", "ok", [], copia=_copia_hecha())
+        crear("publicar", "ok", [], copia=[_copia_hecha()])
     assert exc.value.codigo == "CAMPO_NO_PERMITIDO"
-    documento = crear("copia", "ok", [], copia=_copia_hecha())
+    documento = crear("copia", "ok", [], copia=[_copia_hecha()])
     documento["comando"] = "publicar"
     with pytest.raises(ErrorInforme):
         validar(documento)
@@ -612,16 +613,44 @@ def test_la_copia_hecha_rechaza_valores_fuera_del_esquema(cambios):
 
 
 def test_la_copia_del_informe_es_un_esquema_cerrado():
-    documento = crear("copia", "ok", [], copia=_copia_hecha())
-    documento["copia"]["texto_de_moodle"] = "hola"
+    documento = crear("copia", "ok", [], copia=[_copia_hecha()])
+    documento["copia"][0]["texto_de_moodle"] = "hola"
     with pytest.raises(ErrorInforme) as exc:
         validar(documento)
     assert exc.value.codigo == "CAMPO_NO_PERMITIDO"
-    documento = crear("copia", "ok", [], copia=_copia_hecha())
-    del documento["copia"]["bytes"]
+    documento = crear("copia", "ok", [], copia=[_copia_hecha()])
+    del documento["copia"][0]["bytes"]
     with pytest.raises(ErrorInforme) as exc:
         validar(documento)
     assert exc.value.codigo == "CAMPO_FALTANTE"
+
+
+def test_la_copia_del_informe_es_una_lista_no_vacia():
+    for malo in ({"curso": "pruebas"}, [], "copia"):
+        documento = crear("copia", "ok", [], copia=[_copia_hecha()])
+        documento["copia"] = malo
+        with pytest.raises(ErrorInforme):
+            validar(documento)
+
+
+def test_la_copia_de_una_actividad_lleva_su_cmid():
+    una = _copia_hecha(cmid=502, actividades={"assign": 1}, curso="real")
+    otra = _copia_hecha(cmid=503, curso="real")
+    documento = crear("copia", "ok", [], copia=[una, otra])
+    validar(documento)
+    assert [c["cmid"] for c in documento["copia"]] == [502, 503]
+    assert any("(cmid 502)" in linea for linea in resumen(documento))
+    for cmid in ("502", True, 1.5):
+        with pytest.raises(ErrorInforme):
+            _copia_hecha(cmid=cmid)
+
+
+def test_el_borrador_acumula_las_copias():
+    borrador = informe.Borrador("copia", entorno="real", curso=5)
+    borrador.copia(_copia_hecha(cmid=1))
+    borrador.copia(_copia_hecha(cmid=2))
+    assert [c["cmid"] for c in borrador.documento()["copia"]] == [1, 2]
+    assert "copia" not in informe.Borrador("copia").documento()
 
 
 def test_el_resumen_de_rellenar_lleva_las_sustituciones():

@@ -31,7 +31,7 @@ import re
 import sys
 import traceback
 from collections import Counter
-from collections.abc import Callable, Collection, Mapping
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
@@ -60,6 +60,7 @@ __all__ = [
     "ActividadOrden",
     "CambioFecha",
     "CUPO_COPIAS",
+    "CUPO_COPIAS_ACTIVIDAD",
     "CambioNombre",
     "CambioSeccion",
     "DocumentoBreve",
@@ -84,6 +85,7 @@ __all__ = [
     "calificador_en_cursos",
     "cargar_calendario",
     "codigo_solo_fechas",
+    "copiar_actividades",
     "copiar_curso",
     "depurar",
     "exige_oculto_sin_pruebas",
@@ -105,6 +107,7 @@ __all__ = [
 AVISO_DEBUG = "AVISO: salida de depuración; no la compartas."
 MAX_PUBLICACIONES_PRUEBAS = 50  # por sesión: frena a un agente en bucle
 CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
+CUPO_COPIAS_ACTIVIDAD = 20  # copias de una sola actividad por sesión (cada actividad gasta 1)
 # Moodle reescala los pesos de los hermanos al guardar uno: fijarlos converge, pero no de golpe.
 # Tope de repasos de la segunda pasada del calificador (cada uno suele dividir el error por 4).
 MAX_PASADAS_DE_AJUSTE = 8
@@ -548,14 +551,17 @@ class PlanCalificador:
 
 @dataclass(frozen=True)
 class ResumenCopia:
-    """La copia del curso que se pide: la presencia lo enseña y el docente decide.
+    """La copia que se pide: la presencia lo enseña y el docente decide.
 
     ``entorno`` es ``pruebas`` o ``real``; ``nombre_curso`` viene del aula y solo lo ve el docente.
+    ``actividades`` son los nombres tal como están en el fichero (``doc.nombre``) cuando la copia
+    es de actividades sueltas; vacío, la copia es del curso entero.
     """
 
     curso: int
     nombre_curso: str | None
     entorno: str
+    actividades: tuple[str, ...] = ()  # ``doc.nombre`` de cada una; vacío = el curso entero
 
 
 @dataclass(frozen=True)
@@ -2504,6 +2510,112 @@ def _borrar_del_aula(
     return True
 
 
+class _FalloDeCopia(Exception):
+    """Una copia que no salió: el código, la causa (para depurar) y si quedó en el aula."""
+
+    def __init__(self, codigo: str, causa: BaseException | None, queda_en_el_aula: bool) -> None:
+        super().__init__(codigo)
+        self.codigo = codigo
+        self.causa = causa
+        self.queda_en_el_aula = queda_en_el_aula
+
+
+def _traer_copia(
+    aula: AulaVirtual,
+    curso_id: int,
+    curso: str,
+    dir_tiza: Path,
+    temporal: Path,
+    presencia: Presencia,
+    debug: bool,
+    cmid: int | None = None,
+) -> tuple[informe.CopiaHecha, int]:
+    """Hace una copia (del curso, o de la actividad ``cmid``), la guarda y la quita del aula.
+
+    Lo común de ``tiza copia``: descarga a ``temporal``, la abre con :func:`tiza.copia.abrir_copia`
+    (una con usuarios, o que no vale, se borra del aula y da su código), la deja en
+    ``.tiza/copias/`` sin sobrescribir nada y la borra de la zona de copias del docente (si no
+    puede, avisa y ``borrada_del_aula`` va a falso). Con ``cmid`` exige que traiga exactamente esa
+    actividad (``COPIA_NO_VALIDA`` si no). Devuelve la copia hecha y los bytes descargados; si
+    falla, ``_FalloDeCopia`` (la copia ya no está en el aula, o ``queda_en_el_aula``). Quita
+    ``temporal`` siempre.
+    """
+    from .copia import MAX_COPIA, ErrorCopia, abrir_copia  # carga diferida: lxml
+
+    nombre_en_el_aula: str | None = None
+
+    def fallo(codigo: str, causa: BaseException | None = None) -> _FalloDeCopia:
+        nonlocal nombre_en_el_aula
+        queda = bool(getattr(causa, "queda_en_el_aula", False))
+        if nombre_en_el_aula is not None:
+            # La copia ya estaba en el aula y no se queda: tampoco con sus datos en la zona del docente.
+            queda = not _borrar_del_aula(aula, nombre_en_el_aula, curso_id, presencia, debug)
+            nombre_en_el_aula = None
+        elif queda:
+            presencia.informar(Aviso.copia_queda_en_el_aula())
+        return _FalloDeCopia(codigo, causa, queda)
+
+    try:
+        try:
+            if cmid is None:
+                hecha = aula.hacer_copia(curso_id, temporal, MAX_COPIA)
+            else:
+                hecha = aula.hacer_copia(curso_id, temporal, MAX_COPIA, cmid)
+        except ErrorPublicacion as exc:
+            raise fallo(exc.codigo, exc) from None
+        except OSError as exc:
+            raise fallo("COPIA_NO_ESCRIBIBLE", exc) from None
+        nombre_en_el_aula = hecha.nombre
+        try:
+            contenido_de_la_copia = abrir_copia(temporal)
+        except ErrorCopia as exc:
+            raise fallo(exc.codigo, exc) from None
+        if cmid is not None and [a.cmid for a in contenido_de_la_copia.actividades] != [cmid]:
+            raise fallo("COPIA_NO_VALIDA")  # no trae exactamente la actividad pedida
+        try:
+            destino = estado.reservar_copia(dir_tiza, curso, datetime.now(), temporal, cmid)
+        except OSError as exc:
+            raise fallo("COPIA_NO_ESCRIBIBLE", exc) from None
+        borrada = _borrar_del_aula(aula, hecha.nombre, curso_id, presencia, debug)
+        nombre_en_el_aula = None
+        return (
+            informe.CopiaHecha(
+                curso=curso,
+                fichero=f"{rutas.CARPETA_TRABAJO}/{estado.CARPETA_COPIAS}/{destino.name}",
+                bytes=hecha.bytes,
+                actividades=Counter(a.modulo[:30] for a in contenido_de_la_copia.actividades),
+                borrada_del_aula=borrada,
+                cmid=cmid,
+            ),
+            hecha.bytes,
+        )
+    finally:
+        _quitar(temporal)  # tras renombrarla ya no existe; si algo falló, no queda a medias
+        if nombre_en_el_aula is not None:
+            # Un fallo inesperado: que la copia no se quede en la zona del docente.
+            _borrar_del_aula(aula, nombre_en_el_aula, curso_id, presencia, debug)
+
+
+def _anotar_copia(borrador: informe.Borrador, hecha: informe.CopiaHecha, bytes_: int) -> None:
+    """Los pasos y la copia de una copia hecha (los comparten la del curso y las de actividad)."""
+    borrador.paso("COPIAR", detalle=f"{bytes_} bytes")
+    if hecha.borrada_del_aula:
+        borrador.paso("BORRAR_COPIA")
+    else:
+        borrador.fallo("BORRAR_COPIA", "COPIA_QUEDA_EN_EL_AULA")
+    borrador.copia(hecha)
+
+
+def _anotar_fallo_de_copia(borrador: informe.Borrador, fallo: _FalloDeCopia, debug: bool) -> dict:
+    borrador.fallo("COPIAR", fallo.codigo)
+    if fallo.queda_en_el_aula:
+        borrador.fallo("BORRAR_COPIA", "COPIA_QUEDA_EN_EL_AULA")
+    borrador.error(fallo.codigo)
+    if fallo.causa is not None:
+        depurar(fallo.causa, debug)
+    return borrador.documento("error")
+
+
 def copiar_curso(
     aula: AulaVirtual,
     cfg: Config,
@@ -2527,8 +2639,6 @@ def copiar_curso(
     sobrescribir nada. Después se borra de la zona de copias del docente en Moodle; si no se
     puede, se avisa y ``borrada_del_aula`` va a falso. El informe lleva solo códigos y números.
     """
-    from .copia import MAX_COPIA, ErrorCopia, abrir_copia  # carga diferida: lxml
-
     comando = "copia"
     try:
         entorno, curso_id = _curso_de_copia(cfg, curso)
@@ -2555,60 +2665,114 @@ def copiar_curso(
 
     borrador = informe.Borrador(comando, entorno=entorno, curso=curso_id)
     borrador.paso("LOGIN")
-
-    nombre_en_el_aula: str | None = None
-
-    def terminar(codigo: str, causa: BaseException | None = None) -> dict:
-        nonlocal nombre_en_el_aula
-        queda = bool(getattr(causa, "queda_en_el_aula", False))
-        if nombre_en_el_aula is not None:
-            # La copia ya estaba en el aula y no se queda: tampoco con sus datos en la zona del docente.
-            queda = not _borrar_del_aula(aula, nombre_en_el_aula, curso_id, presencia, debug)
-            nombre_en_el_aula = None
-        elif queda:
-            presencia.informar(Aviso.copia_queda_en_el_aula())
-        borrador.fallo("COPIAR", codigo)
-        if queda:
-            borrador.fallo("BORRAR_COPIA", "COPIA_QUEDA_EN_EL_AULA")
-        borrador.error(codigo)
-        if causa is not None:
-            depurar(causa, debug)
-        return borrador.documento("error")
-
     try:
+        hecha, bytes_ = _traer_copia(aula, curso_id, curso, dir_tiza, temporal, presencia, debug)
+    except _FalloDeCopia as exc:
+        return _anotar_fallo_de_copia(borrador, exc, debug)
+    _anotar_copia(borrador, hecha, bytes_)
+    return borrador.documento()
+
+
+def copiar_actividades(
+    aula: AulaVirtual,
+    cfg: Config,
+    curso: str,
+    ficheros: Sequence[str],
+    base: Path,
+    presencia: Presencia,
+    cupo: dict,
+    *,
+    nombres: Mapping[int, str] | None = None,
+    vigente: Callable[[], bool] | None = None,
+    debug: bool = False,
+) -> dict:
+    """``tiza copia <curso> --actividad <fichero>…``: una copia por actividad, para juntar cambios.
+
+    Solo cursos reales (``COPIA_DE_ACTIVIDAD_SOLO_REAL``). Cada fichero (dentro de ``base``) se
+    localiza en el curso por el registro de lo publicado o por su ``origen``
+    (:func:`publicar.localizar`); el agente nunca da cmids. Todo o nada antes de confirmar: si un
+    fichero no se halla así (``ACTIVIDAD_SIN_REGISTRO``) o no caben todas en el cupo propio
+    (``CUPO_COPIAS_ACTIVIDAD`` por sesión, 1 por actividad), no se pide nada. Una confirmación
+    por petición con los nombres; con un no, ``COPIA_RECHAZADA``. Luego, una copia por actividad
+    (en orden): si una falla se para ahí y las ya hechas quedan y salen en el informe.
+    """
+    comando = "copia"
+    try:
+        entorno, curso_id = _curso_de_copia(cfg, curso)
+    except ErrorPublicacion as exc:
+        return informe.crear(comando, "error", [], [], [exc.codigo])
+
+    def fallo(codigo: str, resultado: str = "error", ficheros: Sequence = ()) -> dict:
+        return informe.crear(comando, resultado, [], ficheros, [codigo], entorno, curso_id)
+
+    if entorno != "real":
+        return fallo("COPIA_DE_ACTIVIDAD_SOLO_REAL")
+    if not ficheros:
+        return fallo("PETICION_INVALIDA")
+    # Sin repetir: dos ficheros de la misma actividad serían dos copias iguales.
+    pedidos = list(dict.fromkeys(ficheros))
+    if cupo.setdefault("copias_actividad", 0) + len(pedidos) > CUPO_COPIAS_ACTIVIDAD:
+        return fallo("CUPO_COPIAS_ACTIVIDAD")
+
+    raiz = Path(base).resolve()
+    documentos: list[Documento] = []
+    for nombre in pedidos:
         try:
-            hecha = aula.hacer_copia(curso_id, temporal, MAX_COPIA)
+            ruta = (raiz / nombre).resolve()
+            if not ruta.is_relative_to(raiz):
+                return fallo("RUTA_FUERA_DE_CARPETA")
+            documentos.append(contenido.cargar(ruta, raiz=raiz))
+        except (OSError, RuntimeError):
+            return fallo("RUTA_FUERA_DE_CARPETA")
+        except ErrorContenido as exc:
+            return fallo(exc.codigo)
+    try:
+        secciones = aula.estructura(curso_id)
+    except ErrorPublicacion as exc:
+        depurar(exc, debug)
+        return fallo(exc.codigo)
+    cmids: dict[int, Documento] = {}
+    sin_registro: list[informe.Fichero] = []
+    for doc in documentos:
+        try:
+            donde = publicar.localizar(secciones, doc, curso_id)
         except ErrorPublicacion as exc:
-            return terminar(exc.codigo, exc)
-        except OSError as exc:
-            return terminar("COPIA_NO_ESCRIBIBLE", exc)
-        nombre_en_el_aula = hecha.nombre
+            return fallo(exc.codigo, ficheros=[informe.Fichero(doc.ruta.name, doc.tipo)])
+        if donde.por in ("registro", "origen") and donde.modulo is not None:
+            cmids.setdefault(int(donde.modulo["cmid"]), doc)
+        else:
+            sin_registro.append(informe.Fichero(doc.ruta.name, doc.tipo))
+    if sin_registro:
+        return fallo("ACTIVIDAD_SIN_REGISTRO", ficheros=sin_registro)
+
+    resumen = ResumenCopia(
+        curso_id,
+        (nombres or {}).get(curso_id),
+        entorno,
+        tuple(doc.nombre for doc in cmids.values()),
+    )
+    if not presencia.confirmar_copia(resumen):
+        return fallo("COPIA_RECHAZADA", "abortado")
+    if vigente is not None and not vigente():
+        presencia.informar(Aviso.peticion_retirada())
+        return fallo("PETICION_RETIRADA")
+    cupo["copias_actividad"] += len(cmids)
+    dir_tiza = raiz / rutas.CARPETA_TRABAJO
+
+    borrador = informe.Borrador(comando, entorno=entorno, curso=curso_id)
+    borrador.paso("LOGIN")
+    for cmid in cmids:
         try:
-            contenido_de_la_copia = abrir_copia(temporal)
-        except ErrorCopia as exc:
-            return terminar(exc.codigo, exc)
+            temporal = estado.temporal_de_copia(dir_tiza)
+        except OSError:
+            return _anotar_fallo_de_copia(
+                borrador, _FalloDeCopia("COPIA_NO_ESCRIBIBLE", None, False), debug
+            )
         try:
-            destino = estado.reservar_copia(dir_tiza, curso, datetime.now(), temporal)
-        except OSError as exc:
-            return terminar("COPIA_NO_ESCRIBIBLE", exc)
-        borrada = _borrar_del_aula(aula, hecha.nombre, curso_id, presencia, debug)
-        nombre_en_el_aula = None
-        copia_hecha = informe.CopiaHecha(
-            curso=curso,
-            fichero=f"{rutas.CARPETA_TRABAJO}/{estado.CARPETA_COPIAS}/{destino.name}",
-            bytes=hecha.bytes,
-            actividades=Counter(a.modulo[:30] for a in contenido_de_la_copia.actividades),
-            borrada_del_aula=borrada,
-        )
-    finally:
-        _quitar(temporal)  # tras renombrarla ya no existe; si algo falló, no queda a medias
-        if nombre_en_el_aula is not None:
-            # Un fallo inesperado: que la copia no se quede en la zona del docente.
-            _borrar_del_aula(aula, nombre_en_el_aula, curso_id, presencia, debug)
-    borrador.paso("COPIAR", detalle=f"{hecha.bytes} bytes")
-    if borrada:
-        borrador.paso("BORRAR_COPIA")
-    else:
-        borrador.fallo("BORRAR_COPIA", "COPIA_QUEDA_EN_EL_AULA")
-    borrador.copia(copia_hecha)
+            hecha, bytes_ = _traer_copia(
+                aula, curso_id, curso, dir_tiza, temporal, presencia, debug, cmid
+            )
+        except _FalloDeCopia as exc:
+            return _anotar_fallo_de_copia(borrador, exc, debug)
+        _anotar_copia(borrador, hecha, bytes_)
     return borrador.documento()

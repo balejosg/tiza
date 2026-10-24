@@ -582,17 +582,29 @@ def importar(
     ruta_copia = _ruta_de_copia(raiz, copia)
     base = _carpeta_destino(raiz, destino)
     datos = lector.abrir_copia(ruta_copia)
+    de_actividad = not datos.secciones and len(datos.actividades) == 1
+    if de_actividad and como_nuevas:
+        raise ErrorImportar(
+            "COPIA_DE_ACTIVIDAD_DESCONOCIDA",
+            "Una copia de una sola actividad solo sirve para juntar cambios de lo que ya está en "
+            "esta carpeta: no se importa con --como-nuevas.",
+        )
     if como_nuevas:
         _comprobar_como_nuevas(raiz, datos)
     else:
         _comprobar_curso(raiz, datos)
     secciones = {s.id: s for s in datos.secciones}
-    for actividad in datos.actividades:
-        if actividad.seccion_id not in secciones:
-            raise ErrorCopia("COPIA_NO_VALIDA", "Una actividad apunta a una sección que no está.")
+    if not de_actividad:
+        for actividad in datos.actividades:
+            if actividad.seccion_id not in secciones:
+                raise ErrorCopia(
+                    "COPIA_NO_VALIDA", "Una actividad apunta a una sección que no está."
+                )
 
     dir_tiza = raiz / rutas.CARPETA_TRABAJO
     anterior = _leer_copia_json(dir_tiza)
+    if de_actividad:
+        return _importar_de_actividad(raiz, base, dir_tiza, datos, anterior)
     previa = _previa(anterior, datos.curso_original, como_nuevas)
     antigua = _es_antigua(anterior, datos, como_nuevas)
     publicados = _publicados_del_curso(dir_tiza, datos.curso_original, como_nuevas)
@@ -631,6 +643,81 @@ def importar(
         actividades=len(entradas),
         estados=recuento,
     )
+
+
+def _importar_de_actividad(
+    raiz: Path, base: Path, dir_tiza: Path, datos: Copia, anterior: dict | None
+) -> ResumenImportacion:
+    """Importa la copia de UNA actividad (0 secciones): junta sus cambios, no crea nada nuevo.
+
+    Solo vale si tiza conoce la actividad: su cmid está en el registro de lo publicado del curso, o
+    ``copia.json`` tiene la entrada de ese cmid con un fichero que sigue en la carpeta (el
+    ``origen``). Si no, ``COPIA_DE_ACTIVIDAD_DESCONOCIDA`` sin escribir nada. Hace lo mismo que la
+    importación de un curso con esa actividad, pero ``copia.json`` solo cambia en la entrada de
+    esa actividad: ni las demás, ni las secciones, ni la fecha de la copia del curso.
+    """
+    actividad = datos.actividades[0]
+    curso = datos.curso_original
+    publicados = _publicados_del_curso(dir_tiza, curso, False)
+    previa = _previa(anterior, curso, False).get(actividad.cmid)
+    registrada = publicados.get(actividad.cmid)
+    conocida = registrada is not None and os.path.lexists(raiz / registrada[0])
+    if not conocida and _fichero_previo(previa, raiz, base) is None:
+        raise ErrorImportar(
+            "COPIA_DE_ACTIVIDAD_DESCONOCIDA",
+            "tiza no reconoce esa actividad en esta carpeta (no la publicó tiza ni hay un fichero "
+            "importado de ella): no se ha escrito nada.",
+        )
+    # La sección solo se usa para el nombre de un fichero nuevo, que aquí no se crea: la que tenía
+    # la importación anterior, o 0.
+    seccion = SeccionCopia(
+        actividad.seccion_id, previa["seccion"] if previa else 0, "", "", (actividad.cmid,)
+    )
+    try:
+        hecha = _importar_actividad(
+            datos, actividad, seccion, raiz, base, dir_tiza, previa, False, False, publicados
+        )
+        assert hecha is not None  # sin ``antigua`` siempre hay entrada
+        escrito = estado.escribir_copia(dir_tiza, _datos_de_actividad(anterior, datos, hecha))
+    except (OSError, estado.ErrorEstado):
+        raise ErrorImportar(
+            "IMPORTACION_NO_ESCRIBIBLE", "No se pudo escribir en la carpeta de la asignatura."
+        ) from None
+    recuento = {e: 0 for e in ESTADOS_IMPORTACION}
+    recuento[hecha.estado] += 1
+    return ResumenImportacion(
+        copia=escrito.relative_to(raiz).as_posix(),
+        curso=curso,
+        como_nuevas=False,
+        actividades=1,
+        estados=recuento,
+    )
+
+
+def _datos_de_actividad(anterior: dict | None, datos: Copia, entrada: _Entrada) -> dict[str, Any]:
+    """``copia.json`` con solo la entrada de esa actividad cambiada (o añadida) en su curso.
+
+    Del curso no se toca nada más: ni la fecha de la copia ni la importación, ni las secciones. Si
+    el curso no tenía entrada (la actividad la conoce el registro), se crea sin fecha de copia, de
+    modo que la siguiente copia del curso nunca parezca «antigua».
+    """
+    cursos = dict(anterior["cursos"]) if anterior else {}
+    nuevas = anterior["como_nuevas"] if anterior else None
+    clave = str(datos.curso_original)
+    ultima = cursos.get(clave)
+    if ultima is None:
+        ultima = {
+            "moodle": re.sub(r"[^0-9A-Za-z.() +-]", "", datos.moodle)[:60],
+            "fecha_importacion": datetime.now(UTC).isoformat(timespec="seconds"),
+            "fecha_copia": None,
+            "secciones": [],
+            "actividades": [],
+        }
+    actividades = [a for a in ultima["actividades"] if a["cmid"] != entrada.cmid]
+    actividades.append(entrada.a_dict())
+    actividades.sort(key=lambda a: a["cmid"])
+    cursos[clave] = {**ultima, "actividades": actividades}
+    return {"version": 1, "cursos": cursos, "como_nuevas": nuevas}
 
 
 def _publicados_del_curso(

@@ -2224,7 +2224,7 @@ class TestCopia:
 
         def enviar(dir_tiza, peticion, *a, **k):
             capturado["peticion"] = peticion
-            return informe.crear("copia", "ok", [], [], [], "pruebas", 1234, hecha)
+            return informe.crear("copia", "ok", [], [], [], "pruebas", 1234, [hecha])
 
         monkeypatch.setattr(buzon, "enviar", enviar)
         assert cli.main(["copia", "pruebas"]) == 0
@@ -2234,6 +2234,24 @@ class TestCopia:
         buzon.validar_peticion(enviada)
         texto = salida.contenido()
         assert ".tiza/copias/pruebas-20261019-1030.mbz" in texto and "page 3" in texto
+
+    def test_actividad_pide_la_copia_de_esos_ficheros(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        capturado: dict = {}
+
+        def enviar(dir_tiza, peticion, *a, **k):
+            capturado["peticion"] = peticion
+            return informe.crear("copia", "ok", [], [], [], "real", 5678, [])
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        argumentos = ["copia", "real", "--actividad", "a.md", "--actividad", "aula/b.html"]
+        assert cli.main(argumentos) == 0
+        enviada = capturado["peticion"]
+        assert (enviada["comando"], enviada["curso"]) == ("copia", "real")
+        assert enviada["ficheros"] == ["a.md", "aula/b.html"] and enviada["entorno"] is None
+        buzon.validar_peticion(enviada)
 
     def test_el_error_de_la_sesion_sale_con_su_que_hacer(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)

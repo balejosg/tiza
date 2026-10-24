@@ -1045,7 +1045,10 @@ class TestSoloFechasEnLaPeticion:
             {"curso": "pruebas y más"},
             {"curso": "../real"},
             {"curso": "x" * 41},
-            {"ficheros": ["a.md"]},
+            {"ficheros": ["../a.md"]},
+            {"ficheros": ["/etc/a.md"]},
+            {"ficheros": [""]},
+            {"ficheros": ["a.md"] * (buzon.MAX_FICHEROS + 1)},
             {"entorno": "pruebas"},
             {"visible": True},
             {"solo_fechas": True},
@@ -1059,6 +1062,16 @@ class TestSoloFechasEnLaPeticion:
         with pytest.raises(buzon.ErrorBuzon) as exc:
             buzon.validar_peticion(datos)
         assert exc.value.codigo == "PETICION_INVALIDA"
+
+    def test_copia_admite_las_actividades_como_ficheros(self):
+        datos = peticion_valida(
+            comando="copia",
+            curso="real",
+            ficheros=["aula/01/a.html", "b.md"],
+            entorno=None,
+            visible=None,
+        )
+        buzon.validar_peticion(datos)
 
     def test_copia_exige_curso_y_los_demas_comandos_no_lo_llevan(self):
         sin_curso = peticion_valida(comando="copia", ficheros=[], entorno=None, visible=None)

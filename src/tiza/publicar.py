@@ -391,7 +391,9 @@ class AulaVirtual(Protocol):
 
     def puede_copiar(self, curso_id: int) -> bool: ...
 
-    def hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada: ...
+    def hacer_copia(
+        self, curso_id: int, destino: Path, maximo: int, cmid: int | None = None
+    ) -> CopiaDescargada: ...
 
     def calificador(
         self, curso_id: int, tocados: Collection[str] | None = None
@@ -1693,8 +1695,13 @@ class Moodle:
             return False
         return _formulario_de(getattr(pagina, "text", "") or "", _ACCION_COPIA) is not None
 
-    def hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada:
+    def hacer_copia(
+        self, curso_id: int, destino: Path, maximo: int, cmid: int | None = None
+    ) -> CopiaDescargada:
         """Hace la copia del curso sin datos de usuario y la descarga en ``destino``.
+
+        Con ``cmid``, la copia es solo de esa actividad (``backup.php?id=<curso>&cm=<cmid>``,
+        el mismo recorrido) y el nombre propio lleva ``c<cmid>``.
 
         Sigue las etapas de ``backup/backup.php`` como el navegador, con todos los ajustes de
         usuario forzados a 0 y un nombre propio y único para el fichero; busca la copia nueva
@@ -1704,7 +1711,7 @@ class Moodle:
         acaba en 10 minutos; ``COPIA_DEMASIADO_GRANDE`` si pasa de ``maximo``.
         """
         try:
-            return self._hacer_copia(curso_id, destino, maximo)
+            return self._hacer_copia(curso_id, destino, maximo, cmid)
         except BaseException:
             try:
                 Path(destino).unlink()
@@ -1712,15 +1719,17 @@ class Moodle:
                 pass
             raise
 
-    def _hacer_copia(self, curso_id: int, destino: Path, maximo: int) -> CopiaDescargada:
+    def _hacer_copia(
+        self, curso_id: int, destino: Path, maximo: int, cmid: int | None = None
+    ) -> CopiaDescargada:
         antes = self._copias_en_el_area(curso_id)
-        nombre = self._nombre_unico_de_copia(curso_id, {nombre for nombre, _ in antes})
+        nombre = self._nombre_unico_de_copia(curso_id, {nombre for nombre, _ in antes}, cmid)
         self._esperar()
         pagina = self._reducir(
             "COPIA_FALLIDA",
             self.sesion.get,
             f"{self.base_url}/backup/backup.php",
-            params={"id": curso_id},
+            params={"id": curso_id} if cmid is None else {"id": curso_id, "cm": cmid},
             timeout=TIEMPO_ESPERA,
         )
         formulario = (
@@ -1781,14 +1790,19 @@ class Moodle:
             raise
         return CopiaDescargada(escritos, nombre)
 
-    def _nombre_unico_de_copia(self, curso_id: int, en_el_area: set[str]) -> str:
+    def _nombre_unico_de_copia(
+        self, curso_id: int, en_el_area: set[str], cmid: int | None = None
+    ) -> str:
         """``tiza-<curso>-<epoch>-<aleatorio>-nu.mbz``, nuevo en el área y en esta sesión.
+
+        Con ``cmid`` (copia de una actividad): ``tiza-<curso>-c<cmid>-<epoch>-<aleatorio>-nu.mbz``.
 
         Sin un nombre propio, Moodle nombra la copia con la hora y el minuto y dos copias seguidas
         se pisan (espiga 7); el sufijo aleatorio evita pisar la de otro proceso en el mismo segundo.
         """
         while True:
-            nombre = f"tiza-{curso_id}-{int(time.time())}-{secrets.token_hex(3)}-nu.mbz"
+            parte = f"{curso_id}" if cmid is None else f"{curso_id}-c{cmid}"
+            nombre = f"tiza-{parte}-{int(time.time())}-{secrets.token_hex(3)}-nu.mbz"
             if nombre not in en_el_area and nombre not in self._nombres_de_copia:
                 break
         self._nombres_de_copia.add(nombre)

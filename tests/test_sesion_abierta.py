@@ -1127,7 +1127,7 @@ class TestCopiaEnLaSesion:
         respuesta = cruzar_el_buzon(dir_tiza, abierta.atender, agente.peticion_copia("pruebas"))
 
         assert respuesta["resultado"] == "ok" and respuesta["comando"] == "copia"
-        copia = respuesta["copia"]
+        [copia] = respuesta["copia"]
         assert copia["actividades"] == {"assign": 1, "forum": 1, "label": 1, "page": 1}
         assert (carpeta / copia["fichero"]).is_file()
         assert copia["borrada_del_aula"] is True and moodle.copias_en_el_aula == []
@@ -1136,7 +1136,9 @@ class TestCopiaEnLaSesion:
         assert (resumen.curso, resumen.nombre_curso) == (1234, "Pruebas de Mates")
         assert presencia.codigos()[-1] == "RESULTADO"
         assert (dir_tiza / "informe.json").is_file()
-        assert json.loads((dir_tiza / "informe.json").read_text(encoding="utf-8"))["copia"] == copia
+        assert json.loads((dir_tiza / "informe.json").read_text(encoding="utf-8"))["copia"] == [
+            copia
+        ]
 
     def test_la_copia_se_pide_con_el_curso_real_y_se_importa_despues(self, tmp_path, monkeypatch):
         monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
@@ -1153,8 +1155,37 @@ class TestCopiaEnLaSesion:
         )
         assert respuesta["entorno"] == "real" and respuesta["curso"] == 5678
         # La copia queda donde ``tiza importar`` la admite.
-        resumen = agente.importar(respuesta["copia"]["fichero"], carpeta)
+        resumen = agente.importar(respuesta["copia"][0]["fichero"], carpeta)
         assert resumen.curso == 5678 and resumen.actividades == 4
+
+    def test_la_copia_de_actividades_cruza_el_buzon_y_se_importa_despues(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
+        carpeta = preparar_carpeta(tmp_path)
+        configurar_aula(carpeta, {"pruebas": 1234, "real": 5678})
+        estado.guardar_publicado(
+            carpeta / ".tiza", 5678, "pagina.md", estado.Publicado(601, "pagina", huella=None)
+        )
+        moodle = MoodleFalso(copia=None)
+        moodle.secciones[0]["modulos"] = [{"cmid": 601, "nombre": "Repaso", "tipo": "pagina"}]
+        presencia = PresenciaFalsa()
+        abierta = sesion_abierta.SesionAbierta(moodle, CFG, carpeta, presencia)
+        assert abierta.cupo == {"pruebas": 0, "copias": 0, "copias_actividad": 0}
+
+        respuesta = cruzar_el_buzon(
+            carpeta / ".tiza", abierta.atender, agente.peticion_copia("real", ["pagina.md"])
+        )
+
+        assert respuesta["resultado"] == "ok" and respuesta["curso"] == 5678
+        [copia] = respuesta["copia"]
+        assert copia["cmid"] == 601 and copia["fichero"].startswith(".tiza/copias/real-c601-")
+        assert moodle.copias_de_actividad == [(5678, 601)]
+        assert abierta.cupo["copias_actividad"] == 1 and abierta.cupo["copias"] == 0
+        assert presencia.resumenes_copia[0].actividades == ("Repaso",)
+        # La copia de la actividad se lee con importar: el curso es el de la copia (1234 de
+        # la sintética), así que aquí solo se comprueba que queda donde importar la admite.
+        assert (carpeta / copia["fichero"]).is_file()
 
     def test_el_docente_dice_que_no_y_no_se_hace_nada(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)

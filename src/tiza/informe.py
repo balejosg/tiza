@@ -223,14 +223,14 @@ def crear(
     errores: Iterable[str] | None = None,
     entorno: str | None = None,
     curso: int | None = None,
-    copia: CopiaHecha | None = None,
+    copia: Sequence[CopiaHecha] | None = None,
 ) -> dict:
     """Documento del informe con el esquema cerrado, válido por construcción.
 
     ``Paso``/``Fichero`` son lo normal; un dict ya construido (p. ej. el informe
     de un curso que se agrega) se valida aquí. La salida hacia el agente se
-    valida entera, otra vez, en :func:`escribir` y en el buzón. ``copia`` solo lo
-    lleva el informe de ``tiza copia`` (el campo no existe en los demás).
+    valida entera, otra vez, en :func:`escribir` y en el buzón. ``copia`` (la lista de copias
+    hechas) solo la lleva el informe de ``tiza copia`` (el campo no existe en los demás).
     """
     _exigir_opcion(comando, COMANDOS, "comando")
     _exigir_opcion(resultado, RESULTADOS, "resultado")
@@ -249,7 +249,7 @@ def crear(
     if copia is not None:
         if comando != "copia":
             raise ErrorInforme("CAMPO_NO_PERMITIDO", "solo el informe de «copia» lleva una copia")
-        documento[_CAMPO_COPIA] = copia.a_dict()
+        documento[_CAMPO_COPIA] = [una.a_dict() for una in copia]
     return documento
 
 
@@ -294,7 +294,7 @@ class Borrador:
         self._pasos: list[Paso | dict] = []
         self._ficheros: list[Fichero | dict] = []
         self._errores: list[str] = []
-        self._copia: CopiaHecha | None = None
+        self._copia: list[CopiaHecha] = []
 
     @property
     def errores(self) -> tuple[str, ...]:
@@ -313,8 +313,8 @@ class Borrador:
         self._ficheros.append(fichero)
 
     def copia(self, copia: CopiaHecha) -> None:
-        """La copia que hizo ``tiza copia`` (solo en el informe de ese comando)."""
-        self._copia = copia
+        """Una copia que hizo ``tiza copia`` (solo en el informe de ese comando); se acumulan."""
+        self._copia.append(copia)
 
     def agregar(self, documento: Mapping[str, Any], *, excluir: Collection[str] = ()) -> None:
         """Acumula pasos, ficheros y errores de otro informe ya construido (un curso)."""
@@ -334,7 +334,7 @@ class Borrador:
             self._errores,
             self.entorno,
             self.curso,
-            self._copia,
+            self._copia or None,
         )
 
 
@@ -361,10 +361,14 @@ def validar(documento: Any) -> None:
     if con_copia:
         if documento["comando"] != "copia":
             raise ErrorInforme("CAMPO_NO_PERMITIDO", "solo el informe de «copia» lleva una copia")
-        validar_copia_hecha(documento[_CAMPO_COPIA])
+        copias = documento[_CAMPO_COPIA]
+        if not isinstance(copias, list) or not copias:
+            raise ErrorInforme("TIPO_INCORRECTO", "copia debe ser una lista de copias hechas")
+        for una in copias:
+            validar_copia_hecha(una)
 
 
-_CAMPOS_COPIA_HECHA = {"curso", "fichero", "bytes", "actividades", "borrada_del_aula"}
+_CAMPOS_COPIA_HECHA = {"curso", "fichero", "bytes", "actividades", "borrada_del_aula", "cmid"}
 _CURSO_DE_COPIA = re.compile(r"\A[A-Za-z0-9._-]{1,40}\Z")
 
 
@@ -375,7 +379,8 @@ class CopiaHecha:
     ``curso`` es el nombre que pidió el agente (``pruebas``, ``real`` o un id), ``fichero`` la
     ruta relativa a la carpeta de la asignatura, ``bytes`` su tamaño, ``actividades`` el
     recuento por módulo (``page``, ``assign``…) y ``borrada_del_aula`` si tiza la quitó de la
-    zona de copias del docente en Moodle. Se valida al construirlo: nunca sale una inválida.
+    zona de copias del docente en Moodle. ``cmid`` solo lo lleva la copia de una actividad (el
+    agente nunca lo da: lo halla la sesión). Se valida al construirlo: nunca sale una inválida.
     """
 
     curso: str
@@ -383,6 +388,7 @@ class CopiaHecha:
     bytes: int
     actividades: Mapping[str, int]
     borrada_del_aula: bool
+    cmid: int | None = None
 
     def __post_init__(self) -> None:
         validar_copia_hecha(self.a_dict())
@@ -394,6 +400,7 @@ class CopiaHecha:
             "bytes": self.bytes,
             "actividades": dict(sorted(self.actividades.items())),
             "borrada_del_aula": self.borrada_del_aula,
+            "cmid": self.cmid,
         }
 
 
@@ -414,6 +421,7 @@ def validar_copia_hecha(datos: Any) -> None:
             raise ErrorInforme("VALOR_NO_PERMITIDO", "módulo no permitido")
         _exigir_entero(cuantas, f"actividades de {modulo}")
     _exigir_bool(datos["borrada_del_aula"], "borrada_del_aula")
+    _exigir_entero_o_nulo(datos["cmid"], "cmid")
 
 
 def _validar_paso(paso: Any) -> None:
@@ -908,11 +916,11 @@ def resumen(documento: dict) -> list[str]:
         lineas.append(" — ".join(partes))
         if fichero["url"]:
             lineas.append(f"  Ver en el aula: {fichero['url']}")
-    copia = documento.get(_CAMPO_COPIA)
-    if copia is not None:
+    for copia in documento.get(_CAMPO_COPIA) or ():
         modulos = ", ".join(f"{modulo} {n}" for modulo, n in copia["actividades"].items())
+        de_actividad = f" (cmid {copia['cmid']})" if copia["cmid"] is not None else ""
         lineas.append(
-            f"Copia {copia['curso']}: {copia['fichero']} — {copia['bytes']} bytes — "
+            f"Copia {copia['curso']}{de_actividad}: {copia['fichero']} — {copia['bytes']} bytes — "
             f"actividades: {modulos or 'ninguna'} — "
             + ("borrada del aula" if copia["borrada_del_aula"] else "queda también en el aula")
         )

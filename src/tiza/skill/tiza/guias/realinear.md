@@ -21,6 +21,13 @@ La copia del curso la pides tú con `tiza copia real` (o con el id del curso rea
 uno). La sesión del docente la hace y él la confirma en su terminal. Si responde `CURSO_AMBIGUO`,
 pide el id del curso. No pidas la del curso de pruebas: no se importa con `origen`.
 
+Para juntar el retoque de **una o pocas** actividades que tiza ya publicó, pide solo esas con
+`tiza copia real --actividad <fichero> [--actividad <fichero> …]` (los ficheros de la carpeta; tiza
+halla cada actividad por su registro o su `origen`, tú no das cmids) y luego `tiza importar` de cada
+copia del informe (`copia[].fichero`): une los cambios sin tocar el resto de `.tiza/copia.json`.
+Errores: `ACTIVIDAD_SIN_REGISTRO` (no la conoce: pide la copia del curso), `CUPO_COPIAS_ACTIVIDAD`
+(20 por sesión), `COPIA_DE_ACTIVIDAD_SOLO_REAL`, `COPIA_DE_ACTIVIDAD_DESCONOCIDA` (al importar).
+
 - `CUPO_COPIAS`: la sesión permite 3 copias. Pide al docente que cierre la sesión y abra otra;
   una copia por vuelta basta.
 

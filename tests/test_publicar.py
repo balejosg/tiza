@@ -3163,6 +3163,7 @@ class _SesionCopia:
         self.al_borrar_queda = al_borrar_queda
         self.sin_filename = sin_filename
         self.posts: list[tuple[str, list[tuple[str, str]]]] = []
+        self.peticiones_de_copia: list[dict] = []  # los ``params`` de cada GET a backup.php
         self.borrados_ajax: list[dict] = []
         self.guardado_edicion: list[tuple[str, str]] | None = None
         self.nombres_en_el_area: list[str] = []
@@ -3171,6 +3172,7 @@ class _SesionCopia:
 
     def get(self, url, params=None, timeout=None, stream=False, allow_redirects=True):
         if url.endswith("/backup/backup.php"):
+            self.peticiones_de_copia.append(dict(params or {}))
             if self.sin_formulario:
                 return _RespuestaCopia("<html><body>Sin permiso</body></html>")
             self._etapa = 1
@@ -3267,6 +3269,21 @@ class TestHacerCopia:
         assert primera["setting_root_activities"] == "1"  # lo demás sigue como venía
         ultima = dict(sesion.posts[-1][1])
         assert ultima["setting_root_users"] == "0"  # el hidden a 1 de la última etapa, forzado
+
+    def test_copia_de_una_actividad_pide_cm_y_su_nombre_lleva_el_cmid(self, tmp_path, monkeypatch):
+        sesion = _SesionCopia()
+        moodle = _moodle_de_copia(sesion, monkeypatch)
+        hecha = moodle.hacer_copia(2, tmp_path / "a.tmp", 1000, 502)
+        assert sesion.peticiones_de_copia == [{"id": 2, "cm": 502}]
+        assert re.fullmatch(r"tiza-2-c502-1792000000-[0-9a-f]{6}-nu\.mbz", hecha.nombre)
+        assert len(sesion.posts) == 3  # las mismas tres etapas, con el mismo nombre propio
+        assert dict(sesion.posts[-1][1])["setting_root_filename"] == hecha.nombre
+        assert dict(sesion.posts[0][1])["setting_root_users"] == "0"
+        # Sin cmid, como siempre: solo el curso y el nombre de antes.
+        sesion._etapa = 0
+        hecha = moodle.hacer_copia(2, tmp_path / "b.tmp", 1000)
+        assert sesion.peticiones_de_copia[-1] == {"id": 2}
+        assert re.fullmatch(r"tiza-2-1792000000-[0-9a-f]{6}-nu\.mbz", hecha.nombre)
 
     def test_copia_nombre_unico(self, tmp_path, monkeypatch):
         sesion = _SesionCopia()

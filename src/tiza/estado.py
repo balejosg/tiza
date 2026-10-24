@@ -311,12 +311,19 @@ def guardar_version_de_copia(dir_tiza: str | Path, cmid: int, html: str) -> Path
     return escribir_texto(carpeta / f"{cmid}.html", html)
 
 
-def nombre_de_copia(curso: str, momento: datetime, repeticion: int = 0) -> str:
+def nombre_de_copia(
+    curso: str, momento: datetime, repeticion: int = 0, cmid: int | None = None
+) -> str:
     """Nombre de una copia que deja ``tiza copia``: ``<curso>-<AAAAMMDD-HHMM>.mbz``.
 
+    La de una sola actividad lleva su ``cmid``: ``<curso>-c<cmid>-<AAAAMMDD-HHMM>.mbz``.
     ``repeticion`` > 0 añade el sufijo ``-2``, ``-3``…: nunca se sobrescribe una copia.
     """
-    base = f"{curso}-{momento:%Y%m%d-%H%M}"
+    base = (
+        f"{curso}-{momento:%Y%m%d-%H%M}"
+        if cmid is None
+        else f"{curso}-c{cmid}-{momento:%Y%m%d-%H%M}"
+    )
     return f"{base}.mbz" if repeticion == 0 else f"{base}-{repeticion + 1}.mbz"
 
 
@@ -351,7 +358,13 @@ def temporal_de_copia(dir_tiza: str | Path) -> Path:
     return temporal
 
 
-def reservar_copia(dir_tiza: str | Path, curso: str, momento: datetime, temporal: Path) -> Path:
+def reservar_copia(
+    dir_tiza: str | Path,
+    curso: str,
+    momento: datetime,
+    temporal: Path,
+    cmid: int | None = None,
+) -> Path:
     """Da a ``temporal`` su nombre definitivo sin sobrescribir nada y devuelve la ruta.
 
     Reserva el nombre con un fichero vacío creado con ``x`` y lo sustituye por la copia; si ya
@@ -360,7 +373,7 @@ def reservar_copia(dir_tiza: str | Path, curso: str, momento: datetime, temporal
     """
     carpeta = _carpeta_de_copias(dir_tiza)
     for repeticion in range(100):
-        destino = carpeta / nombre_de_copia(curso, momento, repeticion)
+        destino = carpeta / nombre_de_copia(curso, momento, repeticion, cmid)
         try:
             descriptor = os.open(destino, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError:

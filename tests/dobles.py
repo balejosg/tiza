@@ -171,6 +171,7 @@ class MoodleFalso:
         self.copia_permitida = copia_permitida
         self.copia = copia
         self.copias_hechas: list[tuple[int, str]] = []  # (curso, nombre en el aula)
+        self.copias_de_actividad: list[tuple[int, int]] = []  # (curso, cm) de cada copia de una
         self.copias_en_el_aula: list[str] = []
         self.borradas: list[tuple[str, int]] = []  # lo que ``borrar_copia`` recibió
         self.borrar_copia_falla = False
@@ -463,19 +464,27 @@ class MoodleFalso:
         self.llamadas.append(("puede_copiar", curso_id))
         return self.copia_permitida
 
-    def hacer_copia(self, curso_id, destino, maximo):
+    def hacer_copia(self, curso_id, destino, maximo, cmid=None):
         self.llamadas.append(("hacer_copia", curso_id, Path(destino).name))
+        if cmid is not None:
+            self.copias_de_actividad.append((curso_id, cmid))
         if not self.copia_permitida:
             raise ErrorPublicacion("COPIA_NO_PERMITIDA")
         if self.copia_falla is not None:
             error = ErrorPublicacion(self.copia_falla)
             error.queda_en_el_aula = self.copia_falla_queda
             raise error
-        datos = self.copia if self.copia is not None else copia_sintetica()
+        if self.copia is not None:
+            datos = self.copia
+        elif cmid is not None:
+            datos = copia_sintetica_de_actividad(cmid)  # sin secciones y con solo esa actividad
+        else:
+            datos = copia_sintetica()
         if len(datos) > maximo:
             raise ErrorPublicacion("COPIA_DEMASIADO_GRANDE")
         Path(destino).write_bytes(datos)
-        nombre = f"tiza-{curso_id}-{1792000000 + len(self.copias_hechas)}-nu.mbz"
+        parte = f"{curso_id}" if cmid is None else f"{curso_id}-c{cmid}"
+        nombre = f"tiza-{parte}-{1792000000 + len(self.copias_hechas)}-nu.mbz"
         self.copias_hechas.append((curso_id, nombre))
         self.copias_en_el_aula.append(nombre)
         return CopiaDescargada(len(datos), nombre)
@@ -486,6 +495,16 @@ class MoodleFalso:
         if self.borrar_copia_falla:
             raise ErrorPublicacion("ERROR_BORRADO")
         self.copias_en_el_aula.remove(nombre)
+
+
+def copia_sintetica_de_actividad(
+    cmid: int, *, modulo: str = "page", nombre: str = "Una página", curso: int = 1234
+) -> bytes:
+    """Los bytes de la copia de una sola actividad: 0 secciones y esa actividad."""
+    from copia import fabrica
+
+    actividad = fabrica.ActividadFalsa(cmid, modulo, 7, nombre, "<p>Hola</p>")
+    return fabrica.construir_mbz([], [actividad], curso=curso)
 
 
 def copia_sintetica(

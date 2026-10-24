@@ -359,17 +359,18 @@ def peticion_calificador(esquema: str, entorno: str) -> dict:
     }
 
 
-def peticion_copia(curso: str) -> dict:
+def peticion_copia(curso: str, ficheros: Sequence[str] = ()) -> dict:
     """Petición de copia para el buzón: ``curso`` es ``pruebas``, ``real`` o el id de un curso.
 
     Pide una copia de seguridad del curso, sin datos de usuarios, que queda en ``.tiza/copias/``.
+    Con ``ficheros`` (las actividades de la carpeta, nunca sus cmids), una copia de cada una.
     """
     return {
         "version": buzon.VERSION_PROTOCOLO,
         "id": uuid.uuid4().hex,
         "comando": "copia",
         "curso": curso,
-        "ficheros": [],
+        "ficheros": list(ficheros),
         "entorno": None,
         "visible": None,
         "solo_fechas": False,
@@ -435,16 +436,19 @@ def calificador(
 def copia(
     carpeta: str | Path,
     curso: str,
+    ficheros: Sequence[str] = (),
     *,
     espera: float = buzon.ESPERA_POR_DEFECTO,
     cancelar: threading.Event | None = None,
 ) -> dict:
     """Pide a la sesión del docente una copia del curso (sin usuarios) en ``.tiza/copias/``.
 
-    El docente confirma en su terminal. El informe lleva la ruta de la copia y el recuento de
-    sus actividades; después se lee con ``importar``. Sin sesión, ``SIN_SESION``.
+    El docente confirma en su terminal. El informe lleva la lista de copias hechas (ruta y recuento
+    de actividades de cada una); después se leen con ``importar``. Con ``ficheros``, una copia de
+    cada actividad (solo de cursos reales y de actividades que tiza ya conoce). Sin sesión,
+    ``SIN_SESION``.
     """
-    return _enviar(carpeta, peticion_copia(curso), espera, cancelar)
+    return _enviar(carpeta, peticion_copia(curso, ficheros), espera, cancelar)
 
 
 def estructura(

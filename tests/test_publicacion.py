@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 
@@ -362,13 +363,16 @@ def test_copia_queda_en_tiza_copias(tmp_path, monkeypatch):
     )
     assert _copias_guardadas(tmp_path) == ["pruebas-20261019-1030.mbz"]
     ruta = tmp_path / ".tiza" / "copias" / "pruebas-20261019-1030.mbz"
-    assert documento["copia"] == {
-        "curso": "pruebas",
-        "fichero": ".tiza/copias/pruebas-20261019-1030.mbz",
-        "bytes": ruta.stat().st_size,
-        "actividades": {"assign": 1, "forum": 1, "label": 1, "page": 1},
-        "borrada_del_aula": True,
-    }
+    assert documento["copia"] == [
+        {
+            "curso": "pruebas",
+            "fichero": ".tiza/copias/pruebas-20261019-1030.mbz",
+            "bytes": ruta.stat().st_size,
+            "actividades": {"assign": 1, "forum": 1, "label": 1, "page": 1},
+            "borrada_del_aula": True,
+            "cmid": None,
+        }
+    ]
     assert len(abrir_copia(ruta).actividades) == 4  # es la copia, entera y legible
     assert [p["codigo"] for p in documento["pasos"]] == ["LOGIN", "COPIAR", "BORRAR_COPIA"]
     assert moodle.borradas == [(moodle.copias_hechas[0][1], 1234)]
@@ -392,14 +396,14 @@ def test_copia_se_borra_del_aula(tmp_path):
     moodle = MoodleFalso()
     _moodle, presencia, documento = _copiar(tmp_path, moodle)
     assert moodle.borradas == [(moodle.copias_hechas[0][1], 1234)]
-    assert documento["copia"]["borrada_del_aula"] is True
+    assert documento["copia"][0]["borrada_del_aula"] is True
     assert "COPIA_QUEDA_EN_EL_AULA" not in presencia.codigos()
     # Si no se puede borrar, la copia sigue siendo buena: se avisa y se dice en el informe.
     moodle = MoodleFalso()
     moodle.borrar_copia_falla = True
     _moodle, presencia, documento = _copiar(tmp_path, moodle)
     assert documento["resultado"] == "ok" and documento["errores"] == []
-    assert documento["copia"]["borrada_del_aula"] is False
+    assert documento["copia"][0]["borrada_del_aula"] is False
     assert "COPIA_QUEDA_EN_EL_AULA" in presencia.codigos()
     assert [p["resultado"] for p in documento["pasos"] if p["codigo"] == "BORRAR_COPIA"] == [
         "fallo"
@@ -419,7 +423,7 @@ def test_copia_del_curso_real_por_nombre_o_por_id(tmp_path):
     for nombre in ("real", "5678"):
         _m, presencia, documento = _copiar(tmp_path, curso=nombre)
         assert (documento["entorno"], documento["curso"]) == ("real", 5678), nombre
-        assert documento["copia"]["curso"] == nombre
+        assert documento["copia"][0]["curso"] == nombre
         assert presencia.resumenes_copia[0].entorno == "real"
 
 
@@ -470,7 +474,7 @@ def test_copia_nunca_sobrescribe_un_fichero_que_ya_esta(tmp_path, monkeypatch):
     carpeta.mkdir(parents=True)
     (carpeta / "pruebas-20261019-1030.mbz").write_bytes(b"del docente")
     _m, _p, documento = _copiar(tmp_path)
-    assert documento["copia"]["fichero"] == ".tiza/copias/pruebas-20261019-1030-2.mbz"
+    assert documento["copia"][0]["fichero"] == ".tiza/copias/pruebas-20261019-1030-2.mbz"
     assert (carpeta / "pruebas-20261019-1030.mbz").read_bytes() == b"del docente"
 
 
@@ -2308,3 +2312,177 @@ def test_dos_cursos_reales_una_base_por_curso(tmp_path):
         base = _base(carpeta, curso)
         assert (base / "fuente").read_bytes() == (carpeta / "p.md").read_bytes()
     assert len(list((carpeta / ".tiza" / "publicados").iterdir())) == 2
+
+
+# --- La copia de una sola actividad (``copiar_actividades``) -------------------------------
+
+OTRA = "---\ntipo: pagina\nnombre: Otra cosa\nseccion: 3\n---\n\nTexto.\n"
+
+
+def _carpeta_con_registro(tmp_path, *, publicadas=("pagina.md", "otra.md")) -> Path:
+    """Dos páginas; las ``publicadas`` están en el registro (cmids 601 y 602) y en el aula."""
+    carpeta = _carpeta(tmp_path)
+    (carpeta / "otra.md").write_text(OTRA, encoding="utf-8")
+    for cmid, nombre in ((601, "pagina.md"), (602, "otra.md")):
+        if nombre in publicadas:
+            estado.guardar_publicado(
+                carpeta / ".tiza", 5678, nombre, estado.Publicado(cmid, "pagina", huella=None)
+            )
+    return carpeta
+
+
+def _aula_con_paginas() -> MoodleFalso:
+    moodle = MoodleFalso()
+    moodle.secciones[0]["modulos"] = [
+        {"cmid": 601, "nombre": "Repaso", "tipo": "pagina"},
+        {"cmid": 602, "nombre": "Otra cosa", "tipo": "pagina"},
+    ]
+    return moodle
+
+
+def _copiar_actividades(carpeta, ficheros, moodle=None, presencia=None, cupo=None, **opciones):
+    moodle = moodle or _aula_con_paginas()
+    presencia = presencia or PresenciaFalsa()
+    cupo = cupo if cupo is not None else {"pruebas": 0, "copias": 0, "copias_actividad": 0}
+    documento = publicacion.copiar_actividades(
+        moodle, CFG, "real", ficheros, carpeta, presencia, cupo, **opciones
+    )
+    informe.validar(documento)
+    return moodle, presencia, documento, cupo
+
+
+def test_copiar_actividades_hace_una_copia_por_actividad_con_una_confirmacion(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path)
+    moodle, presencia, documento, cupo = _copiar_actividades(
+        carpeta, ["pagina.md", "otra.md"], nombres={5678: "Mates"}
+    )
+    assert (documento["resultado"], documento["errores"]) == ("ok", [])
+    assert (documento["comando"], documento["entorno"], documento["curso"]) == (
+        "copia",
+        "real",
+        5678,
+    )
+    assert moodle.copias_de_actividad == [(5678, 601), (5678, 602)]
+    [resumen] = presencia.resumenes_copia  # una sola confirmación
+    assert resumen.actividades == ("Repaso", "Otra cosa") and resumen.curso == 5678
+    assert cupo == {"pruebas": 0, "copias": 0, "copias_actividad": 2}
+    assert [c["cmid"] for c in documento["copia"]] == [601, 602]
+    guardadas = _copias_guardadas(carpeta)
+    assert len(guardadas) == 2 and all(
+        re.fullmatch(r"real-c60[12]-\d{8}-\d{4}(-2)?\.mbz", n) for n in guardadas
+    )
+    for copia in documento["copia"]:
+        ruta = carpeta / copia["fichero"]
+        assert [a.cmid for a in abrir_copia(ruta).actividades] == [copia["cmid"]]
+        assert copia["actividades"] == {"page": 1} and copia["borrada_del_aula"] is True
+    assert len(moodle.borradas) == 2 and moodle.copias_en_el_aula == []
+    assert [p["codigo"] for p in documento["pasos"]] == [
+        "LOGIN",
+        "COPIAR",
+        "BORRAR_COPIA",
+        "COPIAR",
+        "BORRAR_COPIA",
+    ]
+
+
+def test_copiar_actividades_por_origen(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path, publicadas=())
+    (carpeta / "pagina.md").write_text(
+        "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\norigen:\n  curso: 5678\n  cmid: 601\n---\n\nHola.\n",
+        encoding="utf-8",
+    )
+    moodle, _p, documento, _c = _copiar_actividades(carpeta, ["pagina.md"])
+    assert documento["resultado"] == "ok" and moodle.copias_de_actividad == [(5678, 601)]
+
+
+def test_copiar_actividades_sin_registro_no_pide_nada(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path, publicadas=("pagina.md",))
+    moodle, presencia, documento, cupo = _copiar_actividades(carpeta, ["pagina.md", "otra.md"])
+    assert (documento["resultado"], documento["errores"]) == ("error", ["ACTIVIDAD_SIN_REGISTRO"])
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+    assert presencia.resumenes_copia == [] and moodle.copias_de_actividad == []
+    assert not any(llamada[0] == "hacer_copia" for llamada in moodle.llamadas)
+    assert cupo["copias_actividad"] == 0 and "copia" not in documento
+    sin_registro = tmp_path / "x"
+    sin_registro.mkdir()
+    # Por el nombre sí está en el aula, pero eso no basta: el agente no adivina actividades.
+    carpeta = _carpeta_con_registro(sin_registro, publicadas=())
+    _m, presencia, documento, _c = _copiar_actividades(carpeta, ["pagina.md"])
+    assert documento["errores"] == ["ACTIVIDAD_SIN_REGISTRO"] and presencia.resumenes_copia == []
+
+
+def test_copiar_actividades_solo_en_cursos_reales(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path)
+    moodle = _aula_con_paginas()
+    presencia = PresenciaFalsa()
+    documento = publicacion.copiar_actividades(
+        moodle, CFG, "pruebas", ["pagina.md"], carpeta, presencia, _cupo()
+    )
+    assert documento["errores"] == ["COPIA_DE_ACTIVIDAD_SOLO_REAL"]
+    assert presencia.resumenes_copia == [] and moodle.copias_de_actividad == []
+
+
+def test_copiar_actividades_cupo_propio(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path)
+    cupo = {"pruebas": 0, "copias": 3, "copias_actividad": publicacion.CUPO_COPIAS_ACTIVIDAD - 1}
+    moodle, presencia, documento, _ = _copiar_actividades(
+        carpeta, ["pagina.md", "otra.md"], cupo=cupo
+    )
+    assert documento["errores"] == ["CUPO_COPIAS_ACTIVIDAD"]  # el de copias de curso, aparte
+    assert presencia.resumenes_copia == [] and moodle.copias_de_actividad == []
+    assert cupo["copias_actividad"] == publicacion.CUPO_COPIAS_ACTIVIDAD - 1
+    # Una sola sí cabe y no gasta el de los cursos.
+    _m, _p, documento, _ = _copiar_actividades(carpeta, ["pagina.md"], cupo=cupo)
+    assert documento["resultado"] == "ok"
+    assert (cupo["copias"], cupo["copias_actividad"]) == (3, publicacion.CUPO_COPIAS_ACTIVIDAD)
+    assert publicacion.CUPO_COPIAS_ACTIVIDAD == 20
+
+
+def test_copiar_actividades_el_docente_dice_que_no(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path)
+    moodle, presencia, documento, cupo = _copiar_actividades(
+        carpeta, ["pagina.md"], presencia=PresenciaFalsa(copia=False)
+    )
+    assert (documento["resultado"], documento["errores"]) == ("abortado", ["COPIA_RECHAZADA"])
+    assert len(presencia.resumenes_copia) == 1 and moodle.copias_de_actividad == []
+    assert cupo["copias_actividad"] == 0 and _copias_guardadas(carpeta) == []
+
+
+def test_copiar_actividades_con_otra_actividad_en_la_copia_se_borra_del_aula(tmp_path):
+    from dobles import copia_sintetica_de_actividad
+
+    carpeta = _carpeta_con_registro(tmp_path)
+    moodle = _aula_con_paginas()
+    moodle.copia = copia_sintetica_de_actividad(999)  # no es la 601 que se pidió
+    _m, _p, documento, _c = _copiar_actividades(carpeta, ["pagina.md"], moodle)
+    assert (documento["resultado"], documento["errores"]) == ("error", ["COPIA_NO_VALIDA"])
+    assert "copia" not in documento and _copias_guardadas(carpeta) == []
+    assert moodle.copias_en_el_aula == [] and len(moodle.borradas) == 1
+
+
+def test_copiar_actividades_si_una_falla_se_para_y_las_hechas_quedan(tmp_path):
+    from dobles import copia_sintetica_de_actividad
+
+    carpeta = _carpeta_con_registro(tmp_path)
+
+    class _SegundaMala(MoodleFalso):
+        def hacer_copia(self, curso_id, destino, maximo, cmid=None):
+            if cmid == 602:
+                self.copia = copia_sintetica_de_actividad(999)
+            return super().hacer_copia(curso_id, destino, maximo, cmid)
+
+    moodle = _SegundaMala()
+    moodle.secciones[0]["modulos"] = _aula_con_paginas().secciones[0]["modulos"]
+    _m, _p, documento, cupo = _copiar_actividades(carpeta, ["pagina.md", "otra.md"], moodle)
+    assert documento["errores"] == ["COPIA_NO_VALIDA"]
+    assert [c["cmid"] for c in documento["copia"]] == [601]  # la primera quedó y se dice
+    assert len(_copias_guardadas(carpeta)) == 1 and moodle.copias_en_el_aula == []
+    assert cupo["copias_actividad"] == 2
+
+
+def test_copiar_actividades_ruta_fuera_de_la_carpeta(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path)
+    fuera = tmp_path.parent / "fuera.md"
+    fuera.write_text(PAGINA, encoding="utf-8")
+    _m, presencia, documento, _c = _copiar_actividades(carpeta, ["../fuera.md"])
+    assert documento["errores"] == ["RUTA_FUERA_DE_CARPETA"] and presencia.resumenes_copia == []

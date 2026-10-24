@@ -622,3 +622,11 @@ class TestBaseDePublicado:
         with pytest.raises(estado.FicheroNoSeguro):
             estado.guardar_base(tiza, 5678, 77, b"x", "x")
         assert list(fuera.iterdir()) == []
+
+
+def test_nombre_de_copia_de_una_actividad_lleva_su_cmid():
+    momento = datetime(2026, 10, 24, 9, 5)
+    assert estado.nombre_de_copia("real", momento) == "real-20261024-0905.mbz"
+    assert estado.nombre_de_copia("real", momento, 1) == "real-20261024-0905-2.mbz"
+    assert estado.nombre_de_copia("real", momento, 0, 502) == "real-c502-20261024-0905.mbz"
+    assert estado.nombre_de_copia("real", momento, 2, 502) == "real-c502-20261024-0905-3.mbz"

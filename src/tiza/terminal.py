@@ -383,6 +383,8 @@ class PresenciaTerminal:
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
         detalle = mensajes.detalle_copia(resumen)
         print(f"Curso de la copia: {detalle.curso} (entorno: {detalle.entorno})")
+        for actividad in detalle.actividades:
+            print(f"  · {actividad}")
         return confirmar(detalle.pregunta)
 
     def confirmar_sobrescribir(self, resumen: ResumenSobrescribir) -> bool:

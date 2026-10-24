@@ -1841,3 +1841,111 @@ def test_las_entradas_de_tiza_no_rompen_lo_que_lee_publicar(carpeta):
     doc = contenido.cargar(carpeta / _RUTA_TIZA, raiz=carpeta.resolve())
     assert doc.origen is None
     assert estado.guardar_huella_de_copia(dir_tiza, 3, 999, "a" * 64) is False
+
+
+# --- La copia de una sola actividad (``tiza copia --actividad``) -----------------------
+
+
+def importar_actividad(carpeta, actividad, nombre="actividad.mbz", **opciones):
+    """Importa una copia de una sola actividad: 0 secciones y esa actividad."""
+    opciones.setdefault("curso", 3)
+    f.escribir_mbz(carpeta / nombre, [], [actividad], **opciones)
+    return agente.importar(nombre, carpeta)
+
+
+def test_actividad_del_registro_con_cambios_guarda_la_version_y_no_toca_mas(carpeta):
+    ruta = _publicada_por_tiza(carpeta)
+    resumen = importar_actividad(carpeta, pagina("<p>Cambiada en el aula</p>\n"))
+    assert (resumen.curso, resumen.actividades) == (3, 1)
+    assert resumen.estados["PUBLICADA_POR_TIZA_CAMBIADA"] == 1
+    assert (carpeta / ".tiza/copia/501.html").read_text(encoding="utf-8").strip() == (
+        "<p>Cambiada en el aula</p>"
+    )
+    entrada = entrada_de(carpeta)
+    # Sin importación del curso antes: no hay secciones ni fecha de copia que pueda hacer
+    # «antigua» a la siguiente copia del curso.
+    assert (entrada["secciones"], entrada["fecha_copia"]) == ([], None)
+    [una] = entrada["actividades"]
+    assert (una["cmid"], una["seccion"], una["fichero"]) == (501, 0, _RUTA_TIZA)
+    assert una["estado"] == "PUBLICADA_POR_TIZA_CAMBIADA" and una["huella_fichero"] == sha(ruta)
+    informe.validar_copia(estado.cargar_copia(carpeta / ".tiza"))
+    # No se crea ningún fichero de actividad nuevo: solo la versión del aula y copia.json.
+    assert not (carpeta / "aula" / "02-tema-1-intro").exists()
+    assert {".tiza/copia.json", ".tiza/copia/501.html"} <= ficheros_de(carpeta)
+
+
+def test_actividad_con_origen_se_trata_como_siempre_y_no_toca_las_demas(carpeta):
+    antes = [pagina("<p>Uno</p>"), pagina("<p>Dos</p>", nombre="Otra", cmid=502)]
+    importar_en(carpeta, antes, fecha=1790000000)
+    previo = entrada_de(carpeta)
+    otras = {a["cmid"]: a for a in previo["actividades"] if a["cmid"] != 501}
+
+    resumen = importar_actividad(carpeta, pagina("<p>Uno cambiado</p>"), fecha=1795000000)
+    assert resumen.estados["CAMBIADA_DESDE_LA_IMPORTACION"] == 1
+    assert "Uno cambiado" in (carpeta / ".tiza/copia/501.html").read_text(encoding="utf-8")
+    entrada = entrada_de(carpeta)
+    # Del curso no cambia nada más que esa actividad: ni la fecha de la copia ni las secciones.
+    assert {k: v for k, v in entrada.items() if k != "actividades"} == {
+        k: v for k, v in previo.items() if k != "actividades"
+    }
+    nuevas = actividades_de(carpeta)
+    assert {c: a for c, a in nuevas.items() if c != 501} == otras
+    assert nuevas[501]["estado"] == "CAMBIADA_DESDE_LA_IMPORTACION"
+    assert nuevas[501]["seccion"] == 2  # la de la importación anterior
+
+    # Repetida y sin más cambios, como siempre: YA_IMPORTADO.
+    resumen = importar_actividad(carpeta, pagina("<p>Uno cambiado</p>"), fecha=1795000000)
+    assert resumen.estados["YA_IMPORTADO"] == 1
+
+
+def test_una_copia_del_curso_posterior_a_la_de_actividad_no_sale_antigua(carpeta):
+    importar_en(carpeta, [pagina("<p>Uno</p>")], fecha=1790000000)
+    importar_actividad(carpeta, pagina("<p>Uno cambiado</p>"), fecha=1795000000)
+    resumen = importar_en(carpeta, [pagina("<p>Uno más cambiado</p>")], fecha=1792000000)
+    entrada = actividades_de(carpeta)[501]
+    assert AVISO_ANTIGUA not in (entrada["detalle"] or "")
+    assert resumen.estados["CAMBIADA_DESDE_LA_IMPORTACION"] == 1
+    assert entrada_de(carpeta)["fecha_copia"].startswith("2026-")
+    assert "Uno más cambiado" in (carpeta / ".tiza/copia/501.html").read_text(encoding="utf-8")
+
+
+AVISO_ANTIGUA = importar.AVISO_COPIA_ANTIGUA
+
+
+def test_actividad_desconocida_no_escribe_nada(carpeta):
+    # Ni registro ni entrada en copia.json.
+    f.escribir_mbz(carpeta / "actividad.mbz", [], [pagina()], curso=3)
+    antes = ficheros_de(carpeta)
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("actividad.mbz", carpeta)
+    assert info.value.codigo == "COPIA_DE_ACTIVIDAD_DESCONOCIDA"
+    assert ficheros_de(carpeta) == antes
+    # Otra distinta de las importadas, o con su fichero ya borrado, tampoco.
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html"
+    importar_en(carpeta, [pagina()])
+    ruta.unlink()
+    antes = ficheros_de(carpeta)
+    for actividad in (pagina(), pagina(nombre="Otra", cmid=999)):
+        f.escribir_mbz(carpeta / "actividad.mbz", [], [actividad], curso=3, fecha=None)
+        with pytest.raises(ErrorImportar) as info:
+            agente.importar("actividad.mbz", carpeta)
+        assert info.value.codigo == "COPIA_DE_ACTIVIDAD_DESCONOCIDA"
+        assert ficheros_de(carpeta) == antes
+
+
+def test_actividad_con_como_nuevas_no_se_admite(carpeta):
+    _publicada_por_tiza(carpeta)
+    f.escribir_mbz(carpeta / "actividad.mbz", [], [pagina()], curso=3)
+    antes = ficheros_de(carpeta)
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("actividad.mbz", carpeta, "aula", True)
+    assert info.value.codigo == "COPIA_DE_ACTIVIDAD_DESCONOCIDA"
+    assert ficheros_de(carpeta) == antes
+
+
+def test_la_importacion_de_una_actividad_sigue_pidiendo_su_curso(carpeta):
+    _publicada_por_tiza(carpeta)
+    f.escribir_mbz(carpeta / "actividad.mbz", [], [pagina()], curso=99)
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("actividad.mbz", carpeta)
+    assert info.value.codigo == "COPIA_DE_OTRO_CURSO"
