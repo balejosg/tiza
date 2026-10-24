@@ -97,7 +97,7 @@ en español.
   huella del aula de cada actividad y, si cambió en el aula, el sha256 del fichero del docente
   para no publicarlo sin juntar los cambios). `src/tiza/importar_cuestionario.py`: las preguntas y los
   ajustes de un cuestionario, y lo que tiza no admite (`PREGUNTAS_NO_ADMITIDAS`,
-  `AJUSTES_NO_ADMITIDOS`). La petición de `tiza copia` pasa por `publicacion.py` (buzón v6, `ficheros` desde la v8); la
+  `AJUSTES_NO_ADMITIDOS`). La petición de `tiza copia` pasa por `publicacion.py` (buzón v6; `ficheros` en `copia` y `estructura` desde la v8); la
   descarga de la copia del aula está solo en `publicar.py` (`Moodle.hacer_copia`). Reconoce lo
   que publicó tiza (`PUBLICADA_POR_TIZA[_CAMBIADA]`, con `publicados.json`, sin duplicarlo en
   `aula/`) y acepta las copias de una sola actividad (`COPIA_DE_ACTIVIDAD_DESCONOCIDA`).
@@ -216,7 +216,7 @@ en español.
   La acreditación (`publicar.Contrasena` o `publicar.Cookies`) entra por
   `Presencia.acreditar`, y `publicar.autenticar_con` elige el login.
 - Estado de trabajo en `.tiza/` (`informe.json`, `estructura.json`,
-  `verificados.json`, `preview/`, `buzon/`): los nombres y formatos de lo que
+  `verificados.json`, `publicados.json`, `publicados/`, `preview/`, `buzon/`): los nombres y formatos de lo que
   no es buzón viven en `estado.py`. `.tiza/`, `planes/` y `dist/` están
   en `.gitignore`: no los commitees (`dist/` contiene artefactos obsoletos).
 

@@ -199,10 +199,10 @@ tarea 2»). tiza cuida tres cosas:
 
 Para esto, tiza anota en `.tiza/publicados.json` y `.tiza/publicados/` lo que publicó en cada
 curso real. Si ese registro está dañado, `PUBLICADOS_INVALIDO`: tiza no lo usa a medias. Si al
-publicar no puede anotar lo publicado (`REGISTRO_NO_GUARDADO`), avisa de que, si cambias el nombre,
-podría crear otra actividad y de que no comparará tus retoques; si no puede guardar la base
-(`BASE_NO_GUARDADA`), la próxima vez no podrá comparar esa actividad. En los dos casos, pide una
-copia nueva antes de tocarla.
+publicar no puede anotar qué actividad es (`REGISTRO_NO_GUARDADO`), te avisa: si cambias el
+nombre, tiza podría crear otra actividad, y no comparará tus retoques. En ese caso, pide una copia
+nueva antes de tocarla. Si no puede guardar la base de lo publicado (`BASE_NO_GUARDADA`), no te
+avisa a ti: el agente lo ve en su informe y la próxima vez no podrá comparar esa actividad.
 
 ## Varios cursos reales
 
