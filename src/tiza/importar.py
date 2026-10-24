@@ -661,7 +661,11 @@ def _importar_de_actividad(
     publicados = _publicados_del_curso(dir_tiza, curso, False)
     previa = _previa(anterior, curso, False).get(actividad.cmid)
     registrada = publicados.get(actividad.cmid)
-    conocida = registrada is not None and os.path.lexists(raiz / registrada[0])
+    conocida = (
+        registrada is not None
+        and registrada[1].tipo == tipos.de_modulo(actividad.modulo)
+        and os.path.lexists(raiz / registrada[0])
+    )
     if not conocida and _fichero_previo(previa, raiz, base) is None:
         raise ErrorImportar(
             "COPIA_DE_ACTIVIDAD_DESCONOCIDA",
@@ -838,6 +842,30 @@ def _fichero_previo(previa: dict | None, raiz: Path, base: Path) -> Path | None:
     return ruta if os.path.lexists(ruta) else None
 
 
+def _fichero_de_origen(
+    previa: dict | None, registrado: str, raiz: Path, base: Path, curso: int, cmid: int
+) -> Path | None:
+    """El fichero de una actividad importada con ``origen``, si lo es; si no, ``None``.
+
+    Lo es si ``copia.json`` tiene su fichero de una importación (``previa``, que no sea una de
+    «publicada por tiza», cuyo fichero viene del registro) o el fichero del registro lleva el
+    ``origen`` de este curso y esta actividad.
+    """
+    if previa is not None and not previa["estado"].startswith("PUBLICADA_POR_TIZA"):
+        if (previo := _fichero_previo(previa, raiz, base)) is not None:
+            return previo
+    ruta = raiz / registrado
+    try:
+        texto = leer_bytes_acotado(ruta, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8")
+        cabecera = yaml.safe_load(texto.split("---\n")[1]) if texto.startswith("---\n") else None
+    except (OSError, UnicodeDecodeError, IndexError, yaml.YAMLError):
+        return None
+    origen = cabecera.get("origen") if isinstance(cabecera, dict) else None
+    if isinstance(origen, dict) and origen.get("curso") == curso and origen.get("cmid") == cmid:
+        return ruta
+    return None
+
+
 def _importar_actividad(
     datos: Copia,
     actividad: ActividadCopia,
@@ -866,13 +894,22 @@ def _importar_actividad(
             previa,
         )
     registrada = (publicados or {}).get(actividad.cmid)
+    fichero_de_origen: Path | None = None
     if registrada is not None and registrada[1].tipo == tipo:
         if os.path.lexists(raiz / registrada[0]):
-            return _publicada_por_tiza(datos, actividad, entrada, tipo, registrada, raiz, dir_tiza)
+            # Si la actividad viene de un ``origen`` manda ``copia.json`` (su base), no el
+            # registro, que para esas no guarda huella.
+            fichero_de_origen = _fichero_de_origen(
+                previa, registrada[0], raiz, base, datos.curso_original, actividad.cmid
+            )
+            if fichero_de_origen is None:
+                return _publicada_por_tiza(
+                    datos, actividad, entrada, tipo, registrada, raiz, dir_tiza
+                )
     extension = EXTENSION.get(tipo, ".md")
     carpeta_seccion = base / f"{seccion.numero:02d}-{nombre_seguro(seccion.nombre)}"
     ruta = carpeta_seccion / f"{nombre_seguro(actividad.nombre)}-{actividad.cmid}{extension}"
-    ruta = _fichero_previo(previa, raiz, base) or ruta
+    ruta = _fichero_previo(previa, raiz, base) or fichero_de_origen or ruta
     existe = os.path.lexists(ruta)
 
     html, recursos, faltan = _recursos(actividad, actividad.html)

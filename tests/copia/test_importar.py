@@ -1949,3 +1949,67 @@ def test_la_importacion_de_una_actividad_sigue_pidiendo_su_curso(carpeta):
     with pytest.raises(ErrorImportar) as info:
         agente.importar("actividad.mbz", carpeta)
     assert info.value.codigo == "COPIA_DE_OTRO_CURSO"
+
+
+# --- Con ``origen``, manda copia.json y no el registro de lo publicado (I1) -------------
+
+
+def _importada_y_publicada_sin_huella(carpeta):
+    """Importa con ``origen`` y registra que se publicó: sin huella, como hace la publicación."""
+    importar_en(carpeta, [pagina("<p>Hola</p>")])
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html"
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        3,
+        ruta.relative_to(carpeta).as_posix(),
+        estado.Publicado(501, "pagina", huella=None, marca=sha(ruta)),
+    )
+    return ruta
+
+
+def test_importada_con_origen_y_publicada_se_reimporta_sin_cambios_como_ya_importada(carpeta):
+    ruta = _importada_y_publicada_sin_huella(carpeta)
+    antes = actividades_de(carpeta)[501]
+    resumen = importar_en(carpeta, [pagina("<p>Hola</p>")])
+    assert resumen.estados["YA_IMPORTADO"] == 1
+    assert resumen.estados["PUBLICADA_POR_TIZA_CAMBIADA"] == 0
+    assert not (carpeta / ".tiza" / "copia" / "501.html").exists()
+    despues = actividades_de(carpeta)[501]
+    assert despues["huella_aula"] == huella_aula("Una página", "<p>Hola</p>")
+    assert {k: v for k, v in despues.items() if k != "estado"} == {
+        k: v for k, v in antes.items() if k != "estado"
+    }
+    assert ruta.exists()
+
+
+def test_importada_con_origen_y_publicada_con_cambio_en_el_aula_es_cambiada_desde_importacion(
+    carpeta,
+):
+    _importada_y_publicada_sin_huella(carpeta)
+    resumen = importar_en(carpeta, [pagina("<p>Hola, mundo</p>")])
+    assert resumen.estados["CAMBIADA_DESDE_LA_IMPORTACION"] == 1
+    assert resumen.estados["PUBLICADA_POR_TIZA_CAMBIADA"] == 0
+    assert (carpeta / ".tiza" / "copia" / "501.html").read_text(encoding="utf-8") == (
+        "<p>Hola, mundo</p>"
+    )
+
+
+def test_copia_de_actividad_importada_con_origen_y_publicada(carpeta):
+    _importada_y_publicada_sin_huella(carpeta)
+    antes = actividades_de(carpeta)[501]["huella_aula"]
+    resumen = importar_actividad(carpeta, pagina("<p>Hola</p>"))
+    assert resumen.estados["YA_IMPORTADO"] == 1
+    assert actividades_de(carpeta)[501]["huella_aula"] == antes
+    resumen = importar_actividad(carpeta, pagina("<p>Otra</p>"))
+    assert resumen.estados["CAMBIADA_DESDE_LA_IMPORTACION"] == 1
+
+
+def test_copia_de_actividad_del_registro_de_otro_tipo_es_desconocida(carpeta):
+    _publicada_por_tiza(carpeta)
+    antes = ficheros_de(carpeta)
+    etiqueta = f.ActividadFalsa(501, "label", 7, "Una página", "<p>Hola</p>")
+    with pytest.raises(ErrorImportar) as exc:
+        importar_actividad(carpeta, etiqueta)
+    assert exc.value.codigo == "COPIA_DE_ACTIVIDAD_DESCONOCIDA"
+    assert ficheros_de(carpeta) - antes == {"actividad.mbz"}
+    assert not (carpeta / ".tiza" / "copia.json").exists()
