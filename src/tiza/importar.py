@@ -595,6 +595,7 @@ def importar(
     anterior = _leer_copia_json(dir_tiza)
     previa = _previa(anterior, datos.curso_original, como_nuevas)
     antigua = _es_antigua(anterior, datos, como_nuevas)
+    publicados = _publicados_del_curso(dir_tiza, datos.curso_original, como_nuevas)
     entradas = []
     try:
         for actividad in datos.actividades:
@@ -608,6 +609,7 @@ def importar(
                 previa.get(actividad.cmid),
                 como_nuevas,
                 antigua,
+                publicados,
             )
             if hecha is not None:
                 entradas.append(hecha)
@@ -629,6 +631,67 @@ def importar(
         actividades=len(entradas),
         estados=recuento,
     )
+
+
+def _publicados_del_curso(
+    dir_tiza: Path, curso: int, como_nuevas: bool
+) -> dict[int, tuple[str, estado.Publicado]]:
+    """cmid -> (ruta, ``Publicado``) de lo que tiza publicó en ``curso``; con ``como_nuevas``, nada.
+
+    Un registro dañado para la importación antes de escribir nada (``PUBLICADOS_INVALIDO``).
+    """
+    if como_nuevas:
+        return {}
+    try:
+        registro = estado.cargar_publicados(dir_tiza, curso)
+    except estado.ErrorEstado:
+        raise ErrorImportar(
+            "PUBLICADOS_INVALIDO",
+            "El registro de lo publicado (.tiza/publicados.json) está dañado: no se importa.",
+        ) from None
+    return {p.cmid: (ruta, p) for ruta, p in registro.items()}
+
+
+def _publicada_por_tiza(
+    datos: Copia,
+    actividad: ActividadCopia,
+    entrada: _Entrada,
+    tipo: str,
+    registrada: tuple[str, estado.Publicado],
+    raiz: Path,
+    dir_tiza: Path,
+) -> _Entrada:
+    """La actividad la publicó tiza y su fichero sigue ahí: no se crea otro, solo se compara.
+
+    Con la huella del registro igual a la del aula, nada que hacer. Si difiere (o el registro no
+    tiene huella, y no se puede saber si el docente la tocó), la versión del aula queda en
+    ``.tiza/copia/<cmid>.html``, el registro toma la huella nueva y la marca del fichero actual:
+    mientras siga así, al publicar en real se pregunta antes de pisar el cambio del aula.
+    """
+    ruta_registrada, publicado = registrada
+    huella = tipos.huella_aula(actividad.nombre, actividad.html, actividad.fechas)
+    entrada.fichero = ruta_registrada
+    entrada.huella_aula = huella
+    if publicado.huella == huella:
+        entrada.estado = "PUBLICADA_POR_TIZA"
+        return entrada
+    ruta = raiz / ruta_registrada
+    html, recursos, _faltan = _recursos(actividad, actividad.html)
+    entrada.estado = "PUBLICADA_POR_TIZA_CAMBIADA"
+    marca = _huella_del_fichero(ruta)
+    entrada.huella_fichero = marca or estado.MARCA_ILEGIBLE
+    _extraer(datos, recursos, ruta.parent, actividad.cmid, raiz)
+    estado.guardar_version_de_copia(dir_tiza, actividad.cmid, html)
+    estado.guardar_publicado(
+        dir_tiza,
+        datos.curso_original,
+        ruta_registrada,
+        estado.Publicado(actividad.cmid, tipo, huella=huella, marca=entrada.huella_fichero),
+    )
+    entrada.avisos.append(estado.AVISO_CAMBIADA.format(cmid=actividad.cmid))
+    if marca is None:
+        entrada.avisos.append(_AVISO_FICHERO_ILEGIBLE)
+    return entrada
 
 
 def _rechazar(entrada: _Entrada, estado_: str, motivo: str, previa: dict | None) -> _Entrada:
@@ -698,6 +761,7 @@ def _importar_actividad(
     previa: dict | None,
     como_nuevas: bool,
     antigua: bool = False,
+    publicados: Mapping[int, tuple[str, estado.Publicado]] | None = None,
 ) -> _Entrada | None:
     nombre = _texto_seguro(actividad.nombre, f"Actividad {actividad.cmid}")
     entrada = _Entrada(
@@ -714,6 +778,10 @@ def _importar_actividad(
             "tiza no gestiona este tipo de actividad: no se importa.",
             previa,
         )
+    registrada = (publicados or {}).get(actividad.cmid)
+    if registrada is not None and registrada[1].tipo == tipo:
+        if os.path.lexists(raiz / registrada[0]):
+            return _publicada_por_tiza(datos, actividad, entrada, tipo, registrada, raiz, dir_tiza)
     extension = EXTENSION.get(tipo, ".md")
     carpeta_seccion = base / f"{seccion.numero:02d}-{nombre_seguro(seccion.nombre)}"
     ruta = carpeta_seccion / f"{nombre_seguro(actividad.nombre)}-{actividad.cmid}{extension}"

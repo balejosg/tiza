@@ -231,6 +231,8 @@ MENSAJES: dict[str, str] = {
     "IMPORTADA": "La actividad se ha importado a un fichero nuevo.",
     "YA_IMPORTADO": "El fichero de esta actividad ya existía y no se ha tocado.",
     "CAMBIADA_DESDE_LA_IMPORTACION": "La actividad cambió en el aula después de importarla. Tu fichero no se ha tocado; la versión nueva queda en .tiza/copia/ para juntar los cambios.",
+    "PUBLICADA_POR_TIZA": "La actividad la publicó tiza y su fichero sigue ahí: no se ha creado otro ni se ha tocado.",
+    "PUBLICADA_POR_TIZA_CAMBIADA": "La actividad la publicó tiza y cambió en el aula después. Tu fichero no se ha tocado; la versión del aula queda en .tiza/copia/ para juntar los cambios, y tiza preguntará antes de pisarla al publicar.",
     "HTML_NO_ADMITIDO": "El fichero se ha escrito, pero su HTML lleva algo que tiza no publica (el detalle dice qué). Si lo publicas, ese contenido se perdería: revísalo.",
     "PREGUNTAS_NO_ADMITIDAS": "El cuestionario tiene preguntas de un tipo que tiza no admite (el detalle dice cuáles), así que no se ha importado. Tiza solo importa verdadero/falso, opción múltiple, respuesta corta y numérica.",
     "AJUSTES_NO_ADMITIDOS": "La actividad tiene ajustes que tiza no puede publicar sin cambiarlos (el detalle dice cuáles: más de 10 intentos o un tiempo límite que no son minutos enteros), así que no se ha importado.",

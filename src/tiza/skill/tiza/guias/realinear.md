@@ -55,6 +55,10 @@ Pide copias **sin datos del alumnado**. Si la programación los trae, no los use
   - `IMPORTADA`: fichero nuevo, listo para revisar.
   - `YA_IMPORTADO`: ya existía y no se ha tocado.
   - `CAMBIADA_DESDE_LA_IMPORTACION`: cambió en el aula después de la importación anterior (punto 5).
+  - `PUBLICADA_POR_TIZA`: la publicó tiza y su fichero (el de `fichero`) sigue ahí; no se crea otro
+    y no ha cambiado en el aula.
+  - `PUBLICADA_POR_TIZA_CAMBIADA`: la publicó tiza y cambió en el aula; igual que la
+    `CAMBIADA_DESDE_LA_IMPORTACION` (punto 5), sobre el fichero que ya tenías.
   - `HTML_NO_ADMITIDO`: escrita, pero con HTML que tiza no publica (punto 5).
   - `PREGUNTAS_NO_ADMITIDAS`, `AJUSTES_NO_ADMITIDOS`, `TIPO_NO_GESTIONADO`: no importada; va a la
     lista de cambios a mano (punto 5).
@@ -87,7 +91,7 @@ contestar, y todas juntas. No apliques nada hasta que responda.
   publicar --en pruebas`, la revisión del docente y `--en real`. En pruebas, una actividad con
   `origen` se busca por nombre: si le cambias el nombre se crea otra en pruebas y la antigua se
   queda; avisa al docente de que puede borrarla.
-- **`CAMBIADA_DESDE_LA_IMPORTACION`**: antes de publicar, junta lo que el docente cambió en el aula
+- **`CAMBIADA_DESDE_LA_IMPORTACION` y `PUBLICADA_POR_TIZA_CAMBIADA`**: antes de publicar, junta lo que el docente cambió en el aula
   con lo propuesto. Lo del aula está en `.tiza/copia/<cmid>.html`, en HTML.
   - Si el fichero es `.html` (página, tarea o etiqueta), junta HTML con HTML.
   - Si es `.md` (cuestionario o H5P), deja el HTML del aula como bloque HTML y no lo conviertas a

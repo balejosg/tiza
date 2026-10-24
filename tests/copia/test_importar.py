@@ -1498,6 +1498,8 @@ def test_cli_importar_resumen(carpeta, capsys, monkeypatch):
         "IMPORTADA": 1,
         "YA_IMPORTADO": 0,
         "CAMBIADA_DESDE_LA_IMPORTACION": 0,
+        "PUBLICADA_POR_TIZA": 0,
+        "PUBLICADA_POR_TIZA_CAMBIADA": 0,
         "HTML_NO_ADMITIDO": 0,
         "PREGUNTAS_NO_ADMITIDAS": 0,
         "AJUSTES_NO_ADMITIDOS": 0,
@@ -1706,3 +1708,136 @@ def test_el_aviso_de_cambio_solo_no_deja_un_espacio_delante(carpeta):
     importar_en(carpeta, [pagina("<p>C</p>")])
     detalle = actividades_de(carpeta)[501]["detalle"]
     assert detalle == detalle.strip() and detalle.startswith("El nombre")
+
+
+# --- Lo que publicó tiza (``.tiza/publicados.json``) ------------------------------------
+
+_RUTA_TIZA = "aula/mis-paginas/hola.html"
+
+
+def _publicada_por_tiza(carpeta, html="<p>Hola</p>\n", huella="base", curso=3, tipo="pagina"):
+    """Un fichero del docente que tiza publicó como el cmid 501; ``huella="base"`` = la de ``html``."""
+    ruta = carpeta / _RUTA_TIZA
+    ruta.parent.mkdir(parents=True)
+    ruta.write_text(
+        "---\ntipo: pagina\nnombre: Una página\nseccion: 'Tema 1: Intro'\n---\n" + html,
+        encoding="utf-8",
+    )
+    if huella == "base":
+        huella = huella_aula("Una página", html)
+    estado.guardar_publicado(
+        carpeta / ".tiza", curso, _RUTA_TIZA, estado.Publicado(501, tipo, huella=huella)
+    )
+    return ruta
+
+
+def _registro(carpeta, curso=3):
+    return estado.cargar_publicados(carpeta / ".tiza", curso)
+
+
+def test_publicada_por_tiza_sin_cambios_no_crea_otro_fichero(carpeta):
+    _publicada_por_tiza(carpeta)
+    antes = ficheros_de(carpeta)
+    registro = _registro(carpeta)
+    resumen = importar_en(carpeta, [pagina("<p>Hola</p>\n")])
+    assert resumen.estados["PUBLICADA_POR_TIZA"] == 1 and resumen.estados["IMPORTADA"] == 0
+    assert ficheros_de(carpeta) - antes == {".tiza/copia.json", "copia.mbz"}
+    entrada = actividades_de(carpeta)[501]
+    assert entrada["estado"] == "PUBLICADA_POR_TIZA" and entrada["fichero"] == _RUTA_TIZA
+    assert entrada["huella_aula"] == huella_aula("Una página", "<p>Hola</p>\n")
+    assert entrada["huella_fichero"] is None
+    assert _registro(carpeta) == registro
+
+
+def test_publicada_por_tiza_cambiada_guarda_version_huella_y_marca(carpeta):
+    ruta = _publicada_por_tiza(carpeta)
+    antes = ficheros_de(carpeta)
+    html = '<p>Hola, mundo <img src="@@PLUGINFILE@@/foto.png"></p>\n'
+    actividad = pagina(html, ficheros=[f.FicheroFalso("foto.png", PNG)])
+    resumen = importar_en(carpeta, [actividad])
+    assert resumen.estados["PUBLICADA_POR_TIZA_CAMBIADA"] == 1
+    nuevos = ficheros_de(carpeta) - antes
+    assert nuevos == {
+        "copia.mbz",
+        ".tiza/copia.json",
+        ".tiza/copia/501.html",
+        "aula/mis-paginas/recursos/501/foto.png",
+    }
+    assert "recursos/501/foto.png" in (carpeta / ".tiza/copia/501.html").read_text(encoding="utf-8")
+    entrada = actividades_de(carpeta)[501]
+    nueva = huella_aula("Una página", html)
+    assert entrada["estado"] == "PUBLICADA_POR_TIZA_CAMBIADA" and entrada["fichero"] == _RUTA_TIZA
+    assert (entrada["huella_aula"], entrada["huella_fichero"]) == (nueva, sha(ruta))
+    assert estado.AVISO_CAMBIADA.format(cmid=501) in entrada["detalle"]
+    assert _registro(carpeta) == {_RUTA_TIZA: estado.Publicado(501, "pagina", nueva, sha(ruta))}
+
+
+def test_publicada_por_tiza_sin_huella_cuenta_como_cambiada(carpeta):
+    _publicada_por_tiza(carpeta, huella=None)
+    resumen = importar_en(carpeta, [pagina("<p>Hola</p>\n")])
+    assert resumen.estados["PUBLICADA_POR_TIZA_CAMBIADA"] == 1
+    assert _registro(carpeta)[_RUTA_TIZA].huella == huella_aula("Una página", "<p>Hola</p>\n")
+
+
+def test_repetir_la_copia_de_una_cambiada_conserva_la_marca_del_registro(carpeta):
+    ruta = _publicada_por_tiza(carpeta)
+    importar_en(carpeta, [pagina("<p>Nuevo</p>\n")])
+    resumen = importar_en(carpeta, [pagina("<p>Nuevo</p>\n")])
+    assert resumen.estados["PUBLICADA_POR_TIZA"] == 1
+    assert _registro(carpeta)[_RUTA_TIZA].marca == sha(ruta)
+
+
+def test_registro_con_el_fichero_borrado_se_importa_como_siempre(carpeta):
+    _publicada_por_tiza(carpeta).unlink()
+    resumen = importar_en(carpeta, [pagina()])
+    assert resumen.estados["IMPORTADA"] == 1
+    ruta = carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html"
+    assert frontmatter(ruta)["origen"] == {"curso": 3, "cmid": 501}
+
+
+def test_registro_de_otro_tipo_se_importa_como_siempre(carpeta):
+    _publicada_por_tiza(carpeta, tipo="tarea")
+    resumen = importar_en(carpeta, [pagina()])
+    assert resumen.estados["IMPORTADA"] == 1 and resumen.estados["PUBLICADA_POR_TIZA"] == 0
+
+
+def test_como_nuevas_ignora_el_registro(carpeta):
+    _publicada_por_tiza(carpeta, curso=9)
+    (carpeta / ".tiza" / "publicados.json").write_text("no es json", encoding="utf-8")
+    resumen = importar_en(carpeta, [pagina()], curso=9, como_nuevas=True)
+    assert resumen.estados["IMPORTADA"] == 1
+
+
+def test_registro_invalido_no_escribe_nada(carpeta):
+    (carpeta / ".tiza").mkdir()
+    (carpeta / ".tiza" / "publicados.json").write_text("no es json", encoding="utf-8")
+    copia_en(carpeta, [pagina()])
+    antes = ficheros_de(carpeta)
+    with pytest.raises(ErrorImportar) as info:
+        agente.importar("copia.mbz", carpeta)
+    assert info.value.codigo == "PUBLICADOS_INVALIDO" and info.value.detalle
+    assert ficheros_de(carpeta) == antes
+
+
+def test_una_copia_antigua_no_toca_el_registro(carpeta):
+    importar_en(carpeta, [pagina(cmid=510, nombre="Otra")], fecha=FECHA_NUEVA)
+    _publicada_por_tiza(carpeta)
+    registro = _registro(carpeta)
+    importar_en(carpeta, [pagina("<p>Otro</p>\n")], fecha=FECHA_VIEJA)
+    assert _registro(carpeta) == registro
+    assert not (carpeta / ".tiza" / "copia" / "501.html").exists()
+
+
+def test_las_entradas_de_tiza_no_rompen_lo_que_lee_publicar(carpeta):
+    _publicada_por_tiza(carpeta)
+    importar_en(carpeta, [pagina("<p>Nuevo</p>\n")])
+    informe.validar_copia(estado.cargar_copia(carpeta / ".tiza"))
+    dir_tiza = carpeta / ".tiza"
+    # Se buscan por el cmid del ``origen`` de un documento, y el fichero de tiza no lo tiene.
+    assert estado.huellas_de_copia(dir_tiza, 3) == {
+        501: huella_aula("Una página", "<p>Nuevo</p>\n")
+    }
+    assert estado.marcas_de_copia(dir_tiza, 3)
+    doc = contenido.cargar(carpeta / _RUTA_TIZA, raiz=carpeta.resolve())
+    assert doc.origen is None
+    assert estado.guardar_huella_de_copia(dir_tiza, 3, 999, "a" * 64) is False

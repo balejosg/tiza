@@ -218,3 +218,45 @@ def test_juntar_el_cambio_y_publicar_de_punta_a_punta(carpeta):
     assert sorted(x["cmid"] for x in documento["ficheros"]) == [501, 502, 503]
     assert "Aviso (juntado)" in moodle.formularios[503]["introeditor[text]"]
     assert estado.marcas_de_copia(carpeta / ".tiza", CURSO) == {}
+
+
+def test_publicada_por_tiza_cambiada_pregunta_antes_de_pisar_y_tras_juntar_no(tmp_path):
+    """Importar una actividad de tiza cambiada en el aula -> publicar pregunta; juntada, no."""
+    asignatura = (tmp_path / "asignatura").resolve()
+    asignatura.mkdir()
+    (asignatura / "tiza.toml").write_text(f"[cursos]\nreal = {CURSO}\n", encoding="utf-8")
+    ruta = asignatura / "aula" / "hola.html"
+    ruta.parent.mkdir()
+    ruta.write_text(
+        "---\ntipo: pagina\nnombre: Una página\nseccion: 'Tema 1: Intro'\n---\n<p>Hola</p>\n",
+        encoding="utf-8",
+    )
+    estado.guardar_publicado(
+        asignatura / ".tiza",
+        CURSO,
+        "aula/hola.html",
+        estado.Publicado(501, "pagina", huella=tipos.huella_aula("Una página", "<p>Hola</p>\n")),
+    )
+    # El docente cambia el texto en el aula; la copia nueva trae esa versión.
+    nuevo = "<p>Hola, retocado</p>\n"
+    secciones = [f.SeccionFalsa(id=7, numero=2, nombre="Tema 1: Intro")]
+    pagina = f.ActividadFalsa(501, "page", 7, "Una página", nuevo)
+    f.escribir_mbz(asignatura / "copia.mbz", secciones, [pagina], curso=CURSO)
+    resumen = agente.importar("copia.mbz", asignatura)
+    assert resumen.estados["PUBLICADA_POR_TIZA_CAMBIADA"] == 1
+    moodle = _aula_como_la_copia()
+    moodle.formularios[501]["page[text]"] = nuevo
+    # Sin tocar el fichero: se pregunta antes de pisar el cambio del aula (y la respuesta es no).
+    presencia = PresenciaFalsa()
+    documento = _publicar(asignatura, moodle, ["aula/hola.html"], presencia)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("Una página",)]
+    assert moodle.formularios[501]["page[text]"] == nuevo
+    # El docente junta los cambios: se publica sin preguntar y la marca queda libre.
+    ruta.write_text(ruta.read_text(encoding="utf-8") + "<p>Juntado</p>\n", encoding="utf-8")
+    presencia = PresenciaFalsa()
+    documento = _publicar(asignatura, moodle, ["aula/hola.html"], presencia)
+    assert documento["errores"] == [], documento
+    assert presencia.resumenes_sobrescribir == []
+    assert "Juntado" in moodle.formularios[501]["page[text]"]
+    assert estado.cargar_publicados(asignatura / ".tiza", CURSO)["aula/hola.html"].marca is None
