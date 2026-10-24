@@ -1573,6 +1573,31 @@ class TestSinCursoDePruebasCli:
         assert set(datos["cursos"]) == {"real"}
         assert datos["cursos"]["real"][0]["secciones"][0]["numero"] == 3
 
+    def test_estructura_directa_con_cambios_dice_que_pagina_no_retocaste(
+        self, tmp_path, monkeypatch
+    ):
+        self.preparar_solo_real(tmp_path, monkeypatch)
+        escribir_pagina(tmp_path)
+        responder(monkeypatch, ["s"])
+        monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: MoodleFalso())
+        assert cli.main(["estructura", "--cambios", "pagina.md"]) == 0
+        informe = leer_informe(tmp_path)
+        assert [(f["nombre"], f["accion"]) for f in informe["ficheros"]] == [
+            ("pagina.md", "sin_registro")
+        ]
+        assert (tmp_path / ".tiza" / "estructura.json").is_file()
+
+    def test_estructura_directa_con_cambios_y_fichero_invalido_no_entra_al_aula(
+        self, tmp_path, monkeypatch
+    ):
+        self.preparar_solo_real(tmp_path, monkeypatch)
+        (tmp_path / "mal.md").write_text("---\ntipo: nada\n---\n\nx\n", encoding="utf-8")
+        llamadas: list = []
+        monkeypatch.setattr("tiza.publicar.autenticar", lambda *a, **k: llamadas.append(a))
+        assert cli.main(["estructura", "--cambios", "mal.md"]) == 1
+        assert len(leer_informe(tmp_path)["errores"]) == 1
+        assert llamadas == []
+
     @pytest.mark.parametrize("visibilidad", [[], ["--visible"]])
     def test_publicar_directo_en_real_sin_pruebas_exige_oculto(
         self, tmp_path, monkeypatch, visibilidad
