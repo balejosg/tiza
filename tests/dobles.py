@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from tiza import buzon, config, informe, publicacion, rutas
+from tiza import aislamiento, buzon, config, informe, publicacion, rutas
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
     CAMPOS_FECHA_TAREA,
@@ -550,6 +550,12 @@ class PresenciaFalsa:
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
         cerrar_anterior: bool = False,
+        configuracion: tuple[str, str] | None = ("https://aula.ejemplo.org/centro", "profe"),
+        actualizar: bool = False,
+        carpeta_dudosa: bool = True,
+        aislar: bool = True,
+        aplicar_aislamiento: bool = True,
+        sin_aislar: bool = False,
     ) -> None:
         self.password = password
         self._cursos = list(cursos)
@@ -576,6 +582,18 @@ class PresenciaFalsa:
         self.resumenes_sobrescribir: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
+        self._configuracion = configuracion
+        self._actualizar = actualizar
+        self._carpeta_dudosa = carpeta_dudosa
+        self._aislar = aislar
+        self._aplicar_aislamiento = aplicar_aislamiento
+        self._sin_aislar = sin_aislar
+        self.configuraciones_pedidas: int = 0
+        self.actualizaciones_vistas: list[tuple[str, str]] = []
+        self.carpetas_dudosas: list[Path] = []
+        self.ofertas_de_aislamiento: int = 0
+        self.resumenes_aislamiento: list = []
+        self.faltas_vistas: list[list] = []
 
     def acreditar(self, url, usuario):
         self.passwords_pedidas.append((urlsplit(url).hostname, usuario))
@@ -632,6 +650,32 @@ class PresenciaFalsa:
         self.sin_pruebas_pedidas += 1
         return self._sin_pruebas
 
+    def configurar(self, validar=None):
+        self.configuraciones_pedidas += 1
+        if self._configuracion is not None and validar is not None:
+            validar(self._configuracion[0])
+        return self._configuracion
+
+    def confirmar_actualizacion(self, nueva, actual):
+        self.actualizaciones_vistas.append((nueva, actual))
+        return self._actualizar
+
+    def confirmar_carpeta_dudosa(self, carpeta):
+        self.carpetas_dudosas.append(carpeta)
+        return self._carpeta_dudosa
+
+    def ofrecer_aislamiento(self):
+        self.ofertas_de_aislamiento += 1
+        return self._aislar
+
+    def confirmar_aislamiento(self, resumen):
+        self.resumenes_aislamiento.append(resumen)
+        return self._aplicar_aislamiento
+
+    def seguir_sin_aislar(self, faltas):
+        self.faltas_vistas.append(list(faltas))
+        return self._sin_aislar
+
     def cerrar_sesion_anterior(self, atendiendo):
         self.anteriores_vistas.append(atendiendo)
         return self._cerrar_anterior
@@ -668,6 +712,9 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
     """
     doc = publicacion.DocumentoResumen("t.md", "pagina", "T", 3, None)
     return {
+        "AISLAMIENTO_GUARDADO": publicacion.Aviso.aislamiento_guardado(
+            Path("settings.json"), "settings.json.antes-de-tiza-20261024-100000"
+        ),
         "AUTOPRUEBA_FALLIDA": publicacion.Aviso.autoprueba_fallida(),
         "ACTIVIDAD_EN_EVALUACION_CERRADA": publicacion.Aviso.actividad_en_evaluacion_cerrada(
             "t.md"
@@ -678,7 +725,12 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "CAMBIADA_DESDE_LA_PUBLICACION": publicacion.Aviso.cambiada_desde_la_publicacion("T"),
         "CAMBIADO_A_MANO": publicacion.Aviso.cambiado_a_mano("T"),
         "CANCELADA": publicacion.Aviso.cancelada(),
+        "CARPETA_NO_AISLADA": publicacion.Aviso.carpeta_no_aislada(),
         "CERRANDO_SESION_ANTERIOR": publicacion.Aviso.cerrando_sesion_anterior(),
+        "COMPROBACIONES_DE_AISLAMIENTO": publicacion.Aviso.comprobaciones_de_aislamiento(
+            (aislamiento.Comprobacion("Claude Code", "falta", "sin sandbox"),)
+        ),
+        "CONFIGURACION_GUARDADA": publicacion.Aviso.configuracion_guardada(Path("config.json")),
         "COPIA_QUEDA_EN_EL_AULA": publicacion.Aviso.copia_queda_en_el_aula(),
         "CREANDO_SECCION": publicacion.Aviso.creando_seccion("Tema"),
         "CURSOS_GUARDADOS": publicacion.Aviso.cursos_guardados(Path("tiza.toml")),
@@ -692,14 +744,17 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "HUELLA_NO_GUARDADA": publicacion.Aviso.huella_no_guardada("T"),
         "INFORME_NO_ESCRITO": publicacion.Aviso.informe_no_escrito(),
         "MAXIMO_ALCANZADO": publicacion.Aviso.maximo_alcanzado(8),
+        "NADA_QUE_CAMBIAR": publicacion.Aviso.nada_que_cambiar(),
         "NOMBRES_NO_DISPONIBLES": publicacion.Aviso.nombres_no_disponibles(),
         "ORDENANDO_EN_PRUEBAS": publicacion.Aviso.ordenando_en_pruebas(
             (publicacion.DocumentoBreve("t.md", "pagina", "T"),)
         ),
         "PETICION_RETIRADA": publicacion.Aviso.peticion_retirada(),
+        "PRIMERA_VEZ": publicacion.Aviso.primera_vez(),
         "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),
         "QUEDAN_MINUTOS": publicacion.Aviso.quedan_minutos(5),
         "REGISTRO_NO_GUARDADO": publicacion.Aviso.registro_no_guardado("T"),
+        "REINICIA_EL_AGENTE": publicacion.Aviso.reinicia_el_agente(),
         "RESULTADO": publicacion.Aviso.resultado(
             informe.crear("publicar", "ok", [], [], [], "pruebas", 1234)
         ),
@@ -708,4 +763,9 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         ),
         "SESION_ANTERIOR_CERRADA": publicacion.Aviso.sesion_anterior_cerrada(),
         "SESION_CERRADA": publicacion.Aviso.sesion_cerrada("caducada"),
+        "SIGUE_FALTANDO": publicacion.Aviso.sigue_faltando(
+            (aislamiento.Comprobacion("Claude Code", "falta", "sin sandbox"),)
+        ),
+        "SIGUE_LA_VERSION_ACTUAL": publicacion.Aviso.sigue_la_version_actual(),
+        "TIZA_ACTUALIZADA": publicacion.Aviso.tiza_actualizada(False),
     }

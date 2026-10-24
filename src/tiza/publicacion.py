@@ -67,9 +67,11 @@ __all__ = [
     "DocumentoResumen",
     "ElementoCalificador",
     "EvaluacionCerrada",
+    "FicheroAislamiento",
     "MAX_PUBLICACIONES_PRUEBAS",
     "PlanCalificador",
     "Presencia",
+    "ResumenAislamiento",
     "ResumenCalificador",
     "ResumenCopia",
     "ResumenOrden",
@@ -119,13 +121,17 @@ AVISOS = frozenset(
     {
         "ACTIVIDAD_EN_EVALUACION_CERRADA",
         "ACTIVIDAD_PENDIENTE",
+        "AISLAMIENTO_GUARDADO",
         "AUTOPRUEBA_FALLIDA",
         "CALIFICANDO_EN_PRUEBAS",
         "CAMBIADA_DESDE_LA_PUBLICACION",
         "CAMBIADA_EN_EL_AULA",
         "CAMBIADO_A_MANO",
         "CANCELADA",
+        "CARPETA_NO_AISLADA",
         "CERRANDO_SESION_ANTERIOR",
+        "COMPROBACIONES_DE_AISLAMIENTO",
+        "CONFIGURACION_GUARDADA",
         "COPIA_QUEDA_EN_EL_AULA",
         "CREANDO_SECCION",
         "CRITERIOS_SIN_PESO",
@@ -139,16 +145,22 @@ AVISOS = frozenset(
         "HUELLA_NO_GUARDADA",
         "INFORME_NO_ESCRITO",
         "MAXIMO_ALCANZADO",
+        "NADA_QUE_CAMBIAR",
         "NOMBRES_NO_DISPONIBLES",
         "ORDENANDO_EN_PRUEBAS",
         "PETICION_RETIRADA",
+        "PRIMERA_VEZ",
         "PUBLICANDO_EN_PRUEBAS",
         "QUEDAN_MINUTOS",
         "REGISTRO_NO_GUARDADO",
+        "REINICIA_EL_AGENTE",
         "RESULTADO",
         "SESION_ABIERTA",
         "SESION_ANTERIOR_CERRADA",
         "SESION_CERRADA",
+        "SIGUE_FALTANDO",
+        "SIGUE_LA_VERSION_ACTUAL",
+        "TIZA_ACTUALIZADA",
     }
 )
 
@@ -177,6 +189,11 @@ class Aviso:
     def actividad_pendiente(cls, ruta: str) -> Aviso:
         """``ruta``: el fichero de la carpeta que aún no está en el aula (o no se califica)."""
         return cls("ACTIVIDAD_PENDIENTE", {"ruta": ruta})
+
+    @classmethod
+    def aislamiento_guardado(cls, ruta: Path, copia: str | None) -> Aviso:
+        """``ruta``: el fichero escrito; ``copia``: nombre de su copia de seguridad, si la había."""
+        return cls("AISLAMIENTO_GUARDADO", {"ruta": ruta, "copia": copia})
 
     @classmethod
     def autoprueba_fallida(cls) -> Aviso:
@@ -224,6 +241,19 @@ class Aviso:
         return cls("CANCELADA")
 
     @classmethod
+    def carpeta_no_aislada(cls) -> Aviso:
+        return cls("CARPETA_NO_AISLADA")
+
+    @classmethod
+    def comprobaciones_de_aislamiento(cls, comprobaciones: Sequence[Any]) -> Aviso:
+        """``comprobaciones``: las ``aislamiento.Comprobacion`` de la revisión, en orden."""
+        return cls("COMPROBACIONES_DE_AISLAMIENTO", {"comprobaciones": tuple(comprobaciones)})
+
+    @classmethod
+    def configuracion_guardada(cls, ruta: Path) -> Aviso:
+        return cls("CONFIGURACION_GUARDADA", {"ruta": ruta})
+
+    @classmethod
     def cerrando_sesion_anterior(cls) -> Aviso:
         return cls("CERRANDO_SESION_ANTERIOR")
 
@@ -268,6 +298,10 @@ class Aviso:
         return cls("MAXIMO_ALCANZADO", {"horas": horas})
 
     @classmethod
+    def nada_que_cambiar(cls) -> Aviso:
+        return cls("NADA_QUE_CAMBIAR")
+
+    @classmethod
     def nombres_no_disponibles(cls) -> Aviso:
         return cls("NOMBRES_NO_DISPONIBLES")
 
@@ -280,12 +314,20 @@ class Aviso:
         return cls("PETICION_RETIRADA")
 
     @classmethod
+    def primera_vez(cls) -> Aviso:
+        return cls("PRIMERA_VEZ")
+
+    @classmethod
     def publicando_en_pruebas(cls, documentos: tuple[DocumentoResumen, ...]) -> Aviso:
         return cls("PUBLICANDO_EN_PRUEBAS", {"documentos": documentos})
 
     @classmethod
     def quedan_minutos(cls, minutos: int) -> Aviso:
         return cls("QUEDAN_MINUTOS", {"minutos": minutos})
+
+    @classmethod
+    def reinicia_el_agente(cls) -> Aviso:
+        return cls("REINICIA_EL_AGENTE")
 
     @classmethod
     def resultado(cls, documento: dict) -> Aviso:
@@ -302,6 +344,20 @@ class Aviso:
     @classmethod
     def sesion_cerrada(cls, motivo: str) -> Aviso:
         return cls("SESION_CERRADA", {"motivo": motivo})
+
+    @classmethod
+    def sigue_faltando(cls, faltas: Sequence[Any]) -> Aviso:
+        """``faltas``: las ``aislamiento.Comprobacion`` con estado «falta» tras aislar."""
+        return cls("SIGUE_FALTANDO", {"faltas": tuple(faltas)})
+
+    @classmethod
+    def sigue_la_version_actual(cls) -> Aviso:
+        return cls("SIGUE_LA_VERSION_ACTUAL")
+
+    @classmethod
+    def tiza_actualizada(cls, windows: bool) -> Aviso:
+        """``windows``: la instalación sigue en otra ventana y hay que esperar a que acabe."""
+        return cls("TIZA_ACTUALIZADA", {"windows": windows})
 
 
 @dataclass(frozen=True)
@@ -579,6 +635,26 @@ class ResumenSobrescribir:
     total: int = 1
 
 
+@dataclass(frozen=True)
+class FicheroAislamiento:
+    """Un fichero que el aislamiento escribiría y qué cambia en él (sin su contenido)."""
+
+    ruta: Path
+    cambios: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ResumenAislamiento:
+    """Lo que el aislamiento de la carpeta (o global) hará, para que el docente lo confirme.
+
+    ``manuales`` son frases ya redactadas: lo que tiza no edita y el docente debe cambiar a mano.
+    Pueden venir sin ``ficheros``: entonces no hay nada que escribir ni que confirmar.
+    """
+
+    ficheros: tuple[FicheroAislamiento, ...]
+    manuales: tuple[str, ...] = ()
+
+
 def itinerario_de(doc: Documento, base: Path) -> tuple[str, ...]:
     """El itinerario del documento en lenguaje llano, con los nombres de sus dependencias.
 
@@ -662,6 +738,37 @@ class Presencia(Protocol):
 
     def confirmar_sin_pruebas(self) -> bool:
         """¿Abrir la sesión sin curso de pruebas? (no habrá verificación previa)."""
+        ...
+
+    def configurar(self, validar: Callable[[str], None] | None = None) -> tuple[str, str] | None:
+        """URL del aula y usuario, tal como los da el docente; None si cancela. Nunca la contraseña.
+
+        ``validar`` lanza ``ErrorConfig`` si la URL no vale: una presencia puede llamarla en
+        cuanto tiene la URL, para no pedir el usuario en balde. Quien llama valida igualmente.
+        """
+        ...
+
+    def confirmar_actualizacion(self, nueva: str, actual: str) -> bool:
+        """¿Actualizar ahora a la versión ``nueva`` (etiqueta, p. ej. ``v0.30.0``) teniendo la
+        ``actual``? Después hay que volver a abrir."""
+        ...
+
+    def confirmar_carpeta_dudosa(self, carpeta: Path) -> bool:
+        """¿Abrir la sesión en ``carpeta`` aunque no parezca la de una asignatura?"""
+        ...
+
+    def ofrecer_aislamiento(self) -> bool:
+        """¿Aplicar ahora el aislamiento a esta carpeta, que no lo tiene? Si no, se pregunta
+        si se sigue sin aislar. Sin respuesta, es no."""
+        ...
+
+    def confirmar_aislamiento(self, resumen: ResumenAislamiento) -> bool:
+        """¿Hacer estos cambios de aislamiento? Primero enseña ``resumen.manuales``; sin
+        ``resumen.ficheros`` no hay nada que preguntar y responde True."""
+        ...
+
+    def seguir_sin_aislar(self, faltas: list) -> bool:
+        """¿Seguir sin aislar el agente? ``faltas``: las comprobaciones que fallan."""
         ...
 
     def cerrar_sesion_anterior(self, atendiendo: bool) -> bool:

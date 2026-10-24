@@ -50,6 +50,7 @@ __all__ = [
     "DocumentoReal",
     "EXCEPCIONES_TEXTO",
     "Linea",
+    "MARCAS_DE_COMPROBACION",
     "PARA_QUE",
     "SIN_PRUEBAS_AVISO",
     "SOLO_FECHAS_TEXTO",
@@ -708,6 +709,67 @@ def _evaluacion_cerrada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...
     )
 
 
+MARCAS_DE_COMPROBACION = {"ok": "[ok]", "falta": "[FALTA]", "aviso": "[aviso]"}
+
+
+def _aislamiento_guardado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    copia = f" (copia: {datos['copia']})" if datos.get("copia") else ""
+    return (Linea(f"Guardado {datos['ruta']}{copia}"),)
+
+
+def _carpeta_no_aislada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("Esta carpeta no está aislada del aula."),)
+
+
+def _comprobaciones_de_aislamiento(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return tuple(
+        Linea(f"{MARCAS_DE_COMPROBACION[c.estado]} {c.agente}: {c.texto}")
+        for c in datos["comprobaciones"]
+    )
+
+
+def _configuracion_guardada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(f"Configuración guardada en {datos['ruta']}. No se ha guardado ninguna contraseña."),
+        Linea(
+            "Los cursos son de cada asignatura: se eligen por nombre al abrir la sesión "
+            f"en su carpeta («tiza empezar») y se guardan en su {rutas.FICHERO_ASIGNATURA}."
+        ),
+    )
+
+
+def _nada_que_cambiar(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("No hay nada que cambiar."),)
+
+
+def _primera_vez(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("Es la primera vez: vamos a configurar tiza (no se pide la contraseña)."),)
+
+
+def _reinicia_el_agente(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("Reinicia tu agente para que lea la configuración nueva."),)
+
+
+def _sigue_faltando(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("Sigue faltando:"),) + tuple(
+        Linea(f"  - {c.agente}: {c.texto}") for c in datos["faltas"]
+    )
+
+
+def _sigue_la_version_actual(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("Se sigue con la versión que tienes."),)
+
+
+def _tiza_actualizada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    if datos["windows"]:
+        return (
+            Linea(
+                "Vuelve a abrir la sesión cuando la otra ventana diga que tiza está actualizada."
+            ),
+        )
+    return (Linea("tiza está actualizada. Vuelve a abrir la sesión para usar la versión nueva."),)
+
+
 def _autoprueba_fallida(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("No se abre la sesión porque la autoprueba ha fallado.", error=True),)
 
@@ -879,13 +941,17 @@ def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ACTIVIDAD_EN_EVALUACION_CERRADA": _actividad_en_evaluacion_cerrada,
     "ACTIVIDAD_PENDIENTE": _actividad_pendiente,
+    "AISLAMIENTO_GUARDADO": _aislamiento_guardado,
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
     "CALIFICANDO_EN_PRUEBAS": _calificando_en_pruebas,
     "CAMBIADA_DESDE_LA_PUBLICACION": _cambiada_desde_la_publicacion,
     "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
     "CAMBIADO_A_MANO": _cambiado_a_mano,
     "CANCELADA": _cancelada,
+    "CARPETA_NO_AISLADA": _carpeta_no_aislada,
     "CERRANDO_SESION_ANTERIOR": _cerrando_sesion_anterior,
+    "COMPROBACIONES_DE_AISLAMIENTO": _comprobaciones_de_aislamiento,
+    "CONFIGURACION_GUARDADA": _configuracion_guardada,
     "COPIA_QUEDA_EN_EL_AULA": _copia_queda_en_el_aula,
     "CREANDO_SECCION": _creando_seccion,
     "CRITERIOS_SIN_PESO": _criterios_sin_peso,
@@ -899,16 +965,22 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "HUELLA_NO_GUARDADA": _huella_no_guardada,
     "INFORME_NO_ESCRITO": _informe_no_escrito,
     "MAXIMO_ALCANZADO": _maximo_alcanzado,
+    "NADA_QUE_CAMBIAR": _nada_que_cambiar,
     "NOMBRES_NO_DISPONIBLES": _nombres_no_disponibles,
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
     "PETICION_RETIRADA": _peticion_retirada,
+    "PRIMERA_VEZ": _primera_vez,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,
     "QUEDAN_MINUTOS": _quedan_minutos,
     "REGISTRO_NO_GUARDADO": _registro_no_guardado,
+    "REINICIA_EL_AGENTE": _reinicia_el_agente,
     "RESULTADO": _resultado,
     "SESION_ABIERTA": _sesion_abierta,
     "SESION_ANTERIOR_CERRADA": _sesion_anterior_cerrada,
     "SESION_CERRADA": _sesion_cerrada,
+    "SIGUE_FALTANDO": _sigue_faltando,
+    "SIGUE_LA_VERSION_ACTUAL": _sigue_la_version_actual,
+    "TIZA_ACTUALIZADA": _tiza_actualizada,
 }
 
 

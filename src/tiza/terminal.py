@@ -17,13 +17,15 @@ import queue
 import sys
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from . import mensajes, publicar, ventana
+from . import mensajes, publicar, rutas, ventana
 from .config import MAX_REALES
 from .publicacion import (
     Aviso,
+    ResumenAislamiento,
     ResumenCalificador,
     ResumenCopia,
     ResumenOrden,
@@ -324,6 +326,51 @@ class PresenciaTerminal:
     def confirmar_autoprueba(self) -> bool:
         print(mensajes.AUTOPRUEBA_TEXTO)
         return confirmar("¿Pasarla ahora?")
+
+    def configurar(self, validar: Callable[[str], None] | None = None) -> tuple[str, str] | None:
+        entrada = input("URL del aula virtual (p. ej. https://aula.ejemplo.org/<centro>): ")
+        if validar is not None:
+            validar(entrada)  # una URL mala falla antes de pedir el usuario
+        return entrada, input("Usuario del aula: ")
+
+    def confirmar_actualizacion(self, nueva: str, actual: str) -> bool:
+        print(f"Hay una versión nueva de tiza: {nueva[1:]} (tienes la {actual}).")
+        return confirmar("¿Actualizar ahora? Después tendrás que volver a abrir la sesión.")
+
+    def confirmar_carpeta_dudosa(self, carpeta: Path) -> bool:
+        return self._preguntar_carpeta_dudosa(carpeta, "¿Abrir la sesión aquí de todos modos?")
+
+    def confirmar_aislar_carpeta_dudosa(self, carpeta: Path) -> bool:
+        """Lo mismo para «tiza aislar» (solo de la terminal): pregunta por aislarla."""
+        return self._preguntar_carpeta_dudosa(carpeta, "¿Aislar esta carpeta de todos modos?")
+
+    def _preguntar_carpeta_dudosa(self, carpeta: Path, pregunta: str) -> bool:
+        print(
+            f"{carpeta} no parece la carpeta de una asignatura "
+            f"(no hay ficheros .md o .html ni {rutas.FICHERO_ASIGNATURA})."
+        )
+        return confirmar(pregunta)
+
+    def ofrecer_aislamiento(self) -> bool:
+        return confirmar("¿Aplicar ahora el aislamiento a esta carpeta?")
+
+    def confirmar_aislamiento(self, resumen: ResumenAislamiento) -> bool:
+        for manual in resumen.manuales:
+            print(manual)
+        if not resumen.ficheros:
+            return True
+        print("Se van a hacer estos cambios:")
+        for fichero in resumen.ficheros:
+            print(f"  En {fichero.ruta}:")
+            for cambio in fichero.cambios:
+                print(f"    - {cambio}")
+        if not confirmar("¿Aplicarlos?"):
+            print("No se ha cambiado nada.", file=sys.stderr)
+            return False
+        return True
+
+    def seguir_sin_aislar(self, faltas: list) -> bool:
+        return confirmar("¿Seguir sin aislar el agente?")
 
     def cerrar_sesion_anterior(self, atendiendo: bool) -> bool:
         print(mensajes.SESION_ANTERIOR_TEXTO)

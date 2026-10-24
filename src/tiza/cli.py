@@ -16,7 +16,6 @@ import sys
 import traceback
 import unicodedata
 from collections.abc import Sequence
-from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -25,6 +24,7 @@ from . import (
     __version__,
     agente,
     aislamiento,
+    arranque,
     ayuda,
     buzon,
     config,
@@ -42,7 +42,7 @@ from . import (
 from .config import ErrorConfig
 from .contenido import ErrorContenido
 from .informe import ErrorInforme
-from .publicacion import AVISO_DEBUG
+from .publicacion import AVISO_DEBUG, Aviso
 from .publicar import ErrorPublicacion
 from .sesion import MAX_MINUTOS
 from .terminal import ErrorTerminal
@@ -616,23 +616,13 @@ def _configurar() -> int:
     except ErrorTerminal as exc:
         _imprimir_error(exc.codigo, exc.detalle)
         return 1
-    return _preguntar_configuracion()
-
-
-def _preguntar_configuracion() -> int:
-    entrada = input("URL del aula virtual (p. ej. https://aula.ejemplo.org/<centro>): ")
-    try:
-        base = config.preparar_url(entrada)
-    except ErrorConfig as exc:
-        _imprimir_error(exc.codigo, exc.detalle)
+    resultado = arranque.configurar(terminal.PresenciaTerminal())
+    if resultado.estado is arranque.Estado.FALLO:
+        _imprimir_error(resultado.codigo, resultado.detalle)
         return 1
-    usuario = input("Usuario del aula: ").strip()
-    ruta = config.guardar_global(base, usuario)
-    print(f"Configuración guardada en {ruta}. No se ha guardado ninguna contraseña.")
-    print(
-        "Los cursos son de cada asignatura: se eligen por nombre al abrir la sesión "
-        f"en su carpeta («tiza empezar») y se guardan en su {rutas.FICHERO_ASIGNATURA}."
-    )
+    if resultado.estado is arranque.Estado.ABORTADO:
+        print("Operación cancelada.", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -826,23 +816,10 @@ def _version_nueva() -> str | None:
     return ultima
 
 
-def _ofrecer_actualizacion() -> bool:
-    """En «tiza empezar»: ofrece la versión nueva. True si se instaló (hay que volver a abrir)."""
-    nueva = _version_nueva()
-    if nueva is None:
-        return False
-    print(f"Hay una versión nueva de tiza: {nueva[1:]} (tienes la {__version__}).")
-    if not terminal.confirmar("¿Actualizar ahora? Después tendrás que volver a abrir la sesión."):
-        return False
+def _instalar_ultima(nueva: str) -> bool:
+    """Instala la versión ``nueva`` con uv; False si no hay uv o la instalación falla."""
     uv = shutil.which("uv")
-    if uv is None or not _instalar_version(uv, nueva):
-        print("Se sigue con la versión que tienes.")
-        return False
-    if sys.platform == "win32":
-        print("Vuelve a abrir la sesión cuando la otra ventana diga que tiza está actualizada.")
-    else:
-        print("tiza está actualizada. Vuelve a abrir la sesión para usar la versión nueva.")
-    return True
+    return uv is not None and _instalar_version(uv, nueva)
 
 
 def _quiere_ventana() -> bool:
@@ -964,8 +941,6 @@ def instalar_skill(home: Path) -> list[Path]:
 # Aislamiento del agente
 # --------------------------------------------------------------------------- #
 
-_MARCAS = {"ok": "[ok]", "falta": "[FALTA]", "aviso": "[aviso]"}
-
 
 def _home() -> Path:
     return Path.home()
@@ -976,8 +951,7 @@ def _sistema() -> str:
 
 
 def _imprimir_comprobaciones(lista: list[aislamiento.Comprobacion]) -> bool:
-    for comprobacion in lista:
-        print(f"{_MARCAS[comprobacion.estado]} {comprobacion.agente}: {comprobacion.texto}")
+    terminal.PresenciaTerminal().informar(Aviso.comprobaciones_de_aislamiento(lista))
     return not any(c.estado == "falta" for c in lista)
 
 
@@ -993,15 +967,6 @@ def _revisar(args) -> int:
             "copia a mano las reglas que falten de docs/aislamiento.md."
         )
     return 1
-
-
-def _copia_de_seguridad(ruta: Path) -> Path | None:
-    if not ruta.is_file():
-        return None
-    marca = datetime.now().strftime("%Y%m%d-%H%M%S")
-    copia = ruta.with_name(f"{ruta.name}.antes-de-tiza-{marca}")
-    shutil.copy2(ruta, copia)
-    return copia
 
 
 def _avisar_copilot(servidor: str | None) -> None:
@@ -1025,201 +990,33 @@ def _aislar(args) -> int:
             "AVISO: no se pudo leer el servidor del aula configurado; no se añadirá el "
             "bloqueo de red hacia el aula. Ejecuta «tiza configurar» y repite «tiza aislar»."
         )
+    presencia = terminal.PresenciaTerminal()
+    home, sistema = _home(), _sistema()
     if args.global_:
-        return _aislar_global(args, servidor)
-    carpeta = Path.cwd()
-    if carpeta.resolve() == _home().resolve():
-        _imprimir_error(
-            "CARPETA_NO_VALIDA",
-            "esta es tu carpeta personal; para aislar todos tus proyectos usa «tiza aislar --global»",
-        )
-        return 1
-    if not _parece_asignatura(carpeta):
-        print(
-            f"{carpeta} no parece la carpeta de una asignatura "
-            f"(no hay ficheros .md o .html ni {rutas.FICHERO_ASIGNATURA})."
-        )
-        if not terminal.confirmar("¿Aislar esta carpeta de todos modos?"):
+        planear = lambda: aislamiento.planear_global(home, sistema, servidor)  # noqa: E731
+    else:
+        carpeta = Path.cwd()
+        if carpeta.resolve() == home.resolve():
+            _imprimir_error(
+                "CARPETA_NO_VALIDA",
+                "esta es tu carpeta personal; para aislar todos tus proyectos usa «tiza aislar --global»",
+            )
+            return 1
+        if not _parece_asignatura(carpeta) and not presencia.confirmar_aislar_carpeta_dudosa(
+            carpeta
+        ):
             print("No se ha cambiado nada.", file=sys.stderr)
             return 1
+        planear = lambda: aislamiento.planear_carpeta(carpeta, home, sistema, servidor)  # noqa: E731
     try:
-        resultado = _aislar_carpeta(carpeta, servidor)
+        plan = planear()
     except aislamiento.ErrorAislamiento as exc:
         _imprimir_error(exc.codigo, exc.detalle)
         return 1
-    if resultado is None:
+    if not arranque.aplicar_plan(plan, presencia):
         return 1
     _avisar_copilot(servidor)
     return _revisar(args)
-
-
-def _aplicar_escrituras(escrituras: list[tuple[Path, str, list[str]]]) -> bool:
-    """Enseña los cambios, confirma y escribe con copia; True si se aplicaron o no había nada."""
-    if not escrituras:
-        print("No hay nada que cambiar.")
-        return True
-    print("Se van a hacer estos cambios:")
-    for ruta, _texto, cambios in escrituras:
-        print(f"  En {ruta}:")
-        for cambio in cambios:
-            print(f"    - {cambio}")
-    if not terminal.confirmar("¿Aplicarlos?"):
-        print("No se ha cambiado nada.", file=sys.stderr)
-        return False
-    for ruta, texto, _cambios in escrituras:
-        copia = _copia_de_seguridad(ruta)
-        ruta.parent.mkdir(parents=True, exist_ok=True)
-        ruta.write_text(texto, encoding="utf-8")
-        print(f"Guardado {ruta}" + (f" (copia: {copia.name})" if copia else ""))
-    print("Reinicia tu agente para que lea la configuración nueva.")
-    return True
-
-
-def _opencode(
-    escrituras: list[tuple[Path, str, list[str]]],
-    carpeta: Path,
-    home: Path,
-    sistema: str,
-    donde: str,
-    servidor: str | None,
-) -> None:
-    """Propone crear opencode.jsonc, o avisa de lo que hay que copiar a mano."""
-    propuesta = aislamiento.configuracion_opencode(carpeta, home, sistema)
-    if propuesta is not None:
-        escrituras.append(propuesta)
-        return
-    # La primera comprobación de revisar_opencode es siempre el webfetch.
-    if aislamiento.revisar_opencode(home, carpeta, servidor=servidor)[0].estado != "ok":
-        print(
-            f"opencode: ya hay configuración {donde} y tiza no la edita; "
-            "añade a mano lo que falte de docs/aislamiento.md."
-        )
-
-
-def _aislar_global(args, servidor: str | None) -> int:
-    home, sistema = _home(), _sistema()
-    escrituras: list[tuple[Path, str, list[str]]] = []
-    try:
-        if (home / ".claude").is_dir() and sistema == "Windows":
-            # dontAsk global rompería los demás proyectos y «Edit(/**)» sería relativo a ~/.claude.
-            print(
-                "En Windows, Claude Code se aísla por carpeta: entra en la carpeta de la "
-                "asignatura y ejecuta «tiza aislar»."
-            )
-        elif (home / ".claude").is_dir():
-            ruta = aislamiento.ruta_claude(home)
-            if ruta.exists() and not ruta.is_file():
-                raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
-            nuevo, cambios = aislamiento.fusionar_claude(
-                aislamiento.leer_json(ruta), sistema, servidor=servidor
-            )
-            if cambios:
-                texto = json.dumps(nuevo, ensure_ascii=False, indent=2) + "\n"
-                escrituras.append((ruta, texto, cambios))
-        if (home / ".codex").is_dir():
-            ruta = aislamiento.ruta_codex(home)
-            if ruta.exists() and not ruta.is_file():
-                raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
-            try:
-                actual = ruta.read_text(encoding="utf-8") if ruta.is_file() else ""
-            except (OSError, UnicodeDecodeError) as exc:
-                raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name) from exc
-            texto_codex, cambios, manuales = aislamiento.fusionar_codex(actual)
-            for manual in manuales:
-                print(f"Cambia a mano en {ruta}: {manual}")
-            if texto_codex is not None:
-                escrituras.append((ruta, texto_codex, cambios))
-    except aislamiento.ErrorAislamiento as exc:
-        _imprimir_error(exc.codigo, exc.detalle)
-        return 1
-    if (home / ".config" / "opencode").is_dir():
-        _opencode(escrituras, home / ".config" / "opencode", home, sistema, "global", servidor)
-    if not _aplicar_escrituras(escrituras):
-        return 1
-    _avisar_copilot(servidor)
-    return _revisar(args)
-
-
-def _quitar_permisos_de_mas(
-    escrituras: list[tuple[Path, str, list[str]]], carpeta: Path, home: Path
-) -> None:
-    """Windows: quita los comandos de más de settings.local.json; los del global, a mano."""
-    local = carpeta / ".claude" / "settings.local.json"
-    if local.exists() and not local.is_file():
-        raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", local.name)
-    nuevo, cambios = aislamiento.quitar_permisos_de_mas(aislamiento.leer_json(local))
-    if cambios:
-        escrituras.append((local, json.dumps(nuevo, ensure_ascii=False, indent=2) + "\n", cambios))
-    # El global vale para todos los proyectos: tiza no lo edita en Windows.
-    for regla in aislamiento.shell_de_mas(aislamiento.leer_json(aislamiento.ruta_claude(home))):
-        print(
-            f"Quita a mano de {aislamiento.ruta_claude(home)} la regla «{regla}» de "
-            "permissions.allow: deja al agente ejecutar comandos que no debe."
-        )
-
-
-def _aislar_carpeta(carpeta: Path, servidor: str | None) -> bool | None:
-    """Aislamiento de esta carpeta; None si el docente cancela."""
-    home, sistema = _home(), _sistema()
-    if carpeta.resolve() == home.resolve():
-        raise aislamiento.ErrorAislamiento(
-            "CARPETA_NO_VALIDA",
-            "no se aísla la propia carpeta personal; usa «tiza aislar --global» o entra en la carpeta de la asignatura",
-        )
-    escrituras: list[tuple[Path, str, list[str]]] = []
-    if (home / ".claude").is_dir():
-        ruta = aislamiento.ruta_claude_proyecto(carpeta)
-        if ruta.exists() and not ruta.is_file():
-            raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
-        nuevo, cambios = aislamiento.fusionar_claude(
-            aislamiento.leer_json(ruta),
-            sistema,
-            aislamiento.rutas_reabiertas(home, sistema, carpeta),
-            servidor=servidor,
-            home=home,
-        )
-        if cambios:
-            texto = json.dumps(nuevo, ensure_ascii=False, indent=2) + "\n"
-            escrituras.append((ruta, texto, cambios))
-        if sistema == "Windows":
-            _quitar_permisos_de_mas(escrituras, carpeta, home)
-    if (home / ".codex").is_dir():
-        ruta = aislamiento.ruta_codex_proyecto(carpeta)
-        if ruta.exists() and not ruta.is_file():
-            raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
-        try:
-            actual = ruta.read_text(encoding="utf-8") if ruta.is_file() else ""
-        except (OSError, UnicodeDecodeError) as exc:
-            raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name) from exc
-        texto_codex, cambios, manuales = aislamiento.fusionar_codex(actual)
-        for manual in manuales:
-            print(f"Cambia a mano en {ruta}: {manual}")
-        if texto_codex is not None:
-            escrituras.append((ruta, texto_codex, cambios))
-        global_ruta = aislamiento.ruta_codex(home)
-        if global_ruta.exists() and not global_ruta.is_file():
-            raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", global_ruta.name)
-        try:
-            actual_global = global_ruta.read_text(encoding="utf-8") if global_ruta.is_file() else ""
-        except (OSError, UnicodeDecodeError) as exc:
-            raise aislamiento.ErrorAislamiento("AJUSTES_ILEGIBLES", global_ruta.name) from exc
-        confianza, cambios_conf, manuales_conf = aislamiento.fusionar_confianza_codex(
-            actual_global, carpeta
-        )
-        for manual in manuales_conf:
-            print(f"Cambia a mano en {global_ruta}: {manual}")
-        if confianza is not None:
-            escrituras.append((global_ruta, confianza, cambios_conf))
-    if (home / ".config" / "opencode").is_dir():
-        _opencode(escrituras, carpeta, home, sistema, "en esta carpeta", servidor)
-    rutas = [ruta.resolve() for ruta, _texto, _cambios in escrituras]
-    if len(set(rutas)) != len(rutas):
-        raise aislamiento.ErrorAislamiento(
-            "AJUSTES_INESPERADOS", "el aislamiento apunta dos veces al mismo fichero"
-        )
-    if not _aplicar_escrituras(escrituras):
-        return None
-    return not any(c.estado == "falta" for c in aislamiento.revisar(home, sistema, carpeta))
 
 
 # --------------------------------------------------------------------------- #
@@ -1621,17 +1418,7 @@ def _sesion(args) -> int:
 
 
 def _parece_asignatura(carpeta: Path) -> bool:
-    if carpeta.resolve() == _home().resolve():
-        return False
-    return (
-        (carpeta / rutas.FICHERO_ASIGNATURA).is_file()
-        or (carpeta / rutas.CARPETA_TRABAJO).is_dir()
-        or any(
-            ruta.suffix.lower() in contenido.EXTENSIONES
-            for ruta in carpeta.iterdir()
-            if ruta.is_file()
-        )
-    )
+    return arranque.parece_asignatura(carpeta, _home())
 
 
 def _empezar(args) -> int:
@@ -1641,46 +1428,30 @@ def _empezar(args) -> int:
         terminal.exigir_tty()
     except ErrorTerminal as exc:
         return _fallo(comando, exc.codigo, exc.detalle, exc=exc, debug=args.debug)
-    if _ofrecer_actualizacion():
-        return 0
-    try:
-        configurado = config.cargar_global() is not None
-    except ErrorConfig:
-        configurado = False
-    if not configurado:
-        print("Es la primera vez: vamos a configurar tiza (no se pide la contraseña).")
-        if _preguntar_configuracion() != 0:
-            return 1
+    presencia = terminal.PresenciaTerminal(usar_ventana=not args.sin_ventana)
     carpeta = Path.cwd()
-    if not _parece_asignatura(carpeta):
-        print(
-            f"{carpeta} no parece la carpeta de una asignatura "
-            f"(no hay ficheros .md o .html ni {rutas.FICHERO_ASIGNATURA})."
+    resultado = arranque.preparar(
+        carpeta,
+        presencia,
+        home=_home(),
+        sistema=_sistema(),
+        version_nueva=lambda: _version_nueva(),
+        instalar=_instalar_ultima,
+    )
+    if resultado.estado is arranque.Estado.ACTUALIZADA:
+        return 0
+    if resultado.estado is arranque.Estado.ABORTADO:
+        return _abortado(comando)
+    if resultado.estado is arranque.Estado.FALLO:
+        if not resultado.con_informe:
+            _imprimir_error(resultado.codigo, resultado.detalle)
+            return 1
+        return _fallo(
+            comando, resultado.codigo, resultado.detalle, exc=resultado.causa, debug=args.debug
         )
-        if not terminal.confirmar("¿Abrir la sesión aquí de todos modos?"):
-            return _abortado(comando)
-    comprobaciones = aislamiento.revisar(_home(), _sistema(), carpeta)
-    if not _imprimir_comprobaciones(comprobaciones):
-        print("Esta carpeta no está aislada del aula.")
-        aislada = False
-        if terminal.confirmar("¿Aplicar ahora el aislamiento a esta carpeta?"):
-            try:
-                resultado = _aislar_carpeta(carpeta, aislamiento.servidor_configurado())
-            except aislamiento.ErrorAislamiento as exc:
-                return _fallo(comando, exc.codigo, exc.detalle, exc=exc, debug=args.debug)
-            if resultado is None:
-                return _abortado(comando)
-            aislada = resultado
-            if not aislada:
-                print("Sigue faltando:")
-                for c in aislamiento.revisar(_home(), _sistema(), carpeta):
-                    if c.estado == "falta":
-                        print(f"  - {c.agente}: {c.texto}")
-        if not aislada and not terminal.confirmar("¿Seguir sin aislar el agente?"):
-            return _abortado(comando)
     return sesion.abrir(
         carpeta,
-        terminal.PresenciaTerminal(usar_ventana=not args.sin_ventana),
+        presencia,
         minutos=args.minutos,
         preparar=True,
         debug=args.debug,

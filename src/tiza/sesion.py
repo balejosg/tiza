@@ -613,6 +613,25 @@ class _PresenciaVigilada:
     def cerrar_sesion_anterior(self, atendiendo: bool) -> bool:
         return self._presencia.cerrar_sesion_anterior(atendiendo)
 
+    # El arranque ocurre antes de abrir la sesión: aquí solo se delega.
+    def configurar(self, validar: Callable[[str], None] | None = None) -> tuple[str, str] | None:
+        return self._presencia.configurar(validar)
+
+    def confirmar_actualizacion(self, nueva: str, actual: str) -> bool:
+        return self._presencia.confirmar_actualizacion(nueva, actual)
+
+    def confirmar_carpeta_dudosa(self, carpeta: Path) -> bool:
+        return self._presencia.confirmar_carpeta_dudosa(carpeta)
+
+    def ofrecer_aislamiento(self) -> bool:
+        return self._presencia.ofrecer_aislamiento()
+
+    def confirmar_aislamiento(self, resumen: publicacion.ResumenAislamiento) -> bool:
+        return self._presencia.confirmar_aislamiento(resumen)
+
+    def seguir_sin_aislar(self, faltas: list) -> bool:
+        return self._presencia.seguir_sin_aislar(faltas)
+
     def confirmar_real(self, resumen: publicacion.ResumenPublicacion) -> bool:
         return self._preguntar(lambda: self._presencia.confirmar_real(resumen))
 

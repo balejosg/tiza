@@ -185,6 +185,14 @@ en español.
   sesión: la vigencia de la petición, el cupo y el registro de verificados en
   memoria. Es la superficie de los tests de la petición (test_sesion_abierta.py),
   y `estructura_con` y `registrar` viven aquí, con ella.
+- `src/tiza/arranque.py`: el arranque de `tiza empezar` como proceso común, antes de abrir la
+  sesión (actualizar, configurar la primera vez, carpeta dudosa, aislar y seguir sin aislar).
+  `preparar` habla con el docente solo por `publicacion.Presencia` y no importa `terminal` ni
+  `cli`; `version_nueva` e `instalar` llegan inyectados. Devuelve un `Resultado` (`SEGUIR`,
+  `ACTUALIZADA`, `ABORTADO`, `FALLO`); con `exigir_aislamiento` no ofrece seguir sin aislar.
+  `cli._empezar` lo traduce a los códigos de salida de siempre. La planificación del
+  aislamiento (`Plan`, `planear_carpeta`, `planear_global`, `aplicar`) vive en `aislamiento.py`,
+  sin consola: los pasos a mano van en `Plan.manuales`.
 - `src/tiza/agente.py`: API pública del lado del agente para interfaces
   propias (`comprobar`, `estructura`, `publicar`, `estado_sesion`,
   `formato_documento`). Sin consola: todo lo que devuelve pasa por

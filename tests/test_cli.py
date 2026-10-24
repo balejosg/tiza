@@ -1770,9 +1770,8 @@ class TestEmpezar:
         monkeypatch.setattr(cli, "_home", lambda: home)
         monkeypatch.setattr(cli, "_sistema", lambda: "Linux")
         monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "prefs")
-        simular_terminal(monkeypatch)
-        responder(monkeypatch, ["s"])
-        assert cli._aislar_carpeta(carpeta, "aula.ejemplo.org") is True
+        plan = aislamiento.planear_carpeta(carpeta, home, "Linux", "aula.ejemplo.org")
+        aislamiento.aplicar(plan)
         ajustes = json.loads((carpeta / ".claude" / "settings.json").read_text(encoding="utf-8"))
         assert ajustes["sandbox"]["filesystem"]["allowRead"] == [str(carpeta.resolve())]
 

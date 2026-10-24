@@ -16,6 +16,7 @@ import shutil
 import tomllib
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path, PureWindowsPath
 from urllib.parse import urlsplit
 
@@ -30,14 +31,19 @@ __all__ = [
     "COPILOT",
     "Comprobacion",
     "ErrorAislamiento",
+    "Escritura",
     "GLOBAL_CLAUDE",
     "OPENCODE",
+    "Plan",
+    "aplicar",
     "configuracion_opencode",
     "contenido_opencode",
     "fusionar_claude",
     "fusionar_codex",
     "fusionar_confianza_codex",
     "leer_json",
+    "planear_carpeta",
+    "planear_global",
     "quitar_permisos_de_mas",
     "regla_ruta",
     "reglas_agente_windows",
@@ -1378,3 +1384,182 @@ def revisar(home: Path, sistema: str, carpeta: Path) -> list[Comprobacion]:
             )
         )
     return lista
+
+
+# --------------------------------------------------------------------------- #
+# Planificación: qué cambiaría el aislamiento, sin tocar nada ni hablar con nadie
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class Escritura:
+    """Un fichero que el aislamiento escribiría: su ruta, el texto nuevo y qué cambia."""
+
+    ruta: Path
+    texto: str
+    cambios: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Plan:
+    """Lo que hay que hacer para aislar: ``escrituras`` (tiza las hace) y ``manuales``
+    (frases ya redactadas para el docente: lo que tiza no edita y debe cambiar a mano)."""
+
+    escrituras: tuple[Escritura, ...] = ()
+    manuales: tuple[str, ...] = ()
+
+
+def _copia_de_seguridad(ruta: Path) -> Path | None:
+    if not ruta.is_file():
+        return None
+    marca = datetime.now().strftime("%Y%m%d-%H%M%S")
+    copia = ruta.with_name(f"{ruta.name}.antes-de-tiza-{marca}")
+    shutil.copy2(ruta, copia)
+    return copia
+
+
+def aplicar(plan: Plan) -> list[tuple[Path, Path | None]]:
+    """Escribe las escrituras del plan, con copia de seguridad de lo que ya existía.
+
+    Devuelve (ruta, copia) de cada una; ``copia`` es None si el fichero era nuevo.
+    """
+    hechas: list[tuple[Path, Path | None]] = []
+    for escritura in plan.escrituras:
+        copia = _copia_de_seguridad(escritura.ruta)
+        escritura.ruta.parent.mkdir(parents=True, exist_ok=True)
+        escritura.ruta.write_text(escritura.texto, encoding="utf-8")
+        hechas.append((escritura.ruta, copia))
+    return hechas
+
+
+def _texto_json(datos: dict) -> str:
+    return json.dumps(datos, ensure_ascii=False, indent=2) + "\n"
+
+
+def _leer_codex(ruta: Path) -> str:
+    if ruta.exists() and not ruta.is_file():
+        raise ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
+    try:
+        return ruta.read_text(encoding="utf-8") if ruta.is_file() else ""
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name) from exc
+
+
+def _plan_opencode(
+    escrituras: list[Escritura],
+    manuales: list[str],
+    carpeta: Path,
+    home: Path,
+    sistema: str,
+    donde: str,
+    servidor: str | None,
+) -> None:
+    """Propone crear opencode.jsonc, o avisa de lo que hay que copiar a mano."""
+    propuesta = configuracion_opencode(carpeta, home, sistema)
+    if propuesta is not None:
+        ruta, texto, cambios = propuesta
+        escrituras.append(Escritura(ruta, texto, tuple(cambios)))
+        return
+    # La primera comprobación de revisar_opencode es siempre el webfetch.
+    if revisar_opencode(home, carpeta, servidor=servidor)[0].estado != "ok":
+        manuales.append(
+            f"opencode: ya hay configuración {donde} y tiza no la edita; "
+            "añade a mano lo que falte de docs/aislamiento.md."
+        )
+
+
+def _plan_codex(escrituras: list[Escritura], manuales: list[str], ruta: Path) -> None:
+    texto, cambios, a_mano = fusionar_codex(_leer_codex(ruta))
+    manuales.extend(f"Cambia a mano en {ruta}: {manual}" for manual in a_mano)
+    if texto is not None:
+        escrituras.append(Escritura(ruta, texto, tuple(cambios)))
+
+
+def _plan_quitar_permisos_de_mas(
+    escrituras: list[Escritura], manuales: list[str], carpeta: Path, home: Path
+) -> None:
+    """Windows: quita los comandos de más de settings.local.json; los del global, a mano."""
+    local = carpeta / ".claude" / "settings.local.json"
+    if local.exists() and not local.is_file():
+        raise ErrorAislamiento("AJUSTES_ILEGIBLES", local.name)
+    nuevo, cambios = quitar_permisos_de_mas(leer_json(local))
+    if cambios:
+        escrituras.append(Escritura(local, _texto_json(nuevo), tuple(cambios)))
+    # El global vale para todos los proyectos: tiza no lo edita en Windows.
+    for regla in shell_de_mas(leer_json(ruta_claude(home))):
+        manuales.append(
+            f"Quita a mano de {ruta_claude(home)} la regla «{regla}» de "
+            "permissions.allow: deja al agente ejecutar comandos que no debe."
+        )
+
+
+def planear_carpeta(carpeta: Path, home: Path, sistema: str, servidor: str | None) -> Plan:
+    """Plan de aislamiento de esta carpeta. No escribe nada.
+
+    Lanza ``ErrorAislamiento`` si la carpeta no es válida o un fichero de ajustes no se lee.
+    """
+    if carpeta.resolve() == home.resolve():
+        raise ErrorAislamiento(
+            "CARPETA_NO_VALIDA",
+            "no se aísla la propia carpeta personal; usa «tiza aislar --global» o entra en la carpeta de la asignatura",
+        )
+    escrituras: list[Escritura] = []
+    manuales: list[str] = []
+    if (home / ".claude").is_dir():
+        ruta = ruta_claude_proyecto(carpeta)
+        if ruta.exists() and not ruta.is_file():
+            raise ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
+        nuevo, cambios = fusionar_claude(
+            leer_json(ruta),
+            sistema,
+            rutas_reabiertas(home, sistema, carpeta),
+            servidor=servidor,
+            home=home,
+        )
+        if cambios:
+            escrituras.append(Escritura(ruta, _texto_json(nuevo), tuple(cambios)))
+        if sistema == "Windows":
+            _plan_quitar_permisos_de_mas(escrituras, manuales, carpeta, home)
+    if (home / ".codex").is_dir():
+        _plan_codex(escrituras, manuales, ruta_codex_proyecto(carpeta))
+        global_ruta = ruta_codex(home)
+        confianza, cambios_conf, manuales_conf = fusionar_confianza_codex(
+            _leer_codex(global_ruta), carpeta
+        )
+        manuales.extend(f"Cambia a mano en {global_ruta}: {manual}" for manual in manuales_conf)
+        if confianza is not None:
+            escrituras.append(Escritura(global_ruta, confianza, tuple(cambios_conf)))
+    if (home / ".config" / "opencode").is_dir():
+        _plan_opencode(escrituras, manuales, carpeta, home, sistema, "en esta carpeta", servidor)
+    destinos = [e.ruta.resolve() for e in escrituras]
+    if len(set(destinos)) != len(destinos):
+        raise ErrorAislamiento(
+            "AJUSTES_INESPERADOS", "el aislamiento apunta dos veces al mismo fichero"
+        )
+    return Plan(tuple(escrituras), tuple(manuales))
+
+
+def planear_global(home: Path, sistema: str, servidor: str | None) -> Plan:
+    """Plan de aislamiento de los ajustes globales del agente (``tiza aislar --global``)."""
+    escrituras: list[Escritura] = []
+    manuales: list[str] = []
+    if (home / ".claude").is_dir() and sistema == "Windows":
+        # dontAsk global rompería los demás proyectos y «Edit(/**)» sería relativo a ~/.claude.
+        manuales.append(
+            "En Windows, Claude Code se aísla por carpeta: entra en la carpeta de la "
+            "asignatura y ejecuta «tiza aislar»."
+        )
+    elif (home / ".claude").is_dir():
+        ruta = ruta_claude(home)
+        if ruta.exists() and not ruta.is_file():
+            raise ErrorAislamiento("AJUSTES_ILEGIBLES", ruta.name)
+        nuevo, cambios = fusionar_claude(leer_json(ruta), sistema, servidor=servidor)
+        if cambios:
+            escrituras.append(Escritura(ruta, _texto_json(nuevo), tuple(cambios)))
+    if (home / ".codex").is_dir():
+        _plan_codex(escrituras, manuales, ruta_codex(home))
+    if (home / ".config" / "opencode").is_dir():
+        _plan_opencode(
+            escrituras, manuales, home / ".config" / "opencode", home, sistema, "global", servidor
+        )
+    return Plan(tuple(escrituras), tuple(manuales))
