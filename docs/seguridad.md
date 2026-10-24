@@ -159,6 +159,25 @@ proyecto). Con Copilot usa una sesión local abierta en la carpeta de la
 asignatura: las sesiones en la nube de la app no ven tu `tiza sesion`, y su
 «computer use» queda fuera por las mismas reglas.
 
+## Panel sin consola (Windows)
+
+`tiza-panel` (el acceso «tiza») hace lo mismo que `tiza empezar` en una ventana. Sus reglas:
+
+- **La cookie no sale del proceso.** La página de login del aula se abre en una segunda ventana
+  del mismo proceso del panel, sin acceso a `js_api`. Tiza lee las cookies de sesión del servidor
+  del aula dentro de ese proceso y no las escribe en disco, no las pasa por tubería ni por
+  argumentos.
+- **Sin aislamiento, no hay sesión.** El panel no abre la sesión si la carpeta no está protegida
+  con `tiza aislar`: el agente tendría mano libre para pulsar sus botones.
+- **El perfil de Windows deniega lanzarlo.** `tiza aislar` deniega al agente `tiza-panel`,
+  `tiza-panel.exe` y `python`/`pythonw -m tiza.panel`; `tiza revisar` lo comprueba.
+- **La página no tiene HTML dinámico.** No tiene enlaces ni contenido remoto. Lleva una política
+  de contenido (CSP) con un nonce por arranque, sin scripts en línea, y el JavaScript solo puede
+  llamar a `estado`, `responder`, `ver_vista_previa`, `elegir_reciente`, `buscar_carpeta` y
+  `terminar`. Lo que muestra sale de la sesión y del aula, nunca de la página.
+- **Las respuestas se validan.** Un clic que llega antes de 0,7 s desde que aparece una pregunta
+  se ignora: así no se confirma algo por un clic que era para otra pantalla.
+
 ## Datos del alumnado: regla de oro
 
 **Nunca escribas nombres, notas, datos de salud ni ninguna información de

@@ -155,11 +155,17 @@ Después, en la carpeta de tu asignatura:
 tiza empezar
 ```
 
+**En Windows puedes no usar la terminal.** Tras la instalación, el agente
+(Claude, por ejemplo, en la pestaña Code) te dice que abras **«tiza»** desde el
+menú Inicio: se abre un panel sin consola que te guía por la carpeta de la
+asignatura, tu aula y los cursos. Para instalar, pídele a tu agente:
+«Lee INSTALAR_CON_AGENTE.md de github.com/balejosg/tiza e instálalo».
+
 La guía [Primeros pasos](docs/primeros-pasos.md) te acompaña en tu primer día,
 paso a paso. Si prefieres que te guíe tu propio agente, pásale
 [INSTALAR_CON_AGENTE.md](INSTALAR_CON_AGENTE.md).
 
-Los instaladores instalan la versión `v0.29.2`. Las opciones de instalación, la
+Los instaladores instalan la versión `v0.30.0`. Las opciones de instalación, la
 actualización y la desinstalación están en la [guía de uso](docs/guia.md#instalación-opciones).
 
 ## Más información

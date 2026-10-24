@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.30.0 — 2026-10-24
+
+### Añadido
+- **Panel sin consola para Windows.** En Windows puedes abrir «tiza» desde el menú Inicio sin ninguna ventana de consola: elige la carpeta de la asignatura (las recientes o una nueva), configura el aula la primera vez, entra en la página de login de tu aula en una ventana propia, elige los cursos por nombre y pasa la autoprueba. Mientras trabajas, el panel queda abierto y, cuando el agente pide publicar en real, se pone delante con el mismo resumen que la terminal y los botones Sí/No.
+- **Accesos «tiza».** `install.ps1` y `tiza actualizar` crean un acceso «tiza» en el menú Inicio y otro en el escritorio, sin permisos de administrador.
+- **Actualizar desde el panel.** Si hay una versión nueva, el panel la ofrece, la instala en segundo plano, vuelve a abrirse y dice si se actualizó. Su log está en `%LOCALAPPDATA%\tiza\tiza\actualizar.log`.
+- **El agente no puede abrir el panel.** El perfil de permisos de Windows de `tiza aislar` deniega lanzar el panel, y sin aislamiento de la carpeta el panel no abre la sesión.
+
+### Cambia
+- `tiza.sesion.Presencia` (la API pública) gana métodos para el arranque (configurar, confirmar la actualización, la carpeta y el aislamiento). `tiza empezar` usa el mismo flujo y su salida en la terminal no cambia.
+
 ## 0.29.2 — 2026-10-24
 
 (La 0.29.1 no llegó a publicarse: sus cambios van aquí.)

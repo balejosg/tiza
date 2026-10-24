@@ -27,7 +27,7 @@ MENSAJES: dict[str, str] = {
     "BLOQUEO_FALLIDO": "No se pudo bloquear un total del calificador (uno con notas o una evaluación que se cierra): el aula no lo dejó bloqueado, así que no se ha movido nada más en ese curso. Vuelve a intentarlo; si se repite, revisa el calificador en el aula.",
     "ORIGEN_INVALIDO": "El campo «origen» del fichero no es válido: debe tener solo «curso» y «cmid», con números enteros positivos. Lo escribe «tiza importar»; no lo cambies a mano.",
     # Sesión y buzón
-    "SIN_SESION": "No hay ninguna sesión abierta. En tu terminal, dentro de la carpeta de la asignatura, ejecuta «tiza empezar» y déjala abierta.",
+    "SIN_SESION": "No hay ninguna sesión abierta. En tu terminal, dentro de la carpeta de la asignatura, ejecuta «tiza empezar» y déjala abierta; en Windows también puedes abrir «tiza» desde el menú Inicio y elegir esa carpeta.",
     "SESION_CERRADA": "La sesión del docente se ha cerrado. Vuelve a abrir «tiza empezar» en la carpeta de la asignatura.",
     "SESION_INCOMPATIBLE": "La sesión abierta usa una versión de tiza que habla otro protocolo. Actualiza la más antigua con «tiza actualizar» y vuelve a abrir la sesión.",
     "SESION_YA_ABIERTA": "Ya hay una sesión de tiza abierta en esta carpeta, en otra terminal: usa esa. Si su terminal se cerró, vuelve a ejecutar «tiza empezar» y acepta cerrarla; si no te lo ofrece, ciérrala en el Administrador de tareas («tiza» o «python»).",

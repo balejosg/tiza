@@ -18,12 +18,12 @@ en español.
   ningún agente. Esta
   excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
-  `tiza aislar` y `tiza actualizar` son del docente** (tampoco lances `python -m tiza.ventana`): no los ejecutes. El agente puede usar
+  `tiza aislar`, `tiza actualizar` y `tiza-panel` son del docente** (tampoco lances `python -m tiza.ventana` ni `python -m tiza.panel`): no los ejecutes. El agente puede usar
   `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
   `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar`, `tiza calificador`, `tiza estructura` y `tiza copia` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
-  en su terminal.
+  en su terminal (o, en Windows, que abra «tiza» desde el menú Inicio).
 - **Nunca uses datos del alumnado** (nombres, notas, salud, imágenes) en prompts,
   `.md` ni en nada que vea el agente.
 - **Tests 100 % offline**: no añadas tests que hagan peticiones de red.
@@ -291,7 +291,7 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.29.2`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.30.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y

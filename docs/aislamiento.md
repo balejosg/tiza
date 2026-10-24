@@ -216,6 +216,8 @@ su lugar escribe en `.claude/settings.json` de la carpeta de la asignatura un
 - siguen denegados la lectura de navegadores, correo, Descargas y los almacenes
   de contraseñas; la lectura y la escritura de la configuración y la caché de
   tiza; y `WebFetch` hacia el servidor del aula.
+- se deniega lanzar el panel de tiza (`tiza-panel`, `tiza-panel.exe`, `python -m tiza.panel` y
+  `pythonw -m tiza.panel`, en PowerShell y Bash): el panel es del docente, como `tiza empezar`.
 
 Así queda el fichero, abreviado:
 
@@ -404,8 +406,8 @@ Si tu agente no está en la lista:
 4. Exige confirmación para ejecutar comandos y para acceder a directorios fuera
    del proyecto.
 5. No le permitas ejecutar `tiza empezar`, `tiza sesion`, `tiza autoprueba`,
-   `tiza configurar`, `tiza aislar`, `tiza actualizar`
-   ni `python -m tiza.ventana`. El agente solo necesita `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline;
+   `tiza configurar`, `tiza aislar`, `tiza actualizar`, `tiza-panel`
+   ni `python -m tiza.ventana` ni `python -m tiza.panel`. El agente solo necesita `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline;
    `leer`, `documento`, `rellenar` e `importar` solo trabajan dentro de la carpeta y nunca sobrescriben),
    `tiza publicar`, `tiza ordenar`, `tiza calificador`, `tiza estructura` y `tiza copia` (con la sesión
    abierta no salen de `.tiza/`; sin sesión fallan con `SIN_SESION`) y

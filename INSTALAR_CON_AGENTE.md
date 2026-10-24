@@ -15,8 +15,8 @@ y guíame para instalar tiza. Sigue sus reglas al pie de la letra.»*
 ### Reglas que no se rompen
 
 - **Nunca** ejecutes `tiza empezar`, `tiza configurar`, `tiza sesion`,
-  `tiza autoprueba`, `tiza aislar`, `tiza actualizar`
-  ni `python -m tiza.ventana`: son del docente y se ejecutan en su propia terminal, no en
+  `tiza autoprueba`, `tiza aislar`, `tiza actualizar`, `tiza-panel`
+  ni `python -m tiza.ventana` ni `python -m tiza.panel`: son del docente y se ejecutan en su propia terminal, no en
   la tuya.
 - **Nunca** pidas ni leas entregas del alumnado ni preguntes por alumnos
   concretos.
@@ -54,13 +54,18 @@ y guíame para instalar tiza. Sigue sus reglas al pie de la letra.»*
    que abra una terminal nueva (o ejecute `uv tool update-shell`) y repite la
    comprobación.
 
+En Windows, al acabar la instalación dile al docente que abra «tiza» desde el menú Inicio (el panel
+le guía la configuración y el aislamiento; abre la sesión como `tiza empezar`, paso 3). En macOS y
+Linux, dile que siga con `tiza empezar` en su terminal, como hasta ahora (paso 3).
+
 **Detente aquí** y sigue con el paso 2. No ejecutes nada más de `tiza`.
 
 ### Paso 2. Parada obligatoria: aislamiento (lo confirma el docente)
 
 El aislamiento se aplica **en la carpeta de la asignatura**, no antes de tener
 carpeta. Cuando el docente la cree y ejecute `tiza empezar` (paso 3), si detecta
-que falta aislamiento le ofrecerá aplicarlo ahí mismo; también puede ejecutarlo en
+que falta aislamiento le ofrecerá aplicarlo ahí mismo (en Windows, el panel lo propone
+y lo aplica igual); también puede ejecutarlo en
 su terminal, **dentro de esa carpeta**, con `tiza aislar` y responder `s` a los
 cambios que le enseña.
 
@@ -119,7 +124,7 @@ real solo se publicará oculto, siempre con su confirmación; cada vez que abra
 la sesión sin pruebas verá el aviso y tendrá que confirmarlo. Si algo falla, que
 te diga el código de error y la línea «Qué hacer»; no necesitas ver nada más.
 
-Si `tiza empezar` le ofrece aplicar el aislamiento a la carpeta, que acepte.
+Si `tiza empezar` (o el panel, en Windows) le ofrece aplicar el aislamiento a la carpeta, que acepte.
 Cuando la sesión esté abierta, ejecuta tú `tiza revisar` desde la carpeta de la
 asignatura: si alguna línea dice `[FALTA]`, explícasela con el texto que aparece
 y repetid. No empieces a trabajar hasta que termine con «Aislamiento correcto.»

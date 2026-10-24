@@ -24,7 +24,7 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
   revisarás en el propio curso. Si quieres un curso de pruebas, pídeselo a quien
   administra el aula virtual de tu centro (normalmente, el coordinador TIC).
 
-## Instalar
+## Instalar (terminal: macOS, Linux o Windows)
 
 1. Abre una terminal y pega la línea de tu sistema:
 
@@ -40,6 +40,44 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
 
 2. Cierra la terminal y abre otra nueva.
 3. Escribe `tiza --help`. Si sale la ayuda, ya está instalado.
+
+## En Windows, sin terminal
+
+Si tienes Windows, puedes no abrir nunca una terminal. Lo que hace `tiza` lo
+hace un panel con ventanas.
+
+1. **Instálalo con tu agente.** Instala Claude Desktop con su instalador normal,
+   abre la pestaña **Code** y escribe:
+
+   > Lee INSTALAR_CON_AGENTE.md de github.com/balejosg/tiza e instálalo.
+
+   El agente lo instala y, al terminar, te dice: «Abre tiza desde el menú
+   Inicio». Crea también un acceso en el escritorio.
+2. **Abre «tiza».** Haz doble clic en el acceso «tiza» (menú Inicio o escritorio).
+   Se abre el panel, sin ventana de consola.
+3. **Elige la carpeta de la asignatura.** El panel enseña las carpetas que usaste
+   antes; si la tuya no está, pulsa «Elegir otra carpeta…» y búscala.
+4. **Sigue el asistente la primera vez:**
+   - la dirección de tu aula y tu usuario;
+   - si hay una versión nueva de `tiza`, te la ofrece. Se instala sola y el panel
+     vuelve a abrirse;
+   - la protección de la carpeta, con el botón «Proteger esta carpeta». Sin ella
+     no se abre la sesión: el agente no debe poder entrar en tu aula ni leer tu
+     navegador;
+   - la entrada en tu aula: se abre una ventana con la página de login de tu aula.
+     Entra como siempre. `tiza` no ve tu contraseña;
+   - los cursos de pruebas y real, elegidos por su nombre;
+   - la autoprueba, si toca.
+5. **Déjalo abierto.** El panel muestra «Sesión abierta hasta…» y queda de fondo
+   mientras trabajas. Cuando el agente quiera publicar en el curso real, el panel
+   se pone delante y parpadea, con el mismo resumen de siempre y los botones
+   **Sí** y **No** (también «Ver vista previa»). Nada se publica sin tu sí.
+6. **Cerrar.** El botón «Cerrar la sesión» o cerrar la ventana cierra la sesión.
+
+Para pedirle contenido al agente, abre Claude en la **misma carpeta** de la
+asignatura, igual que en el primer día de la terminal.
+
+Si prefieres la terminal, o usas macOS o Linux, sigue con el apartado siguiente.
 
 ## El primer día
 
@@ -134,7 +172,7 @@ No mandes capturas del aula virtual (pueden salir alumnos), ni tu contraseña.
 3. Si quieres borrar también la dirección del aula y tu usuario, borra la
    carpeta `tiza` de la configuración: `~/.config/tiza` en Linux,
    `~/Library/Application Support/tiza` en macOS y
-   `%LOCALAPPDATA%\tiza` en Windows.
+   `%LOCALAPPDATA%\tiza\tiza` en Windows.
 
 El aislamiento vive en la carpeta de cada asignatura (`.claude/`, `.codex/` y
 `opencode.jsonc`) y se va con ella (en la app de GitHub Copilot se configura a
