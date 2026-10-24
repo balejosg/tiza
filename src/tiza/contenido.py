@@ -10,6 +10,7 @@ import hashlib
 import html as _html
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time
 from pathlib import Path
@@ -22,7 +23,7 @@ from bs4 import BeautifulSoup, Tag
 from markdown_it import MarkdownIt
 
 from . import filtro, rutas
-from .estado import CARPETA_PREVIEW
+from .estado import CARPETA_PREVIEW, Publicado
 from .ficheros import FicheroNoSeguro, asegurar_directorio, escribir_texto, leer_bytes_acotado
 from .filtro import CONTROL as _CONTROL
 
@@ -295,6 +296,9 @@ class Documento:
     )
     enlaces_externos: list[str] = field(default_factory=list)  # los ve el docente antes de real
     incrustados: list[str] = field(default_factory=list)  # URL de los iframes, también las ve
+    # Curso -> lo que tiza publicó de este fichero en él (``.tiza/publicados.json``); lo rellena
+    # ``cargar`` con ``raiz``. Ni entra en el hash ni se compara: es del aula, no del documento.
+    publicados: Mapping[int, Publicado] = field(default_factory=dict, repr=False, compare=False)
     _mapa_recursos: dict[str, Recurso] = field(default_factory=dict, repr=False)
     _arbol: Tag | None = field(default=None, repr=False)  # el <body> validado
 

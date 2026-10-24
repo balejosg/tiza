@@ -707,7 +707,7 @@ def cambios_de_fechas(
         return ()
     esperadas = publicar.fechas_esperadas(doc)
     avisos_de = calendario.avisos_por_campo(cal, doc)
-    huerfana = False  # su ``origen`` ya no está en el aula: se negará al publicar
+    huerfana = False  # su ``origen`` no está o el nombre es ambiguo: se negará al publicar
     try:
         existente = publicar.modulo_de(secciones, doc, curso)
     except ErrorPublicacion:
@@ -1054,7 +1054,7 @@ def _separar_rechazados(
             continue
         if not solo_fechas:
             try:
-                publicar.modulo_por_origen(secciones, doc)
+                publicar.localizar(secciones, doc, curso)
             except ErrorPublicacion:
                 rechazados[indice] = "ORIGEN_NO_ENCONTRADO"
                 continue
@@ -1472,7 +1472,7 @@ def resumen_orden(
     del docente y necesita ver dónde queda cada cosa. ``ErrorPublicacion`` si algo no se resuelve
     (``ACTIVIDAD_AUSENTE``…): se mira antes de mover nada.
     """
-    grupos = publicar.resolver_orden(secciones, documentos)
+    grupos = publicar.resolver_orden(secciones, documentos, curso)
     deseados = [(seccion["id"], [modulo["cmid"] for _, modulo in par]) for seccion, par in grupos]
     cambiadas = {mov.seccion_id for mov in publicar.plan_de_orden(secciones, deseados)}
     if not cambiadas:
@@ -1659,16 +1659,16 @@ def _cmids_de(
     for doc in documentos:
         ruta = _ruta_de(doc, base)
         try:
-            if publicar.aplica_origen(doc, curso):
-                encontrados = [publicar.modulo_por_origen(secciones, doc)[1]]
-            else:
-                encontrados = publicar.modulos_de(secciones, doc)
-        except ErrorPublicacion:  # ORIGEN_NO_ENCONTRADO: ya no está en el aula, es pendiente
+            loc = publicar.localizar(secciones, doc, curso)
+        except ErrorPublicacion as exc:
+            if exc.codigo != "ORIGEN_NO_ENCONTRADO":
+                raise  # ACTIVIDAD_AMBIGUA: el registro y el nombre apuntan a actividades distintas
+            continue  # ya no está en el aula: es pendiente
+        modulo = loc.actividad
+        if modulo is None:
             continue
-        if not encontrados:
-            continue
-        cmid = encontrados[0]["cmid"]
-        if len(encontrados) > 1 or cmid in vistos:
+        cmid = modulo["cmid"]
+        if loc.varios or cmid in vistos:
             raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", ruta)
         vistos.add(cmid)
         cmids[ruta] = cmid
