@@ -28,6 +28,9 @@ dependencies = [
 [project.scripts]
 tiza = "tiza.cli:main"
 
+[project.gui-scripts]
+tiza-panel = "tiza.panel:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 ventana = [

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- La directiva de evaluación la exige el puente de pywebview, que crea sus
+     funciones con el constructor Function (webview/js/api.js). No se permiten
+     scripts incrustados sin nonce: un HTML inyectado no ejecuta nada, y este
+     código nunca evalúa cadenas. Todo se pinta con createElement y textContent. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-__NONCE__' 'unsafe-eval'; style-src 'nonce-__NONCE__'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tiza</title>
+<style nonce="__NONCE__">
+:root { --fondo: #F6F3EE; --texto: #1F2328; --suave: #5B6169; --marca: #7A1F2B; --borde: #D9D3C7; --aviso: #8A5A00; --peligro: #A4161A; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.45 "Segoe UI", system-ui, sans-serif; background: var(--fondo); color: var(--texto); }
+header { background: var(--marca); color: #fff; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
+header div { flex: 1; min-width: 0; }
+header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+header p { margin: 2px 0 0; font-size: 12px; opacity: .85; word-break: break-all; }
+header button { background: transparent; color: #fff; border-color: #fff; }
+main { padding: 18px; }
+.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+h2 { font-size: 16px; margin: 0 0 10px; }
+p { margin: 6px 0; }
+.suave { color: var(--suave); }
+.error { color: var(--peligro); }
+.aviso { color: var(--aviso); }
+label { display: block; font-weight: 600; margin: 10px 0 4px; }
+label.casilla { font-weight: 400; margin: 6px 0; }
+input[type="text"] { width: 100%; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; }
+.botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--borde); background: #fff; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button.principal { background: var(--marca); border-color: var(--marca); color: #fff; }
+button.peligro { background: var(--peligro); border-color: var(--peligro); color: #fff; }
+.documento { border-top: 1px solid var(--borde); padding-top: 10px; margin-top: 10px; }
+.documento .titulo { font-weight: 600; }
+ul { margin: 6px 0; padding-left: 20px; }
+#registro { font-size: 13px; max-height: 220px; overflow: auto; }
+#registro li.error { color: var(--peligro); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>tiza</h1>
+    <p id="contexto"></p>
+  </div>
+  <button type="button" id="cerrar-sesion" hidden>Cerrar la sesión</button>
+</header>
+<main>
+  <section id="pantalla" class="tarjeta" aria-live="polite"></section>
+  <section class="tarjeta">
+    <h2>Registro</h2>
+    <ul id="registro"></ul>
+  </section>
+</main>
+<script nonce="__NONCE__">
+"use strict";
+(function () {
+  var ESPERA_BOTONES = 700;  // ayuda visual: la regla de verdad (0,7 s) está en Python
+  var ultimo = null;         // número de la pantalla pintada
+  var firmaRegistro = "";
+  var enCurso = false;
+  var respuestas = [];       // botones que se habilitan a los 0,7 s de pintar la pantalla
+
+  function api() {
+    return window.pywebview && window.pywebview.api;
+  }
+
+  function el(etiqueta, clase, texto) {
+    var nodo = document.createElement(etiqueta);
+    if (clase) { nodo.className = clase; }
+    if (texto !== undefined && texto !== null) { nodo.textContent = String(texto); }
+    return nodo;
+  }
+
+  // Los botones de respuesta empiezan deshabilitados; los demás, no.
+  function boton(texto, clase, accion, esRespuesta) {
+    var nodo = el("button", clase, texto);
+    nodo.type = "button";
+    nodo.addEventListener("click", accion);
+    if (esRespuesta) {
+      nodo.disabled = true;
+      respuestas.push(nodo);
+    }
+    return nodo;
+  }
+
+  function botones() {
+    var caja = el("div", "botones");
+    for (var i = 0; i < arguments.length; i++) { caja.appendChild(arguments[i]); }
+    return caja;
+  }
+
+  function campo(etiqueta, id) {
+    var caja = el("div");
+    var nombre = el("label", null, etiqueta);
+    nombre.htmlFor = id;
+    var entrada = el("input");
+    entrada.type = "text";
+    entrada.id = id;
+    entrada.autocomplete = "off";
+    entrada.spellcheck = false;
+    caja.appendChild(nombre);
+    caja.appendChild(entrada);
+    return { nodo: caja, entrada: entrada };
+  }
+
+  // Siempre con los dos argumentos: pywebview convierte undefined en None.
+  function responder(numero, valor) {
+    var puente = api();
+    if (puente) { puente.responder(numero, valor); }
+  }
+
+  function parrafos(nodos, lineas, clase) {
+    (lineas || []).forEach(function (linea) { nodos.push(el("p", clase || null, linea)); });
+  }
+
+  function siNo(p, claseSi) {
+    return botones(
+      boton("Sí", claseSi || "principal", function () { responder(p.numero, true); }, true),
+      boton("No", null, function () { responder(p.numero, false); }, true));
+  }
+
+  // Un entero positivo escrito por el docente, o null si no lo es.
+  function entero(texto) {
+    var t = String(texto).trim();
+    if (!/^[0-9]{1,12}$/.test(t)) { return null; }
+    var n = Number(t);
+    return n > 0 ? n : null;
+  }
+
+  function pintarBloque(p, bloque) {
+    var caja = el("div", "documento");
+    caja.appendChild(el("p", "titulo", bloque.titulo));
+    (bloque.lineas || []).forEach(function (linea) { caja.appendChild(el("p", null, linea)); });
+    if (bloque.vista !== null && bloque.vista !== undefined) {
+      caja.appendChild(botones(boton("Ver vista previa", null, function () {
+        var puente = api();
+        if (puente) { puente.ver_vista_previa(p.numero, bloque.vista); }
+      })));
+    }
+    return caja;
+  }
+
+  var pintores = {
+    reposo: function (p) {
+      var nodos = [];
+      if (p.titulo) { nodos.push(el("h2", null, p.titulo)); }
+      parrafos(nodos, p.lineas);
+      if (!p.titulo && !(p.lineas || []).length) {
+        nodos.push(el("p", "suave", "Esperando…"));
+      }
+      return nodos;
+    },
+    confirmar: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas);
+      (p.bloques || []).forEach(function (bloque) { nodos.push(pintarBloque(p, bloque)); });
+      nodos.push(el("p", null, p.pregunta));
+      nodos.push(siNo(p));
+      return nodos;
+    },
+    elegir_curso: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas, "suave");
+      (p.opciones || []).forEach(function (opcion) {
+        nodos.push(botones(boton(opcion.texto, null, function () {
+          responder(p.numero, opcion.indice);
+        }, true)));
+      });
+      if (p.permite_sin_curso) {
+        nodos.push(el("p", "aviso", p.texto_sin_curso));
+        nodos.push(botones(boton("No tengo curso de pruebas", null, function () {
+          responder(p.numero, { sin_curso: true });
+        }, true)));
+      }
+      if (p.permite_id) {
+        var id = campo("Escribe el id del curso (está en la dirección: course/view.php?id=1234)", "id");
+        nodos.push(id.nodo);
+        nodos.push(botones(boton("Usar este id", "principal", function () {
+          var n = entero(id.entrada.value);
+          if (n !== null) { responder(p.numero, { id: n }); }
+        }, true)));
+      }
+      return nodos;
+    },
+    elegir_cursos_reales: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas, "suave");
+      var casillas = [];
+      (p.opciones || []).forEach(function (opcion) {
+        var etiqueta = el("label", "casilla");
+        var marca = document.createElement("input");
+        marca.type = "checkbox";
+        marca.addEventListener("change", function () {
+          // Ayuda visual: no se pueden marcar más que el máximo.
+          var marcadas = casillas.filter(function (c) { return c.marca.checked; }).length;
+          if (marcadas > p.maximo) { marca.checked = false; }
+        });
+        casillas.push({ marca: marca, indice: opcion.indice });
+        etiqueta.appendChild(marca);
+        etiqueta.appendChild(document.createTextNode(" " + opcion.texto));
+        nodos.push(etiqueta);
+      });
+      var id = null;
+      if (p.permite_id) {
+        id = campo("Escribe los ids de los cursos separados por comas (course/view.php?id=1234)", "ids");
+        nodos.push(id.nodo);
+      }
+      nodos.push(botones(boton("Usar estos cursos", "principal", function () {
+        if (id !== null) {
+          var ids = id.entrada.value.split(",").map(entero);
+          if (ids.length && ids.every(function (n) { return n !== null; })) {
+            responder(p.numero, { ids: ids });
+          }
+          return;
+        }
+        var indices = casillas.filter(function (c) { return c.marca.checked; })
+          .map(function (c) { return c.indice; });
+        if (indices.length) { responder(p.numero, indices); }
+      }, true)));
+      return nodos;
+    },
+    configurar: function (p) {
+      var url = campo("Dirección de tu aula virtual", "url");
+      url.entrada.placeholder = "https://aula.ejemplo.org/tu-centro";
+      url.entrada.value = p.url || "";
+      var usuario = campo("Usuario del aula", "usuario");
+      usuario.entrada.value = p.usuario || "";
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas, "suave");
+      nodos.push(el("p", "suave", "Aquí no se guarda ninguna contraseña."));
+      nodos.push(url.nodo);
+      nodos.push(usuario.nodo);
+      if (p.error) { nodos.push(el("p", "error", p.error)); }
+      nodos.push(botones(boton("Guardar", "principal", function () {
+        responder(p.numero, { url: url.entrada.value, usuario: usuario.entrada.value });
+      }, true)));
+      return nodos;
+    },
+    entrando: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas);
+      nodos.push(el("p", "suave", "Esperando a que entres en la ventana del aula…"));
+      return nodos;
+    },
+    ampliar: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas);
+      nodos.push(el("p", null, p.pregunta));
+      if (p.plazo > 0) {
+        nodos.push(el("p", "aviso", "Si no contestas en " + Math.max(1, Math.round(p.plazo / 60)) +
+          " minutos, la sesión se cierra."));
+      }
+      nodos.push(siNo(p));
+      return nodos;
+    },
+    carpeta: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas, "suave");
+      (p.opciones || []).forEach(function (opcion) {
+        nodos.push(botones(boton(opcion.texto, null, function () {
+          var puente = api();
+          if (puente) { puente.elegir_reciente(p.numero, opcion.indice); }
+        }, true)));
+      });
+      nodos.push(botones(boton("Elegir otra carpeta…", "principal", function () {
+        var puente = api();
+        if (puente) { puente.buscar_carpeta(p.numero); }
+      }, true)));
+      return nodos;
+    }
+  };
+
+  function pintar(pantalla) {
+    var zona = document.getElementById("pantalla");
+    var pintor = pintores[pantalla.tipo] || pintores.reposo;
+    respuestas = [];
+    var nodos = pintor(pantalla);
+    zona.replaceChildren.apply(zona, nodos);
+    var pendientes = respuestas;
+    setTimeout(function () {
+      pendientes.forEach(function (nodo) { nodo.disabled = false; });
+    }, ESPERA_BOTONES);
+  }
+
+  function pintarRegistro(registro) {
+    var firma = JSON.stringify(registro);
+    if (firma === firmaRegistro) { return; }
+    firmaRegistro = firma;
+    var ul = document.getElementById("registro");
+    var items = registro.map(function (linea) {
+      return el("li", linea.error ? "error" : null, linea.texto);
+    });
+    ul.replaceChildren.apply(ul, items);
+    ul.scrollTop = ul.scrollHeight;
+  }
+
+  function pintarContexto(estado) {
+    var partes = [];
+    if (estado.carpeta) { partes.push(estado.carpeta); }
+    if (estado.servidor) { partes.push(estado.servidor); }
+    document.getElementById("contexto").textContent = partes.join(" · ");
+    document.getElementById("cerrar-sesion").hidden = !estado.sesion_abierta;
+  }
+
+  function sondear() {
+    var puente = api();
+    if (!puente || !puente.estado || enCurso) { return; }
+    enCurso = true;
+    puente.estado().then(function (estado) {
+      enCurso = false;
+      pintarContexto(estado);
+      if (estado.pantalla.numero !== ultimo) {
+        ultimo = estado.pantalla.numero;
+        pintar(estado.pantalla);
+      }
+      pintarRegistro(estado.registro);
+    }, function () {
+      enCurso = false;
+    });
+  }
+
+  document.getElementById("cerrar-sesion").addEventListener("click", function () {
+    var puente = api();
+    if (puente && ultimo !== null) { puente.terminar(ultimo); }
+  });
+
+  setInterval(sondear, 300);
+})();
+</script>
+</body>
+</html>

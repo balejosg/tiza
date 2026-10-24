@@ -10,10 +10,13 @@ Sin interfaz gráfica y sin pywebview: aquí solo hay estado. Tres piezas sobre 
 - ``Puente``: lo que será el ``js_api`` de la ventana. Solo acciones; todo lo interno
   empieza por ``_`` (pywebview expone también los atributos públicos que sean objetos).
 
-Las operaciones de ventana (``on_top``, ``restore``, ``show``, ``destroy``) nunca van dentro
-de una llamada del ``js_api``: cuelgan la ventana. Este módulo no toca ventanas; la capa de
-ventana espera en su propio hilo con ``Panel.esperar_cambio``. La acreditación del aula
-(cookies) nunca pasa por el ``Puente``: entra por ``abrir_login``, un callable inyectado.
+Las operaciones de ventana (``on_top``, ``restore``, ``show``, ``destroy``, el diálogo de
+carpeta) nunca van dentro de una llamada del ``js_api``: cuelgan la ventana. Este módulo no
+toca ventanas: el ``Puente`` solo deja peticiones (``buscar_carpeta``, ``terminar``) y la capa
+de ventana las atiende en su propio hilo con ``Panel.esperar_cambio``. La acreditación del
+aula (cookies) nunca pasa por el ``Puente``: entra por ``abrir_login``, un callable inyectado.
+Las rutas reales de las carpetas recientes se quedan en el ``Panel``: JavaScript solo ve el
+índice y el nombre visible, y la carpeta que sale del diálogo la valida el ``Panel``.
 """
 
 from __future__ import annotations
@@ -41,6 +44,7 @@ from ..publicacion import (
     ResumenSobrescribir,
 )
 from ..sesion import SIN_PRUEBAS, CursoSesion
+from . import recientes
 
 __all__ = [
     "MAX_REGISTRO",
@@ -73,6 +77,7 @@ TIPOS_DE_PANTALLA = frozenset(
         "configurar",
         "entrando",
         "ampliar",
+        "carpeta",
     }
 )
 
@@ -202,6 +207,12 @@ class Panel:
         self._respuesta: Any = _INVALIDA
         self._vistas: tuple[Path | None, ...] = ()
         self._registro: list[tuple[str, bool]] = []
+        self._carpeta = ""
+        self._servidor = ""
+        self._sesion_abierta = False
+        self._dialogo = False  # el docente pidió el diálogo de carpeta y nadie lo ha atendido
+        self._dialogo_en_curso = False
+        self._salir = False  # el docente pidió cerrar la sesión
 
     # --- lo que lee la capa de ventana y el Puente ---
 
@@ -209,21 +220,68 @@ class Panel:
     def cerrado(self) -> bool:
         return self._cierre.is_set()
 
+    @property
+    def pregunta_pendiente(self) -> bool:
+        """¿Hay una pregunta esperando respuesta? (la ventana se pone delante y parpadea)."""
+        with self._cv:
+            return self._validar is not None
+
+    @property
+    def dialogo_pedido(self) -> bool:
+        """¿Pidió el docente el diálogo de carpeta y falta atenderlo? (hilo de la ventana)."""
+        with self._cv:
+            return self._dialogo
+
+    @property
+    def salida_pedida(self) -> bool:
+        """¿Pidió el docente cerrar la sesión? (el hilo de la ventana la destruye)."""
+        with self._cv:
+            return self._salir
+
     def estado(self) -> dict:
         with self._cv:
             return {
                 "pantalla": self._pantalla.a_dict(),
                 "registro": [{"texto": t, "error": e} for t, e in self._registro],
                 "cerrado": self._cierre.is_set(),
+                "carpeta": self._carpeta,
+                "servidor": self._servidor,
+                "sesion_abierta": self._sesion_abierta,
             }
 
     def esperar_cambio(self, ultimo_numero: int, timeout: float) -> int:
-        """Espera a que la pantalla deje de ser la ``ultimo_numero`` (o a que se cierre)."""
+        """Espera a que haya algo que atender: otra pantalla que la ``ultimo_numero``, un
+        diálogo o una salida pedidos, o el cierre del panel. Devuelve el número actual."""
         with self._cv:
             self._cv.wait_for(
-                lambda: self._numero != ultimo_numero or self._cierre.is_set(), timeout
+                lambda: (
+                    self._numero != ultimo_numero
+                    or self._cierre.is_set()
+                    or self._dialogo
+                    or self._salir
+                ),
+                timeout,
             )
             return self._numero
+
+    def fijar_carpeta(self, nombre: str) -> None:
+        with self._cv:
+            self._carpeta = _t(nombre, 100)
+
+    def fijar_servidor(self, servidor: str) -> None:
+        with self._cv:
+            self._servidor = _t(servidor, 100)
+
+    def reposo(self, titulo: str, lineas: Sequence[str] = ()) -> None:
+        """Deja una pantalla de reposo saneada y marca la sesión como cerrada."""
+        self.marcar_sesion(False)
+        self.mostrar(Pantalla(0, "reposo", titulo=_t(titulo), lineas=_lineas(lineas)))
+
+    def marcar_sesion(self, abierta: bool) -> None:
+        """La sesión está abierta (se enseña «Cerrar la sesión») o ya no lo está."""
+        with self._cv:
+            self._sesion_abierta = bool(abierta)
+            self._cv.notify_all()
 
     def cerrar(self) -> None:
         """El docente cierra el panel: desbloquea toda pregunta (como un no)."""
@@ -248,6 +306,105 @@ class Panel:
             self._respuesta = valor
             self._cv.notify_all()
             return True
+
+    def _atendible(self, numero: Any) -> bool:  # con el cerrojo tomado
+        """¿Es ``numero`` la pantalla actual y ha pasado el retardo? (las mismas reglas que
+        una respuesta, para peticiones que no son respuestas)."""
+        return (
+            _entero(numero)
+            and numero == self._numero
+            and self._reloj() - self._publicada >= RETARDO_RESPUESTA
+        )
+
+    def pedir_dialogo(self, numero: Any) -> bool:
+        """El docente pide el diálogo de carpeta (solo con la pantalla ``carpeta`` pendiente).
+
+        No abre nada: deja la petición para el hilo de la ventana (``atender_dialogo``).
+        """
+        with self._cv:
+            if (
+                self._validar is None
+                or self._pantalla.tipo != "carpeta"
+                or not self._atendible(numero)
+                or self._dialogo
+                or self._dialogo_en_curso
+            ):
+                return False
+            self._dialogo = True
+            self._cv.notify_all()
+            return True
+
+    def atender_dialogo(self, elegir: Callable[[], object]) -> bool:
+        """Atiende la petición de diálogo: ``elegir()`` lo abre y devuelve la ruta (o None).
+
+        Lo llama el hilo de la ventana. La carpeta elegida solo vale si es una ruta absoluta
+        que existe; entonces responde a la pregunta pendiente. Devuelve si se respondió.
+        """
+        with self._cv:
+            if not self._dialogo:
+                return False
+            self._dialogo = False
+            self._dialogo_en_curso = True
+        try:
+            elegida = elegir()
+        finally:
+            with self._cv:
+                self._dialogo_en_curso = False
+        carpeta = recientes.carpeta_valida(elegida)
+        if carpeta is None:
+            return False
+        with self._cv:
+            if self._validar is None or self._pantalla.tipo != "carpeta":
+                return False
+            try:
+                valor = self._validar(("dialogo", carpeta))
+            except (TypeError, ValueError, KeyError, IndexError):
+                return False
+            if valor is _INVALIDA or self._respuesta is not _INVALIDA:
+                return False
+            self._respuesta = valor
+            self._cv.notify_all()
+            return True
+
+    def pedir_salida(self, numero: Any) -> bool:
+        """El docente pide cerrar la sesión: marca la salida y cierra el panel (todo lo
+        pendiente cuenta como un no). La ventana la destruye el hilo de la ventana."""
+        with self._cv:
+            if not self._atendible(numero):
+                return False
+            self._salir = True
+            self._cv.notify_all()
+        self.cerrar()
+        return True
+
+    def esperar_carpeta(self, usadas: Sequence[Path] = ()) -> Path | None:
+        """Pregunta la carpeta de la asignatura; None si se cierra el panel.
+
+        Las ``usadas`` se ofrecen por índice y nombre visible; sus rutas se quedan aquí.
+        La respuesta es ``("reciente", índice)`` (la da el ``Puente``) o ``("dialogo", ruta)``
+        (la da ``atender_dialogo``): JSON nunca produce una tupla, así que
+        ``Puente.responder`` no puede contestar esta pantalla.
+        """
+        rutas = tuple(Path(r) for r in usadas)[: recientes.MAXIMO]
+
+        def validar(respuesta: Any) -> Any:
+            if not isinstance(respuesta, tuple) or len(respuesta) != 2:
+                return _INVALIDA
+            tipo, valor = respuesta
+            if tipo == "reciente" and _entero(valor) and 0 <= valor < len(rutas):
+                return recientes.carpeta_valida(str(rutas[valor])) or _INVALIDA
+            if tipo == "dialogo" and isinstance(valor, Path):
+                return valor
+            return _INVALIDA
+
+        pantalla = Pantalla(
+            0,
+            "carpeta",
+            titulo="Elige la carpeta de la asignatura",
+            lineas=_lineas(["Aquí trabajará tu asistente. Elige una reciente o busca otra."]),
+            opciones=tuple(Opcion(i, recientes.nombre_visible(r)) for i, r in enumerate(rutas)),
+        )
+        return self.preguntar(pantalla, validar)
 
     def vista(self, numero: Any, indice: Any) -> Path | None:
         """La vista previa ``indice`` de la pantalla actual, que fijó tiza; None si no hay."""
@@ -375,6 +532,7 @@ class PresenciaPanel:
 
     def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
         servidor = _servidor(url)
+        self._panel.fijar_servidor(servidor)
         self._panel.mostrar(
             Pantalla(
                 0,
@@ -613,6 +771,7 @@ class PresenciaPanel:
         for linea in lineas:
             self._panel.anotar(linea.texto, linea.error)
         if aviso.codigo == "SESION_ABIERTA" or aviso.codigo in _CIERRAN:
+            self._panel.marcar_sesion(aviso.codigo == "SESION_ABIERTA")
             self._panel.mostrar(
                 Pantalla(
                     0,
@@ -644,6 +803,18 @@ class Puente:
 
     def responder(self, numero: Any = None, respuesta: Any = None) -> bool:
         return self._panel.responder(numero, respuesta)
+
+    def elegir_reciente(self, numero: Any = None, indice: Any = None) -> bool:
+        """Elige la carpeta reciente número ``indice`` (la ruta real no sale del ``Panel``)."""
+        return self._panel.responder(numero, ("reciente", indice))
+
+    def buscar_carpeta(self, numero: Any = None) -> bool:
+        """Pide el diálogo de carpeta. No lo abre: lo atiende el hilo de la ventana."""
+        return self._panel.pedir_dialogo(numero)
+
+    def terminar(self, numero: Any = None) -> bool:
+        """Pide cerrar la sesión. No cierra nada aquí: el hilo de la ventana la destruye."""
+        return self._panel.pedir_salida(numero)
 
     def ver_vista_previa(self, numero: Any = None, indice: Any = None) -> bool:
         ruta = self._panel.vista(numero, indice)

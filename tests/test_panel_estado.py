@@ -12,6 +12,7 @@ import pytest
 
 from tiza import aislamiento, config, mensajes, publicacion, publicar
 from tiza.panel import estado as pe
+from tiza.panel import recientes
 from tiza.panel.estado import Panel, PresenciaPanel, Puente
 from tiza.sesion import SIN_PRUEBAS, CursoSesion
 
@@ -144,7 +145,14 @@ def test_presencia_panel_cumple_la_interfaz_de_presencia():
 
 def test_el_puente_no_expone_atributos_publicos_que_sean_objetos(entorno):
     publicos = [n for n in dir(entorno.puente) if not n.startswith("_")]
-    assert sorted(publicos) == ["estado", "responder", "ver_vista_previa"]
+    assert sorted(publicos) == [
+        "buscar_carpeta",
+        "elegir_reciente",
+        "estado",
+        "responder",
+        "terminar",
+        "ver_vista_previa",
+    ]
     assert all(callable(getattr(entorno.puente, n)) for n in publicos)
     assert not [n for n in vars(entorno.puente) if not n.startswith("_")]
 
@@ -719,3 +727,277 @@ def test_los_numeros_de_pantalla_solo_crecen(entorno):
         leer()
         numeros.append(entorno.puente.estado()["pantalla"]["numero"])
     assert numeros == sorted(set(numeros))
+
+
+# --- carpeta, diálogo y salida ---------------------------------------------------------------
+
+
+@pytest.fixture
+def carpetas(tmp_path):
+    lista = []
+    for nombre in ("lengua", "mates", "fisica"):
+        carpeta = tmp_path / "curso" / nombre
+        carpeta.mkdir(parents=True)
+        lista.append(carpeta)
+    return lista
+
+
+def test_la_pantalla_de_carpeta_enseña_indices_y_nombres_pero_nunca_rutas(entorno, carpetas):
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta, carpetas)
+    p = entorno.pantalla(tipo="carpeta")
+    assert [(o["indice"], o["texto"]) for o in p["opciones"]] == [
+        (0, "curso / lengua"),
+        (1, "curso / mates"),
+        (2, "curso / fisica"),
+    ]
+    assert str(carpetas[0].parent) not in json.dumps(entorno.puente.estado())
+    assert entorno.puente.responder(p["numero"], ("x", 1)) is False
+    assert entorno.responder(p, ["reciente", 1], esperar=True) is False  # JSON no da tuplas
+    assert entorno.puente.elegir_reciente(p["numero"], 1) is True
+    assert leer() == carpetas[1]
+
+
+def test_esperar_carpeta_sin_recientes(entorno):
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta)
+    p = entorno.pantalla(tipo="carpeta")
+    assert p["opciones"] == ()
+    entorno.panel.cerrar()
+    assert leer() is None
+
+
+def test_las_recientes_se_acotan_al_maximo(entorno, tmp_path):
+    muchas = []
+    for i in range(recientes.MAXIMO + 4):
+        carpeta = tmp_path / f"c{i}"
+        carpeta.mkdir()
+        muchas.append(carpeta)
+    entorno.lanzar(entorno.panel.esperar_carpeta, muchas)
+    p = entorno.pantalla(tipo="carpeta")
+    assert len(p["opciones"]) == recientes.MAXIMO
+
+
+@pytest.mark.parametrize("mala", [-1, 3, 99, None, True, "0", 1.0, [0], {"indice": 0}])
+def test_elegir_reciente_rechaza_lo_no_valido(entorno, carpetas, mala):
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta, carpetas)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    assert entorno.puente.elegir_reciente(p["numero"], mala) is False
+    assert entorno.puente.elegir_reciente(p["numero"]) is False  # undefined llega como None
+    assert entorno.puente.elegir_reciente() is False
+    assert entorno.puente.elegir_reciente(p["numero"], 0) is True
+    assert leer() == carpetas[0]
+
+
+def test_elegir_reciente_respeta_numero_y_retardo(entorno, carpetas):
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta, carpetas)
+    p = entorno.pantalla(tipo="carpeta")
+    assert entorno.puente.elegir_reciente(p["numero"], 0) is False  # demasiado pronto
+    entorno.reloj.avanzar(pe.RETARDO_RESPUESTA + 0.1)
+    assert entorno.puente.elegir_reciente(p["numero"] + 1, 0) is False
+    assert entorno.puente.elegir_reciente(str(p["numero"]), 0) is False
+    assert entorno.puente.elegir_reciente(p["numero"], 2) is True
+    assert leer() == carpetas[2]
+
+
+def test_una_reciente_que_ya_no_existe_no_se_elige(entorno, carpetas):
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta, carpetas)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    carpetas[0].rmdir()
+    assert entorno.puente.elegir_reciente(p["numero"], 0) is False
+    assert entorno.puente.elegir_reciente(p["numero"], 1) is True
+    assert leer() == carpetas[1]
+
+
+def test_elegir_reciente_no_contesta_otras_pantallas(entorno):
+    leer = entorno.lanzar(entorno.presencia.confirmar_autoprueba)
+    p = entorno.pantalla()
+    entorno.reloj.avanzar(2)
+    assert entorno.puente.elegir_reciente(p["numero"], 0) is False
+    assert entorno.puente.responder(p["numero"], True) is True
+    assert leer() is True
+
+
+def test_buscar_carpeta_no_abre_nada_deja_una_peticion(entorno):
+    entorno.lanzar(entorno.panel.esperar_carpeta)
+    p = entorno.pantalla(tipo="carpeta")
+    assert entorno.panel.dialogo_pedido is False
+    assert entorno.puente.buscar_carpeta(p["numero"]) is False  # demasiado pronto
+    entorno.reloj.avanzar(2)
+    assert entorno.puente.buscar_carpeta(p["numero"] + 1) is False
+    assert entorno.puente.buscar_carpeta(None) is False
+    assert entorno.puente.buscar_carpeta() is False
+    assert entorno.puente.buscar_carpeta(p["numero"]) is True
+    assert entorno.panel.dialogo_pedido is True
+    assert entorno.puente.buscar_carpeta(p["numero"]) is False  # ya está pedida
+    assert entorno.puente.estado()["pantalla"]["tipo"] == "carpeta"  # nadie ha respondido
+
+
+def test_buscar_carpeta_solo_en_la_pantalla_de_carpeta(entorno):
+    entorno.lanzar(entorno.presencia.confirmar_autoprueba)
+    p = entorno.pantalla()
+    entorno.reloj.avanzar(2)
+    assert entorno.puente.buscar_carpeta(p["numero"]) is False
+    assert entorno.panel.dialogo_pedido is False
+    assert entorno.puente.buscar_carpeta(0) is False  # sin pregunta pendiente tampoco
+
+
+def test_atender_el_dialogo_responde_con_la_carpeta_elegida(entorno, tmp_path):
+    destino = tmp_path / "otra"
+    destino.mkdir()
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    assert entorno.panel.atender_dialogo(lambda: str(destino)) is False  # nadie lo pidió
+    entorno.puente.buscar_carpeta(p["numero"])
+    assert entorno.panel.atender_dialogo(lambda: str(destino)) is True
+    assert entorno.panel.dialogo_pedido is False
+    assert leer() == destino
+
+
+@pytest.mark.parametrize(
+    "elegida", [None, "", "relativa/carpeta", "no_existe", 5, ["x"], "a\x00b", ("",)]
+)
+def test_el_dialogo_cancelado_o_con_algo_raro_no_responde(entorno, tmp_path, elegida):
+    if elegida == "no_existe":
+        elegida = str(tmp_path / "no_existe")
+    fichero = tmp_path / "f.txt"
+    fichero.write_text("x", encoding="utf-8")
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    entorno.puente.buscar_carpeta(p["numero"])
+    assert entorno.panel.atender_dialogo(lambda: elegida) is False
+    assert entorno.puente.estado()["pantalla"]["tipo"] == "carpeta"
+    assert entorno.puente.buscar_carpeta(p["numero"]) is True  # se puede volver a pedir
+    assert entorno.panel.atender_dialogo(lambda: str(fichero)) is False  # un fichero no vale
+    entorno.panel.cerrar()
+    assert leer() is None
+
+
+def test_un_fallo_al_abrir_el_dialogo_no_deja_la_peticion_atascada(entorno):
+    entorno.lanzar(entorno.panel.esperar_carpeta)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    entorno.puente.buscar_carpeta(p["numero"])
+
+    def falla():
+        raise RuntimeError("sin diálogo")
+
+    with pytest.raises(RuntimeError):
+        entorno.panel.atender_dialogo(falla)
+    assert entorno.puente.buscar_carpeta(p["numero"]) is True
+
+
+def test_mientras_el_dialogo_esta_abierto_no_se_pide_otro(entorno, tmp_path):
+    destino = tmp_path / "d"
+    destino.mkdir()
+    entorno.lanzar(entorno.panel.esperar_carpeta)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    entorno.puente.buscar_carpeta(p["numero"])
+    pedidos: list[bool] = []
+
+    def abierto():
+        pedidos.append(entorno.puente.buscar_carpeta(p["numero"]))
+        return str(destino)
+
+    assert entorno.panel.atender_dialogo(abierto) is True
+    assert pedidos == [False]
+
+
+def test_el_dialogo_no_contesta_si_la_pantalla_ya_cambio(entorno, carpetas, tmp_path):
+    destino = tmp_path / "d"
+    destino.mkdir()
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta, carpetas)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    entorno.puente.buscar_carpeta(p["numero"])
+
+    def mientras_tanto():
+        entorno.puente.elegir_reciente(p["numero"], 0)  # el docente elige una reciente
+        return str(destino)
+
+    assert entorno.panel.atender_dialogo(mientras_tanto) is False
+    assert leer() == carpetas[0]
+
+
+def test_terminar_marca_la_salida_y_cierra_el_panel(entorno):
+    leer = entorno.lanzar(entorno.presencia.confirmar_autoprueba)
+    p = entorno.pantalla()
+    assert entorno.panel.salida_pedida is False
+    assert entorno.puente.terminar(p["numero"]) is False  # demasiado pronto
+    entorno.reloj.avanzar(2)
+    assert entorno.puente.terminar(p["numero"] + 3) is False
+    assert entorno.puente.terminar("1") is False
+    assert entorno.puente.terminar(None) is False
+    assert entorno.puente.terminar() is False
+    assert entorno.panel.salida_pedida is False
+    assert entorno.puente.terminar(p["numero"]) is True
+    assert entorno.panel.salida_pedida is True
+    assert entorno.puente.estado()["cerrado"] is True
+    assert leer() is False  # lo pendiente cuenta como un no
+
+
+def test_esperar_cambio_despierta_con_un_dialogo_o_una_salida_pedidos(entorno):
+    entorno.lanzar(entorno.panel.esperar_carpeta)
+    p = entorno.pantalla(tipo="carpeta")
+    entorno.reloj.avanzar(2)
+    despertado: list[int] = []
+    hilo = threading.Thread(
+        target=lambda: despertado.append(entorno.panel.esperar_cambio(p["numero"], 5)), daemon=True
+    )
+    hilo.start()
+    time.sleep(0.05)
+    entorno.puente.buscar_carpeta(p["numero"])
+    hilo.join(2)
+    assert not hilo.is_alive() and despertado == [p["numero"]]
+    entorno.panel.atender_dialogo(lambda: None)
+    hilo = threading.Thread(
+        target=lambda: entorno.panel.esperar_cambio(p["numero"], 5), daemon=True
+    )
+    hilo.start()
+    time.sleep(0.05)
+    entorno.puente.terminar(p["numero"])
+    hilo.join(2)
+    assert not hilo.is_alive()
+
+
+def test_pregunta_pendiente_solo_mientras_se_espera(entorno):
+    assert entorno.panel.pregunta_pendiente is False
+    leer = entorno.lanzar(entorno.presencia.confirmar_autoprueba)
+    p = entorno.pantalla()
+    assert entorno.panel.pregunta_pendiente is True
+    entorno.responder(p, True)
+    leer()
+    assert entorno.panel.pregunta_pendiente is False
+
+
+def test_el_estado_lleva_carpeta_servidor_y_si_la_sesion_esta_abierta(entorno):
+    est = entorno.puente.estado()
+    assert (est["carpeta"], est["servidor"], est["sesion_abierta"]) == ("", "", False)
+    entorno.panel.fijar_carpeta("curso / mates\x1b[31m")
+    entorno.panel.fijar_servidor("aula.ejemplo.org")
+    est = entorno.puente.estado()
+    assert est["carpeta"] == "curso / mates[31m" and est["servidor"] == "aula.ejemplo.org"
+    json.dumps(est)
+    entorno.presencia.informar(publicacion.Aviso.sesion_abierta(datetime(2030, 1, 1, tzinfo=UTC)))
+    assert entorno.puente.estado()["sesion_abierta"] is True
+    entorno.presencia.informar(publicacion.Aviso.sesion_cerrada("caducada"))
+    assert entorno.puente.estado()["sesion_abierta"] is False
+
+
+def test_acreditar_fija_el_servidor_en_la_cabecera():
+    e = Entorno(abrir_login=lambda url: None)
+    e.presencia.acreditar("https://aula.ejemplo.org/centro", "ana")
+    assert e.puente.estado()["servidor"] == "aula.ejemplo.org"
+
+
+def test_reposo_deja_una_pantalla_saneada_y_cierra_la_sesion(entorno):
+    entorno.panel.marcar_sesion(True)
+    entorno.panel.reposo("Fin\x1b[0m", ["una", "dos"])
+    est = entorno.puente.estado()
+    assert est["sesion_abierta"] is False
+    assert est["pantalla"]["tipo"] == "reposo"
+    assert est["pantalla"]["titulo"] == "Fin[0m"
+    assert est["pantalla"]["lineas"] == ("una", "dos")

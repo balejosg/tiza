@@ -213,13 +213,37 @@ en español.
   `tiza.toml` de cada carpeta) y presencia humana en la terminal (`terminal.PresenciaTerminal`:
   TTY, `getpass`, confirmación `[s/N]`, con el texto de `mensajes`); `cli.instalar_skill`
   copia la skill a Claude Code, Codex, opencode y `~/.agents/skills`.
-- `src/tiza/panel/`: el panel sin consola de Windows (en marcha; la ventana llega después).
-  `estado.py` es el modelo: `Pantalla` (datos JSON), `Panel` (estado entre hilos), `PresenciaPanel`
-  (cumple `publicacion.Presencia`; cada pregunta bloquea hasta la respuesta o el cierre, que cuenta
-  como no) y `Puente` (el `js_api`: solo acciones, respuestas simples, con retardo mínimo y número
-  de pantalla). No importa pywebview, y las operaciones de ventana (`on_top`, `restore`, `show`,
-  `destroy`) nunca van dentro de una llamada del `js_api`: cuelgan la ventana. La acreditación
-  del aula no pasa por el `Puente`, entra por `abrir_login`.
+- `src/tiza/panel/`: el panel sin consola de Windows (`tiza-panel`, `[project.gui-scripts]`).
+  **`tiza-panel` es del docente, como `tiza empezar`: ningún agente lo lanza** (ni con
+  `Start-Process`, `explorer` ni `pythonw -m tiza.panel`); sin consola, lo que lo impide es el
+  perfil de permisos de `tiza aislar`, y por eso el panel no abre la sesión con el agente sin
+  aislar. Piezas:
+  - `estado.py`, el modelo: `Pantalla` (datos JSON), `Panel` (estado entre hilos), `PresenciaPanel`
+    (cumple `publicacion.Presencia`; cada pregunta bloquea hasta la respuesta o el cierre, que
+    cuenta como no) y `Puente` (el `js_api`: solo acciones, respuestas simples, con retardo mínimo
+    y número de pantalla). Las rutas reales de las carpetas recientes se quedan en el `Panel`
+    (`esperar_carpeta`): JS ve el índice y el nombre visible. `buscar_carpeta` y `terminar` no
+    hacen nada de ventana, solo dejan una petición (`pedir_dialogo`, `pedir_salida`) que atiende
+    el hilo de la ventana. La acreditación del aula no pasa por el `Puente`, entra por `abrir_login`.
+  - `recientes.py` (puro): hasta 8 carpetas en `panel-recientes.json` junto a la configuración
+    global; un fichero roto es una lista vacía y un fallo al escribir se ignora.
+  - `flujo.py` (puro): carpeta, `arranque.preparar(exigir_aislamiento=True)`, `sesion.abrir` y una
+    pantalla final de reposo. Las actualizaciones desde el panel son de la fase 4
+    (`version_nueva` devuelve siempre None).
+  - `sesion.html`: la página (dato del paquete), cargada con `html=`. Mismas reglas que la de la
+    ventana de sesión antigua: ni `<a>`, ni `innerHTML`/`outerHTML`/`insertAdjacentHTML`/`document.write`
+    /`eval`/`new Function`; todo con `createElement` + `textContent`; CSP con nonce por arranque y
+    `'unsafe-eval'` (lo exige el puente de pywebview) pero sin `'unsafe-inline'`; sondeo de
+    `estado()` cada 300 ms; nunca llama al puente con argumentos sobrantes (pywebview pasa
+    `undefined` como `None`). Lo vigila `tests/test_panel_pagina.py`.
+  - `__init__.py`: la capa de ventana y **el único módulo del subpaquete que importa `webview`**,
+    solo dentro de `main()` (el CI no instala el extra; `import tiza.panel` no lo carga). Lo
+    comprobable va en funciones puras (`que_falta`, `galletas_de`, `ya_dentro`, `ruta_del_dialogo`…).
+    `vigilar` es el hilo de la ventana: pone el panel delante y lo hace parpadear cuando hay una
+    pregunta, abre el diálogo de carpeta y destruye la ventana al cerrar la sesión. Las
+    operaciones de ventana (`on_top`, `restore`, `show`, `destroy`, el diálogo) van siempre desde
+    ese hilo, nunca dentro de una llamada del `js_api`: cuelgan la ventana. `abrir_login` crea la
+    ventana de entrada en el mismo proceso, sin `js_api`; la cookie nunca sale del proceso.
 - `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
   Windows, macOS y Linux con escritorio, con Qt o GTK). **Solo enseña la página de login del aula y devuelve las cookies de
   sesión del servidor del aula**: nada más pasa por ella (cursos, aislamiento y
