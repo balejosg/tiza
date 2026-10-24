@@ -894,6 +894,20 @@ class TestProtocolo:
         assert buzon.sesion_incompatible(tmp_path) == "9.0.0"
         assert buzon.caducidad(tmp_path) is None
 
+    def test_sesion_del_protocolo_7_es_incompatible_con_el_8(self, tmp_path):
+        ruta = buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5))
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        datos["version"] = 7
+        datos["tiza"] = "0.28.0"
+        ruta.write_text(json.dumps(datos), encoding="utf-8")
+        assert buzon.sesion_activa(tmp_path) is False
+        assert buzon.sesion_incompatible(tmp_path) == "0.28.0"
+
+    def test_peticion_del_protocolo_7_no_se_acepta_con_el_8(self):
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.validar_peticion(peticion_valida(version=7))
+        assert exc.value.codigo == "PETICION_INVALIDA"
+
     def test_sin_sesion_no_hay_incompatible_ni_caducidad(self, tmp_path):
         assert buzon.sesion_incompatible(tmp_path) is None
         assert buzon.caducidad(tmp_path) is None
@@ -986,18 +1000,18 @@ class TestSoloFechasEnLaPeticion:
             buzon.validar_peticion(datos)
         assert exc.value.codigo == "PETICION_INVALIDA"
 
-    def test_version_7(self):
+    def test_version_8(self):
         calificador = peticion_valida(
             comando="calificador", ficheros=["calificacion.yaml"], entorno="pruebas", visible=None
         )
-        buzon.validar_peticion(calificador)  # la versión 7 admite el comando
-        for version in (5, 6, 8):
+        buzon.validar_peticion(calificador)  # la versión 8 admite el comando
+        for version in (5, 6, 7):
             with pytest.raises(buzon.ErrorBuzon) as exc:
                 buzon.validar_peticion({**calificador, "version": version})
             assert exc.value.codigo == "PETICION_INVALIDA"
-        # Una sesión de la versión 6 no atiende a un agente de la 7, ni al revés.
+        # Una sesión de la versión 7 no atiende a un agente de la 8, ni al revés.
         with pytest.raises(buzon.ErrorBuzon):
-            buzon.validar_peticion(peticion_valida(version=6))
+            buzon.validar_peticion(peticion_valida(version=7))
 
     def test_buzon_calificador_valido(self):
         for entorno in ("pruebas", "real"):
@@ -1085,7 +1099,8 @@ class TestSoloFechasEnLaPeticion:
             )
 
     def test_el_protocolo_sube_con_el_campo(self):
-        assert buzon.VERSION_PROTOCOLO == 7  # 5: solo_fechas; 6: «copia»; 7: «calificador»
+        # 5: solo_fechas; 6: «copia»; 7: «calificador»; 8: «copia» y «estructura» con ficheros
+        assert buzon.VERSION_PROTOCOLO == 8
 
 
 class TestOtraSesion:

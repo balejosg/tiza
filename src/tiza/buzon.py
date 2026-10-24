@@ -81,7 +81,7 @@ INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
-VERSION_PROTOCOLO = 7  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
+VERSION_PROTOCOLO = 8  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
 
 _CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible", "solo_fechas"}
 _CAMPO_CURSO = "curso"  # solo en «copia»: el nombre del curso de tiza.toml (pruebas, real o un id)
