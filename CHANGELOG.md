@@ -14,6 +14,7 @@ se avisa aquí con **Cambia**.
 - **`tiza estructura --cambios <fichero>…`** dice, en cada curso real, si retocaste a mano en el aula esas actividades desde la última vez que tiza las publicó o importó: el informe lleva un fichero por curso con `accion: cambiada`, `sin_cambios` o `sin_registro` (tiza no tiene con qué comparar). Solo lee; el agente lo usa antes de editar algo ya publicado y, si `cambiada`, trae primero la versión del aula (`tiza copia real --actividad` + `tiza importar`). Sin `--cambios` no cambia nada. `agente.estructura` gana el parámetro `cambios`.
 
 - **`tiza copia real --actividad <fichero>`** pide una copia de seguridad de una sola actividad (repite la opción para varias): más rápida que la del curso entero, con una confirmación que lista las actividades y hasta 20 por sesión. Solo en cursos reales y de actividades que tiza ya conoce (`ACTIVIDAD_SIN_REGISTRO` si no). **Cambia**: el campo `copia` del informe de `tiza copia` es ahora una lista (cada copia lleva su `cmid`, nulo en la del curso). `tiza importar` acepta esa copia (`COPIA_DE_ACTIVIDAD_DESCONOCIDA` si tiza no conoce la actividad) y solo cambia la entrada de esa actividad en `.tiza/copia.json`.
+- **Guía del agente para mejorar lo ya publicado** (`guias/juntar.md`): antes de editar algo publicado el agente mira `tiza estructura --cambios`, trae la versión del aula si el docente la retocó y la junta a tres bandas con la base de lo publicado, sin descartar nada tuyo sin tu sí.
 
 ## 0.28.0 — 2026-10-23
 

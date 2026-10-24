@@ -274,3 +274,27 @@ def test_la_guia_de_comandos_no_promete_la_terminal_del_docente_para_el_califica
         if ln.startswith("| `tiza calificador")
     )
     assert "terminal del docente" not in fila and "SIN_SESION" in fila
+
+
+GUIA_JUNTAR = SKILL.parent / "guias/juntar.md"
+
+
+def test_guia_juntar_existe_y_se_cita_en_su_apartado():
+    assert GUIA_JUNTAR.is_file()
+    texto = SKILL.read_text(encoding="utf-8")
+    seccion = texto.split("## Mejorar lo ya publicado", 1)[1].split("\n## ", 1)[0]
+    assert "guias/juntar.md" in seccion
+    assert "tiza estructura --cambios" in seccion
+    assert "publicados.json" in seccion
+
+
+def test_guia_juntar_es_breve_y_cita_los_comandos():
+    texto = GUIA_JUNTAR.read_text(encoding="utf-8")
+    assert len(texto.splitlines()) <= 150
+    for parte in (
+        "tiza estructura --cambios",
+        "--actividad",
+        "CAMBIADA_EN_EL_AULA",
+        "sin_registro",
+    ):
+        assert parte in texto
