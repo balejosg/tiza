@@ -341,3 +341,194 @@ class TestHuellasDelCalificador:
         with pytest.raises(estado.ErrorEstado) as error:
             estado.cargar_huellas(tmp_path, 7)
         assert error.value.codigo == "CALIFICADOR_INVALIDO"
+
+
+H = "a" * 64
+M = "b" * 64
+
+
+def _valor(**cambios):
+    """Una entrada válida de ``publicados.json`` con los cambios dados."""
+    base = {"cmid": 5, "tipo": "pagina", "huella": H, "marca": None}
+    base.update(cambios)
+    return base
+
+
+def _doc(valor=None, ruta="a.md", curso="7"):
+    """Un ``publicados.json`` de versión 1 con una sola entrada."""
+    valor = _valor() if valor is None else valor
+    return {"version": 1, "cursos": {curso: {"ficheros": {ruta: valor}}}}
+
+
+class TestPublicados:
+    """``.tiza/publicados.json``: qué actividad del aula corresponde a cada fichero, por curso."""
+
+    def test_ida_y_vuelta_en_publicados_json(self, tmp_path):
+        dir_tiza = tmp_path / ".tiza"
+        publicado = estado.Publicado(cmid=812, tipo="pagina", huella=H, marca=M)
+        ruta = estado.guardar_publicado(dir_tiza, 7, "aula/u2/guia.html", publicado)
+        assert ruta == dir_tiza / "publicados.json"
+        assert estado.cargar_publicados(dir_tiza, 7) == {"aula/u2/guia.html": publicado}
+
+    def test_sin_fichero_o_sin_curso_es_un_mapa_vacio(self, tmp_path):
+        assert estado.cargar_publicados(tmp_path, 7) == {}
+        estado.guardar_publicado(tmp_path, 8, "a.md", estado.Publicado(cmid=1, tipo="pagina"))
+        assert estado.cargar_publicados(tmp_path, 7) == {}
+
+    def test_cada_curso_guarda_lo_suyo(self, tmp_path):
+        uno = estado.Publicado(cmid=1, tipo="pagina")
+        otro = estado.Publicado(cmid=2, tipo="tarea")
+        estado.guardar_publicado(tmp_path, 7, "a.md", uno)
+        estado.guardar_publicado(tmp_path, 8, "b.md", otro)
+        assert estado.cargar_publicados(tmp_path, 7) == {"a.md": uno}
+        assert estado.cargar_publicados(tmp_path, 8) == {"b.md": otro}
+
+    def test_la_misma_ruta_se_sustituye(self, tmp_path):
+        estado.guardar_publicado(tmp_path, 7, "a.md", estado.Publicado(cmid=1, tipo="pagina"))
+        nueva = estado.Publicado(cmid=1, tipo="pagina", marca=M)
+        estado.guardar_publicado(tmp_path, 7, "a.md", nueva)
+        assert estado.cargar_publicados(tmp_path, 7) == {"a.md": nueva}
+
+    def test_mismo_cmid_en_otra_ruta_del_curso_quita_la_vieja(self, tmp_path):
+        vieja = estado.Publicado(cmid=5, tipo="pagina")
+        estado.guardar_publicado(tmp_path, 7, "viejo.md", vieja)
+        estado.guardar_publicado(tmp_path, 8, "viejo.md", vieja)
+        nuevo = estado.Publicado(cmid=5, tipo="pagina")
+        estado.guardar_publicado(tmp_path, 7, "nuevo.md", nuevo)
+        assert estado.cargar_publicados(tmp_path, 7) == {"nuevo.md": nuevo}
+        assert estado.cargar_publicados(tmp_path, 8) == {"viejo.md": vieja}
+
+    def test_olvidar_quita_la_entrada_y_el_curso_vacio(self, tmp_path):
+        estado.guardar_publicado(tmp_path, 7, "a.md", estado.Publicado(cmid=1, tipo="pagina"))
+        estado.guardar_publicado(tmp_path, 7, "b.md", estado.Publicado(cmid=2, tipo="tarea"))
+        assert estado.olvidar_publicado(tmp_path, 7, "a.md") is True
+        assert list(estado.cargar_publicados(tmp_path, 7)) == ["b.md"]
+        assert estado.olvidar_publicado(tmp_path, 7, "a.md") is False
+        assert estado.olvidar_publicado(tmp_path, 7, "b.md") is True
+        assert estado.cargar_publicados(tmp_path, 7) == {}
+        datos = json.loads((tmp_path / "publicados.json").read_text(encoding="utf-8"))
+        assert datos == {"version": 1, "cursos": {}}
+
+    def test_olvidar_lo_que_no_estaba_no_escribe_nada(self, tmp_path):
+        assert estado.olvidar_publicado(tmp_path, 7, "a.md") is False
+        assert not (tmp_path / "publicados.json").exists()
+        estado.guardar_publicado(tmp_path, 7, "a.md", estado.Publicado(cmid=1, tipo="pagina"))
+        antes = (tmp_path / "publicados.json").read_text(encoding="utf-8")
+        assert estado.olvidar_publicado(tmp_path, 7, "otro.md") is False
+        assert (tmp_path / "publicados.json").read_text(encoding="utf-8") == antes
+
+    def test_fichero_de_cmid(self, tmp_path):
+        estado.guardar_publicado(tmp_path, 7, "a.md", estado.Publicado(cmid=5, tipo="pagina"))
+        assert estado.fichero_de_cmid(tmp_path, 7, 5) == "a.md"
+        assert estado.fichero_de_cmid(tmp_path, 7, 6) is None
+        assert estado.fichero_de_cmid(tmp_path, 8, 5) is None
+
+    def test_publicado_es_inmutable(self):
+        publicado = estado.Publicado(cmid=1, tipo="pagina")
+        with pytest.raises(AttributeError):
+            publicado.cmid = 2
+
+    def test_guardar_con_ruta_invalida_no_escribe_nada(self, tmp_path):
+        publicado = estado.Publicado(cmid=1, tipo="pagina")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_publicado(tmp_path, 7, "../fuera.md", publicado)
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        assert not (tmp_path / "publicados.json").exists()
+
+    @pytest.mark.parametrize(
+        "cambios",
+        [
+            {"cmid": 0},
+            {"cmid": True},
+            {"tipo": "Pagina"},
+            {"huella": "xyz"},
+        ],
+    )
+    def test_guardar_no_escribe_lo_que_no_case(self, tmp_path, cambios):
+        base = {"cmid": 1, "tipo": "pagina"}
+        publicado = estado.Publicado(**{**base, **cambios})
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_publicado(tmp_path, 7, "a.md", publicado)
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        assert not (tmp_path / "publicados.json").exists()
+
+    def test_guardar_no_pisa_un_fichero_invalido(self, tmp_path):
+        (tmp_path / "publicados.json").write_text("{no es json", encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_publicado(tmp_path, 7, "a.md", estado.Publicado(cmid=1, tipo="pagina"))
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        assert (tmp_path / "publicados.json").read_text(encoding="utf-8") == "{no es json"
+
+    def test_ruta_publicada_valida(self):
+        for ruta in ["aula/u2/guia.html", "a.md", "a" * 1024]:
+            assert estado.ruta_publicada_valida(ruta), ruta
+        for ruta in [
+            "",
+            "/a",
+            "a//b",
+            "./a",
+            "a/../b",
+            "a/",
+            "a\\b",
+            "a\u202eb",
+            "a\u200bb",
+            "a\x07b",
+            "a" * 1025,
+        ]:
+            assert not estado.ruta_publicada_valida(ruta), repr(ruta)
+        assert not estado.ruta_publicada_valida(None)  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize(
+        "datos",
+        [
+            pytest.param({"version": 1, "cursos": {}, "extra": 1}, id="clave_de_mas_en_la_raiz"),
+            pytest.param({"version": 2, "cursos": {}}, id="version_2"),
+            pytest.param({"version": True, "cursos": {}}, id="version_bool"),
+            pytest.param({"version": 1, "cursos": {"siete": {"ficheros": {}}}}, id="curso_str"),
+            pytest.param(
+                {"version": 1, "cursos": {"7": {"ficheros": {}, "otro": 1}}}, id="curso_extra"
+            ),
+            pytest.param(_doc(_valor(cmid=0)), id="cmid_cero"),
+            pytest.param(_doc(_valor(cmid=-3)), id="cmid_negativo"),
+            pytest.param(_doc(_valor(cmid=True)), id="cmid_bool"),
+            pytest.param(_doc(_valor(cmid="5")), id="cmid_str"),
+            pytest.param(_doc(_valor(tipo="Pagina")), id="tipo_con_mayusculas"),
+            pytest.param(_doc(_valor(huella="g" * 64)), id="huella_no_hex"),
+            pytest.param(_doc(_valor(marca="corta")), id="marca_corta"),
+            pytest.param(_doc(_valor(extra=1)), id="clave_de_mas_en_una_entrada"),
+            pytest.param(
+                {"version": 1, "cursos": {"7": {"ficheros": {"a.md": _valor(), "b.md": _valor()}}}},
+                id="dos_rutas_con_el_mismo_cmid",
+            ),
+            pytest.param(_doc(ruta="/a.md"), id="ruta_absoluta"),
+            pytest.param(_doc(ruta="a/../b.md"), id="ruta_con_punto_punto"),
+            pytest.param(_doc(ruta="a\\b.md"), id="ruta_con_barra_invertida"),
+        ],
+    )
+    def test_fuera_del_esquema_es_invalido(self, tmp_path, datos):
+        (tmp_path / "publicados.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_publicados(tmp_path, 7)
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+
+    def test_json_roto_es_invalido(self, tmp_path):
+        (tmp_path / "publicados.json").write_text("{no es json", encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_publicados(tmp_path, 7)
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+
+    def test_un_directorio_no_es_el_fichero(self, tmp_path):
+        (tmp_path / "publicados.json").mkdir()
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_publicados(tmp_path, 7)
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+
+    def test_un_enlace_no_es_el_fichero(self, tmp_path):
+        from dobles import enlace_simbolico
+
+        destino = tmp_path / "otro.json"
+        destino.write_text(json.dumps(_doc()), encoding="utf-8")
+        enlace_simbolico(tmp_path / "publicados.json", destino)
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_publicados(tmp_path, 7)
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"

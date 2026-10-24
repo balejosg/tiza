@@ -224,6 +224,7 @@ MENSAJES: dict[str, str] = {
     "IMPORTACION_NO_ESCRIBIBLE": "No se pudo escribir en la carpeta de la asignatura. Comprueba que tienes permiso y que .tiza no es un enlace, y repite el comando: lo ya importado no se toca.",
     "COPIA_INVALIDA": "El fichero .tiza/copia.json no tiene la forma que escribe tiza y no se ha sobrescrito. No lo edites a mano: corrígelo o bórralo y vuelve a ejecutar «tiza importar».",
     "CALIFICADOR_INVALIDO": "El fichero .tiza/calificador.json no tiene la forma que escribe tiza y no se ha sobrescrito. El agente no lo toca: pide al docente que lo revise. Si se borra, tiza deja de saber qué cambió el docente a mano en Moodle y podría pisarlo.",
+    "PUBLICADOS_INVALIDO": "El registro de lo que tiza publicó (.tiza/publicados.json) está dañado o lo ha editado alguien. tiza no lo usa a medias: borra ese fichero y vuelve a publicar; tiza buscará las actividades por su nombre y lo creará de nuevo.",
     "IMPORTACION_AUSENTE": "No hay ninguna importación en esta carpeta (falta .tiza/copia.json). Ejecuta antes «tiza importar» con la copia del curso.",
     "IMPORTACION_ILEGIBLE": "No se pudo leer .tiza/copia.json. Vuelve a ejecutar «tiza importar» o bórralo.",
     "IMPORTADA": "La actividad se ha importado a un fichero nuevo.",

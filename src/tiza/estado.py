@@ -5,7 +5,8 @@ validación al leer: la estructura de secciones (``estructura.json``), el regist
 de lo verificado en pruebas (``verificados.json``), las vistas previas
 (``preview/``), el informe (``informe.json``) y la importación de una copia de
 seguridad (``copia.json``, ``copia/<cmid>.html`` y ``copias/``) y las huellas de lo que montó
-tiza en el calificador (``calificador.json``).
+tiza en el calificador (``calificador.json``) y lo que publicó en cada curso
+(``publicados.json``).
 
 Aquí no se habla con el aula ni se importa python-moodle: el lado del agente
 (``tiza comprobar``) puede usar este módulo sin cargar nada del aula. La
@@ -21,6 +22,7 @@ import os
 import re
 import stat
 import time
+import unicodedata
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -48,30 +50,37 @@ __all__ = [
     "FICHERO_COPIA",
     "FICHERO_ESTRUCTURA",
     "FICHERO_INFORME",
+    "FICHERO_PUBLICADOS",
     "FICHERO_VERIFICADOS",
     "AVISO_CAMBIADA",
     "MARCA_ILEGIBLE",
+    "Publicado",
     "Verificado",
     "anotar_verificado",
     "buscar_seccion",
     "cargar_copia",
+    "cargar_publicados",
     "cargar_estructura",
     "cargar_huellas",
     "cargar_verificados",
     "comprobar_puerta_real",
     "escribir_copia",
     "escribir_estructura",
+    "fichero_de_cmid",
     "guardar_huella_de_copia",
     "guardar_huellas",
+    "guardar_publicado",
     "guardar_verificado",
     "guardar_version_de_copia",
     "huellas_de_copia",
     "marcas_de_copia",
     "nombre_de_copia",
     "nombre_de_seccion",
+    "olvidar_publicado",
     "quitar_aviso_cambiada",
     "reservar_copia",
     "ruta_lectura",
+    "ruta_publicada_valida",
     "temporal_de_copia",
 ]
 
@@ -80,6 +89,8 @@ EDAD_MAXIMA_TEMPORAL = 24 * 60 * 60  # segundos que dura el temporal de una desc
 FICHERO_INFORME = "informe.json"
 FICHERO_ESTRUCTURA = "estructura.json"
 FICHERO_VERIFICADOS = "verificados.json"
+FICHERO_PUBLICADOS = "publicados.json"  # lo que tiza publicó en cada curso: ruta -> actividad
+MAX_PUBLICADOS_JSON = 16 * 1024 * 1024  # publicados.json, al leerlo
 CARPETA_PREVIEW = "preview"  # las vistas previas clicables dentro de la carpeta de trabajo
 CARPETA_LECTURAS = "lecturas"  # el texto de cada Word o PDF que lee ``tiza leer``
 MARCA_ILEGIBLE = "0" * 64  # ``huella_fichero`` cuando no se pudo leer el fichero: bloquea siempre
@@ -433,6 +444,152 @@ def guardar_huellas(dir_tiza: str | Path, curso: int, nodos: Mapping[str, str]) 
     _validar_calificador(datos)
     asegurar_directorio(Path(dir_tiza))
     return escribir_json(Path(dir_tiza) / FICHERO_CALIFICADOR, datos)
+
+
+_TIPO_PUBLICADO = re.compile(r"[a-z0-9_]{1,40}")
+# Controles, invisibles y bidi (Cc, Cf) y separadores de línea y de párrafo (Zl, Zp).
+_CATEGORIAS_PROHIBIDAS = frozenset({"Cc", "Cf", "Zl", "Zp"})
+
+
+@dataclass(frozen=True)
+class Publicado:
+    """Lo que tiza publicó de un fichero de la asignatura en un curso.
+
+    ``cmid`` y ``tipo`` dicen qué actividad es; ``huella`` y ``marca`` son sha256 en hex o None.
+    """
+
+    cmid: int
+    tipo: str
+    huella: str | None = None
+    marca: str | None = None
+
+
+def ruta_publicada_valida(ruta: str) -> bool:
+    """¿Es ``ruta`` una ruta relativa POSIX segura para ser clave de ``publicados.json``?"""
+    if not isinstance(ruta, str) or not 0 < len(ruta) <= 1024:
+        return False
+    if "\\" in ruta or ruta.startswith("/"):
+        return False
+    if any(unicodedata.category(c) in _CATEGORIAS_PROHIBIDAS for c in ruta):
+        return False
+    return all(segmento not in ("", ".", "..") for segmento in ruta.split("/"))
+
+
+def _clave_curso(curso: int) -> str:
+    return str(int(curso))
+
+
+def _validar_publicados(datos: Any) -> None:
+    """Esquema cerrado de ``publicados.json``: ``{version: 1, cursos: {id: {ficheros: {ruta: …}}}}``."""
+    if not isinstance(datos, dict) or set(datos) != {"version", "cursos"}:
+        raise ErrorEstado("PUBLICADOS_INVALIDO")
+    if datos["version"] != 1 or isinstance(datos["version"], bool):
+        raise ErrorEstado("PUBLICADOS_INVALIDO")
+    cursos = datos["cursos"]
+    if not isinstance(cursos, dict):
+        raise ErrorEstado("PUBLICADOS_INVALIDO")
+    for curso, entrada in cursos.items():
+        if not isinstance(curso, str) or not _CURSO_DE_HUELLAS.fullmatch(curso):
+            raise ErrorEstado("PUBLICADOS_INVALIDO")
+        if not isinstance(entrada, dict) or set(entrada) != {"ficheros"}:
+            raise ErrorEstado("PUBLICADOS_INVALIDO")
+        ficheros = entrada["ficheros"]
+        if not isinstance(ficheros, dict):
+            raise ErrorEstado("PUBLICADOS_INVALIDO")
+        cmids: set[int] = set()
+        for ruta, valor in ficheros.items():
+            if not ruta_publicada_valida(ruta) or not isinstance(valor, dict):
+                raise ErrorEstado("PUBLICADOS_INVALIDO")
+            if set(valor) != {"cmid", "tipo", "huella", "marca"}:
+                raise ErrorEstado("PUBLICADOS_INVALIDO")
+            cmid, tipo = valor["cmid"], valor["tipo"]
+            if isinstance(cmid, bool) or not isinstance(cmid, int) or cmid <= 0 or cmid in cmids:
+                raise ErrorEstado("PUBLICADOS_INVALIDO")
+            if not isinstance(tipo, str) or not _TIPO_PUBLICADO.fullmatch(tipo):
+                raise ErrorEstado("PUBLICADOS_INVALIDO")
+            for huella in (valor["huella"], valor["marca"]):
+                if huella is not None and (
+                    not isinstance(huella, str) or not _HUELLA.fullmatch(huella)
+                ):
+                    raise ErrorEstado("PUBLICADOS_INVALIDO")
+            cmids.add(cmid)
+
+
+def _cargar_publicados_datos(dir_tiza: str | Path) -> dict | None:
+    """``publicados.json`` validado, o ``None`` si no existe; fuera del esquema es inválido."""
+    ruta = Path(dir_tiza) / FICHERO_PUBLICADOS
+    try:
+        modo = os.lstat(ruta).st_mode
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ErrorEstado("PUBLICADOS_INVALIDO") from exc
+    if not stat.S_ISREG(modo):  # un directorio, una FIFO o un enlace: no es el de tiza
+        raise ErrorEstado("PUBLICADOS_INVALIDO")
+    try:
+        datos = json.loads(leer_bytes_acotado(ruta, MAX_PUBLICADOS_JSON).decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ErrorEstado("PUBLICADOS_INVALIDO") from exc
+    _validar_publicados(datos)
+    return datos
+
+
+def cargar_publicados(dir_tiza: str | Path, curso: int) -> dict[str, Publicado]:
+    """Ruta -> ``Publicado`` de ``curso``. Sin fichero o sin entrada para el curso, ``{}``."""
+    datos = _cargar_publicados_datos(dir_tiza)
+    if datos is None:
+        return {}
+    entrada = datos["cursos"].get(_clave_curso(curso))
+    if entrada is None:
+        return {}
+    return {ruta: Publicado(**valor) for ruta, valor in entrada["ficheros"].items()}
+
+
+def guardar_publicado(dir_tiza: str | Path, curso: int, ruta: str, publicado: Publicado) -> Path:
+    """Crea o sustituye la entrada de ``ruta`` en ``curso``; deja intactos los demás cursos.
+
+    Quita cualquier otra ruta del mismo curso con el mismo ``cmid``: una actividad, una ruta.
+    Valida antes de escribir: lo que no case con el esquema no llega al disco.
+    """
+    if not ruta_publicada_valida(ruta):
+        raise ErrorEstado("PUBLICADOS_INVALIDO")
+    datos = _cargar_publicados_datos(dir_tiza) or {"version": 1, "cursos": {}}
+    clave = _clave_curso(curso)
+    ficheros = datos["cursos"].get(clave, {"ficheros": {}})["ficheros"]
+    nuevos = {r: v for r, v in ficheros.items() if r != ruta and v["cmid"] != publicado.cmid}
+    nuevos[ruta] = dataclasses.asdict(publicado)
+    datos["cursos"][clave] = {"ficheros": nuevos}
+    _validar_publicados(datos)
+    asegurar_directorio(Path(dir_tiza))
+    return escribir_json(Path(dir_tiza) / FICHERO_PUBLICADOS, datos)
+
+
+def olvidar_publicado(dir_tiza: str | Path, curso: int, ruta: str) -> bool:
+    """Quita la entrada de ``ruta`` en ``curso``; ``False`` si no estaba (y no escribe nada).
+
+    Si el curso se queda sin ficheros, se quita el curso.
+    """
+    datos = _cargar_publicados_datos(dir_tiza)
+    if datos is None:
+        return False
+    clave = _clave_curso(curso)
+    entrada = datos["cursos"].get(clave)
+    if entrada is None or ruta not in entrada["ficheros"]:
+        return False
+    del entrada["ficheros"][ruta]
+    if not entrada["ficheros"]:
+        del datos["cursos"][clave]
+    _validar_publicados(datos)
+    escribir_json(Path(dir_tiza) / FICHERO_PUBLICADOS, datos)
+    return True
+
+
+def fichero_de_cmid(dir_tiza: str | Path, curso: int, cmid: int) -> str | None:
+    """La ruta registrada para ``cmid`` en ``curso``, o ``None``."""
+    for ruta, publicado in cargar_publicados(dir_tiza, curso).items():
+        if publicado.cmid == cmid:
+            return ruta
+    return None
 
 
 def _validar_copia(datos: Any) -> None:
