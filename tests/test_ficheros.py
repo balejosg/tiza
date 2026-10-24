@@ -259,3 +259,11 @@ def test_asegurar_directorio_se_niega_con_un_fichero(tmp_path):
     with pytest.raises(ficheros.FicheroNoSeguro) as exc:
         ficheros.asegurar_directorio(ruta)
     assert exc.value.motivo == "no_directorio"
+
+
+def test_escribe_bytes_sin_temporales_y_sustituye(tmp_path):
+    destino = tmp_path / "sub" / "fuente"
+    assert ficheros.escribir_bytes(destino, b"\x00uno") == destino
+    assert ficheros.escribir_bytes(destino, b"\xffdos") == destino
+    assert destino.read_bytes() == b"\xffdos"
+    assert sorted(p.name for p in destino.parent.iterdir()) == ["fuente"]

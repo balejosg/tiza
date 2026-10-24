@@ -6,7 +6,8 @@ de lo verificado en pruebas (``verificados.json``), las vistas previas
 (``preview/``), el informe (``informe.json``) y la importación de una copia de
 seguridad (``copia.json``, ``copia/<cmid>.html`` y ``copias/``) y las huellas de lo que montó
 tiza en el calificador (``calificador.json``) y lo que publicó en cada curso
-(``publicados.json``).
+(``publicados.json``) y la base de lo publicado en cada curso real, para juntar cambios a
+tres bandas (``publicados/<curso>/<cmid>/``: el fichero fuente y el HTML enviado).
 
 Aquí no se habla con el aula ni se importa python-moodle: el lado del agente
 (``tiza comprobar``) puede usar este módulo sin cargar nada del aula. La
@@ -34,6 +35,7 @@ from . import rutas
 from .ficheros import (
     FicheroNoSeguro,
     asegurar_directorio,
+    escribir_bytes,
     escribir_json,
     escribir_texto,
     leer_bytes_acotado,
@@ -44,13 +46,17 @@ __all__ = [
     "CARPETA_COPIAS",
     "CARPETA_LECTURAS",
     "CARPETA_PREVIEW",
+    "CARPETA_PUBLICADOS",
     "ErrorEstado",
     "Estructura",
+    "FICHERO_BASE_ENVIADO",
+    "FICHERO_BASE_FUENTE",
     "FICHERO_CALIFICADOR",
     "FICHERO_COPIA",
     "FICHERO_ESTRUCTURA",
     "FICHERO_INFORME",
     "FICHERO_PUBLICADOS",
+    "MAX_BASE_BYTES",
     "MAX_PUBLICADOS_JSON",
     "FICHERO_VERIFICADOS",
     "AVISO_CAMBIADA",
@@ -59,6 +65,9 @@ __all__ = [
     "Verificado",
     "anotar_verificado",
     "buscar_seccion",
+    "guardar_base",
+    "olvidar_base",
+    "ruta_base",
     "cargar_copia",
     "cargar_publicados",
     "publicados_de_fichero",
@@ -109,6 +118,10 @@ MAX_CALIFICADOR_JSON = 16 * 1024 * 1024  # calificador.json, al leerlo
 FICHERO_COPIA = "copia.json"  # el resumen de lo que ``tiza importar`` hizo con una copia
 CARPETA_COPIA = "copia"  # ``copia/<cmid>.html``: la versión nueva de una actividad ya importada
 CARPETA_COPIAS = "copias"  # donde ``tiza copia`` deja los .mbz que pide a la sesión
+CARPETA_PUBLICADOS = "publicados"  # ``publicados/<curso>/<cmid>/``: la base de lo publicado
+FICHERO_BASE_FUENTE = "fuente"  # los bytes del fichero tal como se cargaron y se publicaron
+FICHERO_BASE_ENVIADO = "enviado.html"  # el HTML que se mandó al aula
+MAX_BASE_BYTES = 2 * 1024 * 1024  # = contenido.MAX_DOCUMENTO_BYTES (un test lo vigila)
 
 
 class ErrorEstado(Exception):
@@ -599,6 +612,61 @@ def olvidar_publicado(dir_tiza: str | Path, curso: int, ruta: str) -> bool:
         del datos["cursos"][clave]
     _validar_publicados(datos)
     escribir_json(Path(dir_tiza) / FICHERO_PUBLICADOS, datos)
+    return True
+
+
+def _id_positivo(valor: Any) -> int:
+    """Un id de Moodle (curso o cmid) válido: entero positivo, que no sea un booleano."""
+    if isinstance(valor, bool) or not isinstance(valor, int) or valor <= 0:
+        raise ErrorEstado("PUBLICADOS_INVALIDO")
+    return valor
+
+
+def ruta_base(dir_tiza: str | Path, curso: int, cmid: int) -> Path:
+    """La carpeta de la base de ``cmid`` en ``curso``: ``publicados/<curso>/<cmid>``. No la crea."""
+    return Path(dir_tiza) / CARPETA_PUBLICADOS / str(curso) / str(cmid)
+
+
+def guardar_base(dir_tiza: str | Path, curso: int, cmid: int, fuente: bytes, enviado: str) -> Path:
+    """Guarda lo publicado en ``curso`` real: el fichero fuente (bytes) y el HTML enviado.
+
+    Cada fichero se escribe de forma atómica. Cada nivel de la carpeta se comprueba con
+    ``asegurar_directorio``: un enlace o un fichero donde iría un directorio es ``FicheroNoSeguro``.
+    La fuente de más de ``MAX_BASE_BYTES`` no se guarda (``BASE_DEMASIADO_GRANDE``).
+    """
+    _id_positivo(curso)
+    _id_positivo(cmid)
+    if len(fuente) > MAX_BASE_BYTES:
+        raise ErrorEstado("BASE_DEMASIADO_GRANDE")
+    asegurar_directorio(Path(dir_tiza))
+    asegurar_directorio(Path(dir_tiza) / CARPETA_PUBLICADOS)
+    asegurar_directorio(Path(dir_tiza) / CARPETA_PUBLICADOS / str(curso))
+    carpeta = asegurar_directorio(ruta_base(dir_tiza, curso, cmid))
+    escribir_bytes(carpeta / FICHERO_BASE_FUENTE, fuente)
+    escribir_texto(carpeta / FICHERO_BASE_ENVIADO, enviado)
+    return carpeta
+
+
+def olvidar_base(dir_tiza: str | Path, curso: int, cmid: int) -> bool:
+    """Borra la base de ``cmid`` en ``curso`` (sus dos ficheros y su carpeta); ``False`` si no había.
+
+    Si algún nivel del camino es un enlace, ``FicheroNoSeguro``: no se borra fuera de ``.tiza``.
+    """
+    carpeta = ruta_base(dir_tiza, curso, cmid)
+    for nivel in (Path(dir_tiza) / CARPETA_PUBLICADOS, carpeta.parent, carpeta):
+        if nivel.is_symlink():
+            raise FicheroNoSeguro("enlace")
+    if not carpeta.is_dir():
+        return False
+    for nombre in (FICHERO_BASE_FUENTE, FICHERO_BASE_ENVIADO):
+        try:
+            (carpeta / nombre).unlink()
+        except FileNotFoundError:
+            pass
+    try:
+        carpeta.rmdir()
+    except OSError:  # con algo ajeno dentro, la carpeta se queda
+        pass
     return True
 
 

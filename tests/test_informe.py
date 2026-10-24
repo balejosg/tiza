@@ -654,3 +654,7 @@ def test_el_paso_de_cambio_del_aula_descartado_esta_registrado():
     )
     with pytest.raises(ErrorInforme):
         Paso("CAMBIO_DEL_AULA_DESCARTADO", detalle="<b>esto viene de Moodle</b>")
+
+
+def test_el_paso_de_base_no_guardada_esta_registrado():
+    assert "BASE_NO_GUARDADA" in informe.PASOS

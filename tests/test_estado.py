@@ -555,3 +555,70 @@ class TestPublicados:
         with pytest.raises(estado.ErrorEstado) as error:
             estado.cargar_publicados(tmp_path, 7)
         assert error.value.codigo == "PUBLICADOS_INVALIDO"
+
+
+class TestBaseDePublicado:
+    """La base de lo publicado en un curso real: ``publicados/<curso>/<cmid>/``."""
+
+    def test_ida_y_vuelta_fuente_y_enviado(self, tmp_path):
+        bruto = b"\x00\xff---\r\nnombre: A\n"
+        carpeta = estado.guardar_base(tmp_path, 5678, 77, bruto, "<p>ñ</p>")
+        assert carpeta == estado.ruta_base(tmp_path, 5678, 77)
+        assert carpeta == tmp_path / "publicados" / "5678" / "77"
+        assert (carpeta / "fuente").read_bytes() == bruto
+        assert (carpeta / "enviado.html").read_text(encoding="utf-8") == "<p>ñ</p>"
+
+    def test_sustituye_la_base_anterior(self, tmp_path):
+        estado.guardar_base(tmp_path, 5678, 77, b"uno", "<p>1</p>")
+        estado.guardar_base(tmp_path, 5678, 77, b"dos", "<p>2</p>")
+        carpeta = estado.ruta_base(tmp_path, 5678, 77)
+        assert (carpeta / "fuente").read_bytes() == b"dos"
+        assert (carpeta / "enviado.html").read_text(encoding="utf-8") == "<p>2</p>"
+        assert sorted(p.name for p in carpeta.iterdir()) == ["enviado.html", "fuente"]
+
+    @pytest.mark.parametrize("curso", [0, -1, True, "5678"])
+    def test_curso_que_no_vale_es_publicados_invalido(self, tmp_path, curso):
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_base(tmp_path, curso, 7, b"x", "x")
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        assert not (tmp_path / "publicados").exists()
+
+    @pytest.mark.parametrize("cmid", [0, -3, False, "77"])
+    def test_cmid_que_no_vale_es_publicados_invalido(self, tmp_path, cmid):
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_base(tmp_path, 5678, cmid, b"x", "x")
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        assert not (tmp_path / "publicados").exists()
+
+    def test_la_base_maxima_es_la_del_documento(self):
+        from tiza import contenido
+
+        assert estado.MAX_BASE_BYTES == contenido.MAX_DOCUMENTO_BYTES
+
+    def test_fuente_demasiado_grande_no_se_guarda(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(estado, "MAX_BASE_BYTES", 4)
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_base(tmp_path, 5678, 77, b"12345", "x")
+        assert error.value.codigo == "BASE_DEMASIADO_GRANDE"
+        assert not (tmp_path / "publicados").exists()
+
+    def test_olvidar_sin_carpeta_no_hace_nada(self, tmp_path):
+        assert estado.olvidar_base(tmp_path, 5678, 77) is False
+
+    def test_olvidar_quita_la_carpeta_y_sus_dos_ficheros(self, tmp_path):
+        estado.guardar_base(tmp_path, 5678, 77, b"x", "x")
+        assert estado.olvidar_base(tmp_path, 5678, 77) is True
+        assert not estado.ruta_base(tmp_path, 5678, 77).exists()
+        assert estado.olvidar_base(tmp_path, 5678, 77) is False
+
+    def test_publicados_enlazado_no_se_sigue(self, tmp_path):
+        from dobles import enlace_simbolico
+
+        fuera = tmp_path / "fuera"
+        fuera.mkdir()
+        tiza = tmp_path / "tiza"
+        tiza.mkdir()
+        enlace_simbolico(tiza / "publicados", fuera)
+        with pytest.raises(estado.FicheroNoSeguro):
+            estado.guardar_base(tiza, 5678, 77, b"x", "x")
+        assert list(fuera.iterdir()) == []

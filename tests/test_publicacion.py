@@ -2176,3 +2176,135 @@ def test_otro_fallo_en_un_curso_sigue_cortando_los_siguientes(tmp_path):
     )
     assert "ORIGEN_NO_ENCONTRADO" in documento["errores"]
     assert len(presencia.resumenes) == 1  # el segundo curso no se llegó a confirmar
+
+
+# --- Base de lo publicado en un curso real: publicados/<curso>/<cmid>/ ----------------------
+
+
+def _base(carpeta: Path, curso=5678, ruta="p.md") -> Path:
+    cmid = estado.cargar_publicados(carpeta / ".tiza", curso)[ruta].cmid
+    return estado.ruta_base(carpeta / ".tiza", curso, cmid)
+
+
+def test_publicar_en_real_guarda_la_base_fuente_y_enviado(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    documento, _ = _en(carpeta, moodle, "real")
+    base = _base(carpeta)
+    assert (base / "fuente").read_bytes() == (carpeta / "p.md").read_bytes()
+    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
+    assert (base / "enviado.html").read_text(encoding="utf-8") == contenido.html_para_moodle(doc)
+    assert "BASE_NO_GUARDADA" not in [p["codigo"] for p in documento["pasos"]]
+
+
+def test_republicar_tras_editar_sustituye_la_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    _en(carpeta, moodle, "real")
+    antes = _base(carpeta)
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    _en(carpeta, moodle, "real")
+    base = _base(carpeta)
+    assert base == antes
+    assert (base / "fuente").read_bytes() == (carpeta / "p.md").read_bytes()
+    assert "nuevo" in (base / "enviado.html").read_text(encoding="utf-8")
+
+
+def test_en_pruebas_no_hay_carpeta_publicados(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina_texto(carpeta)
+    _en(carpeta, _aula_dos_cursos(), "pruebas")
+    assert not (carpeta / ".tiza" / "publicados").exists()
+
+
+def test_solo_fechas_no_cambia_la_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    tarea_en(carpeta)
+    _en(carpeta, moodle, "real", ficheros=("tarea.md",))
+    base = _base(carpeta, ruta="tarea.md")
+    fuente, enviado = (base / "fuente").read_bytes(), (base / "enviado.html").read_text("utf-8")
+    tarea_en(carpeta, entrega="2026-10-20")  # otras fechas...
+    (carpeta / "tarea.md").write_text(
+        (carpeta / "tarea.md").read_text(encoding="utf-8").replace("Resuelve.", "Otro enunciado."),
+        encoding="utf-8",
+    )  # ...y un texto que --solo-fechas no publica: la base sigue siendo lo último publicado
+    documento, _ = _en(carpeta, moodle, "real", ficheros=("tarea.md",), solo_fechas=True)
+    assert documento["errores"] == []
+    assert [p["codigo"] for p in documento["pasos"] if p["codigo"] == "SOLO_FECHAS"]
+    assert (base / "fuente").read_bytes() == fuente
+    assert (base / "enviado.html").read_text(encoding="utf-8") == enviado
+
+
+def test_actividad_recreada_borra_la_base_vieja_y_escribe_la_nueva(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    viejo = primero["ficheros"][0]["cmid"]
+    base_vieja = estado.ruta_base(carpeta / ".tiza", 5678, viejo)
+    assert (base_vieja / "fuente").exists()
+    for seccion in moodle._de(5678):
+        seccion["modulos"] = []  # el docente la borró en el aula
+    segundo, _ = _en(carpeta, moodle, "real")
+    nuevo = segundo["ficheros"][0]["cmid"]
+    assert nuevo != viejo
+    assert not base_vieja.exists()
+    assert (_base(carpeta) / "fuente").read_bytes() == (carpeta / "p.md").read_bytes()
+
+
+def test_base_que_no_cabe_no_para_la_publicacion(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    monkeypatch.setattr(estado, "MAX_BASE_BYTES", 10)
+    _pagina_texto(carpeta)
+    documento, _ = _en(carpeta, _aula_dos_cursos(), "real")
+    assert documento["errores"] == []
+    assert len(documento["ficheros"]) == 1
+    [paso] = [p for p in documento["pasos"] if p["codigo"] == "BASE_NO_GUARDADA"]
+    assert (paso["resultado"], paso["detalle"]) == ("fallo", "p.md")
+    assert not (carpeta / ".tiza" / "publicados").exists()
+
+
+def test_fichero_cambiado_tras_cargarlo_no_guarda_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
+    registro: dict = {}
+    estado.anotar_verificado(registro, contenido.hash_documento(doc), "p.md", 100)
+    _pagina_texto(carpeta, texto="Cambiado después de cargarlo.")
+    presencia = PresenciaFalsa()
+    documento = publicacion.publicar_en_cursos(
+        moodle, CFG, [doc], carpeta, presencia, entorno="real", verificados=registro
+    )
+    assert documento["errores"] == []
+    [paso] = [p for p in documento["pasos"] if p["codigo"] == "BASE_NO_GUARDADA"]
+    assert (paso["resultado"], paso["detalle"]) == ("fallo", "p.md")
+    assert not (carpeta / ".tiza" / "publicados").exists()
+
+
+def test_publicados_enlazado_no_guarda_base_y_no_escribe_fuera(tmp_path):
+    fuera = tmp_path / "fuera"
+    fuera.mkdir()
+    carpeta = (tmp_path / "asignatura").resolve()
+    carpeta.mkdir()
+    (carpeta / ".tiza").mkdir()
+    enlace_simbolico(carpeta / ".tiza" / "publicados", fuera)
+    _pagina_texto(carpeta)
+    documento, _ = _en(carpeta, _aula_dos_cursos(), "real")
+    assert documento["errores"] == []
+    [paso] = [p for p in documento["pasos"] if p["codigo"] == "BASE_NO_GUARDADA"]
+    assert (paso["resultado"], paso["detalle"]) == ("fallo", "p.md")
+    assert list(fuera.iterdir()) == []
+
+
+def test_dos_cursos_reales_una_base_por_curso(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina_texto(carpeta)
+    _en(carpeta, _aula_varios_cursos(), "real", cfg=CFG_DOS_REALES)
+    for curso in (5678, 9999):
+        base = _base(carpeta, curso)
+        assert (base / "fuente").read_bytes() == (carpeta / "p.md").read_bytes()
+    assert len(list((carpeta / ".tiza" / "publicados").iterdir())) == 2

@@ -26,6 +26,7 @@ Lo que cambia según quién publica entra explícito, nunca por accidente:
 
 from __future__ import annotations
 
+import hashlib
 import re
 import sys
 import traceback
@@ -1038,16 +1039,20 @@ def publicar_con(
             )
         if not solo_fechas:
             assert resultado.cmid is not None
+            ruta = _relativa(doc.ruta, base)
+            previo = _cmid_registrado(dir_tiza, curso, ruta)
             _registrar_publicado(
                 dir_tiza,
                 curso,
-                _relativa(doc.ruta, base),
+                ruta,
                 doc,
                 resultado.cmid,
                 borrador,
                 presencia,
                 aula=aula if real else None,
             )
+            if real:
+                _guardar_base(dir_tiza, curso, doc, resultado.cmid, previo, borrador)
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None
             estado.guardar_verificado(
@@ -1310,6 +1315,52 @@ def _registrar_publicado(
     if no_guardado:
         borrador.fallo("REGISTRO_NO_GUARDADO", doc.ruta.name)
         presencia.informar(Aviso.registro_no_guardado(doc.nombre))
+
+
+def _cmid_registrado(dir_tiza: Path, curso: int, ruta: str) -> int | None:
+    """El cmid que ``publicados.json`` daba a ``ruta`` en ``curso`` antes de publicar, o ``None``.
+
+    Un registro que no se puede leer no impide publicar: ``_registrar_publicado`` ya lo avisa.
+    """
+    if not estado.ruta_publicada_valida(ruta):
+        return None
+    try:
+        anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
+    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+        return None
+    return anterior.cmid if anterior is not None else None
+
+
+def _fuente_cargada(doc: Documento) -> bytes:
+    """Los bytes del fichero tal como se cargaron. Si cambiaron después, ``FicheroNoSeguro``."""
+    bruto = ficheros.leer_bytes_acotado(doc.ruta, estado.MAX_BASE_BYTES)
+    if hashlib.sha256(bruto).hexdigest() != doc.sha256_fichero:
+        raise ficheros.FicheroNoSeguro("cambiado")
+    return bruto
+
+
+def _guardar_base(
+    dir_tiza: Path,
+    curso: int,
+    doc: Documento,
+    cmid: int,
+    previo: int | None,
+    borrador: informe.Borrador,
+) -> None:
+    """En un curso real, guarda la base de lo publicado: el fichero fuente y el HTML enviado.
+
+    ``previo`` distinto de ``cmid`` es una actividad recreada: su base vieja se borra antes.
+    Si algo falla, lo publicado queda publicado: solo se anota ``BASE_NO_GUARDADA`` (sin aviso
+    al docente, que no nota nada).
+    """
+    try:
+        if previo is not None and previo != cmid:
+            estado.olvidar_base(dir_tiza, curso, previo)
+        estado.guardar_base(
+            dir_tiza, curso, cmid, _fuente_cargada(doc), contenido.html_para_moodle(doc)
+        )
+    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+        borrador.fallo("BASE_NO_GUARDADA", doc.ruta.name)
 
 
 def _renovar_base_registrada(

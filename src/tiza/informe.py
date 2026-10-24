@@ -80,6 +80,7 @@ PASOS = (
         {
             "ACTIVIDAD_EN_EVALUACION_CERRADA",
             "ACTIVIDAD_PENDIENTE",
+            "BASE_NO_GUARDADA",
             "BORRAR_COPIA",
             "BORRAR_SECCION",
             "CALENDARIO",

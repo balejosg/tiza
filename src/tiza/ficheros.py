@@ -12,7 +12,7 @@ import json
 import os
 import stat
 import uuid
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,7 @@ from tiza.lectura.modelo import ErrorLectura
 __all__ = [
     "FicheroNoSeguro",
     "asegurar_directorio",
+    "escribir_bytes",
     "escribir_json",
     "escribir_texto",
     "fichero_en_carpeta",
@@ -50,12 +51,31 @@ def escribir_texto(destino: str | Path, texto: str) -> Path:
     seguir un enlace simbólico que hubiera en ``destino``: lo sustituye. Así, un enlace que deje
     el agente en la carpeta no lleva a escribir en otro sitio.
     """
+    return _reemplazar(destino, lambda fichero: fichero.write(texto), encoding="utf-8")
+
+
+def escribir_bytes(destino: str | Path, datos: bytes) -> Path:
+    """Como :func:`escribir_texto`, con los bytes tal cual (sin traducir saltos de línea)."""
+    return _reemplazar(destino, lambda fichero: fichero.write(datos), binario=True)
+
+
+def _reemplazar(
+    destino: str | Path,
+    escribir: Callable[[Any], object],
+    *,
+    encoding: str | None = None,
+    binario: bool = False,
+) -> Path:
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
     temporal = destino.with_name(f"{destino.name}.{uuid.uuid4().hex}.tmp")
     try:
-        with open(temporal, "x", encoding="utf-8") as fichero:
-            fichero.write(texto)
+        if binario:
+            with open(temporal, "xb") as fichero:
+                escribir(fichero)
+        else:
+            with open(temporal, "x", encoding=encoding) as fichero:
+                escribir(fichero)
         os.replace(temporal, destino)
     except OSError:
         try:
