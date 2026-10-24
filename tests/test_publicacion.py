@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 from datetime import date, datetime
 from pathlib import Path
 
@@ -2392,6 +2393,7 @@ def test_cmid_registrado_lee_con_la_regla_de_lectura(tmp_path):
     assert publicacion._cmid_registrado(dir_tiza, 5678, "a:b.md") == 7
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="en Windows un fichero no puede llevar «:»")
 def test_recrear_una_actividad_registrada_con_dos_puntos_borra_su_base_vieja(tmp_path):
     carpeta = tmp_path.resolve()
     moodle = _aula_dos_cursos()
