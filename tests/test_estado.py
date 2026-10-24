@@ -662,6 +662,45 @@ class TestBaseDePublicado:
         assert not estado.ruta_base(tmp_path, 5678, 77).exists()
         assert estado.olvidar_base(tmp_path, 5678, 77) is False
 
+    def test_olvidar_con_algo_ajeno_dentro_devuelve_false_y_deja_la_carpeta(self, tmp_path):
+        carpeta = estado.guardar_base(tmp_path, 5678, 77, b"x", "x")
+        (carpeta / "ajeno.txt").write_text("mío", encoding="utf-8")
+        assert estado.olvidar_base(tmp_path, 5678, 77) is False
+        assert sorted(p.name for p in carpeta.iterdir()) == ["ajeno.txt"]
+
+    def test_el_cambio_de_carpeta_no_deja_restos_ni_pares_mezclados(self, tmp_path):
+        estado.guardar_base(tmp_path, 5678, 77, b"uno", "<p>1</p>")
+        estado.guardar_base(tmp_path, 5678, 77, b"dos", "<p>2</p>")
+        assert [p.name for p in (tmp_path / "publicados" / "5678").iterdir()] == ["77"]
+
+    def test_si_falla_la_escritura_la_base_vieja_queda_entera(self, tmp_path, monkeypatch):
+        carpeta = estado.guardar_base(tmp_path, 5678, 77, b"uno", "<p>1</p>")
+
+        def falla(destino, texto):
+            raise OSError("disco lleno")
+
+        monkeypatch.setattr(estado, "escribir_texto", falla)
+        with pytest.raises(OSError):
+            estado.guardar_base(tmp_path, 5678, 77, b"dos", "<p>2</p>")
+        assert (carpeta / "fuente").read_bytes() == b"uno"
+        assert (carpeta / "enviado.html").read_text(encoding="utf-8") == "<p>1</p>"
+        assert [p.name for p in carpeta.parent.iterdir()] == ["77"]
+
+    def test_si_falla_el_ultimo_cambio_de_nombre_vuelve_la_vieja(self, tmp_path, monkeypatch):
+        carpeta = estado.guardar_base(tmp_path, 5678, 77, b"uno", "<p>1</p>")
+        real = os.replace
+
+        def falla_al_poner_la_nueva(origen, destino):
+            if str(origen).endswith(".tmp"):
+                raise OSError("sin permiso")
+            return real(origen, destino)
+
+        monkeypatch.setattr(estado.os, "replace", falla_al_poner_la_nueva)
+        with pytest.raises(OSError):
+            estado.guardar_base(tmp_path, 5678, 77, b"dos", "<p>2</p>")
+        assert (carpeta / "fuente").read_bytes() == b"uno"
+        assert [p.name for p in carpeta.parent.iterdir()] == ["77"]
+
     def test_publicados_enlazado_no_se_sigue(self, tmp_path):
         from dobles import enlace_simbolico
 

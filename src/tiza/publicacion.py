@@ -1389,18 +1389,22 @@ def _guardar_base(
 ) -> None:
     """En un curso real, guarda la base de lo publicado: el fichero fuente y el HTML enviado.
 
-    ``previo`` distinto de ``cmid`` es una actividad recreada: su base vieja se borra antes.
-    Si algo falla, lo publicado queda publicado: solo se anota ``BASE_NO_GUARDADA`` (sin aviso
-    al docente, que no nota nada).
+    ``previo`` distinto de ``cmid`` es una actividad recreada: su base vieja se borra después de
+    guardar la nueva (si no se puede borrar, se queda: no estorba). Si algo falla, lo publicado
+    queda publicado: solo se anota ``BASE_NO_GUARDADA`` (sin aviso al docente, que no nota nada).
     """
     try:
-        if previo is not None and previo != cmid:
-            estado.olvidar_base(dir_tiza, curso, previo)
         estado.guardar_base(
             dir_tiza, curso, cmid, _fuente_cargada(doc), contenido.html_para_moodle(doc)
         )
     except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
         borrador.fallo("BASE_NO_GUARDADA", doc.ruta.name)
+        return
+    if previo is not None and previo != cmid:
+        try:
+            estado.olvidar_base(dir_tiza, curso, previo)
+        except (OSError, ficheros.FicheroNoSeguro):
+            pass
 
 
 def _renovar_base_registrada(

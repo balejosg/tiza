@@ -2013,3 +2013,100 @@ def test_copia_de_actividad_del_registro_de_otro_tipo_es_desconocida(carpeta):
     assert exc.value.codigo == "COPIA_DE_ACTIVIDAD_DESCONOCIDA"
     assert ficheros_de(carpeta) - antes == {"actividad.mbz"}
     assert not (carpeta / ".tiza" / "copia.json").exists()
+
+
+# --- Orden de escrituras y casos límite del registro (0.29.1) ----------------------------
+
+
+def test_origen_con_crlf_y_bom_se_reconoce_sin_copia_json(carpeta):
+    ruta = _importada_y_publicada_sin_huella(carpeta)
+    texto = ruta.read_bytes().decode("utf-8").replace("\n", "\r\n")
+    ruta.write_bytes(b"\xef\xbb\xbf" + texto.encode("utf-8"))
+    (carpeta / ".tiza" / "copia.json").unlink()  # sin la base de la importación: manda el origen
+    resumen = importar_en(carpeta, [pagina("<p>Hola</p>")])
+    assert resumen.estados["YA_IMPORTADO"] == 1
+    assert resumen.estados["PUBLICADA_POR_TIZA"] == 0
+
+
+def test_si_falla_escribir_copia_el_registro_no_cambia(carpeta, monkeypatch):
+    _publicada_por_tiza(carpeta)
+    registro = _registro(carpeta)
+
+    def falla(*args, **kwargs):
+        raise OSError("disco lleno")
+
+    monkeypatch.setattr(estado, "escribir_copia", falla)
+    with pytest.raises(ErrorImportar) as info:
+        importar_en(carpeta, [pagina("<p>Hola, mundo</p>\n")])
+    assert info.value.codigo == "IMPORTACION_NO_ESCRIBIBLE"
+    assert _registro(carpeta) == registro
+
+
+def test_el_registro_se_escribe_despues_de_copia_json(carpeta, monkeypatch):
+    _publicada_por_tiza(carpeta)
+    orden = []
+    escribir_copia = estado.escribir_copia
+    guardar_publicado = estado.guardar_publicado
+    monkeypatch.setattr(
+        estado,
+        "escribir_copia",
+        lambda *a, **k: (orden.append("copia"), escribir_copia(*a, **k))[1],
+    )
+    monkeypatch.setattr(
+        estado,
+        "guardar_publicado",
+        lambda *a, **k: (orden.append("registro"), guardar_publicado(*a, **k))[1],
+    )
+    importar_en(carpeta, [pagina("<p>Hola, mundo</p>\n")])
+    assert orden == ["copia", "registro"]
+
+
+def test_copia_antigua_no_carga_el_registro_aunque_este_danado(carpeta):
+    importar_en(carpeta, [pagina()], fecha=FECHA_NUEVA)
+    (carpeta / ".tiza" / "publicados.json").write_text("no es json", encoding="utf-8")
+    resumen = importar_en(carpeta, [pagina("<p>Otro</p>")], fecha=FECHA_VIEJA)
+    assert resumen.estados["IMPORTADA"] == 1  # lo conservado, sin error por el registro
+
+
+def test_fichero_del_registro_que_es_un_directorio_cuenta_como_ausente(carpeta):
+    ruta = _publicada_por_tiza(carpeta)
+    ruta.unlink()
+    ruta.mkdir()
+    resumen = importar_en(carpeta, [pagina()])
+    assert resumen.estados["IMPORTADA"] == 1 and resumen.estados["PUBLICADA_POR_TIZA"] == 0
+    assert list(ruta.iterdir()) == []
+    assert (carpeta / "aula" / "02-tema-1-intro" / "una-pagina-501.html").is_file()
+
+
+def test_fichero_del_registro_que_es_un_enlace_roto_cuenta_como_ausente(carpeta):
+    from dobles import enlace_simbolico
+
+    ruta = _publicada_por_tiza(carpeta)
+    ruta.unlink()
+    enlace_simbolico(ruta, carpeta / "no-existe")
+    resumen = importar_en(carpeta, [pagina()])
+    assert resumen.estados["IMPORTADA"] == 1 and resumen.estados["PUBLICADA_POR_TIZA"] == 0
+    assert ruta.is_symlink() and not ruta.exists()
+
+
+def test_cuestionario_y_h5p_registrados_son_publicada_por_tiza_sin_convertir(carpeta):
+    preguntas = [
+        pregunta(103, "P3", ((1, "Redacta"),), "essay", ())
+    ]  # no admitida: no se convierte
+    quiz = f.ActividadFalsa(510, "quiz", 7, "Repaso", "<p>Intro</p>", preguntas=preguntas)
+    h5p = f.ActividadFalsa(520, "h5pactivity", 7, "Interactivo", "<p>Mira</p>")  # sin paquete
+    for cmid, tipo, actividad in ((510, "cuestionario", quiz), (520, "h5p", h5p)):
+        ruta = carpeta / "aula" / f"{tipo}.md"
+        ruta.parent.mkdir(exist_ok=True)
+        ruta.write_text(f"---\ntipo: {tipo}\nnombre: x\n---\n", encoding="utf-8")
+        huella = huella_aula(actividad.nombre, actividad.html, actividad.fechas)
+        estado.guardar_publicado(
+            carpeta / ".tiza",
+            3,
+            ruta.relative_to(carpeta).as_posix(),
+            estado.Publicado(cmid, tipo, huella=huella),
+        )
+    resumen = importar_en(carpeta, [quiz, h5p])
+    assert resumen.estados["PUBLICADA_POR_TIZA"] == 2
+    assert resumen.estados["PREGUNTAS_NO_ADMITIDAS"] == 0
+    assert resumen.estados["TIPO_NO_GESTIONADO"] == 0

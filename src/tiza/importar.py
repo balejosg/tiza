@@ -607,7 +607,11 @@ def importar(
         return _importar_de_actividad(raiz, base, dir_tiza, datos, anterior)
     previa = _previa(anterior, datos.curso_original, como_nuevas)
     antigua = _es_antigua(anterior, datos, como_nuevas)
-    publicados = _publicados_del_curso(dir_tiza, datos.curso_original, como_nuevas)
+    # Con una copia antigua no se toca nada: ni se carga el registro (no puede fallar por él).
+    publicados = (
+        {} if antigua else _publicados_del_curso(dir_tiza, datos.curso_original, como_nuevas)
+    )
+    registros: list[_Registro] = []
     entradas = []
     try:
         for actividad in datos.actividades:
@@ -622,6 +626,7 @@ def importar(
                 como_nuevas,
                 antigua,
                 publicados,
+                registros,
             )
             if hecha is not None:
                 entradas.append(hecha)
@@ -629,6 +634,7 @@ def importar(
             dir_tiza,
             _datos_de_copia(anterior, datos, entradas, previa, como_nuevas, antigua),
         )
+        _aplicar_registros(dir_tiza, datos.curso_original, registros)
     except (OSError, estado.ErrorEstado):
         raise ErrorImportar(
             "IMPORTACION_NO_ESCRIBIBLE", "No se pudo escribir en la carpeta de la asignatura."
@@ -664,7 +670,7 @@ def _importar_de_actividad(
     conocida = (
         registrada is not None
         and registrada[1].tipo == tipos.de_modulo(actividad.modulo)
-        and os.path.lexists(raiz / registrada[0])
+        and (raiz / registrada[0]).is_file()
     )
     if not conocida and _fichero_previo(previa, raiz, base) is None:
         raise ErrorImportar(
@@ -677,12 +683,24 @@ def _importar_de_actividad(
     seccion = SeccionCopia(
         actividad.seccion_id, previa["seccion"] if previa else 0, "", "", (actividad.cmid,)
     )
+    registros: list[_Registro] = []
     try:
         hecha = _importar_actividad(
-            datos, actividad, seccion, raiz, base, dir_tiza, previa, False, False, publicados
+            datos,
+            actividad,
+            seccion,
+            raiz,
+            base,
+            dir_tiza,
+            previa,
+            False,
+            False,
+            publicados,
+            registros,
         )
         assert hecha is not None  # sin ``antigua`` siempre hay entrada
         escrito = estado.escribir_copia(dir_tiza, _datos_de_actividad(anterior, datos, hecha))
+        _aplicar_registros(dir_tiza, curso, registros)
     except (OSError, estado.ErrorEstado):
         raise ErrorImportar(
             "IMPORTACION_NO_ESCRIBIBLE", "No se pudo escribir en la carpeta de la asignatura."
@@ -743,6 +761,19 @@ def _publicados_del_curso(
     return {p.cmid: (ruta, p) for ruta, p in registro.items()}
 
 
+@dataclass(frozen=True)
+class _Registro:
+    """Una entrada de ``publicados.json`` que la importación escribirá después de ``copia.json``."""
+
+    ruta: str
+    publicado: estado.Publicado
+
+
+def _aplicar_registros(dir_tiza: Path, curso: int, registros: list[_Registro]) -> None:
+    for registro in registros:
+        estado.guardar_publicado(dir_tiza, curso, registro.ruta, registro.publicado)
+
+
 def _publicada_por_tiza(
     datos: Copia,
     actividad: ActividadCopia,
@@ -751,13 +782,16 @@ def _publicada_por_tiza(
     registrada: tuple[str, estado.Publicado],
     raiz: Path,
     dir_tiza: Path,
+    registros: list[_Registro] | None = None,
 ) -> _Entrada:
     """La actividad la publicó tiza y su fichero sigue ahí: no se crea otro, solo se compara.
 
     Con la huella del registro igual a la del aula, nada que hacer. Si difiere (o el registro no
     tiene huella, y no se puede saber si el docente la tocó), la versión del aula queda en
     ``.tiza/copia/<cmid>.html``, el registro toma la huella nueva y la marca del fichero actual:
-    mientras siga así, al publicar en real se pregunta antes de pisar el cambio del aula.
+    mientras siga así, al publicar en real se pregunta antes de pisar el cambio del aula. El
+    registro no se escribe aquí: la entrada queda en ``registros`` y la aplica quien importa
+    cuando ``copia.json`` ya está escrito.
     """
     ruta_registrada, publicado = registrada
     huella = tipos.huella_aula(actividad.nombre, actividad.html, actividad.fechas)
@@ -773,12 +807,11 @@ def _publicada_por_tiza(
     entrada.huella_fichero = marca or estado.MARCA_ILEGIBLE
     _extraer(datos, recursos, ruta.parent, actividad.cmid, raiz)
     estado.guardar_version_de_copia(dir_tiza, actividad.cmid, html)
-    estado.guardar_publicado(
-        dir_tiza,
-        datos.curso_original,
-        ruta_registrada,
-        estado.Publicado(actividad.cmid, tipo, huella=huella, marca=entrada.huella_fichero),
-    )
+    nuevo = estado.Publicado(actividad.cmid, tipo, huella=huella, marca=entrada.huella_fichero)
+    if registros is not None:
+        registros.append(_Registro(ruta_registrada, nuevo))
+    else:
+        estado.guardar_publicado(dir_tiza, datos.curso_original, ruta_registrada, nuevo)
     entrada.avisos.append(estado.AVISO_CAMBIADA.format(cmid=actividad.cmid))
     if marca is None:
         entrada.avisos.append(_AVISO_FICHERO_ILEGIBLE)
@@ -857,8 +890,8 @@ def _fichero_de_origen(
     ruta = raiz / registrado
     try:
         texto = leer_bytes_acotado(ruta, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8")
-        cabecera = yaml.safe_load(texto.split("---\n")[1]) if texto.startswith("---\n") else None
-    except (OSError, UnicodeDecodeError, IndexError, yaml.YAMLError):
+        cabecera, _cuerpo = contenido._separar_frontmatter(texto)  # con CRLF y BOM
+    except (OSError, UnicodeDecodeError, contenido.ErrorContenido):
         return None
     origen = cabecera.get("origen") if isinstance(cabecera, dict) else None
     if isinstance(origen, dict) and origen.get("curso") == curso and origen.get("cmid") == cmid:
@@ -877,6 +910,7 @@ def _importar_actividad(
     como_nuevas: bool,
     antigua: bool = False,
     publicados: Mapping[int, tuple[str, estado.Publicado]] | None = None,
+    registros: list[_Registro] | None = None,
 ) -> _Entrada | None:
     nombre = _texto_seguro(actividad.nombre, f"Actividad {actividad.cmid}")
     entrada = _Entrada(
@@ -896,7 +930,8 @@ def _importar_actividad(
     registrada = (publicados or {}).get(actividad.cmid)
     fichero_de_origen: Path | None = None
     if registrada is not None and registrada[1].tipo == tipo:
-        if os.path.lexists(raiz / registrada[0]):
+        # Un directorio o un enlace roto donde iría el fichero cuenta como ausente.
+        if (raiz / registrada[0]).is_file():
             # Si la actividad viene de un ``origen`` manda ``copia.json`` (su base), no el
             # registro, que para esas no guarda huella.
             fichero_de_origen = _fichero_de_origen(
@@ -904,7 +939,7 @@ def _importar_actividad(
             )
             if fichero_de_origen is None:
                 return _publicada_por_tiza(
-                    datos, actividad, entrada, tipo, registrada, raiz, dir_tiza
+                    datos, actividad, entrada, tipo, registrada, raiz, dir_tiza, registros
                 )
     extension = EXTENSION.get(tipo, ".md")
     carpeta_seccion = base / f"{seccion.numero:02d}-{nombre_seguro(seccion.nombre)}"

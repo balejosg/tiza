@@ -2340,6 +2340,40 @@ def test_actividad_recreada_borra_la_base_vieja_y_escribe_la_nueva(tmp_path):
     assert (_base(carpeta) / "fuente").read_bytes() == (carpeta / "p.md").read_bytes()
 
 
+def test_la_base_vieja_se_borra_despues_de_guardar_la_nueva(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    viejo = primero["ficheros"][0]["cmid"]
+    for seccion in moodle._de(5678):
+        seccion["modulos"] = []  # el docente la borró en el aula
+    orden = []
+    guardar, olvidar = estado.guardar_base, estado.olvidar_base
+    monkeypatch.setattr(
+        estado, "guardar_base", lambda *a, **k: (orden.append("guardar"), guardar(*a, **k))[1]
+    )
+    monkeypatch.setattr(
+        estado,
+        "olvidar_base",
+        lambda *a, **k: (orden.append(("olvidar", a[2])), olvidar(*a, **k))[1],
+    )
+    _en(carpeta, moodle, "real")
+    assert orden == ["guardar", ("olvidar", viejo)]
+
+
+def test_cmid_registrado_con_registro_danado_es_none_y_no_borra_nada(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina_texto(carpeta)
+    _en(carpeta, _aula_dos_cursos(), "real")
+    dir_tiza = carpeta / ".tiza"
+    antes = sorted(p.relative_to(carpeta).as_posix() for p in carpeta.rglob("*"))
+    (dir_tiza / "publicados.json").write_text("no es json", encoding="utf-8")
+    assert publicacion._cmid_registrado(dir_tiza, 5678, "p.md") is None
+    despues = sorted(p.relative_to(carpeta).as_posix() for p in carpeta.rglob("*"))
+    assert despues == antes
+
+
 def test_base_que_no_cabe_no_para_la_publicacion(tmp_path, monkeypatch):
     carpeta = tmp_path.resolve()
     monkeypatch.setattr(estado, "MAX_BASE_BYTES", 10)

@@ -21,6 +21,7 @@ import dataclasses
 import json
 import os
 import re
+import shutil
 import stat
 import time
 import unicodedata
@@ -657,9 +658,13 @@ def ruta_base(dir_tiza: str | Path, curso: int, cmid: int) -> Path:
 def guardar_base(dir_tiza: str | Path, curso: int, cmid: int, fuente: bytes, enviado: str) -> Path:
     """Guarda lo publicado en ``curso`` real: el fichero fuente (bytes) y el HTML enviado.
 
-    Cada fichero se escribe de forma atómica. Cada nivel de la carpeta se comprueba con
-    ``asegurar_directorio``: un enlace o un fichero donde iría un directorio es ``FicheroNoSeguro``.
-    La fuente de más de ``MAX_BASE_BYTES`` no se guarda (``BASE_DEMASIADO_GRANDE``).
+    El par se escribe en una carpeta temporal hermana y se cambia de nombre por la definitiva: el
+    resultado nunca es un par mezclado (la fuente de una publicación y el enviado de otra). Como
+    en Windows no se puede renombrar una carpeta sobre otra que existe, la vieja se aparta antes
+    a un nombre intermedio y se borra después; si el cambio falla, la vieja vuelve a su sitio.
+    Cada nivel de la carpeta se comprueba con ``asegurar_directorio``: un enlace o un fichero
+    donde iría un directorio es ``FicheroNoSeguro``. La fuente de más de ``MAX_BASE_BYTES`` no
+    se guarda (``BASE_DEMASIADO_GRANDE``).
     """
     _id_positivo(curso)
     _id_positivo(cmid)
@@ -668,16 +673,41 @@ def guardar_base(dir_tiza: str | Path, curso: int, cmid: int, fuente: bytes, env
     asegurar_directorio(Path(dir_tiza))
     asegurar_directorio(Path(dir_tiza) / CARPETA_PUBLICADOS)
     asegurar_directorio(Path(dir_tiza) / CARPETA_PUBLICADOS / str(curso))
-    carpeta = asegurar_directorio(ruta_base(dir_tiza, curso, cmid))
-    escribir_bytes(carpeta / FICHERO_BASE_FUENTE, fuente)
-    escribir_texto(carpeta / FICHERO_BASE_ENVIADO, enviado)
+    carpeta = ruta_base(dir_tiza, curso, cmid)
+    if carpeta.is_symlink():
+        raise FicheroNoSeguro("enlace")
+    if os.path.lexists(carpeta) and not carpeta.is_dir():
+        raise FicheroNoSeguro("no_directorio")
+    sufijo = uuid.uuid4().hex
+    nueva = carpeta.with_name(f"{carpeta.name}.{sufijo}.tmp")
+    vieja = carpeta.with_name(f"{carpeta.name}.{sufijo}.vieja")
+    try:
+        nueva.mkdir()
+        escribir_bytes(nueva / FICHERO_BASE_FUENTE, fuente)
+        escribir_texto(nueva / FICHERO_BASE_ENVIADO, enviado)
+        apartada = False
+        if carpeta.is_dir():
+            os.replace(carpeta, vieja)
+            apartada = True
+        try:
+            os.replace(nueva, carpeta)
+        except OSError:
+            if apartada:
+                os.replace(vieja, carpeta)
+            raise
+    except OSError:
+        shutil.rmtree(nueva, ignore_errors=True)
+        raise
+    shutil.rmtree(vieja, ignore_errors=True)
     return carpeta
 
 
 def olvidar_base(dir_tiza: str | Path, curso: int, cmid: int) -> bool:
     """Borra la base de ``cmid`` en ``curso`` (sus dos ficheros y su carpeta); ``False`` si no había.
 
-    Si algún nivel del camino es un enlace, ``FicheroNoSeguro``: no se borra fuera de ``.tiza``.
+    También ``False`` si no pudo quitar la carpeta (con algo ajeno dentro, o sin permiso): se
+    queda. Si algún nivel del camino es un enlace, ``FicheroNoSeguro``: no se borra fuera de
+    ``.tiza``.
     """
     carpeta = ruta_base(dir_tiza, curso, cmid)
     for nivel in (Path(dir_tiza) / CARPETA_PUBLICADOS, carpeta.parent, carpeta):
@@ -688,12 +718,12 @@ def olvidar_base(dir_tiza: str | Path, curso: int, cmid: int) -> bool:
     for nombre in (FICHERO_BASE_FUENTE, FICHERO_BASE_ENVIADO):
         try:
             (carpeta / nombre).unlink()
-        except FileNotFoundError:
+        except OSError:  # si no estaba o no se puede, el rmdir de abajo dirá si quedó algo
             pass
     try:
         carpeta.rmdir()
-    except OSError:  # con algo ajeno dentro, la carpeta se queda
-        pass
+    except OSError:
+        return False
     return True
 
 
