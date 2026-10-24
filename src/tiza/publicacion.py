@@ -2768,10 +2768,8 @@ def copiar_actividades(
         return fallo("COPIA_DE_ACTIVIDAD_SOLO_REAL")
     if not ficheros:
         return fallo("PETICION_INVALIDA")
-    # Sin repetir: dos ficheros de la misma actividad serían dos copias iguales.
+    # Sin repetir la ruta; dos ficheros de la misma actividad (mismo cmid) se cuentan abajo.
     pedidos = list(dict.fromkeys(ficheros))
-    if cupo.setdefault("copias_actividad", 0) + len(pedidos) > CUPO_COPIAS_ACTIVIDAD:
-        return fallo("CUPO_COPIAS_ACTIVIDAD")
 
     raiz = Path(base).resolve()
     documentos: list[Documento] = []
@@ -2791,6 +2789,7 @@ def copiar_actividades(
         depurar(exc, debug)
         return fallo(exc.codigo)
     cmids: dict[int, Documento] = {}
+    repetidos: list[str] = []  # los ficheros que sobran: apuntan a una actividad ya pedida
     sin_registro: list[informe.Fichero] = []
     for doc in documentos:
         try:
@@ -2798,11 +2797,18 @@ def copiar_actividades(
         except ErrorPublicacion as exc:
             return fallo(exc.codigo, ficheros=[informe.Fichero(doc.ruta.name, doc.tipo)])
         if donde.por in ("registro", "origen") and donde.modulo is not None:
-            cmids.setdefault(int(donde.modulo["cmid"]), doc)
+            cmid = int(donde.modulo["cmid"])
+            if cmid in cmids:
+                repetidos.append(doc.ruta.name)
+            else:
+                cmids[cmid] = doc
         else:
             sin_registro.append(informe.Fichero(doc.ruta.name, doc.tipo))
     if sin_registro:
         return fallo("ACTIVIDAD_SIN_REGISTRO", ficheros=sin_registro)
+    # El cupo se gasta por actividad (cmid distinto), no por fichero.
+    if cupo.setdefault("copias_actividad", 0) + len(cmids) > CUPO_COPIAS_ACTIVIDAD:
+        return fallo("CUPO_COPIAS_ACTIVIDAD")
 
     resumen = ResumenCopia(
         curso_id,
@@ -2820,6 +2826,8 @@ def copiar_actividades(
 
     borrador = informe.Borrador(comando, entorno=entorno, curso=curso_id)
     borrador.paso("LOGIN")
+    for nombre in repetidos:
+        borrador.paso("ACTIVIDAD_REPETIDA", detalle=nombre)
     for cmid in cmids:
         try:
             temporal = estado.temporal_de_copia(dir_tiza)

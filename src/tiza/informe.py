@@ -83,6 +83,7 @@ PASOS = (
         {
             "ACTIVIDAD_EN_EVALUACION_CERRADA",
             "ACTIVIDAD_PENDIENTE",
+            "ACTIVIDAD_REPETIDA",  # tiza copia --actividad: dos ficheros de la misma actividad
             "BASE_NO_GUARDADA",
             "BORRAR_COPIA",
             "BORRAR_SECCION",

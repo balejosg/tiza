@@ -2510,6 +2510,23 @@ def test_copiar_actividades_por_origen(tmp_path):
     assert documento["resultado"] == "ok" and moodle.copias_de_actividad == [(5678, 601)]
 
 
+def test_copiar_actividades_dos_ficheros_de_la_misma_actividad_cuentan_una(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path, publicadas=("pagina.md",))
+    (carpeta / "copia.md").write_text(
+        "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\norigen:\n  curso: 5678\n  cmid: 601\n"
+        "---\n\nHola.\n",
+        encoding="utf-8",
+    )
+    moodle, presencia, documento, cupo = _copiar_actividades(carpeta, ["pagina.md", "copia.md"])
+    assert (documento["resultado"], documento["errores"]) == ("ok", [])
+    assert moodle.copias_de_actividad == [(5678, 601)]
+    [resumen] = presencia.resumenes_copia
+    assert resumen.actividades == ("Repaso",)
+    assert cupo["copias_actividad"] == 1
+    repetidos = [p for p in documento["pasos"] if p["codigo"] == "ACTIVIDAD_REPETIDA"]
+    assert repetidos == [{"codigo": "ACTIVIDAD_REPETIDA", "resultado": "ok", "detalle": "copia.md"}]
+
+
 def test_copiar_actividades_sin_registro_no_pide_nada(tmp_path):
     carpeta = _carpeta_con_registro(tmp_path, publicadas=("pagina.md",))
     moodle, presencia, documento, cupo = _copiar_actividades(carpeta, ["pagina.md", "otra.md"])
