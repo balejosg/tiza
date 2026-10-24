@@ -13,6 +13,7 @@ agente aislado no se abre la sesión, ni se pregunta si se sigue sin aislar.
 from __future__ import annotations
 
 import enum
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -116,7 +117,6 @@ def configurar(presencia: Presencia) -> Resultado:
 
 def _actualizar(
     presencia: Presencia,
-    sistema: str,
     version_nueva: Callable[[], str | None],
     instalar: Callable[[str], bool],
 ) -> bool:
@@ -129,7 +129,9 @@ def _actualizar(
     if not instalar(nueva):
         presencia.informar(Aviso.sigue_la_version_actual())
         return False
-    presencia.informar(Aviso.tiza_actualizada(sistema == "Windows"))
+    # La instalación sigue en otra ventana cuando tiza corre en Windows (``sys.platform``,
+    # como en ``cli._instalar_version``), no según el ``sistema`` que se revisa para aislar.
+    presencia.informar(Aviso.tiza_actualizada(sys.platform == "win32"))
     return True
 
 
@@ -166,7 +168,7 @@ def preparar(
     ``instalar`` la instala. Con ``exigir_aislamiento`` no se ofrece seguir sin aislar:
     si el agente no queda aislado, el resultado es ``ABORTADO``.
     """
-    if _actualizar(presencia, sistema, version_nueva, instalar):
+    if _actualizar(presencia, version_nueva, instalar):
         return Resultado(Estado.ACTUALIZADA)
     try:
         configurado = config.cargar_global() is not None

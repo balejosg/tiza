@@ -105,6 +105,8 @@ def test_el_fichero_vive_junto_a_la_configuracion_global(global_aislado, tmp_pat
         "[" * 5000,
         "x" * (recientes.MAX_FICHERO + 1),
     ],
+    # Ids cortos: Windows no admite PYTEST_CURRENT_TEST de más de 32767 caracteres.
+    ids=lambda contenido: f"{type(contenido).__name__}-{len(contenido)}",
 )
 def test_un_fichero_roto_o_raro_es_vacio(global_aislado, contenido):
     _escribir(global_aislado, contenido)
