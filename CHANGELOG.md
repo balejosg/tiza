@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.29.1 — 2026-10-24
+
+### Corregido
+- Con `--solo-fechas`, una actividad que tiza publicó y cuyas fechas ya estaban escritas en el aula (un intento anterior que no llegó a comprobarse) ya no te pregunta si sobrescribir.
+- `tiza copia real --actividad` con dos ficheros que apuntan a la misma actividad hace una sola copia, la cuenta una sola vez y el informe lo dice.
+- `tiza estructura --cambios` guarda la estructura del curso aunque el resumen de la importación (`.tiza/copia.json`) esté dañado.
+- `tiza importar` reconoce el `origen` de un fichero guardado con finales de línea de Windows, y no toca el registro de lo publicado si no pudo escribir su resumen.
+- La copia de lo último publicado se cambia entera de una vez: nunca queda una mitad nueva y otra vieja.
+- Más robustez con un registro de lo publicado escrito a mano o raro (rutas con «:», cursos con ceros delante).
+
 ## 0.29.0 — 2026-10-24
 
 ### Añadido
