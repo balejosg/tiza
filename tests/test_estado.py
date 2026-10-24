@@ -389,6 +389,19 @@ class TestPublicados:
         estado.guardar_publicado(tmp_path, 7, "a.md", nueva)
         assert estado.cargar_publicados(tmp_path, 7) == {"a.md": nueva}
 
+    def test_una_ruta_con_dos_puntos_ya_escrita_se_actualiza_pero_una_nueva_no(self, tmp_path):
+        registro = {"cmid": 4, "tipo": "pagina", "huella": None, "marca": None}
+        datos = {"version": 1, "cursos": {"7": {"ficheros": {"a:b.md": registro}}}}
+        (tmp_path / "publicados.json").write_text(json.dumps(datos), encoding="utf-8")
+        nueva = estado.Publicado(cmid=4, tipo="pagina", marca=M)
+        estado.guardar_publicado(tmp_path, 7, "a:b.md", nueva)
+        assert estado.cargar_publicados(tmp_path, 7)["a:b.md"] == nueva
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_publicado(tmp_path, 7, "c:d.md", estado.Publicado(cmid=5, tipo="pagina"))
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        with pytest.raises(estado.ErrorEstado):  # ni en otro curso donde no está
+            estado.guardar_publicado(tmp_path, 8, "a:b.md", estado.Publicado(cmid=4, tipo="pagina"))
+
     def test_mismo_cmid_en_otra_ruta_del_curso_quita_la_vieja(self, tmp_path):
         vieja = estado.Publicado(cmid=5, tipo="pagina")
         estado.guardar_publicado(tmp_path, 7, "viejo.md", vieja)

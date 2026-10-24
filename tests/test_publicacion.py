@@ -2412,6 +2412,24 @@ def test_recrear_una_actividad_registrada_con_dos_puntos_borra_su_base_vieja(tmp
     assert not estado.ruta_base(dir_tiza, 5678, 7).exists()
 
 
+def test_renovar_base_de_una_entrada_con_dos_puntos_no_da_registro_no_guardado(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina_texto(carpeta)
+    dir_tiza = carpeta / ".tiza"
+    dir_tiza.mkdir()
+    registro = {"cmid": 7, "tipo": "pagina", "huella": None, "marca": None}
+    datos = {"version": 1, "cursos": {"5678": {"ficheros": {"a:b.md": registro}}}}
+    (dir_tiza / "publicados.json").write_text(json.dumps(datos), encoding="utf-8")
+    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
+    borrador = informe.Borrador("publicar")
+    presencia = PresenciaFalsa()
+    huella = "a" * 64
+    publicacion._renovar_base_registrada(dir_tiza, 5678, "a:b.md", doc, huella, borrador, presencia)
+    assert "REGISTRO_NO_GUARDADO" not in [p.codigo for p in borrador._pasos]
+    assert presencia.avisos == []
+    assert estado.cargar_publicados(dir_tiza, 5678)["a:b.md"].huella == huella
+
+
 def test_si_falla_guardar_la_base_no_queda_la_anterior(tmp_path, monkeypatch):
     carpeta = tmp_path.resolve()
     moodle = _aula_dos_cursos()

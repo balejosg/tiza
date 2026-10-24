@@ -614,13 +614,17 @@ def guardar_publicado(dir_tiza: str | Path, curso: int, ruta: str, publicado: Pu
     """Crea o sustituye la entrada de ``ruta`` en ``curso``; deja intactos los demás cursos.
 
     Quita cualquier otra ruta del mismo curso con el mismo ``cmid``: una actividad, una ruta.
-    Valida antes de escribir: lo que no case con el esquema no llega al disco.
+    Valida antes de escribir: lo que no case con el esquema no llega al disco. Una ruta nueva no
+    puede llevar «:»; la que ya está en el registro de ese curso se actualiza aunque la lleve.
     """
-    if not ruta_publicada_valida(ruta):
+    if not _ruta_de_registro(ruta):
         raise ErrorEstado("PUBLICADOS_INVALIDO")
     datos = _cargar_publicados_datos(dir_tiza) or {"version": 1, "cursos": {}}
     clave = _clave_curso(curso)
     ficheros = datos["cursos"].get(clave, {"ficheros": {}})["ficheros"]
+    # La regla estricta (sin «:») solo vale para claves NUEVAS; una ya escrita se actualiza.
+    if ruta not in ficheros and not ruta_publicada_valida(ruta):
+        raise ErrorEstado("PUBLICADOS_INVALIDO")
     nuevos = {r: v for r, v in ficheros.items() if r != ruta and v["cmid"] != publicado.cmid}
     nuevos[ruta] = dataclasses.asdict(publicado)
     datos["cursos"][clave] = {"ficheros": nuevos}
