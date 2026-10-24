@@ -70,7 +70,7 @@ versiones cortas y todas las dudas juntas. Por ejemplo:
 | Código | Qué hacer |
 |---|---|
 | `CAMBIADA_EN_EL_AULA` | No se ha publicado ese fichero. Junta (puntos 2 y 3) o, si el docente respondió que no a sobrescribir, pregúntale qué prefiere. Mientras el fichero siga igual que cuando se trajo la versión del aula, seguirá saliendo. |
-| `CAMBIO_DEL_AULA_DESCARTADO` (paso) | El docente aceptó sobrescribir; lo publicado ya pisa su retoque. Nada que hacer. |
+| `CAMBIO_DEL_AULA_DESCARTADO` (paso) | El docente aceptó sobrescribir; lo publicado ya pisa su retoque. Nada que hacer. Con `--solo-fechas` quiere decir que se pisaron solo las fechas. |
 | `REGISTRO_NO_GUARDADO` (paso) | Se publicó bien, pero tiza no pudo anotarla. No renombres el fichero antes de avisar al docente. |
 | `BASE_NO_GUARDADA` (paso) | Se publicó bien, pero no queda base para juntar la próxima vez (punto 3, sin base). |
 | `ACTIVIDAD_SIN_REGISTRO` | Tiza no la conoce: pide la copia del curso (`guias/realinear.md`). |

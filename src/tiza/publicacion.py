@@ -1163,7 +1163,7 @@ def _separar_rechazados(
                 continue
         if doc.origen.cmid not in huellas:
             rechazados[indice] = "ORIGEN_SIN_HUELLA"
-        elif marcas.get(doc.origen.cmid) in (doc.sha256_fichero, estado.MARCA_ILEGIBLE):
+        elif publicar.marca_sin_juntar(marcas.get(doc.origen.cmid), doc):
             rechazados[indice] = "CAMBIADA_EN_EL_AULA"
     if no_publicar:
         for indice, doc in enumerate(documentos):
@@ -1256,15 +1256,25 @@ def cambios_de_nombre(
 
 
 def cambiadas_en_el_aula(
-    aula: AulaVirtual, secciones: list[dict], documentos: list[Documento], curso: int
+    aula: AulaVirtual,
+    secciones: list[dict],
+    documentos: list[Documento],
+    curso: int,
+    solo_fechas: bool = False,
 ) -> tuple[Documento, ...]:
     """Los documentos cuya actividad retocó el docente a mano en el aula desde que tiza la publicó.
 
     Solo mira los hallados por el registro y con huella en él (``publicar.cambio_a_mano``): del
     resto no lee nada. Lo que no se puede leer cuenta como cambiado, para no pisarlo a ciegas.
-    Es solo lectura: el docente decide después (``Presencia.confirmar_sobrescribir``).
+    Con ``solo_fechas``, lo que ya tiene las fechas del fichero no cuenta (un intento anterior las
+    escribió y falló al verificar). Es solo lectura: el docente decide después
+    (``Presencia.confirmar_sobrescribir``).
     """
-    return tuple(doc for doc in documentos if publicar.cambio_a_mano(aula, secciones, doc, curso))
+    return tuple(
+        doc
+        for doc in documentos
+        if publicar.cambio_a_mano(aula, secciones, doc, curso, solo_fechas)
+    )
 
 
 def cambios_en_el_aula(
@@ -1540,6 +1550,35 @@ def _en_pruebas(
     )
 
 
+def _preguntar_sobrescribir(
+    presencia: Presencia,
+    curso: int,
+    nombre_curso: str | None,
+    cambiadas: tuple[Documento, ...],
+    posicion: int,
+    total: int,
+) -> tuple[frozenset[Path], frozenset[Path]]:
+    """(``sobrescribir``, ``no_publicar``) tras preguntar por lo que el docente retocó a mano.
+
+    Solo tras el sí de siempre; sin respuesta o con la petición retirada, es no. Sin ``cambiadas``
+    no se pregunta y no hay nada que sobrescribir ni que dejar sin publicar.
+    """
+    if not cambiadas:
+        return frozenset(), frozenset()
+    rutas_cambiadas = frozenset(doc.ruta.resolve() for doc in cambiadas)
+    if presencia.confirmar_sobrescribir(
+        ResumenSobrescribir(
+            curso=curso,
+            nombre_curso=nombre_curso,
+            actividades=tuple(doc.nombre for doc in cambiadas),
+            posicion=posicion,
+            total=total,
+        )
+    ):
+        return rutas_cambiadas, frozenset()
+    return frozenset(), rutas_cambiadas
+
+
 def _en_real(
     aula: AulaVirtual,
     cfg: Config,
@@ -1626,7 +1665,7 @@ def _en_real(
             if codigo is not None:
                 registro.append((posicion, curso, fallo(codigo, curso)))
                 break
-            cambiadas = cambiadas_en_el_aula(aula, secciones, a_publicar, curso)
+            cambiadas = cambiadas_en_el_aula(aula, secciones, a_publicar, curso, solo_fechas=True)
             resumen = resumen_solo_fechas(
                 aula,
                 curso,
@@ -1696,27 +1735,13 @@ def _en_real(
             presencia.informar(Aviso.peticion_retirada())
             registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
             break
-        sobrescribir: frozenset[Path] = frozenset()
-        no_publicar: frozenset[Path] = frozenset()
-        if cambiadas:
-            # Solo tras el sí de siempre; sin respuesta o con la petición retirada, es no.
-            rutas_cambiadas = frozenset(doc.ruta.resolve() for doc in cambiadas)
-            if presencia.confirmar_sobrescribir(
-                ResumenSobrescribir(
-                    curso=curso,
-                    nombre_curso=nombre_curso,
-                    actividades=tuple(doc.nombre for doc in cambiadas),
-                    posicion=posicion,
-                    total=total,
-                )
-            ):
-                sobrescribir = rutas_cambiadas
-            else:
-                no_publicar = rutas_cambiadas
-            if vigente is not None and not vigente():
-                presencia.informar(Aviso.peticion_retirada())
-                registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-                break
+        sobrescribir, no_publicar = _preguntar_sobrescribir(
+            presencia, curso, nombre_curso, cambiadas, posicion, total
+        )
+        if cambiadas and vigente is not None and not vigente():
+            presencia.informar(Aviso.peticion_retirada())
+            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+            break
         documento = publicar_con(
             aula,
             entorno,
@@ -1733,17 +1758,23 @@ def _en_real(
         registro.append((posicion, curso, documento))
         if documento["resultado"] != "ok":
             # Un no a sobrescribir es una decisión del docente, no un fallo: los cursos
-            # siguientes se publican. Cualquier otro error corta como siempre.
-            if not no_publicar or Counter(documento["errores"]) - _rechazos_por_el_no(
-                documentos,
-                secciones,
-                curso,
-                base,
-                solo_fechas,
-                huellas,
-                marcas,
-                no_publicar,
-                rechazados_de_siempre,
+            # siguientes se publican. Cualquier otro error corta como siempre; y también si el
+            # curso no salió ok y no hay ningún error que explique que fue por el no.
+            if (
+                not no_publicar
+                or not documento["errores"]
+                or Counter(documento["errores"])
+                - _rechazos_por_el_no(
+                    documentos,
+                    secciones,
+                    curso,
+                    base,
+                    solo_fechas,
+                    huellas,
+                    marcas,
+                    no_publicar,
+                    rechazados_de_siempre,
+                )
             ):
                 break
     return informe_de_cursos(comando, entorno, total, unico, registro)

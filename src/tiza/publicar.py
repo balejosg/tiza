@@ -3003,35 +3003,55 @@ def _entrada_vigilada(doc: Documento, curso: int | None, loc: Localizacion) -> P
     return entrada if entrada is not None and entrada.huella is not None else None
 
 
-def _marca_sin_juntar(doc: Documento, entrada: Publicado) -> bool:
-    """¿Se trajo la versión del aula y el fichero sigue como entonces, sin juntar los cambios?
+def marca_sin_juntar(marca: str | None, doc: Documento) -> bool:
+    """¿Se trajo la versión del aula (``marca``) y el fichero sigue como entonces, sin juntar?
 
-    La marca ilegible (no se pudo leer el fichero al marcarla) bloquea siempre, como en ``origen``.
+    La regla de la marca en un solo sitio, para el registro y para ``copia.json``. La marca
+    ilegible (no se pudo leer el fichero al marcarla) bloquea siempre; sin marca, no hay nada
+    sin juntar.
     """
-    return entrada.marca is not None and entrada.marca in (doc.sha256_fichero, MARCA_ILEGIBLE)
+    return marca is not None and marca in (doc.sha256_fichero, MARCA_ILEGIBLE)
 
 
-def _formulario_cambiado(doc: Documento, base: str, leido: dict) -> bool:
+def _marca_sin_juntar(doc: Documento, entrada: Publicado) -> bool:
+    """:func:`marca_sin_juntar` con la marca de la entrada del registro."""
+    return marca_sin_juntar(entrada.marca, doc)
+
+
+def _formulario_cambiado(doc: Documento, base: str, leido: dict, solo_fechas: bool = False) -> bool:
     """¿Difiere el formulario ``leido`` de la huella ``base`` y de lo que tiza iba a enviar?
 
     Lo segundo cubre un intento anterior que escribió y falló al verificar: el aula ya tiene lo
-    de tiza y no hay cambio ajeno que perder. Solo se compara; la huella nunca sale de aquí.
-    Vale para la base del registro y para la de ``copia.json``.
+    de tiza y no hay cambio ajeno que perder. Con ``solo_fechas`` lo que tiza iba a enviar son
+    solo las fechas (el nombre y el texto del aula, con las fechas del fichero). Solo se
+    compara; la huella nunca sale de aquí. Vale para la base del registro y para la de
+    ``copia.json``.
     """
     tipo = tipos.obtener(doc.tipo)
     en_el_aula = tipos.huella_del_formulario(tipo, doc, leido)
-    return en_el_aula != base and en_el_aula != tipos.huella_de_lo_enviado(
-        tipo, doc, html_para_moodle(doc)
-    )
+    if en_el_aula == base:
+        return False
+    if solo_fechas:
+        return en_el_aula != tipos.huella_con_las_fechas_de(tipo, doc, leido)
+    return en_el_aula != tipos.huella_de_lo_enviado(tipo, doc, html_para_moodle(doc))
 
 
-def _huella_cambiada(doc: Documento, entrada: Publicado, leido: dict) -> bool:
+def _huella_cambiada(
+    doc: Documento, entrada: Publicado, leido: dict, solo_fechas: bool = False
+) -> bool:
     """¿Difiere el formulario ``leido`` de la base de la entrada del registro y de lo enviado?"""
     assert entrada.huella is not None  # ``_entrada_vigilada`` solo da entradas con huella
-    return _formulario_cambiado(doc, entrada.huella, leido)
+    return _formulario_cambiado(doc, entrada.huella, leido, solo_fechas)
 
 
-def _retocada(moodle: AulaVirtual, doc: Documento, base: str, sin_juntar: bool, cmid: int) -> bool:
+def _retocada(
+    moodle: AulaVirtual,
+    doc: Documento,
+    base: str,
+    sin_juntar: bool,
+    cmid: int,
+    solo_fechas: bool = False,
+) -> bool:
     """¿Cambió el docente la actividad ``cmid`` desde que tiza guardó la huella ``base``?
 
     Con la marca sin juntar ya se sabe sin leer el aula. Si no se puede leer el formulario, no se
@@ -3043,16 +3063,23 @@ def _retocada(moodle: AulaVirtual, doc: Documento, base: str, sin_juntar: bool, 
         leido = moodle.leer_modulo(cmid)
     except ErrorPublicacion:
         return True
-    return _formulario_cambiado(doc, base, leido)
+    return _formulario_cambiado(doc, base, leido, solo_fechas)
 
 
-def cambio_a_mano(moodle: AulaVirtual, secciones: list[dict], doc: Documento, curso: int) -> bool:
+def cambio_a_mano(
+    moodle: AulaVirtual,
+    secciones: list[dict],
+    doc: Documento,
+    curso: int,
+    solo_fechas: bool = False,
+) -> bool:
     """¿Retocó el docente a mano en el aula lo que tiza publicó de ``doc``? Solo en cursos reales.
 
     Vale para lo hallado por el registro con huella (``_entrada_vigilada``); para lo demás, no. Con
     la marca sin juntar ya se sabe sin leer el aula. Si no se puede leer el formulario, no se sabe:
     cuenta como cambiado, para no pisar a ciegas. Una actividad ambigua no es de esta pregunta:
-    ya la rechazará la publicación con su código.
+    ya la rechazará la publicación con su código. Con ``solo_fechas``, lo que ya tiene las fechas
+    del fichero tampoco cuenta (un intento anterior las escribió y falló al verificar).
     """
     try:
         loc = localizar(secciones, doc, curso)
@@ -3063,7 +3090,12 @@ def cambio_a_mano(moodle: AulaVirtual, secciones: list[dict], doc: Documento, cu
         return False
     assert entrada.huella is not None and loc.modulo is not None
     return _retocada(
-        moodle, doc, entrada.huella, _marca_sin_juntar(doc, entrada), loc.modulo["cmid"]
+        moodle,
+        doc,
+        entrada.huella,
+        _marca_sin_juntar(doc, entrada),
+        loc.modulo["cmid"],
+        solo_fechas,
     )
 
 
@@ -3091,8 +3123,7 @@ def cambio_desde_la_base(
         base = huellas.get(loc.modulo["cmid"])
         if base is None:
             return None, cmid
-        marca = marcas.get(loc.modulo["cmid"])
-        sin_juntar = marca in (doc.sha256_fichero, MARCA_ILEGIBLE)
+        sin_juntar = marca_sin_juntar(marcas.get(loc.modulo["cmid"]), doc)
         return _retocada(moodle, doc, base, sin_juntar, loc.modulo["cmid"]), cmid
     entrada = _entrada_vigilada(doc, curso, loc)
     if entrada is None or entrada.huella is None or loc.modulo is None:
@@ -3275,8 +3306,14 @@ def publicar_fechas_con_huella(
         if not sobrescribir:
             if _marca_sin_juntar(doc, entrada):
                 raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
-            if _huella_cambiada(doc, entrada, moodle.leer_modulo(cmid)):
+            leido = moodle.leer_modulo(cmid)
+            if _huella_cambiada(doc, entrada, leido, solo_fechas=True):
                 raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
+            # Aceptada porque las fechas ya estaban puestas (un intento anterior las escribió y
+            # falló al verificar): como en ``origen``, el texto del aula no pasa a ser la base.
+            assert entrada.huella is not None
+            if tipos.huella_del_formulario(tipo, doc, leido) != entrada.huella:
+                renovar = False
     moodle.actualizar(cmid, payload_solo_fechas(doc))
     info = _verificar_fechas(moodle, doc, cmid)
     seccion = buscar_seccion(secciones, doc.seccion) or {}

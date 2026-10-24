@@ -2093,7 +2093,9 @@ def test_si_no_se_puede_leer_el_aula_al_buscar_cambios_cuenta_como_cambiada(tmp_
     assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("A",)]
 
 
-def test_si_no_se_puede_releer_tras_publicar_la_entrada_queda_sin_huella_y_se_avisa(tmp_path):
+def test_si_no_se_puede_releer_tras_publicar_la_entrada_queda_sin_huella_y_se_avisa(
+    tmp_path, monkeypatch
+):
     carpeta = tmp_path.resolve()
     moodle = _aula_dos_cursos()
     _pagina_texto(carpeta)
@@ -2101,15 +2103,21 @@ def test_si_no_se_puede_releer_tras_publicar_la_entrada_queda_sin_huella_y_se_av
     cmid = primero["ficheros"][0]["cmid"]
     _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
     original = moodle.leer_modulo
-    lecturas = []
+    registrando = []
+    registrar = publicacion._registrar_publicado
+
+    def registrar_marcando(*args, **kwargs):
+        registrando.append(True)  # desde aquí se relee el formulario para guardar la huella
+        return registrar(*args, **kwargs)
 
     def leer(cmid_pedido):
-        lecturas.append(cmid_pedido)
-        # Las tres primeras (buscar cambios, comprobar y verificar) valen; la última falla.
-        if len(lecturas) == 4:
+        # Buscar cambios, comprobar y verificar valen; falla la relectura del registro.
+        if registrando:
+            registrando.clear()  # solo falla esa relectura; la siguiente publicación va bien
             raise ErrorPublicacion("ERROR_CONSULTA")
         return original(cmid_pedido)
 
+    monkeypatch.setattr(publicacion, "_registrar_publicado", registrar_marcando)
     moodle.leer_modulo = leer
     documento, presencia = _en(carpeta, moodle, "real")
     assert documento["ficheros"][0]["cmid"] == cmid  # la publicación quedó hecha
@@ -2121,6 +2129,79 @@ def test_si_no_se_puede_releer_tras_publicar_la_entrada_queda_sin_huella_y_se_av
     # La próxima vez no se puede comparar: es como una entrada antigua.
     siguiente, presencia = _en(carpeta, moodle, "real")
     assert siguiente["errores"] == [] and presencia.resumenes_sobrescribir == []
+
+
+def test_fallar_la_lectura_justo_antes_de_escribir_para_el_lote_sin_escribir_nada(tmp_path):
+    carpeta, moodle, cmid = _publicada_y_retocada(tmp_path)  # sin retoque: la base vale
+    _pagina_texto(carpeta, nombre="Otra", fichero="otra.md")
+    escrituras = len(_escrituras(moodle, cmid))
+    original = moodle.leer_modulo
+    confirmada = []
+
+    class Confirmada(PresenciaFalsa):
+        def confirmar_real(self, resumen):
+            confirmada.append(True)
+            return super().confirmar_real(resumen)
+
+    def leer(cmid_pedido):
+        # La detección previa (antes de confirmar) lee bien; la comparación previa a escribir, no.
+        if confirmada and cmid_pedido == cmid:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        return original(cmid_pedido)
+
+    moodle.leer_modulo = leer
+    documento, presencia = _en(carpeta, moodle, "real", ("p.md", "otra.md"), presencia=Confirmada())
+    assert documento["errores"] == ["ERROR_CONSULTA"]
+    assert presencia.resumenes_sobrescribir == []  # la detección no vio ningún cambio
+    assert len(_escrituras(moodle, cmid)) == escrituras  # no se escribió nada
+    assert [f["nombre"] for f in documento["ficheros"]] == []
+
+
+def test_solo_fechas_con_las_fechas_ya_escritas_no_cuenta_como_cambio_y_no_renueva(tmp_path):
+    carpeta, moodle, cmid = _tarea_publicada(tmp_path)
+    antes = _entrada(carpeta, ruta="tarea.md").huella
+    tarea_en(carpeta, entrega="2026-10-20")
+    # Un intento anterior escribió las fechas y falló al verificar: la base sigue siendo la vieja.
+    doc = contenido.cargar(carpeta / "tarea.md", raiz=carpeta)
+    moodle.actualizar(cmid, publicar.payload_solo_fechas(doc))
+    escrituras = len(_escrituras(moodle, cmid))
+    documento, presencia = _en(carpeta, moodle, "real", ("tarea.md",), solo_fechas=True)
+    assert documento["errores"] == [] and presencia.resumenes_sobrescribir == []
+    assert len(_escrituras(moodle, cmid)) == escrituras + 1
+    assert _entrada(carpeta, ruta="tarea.md").huella == antes  # como en ``origen``: no se renueva
+
+
+def test_solo_fechas_con_otras_fechas_a_mano_distintas_de_las_pedidas_si_pregunta(tmp_path):
+    carpeta, moodle, cmid = _tarea_publicada(tmp_path)
+    tarea_en(carpeta, entrega="2026-10-20")
+    doc = contenido.cargar(carpeta / "tarea.md", raiz=carpeta)
+    moodle.actualizar(cmid, publicar.payload_solo_fechas(doc))
+    _retocar(moodle, cmid, campos=fecha_en_formulario("duedate", (2026, 11, 3, 10, 0)))
+    documento, presencia = _en(carpeta, moodle, "real", ("tarea.md",), solo_fechas=True)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("Problemas",)]
+
+
+def test_un_curso_no_ok_sin_errores_y_con_un_no_a_sobrescribir_corta(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_varios_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES)
+    cmid = primero["ficheros"][0]["cmid"]
+    _retocar(moodle, cmid, texto="<p>A mano</p>")
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    cursos = []
+    publicar_con = publicacion.publicar_con
+
+    def sin_errores(aula, entorno, curso, *args, **kwargs):
+        cursos.append(curso)
+        if len(cursos) == 1:  # un curso que no sale ok y no dice por qué
+            return informe.crear("publicar", "abortado", [], [], [], entorno, curso)
+        return publicar_con(aula, entorno, curso, *args, **kwargs)
+
+    monkeypatch.setattr(publicacion, "publicar_con", sin_errores)
+    _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES)
+    assert cursos == [5678]  # el siguiente curso no se toca
 
 
 def test_sin_curso_de_pruebas_tambien_se_pregunta_tras_la_confirmacion_corta(tmp_path):
