@@ -45,6 +45,7 @@ al agente:
 - una copia que tiza rechaza (`COPIA_CON_USUARIOS`, `COPIA_NO_VALIDA`…) no se abre por otra
   vía: ni `tar`, ni `unzip`, ni Python;
 - nunca se restaura una copia ni se genera o edita un `.mbz`.
+- No crees ni edites `.tiza/publicados.json` ni `.tiza/publicados/`: los escribe tiza al publicar en un curso real.
 
 Eso cubre el riesgo *de la herramienta*. Queda el riesgo *ajeno*: un agente sin
 restricciones que, mientras tú trabajas, se conecte al aula con la sesión

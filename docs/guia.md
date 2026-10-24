@@ -177,6 +177,33 @@ que publique saldrá del fichero. Los archivos adicionales de una tarea no está
 se conservan en el aula. Si tiza no puede guardar lo que acaba de publicar (`HUELLA_NO_GUARDADA`),
 la próxima vez saltará `CAMBIADA_EN_EL_AULA`: pide una copia nueva.
 
+## Mejorar lo ya publicado
+
+Puedes pedirle al agente que cambie algo que ya está en el aula («corrige el enunciado de la
+tarea 2»). tiza cuida tres cosas:
+
+- **Renombrar no duplica.** Si cambias `nombre:` del fichero y publicas en el mismo curso, tiza
+  actualiza la misma actividad, con sus entregas y sus notas, y la confirmación de real dice
+  «Se cambia el nombre de «A» a «B»». Si ya no está en el aula, avisa de que se creará de nuevo.
+- **No pisa tus retoques a mano.** Si retocaste en el aula una actividad que tiza publicó (su
+  nombre, su texto o sus fechas), al publicar en un curso real te pregunta, después de tu sí de
+  siempre: «¿Sobrescribirlas y perder esos cambios? [s/N]», con la lista de esas actividades. Por
+  defecto es no: esas no se publican y el resto del lote sigue. Con `s` se publican y tus cambios
+  del aula se pierden. Solo lo decides tú, también con `--solo-fechas`; el agente no puede
+  contestar esta pregunta.
+- **Juntar tus cambios.** Antes de editar algo publicado, el agente mira con
+  `tiza estructura --cambios <fichero>` si lo retocaste en el aula. Si lo retocaste, pide la
+  versión del aula con `tiza copia real --actividad <fichero>` (la confirmas en tu terminal, como
+  las demás copias; hasta 20 por sesión) y la junta con lo que tiza publicó. No descarta nada tuyo
+  sin preguntarte: si hay conflicto, te pregunta a ti.
+
+Para esto, tiza anota en `.tiza/publicados.json` y `.tiza/publicados/` lo que publicó en cada
+curso real. Si ese registro está dañado, `PUBLICADOS_INVALIDO`: tiza no lo usa a medias. Si al
+publicar no puede anotar lo publicado (`REGISTRO_NO_GUARDADO`), avisa de que, si cambias el nombre,
+podría crear otra actividad y de que no comparará tus retoques; si no puede guardar la base
+(`BASE_NO_GUARDADA`), la próxima vez no podrá comparar esa actividad. En los dos casos, pide una
+copia nueva antes de tocarla.
+
 ## Varios cursos reales
 
 Si das la misma asignatura en varios cursos de Moodle (1º A, 1º B, 1º C),

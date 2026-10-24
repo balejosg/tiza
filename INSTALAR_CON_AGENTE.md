@@ -28,6 +28,7 @@ y guíame para instalar tiza. Sigue sus reglas al pie de la letra.»*
   con `tiza copia` sale del aula a través de la sesión del docente y con su confirmación.
   Si tiza rechaza una copia, no la abras por otra vía (ni `tar`, ni `unzip`, ni Python).
   Nunca restaures una copia ni generes o edites un `.mbz`.
+- No crees ni edites `.tiza/publicados.json` ni `.tiza/publicados/`: los escribe tiza al publicar en un curso real.
 - **Nunca** pidas ni aceptes en el chat la contraseña del aula, ni el usuario,
   ni ids de curso para teclearlos tú. Si el docente la escribe en el chat, dile
   que la cambie y que no vuelva a hacerlo.

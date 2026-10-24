@@ -154,6 +154,9 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   por sección, tipo y nombre, como cualquier fichero.
 - Si el `nombre` contiene `: ` (dos puntos y espacio), escríbelo entre comillas:
   `nombre: "Ejemplo: repaso"`.
+- Cambiar `nombre:` de un fichero ya publicado en un curso renombra esa misma actividad en ese
+  curso (con sus entregas y notas) en vez de crear otra. Si la actividad ya no está en el aula, se
+  crea de nuevo, y la confirmación de real te lo dice antes.
 - Las fechas aceptan `AAAA-MM-DD` o `AAAA-MM-DD HH:MM` (hora del aula, con
   `Europe/Madrid` por defecto; una hora que el reloj se salta en el cambio de
   primavera, como las 02:30 del último domingo de marzo, no existe y da

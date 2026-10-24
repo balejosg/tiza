@@ -40,6 +40,18 @@ Delegación de Protección de Datos te pide un resumen, pásale
   - **`calificador.json` es estado que tiza escribe**: `.tiza/calificador.json` guarda, por curso, una huella (sha256) de cada nodo que montó tiza y de las actividades que colocó, para no pisar lo que el docente cambie a mano. Como `copia.json`, está en la carpeta de la asignatura y el agente podría escribirlo: tiza lo valida con un esquema cerrado al leerlo y al escribirlo (uno que no lo cumple da `CALIFICADOR_INVALIDO` y no se sobrescribe), y solo admite claves de un juego seguro de caracteres. No puede impedir que un agente cambie una huella y con ello desactive la protección de «lo que cambió a mano» de ese nodo; lo que sí queda: bloquear solo se hace sobre totales, tiza nunca desbloquea, nada de una evaluación cerrada se toca y cada curso real lo confirma el docente en su terminal con lo que va a pasar. Nunca guarda notas ni nombres del alumnado.
   - **`tiza copia`**: pide la copia a la sesión del docente, que la confirma `[s/N]`. La copia sale del aula a través de esa sesión, con todos los ajustes de usuarios a 0 (usuarios, roles, comentarios, registros, historial de notas, grupos…), y tiza no abre una que los lleve. Son tres por sesión (`CUPO_COPIAS`). `--actividad` pide la copia de una sola actividad del curso real (el agente da ficheros, nunca cmids; una confirmación por petición, hasta 20 por sesión, `CUPO_COPIAS_ACTIVIDAD`) y tiza comprueba que la copia trae solo esa actividad. tiza la borra de la zona de copias de Moodle; si no puede, lo avisa (`COPIA_QUEDA_EN_EL_AULA`) y el docente la borra a mano.
   - **Qué protege la huella y qué no**: `copia.json` guarda, de cada actividad importada, una huella de su **nombre, texto y fechas** en el aula. Si ahí cambia algo después de la copia, tiza no la publica (`CAMBIADA_EN_EL_AULA`); tampoco publica una que no tiene huella (`ORIGEN_SIN_HUELLA`) ni una cuyo fichero sigue como cuando se marcó cambiada en el aula. **No cubre** las preguntas y los ajustes de un cuestionario (intentos, tiempo, mezclado: tiza los manda siempre al publicar), ni el paquete de una actividad H5P, ni los archivos adicionales de una tarea (esos se conservan). Un cambio en ellos sí se pisa.
+- **Retoques a mano y lo publicado (`.tiza/publicados.json`, `.tiza/publicados/`)**: en cada curso
+  real tiza anota qué actividad es cada fichero y guarda la base de lo publicado (el fichero tal
+  como lo publicó y el HTML que mandó). Para saber si retocaste algo, lee del aula solo el nombre,
+  el texto y las fechas de esas actividades y compara su huella (sha256) con la guardada; no
+  escribe texto del aula en ningún fichero de estado. Si cambió, pregunta «¿Sobrescribirlas y
+  perder esos cambios? [s/N]»: **solo la contestas tú**, el agente no puede, y por defecto es no.
+  `tiza estructura --cambios` solo devuelve `cambiada`, `sin_cambios` o `sin_registro`. El HTML del
+  aula solo llega al agente por una copia de seguridad que confirmas (también la de una sola
+  actividad, `--actividad`). El registro y la base **no son una frontera de seguridad**: son
+  ficheros de la carpeta que el agente podría editar. tiza los valida con un esquema cerrado (uno
+  que no lo cumple da `PUBLICADOS_INVALIDO` y no se usa a medias), pero lo que protege de verdad es
+  tu confirmación en real, que enseña lo que se pisa.
 - **Sin secretos persistentes**: en Windows y macOS (y en Linux, si la instalas), `tiza` abre una ventana con la
   página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
   solo recoge las cookies de sesión del servidor del aula (las de cualquier otro

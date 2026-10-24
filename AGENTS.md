@@ -97,13 +97,15 @@ en español.
   huella del aula de cada actividad y, si cambió en el aula, el sha256 del fichero del docente
   para no publicarlo sin juntar los cambios). `src/tiza/importar_cuestionario.py`: las preguntas y los
   ajustes de un cuestionario, y lo que tiza no admite (`PREGUNTAS_NO_ADMITIDAS`,
-  `AJUSTES_NO_ADMITIDOS`). La petición de `tiza copia` pasa por `publicacion.py` (buzón v6); la
-  descarga de la copia del aula está solo en `publicar.py` (`Moodle.hacer_copia`).
+  `AJUSTES_NO_ADMITIDOS`). La petición de `tiza copia` pasa por `publicacion.py` (buzón v6, `ficheros` desde la v8); la
+  descarga de la copia del aula está solo en `publicar.py` (`Moodle.hacer_copia`). Reconoce lo
+  que publicó tiza (`PUBLICADA_POR_TIZA[_CAMBIADA]`, con `publicados.json`, sin duplicarlo en
+  `aula/`) y acepta las copias de una sola actividad (`COPIA_DE_ACTIVIDAD_DESCONOCIDA`).
 - `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
   `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
   nombres de los ficheros (`informe.json`, `estructura.json`, `verificados.json`,
-  `calificador.json` y `preview/`), sus formatos y su validación al leer. `cargar_estructura`
+  `calificador.json`, `publicados.json`, `publicados/` y `preview/`), sus formatos y su validación al leer. `cargar_estructura`
   devuelve un `Estructura` con v1 y v2 ya unificados (el agente no reinterpreta
   versiones); un fichero fuera del esquema es `ESTRUCTURA_INVALIDA`, no se
   interpreta a medias. Los verificados usan una sola dataclass (`Verificado`)
@@ -166,7 +168,8 @@ en español.
   publicó (solo cursos reales, por el registro `publicados.json`): `cambiadas_en_el_aula` los detecta
   antes de confirmar, `Presencia.confirmar_sobrescribir` pregunta tras el sí normal y `publicar_con`
   recibe lo decidido (`sobrescribir`, `no_publicar`); `publicar.py` lo vuelve a comprobar justo antes
-  de escribir (`comprobar_registro`). La petición del agente no lleva nada de esto.
+  de escribir (`comprobar_registro`). `cambios_en_el_aula` (`tiza estructura --cambios`) y
+  `copiar_actividades` (`tiza copia --actividad`) son la otra mitad de lo mismo. La petición del agente no lleva nada de esto.
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
   autoprueba y el ciclo de la sesión). Solo habla con el docente a través de una
   `Presencia` y no importa `terminal` ni `cli`; todo recibe la carpeta de la
@@ -230,7 +233,7 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.28.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.29.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y
