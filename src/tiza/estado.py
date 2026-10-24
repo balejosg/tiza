@@ -91,6 +91,7 @@ __all__ = [
     "olvidar_publicado",
     "quitar_aviso_cambiada",
     "reservar_copia",
+    "ruta_de_registro_valida",
     "ruta_lectura",
     "ruta_publicada_valida",
     "temporal_de_copia",
@@ -509,6 +510,11 @@ def _ruta_de_registro(ruta: str) -> bool:
     return all(segmento not in ("", ".", "..") for segmento in ruta.split("/"))
 
 
+def ruta_de_registro_valida(ruta: str) -> bool:
+    """¿Se puede leer ``ruta`` como clave de ``publicados.json``? La regla de LECTURA (admite «:»)."""
+    return _ruta_de_registro(ruta)
+
+
 def ruta_publicada_valida(ruta: str) -> bool:
     """¿Puede ``ruta`` ser una clave NUEVA de ``publicados.json``? Solo al escribir.
 
@@ -695,7 +701,7 @@ def guardar_base(dir_tiza: str | Path, curso: int, cmid: int, fuente: bytes, env
             if apartada:
                 os.replace(vieja, carpeta)
             raise
-    except OSError:
+    except BaseException:  # cualquier fallo: la carpeta temporal no se queda
         shutil.rmtree(nueva, ignore_errors=True)
         raise
     shutil.rmtree(vieja, ignore_errors=True)

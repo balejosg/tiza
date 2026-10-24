@@ -1043,21 +1043,22 @@ def publicar_con(
             _renovar_base_registrada(
                 dir_tiza, curso, _relativa(doc.ruta, base), doc, huella_nueva, borrador, presencia
             )
-        if not solo_fechas and resultado.cmid is not None:  # sin cmid no hay nada que registrar
+        if not solo_fechas:
             ruta = _relativa(doc.ruta, base)
+            cmid_nuevo = cmids[ruta]  # el de arriba: acaba de crearla o actualizarla
             previo = _cmid_registrado(dir_tiza, curso, ruta)
             _registrar_publicado(
                 dir_tiza,
                 curso,
                 ruta,
                 doc,
-                resultado.cmid,
+                cmid_nuevo,
                 borrador,
                 presencia,
                 aula=aula if real else None,
             )
             if real:
-                _guardar_base(dir_tiza, curso, doc, resultado.cmid, previo, borrador)
+                _guardar_base(dir_tiza, curso, doc, cmid_nuevo, previo, borrador)
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None
             estado.guardar_verificado(
@@ -1362,7 +1363,7 @@ def _cmid_registrado(dir_tiza: Path, curso: int, ruta: str) -> int | None:
 
     Un registro que no se puede leer no impide publicar: ``_registrar_publicado`` ya lo avisa.
     """
-    if not estado.ruta_publicada_valida(ruta):
+    if not estado.ruta_de_registro_valida(ruta):  # es una lectura: la regla de lectura
         return None
     try:
         anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
@@ -1399,6 +1400,10 @@ def _guardar_base(
         )
     except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
         borrador.fallo("BASE_NO_GUARDADA", doc.ruta.name)
+        try:  # sin base: mejor eso que la de una publicación anterior, que se tomaría por la última
+            estado.olvidar_base(dir_tiza, curso, cmid)
+        except (OSError, ficheros.FicheroNoSeguro):
+            pass
         return
     if previo is not None and previo != cmid:
         try:
@@ -1419,8 +1424,9 @@ def _renovar_base_registrada(
     """``--solo-fechas`` en real: la huella de lo releído pasa a ser la base de ``ruta``.
 
     La marca queda a None. Si no se puede guardar, las fechas ya están puestas; solo se avisa.
+    La entrada ya existe (se lee con la regla de lectura); aquí solo se renueva, no se crea.
     """
-    if not estado.ruta_publicada_valida(ruta):
+    if not estado.ruta_de_registro_valida(ruta):
         return
     try:
         anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
@@ -2770,6 +2776,9 @@ def copiar_actividades(
         return fallo("PETICION_INVALIDA")
     # Sin repetir la ruta; dos ficheros de la misma actividad (mismo cmid) se cuentan abajo.
     pedidos = list(dict.fromkeys(ficheros))
+    # Cota superior barata, antes de leer el aula: cada ruta distinta gasta como mucho 1.
+    if cupo.setdefault("copias_actividad", 0) + len(pedidos) > CUPO_COPIAS_ACTIVIDAD:
+        return fallo("CUPO_COPIAS_ACTIVIDAD")
 
     raiz = Path(base).resolve()
     documentos: list[Documento] = []

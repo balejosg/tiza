@@ -2399,6 +2399,16 @@ class TestPublicadosDelDocumento:
         )
         assert dict(cargar(ruta, raiz=carpeta).publicados) == {}
 
+    def test_una_subcarpeta_enlazada_a_otro_sitio_conserva_su_registro(self, tmp_path):
+        carpeta = self.preparar(tmp_path)
+        (tmp_path / "fuera").mkdir()
+        escribir(tmp_path / "fuera", pagina("Hola"), "guia.md")
+        enlace_simbolico(carpeta / "enlazada", tmp_path / "fuera")
+        entrada = estado.Publicado(5, "pagina")
+        estado.guardar_publicado(carpeta / ".tiza", 7, "enlazada/guia.md", entrada)
+        doc = cargar(carpeta / "enlazada" / "guia.md", raiz=carpeta)
+        assert dict(doc.publicados) == {7: entrada}
+
     def test_tener_registro_no_cambia_el_hash_ni_el_repr(self, tmp_path):
         carpeta = self.preparar(tmp_path)
         ruta = escribir(carpeta, pagina("Hola"), "guia.md")

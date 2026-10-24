@@ -2374,6 +2374,62 @@ def test_cmid_registrado_con_registro_danado_es_none_y_no_borra_nada(tmp_path):
     assert despues == antes
 
 
+def test_cmid_registrado_lee_con_la_regla_de_lectura(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina_texto(carpeta)
+    dir_tiza = carpeta / ".tiza"
+    # Una entrada con «:» ya escrita (0.29.0 en Linux) se sigue leyendo.
+    registro = {
+        "version": 1,
+        "cursos": {
+            "5678": {
+                "ficheros": {"a:b.md": {"cmid": 7, "tipo": "pagina", "huella": None, "marca": None}}
+            }
+        },
+    }
+    dir_tiza.mkdir()
+    (dir_tiza / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
+    assert publicacion._cmid_registrado(dir_tiza, 5678, "a:b.md") == 7
+
+
+def test_recrear_una_actividad_registrada_con_dos_puntos_borra_su_base_vieja(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta, fichero="a:b.md")
+    dir_tiza = carpeta / ".tiza"
+    dir_tiza.mkdir()
+    registro = {
+        "version": 1,
+        "cursos": {
+            "5678": {
+                "ficheros": {"a:b.md": {"cmid": 7, "tipo": "pagina", "huella": None, "marca": None}}
+            }
+        },
+    }
+    (dir_tiza / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
+    estado.guardar_base(dir_tiza, 5678, 7, b"viejo", "viejo")
+    _en(carpeta, moodle, "real", ficheros=("a:b.md",))
+    assert not estado.ruta_base(dir_tiza, 5678, 7).exists()
+
+
+def test_si_falla_guardar_la_base_no_queda_la_anterior(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    assert estado.ruta_base(carpeta / ".tiza", 5678, cmid).is_dir()
+
+    def falla(*_a, **_k):
+        raise PermissionError("pasajero")
+
+    monkeypatch.setattr(estado, "guardar_base", falla)
+    _pagina_texto(carpeta, texto="Otro texto.")
+    segundo, _ = _en(carpeta, moodle, "real")
+    assert "BASE_NO_GUARDADA" in [p["codigo"] for p in segundo["pasos"]]
+    assert not estado.ruta_base(carpeta / ".tiza", 5678, cmid).exists()
+
+
 def test_base_que_no_cabe_no_para_la_publicacion(tmp_path, monkeypatch):
     carpeta = tmp_path.resolve()
     monkeypatch.setattr(estado, "MAX_BASE_BYTES", 10)
@@ -2568,6 +2624,14 @@ def test_copiar_actividades_cupo_propio(tmp_path):
     assert documento["resultado"] == "ok"
     assert (cupo["copias"], cupo["copias_actividad"]) == (3, publicacion.CUPO_COPIAS_ACTIVIDAD)
     assert publicacion.CUPO_COPIAS_ACTIVIDAD == 20
+
+
+def test_copiar_actividades_cupo_se_rechaza_antes_de_leer_el_aula(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path)
+    cupo = {"pruebas": 0, "copias": 0, "copias_actividad": publicacion.CUPO_COPIAS_ACTIVIDAD - 1}
+    moodle, _p, documento, _ = _copiar_actividades(carpeta, ["pagina.md", "otra.md"], cupo=cupo)
+    assert documento["errores"] == ["CUPO_COPIAS_ACTIVIDAD"]
+    assert not any(llamada[0] == "estructura" for llamada in moodle.llamadas)
 
 
 def test_copiar_actividades_el_docente_dice_que_no(tmp_path):

@@ -376,11 +376,13 @@ def _publicados_de(ruta: Path, raiz: Path) -> dict[int, Publicado]:
             relativa = ruta.resolve().relative_to(raiz)
         except (ValueError, OSError):
             return {}  # fuera de la carpeta de la asignatura: no está en su registro
-    try:
-        # Un enlace que sale de la carpeta no es un fichero de la asignatura, aunque su ruta lo sea.
-        ruta.resolve().relative_to(raiz.resolve())
-    except (ValueError, OSError):
-        return {}
+    if ruta.is_symlink():
+        # Un fichero enlazado fuera de la carpeta no es de la asignatura, aunque su ruta lo sea.
+        # Una subcarpeta enlazada (otro disco) sí: la clave es la ruta relativa léxica.
+        try:
+            ruta.resolve().relative_to(raiz.resolve())
+        except (ValueError, OSError):
+            return {}
     try:
         return publicados_de_fichero(raiz / rutas.CARPETA_TRABAJO, relativa.as_posix())
     except ErrorEstado:

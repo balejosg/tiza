@@ -653,6 +653,15 @@ class TestBaseDePublicado:
         assert error.value.codigo == "BASE_DEMASIADO_GRANDE"
         assert not (tmp_path / "publicados").exists()
 
+    def test_cualquier_excepcion_limpia_la_carpeta_temporal(self, tmp_path, monkeypatch):
+        def falla(*_a, **_k):
+            raise ValueError("simulado")
+
+        monkeypatch.setattr(estado, "escribir_texto", falla)
+        with pytest.raises(ValueError):
+            estado.guardar_base(tmp_path, 5678, 77, b"x", "x")
+        assert list(estado.ruta_base(tmp_path, 5678, 77).parent.iterdir()) == []
+
     def test_olvidar_sin_carpeta_no_hace_nada(self, tmp_path):
         assert estado.olvidar_base(tmp_path, 5678, 77) is False
 
