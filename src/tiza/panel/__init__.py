@@ -59,6 +59,7 @@ __all__ = [
 TITULO = "tiza"
 ANCHO, ALTO, MINIMO = 820, 760, (560, 520)
 ESPERA_VIGILANTE = 0.5
+INTENTOS_MOSTRAR = 20  # con ESPERA_VIGILANTE: unos diez segundos esperando a que haya ventana
 ESPERA_CIERRE = 15.0  # lo que se espera a que la sesión se recoja tras cerrar la ventana
 
 
@@ -205,11 +206,13 @@ def abrir_login(
 # --- hilo de la ventana ---------------------------------------------------------------------
 
 
-def _intentar(accion: Callable[[], object]) -> None:
+def _intentar(accion: Callable[[], object]) -> object:
+    """Hace una operación de ventana de mejor esfuerzo; devuelve lo que ella devuelva, o
+    ``False`` si falla."""
     try:
-        accion()
+        return accion()
     except Exception:  # noqa: BLE001 - las operaciones de ventana son de mejor esfuerzo
-        pass
+        return False
 
 
 def vigilar(
@@ -234,6 +237,8 @@ def vigilar(
     siempre (visto en Windows 11 con pywebview 6.2.1). De ``ventana`` solo se usa ``destroy``,
     que sí pasa por ``Invoke``.
 
+    - Al arrancar: muestra la ventana una vez (aunque no haya pregunta) y, si aún no tiene
+      HWND (``mostrar`` devuelve False), lo reintenta unas pocas veces.
     - Pregunta pendiente: la ventana pasa a estar siempre encima, se restaura si estaba
       minimizada y parpadea en la barra de tareas (una vez por pregunta). Sin pregunta, deja
       de estar encima.
@@ -246,6 +251,8 @@ def vigilar(
     numero = -1
     avisada: int | None = None  # la pregunta por la que ya parpadeó
     delante = False  # ¿está ahora siempre encima?
+    intentos = 0  # veces que se ha intentado mostrar el panel al arrancar
+    visible = False  # ¿se consiguió mostrarlo al arrancar?
 
     def encima(valor: bool) -> None:
         nonlocal delante
@@ -260,6 +267,12 @@ def vigilar(
             return
         if panel.cerrado:
             return
+        if not visible and intentos < INTENTOS_MOSTRAR:
+            # Lanzado por el actualizador (o desde un proceso oculto) el panel puede nacer
+            # oculto: se muestra una vez, aunque no haya pregunta. Mientras la ventana no
+            # exista aún (sin HWND), ``mostrar`` devuelve False y se reintenta.
+            intentos += 1
+            visible = _intentar(mostrar) is not False
         if panel.dialogo_pedido:
             if delante:
                 encima(False)  # el diálogo de carpeta no debe quedar detrás del panel
@@ -424,6 +437,7 @@ def main() -> int:
         panel, abrir_login=lambda url: abrir_login(url, webview=webview, panel=panel)
     )
     puente = Puente(panel)
+    flujo.contar_actualizacion(presencia)  # si el actualizador acaba de reabrir el panel
     ventana = webview.create_window(
         TITULO,
         html=pagina(nuevo_nonce()),

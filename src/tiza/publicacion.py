@@ -148,6 +148,8 @@ AVISOS = frozenset(
         "NADA_QUE_CAMBIAR",
         "NOMBRES_NO_DISPONIBLES",
         "ORDENANDO_EN_PRUEBAS",
+        "PANEL_ACTUALIZADO",
+        "PANEL_NO_ACTUALIZADO",
         "PETICION_RETIRADA",
         "PRIMERA_VEZ",
         "PUBLICANDO_EN_PRUEBAS",
@@ -300,6 +302,16 @@ class Aviso:
     @classmethod
     def nada_que_cambiar(cls) -> Aviso:
         return cls("NADA_QUE_CAMBIAR")
+
+    @classmethod
+    def panel_actualizado(cls, version: str) -> Aviso:
+        """``version``: la que ha dejado instalada el actualizador del panel (``0.30.0``)."""
+        return cls("PANEL_ACTUALIZADO", {"version": version})
+
+    @classmethod
+    def panel_no_actualizado(cls, actual: str, log: str) -> Aviso:
+        """``actual``: la versión con la que se sigue; ``log``: dónde está el detalle."""
+        return cls("PANEL_NO_ACTUALIZADO", {"actual": actual, "log": log})
 
     @classmethod
     def nombres_no_disponibles(cls) -> Aviso:

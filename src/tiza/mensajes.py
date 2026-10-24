@@ -40,7 +40,12 @@ if TYPE_CHECKING:
     from .sesion import CursoSesion
 
 __all__ = [
+    "ACTUALIZANDO_TEXTO",
+    "ACTUALIZANDO_TITULO",
     "AUTOPRUEBA_TEXTO",
+    "NO_SE_ENTRO_QUE_HACER",
+    "NO_SE_ENTRO_TEXTO",
+    "NO_SE_ENTRO_TITULO",
     "PREGUNTA_ACTUALIZAR",
     "PREGUNTA_AISLAMIENTO",
     "PREGUNTA_AISLAR_AQUI",
@@ -692,6 +697,14 @@ def lineas_de_cursos(cursos: Sequence[CursoSesion]) -> tuple[str, ...]:
     return tuple(lineas)
 
 
+# Lo que el panel cuenta al docente cuando no se llegó a entrar en el aula y cuando se actualiza.
+NO_SE_ENTRO_TITULO = "No se entró en el aula"
+NO_SE_ENTRO_TEXTO = "La ventana de entrada se cerró o pasó el tiempo."
+NO_SE_ENTRO_QUE_HACER = "Vuelve a abrir tiza para intentarlo."
+ACTUALIZANDO_TITULO = "Se está actualizando"
+ACTUALIZANDO_TEXTO = "Se está actualizando; el panel se abrirá solo en un minuto o dos."
+
+
 def texto_actualizacion(nueva: str, actual: str) -> str:
     """La versión nueva de tiza (``nueva`` es la etiqueta, p. ej. ``v0.30.0``) y la que se tiene."""
     return f"Hay una versión nueva de tiza: {nueva[1:]} (tienes la {actual})."
@@ -973,6 +986,20 @@ def _maximo_alcanzado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _panel_actualizado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea(f"tiza se ha actualizado a la versión {texto_seguro(datos['version'])}."),)
+
+
+def _panel_no_actualizado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"No se pudo actualizar; sigues con la versión {texto_seguro(datos['actual'])} "
+            f"(detalle en {texto_seguro(datos['log'], 300)}).",
+            error=True,
+        ),
+    )
+
+
 def _nombres_no_disponibles(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("No se pudo leer la lista de tus cursos; se mostrarán solo los ids."),)
 
@@ -1063,6 +1090,8 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "NADA_QUE_CAMBIAR": _nada_que_cambiar,
     "NOMBRES_NO_DISPONIBLES": _nombres_no_disponibles,
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
+    "PANEL_ACTUALIZADO": _panel_actualizado,
+    "PANEL_NO_ACTUALIZADO": _panel_no_actualizado,
     "PETICION_RETIRADA": _peticion_retirada,
     "PRIMERA_VEZ": _primera_vez,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,

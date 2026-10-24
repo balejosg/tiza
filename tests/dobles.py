@@ -749,6 +749,8 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ORDENANDO_EN_PRUEBAS": publicacion.Aviso.ordenando_en_pruebas(
             (publicacion.DocumentoBreve("t.md", "pagina", "T"),)
         ),
+        "PANEL_ACTUALIZADO": publicacion.Aviso.panel_actualizado("0.30.0"),
+        "PANEL_NO_ACTUALIZADO": publicacion.Aviso.panel_no_actualizado("0.29.2", "actualizar.log"),
         "PETICION_RETIRADA": publicacion.Aviso.peticion_retirada(),
         "PRIMERA_VEZ": publicacion.Aviso.primera_vez(),
         "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),

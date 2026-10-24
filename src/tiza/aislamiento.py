@@ -45,6 +45,7 @@ __all__ = [
     "planear_carpeta",
     "planear_global",
     "quitar_permisos_de_mas",
+    "reglas_panel_windows",
     "regla_ruta",
     "reglas_agente_windows",
     "reglas_lectura_windows",
@@ -94,7 +95,8 @@ def reglas_webfetch(servidor: str) -> list[str]:
 
 # En Windows nativo Claude Code no tiene sandbox: el aislamiento lo imponen los permisos
 # (modo ``dontAsk``), así que se permite solo lo que el agente necesita de tiza. Los demás
-# comandos (empezar, sesion, configurar, autoprueba, aislar, actualizar) son del docente.
+# comandos (empezar, sesion, configurar, autoprueba, aislar, actualizar) son del docente,
+# igual que el panel (``tiza-panel``), que además se deniega expresamente.
 _SHELLS = ("PowerShell", "Bash")
 _COMANDOS_AGENTE = (
     "normativa",
@@ -111,6 +113,13 @@ _COMANDOS_AGENTE = (
     "revisar",
 )
 _COMANDOS_DOCENTE = ("empezar", "sesion", "configurar", "autoprueba", "aislar", "actualizar")
+# El panel sin consola es del docente: se lanza con su ejecutable o con el módulo.
+_PROGRAMAS_DOCENTE = (
+    "tiza-panel",
+    "tiza-panel.exe",
+    "python -m tiza.panel",
+    "pythonw -m tiza.panel",
+)
 # Los comandos de solo lectura integrados se ejecutan sin permiso en cualquier modo: se
 # deniegan para que el agente no lea con ellos fuera de lo que le toca.
 _LECTURA = {
@@ -161,6 +170,16 @@ def reglas_lectura_windows() -> list[str]:
         for shell in _SHELLS
         for comando in _LECTURA[shell]
         for regla in (f"{shell}({comando})", f"{shell}({comando} *)")
+    ]
+
+
+def reglas_panel_windows() -> list[str]:
+    """Reglas ``deny`` de Windows contra lanzar el panel de tiza, con y sin argumentos."""
+    return [
+        regla
+        for shell in _SHELLS
+        for programa in _PROGRAMAS_DOCENTE
+        for regla in (f"{shell}({programa})", f"{shell}({programa} *)")
     ]
 
 
@@ -667,6 +686,14 @@ def _revisar_claude_windows(
     reabrir: list[str] = []
     if carpeta is not None:
         reabrir = rutas_reabiertas(home or Path.home(), "Windows", carpeta)
+    sin_panel = [r for r in reglas_panel_windows() if r not in deny]
+    _comprobar(
+        lista,
+        CLAUDE,
+        not sin_panel,
+        "sin abrir el panel de tiza (es del docente)"
+        + (f" (faltan {len(sin_panel)} reglas)" if sin_panel else ""),
+    )
     sin_privadas = [
         r
         for r in _reglas_privadas_windows("Windows", reabrir, home or Path.home())
@@ -867,6 +894,7 @@ def _fusionar_claude_windows(
     _anadir(permisos, ("allow",), reglas_agente_windows(), cambios, "permitir {}")
     denegar = [
         *reglas_lectura_windows(),
+        *reglas_panel_windows(),
         *_reglas_privadas_windows("Windows", reabrir, home),
         *_reglas_tiza_windows("Read"),
         *_reglas_tiza_windows("Edit"),

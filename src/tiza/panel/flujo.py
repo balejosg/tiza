@@ -8,27 +8,53 @@ con el resultado. Todo lo que habla con el docente pasa por la ``Presencia`` rec
 
 from __future__ import annotations
 
+import os
+import shutil
 import threading
-from collections.abc import Callable
+import time
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
-from .. import aislamiento, arranque, mensajes, sesion
+from .. import __version__, actualizacion, aislamiento, arranque, mensajes, sesion
 from ..publicacion import Aviso, Presencia
 from . import recientes
 from .estado import Panel
 
-__all__ = ["MINUTOS", "ejecutar"]
+__all__ = ["MINUTOS", "contar_actualizacion", "ejecutar", "instalar_con_actualizador"]
 
 MINUTOS = 60
+PAUSA_ACTUALIZACION = 3.0  # lo que se deja leer «Se está actualizando» antes de cerrar
 
 
-def _sin_actualizacion() -> None:
-    # Las actualizaciones desde el panel son de la fase 4: por ahora nunca hay versión nueva.
-    return None
+def instalar_con_actualizador(
+    nueva: str,
+    *,
+    lanzar: Callable[..., bool] = actualizacion.lanzar_panel_oculto,
+    buscar_uv: Callable[[str], str | None] = shutil.which,
+) -> bool:
+    """Lanza el actualizador oculto de Windows (espera a que este proceso termine); True si salió."""
+    uv = buscar_uv("uv")
+    return uv is not None and lanzar(uv, nueva)
 
 
-def _no_instalar(_version: str) -> bool:
-    return False
+def contar_actualizacion(presencia: Presencia, entorno: Mapping[str, str] | None = None) -> None:
+    """Si el actualizador acaba de reabrir el panel, lo cuenta en el registro (una vez)."""
+    if entorno is None:
+        entorno = dict(os.environ)
+        os.environ.pop(actualizacion.VARIABLE_RESULTADO, None)  # que no pase a procesos hijos
+    resultado = actualizacion.resultado_del_entorno(entorno)
+    if resultado is None:
+        return
+    se_actualizo, version = resultado
+    if se_actualizo:
+        presencia.informar(Aviso.panel_actualizado(version))
+    else:
+        presencia.informar(Aviso.panel_no_actualizado(__version__, str(actualizacion.ruta_log())))
+
+
+def presencia_sin_entrar(presencia: Presencia) -> bool:
+    """¿Se pidió entrar en el aula y no se entró? (solo la presencia del panel lo recuerda)."""
+    return getattr(presencia, "sin_entrar", False) is True
 
 
 def _faltas(home: Path, sistema: str, carpeta: Path, revisar: Callable) -> list:
@@ -55,8 +81,15 @@ def ejecutar(
     preparar: Callable[..., arranque.Resultado] = arranque.preparar,
     revisar: Callable[..., list] = aislamiento.revisar,
     minutos: int = MINUTOS,
+    version_nueva: Callable[[], str | None] = actualizacion.version_nueva,
+    instalar: Callable[[str], bool] = instalar_con_actualizador,
+    pausa: float = PAUSA_ACTUALIZACION,
 ) -> int:
-    """Carpeta, arranque, sesión y pantalla final. Devuelve 0 si la sesión se abrió y se cerró."""
+    """Carpeta, arranque, sesión y pantalla final. Devuelve 0 si la sesión se abrió y se cerró.
+
+    Con una versión nueva el arranque ofrece actualizar: ``instalar`` lanza el actualizador,
+    el panel deja una pantalla de reposo y se cierra para que el actualizador siga.
+    """
     carpeta = panel.esperar_carpeta(recientes.leer())
     if carpeta is None:
         panel.reposo("Cancelado", ["No se ha elegido ninguna carpeta."])
@@ -69,14 +102,16 @@ def ejecutar(
             presencia,
             home=home,
             sistema=sistema,
-            version_nueva=_sin_actualizacion,
-            instalar=_no_instalar,
+            version_nueva=version_nueva,
+            instalar=instalar,
             exigir_aislamiento=True,
         )
     except Exception as exc:  # noqa: BLE001 - el docente ve el tipo; el detalle no sale
         return _error_interno(panel, presencia, exc)
     if resultado.estado is arranque.Estado.ACTUALIZADA:
-        panel.reposo("tiza se ha actualizado", ["Vuelve a abrir el panel."])
+        panel.reposo(mensajes.ACTUALIZANDO_TITULO, [mensajes.ACTUALIZANDO_TEXTO])
+        time.sleep(pausa)  # que el docente llegue a leerlo antes de que se cierre el panel
+        panel.salir()
         return 0
     if resultado.estado is arranque.Estado.FALLO:
         lineas = mensajes.lineas_de_error(resultado.codigo, resultado.detalle)
@@ -101,6 +136,12 @@ def ejecutar(
         codigo = abrir_sesion(carpeta, presencia, minutos=minutos, preparar=True, cerrar=cerrar)
     except Exception as exc:  # noqa: BLE001
         return _error_interno(panel, presencia, exc)
+    if codigo != 0 and presencia_sin_entrar(presencia):
+        panel.reposo(
+            mensajes.NO_SE_ENTRO_TITULO,
+            [mensajes.NO_SE_ENTRO_TEXTO, mensajes.NO_SE_ENTRO_QUE_HACER],
+        )
+        return 1
     if codigo == 0:
         panel.reposo("Sesión cerrada", ["Puedes cerrar el panel. Para volver a trabajar, ábrelo."])
         return 0

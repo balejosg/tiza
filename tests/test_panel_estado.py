@@ -673,6 +673,53 @@ def test_acreditar_con_el_panel_cerrado_no_abre_el_login():
     assert llamadas == []
 
 
+def test_acreditar_recuerda_si_no_se_entro():
+    e = Entorno(abrir_login=lambda url: None)
+    assert e.presencia.sin_entrar is False
+    e.presencia.acreditar("https://aula.ejemplo.org", "ana")
+    assert e.presencia.sin_entrar is True
+    cookies = publicar.Cookies((("MoodleSession", "valor", "aula.ejemplo.org"),))
+    e2 = Entorno(abrir_login=lambda url: cookies)
+    e2.presencia.acreditar("https://aula.ejemplo.org", "ana")
+    assert e2.presencia.sin_entrar is False
+    e3 = Entorno()  # sin ventana de entrada
+    e3.presencia.acreditar("https://aula.ejemplo.org", "ana")
+    assert e3.presencia.sin_entrar is True
+
+
+def test_sin_entrar_la_cancelacion_no_dice_que_el_docente_respondio_que_no():
+    e = Entorno(abrir_login=lambda url: None)
+    e.presencia.acreditar("https://aula.ejemplo.org", "ana")
+    e.presencia.informar(publicacion.Aviso.cancelada())
+    pantalla = e.puente.estado()["pantalla"]
+    assert pantalla["titulo"] == "No se entró en el aula"
+    registro = [r["texto"] for r in e.puente.estado()["registro"]]
+    assert registro == ["No se entró en el aula. La ventana de entrada se cerró o pasó el tiempo."]
+
+
+def test_con_la_entrada_hecha_la_cancelacion_sigue_como_siempre():
+    cookies = publicar.Cookies((("MoodleSession", "valor", "aula.ejemplo.org"),))
+    e = Entorno(abrir_login=lambda url: cookies)
+    e.presencia.acreditar("https://aula.ejemplo.org", "ana")
+    e.presencia.informar(publicacion.Aviso.cancelada())
+    assert [r["texto"] for r in e.puente.estado()["registro"]] == ["Operación cancelada."]
+
+
+def test_tiza_actualizada_en_el_panel_no_habla_de_otra_ventana():
+    e = Entorno()
+    e.presencia.informar(publicacion.Aviso.tiza_actualizada(True))
+    registro = " ".join(r["texto"] for r in e.puente.estado()["registro"])
+    assert "otra ventana" not in registro
+    assert "se abrirá solo" in registro
+
+
+def test_salir_marca_la_salida_y_cierra_sin_pregunta():
+    panel = Panel()
+    assert not panel.salida_pedida
+    panel.salir()
+    assert panel.salida_pedida and panel.cerrado
+
+
 # --- registro y esperar_cambio -------------------------------------------------------------
 
 

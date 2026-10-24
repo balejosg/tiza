@@ -213,11 +213,24 @@ en español.
   `tiza.toml` de cada carpeta) y presencia humana en la terminal (`terminal.PresenciaTerminal`:
   TTY, `getpass`, confirmación `[s/N]`, con el texto de `mensajes`); `cli.instalar_skill`
   copia la skill a Claude Code, Codex, opencode y `~/.agents/skills`.
+- `src/tiza/actualizacion.py`: **versiones e instalación de tiza**, sin `print`: la última etiqueta
+  publicada (`ultima_etiqueta`, `version_nueva`), la validación de `TIZA_REF` (`validar_ref`),
+  los orígenes y paquetes de uv, `quiere_ventana`, y en Windows los guiones de PowerShell y su
+  entorno (`TIZA_ACT_*`; funciones puras, el `Popen` se inyecta): `GUION_WINDOWS` (`tiza actualizar`,
+  en otra consola) y `GUION_PANEL` (el panel, PowerShell oculto con `CREATE_NO_WINDOW`: espera al
+  PID, instala solo `tiza[ventana]`, reinstala la skill, recrea los accesos, escribe
+  `actualizar.log` en la carpeta global y reabre `tiza-panel.exe` en ventana normal). `ACCESOS_PS`
+  (los accesos «tiza» del menú Inicio y el escritorio) está **duplicado a propósito en
+  `install.ps1`** (se ejecuta con `irm | iex`): un test los mantiene iguales. En PowerShell
+  `"$var:"` es un error de sintaxis (`"${var}:"`). `cli.py` conserva la salida y usa estas piezas.
 - `src/tiza/panel/`: el panel sin consola de Windows (`tiza-panel`, `[project.gui-scripts]`).
   **`tiza-panel` es del docente, como `tiza empezar`: ningún agente lo lanza** (ni con
   `Start-Process`, `explorer` ni `pythonw -m tiza.panel`); sin consola, lo que lo impide es el
   perfil de permisos de `tiza aislar`, y por eso el panel no abre la sesión con el agente sin
-  aislar. Piezas:
+  aislar. **El perfil de Windows lo deniega expresamente** (`aislamiento.reglas_panel_windows`:
+  `tiza-panel`, `tiza-panel.exe`, `python -m tiza.panel` y `pythonw -m tiza.panel`, con y sin
+  argumentos, en PowerShell y Bash); `aislamiento.revisar` las exige y un `allow` que permita el
+  panel es «de más» (`shell_de_mas`, `quitar_permisos_de_mas`). Piezas:
   - `estado.py`, el modelo: `Pantalla` (datos JSON), `Panel` (estado entre hilos), `PresenciaPanel`
     (cumple `publicacion.Presencia`; cada pregunta bloquea hasta la respuesta o el cierre, que
     cuenta como no) y `Puente` (el `js_api`: solo acciones, respuestas simples, con retardo mínimo
@@ -228,8 +241,13 @@ en español.
   - `recientes.py` (puro): hasta 8 carpetas en `panel-recientes.json` junto a la configuración
     global; un fichero roto es una lista vacía y un fallo al escribir se ignora.
   - `flujo.py` (puro): carpeta, `arranque.preparar(exigir_aislamiento=True)`, `sesion.abrir` y una
-    pantalla final de reposo. Las actualizaciones desde el panel son de la fase 4
-    (`version_nueva` devuelve siempre None).
+    pantalla final de reposo. `version_nueva` e `instalar` se inyectan (por defecto,
+    `actualizacion.version_nueva` e `instalar_con_actualizador`, que lanza el actualizador oculto);
+    tras `ACTUALIZADA` deja el reposo «Se está actualizando» y pide la salida (`Panel.salir`) para
+    que el proceso termine y el actualizador siga. Si la ventana de entrada al aula se cierra o
+    caduca (`PresenciaPanel.sin_entrar`), el final dice «No se entró en el aula». Al reabrirse
+    tras actualizar, `contar_actualizacion` lee `TIZA_PANEL_ACTUALIZACION` (`ok:X.Y.Z` o `fallo`)
+    y lo cuenta con `Aviso.panel_actualizado` / `Aviso.panel_no_actualizado`.
   - `sesion.html`: la página (dato del paquete), cargada con `html=`. Mismas reglas que la de la
     ventana de sesión antigua: ni `<a>`, ni `innerHTML`/`outerHTML`/`insertAdjacentHTML`/`document.write`
     /`eval`/`new Function`; todo con `createElement` + `textContent`; CSP con nonce por arranque y
@@ -242,7 +260,8 @@ en español.
     `vigilar` es el hilo de la ventana: pone el panel delante y lo hace parpadear cuando hay una
     pregunta, abre el diálogo de carpeta y destruye la ventana al cerrar la sesión. Las
     operaciones de ventana (`on_top`, `restore`, `show`, `destroy`, el diálogo) van siempre desde
-    ese hilo, nunca dentro de una llamada del `js_api`: cuelgan la ventana. `abrir_login` crea la
+    ese hilo, nunca dentro de una llamada del `js_api`: cuelgan la ventana. Al arrancar, `vigilar`
+    muestra la ventana una vez (con reintentos si aún no hay HWND) por si nació oculta. `abrir_login` crea la
     ventana de entrada en el mismo proceso, sin `js_api`; la cookie nunca sale del proceso.
 - `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
   Windows, macOS y Linux con escritorio, con Qt o GTK). **Solo enseña la página de login del aula y devuelve las cookies de

@@ -65,6 +65,18 @@ jobs:
             if [ -x "$py" ]; then "$py" -c "import webview; import tiza.ventana as v; print('ventana importable')" && exit 0; fi
           done
           echo "no se encontró el intérprete de tiza" && exit 1
+      - name: Comprobar el panel y los accesos del menú Inicio (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+          $bin = (uv tool dir --bin) | Select-Object -First 1
+          $panel = Join-Path $bin 'tiza-panel.exe'
+          if (-not (Test-Path -LiteralPath $panel)) { throw "Falta $panel" }
+          $acceso = Join-Path ([Environment]::GetFolderPath('Programs')) 'tiza.lnk'
+          if (-not (Test-Path -LiteralPath $acceso)) { throw "Falta el acceso $acceso" }
+          $destino = (New-Object -ComObject WScript.Shell).CreateShortcut($acceso).TargetPath
+          if ($destino -ne $panel) { throw "El acceso apunta a $destino y no a $panel" }
 
   calidad:
     # Lint, tipos y cobertura mínima. Herramientas efímeras (uvx / --with): no son

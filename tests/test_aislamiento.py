@@ -849,6 +849,47 @@ class TestClaudeWindows:
             for regla in (f"Read({base})", f"Read({base}/**)", f"Edit({base})", f"Edit({base}/**)"):
                 assert regla in deny
 
+    def test_deniega_lanzar_el_panel_en_los_dos_shells(self):
+        deny = self.perfil()[0]["permissions"]["deny"]
+        for shell in ("PowerShell", "Bash"):
+            for programa in (
+                "tiza-panel",
+                "tiza-panel.exe",
+                "python -m tiza.panel",
+                "pythonw -m tiza.panel",
+            ):
+                assert f"{shell}({programa})" in deny
+                assert f"{shell}({programa} *)" in deny
+        assert len(aislamiento.reglas_panel_windows()) == 16
+        assert set(aislamiento.reglas_panel_windows()).isdisjoint(
+            aislamiento.reglas_agente_windows()
+        )
+
+    def test_revisar_sin_las_reglas_del_panel_falta(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        nuevo["permissions"]["deny"].remove("PowerShell(tiza-panel.exe *)")
+        nuevo["permissions"]["deny"].remove("Bash(pythonw -m tiza.panel)")
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))
+        assert textos == ["sin abrir el panel de tiza (es del docente) (faltan 2 reglas)"]
+
+    @pytest.mark.parametrize(
+        "regla",
+        [
+            "PowerShell(tiza-panel)",
+            "Bash(tiza-panel *)",
+            "PowerShell(tiza-panel.exe)",
+            "Bash(pythonw -m tiza.panel *)",
+        ],
+    )
+    def test_un_allow_que_permita_el_panel_es_de_mas(self, regla):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        nuevo["permissions"]["allow"].append(regla)
+        assert aislamiento.shell_de_mas(nuevo) == [regla]
+        assert len(faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))) == 1
+        limpio, cambios = aislamiento.quitar_permisos_de_mas(nuevo)
+        assert regla not in limpio["permissions"]["allow"]
+        assert cambios == [f"dejar de permitir {regla}"]
+
     def test_sin_servidor_no_hay_webfetch(self):
         deny = self.perfil()[0]["permissions"]["deny"]
         assert not any(regla.startswith("WebFetch") for regla in deny)

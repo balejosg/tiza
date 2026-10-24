@@ -372,10 +372,16 @@ class Panel:
         with self._cv:
             if not self._atendible(numero):
                 return False
+        self.salir()
+        return True
+
+    def salir(self) -> None:
+        """Cierra el panel por decisión propia (sin pregunta): la ventana la destruye el hilo
+        de la ventana y la sesión se recoge. Lo usa el flujo tras lanzar la actualización."""
+        with self._cv:
             self._salir = True
             self._cv.notify_all()
         self.cerrar()
-        return True
 
     def esperar_carpeta(self, usadas: Sequence[Path] = ()) -> Path | None:
         """Pregunta la carpeta de la asignatura; None si se cierra el panel.
@@ -500,6 +506,7 @@ class PresenciaPanel:
         self._panel = panel
         self._abrir_login = abrir_login
         self._reloj = reloj
+        self.sin_entrar = False  # ¿se pidió entrar en el aula y la acreditación no llegó?
 
     # --- helpers ---
 
@@ -548,12 +555,15 @@ class PresenciaPanel:
                 usuario=_t(usuario, MAX_USUARIO),
             )
         )
+        self.sin_entrar = True
         if self._abrir_login is None or self._panel.cerrado:
             return None
         try:
-            return self._abrir_login(url)
+            acreditacion = self._abrir_login(url)
         finally:
             self._panel.mostrar(Pantalla(0, "reposo", titulo="Conectando…"))
+        self.sin_entrar = acreditacion is None  # la ventana se cerró o pasó el tiempo
+        return acreditacion
 
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:
         validos = [curso for curso in cursos if curso["id"] != excluir]
@@ -767,6 +777,29 @@ class PresenciaPanel:
         )
 
     def informar(self, aviso: Aviso) -> None:
+        if aviso.codigo == "TIZA_ACTUALIZADA":
+            # El actualizador del panel no abre otra ventana: el panel se reabre solo.
+            self._panel.anotar(mensajes.ACTUALIZANDO_TEXTO)
+            return
+        if (
+            aviso.codigo == "RESULTADO"
+            and self.sin_entrar
+            and aviso.datos["documento"].get("resultado") == "abortado"
+        ):
+            return  # «Has respondido que no»: lo cuenta el aviso siguiente, con lo que pasó
+        if aviso.codigo == "CANCELADA" and self.sin_entrar:
+            # «Has respondido que no» confunde cuando lo que pasó es que no se entró.
+            self._panel.anotar(f"{mensajes.NO_SE_ENTRO_TITULO}. {mensajes.NO_SE_ENTRO_TEXTO}", True)
+            self._panel.marcar_sesion(False)
+            self._panel.mostrar(
+                Pantalla(
+                    0,
+                    "reposo",
+                    titulo=mensajes.NO_SE_ENTRO_TITULO,
+                    lineas=_lineas([mensajes.NO_SE_ENTRO_TEXTO, mensajes.NO_SE_ENTRO_QUE_HACER]),
+                )
+            )
+            return
         lineas = mensajes.lineas_de_aviso(aviso)
         for linea in lineas:
             self._panel.anotar(linea.texto, linea.error)

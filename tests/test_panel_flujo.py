@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from dobles import PresenciaFalsa
-from tiza import arranque, config
+from tiza import __version__, actualizacion, arranque, config, informe, publicacion
 from tiza.aislamiento import Comprobacion
 from tiza.panel import flujo, recientes
 from tiza.panel.estado import RETARDO_RESPUESTA, Panel, PresenciaPanel
@@ -38,10 +38,14 @@ def asignatura(tmp_path):
 class Escenario:
     """El hilo del flujo con un panel de reloj falso; el test hace de docente."""
 
-    def __init__(self, *, preparar=None, abrir_sesion=None, revisar=None, presencia=None) -> None:
+    def __init__(
+        self, *, preparar=None, abrir_sesion=None, revisar=None, presencia=None, abrir_login=None
+    ) -> None:
         self.reloj = Reloj()
         self.panel = Panel(reloj=self.reloj)
-        self.presencia = presencia or PresenciaPanel(self.panel, reloj=self.reloj)
+        self.presencia = presencia or PresenciaPanel(
+            self.panel, reloj=self.reloj, abrir_login=abrir_login
+        )
         self.cerrar = threading.Event()
         self.llamadas: list[tuple] = []
         self.resultado: dict = {}
@@ -70,6 +74,9 @@ class Escenario:
                 preparar=self.preparar,
                 revisar=self.revisar,
                 minutos=45,
+                version_nueva=lambda: None,
+                instalar=lambda _version: False,
+                pausa=0,
             )
         except BaseException as exc:  # pragma: no cover - se ve en el test
             self.resultado["error"] = exc
@@ -112,7 +119,7 @@ def test_recorrido_completo_con_el_dialogo(asignatura):
     assert presencia_p is presencia_s is e.presencia
     assert opciones_p["home"] == Path("/casa") and opciones_p["sistema"] == "Windows"
     assert opciones_p["exigir_aislamiento"] is True
-    assert opciones_p["version_nueva"]() is None  # las actualizaciones son de la fase 4
+    assert opciones_p["version_nueva"]() is None  # lo que pasó el flujo (aquí, sin versión nueva)
     assert opciones_p["instalar"]("9.9.9") is False
     assert opciones_s == {"minutos": 45, "preparar": True, "cerrar": e.cerrar}
     assert recientes.leer() == [asignatura]
@@ -203,13 +210,144 @@ def test_abortado_con_la_revision_ilegible_es_cancelado(asignatura):
     assert e.final()["titulo"] == "Cancelado"
 
 
-def test_actualizada_pide_volver_a_abrir(asignatura):
+def test_actualizada_deja_el_reposo_y_pide_la_salida_para_que_siga_el_actualizador(asignatura):
     e = Escenario(
         preparar=lambda *_a, **_k: arranque.Resultado(arranque.Estado.ACTUALIZADA)
     ).empezar()
     e.elegir_con_dialogo(asignatura)
     assert e.terminar() == 0
-    assert e.final()["titulo"] == "tiza se ha actualizado"
+    final = e.final()
+    assert final["titulo"] == "Se está actualizando"
+    assert "el panel se abrirá solo en un minuto o dos" in final["lineas"][0]
+    assert e.panel.salida_pedida  # el hilo de la ventana la cierra y el proceso termina
+    assert e.panel.cerrado
+
+
+def test_el_flujo_pasa_al_arranque_la_version_y_el_instalador_recibidos(asignatura):
+    def version():
+        return "v9.0.0"
+
+    def instalar(_v):
+        return True
+
+    e = Escenario()
+    e.hilo = threading.Thread(
+        target=lambda: e.resultado.update(
+            codigo=flujo.ejecutar(
+                e.panel,
+                e.presencia,
+                home=Path("/casa"),
+                sistema="Windows",
+                cerrar=e.cerrar,
+                abrir_sesion=e.abrir_sesion,
+                preparar=e.preparar,
+                revisar=e.revisar,
+                version_nueva=version,
+                instalar=instalar,
+            )
+        ),
+        daemon=True,
+    )
+    e.empezar()
+    e.elegir_con_dialogo(asignatura)
+    e.terminar()
+    opciones = e.llamadas[0][3]
+    assert opciones["version_nueva"] is version and opciones["instalar"] is instalar
+
+
+def test_si_no_se_entra_en_el_aula_el_final_lo_dice_claro(asignatura):
+    llamadas: list[str] = []
+
+    def sin_entrar(url):
+        llamadas.append(url)
+        return None  # la ventana de entrada se cerró o pasó el tiempo
+
+    holder: dict = {}
+
+    def abrir_sesion(carpeta, presencia, **_k):
+        assert presencia.acreditar("https://aula.example", "docente") is None
+        presencia.informar(
+            publicacion.Aviso.resultado(
+                informe.crear("sesion", "abortado", [], [], ["ABORTADO"], None, None)
+            )
+        )
+        presencia.informar(publicacion.Aviso.cancelada())
+        holder["hecho"] = True
+        return 1
+
+    e = Escenario(abrir_login=sin_entrar, abrir_sesion=abrir_sesion).empezar()
+    e.elegir_con_dialogo(asignatura)
+    assert e.terminar() == 1
+    assert llamadas == ["https://aula.example"] and holder["hecho"]
+    final = e.final()
+    assert final["titulo"] == "No se entró en el aula"
+    assert final["lineas"] == (
+        "La ventana de entrada se cerró o pasó el tiempo.",
+        "Vuelve a abrir tiza para intentarlo.",
+    )
+    textos = " ".join(r["texto"] for r in e.panel.estado()["registro"])
+    assert "Has respondido que no" not in textos
+
+
+def test_un_fallo_de_la_sesion_con_la_entrada_hecha_sigue_siendo_la_sesion_no_abierta(asignatura):
+    def abrir_sesion(carpeta, presencia, **_k):
+        assert presencia.acreditar("https://aula.example", "docente") is not None
+        return 1
+
+    e = Escenario(abrir_login=lambda _url: object(), abrir_sesion=abrir_sesion).empezar()
+    e.elegir_con_dialogo(asignatura)
+    assert e.terminar() == 1
+    assert e.final()["titulo"] == "La sesión no se abrió"
+
+
+def test_instalar_con_actualizador_lanza_con_uv_y_la_version():
+    lanzadas: list[tuple] = []
+
+    def lanzar(uv, version):
+        lanzadas.append((uv, version))
+        return True
+
+    assert flujo.instalar_con_actualizador("v9.0.0", lanzar=lanzar, buscar_uv=lambda _n: "/bin/uv")
+    assert lanzadas == [("/bin/uv", "v9.0.0")]
+
+
+def test_instalar_con_actualizador_sin_uv_no_lanza_nada():
+    def lanzar(*_a):
+        raise AssertionError("no debe lanzar")
+
+    assert not flujo.instalar_con_actualizador("v9.0.0", lanzar=lanzar, buscar_uv=lambda _n: None)
+
+
+def test_contar_actualizacion_si_se_actualizo():
+    presencia = PresenciaFalsa()
+    flujo.contar_actualizacion(presencia, {actualizacion.VARIABLE_RESULTADO: "ok:0.30.0"})
+    assert presencia.codigos() == ["PANEL_ACTUALIZADO"]
+    assert presencia.avisos[0].datos == {"version": "0.30.0"}
+
+
+def test_contar_actualizacion_si_fallo_dice_la_version_y_el_log(tmp_path):
+    presencia = PresenciaFalsa()
+    flujo.contar_actualizacion(presencia, {actualizacion.VARIABLE_RESULTADO: "fallo"})
+    assert presencia.codigos() == ["PANEL_NO_ACTUALIZADO"]
+    datos = presencia.avisos[0].datos
+    assert datos["actual"] == __version__
+    assert datos["log"] == str(tmp_path / "global" / "actualizar.log")
+
+
+@pytest.mark.parametrize("valor", [None, "", "ok:", "ok:main", "ok:1.2", "otra cosa", "OK:1.2.3"])
+def test_contar_actualizacion_ignora_lo_que_no_es_del_actualizador(valor):
+    presencia = PresenciaFalsa()
+    entorno = {} if valor is None else {actualizacion.VARIABLE_RESULTADO: valor}
+    flujo.contar_actualizacion(presencia, entorno)
+    assert presencia.codigos() == []
+
+
+def test_contar_actualizacion_con_el_entorno_real_borra_la_variable(monkeypatch):
+    monkeypatch.setenv(actualizacion.VARIABLE_RESULTADO, "ok:0.30.0")
+    presencia = PresenciaFalsa()
+    flujo.contar_actualizacion(presencia)
+    assert presencia.codigos() == ["PANEL_ACTUALIZADO"]
+    assert actualizacion.VARIABLE_RESULTADO not in flujo.os.environ
 
 
 def test_una_sesion_que_no_llega_a_abrirse_es_un_fallo(asignatura):

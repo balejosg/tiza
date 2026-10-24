@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import importlib.resources
 import importlib.util
 import json
 import os
 import platform
-import re
 import shutil
 import subprocess
 import sys
@@ -18,10 +16,9 @@ import unicodedata
 from collections.abc import Sequence
 from pathlib import Path
 
-import requests
-
 from . import (
     __version__,
+    actualizacion,
     agente,
     aislamiento,
     arranque,
@@ -49,11 +46,8 @@ from .terminal import ErrorTerminal
 
 __all__ = ["main", "instalar_skill"]
 
-REPO_GIT = "https://github.com/balejosg/tiza"
-# Python fijo (como en los instaladores): uv usaría el más nuevo, y una versión recién salida
-# aún no tiene wheels de todas las dependencias (pyyaml, por ejemplo) y habría que compilarlas.
-PYTHON_INSTALADO = "3.13"
-_REF_VALIDA = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._/-]{0,99}\Z")  # etiqueta, rama o commit
+REPO_GIT = actualizacion.REPO_GIT
+PYTHON_INSTALADO = actualizacion.PYTHON_INSTALADO
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -641,13 +635,12 @@ def _actualizar() -> int:
         _imprimir_error(exc.codigo, exc.detalle)
         return 1
     ref = os.environ.get("TIZA_REF")
-    if ref and (not _REF_VALIDA.match(ref) or ".." in ref):
-        _imprimir_error(
-            "REF_NO_VALIDA",
-            "TIZA_REF solo admite letras, números, «.», «_», «-» y «/», y debe empezar por una "
-            "letra o un número",
-        )
-        return 1
+    if ref:
+        try:
+            actualizacion.validar_ref(ref)
+        except actualizacion.ErrorActualizacion as exc:
+            _imprimir_error(exc.codigo, exc.detalle)
+            return 1
     uv = shutil.which("uv")
     if uv is None:
         _imprimir_error(
@@ -657,7 +650,7 @@ def _actualizar() -> int:
     # Los instaladores fijan una etiqueta y «uv tool upgrade» nunca sale de ella: se
     # reinstala la última etiqueta publicada (o la de TIZA_REF, como en el instalador).
     if not ref:
-        ref = _ultima_etiqueta()
+        ref = actualizacion.ultima_etiqueta()
         if ref is None:
             _imprimir_error(
                 "ACTUALIZACION_FALLIDA", "no se pudo consultar la última versión publicada."
@@ -679,13 +672,15 @@ def _instalar_version(uv: str, ref: str) -> bool:
     ``python.exe`` ni el ``tiza.exe`` que están en marcha (os error 5). Allí la instalación
     sigue en otra consola, cuando esta tiza ya ha terminado (``_instalar_aparte``).
     """
-    con_ventana = _quiere_ventana()  # sin el extra, la actualización dejaría sin ventana
-    paquetes = _paquetes(ref, con_ventana)
+    con_ventana = (
+        actualizacion.quiere_ventana()
+    )  # sin el extra, la actualización dejaría sin ventana
+    paquetes = actualizacion.paquetes(ref, con_ventana)
     if sys.platform == "win32":
         return _instalar_aparte(uv, ref, paquetes, con_ventana)
     instalado = False
     for paquete in paquetes:
-        if _uv_instala(uv, paquete):
+        if actualizacion.uv_instala(uv, paquete):
             if con_ventana and not paquete.startswith("tiza[ventana]"):
                 print("No se pudo instalar la ventana de entrada: se entrará con la contraseña.")
             instalado = True
@@ -702,74 +697,10 @@ def _instalar_version(uv: str, ref: str) -> bool:
     return True
 
 
-def _paquetes(ref: str, con_ventana: bool) -> list[str]:
-    """Lo que se pide a uv, en orden: de cada origen, con la ventana y, si no, sin ella."""
-    paquetes: list[str] = []
-    for origen in _origenes(ref):
-        if con_ventana:
-            paquetes.append(f"tiza[ventana] @ {origen}")
-        paquetes.append(f"tiza @ {origen}")
-    return paquetes
-
-
-# La actualización en Windows, en PowerShell. Es fija: los datos llegan por el entorno
-# (TIZA_ACT_*), así que nada de lo que varía se interpreta como código.
-_GUION_WINDOWS = """
-$ErrorActionPreference = 'Continue'
-$Host.UI.RawUI.WindowTitle = 'Actualizar tiza'
-Write-Host "Actualizando tiza a «$env:TIZA_ACT_REF». Esperando a que se cierre tiza..."
-Wait-Process -Id ([int]$env:TIZA_ACT_PID) -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
-$uv = $env:TIZA_ACT_UV
-$hecho = $false
-foreach ($paquete in $env:TIZA_ACT_PAQUETES.Split('|')) {
-    & $uv tool install --force --python $env:TIZA_ACT_PYTHON $paquete
-    if ($LASTEXITCODE -eq 0) {
-        $hecho = $true
-        if ($env:TIZA_ACT_VENTANA -eq '1' -and -not $paquete.StartsWith('tiza[ventana]')) {
-            Write-Host 'No se pudo instalar la ventana de entrada: se entrará con la contraseña.'
-        }
-        break
-    }
-}
-Write-Host ''
-if ($hecho) {
-    $tiza = Join-Path ((& $uv tool dir --bin) | Select-Object -First 1) 'tiza.exe'
-    & $tiza instalar-skill
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host 'tiza está actualizada. Ya puedes cerrar esta ventana y volver a abrir la sesión.'
-    } else {
-        Write-Host 'ERROR [SKILL_NO_INSTALADA]: no se pudo reinstalar la skill.'
-        Write-Host 'Qué hacer: ejecuta «tiza instalar-skill».'
-    }
-} else {
-    Write-Host 'ERROR [ACTUALIZACION_FALLIDA]: no se pudo actualizar tiza.'
-    Write-Host ('Qué hacer: cierra todas las ventanas donde esté abierto tiza (también ' +
-        '«tiza sesion») y vuelve a ejecutar «tiza actualizar».')
-}
-Read-Host 'Pulsa Intro para cerrar esta ventana'
-"""
-
-
 def _instalar_aparte(uv: str, ref: str, paquetes: list[str], con_ventana: bool) -> bool:
     """Windows: lanza la actualización en otra consola, que espera a que esta tiza termine."""
-    entorno = dict(os.environ)
-    entorno.update(
-        {
-            "TIZA_ACT_PID": str(os.getpid()),
-            "TIZA_ACT_REF": ref,
-            "TIZA_ACT_UV": uv,
-            "TIZA_ACT_PYTHON": PYTHON_INSTALADO,
-            "TIZA_ACT_PAQUETES": "|".join(paquetes),
-            "TIZA_ACT_VENTANA": "1" if con_ventana else "0",
-        }
-    )
-    guion = base64.b64encode(_GUION_WINDOWS.encode("utf-16-le")).decode("ascii")
-    orden = ["powershell.exe", "-NoProfile", "-EncodedCommand", guion]
     try:
-        subprocess.Popen(
-            orden, env=entorno, creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0x10)
-        )
+        actualizacion.lanzar_consola(uv, ref, paquetes, con_ventana)
     except OSError:
         _imprimir_error("ACTUALIZACION_FALLIDA", "no se pudo abrir la ventana de la actualización.")
         return False
@@ -780,83 +711,15 @@ def _instalar_aparte(uv: str, ref: str, paquetes: list[str], con_ventana: bool) 
     return True
 
 
-def _uv_instala(uv: str, paquete: str) -> bool:
-    orden = [uv, "tool", "install", "--force", "--python", PYTHON_INSTALADO, paquete]
-    return subprocess.run(orden).returncode == 0
-
-
-def _origenes(ref: str) -> list[str]:
-    """De dónde instala uv ``ref``, en orden, sin git (como los instaladores).
-
-    Una versión publicada (vX.Y.Z) se instala desde el wheel de su release, que no hay que
-    construir; si aún no está subido, desde el .zip. Una rama o un commit, desde el .zip.
-    Las referencias con «/» (ramas con barra, solo para desarrollo) no tienen .zip y
-    necesitan git.
-    """
-    if "/" in ref:
-        return [f"git+{REPO_GIT}@{ref}"]
-    zip_ = f"{REPO_GIT}/archive/{ref}.zip"
-    if re.fullmatch(r"v\d+\.\d+\.\d+", ref):
-        return [f"{REPO_GIT}/releases/download/{ref}/tiza-{ref[1:]}-py3-none-any.whl", zip_]
-    return [zip_]
-
-
 def _version_nueva() -> str | None:
-    """La etiqueta publicada más alta si es posterior a esta tiza; None si no, o si no se sabe.
-
-    No falla nunca: sin conexión (o sin uv) ``tiza empezar`` sigue como siempre.
-    """
-    if os.environ.get("TIZA_REF") or shutil.which("uv") is None:
-        return None  # quien fija TIZA_REF elige la versión a mano
-    ultima = _ultima_etiqueta()
-    if ultima is None:
-        return None
-    if _numeros(ultima) <= _numeros(f"v{__version__}"):
-        return None
-    return ultima
+    """La etiqueta publicada más alta si es posterior a esta tiza; None si no, o si no se sabe."""
+    return actualizacion.version_nueva()
 
 
 def _instalar_ultima(nueva: str) -> bool:
     """Instala la versión ``nueva`` con uv; False si no hay uv o la instalación falla."""
     uv = shutil.which("uv")
     return uv is not None and _instalar_version(uv, nueva)
-
-
-def _quiere_ventana() -> bool:
-    """Windows y macOS llevan la ventana de entrada; Linux, solo si ya la tenía.
-
-    En Linux la ventana trae Qt (cientos de MB): se instala a propósito, con
-    ``TIZA_VENTANA=1`` en el instalador, y la actualización la conserva.
-    """
-    return sys.platform in ("win32", "darwin") or _tiene_ventana()
-
-
-def _tiene_ventana() -> bool:
-    """¿Está instalado el extra ``ventana`` (pywebview) junto a esta tiza?"""
-    return importlib.util.find_spec("webview") is not None
-
-
-_ULTIMA_RELEASE = f"{REPO_GIT}/releases/latest"
-
-
-def _ultima_etiqueta() -> str | None:
-    """La versión publicada más reciente (vX.Y.Z), o None si no se puede saber.
-
-    Sin git ni la API de GitHub (que limita las consultas por IP, y en un centro muchos
-    docentes salen por la misma): la página de la última release redirige a su etiqueta.
-    """
-    try:
-        respuesta = requests.head(_ULTIMA_RELEASE, allow_redirects=False, timeout=10)
-    except requests.RequestException:
-        return None
-    destino = respuesta.headers.get("Location", "")
-    encontrada = re.search(r"/releases/tag/(v\d+\.\d+\.\d+)\Z", destino)
-    return encontrada.group(1) if encontrada else None
-
-
-def _numeros(etiqueta: str) -> tuple[int, ...]:
-    """«v0.20.3» → (0, 20, 3); lo que no sean números cuenta como 0."""
-    return tuple(int(n) if n.isdigit() else 0 for n in etiqueta.lstrip("v").split("."))
 
 
 _REGISTRO_SKILL = ".tiza-instalado"

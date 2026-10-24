@@ -37,6 +37,31 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     }
 }
 
+# Los accesos «tiza» del menú Inicio y del escritorio (sin administrador). Este bloque es
+# idéntico a ACCESOS_PS de src/tiza/actualizacion.py, que usa también «tiza actualizar»
+# (un test comprueba que no se separan). No lo toques aquí sin tocar allí.
+function Crear-AccesosTiza([string]$bin) {
+    $panel = Join-Path $bin 'tiza-panel.exe'
+    if (-not (Test-Path -LiteralPath $panel)) {
+        Write-Host 'No se instaló el panel de tiza (falta la ventana): tiza se usa solo desde la terminal.'
+        return $false
+    }
+    $shell = New-Object -ComObject WScript.Shell
+    foreach ($carpeta in @([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop'))) {
+        try {
+            $acceso = $shell.CreateShortcut((Join-Path $carpeta 'tiza.lnk'))
+            $acceso.TargetPath = $panel
+            $acceso.WorkingDirectory = $env:USERPROFILE
+            $acceso.IconLocation = "${panel},0"
+            $acceso.Description = 'Abrir tiza'
+            $acceso.Save()
+        } catch {
+            Write-Host "No se pudo crear el acceso en ${carpeta}."
+        }
+    }
+    return $true
+}
+
 # Python fijo: uv usaría el más nuevo, y una versión recién salida aún no tiene wheels de
 # todas las dependencias (pyyaml, por ejemplo) y obligaría a compilarlas.
 $python = "3.13"
@@ -60,6 +85,14 @@ $env:Path = "$(uv tool dir --bin);$env:Path"
 tiza instalar-skill
 if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar la skill." }
 
+$bin = (uv tool dir --bin) | Select-Object -First 1
+$conPanel = Crear-AccesosTiza $bin
+
 Write-Host ""
-Write-Host "Listo. Siguiente paso: tiza empezar"
+if ($conPanel) {
+    Write-Host "Listo. Para empezar, abre «tiza» desde el menú Inicio (o desde el escritorio)."
+    Write-Host "Si prefieres la terminal: tiza empezar"
+} else {
+    Write-Host "Listo, pero sin el panel (falta la ventana de entrada). Siguiente paso: tiza empezar"
+}
 Write-Host "Si 'tiza' no se encuentra, abre una terminal nueva (o ejecuta: uv tool update-shell)."

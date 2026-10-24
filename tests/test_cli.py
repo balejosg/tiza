@@ -13,6 +13,7 @@ import pytest
 
 from dobles import MoodleFalso, configurar_aula
 from tiza import (
+    actualizacion,
     aislamiento,
     buzon,
     cli,
@@ -726,7 +727,7 @@ def ultima_release(monkeypatch, destino="https://github.com/balejosg/tiza/releas
         pedidas.append(url)
         return type("R", (), {"headers": {"Location": destino} if destino else {}})()
 
-    monkeypatch.setattr(cli.requests, "head", head)
+    monkeypatch.setattr(actualizacion.requests, "head", head)
     return pedidas
 
 
@@ -740,7 +741,7 @@ class TestActualizar:
         monkeypatch.delenv("TIZA_REF", raising=False)
         monkeypatch.setattr(cli, "__version__", "0.5.1")
         monkeypatch.setattr(cli.shutil, "which", lambda nombre: f"/bin/{nombre}")
-        monkeypatch.setattr(cli, "_tiene_ventana", lambda: False)
+        monkeypatch.setattr(actualizacion, "tiene_ventana", lambda: False)
         # Sin ventana, como en Linux: en Windows y macOS «actualizar» instala también el extra
         # (lo prueban los tests de win32 y darwin, que fijan su propia plataforma).
         monkeypatch.setattr(cli.sys, "platform", "linux")
@@ -777,7 +778,7 @@ class TestActualizar:
         ]
 
     def test_conserva_la_ventana_si_estaba_instalada(self, ejecutadas, monkeypatch):
-        monkeypatch.setattr(cli, "_tiene_ventana", lambda: True)
+        monkeypatch.setattr(actualizacion, "tiene_ventana", lambda: True)
         assert cli.main(["actualizar"]) == 0
         assert ejecutadas[0][-1] == f"tiza[ventana] @ {WHEEL}"
 
@@ -826,7 +827,7 @@ class TestActualizar:
         # Los datos van por el entorno: nada de lo que varía entra en el código.
         assert cli.main(["actualizar"]) == 0
         guion = base64.b64decode(lanzadas[0][0][3]).decode("utf-16-le")
-        assert guion == cli._GUION_WINDOWS
+        assert guion == actualizacion.GUION_WINDOWS
         assert "Wait-Process -Id ([int]$env:TIZA_ACT_PID)" in guion
         assert guion.index("Wait-Process") < guion.index("tool install --force")
         assert "instalar-skill" in guion and "Read-Host" in guion
@@ -930,9 +931,9 @@ class TestActualizar:
 
     def test_sin_conexion_falla_sin_instalar(self, ejecutadas, monkeypatch, capsys):
         def sin_red(*_a, **_k):
-            raise cli.requests.ConnectionError("sin red")
+            raise actualizacion.requests.ConnectionError("sin red")
 
-        monkeypatch.setattr(cli.requests, "head", sin_red)
+        monkeypatch.setattr(actualizacion.requests, "head", sin_red)
         assert cli.main(["actualizar"]) == 1
         assert ejecutadas == []
         assert "ACTUALIZACION_FALLIDA" in capsys.readouterr().err
@@ -963,6 +964,7 @@ class TestVersionNueva:
         monkeypatch.setattr(cli, "_version_nueva", _VERSION_NUEVA)
         monkeypatch.delenv("TIZA_REF", raising=False)
         monkeypatch.setattr(cli, "__version__", "0.5.1")
+        monkeypatch.setattr(actualizacion, "__version__", "0.5.1")
         monkeypatch.setattr(cli.shutil, "which", lambda nombre: f"/bin/{nombre}")
 
     def test_hay_una_posterior(self, monkeypatch):
@@ -976,19 +978,23 @@ class TestVersionNueva:
 
     def test_sin_conexion_no_pasa_nada(self, monkeypatch):
         def sin_red(*_a, **_k):
-            raise cli.requests.Timeout("tarda")
+            raise actualizacion.requests.Timeout("tarda")
 
-        monkeypatch.setattr(cli.requests, "head", sin_red)
+        monkeypatch.setattr(actualizacion.requests, "head", sin_red)
         assert cli._version_nueva() is None
 
     def test_con_tiza_ref_no_consulta(self, monkeypatch):
         monkeypatch.setenv("TIZA_REF", "main")
-        monkeypatch.setattr(cli, "_ultima_etiqueta", lambda: pytest.fail("no debe consultar"))
+        monkeypatch.setattr(
+            actualizacion, "ultima_etiqueta", lambda: pytest.fail("no debe consultar")
+        )
         assert cli._version_nueva() is None
 
     def test_sin_uv_no_consulta(self, monkeypatch):
         monkeypatch.setattr(cli.shutil, "which", lambda nombre: None)
-        monkeypatch.setattr(cli, "_ultima_etiqueta", lambda: pytest.fail("no debe consultar"))
+        monkeypatch.setattr(
+            actualizacion, "ultima_etiqueta", lambda: pytest.fail("no debe consultar")
+        )
         assert cli._version_nueva() is None
 
 

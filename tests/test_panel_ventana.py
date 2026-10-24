@@ -407,7 +407,9 @@ class VentanaFalsa:
 class Vigilancia:
     """Un Panel de reloj falso, una ventana falsa y el hilo de ventana corriendo de verdad."""
 
-    def __init__(self, *, minimizada: bool = True, elegir=lambda: None, parpadear=None) -> None:
+    def __init__(
+        self, *, minimizada: bool = True, elegir=lambda: None, parpadear=None, mostrar=None
+    ) -> None:
         self.reloj = Reloj()
         self.panel = Panel(reloj=self.reloj)
         self.presencia = PresenciaPanel(self.panel, reloj=self.reloj)
@@ -429,7 +431,7 @@ class Vigilancia:
                 "elegir_carpeta": elegir,
                 "poner_encima": lambda valor: setattr(self.ventana, "on_top", valor),
                 "restaurar": self.ventana.restore,
-                "mostrar": self.ventana.show,
+                "mostrar": mostrar or self.ventana.show,
                 "minimizada": lambda: minimizada,
                 "espera": 0.01,
             },
@@ -491,12 +493,52 @@ def test_con_una_pregunta_la_ventana_se_pone_delante_y_parpadea(vigilancia):
     hilo, resultado = v.preguntar(v.presencia.confirmar_autoprueba)
     p = v.pantalla()
     v.esperar(lambda: v.parpadeos == 1)
-    assert v.ventana.cambios[:3] == [("on_top", True), ("restore",), ("show",)]
+    # Primero se muestra al arrancar; luego, por la pregunta: encima, restaurar y mostrar.
+    assert v.ventana.cambios[:4] == [("show",), ("on_top", True), ("restore",), ("show",)]
     assert v.panel.responder(p["numero"], True)
     hilo.join(5)
     assert resultado["valor"] is True
     v.esperar(lambda: v.ventana.on_top is False)
     assert v.parpadeos == 1
+
+
+def test_al_arrancar_se_muestra_el_panel_una_vez_aunque_no_haya_pregunta(vigilancia):
+    v = vigilancia()
+    v.esperar(lambda: v.ventana.cambios == [("show",)])
+    time.sleep(0.1)  # varias vueltas del hilo: no vuelve a mostrarlo
+    assert v.ventana.cambios == [("show",)]
+    assert v.parpadeos == 0
+
+
+def test_si_aun_no_hay_ventana_reintenta_mostrar_hasta_conseguirlo(vigilancia):
+    llamadas: list[int] = []
+
+    def mostrar() -> bool:
+        llamadas.append(1)
+        return len(llamadas) >= 4  # sin HWND las tres primeras veces
+
+    v = vigilancia(mostrar=mostrar)
+    v.esperar(lambda: len(llamadas) >= 4)
+    time.sleep(0.1)
+    assert len(llamadas) == 4
+
+
+def test_los_reintentos_de_mostrar_tienen_limite(vigilancia):
+    llamadas: list[int] = []
+    v = vigilancia(mostrar=lambda: llamadas.append(1) or False)
+    v.esperar(lambda: len(llamadas) >= panel_pkg.INTENTOS_MOSTRAR)
+    time.sleep(0.1)
+    assert len(llamadas) == panel_pkg.INTENTOS_MOSTRAR
+    assert v.vigilante.is_alive()
+
+
+def test_un_fallo_al_mostrar_no_mata_el_hilo(vigilancia):
+    def falla():
+        raise RuntimeError("sin ventana")
+
+    v = vigilancia(mostrar=falla)
+    time.sleep(0.05)
+    assert v.vigilante.is_alive()
 
 
 def test_sin_minimizar_no_se_restaura(vigilancia):
@@ -626,9 +668,9 @@ def test_vigilar_no_toca_on_top_restore_ni_show_de_pywebview():
     pregunta = threading.Thread(target=presencia.confirmar_autoprueba, daemon=True)
     pregunta.start()
     limite = time.monotonic() + 5
-    while "mostrar" not in vistos and time.monotonic() < limite:
+    while len(vistos) < 4 and time.monotonic() < limite:
         time.sleep(0.01)
-    assert vistos[:3] == [("encima", True), "restaurar", "mostrar"]
+    assert vistos[:4] == ["mostrar", ("encima", True), "restaurar", "mostrar"]
     panel.cerrar()
     hilo.join(5)
     pregunta.join(5)
