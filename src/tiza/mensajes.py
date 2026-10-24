@@ -698,6 +698,17 @@ def _autoprueba_fallida(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("No se abre la sesión porque la autoprueba ha fallado.", error=True),)
 
 
+def _cambiada_desde_la_publicacion(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'])}» ha cambiado en el aula desde la última vez que "
+            "tiza la publicó, y no se ha tocado. Para juntar tus cambios, pide al agente que "
+            "traiga la versión del aula.",
+            error=True,
+        ),
+    )
+
+
 def _cambiada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     if datos.get("cmid") is not None:
         return (
@@ -856,6 +867,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ACTIVIDAD_PENDIENTE": _actividad_pendiente,
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
     "CALIFICANDO_EN_PRUEBAS": _calificando_en_pruebas,
+    "CAMBIADA_DESDE_LA_PUBLICACION": _cambiada_desde_la_publicacion,
     "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
     "CAMBIADO_A_MANO": _cambiado_a_mano,
     "CANCELADA": _cancelada,

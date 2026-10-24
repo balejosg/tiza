@@ -117,6 +117,7 @@ AVISOS = frozenset(
         "ACTIVIDAD_PENDIENTE",
         "AUTOPRUEBA_FALLIDA",
         "CALIFICANDO_EN_PRUEBAS",
+        "CAMBIADA_DESDE_LA_PUBLICACION",
         "CAMBIADA_EN_EL_AULA",
         "CAMBIADO_A_MANO",
         "CANCELADA",
@@ -208,6 +209,11 @@ class Aviso:
     def cambiada_en_el_aula(cls, nombre: str, cmid: int | None = None) -> Aviso:
         """``cmid``: con él, el docente aún no juntó los cambios de ``.tiza/copia/<cmid>.html``."""
         return cls("CAMBIADA_EN_EL_AULA", {"nombre": nombre, "cmid": cmid})
+
+    @classmethod
+    def cambiada_desde_la_publicacion(cls, nombre: str) -> Aviso:
+        """Retocada a mano en el aula desde la última vez que tiza la publicó (sin copia de por medio)."""
+        return cls("CAMBIADA_DESDE_LA_PUBLICACION", {"nombre": nombre})
 
     @classmethod
     def cancelada(cls) -> Aviso:
@@ -939,7 +945,7 @@ def publicar_con(
             detalle += f": junta antes los cambios de .tiza/copia/{cmid}.html"
             presencia.informar(Aviso.cambiada_en_el_aula(rechazado.nombre, cmid))
         elif motivo == "CAMBIADA_EN_EL_AULA":  # el docente retocó a mano y dijo que no
-            presencia.informar(Aviso.cambiada_en_el_aula(rechazado.nombre))
+            presencia.informar(Aviso.cambiada_desde_la_publicacion(rechazado.nombre))
         borrador.fallo(paso, detalle)
         borrador.error(motivo)
     documentos = aceptados
@@ -1016,7 +1022,11 @@ def publicar_con(
                 return borrador.documento("error")
             # Esta actividad no se toca; las demás del lote siguen.
             if exc.codigo == "CAMBIADA_EN_EL_AULA":
-                presencia.informar(Aviso.cambiada_en_el_aula(doc.nombre))
+                presencia.informar(
+                    Aviso.cambiada_en_el_aula(doc.nombre)
+                    if publicar.aplica_origen(doc, curso)
+                    else Aviso.cambiada_desde_la_publicacion(doc.nombre)
+                )
             continue
         # Con --solo-fechas la huella nueva la da publicar.py; sin ella, se deja la que había.
         if publicar.aplica_origen(doc, curso) and (not solo_fechas or huella_nueva is not None):
@@ -1188,6 +1198,29 @@ def _renovar_huella(
     except (estado.ErrorEstado, OSError):
         borrador.fallo("HUELLA_NO_GUARDADA", doc.ruta.name)
         presencia.informar(Aviso.huella_no_guardada(doc.nombre))
+
+
+def _rechazos_por_el_no(
+    documentos: list[Documento],
+    secciones: list[dict],
+    curso: int,
+    base: Path,
+    solo_fechas: bool,
+    huellas: Mapping[int, str],
+    marcas: Mapping[int, str],
+    no_publicar: Collection[Path],
+    de_siempre: list[tuple[Documento, str]],
+) -> Counter[str]:
+    """Los códigos de error que da el no del docente (y lo que arrastra), y nada más.
+
+    Son los rechazos de ``_separar_rechazados`` con ``no_publicar`` que no estaban ya sin él
+    (``de_siempre``): si el informe del curso no tiene otros errores, el curso no ha fallado.
+    """
+    _, con_el_no = _separar_rechazados(
+        documentos, secciones, curso, base, solo_fechas, huellas, marcas, no_publicar
+    )
+    ya = {id(doc) for doc, _ in de_siempre}
+    return Counter(motivo for doc, motivo in con_el_no if id(doc) not in ya)
 
 
 def cambios_de_nombre(
@@ -1499,7 +1532,7 @@ def _en_real(
         except estado.ErrorEstado as exc:
             registro.append((posicion, curso, fallo(exc.codigo, curso)))
             break
-        a_publicar, _rechazados = _separar_rechazados(
+        a_publicar, rechazados_de_siempre = _separar_rechazados(
             documentos, secciones, curso, base, solo_fechas, huellas, marcas
         )
         ids = {id(doc) for doc in a_publicar}
@@ -1618,7 +1651,20 @@ def _en_real(
         )
         registro.append((posicion, curso, documento))
         if documento["resultado"] != "ok":
-            break
+            # Un no a sobrescribir es una decisión del docente, no un fallo: los cursos
+            # siguientes se publican. Cualquier otro error corta como siempre.
+            if not no_publicar or Counter(documento["errores"]) - _rechazos_por_el_no(
+                documentos,
+                secciones,
+                curso,
+                base,
+                solo_fechas,
+                huellas,
+                marcas,
+                no_publicar,
+                rechazados_de_siempre,
+            ):
+                break
     return informe_de_cursos(comando, entorno, total, unico, registro)
 
 

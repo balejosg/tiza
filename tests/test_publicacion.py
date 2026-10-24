@@ -1821,8 +1821,13 @@ def test_un_cambio_a_mano_y_no_a_sobrescribir_no_publica_y_el_resto_sigue(tmp_pa
     assert presencia.resumenes_sobrescribir == [
         publicacion.ResumenSobrescribir(5678, None, ("A",), 1, 1)
     ]
-    [aviso] = [a for a in presencia.avisos if a.codigo == "CAMBIADA_EN_EL_AULA"]
-    assert "«A»" in mensajes.lineas_de_aviso(aviso)[0].texto
+    [aviso] = [a for a in presencia.avisos if a.codigo == "CAMBIADA_DESDE_LA_PUBLICACION"]
+    [linea] = mensajes.lineas_de_aviso(aviso)
+    assert linea.texto == (
+        "«A» ha cambiado en el aula desde la última vez que tiza la publicó, y no se ha tocado. "
+        "Para juntar tus cambios, pide al agente que traiga la versión del aula."
+    )
+    assert "copia" not in linea.texto and linea.error
     assert _entrada(carpeta).huella == huella  # la base no se renueva
 
 
@@ -1966,7 +1971,7 @@ def test_un_cambio_entre_la_confirmacion_y_la_escritura_no_se_pisa(tmp_path):
     assert len(_escrituras(moodle, cmid)) == escrituras
     assert "A mano, justo ahora" in moodle.formularios[cmid]["page[text]"]
     assert presencia.resumenes_sobrescribir == []  # no estaba cambiado cuando se preguntó
-    assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+    assert "CAMBIADA_DESDE_LA_PUBLICACION" in presencia.codigos()
 
 
 def test_con_varios_cursos_reales_se_pregunta_solo_en_el_que_cambio(tmp_path):
@@ -2066,7 +2071,7 @@ def test_solo_fechas_con_cambio_a_mano_y_no_no_escribe_nada(tmp_path):
     documento, presencia = _en(carpeta, moodle, "real", ("tarea.md",), solo_fechas=True)
     assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
     assert _escrituras(moodle, cmid) == []
-    assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+    assert "CAMBIADA_DESDE_LA_PUBLICACION" in presencia.codigos()
 
 
 def test_si_no_se_puede_leer_el_aula_al_buscar_cambios_cuenta_como_cambiada(tmp_path):
@@ -2130,3 +2135,44 @@ def test_sin_curso_de_pruebas_tambien_se_pregunta_tras_la_confirmacion_corta(tmp
     assert len(presencia.resumenes_cortos) == 1
     assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("A",)]
     assert moodle.formularios[cmid]["page[text]"] == "<p>A mano</p>"
+
+
+def test_un_no_a_sobrescribir_no_corta_los_cursos_siguientes(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_varios_cursos()
+    _pagina_texto(carpeta)
+    _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=PresenciaFalsa(real=(True, True)))
+    _retocar(moodle, _entrada(carpeta, 5678).cmid, texto="<p>A mano</p>")
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    documento, presencia = _en(
+        carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=PresenciaFalsa(real=(True, True))
+    )
+    informe.validar(documento)
+    # El N es del informe (CAMBIADA_EN_EL_AULA), pero el curso siguiente se publica.
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [(r.curso, r.posicion) for r in presencia.resumenes_sobrescribir] == [(5678, 1)]
+    assert len(presencia.resumenes) == 2
+    assert "A mano" in moodle.formularios[_entrada(carpeta, 5678).cmid]["page[text]"]
+    assert "nuevo" in moodle.formularios[_entrada(carpeta, 9999).cmid]["page[text]"]
+
+
+def test_otro_fallo_en_un_curso_sigue_cortando_los_siguientes(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_varios_cursos()
+    _pagina_texto(carpeta)
+    _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=PresenciaFalsa(real=(True, True)))
+    cmid = _entrada(carpeta, 5678).cmid
+    _retocar(moodle, cmid, texto="<p>A mano</p>")
+    # Además del N, un rechazo de siempre en el mismo curso: un ``origen`` que ya no está.
+    _fichero_importado(carpeta)
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    documento, presencia = _en(
+        carpeta,
+        moodle,
+        "real",
+        ("p.md", "importada.md"),
+        cfg=CFG_DOS_REALES,
+        presencia=PresenciaFalsa(real=(True, True)),
+    )
+    assert "ORIGEN_NO_ENCONTRADO" in documento["errores"]
+    assert len(presencia.resumenes) == 1  # el segundo curso no se llegó a confirmar

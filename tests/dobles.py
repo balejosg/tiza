@@ -656,6 +656,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ACTIVIDAD_PENDIENTE": publicacion.Aviso.actividad_pendiente("t.md"),
         "CALIFICANDO_EN_PRUEBAS": publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
         "CAMBIADA_EN_EL_AULA": publicacion.Aviso.cambiada_en_el_aula("T"),
+        "CAMBIADA_DESDE_LA_PUBLICACION": publicacion.Aviso.cambiada_desde_la_publicacion("T"),
         "CAMBIADO_A_MANO": publicacion.Aviso.cambiado_a_mano("T"),
         "CANCELADA": publicacion.Aviso.cancelada(),
         "CERRANDO_SESION_ANTERIOR": publicacion.Aviso.cerrando_sesion_anterior(),

@@ -1233,7 +1233,7 @@ class TestCambiosALaMano:
         documento = self.segunda(carpeta, moodle, presencia)
         assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
         assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("Repaso",)]
-        assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+        assert "CAMBIADA_DESDE_LA_PUBLICACION" in presencia.codigos()
         assert moodle.formularios[cmid]["page[text]"] == "<p>A mano en el aula</p>"
 
     def test_el_docente_dice_que_si_y_se_publica(self, tmp_path):
