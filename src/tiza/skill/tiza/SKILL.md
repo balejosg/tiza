@@ -327,7 +327,8 @@ Se aplica cuando el docente pide un **tema entero**. Para una pieza suelta, el f
 - **Mover de sección**: edita `seccion:` del `.md` y publica (primero en pruebas): tiza **mueve** la actividad que ya existe con ese tipo y nombre (mismo cmid, misma visibilidad, mismos intentos, mismas restricciones) en vez de duplicarla. El informe da `accion: movida`. La confirmación de real dice «se moverá de la sección «A» a «B»». Con `--solo-fechas` nunca se mueve (`MODULO_AUSENTE` si no está en la sección del `.md`).
 - Códigos: `ACTIVIDAD_AUSENTE` (no está publicada en su sección: publícala primero), `ACTIVIDAD_AMBIGUA` (hay dos con el mismo tipo y nombre, o dos ficheros apuntan a la misma: dile al docente que borre o renombre una en el aula; no adivines), `FICHERO_REPETIDO` (quítalo de la lista), `ORDEN_NO_APLICADO` y `ERROR_MOVER` (repite; si sigue, avisa al docente). Si algo falla a medias no se deshace nada y repetir converge.
 - El orden en pantalla **no** cambia las restricciones del itinerario: poner una tarea encima de la página de la que depende puede ser intencionado. La confirmación del docente avisa si ocurre.
-- No ordena secciones, no renombra actividades ni ordena lo que no es de tiza.
+- **Renombrar**: cambia `nombre:` del `.md` y publica (primero en pruebas): tiza actualiza la misma actividad, anotada en `.tiza/publicados.json` (no lo toques), en vez de crear otra. El informe da `accion: renombrada` y la confirmación de real dice «Se cambia el nombre de «A» a «B»». Si la actividad ya no está en el aula, la confirmación dice «Ya no está en el aula: se creará de nuevo.». Si el paso `REGISTRO_NO_GUARDADO` sale en el informe, la actividad se publicó bien pero tiza no pudo anotarla: no renombres ese fichero antes de avisar al docente.
+- No ordena secciones ni ordena lo que no es de tiza.
 
 ## Si la sesión se cae
 

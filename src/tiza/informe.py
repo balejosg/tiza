@@ -62,6 +62,7 @@ ACCIONES = {
     "borrada",
     "verificada",
     "movida",
+    "renombrada",  # se actualizó la misma actividad con otro nombre (no se duplicó)
     "ordenada",
     "sin_cambios",
     # tiza calificador: dónde queda cada actividad en el calificador
@@ -108,6 +109,7 @@ PASOS = (
             "ORDENAR",
             "PREPARAR",
             "PUBLICAR",
+            "REGISTRO_NO_GUARDADO",
             "SECCION_DISTINTA_ENTRE_CURSOS",
             "SIN_SESION",
             "SOLO_FECHAS",

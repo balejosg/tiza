@@ -32,7 +32,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from . import calendario, contenido, estado, informe, publicar, rutas, tipos
+from . import calendario, contenido, estado, ficheros, informe, publicar, rutas, tipos
 from .calificacion import reconciliar as rc
 from .calificacion.deseado import Deseado
 from .calificacion.deseado import deseado as calcular_deseado
@@ -133,6 +133,7 @@ AVISOS = frozenset(
         "PETICION_RETIRADA",
         "PUBLICANDO_EN_PRUEBAS",
         "QUEDAN_MINUTOS",
+        "REGISTRO_NO_GUARDADO",
         "RESULTADO",
         "SESION_ABIERTA",
         "SESION_ANTERIOR_CERRADA",
@@ -239,6 +240,10 @@ class Aviso:
         return cls("HUELLA_NO_GUARDADA", {"nombre": nombre})
 
     @classmethod
+    def registro_no_guardado(cls, nombre: str) -> Aviso:
+        return cls("REGISTRO_NO_GUARDADO", {"nombre": nombre})
+
+    @classmethod
     def informe_no_escrito(cls) -> Aviso:
         return cls("INFORME_NO_ESCRITO")
 
@@ -323,6 +328,8 @@ class DocumentoResumen:
     cambios: tuple[CambioFecha, ...] | None = None
     # Finalización y restricciones que declara el .md, en lenguaje llano (solo del .md).
     itinerario: tuple[str, ...] = ()
+    # El registro la daba por publicada en este curso y ya no está en el aula: se creará de nuevo.
+    borrada: bool = False
 
     @classmethod
     def de(
@@ -331,6 +338,7 @@ class DocumentoResumen:
         base: Path,
         vista_previa: Path | None = None,
         cambios: tuple[CambioFecha, ...] | None = None,
+        borrada: bool = False,
     ) -> DocumentoResumen:
         return cls(
             fichero=doc.ruta.name,
@@ -346,6 +354,7 @@ class DocumentoResumen:
             recursos=tuple(_relativa(recurso.ruta, base) for recurso in doc.recursos),
             cambios=cambios,
             itinerario=itinerario_de(doc, base),
+            borrada=borrada,
             **tipos.obtener(doc.tipo).extras_resumen(doc),
         )
 
@@ -365,13 +374,13 @@ class ResumenPublicacion:
     total: int = 1
     # Actividades que cambian de sección al cambiar su ``seccion:`` (se mueven, no se duplican).
     movimientos: tuple[CambioSeccion, ...] = ()
-    # Actividades importadas que cambian de nombre al publicarse (se actualizan por su origen).
+    # Actividades que cambian de nombre al publicarse (se actualizan por su origen o su registro).
     nombres: tuple[CambioNombre, ...] = ()
 
 
 @dataclass(frozen=True)
 class CambioNombre:
-    """Una actividad importada que ya está en el aula con otro nombre. La ve solo el docente."""
+    """Una actividad que ya está en el aula con otro nombre. La ve solo el docente."""
 
     fichero: str
     antes: str  # el nombre que tiene en el aula
@@ -401,6 +410,7 @@ class DocumentoBreve:
     nombre: str
     existe: bool | None = False
     itinerario: tuple[str, ...] = ()
+    borrada: bool = False  # el registro la daba por publicada y ya no está: se creará de nuevo
 
 
 @dataclass(frozen=True)
@@ -962,6 +972,11 @@ def publicar_con(
         # Con --solo-fechas la huella nueva la da publicar.py; sin ella, se deja la que había.
         if publicar.aplica_origen(doc, curso) and (not solo_fechas or huella_nueva is not None):
             _renovar_huella(dir_tiza, curso, doc, borrador, presencia, huella_nueva)
+        if not solo_fechas:
+            assert resultado.cmid is not None
+            _registrar_publicado(
+                dir_tiza, curso, _relativa(doc.ruta, base), doc, resultado.cmid, borrador, presencia
+            )
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None
             estado.guardar_verificado(
@@ -1106,19 +1121,67 @@ def _renovar_huella(
 def cambios_de_nombre(
     secciones: list[dict], documentos: list[Documento], curso: int
 ) -> tuple[CambioNombre, ...]:
-    """Las actividades importadas que se llaman distinto en el aula y en su fichero."""
+    """Las actividades que se llaman distinto en el aula y en su fichero.
+
+    Solo las que tiza halla por su ``origen`` o por el registro de lo publicado: las que halla por
+    nombre se llaman igual por definición.
+    """
     cambios: list[CambioNombre] = []
     for doc in documentos:
-        if not publicar.aplica_origen(doc, curso):
-            continue
         try:
-            modulo = publicar.modulo_de(secciones, doc, curso)
-        except ErrorPublicacion:
+            loc = publicar.localizar(secciones, doc, curso)
+        except (ErrorPublicacion, TypeError, ValueError):
             continue
-        antes = modulo.get("nombre") if modulo is not None else None
+        if loc.por not in ("origen", "registro") or loc.modulo is None:
+            continue
+        antes = loc.modulo.get("nombre")
         if isinstance(antes, str) and antes != doc.nombre:
             cambios.append(CambioNombre(doc.ruta.name, antes, doc.nombre))
     return tuple(cambios)
+
+
+def _borrada(secciones: list[dict], doc: Documento, curso: int | None) -> bool:
+    """¿La daba el registro por publicada en este curso y ya no está en el aula?"""
+    try:
+        return publicar.localizar(secciones, doc, curso).borrada
+    except (ErrorPublicacion, TypeError, ValueError):
+        return False
+
+
+def _registrar_publicado(
+    dir_tiza: Path,
+    curso: int,
+    ruta: str,
+    doc: Documento,
+    cmid: int,
+    borrador: informe.Borrador,
+    presencia: Presencia,
+) -> None:
+    """Anota en ``publicados.json`` qué actividad es el fichero en este curso, para hallarla luego.
+
+    Conserva la huella y la marca de la entrada anterior si es la misma actividad; si el cmid
+    cambió (se recreó), van a None. Si no se puede guardar, la publicación sigue siendo buena.
+    Una ruta que no vale como clave no se registra ni se avisa: no es culpa del docente.
+    """
+    if not estado.ruta_publicada_valida(ruta):
+        return
+    try:
+        anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
+        igual = anterior is not None and anterior.cmid == cmid
+        estado.guardar_publicado(
+            dir_tiza,
+            curso,
+            ruta,
+            estado.Publicado(
+                cmid,
+                doc.tipo,
+                huella=anterior.huella if igual and anterior else None,
+                marca=anterior.marca if igual and anterior else None,
+            ),
+        )
+    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+        borrador.fallo("REGISTRO_NO_GUARDADO", doc.ruta.name)
+        presencia.informar(Aviso.registro_no_guardado(doc.nombre))
 
 
 def _nombres_de_vista(documentos: list[Documento]) -> list[str | None]:
@@ -1348,6 +1411,7 @@ def _en_real(
                         nombre=doc.nombre,
                         existe=publicar.ya_existe(secciones, doc, curso),
                         itinerario=itinerario_de(doc, base),
+                        borrada=_borrada(secciones, doc, curso),
                     )
                     for doc in a_publicar
                 ),
@@ -1370,6 +1434,7 @@ def _en_real(
                         cambios=cambios_de_fechas(
                             aula, secciones, doc, cal, debug=debug, curso=curso
                         ),
+                        borrada=_borrada(secciones, doc, curso),
                     )
                     for doc, vista in zip(documentos, vistas, strict=True)
                     if id(doc) in ids

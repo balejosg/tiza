@@ -656,7 +656,7 @@ def test_publicar_por_origen_actualiza_la_actividad_y_renueva_la_huella(tmp_path
     documento = _publicar_real(carpeta, moodle, ["importada.md"])
     assert documento["errores"] == []
     assert [(f["nombre"], f["cmid"], f["accion"]) for f in documento["ficheros"]] == [
-        ("importada.md", 501, "actualizada")
+        ("importada.md", 501, "renombrada")  # «Viejo» pasa a «Nuevo»
     ]
     assert [c[1] for c in moodle.llamadas if c[0] == "actualizar"] == [501]
     assert not any(c[0] == "crear" for c in moodle.llamadas)
@@ -1134,7 +1134,7 @@ def test_solo_fechas_con_origen_cambia_las_fechas_y_renueva_la_huella(tmp_path):
     completa = publicacion.publicar_en_cursos(
         moodle, CFG, [doc], carpeta, PresenciaFalsa(), entorno="real", verificados=registro
     )
-    assert completa["errores"] == [] and completa["ficheros"][0]["accion"] == "actualizada"
+    assert completa["errores"] == [] and completa["ficheros"][0]["accion"] == "renombrada"
 
 
 def test_solo_fechas_con_origen_no_pisa_unas_fechas_cambiadas_a_mano(tmp_path):
@@ -1353,3 +1353,287 @@ def test_una_dependencia_importada_se_resuelve_por_su_origen(tmp_path):
     [fichero] = documento["ficheros"]
     texto = moodle.formularios[fichero["cmid"]]["availabilityconditionsjson"]
     assert json.loads(texto)["c"][0]["cm"] == 501
+
+
+# --- Renombrar sin duplicar: el registro de lo publicado -----------------------------------
+
+
+def _pagina(carpeta: Path, nombre: str, fichero="p.md", seccion="3", extra="") -> None:
+    (carpeta / fichero).write_text(
+        f"---\ntipo: pagina\nnombre: {nombre}\nseccion: {seccion}\n{extra}---\n\nTexto.\n",
+        encoding="utf-8",
+    )
+
+
+def _aula_dos_cursos() -> MoodleFalso:
+    """Pruebas (1234) y el real 5678 con secciones propias, para que no se mezclen."""
+    return MoodleFalso(
+        secciones=[
+            {"numero": 3, "nombre": "Tema 3", "id": 31, "modulos": []},
+            {"numero": 4, "nombre": "Tema 4", "id": 41, "modulos": []},
+        ],
+        secciones_por_curso={
+            5678: [
+                {"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []},
+                {"numero": 4, "nombre": "Tema 4", "id": 40, "modulos": []},
+            ]
+        },
+    )
+
+
+def _publicar_en(carpeta: Path, moodle, entorno, fichero="p.md", presencia=None, **opciones):
+    presencia = presencia or PresenciaFalsa()
+    documento = _publicar_ficheros(carpeta, moodle, entorno, [fichero], presencia, **opciones)
+    return documento, presencia
+
+
+def _publicar_ficheros(carpeta, moodle, entorno, ficheros, presencia, **opciones) -> dict:
+    documentos = [contenido.cargar(carpeta / f, raiz=carpeta) for f in ficheros]
+    registro: dict = {}
+    for doc in documentos:
+        estado.anotar_verificado(registro, contenido.hash_documento(doc), doc.ruta.name, 100)
+    return publicacion.publicar_en_cursos(
+        moodle,
+        CFG,
+        documentos,
+        carpeta,
+        presencia,
+        entorno=entorno,
+        verificados=registro,
+        **opciones,
+    )
+
+
+def _modulos(moodle, curso) -> list[dict]:
+    return [m for s in moodle._de(curso) for m in s["modulos"]]
+
+
+def test_publicar_en_pruebas_anota_el_registro(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina(carpeta, "Repaso")
+    documento, _ = _publicar_en(carpeta, _aula_dos_cursos(), "pruebas")
+    assert documento["errores"] == []
+    cmid = documento["ficheros"][0]["cmid"]
+    assert estado.cargar_publicados(carpeta / ".tiza", 1234) == {
+        "p.md": estado.Publicado(cmid=cmid, tipo="pagina")
+    }
+
+
+def test_renombrar_actualiza_la_misma_actividad(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina(carpeta, "Repaso")
+    primero, _ = _publicar_en(carpeta, moodle, "pruebas")
+    _pagina(carpeta, "Repaso final")
+    segundo, _ = _publicar_en(carpeta, moodle, "pruebas")
+    [fichero] = segundo["ficheros"]
+    assert fichero["cmid"] == primero["ficheros"][0]["cmid"]
+    assert fichero["accion"] == "renombrada"
+    informe.validar(segundo)
+    assert [m["nombre"] for m in _modulos(moodle, 1234)] == ["Repaso final"]
+    assert estado.cargar_publicados(carpeta / ".tiza", 1234)["p.md"].cmid == fichero["cmid"]
+
+
+def test_renombrar_en_real_lo_ensena_y_no_duplica(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina(carpeta, "A")
+    _publicar_en(carpeta, moodle, "real")
+    _pagina(carpeta, "B")
+    documento, presencia = _publicar_en(carpeta, moodle, "real")
+    assert documento["ficheros"][0]["accion"] == "renombrada"
+    assert [m["nombre"] for m in _modulos(moodle, 5678)] == ["B"]
+    [resumen] = presencia.resumenes
+    assert resumen.nombres == (publicacion.CambioNombre("p.md", "A", "B"),)
+    assert any(
+        "Se cambia el nombre de «A» a «B»" in linea
+        for linea in mensajes.detalle_real(resumen).finales
+    )
+
+
+def test_renombrar_y_cambiar_de_seccion_mueve_y_renombra(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina(carpeta, "A")
+    primero, _ = _publicar_en(carpeta, moodle, "real")
+    _pagina(carpeta, "B", seccion="4")
+    documento, presencia = _publicar_en(carpeta, moodle, "real")
+    [fichero] = documento["ficheros"]
+    assert (fichero["cmid"], fichero["accion"]) == (primero["ficheros"][0]["cmid"], "renombrada")
+    seccion4 = next(s for s in moodle._de(5678) if s["numero"] == 4)
+    assert [m["nombre"] for m in seccion4["modulos"]] == ["B"]
+    assert len(_modulos(moodle, 5678)) == 1
+    [resumen] = presencia.resumenes
+    assert [c.fichero for c in resumen.movimientos] == ["p.md"]
+    finales = mensajes.detalle_real(resumen).finales
+    assert any("se moverá de la sección «Tema 3» a «Tema 4»" in linea for linea in finales)
+    assert any("Se cambia el nombre de «A» a «B»" in linea for linea in finales)
+
+
+def test_la_confirmacion_corta_ensena_el_renombrado_por_registro(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    sin_pruebas = config.Config(
+        url="https://aula.ejemplo.org/centro", usuario="profe", cursos={}, reales=(5678,)
+    )
+    _pagina(carpeta, "A")
+    publicar_corto = lambda: publicacion.publicar_en_cursos(  # noqa: E731
+        moodle,
+        sin_pruebas,
+        [contenido.cargar(carpeta / "p.md", raiz=carpeta)],
+        carpeta,
+        presencia,
+        entorno="real",
+        visible=False,
+    )
+    presencia = PresenciaFalsa()
+    publicar_corto()
+    _pagina(carpeta, "B")
+    publicar_corto()
+    corto = presencia.resumenes_cortos[-1]
+    assert any(
+        "Se cambia el nombre de «A» a «B»" in linea
+        for linea in mensajes.detalle_corto(corto).finales
+    )
+    assert [m["nombre"] for m in _modulos(moodle, 5678)] == ["B"]
+
+
+def test_actividad_borrada_en_el_aula_se_avisa_y_se_crea_de_nuevo(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina(carpeta, "A")
+    primero, _ = _publicar_en(carpeta, moodle, "real")
+    viejo = primero["ficheros"][0]["cmid"]
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "p.md",
+        estado.Publicado(cmid=viejo, tipo="pagina", huella="a" * 64, marca="b" * 64),
+    )
+    for seccion in moodle._de(5678):
+        seccion["modulos"] = []  # el docente la borró en el aula
+    documento, presencia = _publicar_en(carpeta, moodle, "real")
+    [fichero] = documento["ficheros"]
+    assert fichero["accion"] == "creada" and fichero["cmid"] != viejo
+    [resumen] = presencia.resumenes
+    assert resumen.documentos[0].borrada is True
+    assert (
+        "Ya no está en el aula: se creará de nuevo."
+        in mensajes.detalle_real(resumen).documentos[0].lineas
+    )
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["p.md"] == estado.Publicado(
+        cmid=fichero["cmid"], tipo="pagina"
+    )
+
+
+def test_en_pruebas_la_actividad_borrada_se_crea_sin_aviso(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina(carpeta, "A")
+    _publicar_en(carpeta, moodle, "pruebas")
+    for seccion in moodle._de(1234):
+        seccion["modulos"] = []
+    documento, presencia = _publicar_en(carpeta, moodle, "pruebas")
+    assert documento["errores"] == [] and documento["ficheros"][0]["accion"] == "creada"
+    assert presencia.resumenes == [] and presencia.resumenes_cortos == []
+
+
+def test_la_confirmacion_corta_avisa_de_la_actividad_borrada(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    sin_pruebas = config.Config(
+        url="https://aula.ejemplo.org/centro", usuario="profe", cursos={}, reales=(5678,)
+    )
+    _pagina(carpeta, "A")
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "p.md", estado.Publicado(cmid=77, tipo="pagina")
+    )
+    presencia = PresenciaFalsa()
+    publicacion.publicar_en_cursos(
+        moodle,
+        sin_pruebas,
+        [contenido.cargar(carpeta / "p.md", raiz=carpeta)],
+        carpeta,
+        presencia,
+        entorno="real",
+        visible=False,
+    )
+    [corto] = presencia.resumenes_cortos
+    assert corto.documentos[0].borrada is True
+    assert mensajes.detalle_corto(corto).documentos[0].lineas == (
+        "Ya no está en el aula: se creará de nuevo.",
+    )
+
+
+def test_si_no_se_puede_guardar_el_registro_se_publica_y_se_avisa(tmp_path):
+    carpeta = tmp_path.resolve()
+    (carpeta / ".tiza").mkdir()
+    (carpeta / ".tiza" / "publicados.json").mkdir()  # un directorio donde iría el fichero
+    _pagina(carpeta, "A")
+    moodle = _aula_dos_cursos()
+    # Con ``raiz`` el registro dañado ya pararía al cargar; sin ella se llega a publicar.
+    presencia = PresenciaFalsa()
+    documento = publicacion.publicar_en_cursos(
+        moodle,
+        CFG,
+        [contenido.cargar(carpeta / "p.md")],
+        carpeta,
+        presencia,
+        entorno="pruebas",
+    )
+    assert documento["errores"] == []
+    assert len(_modulos(moodle, 1234)) == 1
+    [paso] = [p for p in documento["pasos"] if p["codigo"] == "REGISTRO_NO_GUARDADO"]
+    assert (paso["resultado"], paso["detalle"]) == ("fallo", "p.md")
+    [aviso] = [a for a in presencia.avisos if a.codigo == "REGISTRO_NO_GUARDADO"]
+    [linea] = mensajes.lineas_de_aviso(aviso)
+    assert "«A»" in linea.texto and linea.error
+
+
+def test_un_documento_con_origen_tambien_se_registra_sin_tocar_copia_json(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    antes = (carpeta / ".tiza" / "copia.json").read_text(encoding="utf-8")
+    moodle = _aula_importada()
+    documento = _publicar_ficheros(carpeta, moodle, "pruebas", ["importada.md"], PresenciaFalsa())
+    cmid = documento["ficheros"][0]["cmid"]
+    assert estado.cargar_publicados(carpeta / ".tiza", 1234)["importada.md"].cmid == cmid
+    assert (carpeta / ".tiza" / "copia.json").read_text(encoding="utf-8") == antes
+
+
+def test_solo_fechas_no_escribe_el_registro(tmp_path):
+    carpeta = tmp_path.resolve()
+    tarea_en(carpeta)
+    moodle = aula_con_tarea()
+    documento = _publicar_ficheros(
+        carpeta, moodle, "pruebas", ["tarea.md"], PresenciaFalsa(), solo_fechas=True
+    )
+    assert documento["errores"] == []
+    assert not (carpeta / ".tiza" / "publicados.json").exists()
+
+
+def test_con_varios_cursos_reales_hay_una_entrada_por_curso(tmp_path):
+    carpeta = tmp_path.resolve()
+    cfg = config.Config(
+        url="https://aula.ejemplo.org/centro",
+        usuario="profe",
+        cursos={"pruebas": 1234},
+        reales=(5678, 9999),
+    )
+    moodle = MoodleFalso(
+        secciones_por_curso={
+            curso: [{"numero": 3, "nombre": "Tema 3", "id": curso, "modulos": []}]
+            for curso in (1234, 5678, 9999)
+        }
+    )
+    _pagina(carpeta, "A")
+    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
+    registro: dict = {}
+    estado.anotar_verificado(registro, contenido.hash_documento(doc), "p.md", 100)
+    publicacion.publicar_en_cursos(
+        moodle, cfg, [doc], carpeta, PresenciaFalsa(), entorno="real", verificados=registro
+    )
+    for curso in (5678, 9999):
+        assert list(estado.cargar_publicados(carpeta / ".tiza", curso)) == ["p.md"]
+    assert estado.cargar_publicados(carpeta / ".tiza", 1234) == {}

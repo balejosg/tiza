@@ -3565,7 +3565,7 @@ class TestPublicarPorOrigen:
         moodle = _aula_con_origen()
         doc = _documento_con_origen(tmp_path)
         resultado = publicar.publicar_documento(moodle, 3, moodle.estructura(3), doc, visible=None)
-        assert (resultado.accion, resultado.cmid) == ("actualizada", 501)
+        assert (resultado.accion, resultado.cmid) == ("renombrada", 501)
         assert [llamada[1] for llamada in _llamadas(moodle, "actualizar")] == [501]
         assert _llamadas(moodle, "crear", "mover") == []
         assert moodle.formularios[501]["name"] == "Nuevo"
@@ -3574,7 +3574,8 @@ class TestPublicarPorOrigen:
         moodle = _aula_con_origen(seccion_del_modulo=3)
         doc = _documento_con_origen(tmp_path, seccion='"Tema 2"')
         resultado = publicar.publicar_documento(moodle, 3, moodle.estructura(3), doc, visible=None)
-        assert (resultado.accion, resultado.cmid) == ("movida", 501)
+        # Se mueve y además cambia de nombre: renombrar gana a mover.
+        assert (resultado.accion, resultado.cmid) == ("renombrada", 501)
         assert _llamadas(moodle, "mover") == [("mover", 3, 501, 20, None)]
         assert _llamadas(moodle, "crear") == []
         assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [501]
@@ -3638,7 +3639,7 @@ class TestPublicarPorOrigen:
         resultado = publicar.publicar_documento(
             moodle, 3, moodle.estructura(3), doc, visible=None, huella_aula=igual
         )
-        assert resultado.accion == "actualizada"
+        assert resultado.accion == "renombrada"
         # El formulario se carga una sola vez antes de escribir: la huella lo aprovecha.
         antes = [i for i, llamada in enumerate(moodle.llamadas) if llamada[0] == "leer_modulo"]
         assert antes[0] < next(
@@ -4847,7 +4848,7 @@ class TestPublicarPorRegistro:
         moodle.formularios[7] = {"visible": "1", "name": "Nombre viejo"}
         doc = _con_registro(documento(tmp_path), 5, 7)
         resultado = publicar.publicar_documento(moodle, 5, moodle.estructura(5), doc, visible=None)
-        assert (resultado.accion, resultado.cmid) == ("actualizada", 7)
+        assert (resultado.accion, resultado.cmid) == ("renombrada", 7)
         assert [llamada[1] for llamada in _llamadas(moodle, "actualizar")] == [7]
         assert _llamadas(moodle, "crear", "mover") == []
         assert moodle.formularios[7]["name"] == "Repaso"  # el nombre nuevo ya viaja en el payload
@@ -4857,7 +4858,7 @@ class TestPublicarPorRegistro:
         moodle.formularios[7] = {"visible": "1", "name": "Nombre viejo"}
         doc = _con_registro(documento(tmp_path), 5, 7)
         resultado = publicar.publicar_documento(moodle, 5, moodle.estructura(5), doc, visible=None)
-        assert (resultado.accion, resultado.cmid) == ("movida", 7)
+        assert (resultado.accion, resultado.cmid) == ("renombrada", 7)  # y además se mueve
         assert _llamadas(moodle, "mover") == [("mover", 5, 7, 30, None)]
         assert [llamada[1] for llamada in _llamadas(moodle, "actualizar")] == [7]
         assert _llamadas(moodle, "crear") == []

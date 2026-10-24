@@ -120,6 +120,8 @@ SOLO_FECHAS_TEXTO = (
     "visibilidad no cambian."
 )
 
+BORRADA_TEXTO = "Ya no está en el aula: se creará de nuevo."
+
 _CIERRE = {
     "aula": (
         "El aula ha cerrado la sesión (caducó, o entraste con este usuario "
@@ -292,6 +294,8 @@ def detalle_real(resumen: ResumenPublicacion) -> DetalleReal:
 def _documento_real(doc: DocumentoResumen, solo: bool) -> DocumentoReal:
     lineas = [f"fichero {texto_seguro(doc.fichero)}" + ("" if solo else ", verificado en pruebas")]
     lineas += describir_cambios(doc)
+    if doc.borrada and not solo:
+        lineas.append(BORRADA_TEXTO)
     if not solo:
         lineas += [texto_seguro(linea) for linea in doc.itinerario]
         if doc.h5p is not None:
@@ -363,7 +367,7 @@ def _lineas_de_movimientos(movimientos: tuple[CambioSeccion, ...]) -> list[str]:
 
 
 def _lineas_de_nombres(cambios: tuple[CambioNombre, ...]) -> list[str]:
-    """Una línea por actividad importada que se llama distinto en el aula: se actualiza por su origen."""
+    """Una línea por actividad que se llama distinto en el aula: se actualiza, no se duplica."""
     return [
         f"Se cambia el nombre de «{texto_seguro(cambio.antes)}» a «{texto_seguro(cambio.despues)}» "
         f"(fichero {texto_seguro(cambio.fichero)})."
@@ -373,7 +377,9 @@ def _lineas_de_nombres(cambios: tuple[CambioNombre, ...]) -> list[str]:
 
 def _documento_corto(doc: DocumentoBreve) -> DocumentoCorto:
     lineas: list[str] = []
-    if doc.existe is True:
+    if doc.borrada:
+        lineas.append(BORRADA_TEXTO)
+    elif doc.existe is True:
         lineas.append("Ya existe en el aula: se ocultará si estaba visible.")
     elif doc.existe is None:
         lineas.append("Puede que ya exista en el aula: se ocultará si estaba visible.")
@@ -692,6 +698,17 @@ def _huella_no_guardada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _registro_no_guardado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'])}» se ha publicado, pero no he podido anotar qué "
+            "actividad es; si le cambias el nombre al fichero, tiza podría crear otra en vez de "
+            "actualizar esta.",
+            error=True,
+        ),
+    )
+
+
 def _cancelada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("Operación cancelada.", error=True),)
 
@@ -831,6 +848,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "PETICION_RETIRADA": _peticion_retirada,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,
     "QUEDAN_MINUTOS": _quedan_minutos,
+    "REGISTRO_NO_GUARDADO": _registro_no_guardado,
     "RESULTADO": _resultado,
     "SESION_ABIERTA": _sesion_abierta,
     "SESION_ANTERIOR_CERRADA": _sesion_anterior_cerrada,

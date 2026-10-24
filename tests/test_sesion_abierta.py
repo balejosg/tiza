@@ -254,7 +254,14 @@ class TestAtenderSinPruebas:
         [corto] = presencia.resumenes_cortos
         assert (corto.curso, corto.nombre_curso) == (5678, "Matemáticas 2ºB")
         [doc] = corto.documentos
-        assert set(vars(doc)) == {"fichero", "tipo", "nombre", "existe", "itinerario"}
+        assert set(vars(doc)) == {
+            "fichero",
+            "tipo",
+            "nombre",
+            "existe",
+            "itinerario",
+            "borrada",
+        }
         assert (doc.fichero, doc.tipo, doc.nombre) == ("pagina.md", "pagina", "Repaso")
         assert doc.existe is False  # el curso no tiene todavía esa página
         assert not (carpeta / ".tiza" / "preview").exists()  # no hay vista previa

@@ -2497,6 +2497,12 @@ def _publicar_congelado(
     movido = existente is not None and (
         loc.por == "otra_seccion" or (loc.seccion or {}).get("id") != seccion.get("id")
     )
+    # Hallada por su ``origen`` o su registro con otro nombre en el aula: se renombra, no se duplica.
+    renombrado = (
+        existente is not None
+        and loc.por in ("origen", "registro")
+        and existente.get("nombre") != doc.nombre
+    )
     leido: dict | None = None
     if loc.por == "origen":
         # La actividad de la copia, con el nombre y en la sección que tenga ahora.
@@ -2559,7 +2565,7 @@ def _publicar_congelado(
         nombre=original.ruta.name,
         tipo=doc.tipo,
         cmid=cmid,
-        accion="movida" if movido else accion,
+        accion="renombrada" if renombrado else "movida" if movido else accion,
         oculto=_oculto(visible, info),
         url=url_modulo(moodle.base_url, doc.tipo, cmid),
         seccion=seccion["nombre"],

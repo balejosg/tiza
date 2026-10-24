@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Añadido
+- **Renombrar una actividad no la duplica.** Tras publicar, tiza anota en `.tiza/publicados.json` qué actividad es cada fichero en cada curso. Si cambias `nombre:` y vuelves a publicar, se actualiza la misma actividad (mismas entregas y notas); el informe da `accion: renombrada` y la confirmación de real dice «Se cambia el nombre de «A» a «B»». Si la actividad ya no está en el aula, la confirmación avisa («Ya no está en el aula: se creará de nuevo.») y se crea otra. Si no se puede anotar, el paso `REGISTRO_NO_GUARDADO` avisa de que renombrar podría crear otra.
+
 ## 0.28.0 — 2026-10-23
 
 ### Añadido

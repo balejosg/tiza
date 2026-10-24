@@ -234,6 +234,12 @@ class MoodleFalso:
     def actualizar(self, cmid, payload):
         self.llamadas.append(("actualizar", cmid, payload))
         self.formularios.setdefault(cmid, {"visible": "1"}).update(self._admitido(cmid, payload))
+        if payload.get("name"):  # como Moodle: el nombre nuevo se ve ya en la estructura del curso
+            for secciones in (self.secciones, *self.secciones_por_curso.values()):
+                for seccion in secciones:
+                    for modulo in seccion["modulos"]:
+                        if modulo.get("cmid") == cmid:
+                            modulo["nombre"] = payload["name"]
 
     def _campos_de_finalizacion(self, cmid, formulario):
         if self.sin_finalizacion:  # el formulario no trae ninguno de estos campos
@@ -664,6 +670,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "PETICION_RETIRADA": publicacion.Aviso.peticion_retirada(),
         "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),
         "QUEDAN_MINUTOS": publicacion.Aviso.quedan_minutos(5),
+        "REGISTRO_NO_GUARDADO": publicacion.Aviso.registro_no_guardado("T"),
         "RESULTADO": publicacion.Aviso.resultado(
             informe.crear("publicar", "ok", [], [], [], "pruebas", 1234)
         ),

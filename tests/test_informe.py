@@ -459,7 +459,7 @@ def test_no_quedan_literales_de_paso_fuera_de_informe():
 class TestOrdenar:
     """El informe de ``tiza ordenar``: comando y acciones propias, sin visibilidad."""
 
-    @pytest.mark.parametrize("accion", ["movida", "ordenada", "sin_cambios"])
+    @pytest.mark.parametrize("accion", ["movida", "ordenada", "sin_cambios", "renombrada"])
     def test_las_acciones_nuevas_valen(self, accion):
         documento = crear(
             "ordenar",
