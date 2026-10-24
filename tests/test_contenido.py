@@ -14,7 +14,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from dobles import enlace_simbolico
-from tiza import contenido, filtro
+from tiza import contenido, estado, filtro
 from tiza import contenido as contenido_modulo
 from tiza.contenido import (
     ErrorContenido,
@@ -2345,3 +2345,56 @@ class TestEvalua:
             md.write_bytes(md.read_bytes().replace(b"\r\n", b"\n"))
         doc = cargar(destino / "pagina.md")
         assert hash_documento(doc) == HASH_EJEMPLO_PAGINA_MD
+
+
+class TestPublicadosDelDocumento:
+    """``Documento.publicados``: lo que ``.tiza/publicados.json`` dice de este fichero, por curso."""
+
+    def preparar(self, tmp_path):
+        carpeta = tmp_path / "asig"
+        (carpeta / "aula" / "u2").mkdir(parents=True)
+        (carpeta / ".tiza").mkdir()
+        return carpeta.resolve()
+
+    def test_con_raiz_se_rellena_con_la_entrada_de_cada_curso(self, tmp_path):
+        carpeta = self.preparar(tmp_path)
+        ruta = escribir(carpeta / "aula" / "u2", pagina("Hola"), "guia.md")
+        uno = estado.Publicado(cmid=5, tipo="pagina")
+        otro = estado.Publicado(cmid=8, tipo="pagina", huella="a" * 64)
+        estado.guardar_publicado(carpeta / ".tiza", 7, "aula/u2/guia.md", uno)
+        estado.guardar_publicado(carpeta / ".tiza", 9, "aula/u2/guia.md", otro)
+        estado.guardar_publicado(carpeta / ".tiza", 7, "otra.md", estado.Publicado(3, "pagina"))
+        doc = cargar(ruta, raiz=carpeta)
+        assert dict(doc.publicados) == {7: uno, 9: otro}
+
+    def test_sin_raiz_queda_vacio_aunque_haya_registro(self, tmp_path):
+        carpeta = self.preparar(tmp_path)
+        ruta = escribir(carpeta, pagina("Hola"), "guia.md")
+        estado.guardar_publicado(carpeta / ".tiza", 7, "guia.md", estado.Publicado(5, "pagina"))
+        assert dict(cargar(ruta).publicados) == {}
+
+    def test_sin_registro_o_sin_entrada_queda_vacio(self, tmp_path):
+        carpeta = self.preparar(tmp_path)
+        ruta = escribir(carpeta, pagina("Hola"), "guia.md")
+        assert dict(cargar(ruta, raiz=carpeta).publicados) == {}
+        estado.guardar_publicado(carpeta / ".tiza", 7, "otra.md", estado.Publicado(5, "pagina"))
+        assert dict(cargar(ruta, raiz=carpeta).publicados) == {}
+
+    def test_registro_invalido_es_un_error_de_contenido(self, tmp_path):
+        carpeta = self.preparar(tmp_path)
+        ruta = escribir(carpeta, pagina("Hola"), "guia.md")
+        (carpeta / ".tiza" / "publicados.json").write_text("{no es json", encoding="utf-8")
+        with pytest.raises(ErrorContenido) as error:
+            cargar(ruta, raiz=carpeta)
+        assert (error.value.codigo, error.value.detalle) == ("PUBLICADOS_INVALIDO", "guia.md")
+
+    def test_tener_registro_no_cambia_el_hash_ni_el_repr(self, tmp_path):
+        carpeta = self.preparar(tmp_path)
+        ruta = escribir(carpeta, pagina("Hola"), "guia.md")
+        antes = cargar(ruta, raiz=carpeta)
+        estado.guardar_publicado(carpeta / ".tiza", 7, "guia.md", estado.Publicado(5, "pagina"))
+        despues = cargar(ruta, raiz=carpeta)
+        assert despues.publicados and not antes.publicados
+        assert hash_documento(despues) == hash_documento(antes)
+        assert despues.hash_cargado == antes.hash_cargado
+        assert "publicados" not in repr(despues)

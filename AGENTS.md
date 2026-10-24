@@ -119,6 +119,10 @@ en español.
   mueve y ordena: `Moodle.mover` (`cm_move`), `modulos_de`/`modulos_fuera`,
   `plan_de_orden` (pura), `resolver_orden` y `ordenar_documentos`; cambiar
   `seccion:` mueve la actividad existente (`movida`) en vez de duplicarla.
+  `localizar` es **la única búsqueda de «la actividad del aula de este documento»** (origen, luego
+  `Documento.publicados` del curso —`.tiza/publicados.json`—, luego tipo + nombre en su sección y en
+  otra): `modulo_de`, `ya_existe`, `origen_de_movimiento`, `resolver_orden`, solo-fechas, publicar
+  y el calificador pasan por ella; no busques actividades por otro camino.
 - `src/tiza/filtro.py`: **única fuente de la política de HTML** (etiquetas,
   atributos, CSS, clases y servidores de iframe) sobre el árbol de html5lib.
   Lo que se publica es ese árbol validado, serializado con `filtro.serializar`

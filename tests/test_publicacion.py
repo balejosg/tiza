@@ -974,6 +974,31 @@ def test_solo_fechas_busca_por_origen_y_si_no_esta_no_cambia_nada(tmp_path):
     assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "ORIGEN_NO_ENCONTRADO"
 
 
+def test_solo_fechas_busca_por_el_registro_una_actividad_con_otro_nombre(tmp_path):
+    carpeta = tmp_path.resolve()
+    (carpeta / ".tiza").mkdir()
+    tarea_en(carpeta)  # «Problemas», sección 3
+    secciones = [
+        {
+            "numero": 3,
+            "nombre": "T3",
+            "id": 30,
+            "modulos": [{"cmid": 55, "nombre": "Problemas del tema", "tipo": "tarea"}],
+        }
+    ]
+    doc = contenido.cargar(carpeta / "tarea.md", raiz=carpeta)
+    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "MODULO_AUSENTE"
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "tarea.md", estado.Publicado(cmid=55, tipo="tarea")
+    )
+    doc = contenido.cargar(carpeta / "tarea.md", raiz=carpeta)
+    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) is None
+    assert publicacion.codigo_solo_fechas(secciones, [doc], 1234) == "MODULO_AUSENTE"
+    # Si el nombre es ambiguo (hay otra «Problemas» en su sección), no se sabe cuál y se dice.
+    secciones[0]["modulos"].append({"cmid": 56, "nombre": "Problemas", "tipo": "tarea"})
+    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "ACTIVIDAD_AMBIGUA"
+
+
 # --- Ronda de arreglos 1 ------------------------------------------------------------------
 
 

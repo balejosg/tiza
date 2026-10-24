@@ -61,6 +61,7 @@ __all__ = [
     "buscar_seccion",
     "cargar_copia",
     "cargar_publicados",
+    "publicados_de_fichero",
     "cargar_estructura",
     "cargar_huellas",
     "cargar_verificados",
@@ -544,6 +545,22 @@ def cargar_publicados(dir_tiza: str | Path, curso: int) -> dict[str, Publicado]:
     if entrada is None:
         return {}
     return {ruta: Publicado(**valor) for ruta, valor in entrada["ficheros"].items()}
+
+
+def publicados_de_fichero(dir_tiza: str | Path, ruta: str) -> dict[int, Publicado]:
+    """Curso -> ``Publicado`` de ``ruta`` en todos los cursos que la tienen. Lee el fichero una vez.
+
+    Sin fichero, o si ``ruta`` no está en ningún curso (o no puede ser una clave), ``{}``. Con la
+    misma validación que :func:`cargar_publicados`: un registro dañado es ``PUBLICADOS_INVALIDO``.
+    """
+    datos = _cargar_publicados_datos(dir_tiza)
+    if datos is None or not ruta_publicada_valida(ruta):
+        return {}
+    return {
+        int(curso): Publicado(**entrada["ficheros"][ruta])
+        for curso, entrada in datos["cursos"].items()
+        if ruta in entrada["ficheros"]
+    }
 
 
 def guardar_publicado(dir_tiza: str | Path, curso: int, ruta: str, publicado: Publicado) -> Path:

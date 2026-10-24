@@ -417,6 +417,29 @@ class TestPublicados:
         assert estado.olvidar_publicado(tmp_path, 7, "otro.md") is False
         assert (tmp_path / "publicados.json").read_text(encoding="utf-8") == antes
 
+    def test_publicados_de_fichero_reune_los_cursos_que_lo_tienen(self, tmp_path):
+        uno = estado.Publicado(cmid=1, tipo="pagina", huella=H)
+        otro = estado.Publicado(cmid=9, tipo="pagina")
+        estado.guardar_publicado(tmp_path, 7, "aula/a.md", uno)
+        estado.guardar_publicado(tmp_path, 8, "aula/a.md", otro)
+        estado.guardar_publicado(tmp_path, 8, "aula/b.md", estado.Publicado(cmid=2, tipo="tarea"))
+        assert estado.publicados_de_fichero(tmp_path, "aula/a.md") == {7: uno, 8: otro}
+        assert estado.publicados_de_fichero(tmp_path, "aula/b.md") == {
+            8: estado.Publicado(cmid=2, tipo="tarea")
+        }
+
+    def test_publicados_de_fichero_sin_la_ruta_o_sin_fichero_es_vacio(self, tmp_path):
+        assert estado.publicados_de_fichero(tmp_path, "a.md") == {}
+        estado.guardar_publicado(tmp_path, 7, "a.md", estado.Publicado(cmid=1, tipo="pagina"))
+        assert estado.publicados_de_fichero(tmp_path, "otro.md") == {}
+        assert estado.publicados_de_fichero(tmp_path, "../a.md") == {}
+
+    def test_publicados_de_fichero_valida_como_cargar_publicados(self, tmp_path):
+        (tmp_path / "publicados.json").write_text('{"version": 2, "cursos": {}}', encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.publicados_de_fichero(tmp_path, "a.md")
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+
     def test_fichero_de_cmid(self, tmp_path):
         estado.guardar_publicado(tmp_path, 7, "a.md", estado.Publicado(cmid=5, tipo="pagina"))
         assert estado.fichero_de_cmid(tmp_path, 7, 5) == "a.md"

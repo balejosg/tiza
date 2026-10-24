@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import dataclasses
 import random
 
 import pytest
 
 from dobles import MoodleFalso
-from tiza import contenido, publicar
+from tiza import contenido, estado, publicar
 from tiza.publicar import ErrorPublicacion, Movimiento, plan_de_orden
 
 
@@ -308,6 +309,73 @@ class TestMoverAlCambiarDeSeccion:
         assert publicar.origen_de_movimiento(moodle2.secciones, doc) is None
 
 
+class TestOrdenarPorRegistro:
+    """Una actividad que se llama distinto en el aula se encuentra por el registro de lo publicado."""
+
+    def con_registro(self, doc, curso, cmid):
+        return dataclasses.replace(doc, publicados={curso: estado.Publicado(cmid, doc.tipo)})
+
+    def test_ordena_actividades_que_ya_no_se_llaman_como_su_fichero(self, tmp_path):
+        moodle = aula(1, 2, 3)  # P1, P2, P3 en el aula
+        docs = [
+            self.con_registro(documento(tmp_path, nombre), 1234, cmid)
+            for nombre, cmid in (("Tercera", 3), ("Primera", 1))
+        ]
+        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [3, 2, 1]
+        assert [(f.nombre, f.accion, f.cmid) for f in ficheros] == [
+            ("tercera.md", "ordenada", 3),
+            ("primera.md", "ordenada", 1),
+        ]
+
+    def test_sin_registro_siguen_ausentes(self, tmp_path):
+        moodle = aula(1, 2, 3)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.ordenar_documentos(
+                moodle, 1234, moodle.secciones, [documento(tmp_path, "Primera")]
+            )
+        assert exc.value.codigo == "ACTIVIDAD_AUSENTE"
+
+    def test_el_registro_de_otro_curso_no_cuenta(self, tmp_path):
+        moodle = aula(1, 2, 3)
+        doc = self.con_registro(documento(tmp_path, "Primera"), 9999, 1)
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, [doc])
+        assert exc.value.codigo == "ACTIVIDAD_AUSENTE"
+
+    def test_dos_ficheros_con_el_mismo_cmid_en_el_registro_son_ambiguos(self, tmp_path):
+        moodle = aula(1, 2, 3)
+        docs = [
+            self.con_registro(documento(tmp_path, nombre), 1234, 1) for nombre in ("Uno", "Dos")
+        ]
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
+        assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+    def test_se_ordena_en_la_seccion_en_la_que_esta_la_actividad(self, tmp_path):
+        moodle = MoodleFalso(
+            secciones=[
+                {
+                    "numero": 2,
+                    "nombre": "Tema 2",
+                    "id": 20,
+                    "modulos": [{"cmid": c, "nombre": f"P{c}", "tipo": "pagina"} for c in (1, 2)],
+                },
+                {"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []},
+            ]
+        )
+        # Los dos ficheros dicen «sección 3», pero sus actividades siguen en la 2.
+        docs = [
+            self.con_registro(documento(tmp_path, nombre), 1234, cmid)
+            for nombre, cmid in (("Segunda", 2), ("Primera", 1))
+        ]
+        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [2, 1]
+        assert {f.seccion for f in ficheros} == {"Tema 2"}
+        assert not [x for x in moodle.llamadas if x[0] == "mover" and x[3] != 20]
+
+
 # --------------------------------------------------------------------------- #
 # La sesión: ordenar en pruebas y en real
 # --------------------------------------------------------------------------- #
@@ -405,6 +473,24 @@ class TestOrdenarEnLaSesion:
         documento = sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md", "P3.md"]))
         assert {f["accion"] for f in documento["ficheros"]} == {"sin_cambios"}
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+    def test_encuentra_por_el_registro_la_actividad_que_cambio_de_nombre(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        modulos = list(MODULOS)
+        modulos[2] = (3, "Primera práctica", "pagina")  # P1.md, en el aula con otro nombre
+        pedido = pedir(carpeta, "pruebas", ["P1.md", "P2.md", "P3.md"])
+
+        sin_registro = atender(pedido, aula_de_la_sesion(*modulos), CFG, carpeta, PresenciaFalsa())
+        assert sin_registro["errores"] == ["ACTIVIDAD_AUSENTE"]
+
+        estado.guardar_publicado(
+            carpeta / ".tiza", 1234, "P1.md", estado.Publicado(cmid=3, tipo="pagina")
+        )
+        moodle = aula_de_la_sesion(*modulos)
+        documento = atender(pedido, moodle, CFG, carpeta, PresenciaFalsa())
+        assert documento["resultado"] == "ok"
+        assert [f["accion"] for f in documento["ficheros"]] == ["ordenada"] * 3
+        assert orden_en(moodle) == [[3, 2, 1, 4]]
 
     def test_no_exige_verificacion_ni_marca_nada_como_verificado(self, tmp_path):
         carpeta = carpeta_con(tmp_path, "P1", "P2")

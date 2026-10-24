@@ -23,7 +23,7 @@ from bs4 import BeautifulSoup, Tag
 from markdown_it import MarkdownIt
 
 from . import filtro, rutas
-from .estado import CARPETA_PREVIEW, Publicado
+from .estado import CARPETA_PREVIEW, ErrorEstado, Publicado, publicados_de_fichero
 from .ficheros import FicheroNoSeguro, asegurar_directorio, escribir_texto, leer_bytes_acotado
 from .filtro import CONTROL as _CONTROL
 
@@ -359,7 +359,27 @@ def cargar(
     doc.incrustados = _sin_repetir(analisis.incrustados, doc.cuestionario, externos=False)
     doc.hash_cargado = hash_documento(doc)
     doc.sha256_fichero = hashlib.sha256(bruto).hexdigest()
+    if raiz is not None:
+        doc.publicados = _publicados_de(ruta, raiz)
     return doc
+
+
+def _publicados_de(ruta: Path, raiz: Path) -> dict[int, Publicado]:
+    """Lo que ``.tiza/publicados.json`` dice de este fichero, por curso (``{}`` si nada).
+
+    Con un registro que no vale, ``PUBLICADOS_INVALIDO``: no se usa a medias.
+    """
+    try:
+        relativa = ruta.relative_to(raiz)
+    except ValueError:
+        try:
+            relativa = ruta.resolve().relative_to(raiz)
+        except (ValueError, OSError):
+            return {}  # fuera de la carpeta de la asignatura: no está en su registro
+    try:
+        return publicados_de_fichero(raiz / rutas.CARPETA_TRABAJO, relativa.as_posix())
+    except ErrorEstado:
+        raise ErrorContenido("PUBLICADOS_INVALIDO", ruta.name) from None
 
 
 def _sin_repetir(

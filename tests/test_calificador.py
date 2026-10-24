@@ -1346,3 +1346,35 @@ def test_si_el_aula_nunca_deja_el_peso_donde_se_pide_los_repasos_tienen_tope(tmp
     eid = moodle.por_id("TZ_E_RA1").eid
     escrituras = [e for e in moodle.escrituras if e[0] == "fijar_peso" and e[2] == eid]
     assert 1 < len(escrituras) <= publicacion.MAX_PASADAS_DE_AJUSTE + 2
+
+
+def test_el_calificador_encuentra_por_el_registro_la_actividad_que_cambio_de_nombre(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    secciones = secciones_de()
+    secciones[0]["modulos"][0]["nombre"] = "Otro nombre en el aula"  # a.md, cmid 11
+    documentos = documentos_de_la_carpeta(carpeta)
+    esperado = {"d.md": 12, "c.md": 13}
+    assert publicacion._cmids_de(secciones, documentos, CURSO, carpeta) == esperado
+
+    estado.guardar_publicado(
+        carpeta / ".tiza", CURSO, "a.md", estado.Publicado(cmid=11, tipo="tarea")
+    )
+    documentos = documentos_de_la_carpeta(carpeta)
+    assert publicacion._cmids_de(secciones, documentos, CURSO, carpeta) == {"a.md": 11, **esperado}
+    # En otro curso el registro no cuenta.
+    assert publicacion._cmids_de(secciones, documentos, CURSO + 1, carpeta) == esperado
+
+
+def test_el_calificador_no_adivina_si_el_registro_y_el_nombre_apuntan_a_actividades_distintas(
+    tmp_path,
+):
+    carpeta = carpeta_fp(tmp_path)
+    secciones = secciones_de()
+    secciones[0]["modulos"][0]["nombre"] = "Otro nombre en el aula"  # a.md, cmid 11
+    secciones[0]["modulos"].append({"cmid": 99, "nombre": "a", "tipo": "tarea"})
+    estado.guardar_publicado(
+        carpeta / ".tiza", CURSO, "a.md", estado.Publicado(cmid=11, tipo="tarea")
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        publicacion._cmids_de(secciones, documentos_de_la_carpeta(carpeta), CURSO, carpeta)
+    assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
