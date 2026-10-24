@@ -66,7 +66,7 @@ def estructura_con(
     borrador = informe.Borrador("estructura")
     borrador.paso("LOGIN")
     cursos: dict[str, Any] = {}
-    cambios: list[informe.Fichero] = []
+    reales: list[tuple[int, list[dict]]] = []  # las secciones de cada curso real, para --cambios
     try:
         destinos: list[tuple[str, int]] = []
         if "pruebas" in cfg.cursos:
@@ -87,17 +87,10 @@ def estructura_con(
             }
             if nombre == "real":
                 cursos.setdefault("real", []).append(curso)
+                reales.append((curso_id, secciones))
             else:
                 cursos[nombre] = curso
             borrador.paso("ESTRUCTURA", detalle=f"{nombre}: {len(secciones)} secciones")
-            if ficheros and nombre == "real":
-                cambios += publicacion.cambios_en_el_aula(
-                    aula, secciones, ficheros, curso_id, Path(carpeta) / rutas.CARPETA_TRABAJO
-                )
-    except estado.ErrorEstado as exc:  # ``copia.json`` que no vale
-        borrador.fallo("ESTRUCTURA", exc.codigo)
-        borrador.error(exc.codigo)
-        return borrador.documento("error")
     except ErrorPublicacion as exc:
         borrador.fallo("ESTRUCTURA", exc.codigo)
         borrador.error(exc.codigo)
@@ -108,6 +101,22 @@ def estructura_con(
     except estado.ErrorEstado as exc:
         borrador.fallo("ESTRUCTURA", exc.codigo)
         borrador.error(exc.codigo)
+        return borrador.documento("error")
+    # Después de escribir: un ``copia.json`` que no vale solo impide el informe de cambios.
+    cambios: list[informe.Fichero] = []
+    try:
+        for curso_id, secciones in reales if ficheros else []:
+            cambios += publicacion.cambios_en_el_aula(
+                aula, secciones, ficheros, curso_id, Path(carpeta) / rutas.CARPETA_TRABAJO
+            )
+    except estado.ErrorEstado as exc:  # ``copia.json`` que no vale
+        borrador.fallo("ESTRUCTURA", exc.codigo)
+        borrador.error(exc.codigo)
+        return borrador.documento("error")
+    except ErrorPublicacion as exc:
+        borrador.fallo("ESTRUCTURA", exc.codigo)
+        borrador.error(exc.codigo)
+        publicacion.depurar(exc, debug)
         return borrador.documento("error")
     for fichero in cambios:
         borrador.fichero(fichero)

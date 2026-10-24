@@ -357,3 +357,14 @@ def test_atender_sin_ficheros_no_lee_formularios(publicada):
     antes = _lecturas(moodle)
     documento = atender(_peticion([]), moodle, CFG, carpeta, PresenciaFalsa())
     assert documento["ficheros"] == [] and _lecturas(moodle) == antes
+
+
+def test_con_cambios_y_copia_que_no_vale_escribe_la_estructura_y_da_su_error(tmp_path):
+    carpeta, moodle = _importada(tmp_path)
+    (carpeta / ".tiza" / "copia.json").write_text("{}", encoding="utf-8")
+    documento = _cambios(carpeta, moodle, ficheros=("i.md",))
+    informe.validar(documento)
+    assert documento["resultado"] == "error" and documento["errores"] == ["COPIA_INVALIDA"]
+    assert documento["ficheros"] == []
+    datos = json.loads((carpeta / ".tiza" / "estructura.json").read_text(encoding="utf-8"))
+    assert datos["cursos"]["real"][0]["id"] == 5678
