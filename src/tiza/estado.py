@@ -493,15 +493,28 @@ class Publicado:
     marca: str | None = None
 
 
-def ruta_publicada_valida(ruta: str) -> bool:
-    """¿Es ``ruta`` una ruta relativa POSIX segura para ser clave de ``publicados.json``?"""
+def _ruta_de_registro(ruta: str) -> bool:
+    """¿Es ``ruta`` una ruta relativa POSIX segura? Es la regla con la que se leen los registros.
+
+    Acepta «:»: un ``publicados.json`` de la 0.29.0 en Linux o macOS puede tener ``a:b.md`` y no
+    debe dejar inservible el registro entero.
+    """
     if not isinstance(ruta, str) or not 0 < len(ruta) <= 1024:
         return False
-    if "\\" in ruta or ":" in ruta or ruta.startswith("/"):  # «:» cubre también «C:» de Windows
+    if "\\" in ruta or ruta.startswith("/"):
         return False
     if any(unicodedata.category(c) in _CATEGORIAS_PROHIBIDAS for c in ruta):
         return False
     return all(segmento not in ("", ".", "..") for segmento in ruta.split("/"))
+
+
+def ruta_publicada_valida(ruta: str) -> bool:
+    """¿Puede ``ruta`` ser una clave NUEVA de ``publicados.json``? Solo al escribir.
+
+    Como :func:`_ruta_de_registro`, pero sin «:»: no se registran rutas con dos puntos
+    (unidades de Windows como «C:»). Las que ya están escritas se siguen leyendo.
+    """
+    return _ruta_de_registro(ruta) and ":" not in ruta
 
 
 def _clave_curso(curso: int) -> str:
@@ -527,7 +540,7 @@ def _validar_publicados(datos: Any) -> None:
             raise ErrorEstado("PUBLICADOS_INVALIDO")
         cmids: set[int] = set()
         for ruta, valor in ficheros.items():
-            if not ruta_publicada_valida(ruta) or not isinstance(valor, dict):
+            if not _ruta_de_registro(ruta) or not isinstance(valor, dict):
                 raise ErrorEstado("PUBLICADOS_INVALIDO")
             if set(valor) != {"cmid", "tipo", "huella", "marca"}:
                 raise ErrorEstado("PUBLICADOS_INVALIDO")
@@ -581,7 +594,7 @@ def publicados_de_fichero(dir_tiza: str | Path, ruta: str) -> dict[int, Publicad
     misma validación que :func:`cargar_publicados`: un registro dañado es ``PUBLICADOS_INVALIDO``.
     """
     datos = _cargar_publicados_datos(dir_tiza)
-    if datos is None or not ruta_publicada_valida(ruta):
+    if datos is None or not _ruta_de_registro(ruta):
         return {}
     return {
         int(curso): Publicado(**entrada["ficheros"][ruta])

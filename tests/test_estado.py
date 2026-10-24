@@ -541,6 +541,38 @@ class TestPublicados:
             estado.cargar_publicados(tmp_path, 7)
         assert error.value.codigo == "PUBLICADOS_INVALIDO"
 
+    def test_registro_escrito_antes_con_dos_puntos_carga_y_se_encuentra(self, tmp_path):
+        # Un publicados.json de la 0.29.0 con una ruta «a:b.md» no deja inservible el registro.
+        entrada = {"cmid": 5, "tipo": "pagina", "huella": None, "marca": None}
+        otra = {**entrada, "cmid": 6}
+        datos = {"version": 1, "cursos": {"7": {"ficheros": {"a:b.md": entrada, "c.md": otra}}}}
+        (tmp_path / "publicados.json").write_text(json.dumps(datos), encoding="utf-8")
+        uno = estado.Publicado(cmid=5, tipo="pagina")
+        assert estado.cargar_publicados(tmp_path, 7)["a:b.md"] == uno
+        assert estado.publicados_de_fichero(tmp_path, "a:b.md") == {7: uno}
+
+    def test_con_un_registro_con_dos_puntos_se_puede_seguir_escribiendo(self, tmp_path):
+        datos = {
+            "version": 1,
+            "cursos": {
+                "7": {
+                    "ficheros": {
+                        "a:b.md": {"cmid": 5, "tipo": "pagina", "huella": None, "marca": None}
+                    }
+                }
+            },
+        }
+        (tmp_path / "publicados.json").write_text(json.dumps(datos), encoding="utf-8")
+        estado.guardar_publicado(tmp_path, 7, "d.md", estado.Publicado(cmid=6, tipo="pagina"))
+        assert set(estado.cargar_publicados(tmp_path, 7)) == {"a:b.md", "d.md"}
+
+    @pytest.mark.parametrize("ruta", ["a:b.md", "C:/a.md"])
+    def test_guardar_con_dos_puntos_no_escribe(self, tmp_path, ruta):
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_publicado(tmp_path, 7, ruta, estado.Publicado(cmid=1, tipo="pagina"))
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        assert not (tmp_path / "publicados.json").exists()
+
     def test_olvidar_con_registro_invalido_es_publicados_invalido(self, tmp_path):
         (tmp_path / "publicados.json").write_text(
             '{"version": 1.0, "cursos": {}}', encoding="utf-8"
