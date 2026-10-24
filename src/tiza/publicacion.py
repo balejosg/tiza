@@ -1043,8 +1043,7 @@ def publicar_con(
             _renovar_base_registrada(
                 dir_tiza, curso, _relativa(doc.ruta, base), doc, huella_nueva, borrador, presencia
             )
-        if not solo_fechas:
-            assert resultado.cmid is not None
+        if not solo_fechas and resultado.cmid is not None:  # sin cmid no hay nada que registrar
             ruta = _relativa(doc.ruta, base)
             previo = _cmid_registrado(dir_tiza, curso, ruta)
             _registrar_publicado(

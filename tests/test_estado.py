@@ -497,6 +497,10 @@ class TestPublicados:
             "a\u200bb",
             "a\x07b",
             "a" * 1025,
+            "C:/a",
+            "c:a.md",
+            "a:b",
+            "a/b:c.md",
         ]:
             assert not estado.ruta_publicada_valida(ruta), repr(ruta)
         assert not estado.ruta_publicada_valida(None)  # type: ignore[arg-type]
@@ -507,7 +511,10 @@ class TestPublicados:
             pytest.param({"version": 1, "cursos": {}, "extra": 1}, id="clave_de_mas_en_la_raiz"),
             pytest.param({"version": 2, "cursos": {}}, id="version_2"),
             pytest.param({"version": True, "cursos": {}}, id="version_bool"),
+            pytest.param({"version": 1.0, "cursos": {}}, id="version_flotante"),
             pytest.param({"version": 1, "cursos": {"siete": {"ficheros": {}}}}, id="curso_str"),
+            pytest.param({"version": 1, "cursos": {"007": {"ficheros": {}}}}, id="curso_con_ceros"),
+            pytest.param({"version": 1, "cursos": {"0": {"ficheros": {}}}}, id="curso_cero"),
             pytest.param(
                 {"version": 1, "cursos": {"7": {"ficheros": {}, "otro": 1}}}, id="curso_extra"
             ),
@@ -533,6 +540,18 @@ class TestPublicados:
         with pytest.raises(estado.ErrorEstado) as error:
             estado.cargar_publicados(tmp_path, 7)
         assert error.value.codigo == "PUBLICADOS_INVALIDO"
+
+    def test_olvidar_con_registro_invalido_es_publicados_invalido(self, tmp_path):
+        (tmp_path / "publicados.json").write_text(
+            '{"version": 1.0, "cursos": {}}', encoding="utf-8"
+        )
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.olvidar_publicado(tmp_path, 7, "a.md")
+        assert error.value.codigo == "PUBLICADOS_INVALIDO"
+        assert json.loads((tmp_path / "publicados.json").read_text(encoding="utf-8")) == {
+            "version": 1.0,
+            "cursos": {},
+        }
 
     def test_json_roto_es_invalido(self, tmp_path):
         (tmp_path / "publicados.json").write_text("{no es json", encoding="utf-8")

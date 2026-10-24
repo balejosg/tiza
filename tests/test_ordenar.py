@@ -191,6 +191,71 @@ class TestOrdenarDocumentos:
         assert {f.accion for f in ficheros} == {"ordenada"}
 
 
+class TestOrigenAlOrdenar:
+    """``resolver_orden`` agrupa por la sección del ``origen`` y no se traga un origen ausente."""
+
+    def _origen(self, tmp_path, nombre, cmid):
+        ruta = tmp_path / f"{nombre.lower()}.md"
+        ruta.write_text(
+            f"---\ntipo: pagina\nnombre: {nombre}\nseccion: 3\n"
+            f"origen:\n  curso: 1234\n  cmid: {cmid}\n---\n\nTexto\n",
+            encoding="utf-8",
+        )
+        return contenido.cargar(ruta)
+
+    def test_el_origen_encontrado_en_otra_seccion_manda_su_seccion(self, tmp_path):
+        moodle = aula(1, 2)  # sección 30 con P1 y P2
+        moodle.secciones.append(
+            {
+                "numero": 4,
+                "nombre": "Tema 4",
+                "id": 40,
+                "modulos": [{"cmid": 7, "nombre": "Cambiada", "tipo": "pagina"}],
+            }
+        )
+        docs = [self._origen(tmp_path, "Renombrada", 7), documento(tmp_path, "P1")]
+        grupos = publicar.resolver_orden(moodle.secciones, docs, 1234)
+        assert [(s["id"], [m["cmid"] for _, m in par]) for s, par in grupos] == [
+            (40, [7]),
+            (30, [1]),
+        ]
+
+    def test_ordenar_con_origen_encontrado_no_mueve_nada_si_ya_esta(self, tmp_path):
+        moodle = aula(1, 2)
+        docs = [self._origen(tmp_path, "P2", 2)]
+        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        assert {f.accion for f in ficheros} == {"sin_cambios"}
+        assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+    def test_origen_ausente_es_origen_no_encontrado(self, tmp_path):
+        moodle = aula(1, 2)
+        docs = [self._origen(tmp_path, "Perdida", 9)]
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.resolver_orden(moodle.secciones, docs, 1234)
+        assert (exc.value.codigo, exc.value.detalle) == ("ORIGEN_NO_ENCONTRADO", "perdida.md")
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        assert exc.value.codigo == "ORIGEN_NO_ENCONTRADO"
+        assert not [x for x in moodle.llamadas if x[0] == "mover"]
+
+
+class TestModulosFuera:
+    def test_salta_las_secciones_que_no_son_dict(self, tmp_path):
+        secciones = [
+            None,
+            "basura",
+            {
+                "numero": 4,
+                "nombre": "Tema 4",
+                "id": 40,
+                "modulos": [{"cmid": 1, "nombre": "P1", "tipo": "pagina"}],
+            },
+        ]
+        doc = documento(tmp_path, "P1")
+        hallados = publicar.modulos_fuera(secciones, doc)
+        assert [(s["id"], m["cmid"]) for s, m in hallados] == [(40, 1)]
+
+
 class TestMoodleMover:
     def _moodle(self, respuesta):
         enviados = []

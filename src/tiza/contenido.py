@@ -377,6 +377,11 @@ def _publicados_de(ruta: Path, raiz: Path) -> dict[int, Publicado]:
         except (ValueError, OSError):
             return {}  # fuera de la carpeta de la asignatura: no está en su registro
     try:
+        # Un enlace que sale de la carpeta no es un fichero de la asignatura, aunque su ruta lo sea.
+        ruta.resolve().relative_to(raiz.resolve())
+    except (ValueError, OSError):
+        return {}
+    try:
         return publicados_de_fichero(raiz / rutas.CARPETA_TRABAJO, relativa.as_posix())
     except ErrorEstado:
         raise ErrorContenido("PUBLICADOS_INVALIDO", ruta.name) from None

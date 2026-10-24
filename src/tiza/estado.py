@@ -397,6 +397,7 @@ _HUELLA = re.compile(r"[0-9a-f]{64}")
 # no cumpla no se guarda y su nodo se trata como sin huella.
 _CLAVE_DE_NODO = re.compile(r"[A-Za-z0-9_.:-]{1,100}")
 _CURSO_DE_HUELLAS = re.compile(r"[0-9]{1,18}")
+_CURSO_PUBLICADO = re.compile(r"[1-9][0-9]{0,17}")  # sin ceros a la izquierda: «7», no «007»
 
 
 def clave_de_huella_valida(clave: str) -> bool:
@@ -496,7 +497,7 @@ def ruta_publicada_valida(ruta: str) -> bool:
     """¿Es ``ruta`` una ruta relativa POSIX segura para ser clave de ``publicados.json``?"""
     if not isinstance(ruta, str) or not 0 < len(ruta) <= 1024:
         return False
-    if "\\" in ruta or ruta.startswith("/"):
+    if "\\" in ruta or ":" in ruta or ruta.startswith("/"):  # «:» cubre también «C:» de Windows
         return False
     if any(unicodedata.category(c) in _CATEGORIAS_PROHIBIDAS for c in ruta):
         return False
@@ -511,13 +512,13 @@ def _validar_publicados(datos: Any) -> None:
     """Esquema cerrado de ``publicados.json``: ``{version: 1, cursos: {id: {ficheros: {ruta: …}}}}``."""
     if not isinstance(datos, dict) or set(datos) != {"version", "cursos"}:
         raise ErrorEstado("PUBLICADOS_INVALIDO")
-    if datos["version"] != 1 or isinstance(datos["version"], bool):
+    if type(datos["version"]) is not int or datos["version"] != 1:  # 1.0 no es la versión 1
         raise ErrorEstado("PUBLICADOS_INVALIDO")
     cursos = datos["cursos"]
     if not isinstance(cursos, dict):
         raise ErrorEstado("PUBLICADOS_INVALIDO")
     for curso, entrada in cursos.items():
-        if not isinstance(curso, str) or not _CURSO_DE_HUELLAS.fullmatch(curso):
+        if not isinstance(curso, str) or not _CURSO_PUBLICADO.fullmatch(curso):
             raise ErrorEstado("PUBLICADOS_INVALIDO")
         if not isinstance(entrada, dict) or set(entrada) != {"ficheros"}:
             raise ErrorEstado("PUBLICADOS_INVALIDO")

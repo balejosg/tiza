@@ -3113,7 +3113,9 @@ def modulos_fuera(secciones: list[dict], doc: Documento) -> list[tuple[dict, dic
         propia = None
     salida: list[tuple[dict, dict]] = []
     for seccion in secciones:
-        if seccion is propia or not isinstance(seccion.get("modulos"), list):
+        if not isinstance(seccion, dict) or seccion is propia:
+            continue
+        if not isinstance(seccion.get("modulos"), list):
             continue
         salida += [
             (seccion, modulo)
@@ -3347,7 +3349,8 @@ def resolver_orden(
 
     Cada actividad se halla con :func:`localizar` (``curso``: el del aula, para el ``origen`` y el
     registro) y se ordena en la sección en la que está. ``FICHERO_REPETIDO``,
-    ``ACTIVIDAD_AUSENTE`` y ``ACTIVIDAD_AMBIGUA`` se dan antes de mover nada.
+    ``ACTIVIDAD_AUSENTE``, ``ACTIVIDAD_AMBIGUA`` y ``ORIGEN_NO_ENCONTRADO`` (el ``origen`` ya no
+    está en el aula) se dan antes de mover nada.
     """
     vistos: set[Path] = set()
     cmids: set[int] = set()

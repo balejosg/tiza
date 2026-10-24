@@ -2388,6 +2388,17 @@ class TestPublicadosDelDocumento:
             cargar(ruta, raiz=carpeta)
         assert (error.value.codigo, error.value.detalle) == ("PUBLICADOS_INVALIDO", "guia.md")
 
+    def test_un_enlace_que_sale_de_la_carpeta_no_tiene_registro(self, tmp_path):
+        carpeta = self.preparar(tmp_path)
+        (tmp_path / "fuera").mkdir()
+        escribir(tmp_path / "fuera", pagina("Hola"), "guia.md")
+        ruta = carpeta / "aula" / "u2" / "guia.md"
+        enlace_simbolico(ruta, tmp_path / "fuera" / "guia.md")
+        estado.guardar_publicado(
+            carpeta / ".tiza", 7, "aula/u2/guia.md", estado.Publicado(5, "pagina")
+        )
+        assert dict(cargar(ruta, raiz=carpeta).publicados) == {}
+
     def test_tener_registro_no_cambia_el_hash_ni_el_repr(self, tmp_path):
         carpeta = self.preparar(tmp_path)
         ruta = escribir(carpeta, pagina("Hola"), "guia.md")
