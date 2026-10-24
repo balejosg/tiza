@@ -12,7 +12,7 @@ se avisa aquí con **Cambia**.
 - `tiza estructura --cambios` guarda la estructura del curso aunque el resumen de la importación (`.tiza/copia.json`) esté dañado.
 - `tiza importar` reconoce el `origen` de un fichero guardado con finales de línea de Windows, y no toca el registro de lo publicado si no pudo escribir su resumen.
 - La copia de lo último publicado se cambia entera de una vez: nunca queda una mitad nueva y otra vieja.
-- Más robustez con un registro de lo publicado escrito a mano o raro (rutas con «:», cursos con ceros delante).
+- El registro de lo publicado es más estricto con lo escrito a mano (cursos con ceros delante, `version` 1.0) y no anota rutas con «:»; los registros que escribió tiza se siguen leyendo igual.
 
 ## 0.29.0 — 2026-10-24
 

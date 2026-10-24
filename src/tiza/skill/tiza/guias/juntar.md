@@ -75,6 +75,7 @@ versiones cortas y todas las dudas juntas. Por ejemplo:
 | `BASE_NO_GUARDADA` (paso) | Se publicó bien, pero no queda base para juntar la próxima vez (punto 3, sin base). |
 | `ACTIVIDAD_SIN_REGISTRO` | Tiza no la conoce: pide la copia del curso (`guias/realinear.md`). |
 | `CUPO_COPIAS_ACTIVIDAD` | Se acabó el cupo de la sesión (20): pide al docente que abra otra. |
+| `ACTIVIDAD_REPETIDA` (paso) | Dos ficheros apuntan a la misma actividad: se copió una vez. No hace falta pedirla de nuevo. |
 | `COPIA_DE_ACTIVIDAD_SOLO_REAL` | La copia de actividades es solo del curso real. |
 | `COPIA_DE_ACTIVIDAD_DESCONOCIDA` | Tiza no reconoce esa actividad en la carpeta: importa antes la copia del curso, o publica el fichero. |
 
