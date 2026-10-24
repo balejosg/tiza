@@ -213,6 +213,13 @@ en español.
   `tiza.toml` de cada carpeta) y presencia humana en la terminal (`terminal.PresenciaTerminal`:
   TTY, `getpass`, confirmación `[s/N]`, con el texto de `mensajes`); `cli.instalar_skill`
   copia la skill a Claude Code, Codex, opencode y `~/.agents/skills`.
+- `src/tiza/panel/`: el panel sin consola de Windows (en marcha; la ventana llega después).
+  `estado.py` es el modelo: `Pantalla` (datos JSON), `Panel` (estado entre hilos), `PresenciaPanel`
+  (cumple `publicacion.Presencia`; cada pregunta bloquea hasta la respuesta o el cierre, que cuenta
+  como no) y `Puente` (el `js_api`: solo acciones, respuestas simples, con retardo mínimo y número
+  de pantalla). No importa pywebview, y las operaciones de ventana (`on_top`, `restore`, `show`,
+  `destroy`) nunca van dentro de una llamada del `js_api`: cuelgan la ventana. La acreditación
+  del aula no pasa por el `Puente`, entra por `abrir_login`.
 - `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
   Windows, macOS y Linux con escritorio, con Qt o GTK). **Solo enseña la página de login del aula y devuelve las cookies de
   sesión del servidor del aula**: nada más pasa por ella (cursos, aislamiento y

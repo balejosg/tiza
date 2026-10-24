@@ -12,11 +12,11 @@ y solo se leen aquí; las presencias no miran ``datos``.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from . import ayuda, estado, informe, rutas, tipos
 from .informe import ErrorInforme
@@ -27,6 +27,7 @@ from .publicacion import (
     CambioSeccion,
     DocumentoBreve,
     DocumentoResumen,
+    ResumenAislamiento,
     ResumenCalificador,
     ResumenCopia,
     ResumenOrden,
@@ -35,8 +36,21 @@ from .publicacion import (
     ResumenSobrescribir,
 )
 
+if TYPE_CHECKING:
+    from .sesion import CursoSesion
+
 __all__ = [
     "AUTOPRUEBA_TEXTO",
+    "PREGUNTA_ACTUALIZAR",
+    "PREGUNTA_AISLAMIENTO",
+    "PREGUNTA_AISLAR_AQUI",
+    "PREGUNTA_AUTOPRUEBA",
+    "PREGUNTA_CARPETA_DUDOSA",
+    "PREGUNTA_CURSOS",
+    "PREGUNTA_DESTINO",
+    "PREGUNTA_SEGUIR_SIN_AISLAR",
+    "PREGUNTA_SESION_ANTERIOR",
+    "PREGUNTA_SIN_PRUEBAS",
     "AVISO_AJENO",
     "SESION_ANTERIOR_ATENDIENDO",
     "SESION_ANTERIOR_TEXTO",
@@ -52,9 +66,11 @@ __all__ = [
     "Linea",
     "MARCAS_DE_COMPROBACION",
     "PARA_QUE",
+    "SIN_CURSO_PRUEBAS_OPCION",
     "SIN_PRUEBAS_AVISO",
     "SOLO_FECHAS_TEXTO",
     "VISIBILIDAD",
+    "cabecera_de_curso",
     "cambian_fechas",
     "describir_cambios",
     "describir_curso",
@@ -65,9 +81,16 @@ __all__ = [
     "detalle_orden",
     "detalle_real",
     "detalle_sobrescribir",
+    "linea_de_copia",
+    "linea_destino",
+    "lineas_de_aislamiento",
     "lineas_de_aviso",
+    "lineas_de_cursos",
     "lineas_de_error",
     "nombre_llano",
+    "pregunta_ampliacion",
+    "texto_actualizacion",
+    "texto_carpeta_dudosa",
     "texto_cierre",
     "texto_seguro",
 ]
@@ -629,6 +652,78 @@ def detalle_sobrescribir(resumen: ResumenSobrescribir) -> DetalleSobrescribir:
         lineas=tuple(f"  · {texto_seguro(nombre)}" for nombre in resumen.actividades),
         pregunta="¿Sobrescribirlas y perder esos cambios?",
     )
+
+
+SIN_CURSO_PRUEBAS_OPCION = "No tengo curso de pruebas (en real se publicará solo oculto)"
+PREGUNTA_DESTINO = "¿Continuar con este curso?"
+PREGUNTA_CURSOS = "¿Abrir la sesión con estos cursos?"
+PREGUNTA_SIN_PRUEBAS = "¿Abrir la sesión sin curso de pruebas?"
+PREGUNTA_AUTOPRUEBA = "¿Pasarla ahora?"
+PREGUNTA_ACTUALIZAR = "¿Actualizar ahora? Después tendrás que volver a abrir la sesión."
+PREGUNTA_CARPETA_DUDOSA = "¿Abrir la sesión aquí de todos modos?"
+PREGUNTA_AISLAR_AQUI = "¿Aplicar ahora el aislamiento a esta carpeta?"
+PREGUNTA_AISLAMIENTO = "¿Aplicarlos?"
+PREGUNTA_SEGUIR_SIN_AISLAR = "¿Seguir sin aislar el agente?"
+PREGUNTA_SESION_ANTERIOR = "¿Cerrarla y abrir esta?"
+
+
+def linea_destino(entorno: str, curso: int, nombre: str | None = None) -> str:
+    """El destino de una confirmación: «Curso de destino: … (entorno: real)»."""
+    return f"Curso de destino: {describir_curso(curso, nombre)} (entorno: {entorno})"
+
+
+def cabecera_de_curso(posicion: int, total: int, curso: str) -> str | None:
+    """Con varios cursos reales, cada confirmación dice cuál es: «Curso 2 de 3: …»."""
+    return f"Curso {posicion} de {total}: {curso}" if total > 1 else None
+
+
+def lineas_de_cursos(cursos: Sequence[CursoSesion]) -> tuple[str, ...]:
+    """Los cursos de la sesión que se va a abrir, y el aviso si no hay curso de pruebas."""
+    lineas = ["Cursos de esta sesión:"]
+    for curso in cursos:
+        linea = f"  {curso.entorno + ':':8} {describir_curso(curso.id, curso.nombre)}"
+        if curso.ajeno:
+            linea += f" — {AVISO_AJENO}"
+        if curso.entorno == "real":
+            linea += " — cada publicación en real se confirmará aquí"
+        lineas.append(linea)
+    if not any(curso.entorno == "pruebas" for curso in cursos):
+        lineas.append(f"AVISO: {SIN_PRUEBAS_AVISO}")
+    return tuple(lineas)
+
+
+def texto_actualizacion(nueva: str, actual: str) -> str:
+    """La versión nueva de tiza (``nueva`` es la etiqueta, p. ej. ``v0.30.0``) y la que se tiene."""
+    return f"Hay una versión nueva de tiza: {nueva[1:]} (tienes la {actual})."
+
+
+def texto_carpeta_dudosa(carpeta: Path) -> str:
+    """Por qué la carpeta no parece la de una asignatura."""
+    return (
+        f"{carpeta} no parece la carpeta de una asignatura "
+        f"(no hay ficheros .md o .html ni {rutas.FICHERO_ASIGNATURA})."
+    )
+
+
+def lineas_de_aislamiento(resumen: ResumenAislamiento) -> tuple[str, ...]:
+    """Lo que tiza no edita (a mano) y los cambios que haría en cada fichero."""
+    lineas = list(resumen.manuales)
+    if resumen.ficheros:
+        lineas.append("Se van a hacer estos cambios:")
+        for fichero in resumen.ficheros:
+            lineas.append(f"  En {fichero.ruta}:")
+            lineas.extend(f"    - {cambio}" for cambio in fichero.cambios)
+    return tuple(lineas)
+
+
+def pregunta_ampliacion(minutos: int) -> str:
+    """La pregunta al acabarse el tiempo de la sesión."""
+    return f"Se ha acabado el tiempo de la sesión. ¿Ampliar {minutos} minutos más?"
+
+
+def linea_de_copia(detalle: DetalleCopia) -> str:
+    """De qué curso es la copia que se pide."""
+    return f"Curso de la copia: {detalle.curso} (entorno: {detalle.entorno})"
 
 
 @dataclass(frozen=True)

@@ -21,7 +21,7 @@ from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from . import mensajes, publicar, rutas, ventana
+from . import mensajes, publicar, ventana
 from .config import MAX_REALES
 from .publicacion import (
     Aviso,
@@ -71,8 +71,8 @@ def exigir_tty() -> None:
 
 def confirmar_destino(entorno: str, curso: int, nombre: str | None = None) -> bool:
     """Muestra el destino y pide confirmación explícita ([s/N])."""
-    print(f"Curso de destino: {mensajes.describir_curso(curso, nombre)} (entorno: {entorno})")
-    return confirmar("¿Continuar con este curso?")
+    print(mensajes.linea_destino(entorno, curso, nombre))
+    return confirmar(mensajes.PREGUNTA_DESTINO)
 
 
 _SI = {"s", "si", "sí"}
@@ -116,8 +116,9 @@ def preguntar_con_limite(pregunta: str, segundos: float, *, tramo: float = 0.5) 
 
 def _cabecera_de_curso(posicion: int, total: int, curso: str) -> None:
     """Con varios cursos reales, cada confirmación dice cuál es: «Curso 2 de 3: …»."""
-    if total > 1:
-        print(f"Curso {posicion} de {total}: {curso}")
+    cabecera = mensajes.cabecera_de_curso(posicion, total, curso)
+    if cabecera is not None:
+        print(cabecera)
 
 
 def _numero(valor: str) -> int | None:
@@ -143,7 +144,7 @@ def elegir_curso(entorno: str, cursos: list[dict], excluir: int | None = None) -
     opcion_sin = None
     if entorno == "pruebas":
         opcion_sin = len(opciones) + 1
-        print(f"  {opcion_sin}. No tengo curso de pruebas (en real se publicará solo oculto)")
+        print(f"  {opcion_sin}. {mensajes.SIN_CURSO_PRUEBAS_OPCION}")
     print("  0. No está en la lista: escribiré su id")
     while True:
         try:
@@ -307,25 +308,17 @@ class PresenciaTerminal:
         return elegir_cursos_reales(cursos, excluir=excluir)
 
     def confirmar_cursos(self, cursos: list[CursoSesion]) -> bool:
-        print("Cursos de esta sesión:")
-        for curso in cursos:
-            linea = f"  {curso.entorno + ':':8} {mensajes.describir_curso(curso.id, curso.nombre)}"
-            if curso.ajeno:
-                linea += f" — {mensajes.AVISO_AJENO}"
-            if curso.entorno == "real":
-                linea += " — cada publicación en real se confirmará aquí"
+        for linea in mensajes.lineas_de_cursos(cursos):
             print(linea)
-        if not any(curso.entorno == "pruebas" for curso in cursos):
-            print(f"AVISO: {mensajes.SIN_PRUEBAS_AVISO}")
-        return confirmar("¿Abrir la sesión con estos cursos?")
+        return confirmar(mensajes.PREGUNTA_CURSOS)
 
     def confirmar_sin_pruebas(self) -> bool:
         print(mensajes.SIN_PRUEBAS_AVISO)
-        return confirmar("¿Abrir la sesión sin curso de pruebas?")
+        return confirmar(mensajes.PREGUNTA_SIN_PRUEBAS)
 
     def confirmar_autoprueba(self) -> bool:
         print(mensajes.AUTOPRUEBA_TEXTO)
-        return confirmar("¿Pasarla ahora?")
+        return confirmar(mensajes.PREGUNTA_AUTOPRUEBA)
 
     def configurar(self, validar: Callable[[str], None] | None = None) -> tuple[str, str] | None:
         entrada = input("URL del aula virtual (p. ej. https://aula.ejemplo.org/<centro>): ")
@@ -334,49 +327,41 @@ class PresenciaTerminal:
         return entrada, input("Usuario del aula: ")
 
     def confirmar_actualizacion(self, nueva: str, actual: str) -> bool:
-        print(f"Hay una versión nueva de tiza: {nueva[1:]} (tienes la {actual}).")
-        return confirmar("¿Actualizar ahora? Después tendrás que volver a abrir la sesión.")
+        print(mensajes.texto_actualizacion(nueva, actual))
+        return confirmar(mensajes.PREGUNTA_ACTUALIZAR)
 
     def confirmar_carpeta_dudosa(self, carpeta: Path) -> bool:
-        return self._preguntar_carpeta_dudosa(carpeta, "¿Abrir la sesión aquí de todos modos?")
+        return self._preguntar_carpeta_dudosa(carpeta, mensajes.PREGUNTA_CARPETA_DUDOSA)
 
     def confirmar_aislar_carpeta_dudosa(self, carpeta: Path) -> bool:
         """Lo mismo para «tiza aislar» (solo de la terminal): pregunta por aislarla."""
         return self._preguntar_carpeta_dudosa(carpeta, "¿Aislar esta carpeta de todos modos?")
 
     def _preguntar_carpeta_dudosa(self, carpeta: Path, pregunta: str) -> bool:
-        print(
-            f"{carpeta} no parece la carpeta de una asignatura "
-            f"(no hay ficheros .md o .html ni {rutas.FICHERO_ASIGNATURA})."
-        )
+        print(mensajes.texto_carpeta_dudosa(carpeta))
         return confirmar(pregunta)
 
     def ofrecer_aislamiento(self) -> bool:
-        return confirmar("¿Aplicar ahora el aislamiento a esta carpeta?")
+        return confirmar(mensajes.PREGUNTA_AISLAR_AQUI)
 
     def confirmar_aislamiento(self, resumen: ResumenAislamiento) -> bool:
-        for manual in resumen.manuales:
-            print(manual)
+        for linea in mensajes.lineas_de_aislamiento(resumen):
+            print(linea)
         if not resumen.ficheros:
             return True
-        print("Se van a hacer estos cambios:")
-        for fichero in resumen.ficheros:
-            print(f"  En {fichero.ruta}:")
-            for cambio in fichero.cambios:
-                print(f"    - {cambio}")
-        if not confirmar("¿Aplicarlos?"):
+        if not confirmar(mensajes.PREGUNTA_AISLAMIENTO):
             print("No se ha cambiado nada.", file=sys.stderr)
             return False
         return True
 
     def seguir_sin_aislar(self, faltas: list) -> bool:
-        return confirmar("¿Seguir sin aislar el agente?")
+        return confirmar(mensajes.PREGUNTA_SEGUIR_SIN_AISLAR)
 
     def cerrar_sesion_anterior(self, atendiendo: bool) -> bool:
         print(mensajes.SESION_ANTERIOR_TEXTO)
         if atendiendo:
             print(mensajes.SESION_ANTERIOR_ATENDIENDO)
-        return confirmar("¿Cerrarla y abrir esta?")
+        return confirmar(mensajes.PREGUNTA_SESION_ANTERIOR)
 
     def confirmar_real(self, resumen: ResumenPublicacion) -> bool:
         detalle = mensajes.detalle_real(resumen)
@@ -429,7 +414,7 @@ class PresenciaTerminal:
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
         detalle = mensajes.detalle_copia(resumen)
-        print(f"Curso de la copia: {detalle.curso} (entorno: {detalle.entorno})")
+        print(mensajes.linea_de_copia(detalle))
         for actividad in detalle.actividades:
             print(f"  · {actividad}")
         return confirmar(detalle.pregunta)
@@ -444,7 +429,7 @@ class PresenciaTerminal:
 
     def ofrecer_ampliacion(self, minutos: int, plazo: float) -> bool:
         return preguntar_con_limite(
-            f"Se ha acabado el tiempo de la sesión. ¿Ampliar {minutos} minutos más? [s/N] ",
+            f"{mensajes.pregunta_ampliacion(minutos)} [s/N] ",
             plazo,
         )
 
