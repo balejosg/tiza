@@ -782,7 +782,7 @@ def _publicada_por_tiza(
     registrada: tuple[str, estado.Publicado],
     raiz: Path,
     dir_tiza: Path,
-    registros: list[_Registro] | None = None,
+    registros: list[_Registro],
 ) -> _Entrada:
     """La actividad la publicó tiza y su fichero sigue ahí: no se crea otro, solo se compara.
 
@@ -808,10 +808,7 @@ def _publicada_por_tiza(
     _extraer(datos, recursos, ruta.parent, actividad.cmid, raiz)
     estado.guardar_version_de_copia(dir_tiza, actividad.cmid, html)
     nuevo = estado.Publicado(actividad.cmid, tipo, huella=huella, marca=entrada.huella_fichero)
-    if registros is not None:
-        registros.append(_Registro(ruta_registrada, nuevo))
-    else:
-        estado.guardar_publicado(dir_tiza, datos.curso_original, ruta_registrada, nuevo)
+    registros.append(_Registro(ruta_registrada, nuevo))
     entrada.avisos.append(estado.AVISO_CAMBIADA.format(cmid=actividad.cmid))
     if marca is None:
         entrada.avisos.append(_AVISO_FICHERO_ILEGIBLE)
@@ -908,9 +905,9 @@ def _importar_actividad(
     dir_tiza: Path,
     previa: dict | None,
     como_nuevas: bool,
-    antigua: bool = False,
-    publicados: Mapping[int, tuple[str, estado.Publicado]] | None = None,
-    registros: list[_Registro] | None = None,
+    antigua: bool,
+    publicados: Mapping[int, tuple[str, estado.Publicado]] | None,
+    registros: list[_Registro],
 ) -> _Entrada | None:
     nombre = _texto_seguro(actividad.nombre, f"Actividad {actividad.cmid}")
     entrada = _Entrada(
