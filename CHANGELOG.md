@@ -4,7 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## 0.29.1 — 2026-10-24
+## 0.29.2 — 2026-10-24
+
+(La 0.29.1 no llegó a publicarse: sus cambios van aquí.)
 
 ### Corregido
 - Con `--solo-fechas`, una actividad que tiza publicó y cuyas fechas ya estaban escritas en el aula (un intento anterior que no llegó a comprobarse) ya no te pregunta si sobrescribir.
@@ -13,6 +15,9 @@ se avisa aquí con **Cambia**.
 - `tiza importar` reconoce el `origen` de un fichero guardado con finales de línea de Windows, y no toca el registro de lo publicado si no pudo escribir su resumen.
 - La copia de lo último publicado se cambia entera de una vez: nunca queda una mitad nueva y otra vieja.
 - El registro de lo publicado es más estricto con lo escrito a mano (cursos con ceros delante, `version` 1.0) y no anota rutas con «:»; los registros que escribió tiza se siguen leyendo igual.
+- Si no se puede guardar la copia de lo último publicado (por ejemplo, un antivirus la bloquea un momento en Windows), no queda una de una publicación anterior que el agente pudiera tomar por la última.
+- Una subcarpeta de la asignatura que sea un enlace a otro disco sigue usando el registro de lo publicado.
+- `tiza copia real --actividad` rechaza al instante una petición que no cabe en el cupo, sin consultar el aula.
 
 ## 0.29.0 — 2026-10-24
 
