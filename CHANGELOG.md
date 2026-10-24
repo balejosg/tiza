@@ -8,6 +8,7 @@ se avisa aquí con **Cambia**.
 
 ### Añadido
 - **Renombrar una actividad no la duplica.** Tras publicar, tiza anota en `.tiza/publicados.json` qué actividad es cada fichero en cada curso. Si cambias `nombre:` y vuelves a publicar, se actualiza la misma actividad (mismas entregas y notas); el informe da `accion: renombrada` y la confirmación de real dice «Se cambia el nombre de «A» a «B»». Si la actividad ya no está en el aula, la confirmación avisa («Ya no está en el aula: se creará de nuevo.») y se crea otra. Si no se puede anotar, el paso `REGISTRO_NO_GUARDADO` avisa de que renombrar podría crear otra.
+- **tiza no pisa lo que retocas a mano en el aula.** Al publicar en un curso real, tiza guarda cómo quedó cada actividad (nombre, texto y fechas). Si la próxima vez ha cambiado en el aula, después de tu sí a la confirmación de siempre te pregunta, con la lista de esas actividades, «¿Sobrescribirlas y perder esos cambios? [s/N]» (por defecto no). Con no, esas no se publican (`CAMBIADA_EN_EL_AULA`) y el resto del lote sigue; con sí se publican y el informe lleva el paso `CAMBIO_DEL_AULA_DESCARTADO`. Solo en cursos reales, también con `--solo-fechas`; el agente no puede pedir sobrescribir. Si tiza no puede releer el aula tras publicar, `REGISTRO_NO_GUARDADO` avisa de que no podrá comparar la próxima vez.
 
 ## 0.28.0 — 2026-10-23
 

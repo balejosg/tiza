@@ -650,3 +650,54 @@ def test_cerrar_sesion_anterior_avisa_si_atiende_algo(monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", lambda _prompt="": "")
     assert presencia.cerrar_sesion_anterior(True) is False
     assert "petición del agente" in capsys.readouterr().out
+
+
+def _resumen_de_sobrescribir(posicion=1, total=1):
+    return publicacion.ResumenSobrescribir(
+        curso=5678,
+        nombre_curso="Matemáticas 2ºB",
+        actividades=("Repaso\x1b[2J", "Tarea 1"),
+        posicion=posicion,
+        total=total,
+    )
+
+
+def test_confirmar_sobrescribir_hace_la_pregunta_exacta_y_sanea_los_nombres(monkeypatch, capsys):
+    preguntas: list = []
+    monkeypatch.setattr(terminal, "confirmar", lambda pregunta: preguntas.append(pregunta) or True)
+    assert terminal.PresenciaTerminal().confirmar_sobrescribir(_resumen_de_sobrescribir()) is True
+    assert preguntas == ["¿Sobrescribirlas y perder esos cambios?"]
+    salida = capsys.readouterr().out
+    assert salida == (
+        "Estas actividades han cambiado en el aula desde que tiza las publicó:\n"
+        "  · Repaso[2J\n"
+        "  · Tarea 1\n"
+    )
+
+
+def test_confirmar_sobrescribir_dice_el_curso_si_hay_varios(monkeypatch, capsys):
+    monkeypatch.setattr(terminal, "confirmar", lambda pregunta: False)
+    resumen = _resumen_de_sobrescribir(posicion=2, total=3)
+    assert terminal.PresenciaTerminal().confirmar_sobrescribir(resumen) is False
+    assert capsys.readouterr().out.startswith("Curso 2 de 3: ")
+
+
+@pytest.mark.parametrize(
+    ("respuesta", "esperada"), [("s", True), ("sí", True), ("", False), ("n", False), ("x", False)]
+)
+def test_confirmar_sobrescribir_acepta_s_y_por_defecto_es_no(
+    monkeypatch, capsys, respuesta, esperada
+):
+    mostrados: list = []
+    monkeypatch.setattr("builtins.input", lambda prompt="": mostrados.append(prompt) or respuesta)
+    resumen = _resumen_de_sobrescribir()
+    assert terminal.PresenciaTerminal().confirmar_sobrescribir(resumen) is esperada
+    assert mostrados == ["¿Sobrescribirlas y perder esos cambios? [s/N] "]
+
+
+def test_confirmar_sobrescribir_sin_respuesta_es_no(monkeypatch):
+    def sin_entrada(_prompt=""):
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", sin_entrada)
+    assert terminal.PresenciaTerminal().confirmar_sobrescribir(_resumen_de_sobrescribir()) is False

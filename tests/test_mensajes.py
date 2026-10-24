@@ -473,3 +473,21 @@ def test_el_aviso_de_que_la_copia_queda_en_el_aula():
     assert not linea.error
     # La explicación del código dice lo mismo, con las mismas comillas.
     assert ayuda.explicar("COPIA_QUEDA_EN_EL_AULA") == linea.texto
+
+
+def test_la_pregunta_de_sobrescribir_es_la_acordada_y_sanea_los_nombres():
+    resumen = publicacion.ResumenSobrescribir(
+        curso=5678,
+        nombre_curso="Mates\x1b[2J 2ºB",
+        actividades=("Repaso\u202e", "Tarea 1"),
+        posicion=2,
+        total=3,
+    )
+    detalle = mensajes.detalle_sobrescribir(resumen)
+    assert detalle.encabezado == (
+        "Estas actividades han cambiado en el aula desde que tiza las publicó:"
+    )
+    assert detalle.lineas == ("  · Repaso", "  · Tarea 1")
+    assert detalle.pregunta == "¿Sobrescribirlas y perder esos cambios?"
+    assert (detalle.posicion, detalle.total) == (2, 3)
+    assert "\x1b" not in detalle.curso

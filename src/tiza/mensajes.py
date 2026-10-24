@@ -32,6 +32,7 @@ from .publicacion import (
     ResumenOrden,
     ResumenPublicacion,
     ResumenSinPruebas,
+    ResumenSobrescribir,
 )
 
 __all__ = [
@@ -44,6 +45,7 @@ __all__ = [
     "DetalleCorto",
     "DetalleOrden",
     "DetalleReal",
+    "DetalleSobrescribir",
     "DocumentoCorto",
     "DocumentoReal",
     "EXCEPCIONES_TEXTO",
@@ -61,6 +63,7 @@ __all__ = [
     "detalle_corto",
     "detalle_orden",
     "detalle_real",
+    "detalle_sobrescribir",
     "lineas_de_aviso",
     "lineas_de_error",
     "nombre_llano",
@@ -587,6 +590,33 @@ def detalle_copia(resumen: ResumenCopia) -> DetalleCopia:
 
 
 @dataclass(frozen=True)
+class DetalleSobrescribir:
+    """La pregunta de real sobre lo que el docente retocó a mano en el aula."""
+
+    curso: str
+    posicion: int
+    total: int
+    encabezado: str
+    lineas: tuple[str, ...]  # una por actividad, con su viñeta
+    pregunta: str
+
+
+def detalle_sobrescribir(resumen: ResumenSobrescribir) -> DetalleSobrescribir:
+    """Qué actividades cambiaron en el aula desde que tiza las publicó, y si se sobrescriben.
+
+    Los nombres son los de los ficheros del docente, saneados como todo lo que se enseña.
+    """
+    return DetalleSobrescribir(
+        curso=describir_curso(resumen.curso, resumen.nombre_curso),
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado="Estas actividades han cambiado en el aula desde que tiza las publicó:",
+        lineas=tuple(f"  · {texto_seguro(nombre)}" for nombre in resumen.actividades),
+        pregunta="¿Sobrescribirlas y perder esos cambios?",
+    )
+
+
+@dataclass(frozen=True)
 class Linea:
     """Una línea para el docente; ``error`` la manda a stderr en la terminal."""
 
@@ -702,8 +732,8 @@ def _registro_no_guardado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(
             f"«{texto_seguro(datos['nombre'])}» se ha publicado, pero no he podido anotar qué "
-            "actividad es; si le cambias el nombre al fichero, tiza podría crear otra en vez de "
-            "actualizar esta.",
+            "actividad es ni cómo ha quedado; si le cambias el nombre al fichero, tiza podría "
+            "crear otra en vez de actualizar esta, y no te avisará si la retocas a mano en el aula.",
             error=True,
         ),
     )

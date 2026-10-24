@@ -628,6 +628,9 @@ class _PresenciaVigilada:
     def confirmar_copia(self, resumen: publicacion.ResumenCopia) -> bool:
         return self._preguntar(lambda: self._presencia.confirmar_copia(resumen))
 
+    def confirmar_sobrescribir(self, resumen: publicacion.ResumenSobrescribir) -> bool:
+        return self._preguntar(lambda: self._presencia.confirmar_sobrescribir(resumen))
+
     def ofrecer_ampliacion(self, minutos: int, plazo: float) -> bool:
         return self._preguntar(lambda: self._presencia.ofrecer_ampliacion(minutos, plazo))
 

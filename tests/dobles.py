@@ -527,6 +527,7 @@ class PresenciaFalsa:
         autoprueba: bool = False,
         real: bool | tuple[bool, ...] = True,  # una respuesta por curso real, en orden
         copia: bool = True,
+        sobrescribir: bool | tuple[bool, ...] = False,  # una respuesta por curso con cambios
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
         cerrar_anterior: bool = False,
@@ -541,6 +542,7 @@ class PresenciaFalsa:
         self._autoprueba = autoprueba
         self._real = list(real) if isinstance(real, tuple) else real
         self._copia = copia
+        self._sobrescribir = list(sobrescribir) if isinstance(sobrescribir, tuple) else sobrescribir
         self._sin_pruebas = sin_pruebas
         self._ampliar = list(ampliar)
         self._cerrar_anterior = cerrar_anterior
@@ -552,6 +554,7 @@ class PresenciaFalsa:
         self.resumenes_orden: list = []
         self.resumenes_calificador: list = []
         self.resumenes_copia: list = []
+        self.resumenes_sobrescribir: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
 
@@ -599,6 +602,12 @@ class PresenciaFalsa:
     def confirmar_copia(self, resumen):
         self.resumenes_copia.append(resumen)
         return self._copia
+
+    def confirmar_sobrescribir(self, resumen):
+        self.resumenes_sobrescribir.append(resumen)
+        if isinstance(self._sobrescribir, list):
+            return self._sobrescribir.pop(0) if self._sobrescribir else False
+        return self._sobrescribir
 
     def confirmar_sin_pruebas(self):
         self.sin_pruebas_pedidas += 1

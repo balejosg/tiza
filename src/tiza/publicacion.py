@@ -18,6 +18,10 @@ Lo que cambia según quién publica entra explícito, nunca por accidente:
   ya está la confirmación de destino.
 - ``omitidos``: cursos que la terminal descartó antes de pedir la contraseña; no
   se vuelven a preguntar y el informe los cuenta como omitidos.
+- ``sobrescribir`` y ``no_publicar`` (de ``publicar_con``, por ruta resuelta del documento): lo que
+  el docente decidió sobre las actividades que retocó a mano en el aula. Solo los pone
+  ``publicar_en_cursos`` tras preguntarle (``Presencia.confirmar_sobrescribir``); la petición del
+  agente no puede pedir sobrescribir.
 """
 
 from __future__ import annotations
@@ -69,7 +73,9 @@ __all__ = [
     "ResumenOrden",
     "ResumenPublicacion",
     "ResumenSinPruebas",
+    "ResumenSobrescribir",
     "SeccionOrden",
+    "cambiadas_en_el_aula",
     "cambios_de_fechas",
     "cambios_de_nombre",
     "cambios_de_seccion",
@@ -545,6 +551,21 @@ class ResumenCopia:
     entorno: str
 
 
+@dataclass(frozen=True)
+class ResumenSobrescribir:
+    """Las actividades de un curso real que el docente retocó a mano desde que tiza las publicó.
+
+    Se pregunta después de la confirmación normal del curso. ``actividades`` son los nombres tal
+    como están en el fichero (``doc.nombre``), nunca texto del aula.
+    """
+
+    curso: int
+    nombre_curso: str | None
+    actividades: tuple[str, ...]
+    posicion: int = 1
+    total: int = 1
+
+
 def itinerario_de(doc: Documento, base: Path) -> tuple[str, ...]:
     """El itinerario del documento en lenguaje llano, con los nombres de sus dependencias.
 
@@ -619,6 +640,11 @@ class Presencia(Protocol):
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
         """¿Hacer una copia de este curso, sin datos de alumnos? Una respuesta por petición."""
+        ...
+
+    def confirmar_sobrescribir(self, resumen: ResumenSobrescribir) -> bool:
+        """¿Sobrescribir las actividades que retocaste a mano en el aula y perder esos cambios?
+        Una respuesta por curso; sin respuesta, es no."""
         ...
 
     def confirmar_sin_pruebas(self) -> bool:
@@ -859,11 +885,21 @@ def publicar_con(
     *,
     debug: bool = False,
     solo_fechas: bool = False,
+    sobrescribir: frozenset[Path] = frozenset(),
+    no_publicar: frozenset[Path] = frozenset(),
 ) -> dict:
     """Con el aula ya abierta: publica y verifica los documentos.
 
     Con ``solo_fechas`` solo cambia las fechas de lo que ya existe: no crea secciones,
     no sube recursos y no registra nada como verificado en pruebas.
+
+    En un curso real (``entorno == "real"``), lo que el docente retocó a mano en el aula desde que
+    tiza lo publicó no se pisa: ``publicar.publicar_documento`` lo comprueba justo antes de
+    escribir (``CAMBIADA_EN_EL_AULA``). Las decisiones del docente entran explícitas, por ruta
+    resuelta del documento: ``sobrescribir`` (dijo que sí a perder ese cambio: se publica y el
+    informe lleva ``CAMBIO_DEL_AULA_DESCARTADO``) y ``no_publicar`` (dijo que no: se rechaza como
+    ``CAMBIADA_EN_EL_AULA``, con el resto del lote). Tras publicar en real se relee el aula y se
+    guarda su huella como base de la próxima comparación. En pruebas no se compara ni se guarda.
     """
     borrador = informe.Borrador("publicar", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
@@ -892,14 +928,18 @@ def publicar_con(
         borrador.error(exc.codigo)
         return borrador.documento("error")
     aceptados, rechazados = _separar_rechazados(
-        documentos, secciones, curso, base, solo_fechas, huellas, marcas
+        documentos, secciones, curso, base, solo_fechas, huellas, marcas, no_publicar
     )
+    real = entorno == "real"
     for rechazado, motivo in rechazados:
         detalle = rechazado.ruta.name
-        if motivo == "CAMBIADA_EN_EL_AULA" and rechazado.origen is not None:
+        if motivo == "CAMBIADA_EN_EL_AULA" and publicar.aplica_origen(rechazado, curso):
+            assert rechazado.origen is not None
             cmid = rechazado.origen.cmid
             detalle += f": junta antes los cambios de .tiza/copia/{cmid}.html"
             presencia.informar(Aviso.cambiada_en_el_aula(rechazado.nombre, cmid))
+        elif motivo == "CAMBIADA_EN_EL_AULA":  # el docente retocó a mano y dijo que no
+            presencia.informar(Aviso.cambiada_en_el_aula(rechazado.nombre))
         borrador.fallo(paso, detalle)
         borrador.error(motivo)
     documentos = aceptados
@@ -938,9 +978,16 @@ def publicar_con(
             if doc.origen is not None and publicar.aplica_origen(doc, curso):
                 # Sin huella no se llega aquí: ``_separar_rechazados`` ya lo dejó fuera.
                 huella = huellas.get(doc.origen.cmid)
+            decidido = doc.ruta.resolve() in sobrescribir
             if solo_fechas:
                 resultado, huella_nueva = publicar.publicar_fechas_con_huella(
-                    aula, secciones, doc, curso, huella
+                    aula,
+                    secciones,
+                    doc,
+                    curso,
+                    huella,
+                    comprobar_registro=real,
+                    sobrescribir=decidido,
                 )
             else:
                 dependencias = {
@@ -956,6 +1003,8 @@ def publicar_con(
                     visible=visible,
                     dependencias=dependencias,
                     huella_aula=huella,
+                    comprobar_registro=real,
+                    sobrescribir=decidido,
                 )
                 assert resultado.cmid is not None  # acaba de crearla o actualizarla
                 cmids[_relativa(doc.ruta, base)] = resultado.cmid
@@ -972,10 +1021,22 @@ def publicar_con(
         # Con --solo-fechas la huella nueva la da publicar.py; sin ella, se deja la que había.
         if publicar.aplica_origen(doc, curso) and (not solo_fechas or huella_nueva is not None):
             _renovar_huella(dir_tiza, curso, doc, borrador, presencia, huella_nueva)
+        elif solo_fechas and huella_nueva is not None:
+            # Sin ``origen``: la base de lo publicado, si no se pisó un cambio del docente.
+            _renovar_base_registrada(
+                dir_tiza, curso, _relativa(doc.ruta, base), doc, huella_nueva, borrador, presencia
+            )
         if not solo_fechas:
             assert resultado.cmid is not None
             _registrar_publicado(
-                dir_tiza, curso, _relativa(doc.ruta, base), doc, resultado.cmid, borrador, presencia
+                dir_tiza,
+                curso,
+                _relativa(doc.ruta, base),
+                doc,
+                resultado.cmid,
+                borrador,
+                presencia,
+                aula=aula if real else None,
             )
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None
@@ -992,6 +1053,8 @@ def publicar_con(
             if extra:
                 detalle = f"{detalle}: {extra}"
         borrador.paso(paso, detalle=detalle)
+        if decidido:
+            borrador.paso("CAMBIO_DEL_AULA_DESCARTADO", detalle=doc.ruta.name)
         if not solo_fechas and contenido.tiene_formulas(doc):
             if motor is None:
                 motor = publicar.aula_dibuja_formulas(aula, curso)
@@ -1046,6 +1109,7 @@ def _separar_rechazados(
     solo_fechas: bool,
     huellas: Mapping[int, str],
     marcas: Mapping[int, str],
+    no_publicar: Collection[Path] = (),
 ) -> tuple[list[Documento], list[tuple[Documento, str]]]:
     """(los que se pueden publicar, los rechazados con su código), mirando solo la estructura.
 
@@ -1056,6 +1120,10 @@ def _separar_rechazados(
     el aula (``CAMBIADA_EN_EL_AULA``: el docente aún no juntó los cambios) y quien depende de uno
     rechazado (``DEPENDENCIA_NO_PUBLICADA``). Con ``--solo-fechas`` el origen no encontrado y las
     dependencias no cuentan: es todo o nada.
+
+    ``no_publicar``: rutas resueltas de lo que el docente retocó a mano en el aula y no quiso
+    sobrescribir (``CAMBIADA_EN_EL_AULA``, como los de ``origen``); quien depende de ellos también
+    queda fuera.
     """
     base = Path(base).resolve()
     claves = [_relativa(doc.ruta, base) for doc in documentos]
@@ -1077,6 +1145,10 @@ def _separar_rechazados(
             rechazados[indice] = "ORIGEN_SIN_HUELLA"
         elif marcas.get(doc.origen.cmid) in (doc.sha256_fichero, estado.MARCA_ILEGIBLE):
             rechazados[indice] = "CAMBIADA_EN_EL_AULA"
+    if no_publicar:
+        for indice, doc in enumerate(documentos):
+            if indice not in rechazados and doc.ruta.resolve() in no_publicar:
+                rechazados[indice] = "CAMBIADA_EN_EL_AULA"
     if not solo_fechas:
         crecio = True
         while crecio:  # quien depende de un rechazado, también (de forma transitiva)
@@ -1140,6 +1212,18 @@ def cambios_de_nombre(
     return tuple(cambios)
 
 
+def cambiadas_en_el_aula(
+    aula: AulaVirtual, secciones: list[dict], documentos: list[Documento], curso: int
+) -> tuple[Documento, ...]:
+    """Los documentos cuya actividad retocó el docente a mano en el aula desde que tiza la publicó.
+
+    Solo mira los hallados por el registro y con huella en él (``publicar.cambio_a_mano``): del
+    resto no lee nada. Lo que no se puede leer cuenta como cambiado, para no pisarlo a ciegas.
+    Es solo lectura: el docente decide después (``Presencia.confirmar_sobrescribir``).
+    """
+    return tuple(doc for doc in documentos if publicar.cambio_a_mano(aula, secciones, doc, curso))
+
+
 def _borrada(secciones: list[dict], doc: Documento, curso: int | None) -> bool:
     """¿La daba el registro por publicada en este curso y ya no está en el aula?"""
     try:
@@ -1156,28 +1240,66 @@ def _registrar_publicado(
     cmid: int,
     borrador: informe.Borrador,
     presencia: Presencia,
+    *,
+    aula: AulaVirtual | None = None,
 ) -> None:
     """Anota en ``publicados.json`` qué actividad es el fichero en este curso, para hallarla luego.
 
     Conserva la huella y la marca de la entrada anterior si es la misma actividad; si el cmid
-    cambió (se recreó), van a None. Si no se puede guardar, la publicación sigue siendo buena.
-    Una ruta que no vale como clave no se registra ni se avisa: no es culpa del docente.
+    cambió (se recreó), van a None. Con ``aula`` (solo en un curso real) relee el formulario de
+    lo que se acaba de publicar y guarda su huella como base de la próxima comparación, y la marca
+    pasa a None; si la relectura falla, la entrada queda sin huella (como una antigua) y se avisa.
+    Lo que se halla por ``origen`` no se relee: manda ``copia.json``. Si no se puede guardar, la
+    publicación sigue siendo buena. Una ruta que no vale como clave no se registra ni se avisa:
+    no es culpa del docente.
+    """
+    if not estado.ruta_publicada_valida(ruta):
+        return
+    no_guardado = False  # no se pudo guardar la entrada o no se pudo guardar con su huella
+    try:
+        anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
+        igual = anterior is not None and anterior.cmid == cmid
+        huella = anterior.huella if igual and anterior else None
+        marca = anterior.marca if igual and anterior else None
+        if aula is not None and not publicar.aplica_origen(doc, curso):
+            marca = None
+            try:
+                huella = tipos.huella_del_formulario(
+                    tipos.obtener(doc.tipo), doc, aula.leer_modulo(cmid)
+                )
+            except ErrorPublicacion:
+                huella, no_guardado = None, True
+        estado.guardar_publicado(
+            dir_tiza, curso, ruta, estado.Publicado(cmid, doc.tipo, huella=huella, marca=marca)
+        )
+    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+        no_guardado = True
+    if no_guardado:
+        borrador.fallo("REGISTRO_NO_GUARDADO", doc.ruta.name)
+        presencia.informar(Aviso.registro_no_guardado(doc.nombre))
+
+
+def _renovar_base_registrada(
+    dir_tiza: Path,
+    curso: int,
+    ruta: str,
+    doc: Documento,
+    nueva: str,
+    borrador: informe.Borrador,
+    presencia: Presencia,
+) -> None:
+    """``--solo-fechas`` en real: la huella de lo releído pasa a ser la base de ``ruta``.
+
+    La marca queda a None. Si no se puede guardar, las fechas ya están puestas; solo se avisa.
     """
     if not estado.ruta_publicada_valida(ruta):
         return
     try:
         anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
-        igual = anterior is not None and anterior.cmid == cmid
+        if anterior is None:
+            return
         estado.guardar_publicado(
-            dir_tiza,
-            curso,
-            ruta,
-            estado.Publicado(
-                cmid,
-                doc.tipo,
-                huella=anterior.huella if igual and anterior else None,
-                marca=anterior.marca if igual and anterior else None,
-            ),
+            dir_tiza, curso, ruta, estado.Publicado(anterior.cmid, anterior.tipo, nueva, None)
         )
     except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
         borrador.fallo("REGISTRO_NO_GUARDADO", doc.ruta.name)
@@ -1381,6 +1503,8 @@ def _en_real(
             documentos, secciones, curso, base, solo_fechas, huellas, marcas
         )
         ids = {id(doc) for doc in a_publicar}
+        # Lo que el docente retocó a mano en el aula; se le pregunta tras su sí de siempre.
+        cambiadas: tuple[Documento, ...] = ()
         if not a_publicar:
             confirmado = True  # nada que confirmar: publicar_con solo informa de los rechazos
         elif solo_fechas:
@@ -1388,6 +1512,7 @@ def _en_real(
             if codigo is not None:
                 registro.append((posicion, curso, fallo(codigo, curso)))
                 break
+            cambiadas = cambiadas_en_el_aula(aula, secciones, a_publicar, curso)
             resumen = resumen_solo_fechas(
                 aula,
                 curso,
@@ -1401,6 +1526,7 @@ def _en_real(
             )
             confirmado = presencia.confirmar_real(resumen)
         elif sin_pruebas:
+            cambiadas = cambiadas_en_el_aula(aula, secciones, a_publicar, curso)
             corto = ResumenSinPruebas(
                 curso=curso,
                 nombre_curso=nombre_curso,
@@ -1423,6 +1549,7 @@ def _en_real(
             )
             confirmado = presencia.confirmar_real_sin_pruebas(corto)
         else:
+            cambiadas = cambiadas_en_el_aula(aula, secciones, a_publicar, curso)
             resumen = ResumenPublicacion(
                 curso=curso,
                 nombre_curso=nombre_curso,
@@ -1455,6 +1582,27 @@ def _en_real(
             presencia.informar(Aviso.peticion_retirada())
             registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
             break
+        sobrescribir: frozenset[Path] = frozenset()
+        no_publicar: frozenset[Path] = frozenset()
+        if cambiadas:
+            # Solo tras el sí de siempre; sin respuesta o con la petición retirada, es no.
+            rutas_cambiadas = frozenset(doc.ruta.resolve() for doc in cambiadas)
+            if presencia.confirmar_sobrescribir(
+                ResumenSobrescribir(
+                    curso=curso,
+                    nombre_curso=nombre_curso,
+                    actividades=tuple(doc.nombre for doc in cambiadas),
+                    posicion=posicion,
+                    total=total,
+                )
+            ):
+                sobrescribir = rutas_cambiadas
+            else:
+                no_publicar = rutas_cambiadas
+            if vigente is not None and not vigente():
+                presencia.informar(Aviso.peticion_retirada())
+                registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
+                break
         documento = publicar_con(
             aula,
             entorno,
@@ -1465,6 +1613,8 @@ def _en_real(
             presencia,
             debug=debug,
             solo_fechas=solo_fechas,
+            sobrescribir=sobrescribir,
+            no_publicar=no_publicar,
         )
         registro.append((posicion, curso, documento))
         if documento["resultado"] != "ok":

@@ -51,7 +51,7 @@ from .calificacion.formulas import (  # noqa: F401  (se reexportan: son de la AP
 from .calificacion.formulas import texto_numero as _texto_numero
 from .config import AdaptadorAula, DestinoNoPermitido, coincide_dominio
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
-from .estado import buscar_seccion, nombre_de_seccion
+from .estado import MARCA_ILEGIBLE, Publicado, buscar_seccion, nombre_de_seccion
 from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
 from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
@@ -2433,6 +2433,8 @@ def publicar_documento(
     visible: bool | None,
     dependencias: dict[str, int] | None = None,
     huella_aula: str | None = None,
+    comprobar_registro: bool = False,
+    sobrescribir: bool = False,
 ) -> informe.Fichero:
     """Crea o actualiza un documento y lo verifica releyendo el módulo.
 
@@ -2444,6 +2446,12 @@ def publicar_documento(
     Con ``origen`` en este curso (``curso_id``), la actividad se busca por su ``cmid`` (aunque
     haya cambiado de nombre o de sección) y, si hay ``huella_aula``, solo se actualiza si el aula
     sigue como estaba en la copia: si no, ``CAMBIADA_EN_EL_AULA`` y no se toca nada.
+
+    ``comprobar_registro``: la actividad hallada por el registro de lo publicado y con huella en él
+    (``cambio_a_mano``) se compara justo antes de escribir con el formulario que se carga para
+    actualizar; si el docente la retocó a mano, ``CAMBIADA_EN_EL_AULA`` y no se toca nada. Lo pone
+    quien publica en un curso real. ``sobrescribir``: el docente ya dijo que sí a perder ese
+    cambio, y no se compara. Ninguno de los dos cambia lo que se halla por ``origen``.
     """
     with tempfile.TemporaryDirectory(prefix="tiza-recursos-") as temporal:
         copia = _congelar_recursos(doc, Path(temporal))
@@ -2456,6 +2464,8 @@ def publicar_documento(
             original=doc,
             dependencias=dependencias or {},
             huella_aula=huella_aula,
+            comprobar_registro=comprobar_registro,
+            sobrescribir=sobrescribir,
         )
 
 
@@ -2484,6 +2494,8 @@ def _publicar_congelado(
     original: Documento,
     dependencias: dict[str, int],
     huella_aula: str | None = None,
+    comprobar_registro: bool = False,
+    sobrescribir: bool = False,
 ) -> informe.Fichero:
     seccion = buscar_seccion(secciones, doc.seccion)
     if seccion is None:
@@ -2519,6 +2531,17 @@ def _publicar_congelado(
             if en_el_aula != huella_aula and en_el_aula != tipos.huella_de_lo_enviado(
                 tipo, doc, html_para_moodle(doc)
             ):
+                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
+    elif comprobar_registro and not sobrescribir:
+        # Lo hallado por el registro y con base en él: ¿lo retocó el docente a mano desde la
+        # última vez? Se carga el formulario una sola vez y se reutiliza más abajo.
+        entrada = _entrada_vigilada(doc, curso_id, loc)
+        if entrada is not None:
+            if _marca_sin_juntar(doc, entrada):
+                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
+            assert existente is not None  # ``_entrada_vigilada`` exige el módulo
+            leido = moodle.leer_modulo(existente["cmid"])
+            if _huella_cambiada(doc, entrada, leido):
                 raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
     # Si el payload necesita algo del formulario de edición, se carga una sola vez.
     if leido is None and existente is not None:
@@ -2958,6 +2981,64 @@ def modulo_de(secciones: list[dict], doc: Documento, curso: int | None = None) -
     return localizar(secciones, doc, curso).actividad
 
 
+def _entrada_vigilada(doc: Documento, curso: int | None, loc: Localizacion) -> Publicado | None:
+    """La entrada del registro de ``doc`` en ``curso`` si hay que vigilar que nadie la retoque.
+
+    Solo cuando la actividad se halló por el registro (lo hallado por ``origen`` tiene su propio
+    mecanismo, ``copia.json``) y la entrada tiene huella: sin base no se puede comparar.
+    """
+    if curso is None or loc.por != "registro" or loc.modulo is None:
+        return None
+    entrada = doc.publicados.get(curso)
+    return entrada if entrada is not None and entrada.huella is not None else None
+
+
+def _marca_sin_juntar(doc: Documento, entrada: Publicado) -> bool:
+    """¿Se trajo la versión del aula y el fichero sigue como entonces, sin juntar los cambios?
+
+    La marca ilegible (no se pudo leer el fichero al marcarla) bloquea siempre, como en ``origen``.
+    """
+    return entrada.marca is not None and entrada.marca in (doc.sha256_fichero, MARCA_ILEGIBLE)
+
+
+def _huella_cambiada(doc: Documento, entrada: Publicado, leido: dict) -> bool:
+    """¿Difiere el formulario ``leido`` de la base guardada y de lo que tiza iba a enviar?
+
+    Lo segundo cubre un intento anterior que escribió y falló al verificar: el aula ya tiene lo
+    de tiza y no hay cambio ajeno que perder. Solo se compara; la huella nunca sale de aquí.
+    """
+    tipo = tipos.obtener(doc.tipo)
+    en_el_aula = tipos.huella_del_formulario(tipo, doc, leido)
+    return en_el_aula != entrada.huella and en_el_aula != tipos.huella_de_lo_enviado(
+        tipo, doc, html_para_moodle(doc)
+    )
+
+
+def cambio_a_mano(moodle: AulaVirtual, secciones: list[dict], doc: Documento, curso: int) -> bool:
+    """¿Retocó el docente a mano en el aula lo que tiza publicó de ``doc``? Solo en cursos reales.
+
+    Vale para lo hallado por el registro con huella (``_entrada_vigilada``); para lo demás, no. Con
+    la marca sin juntar ya se sabe sin leer el aula. Si no se puede leer el formulario, no se sabe:
+    cuenta como cambiado, para no pisar a ciegas. Una actividad ambigua no es de esta pregunta:
+    ya la rechazará la publicación con su código.
+    """
+    try:
+        loc = localizar(secciones, doc, curso)
+    except (ErrorPublicacion, TypeError, ValueError):
+        return False
+    entrada = _entrada_vigilada(doc, curso, loc)
+    if entrada is None:
+        return False
+    if _marca_sin_juntar(doc, entrada):
+        return True
+    assert loc.modulo is not None
+    try:
+        leido = moodle.leer_modulo(loc.modulo["cmid"])
+    except ErrorPublicacion:
+        return True
+    return _huella_cambiada(doc, entrada, leido)
+
+
 def modulos_fuera(secciones: list[dict], doc: Documento) -> list[tuple[dict, dict]]:
     """(sección, módulo) con el tipo y nombre de ``doc`` en las demás secciones del curso.
 
@@ -3064,6 +3145,8 @@ def publicar_fechas(
     doc: Documento,
     curso: int | None = None,
     huella_aula: str | None = None,
+    comprobar_registro: bool = False,
+    sobrescribir: bool = False,
 ) -> informe.Fichero:
     """Cambia solo las fechas de una tarea o un cuestionario que ya está en el aula.
 
@@ -3071,7 +3154,15 @@ def publicar_fechas(
     visibilidad, así que no pasa por la puerta de pruebas ni sube nada. Si el
     módulo no existe, no envía nada.
     """
-    return publicar_fechas_con_huella(moodle, secciones, doc, curso, huella_aula)[0]
+    return publicar_fechas_con_huella(
+        moodle,
+        secciones,
+        doc,
+        curso,
+        huella_aula,
+        comprobar_registro=comprobar_registro,
+        sobrescribir=sobrescribir,
+    )[0]
 
 
 def publicar_fechas_con_huella(
@@ -3080,8 +3171,10 @@ def publicar_fechas_con_huella(
     doc: Documento,
     curso: int | None = None,
     huella_aula: str | None = None,
+    comprobar_registro: bool = False,
+    sobrescribir: bool = False,
 ) -> tuple[informe.Fichero, str | None]:
-    """Como :func:`publicar_fechas`; devuelve además la huella nueva si ``doc`` tiene ``origen``.
+    """Como :func:`publicar_fechas`; devuelve además la huella nueva si hay base que renovar.
 
     En el curso del origen y con ``huella_aula``, antes de escribir se compara con el formulario
     del aula: vale la guardada o que las fechas ya sean las pedidas (un intento anterior las
@@ -3089,8 +3182,14 @@ def publicar_fechas_con_huella(
     y texto del aula, fechas nuevas) se calcula aquí con el formulario que se relee al verificar:
     solo sale el sha256. Si se aceptó por esa segunda vía no hay huella nueva (``None``): se deja
     la guardada.
+
+    Con ``comprobar_registro`` (curso real), lo hallado por el registro y con huella en él se
+    compara igual que al publicar entero (``CAMBIADA_EN_EL_AULA`` si el docente lo retocó a mano) y
+    devuelve la huella nueva. Con ``sobrescribir`` no se compara y no hay huella nueva: el texto del
+    aula no se pisó, y el cambio del docente debe seguir contando la próxima vez.
     """
-    existente = localizar(secciones, doc, curso).actividad
+    loc = localizar(secciones, doc, curso)
+    existente = loc.actividad
     if existente is None:
         raise ErrorPublicacion("MODULO_AUSENTE", doc.ruta.name)
     cmid = existente["cmid"]
@@ -3106,6 +3205,13 @@ def publicar_fechas_con_huella(
             # Aceptada porque las fechas ya estaban puestas: el texto del aula puede ser un
             # cambio ajeno y no pasa a ser la línea base; se deja la huella que había.
             renovar = False
+    elif comprobar_registro and (entrada := _entrada_vigilada(doc, curso, loc)) is not None:
+        renovar = not sobrescribir
+        if not sobrescribir:
+            if _marca_sin_juntar(doc, entrada):
+                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
+            if _huella_cambiada(doc, entrada, moodle.leer_modulo(cmid)):
+                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
     moodle.actualizar(cmid, payload_solo_fechas(doc))
     info = _verificar_fechas(moodle, doc, cmid)
     seccion = buscar_seccion(secciones, doc.seccion) or {}

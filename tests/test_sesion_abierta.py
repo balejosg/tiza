@@ -1195,3 +1195,66 @@ class TestCopiaEnLaSesion:
             agente.peticion_copia("otro"), MoodleFalso(), CFG, carpeta, PresenciaFalsa()
         )
         assert documento["errores"] == ["CURSO_NO_CONFIGURADO"]
+
+
+class TestCambiosALaMano:
+    """Lo que el docente retocó a mano en el aula: lo decide él en su terminal, no el agente."""
+
+    def publicada(self, tmp_path):
+        """«Repaso» publicada en real (oculta, sin curso de pruebas), retocada a mano después."""
+        carpeta = preparar_carpeta(tmp_path)
+        moodle = MoodleFalso()
+        primera = peticion("real", visible=False, id="b" * 32)
+        dejar_peticion(carpeta, primera)
+        documento = atender(primera, moodle, CFG_SIN_PRUEBAS, carpeta, PresenciaFalsa(real=True))
+        cmid = documento["ficheros"][0]["cmid"]
+        moodle.formularios[cmid]["page[text]"] = "<p>A mano en el aula</p>"
+        (carpeta / "pagina.md").write_text(PAGINA + "\nOtra línea de tiza.\n", encoding="utf-8")
+        return carpeta, moodle, cmid
+
+    def segunda(self, carpeta, moodle, presencia, **extra):
+        datos = peticion("real", visible=False, id="c" * 32, **extra)
+        dejar_peticion(carpeta, datos)
+        return atender(datos, moodle, CFG_SIN_PRUEBAS, carpeta, presencia)
+
+    def test_la_peticion_del_agente_no_puede_pedir_sobrescribir(self, tmp_path):
+        carpeta, moodle, _cmid = self.publicada(tmp_path)
+        llamadas = len(moodle.llamadas)
+        for campo in ("sobrescribir", "forzar", "no_publicar"):
+            datos = peticion("real", visible=False, id="c" * 32, **{campo: True})
+            with pytest.raises(buzon.ErrorBuzon) as exc:
+                atender(datos, moodle, CFG_SIN_PRUEBAS, carpeta, PresenciaFalsa(real=True))
+            assert exc.value.codigo == "PETICION_INVALIDA"
+        assert len(moodle.llamadas) == llamadas
+
+    def test_el_docente_dice_que_no_y_no_se_pisa(self, tmp_path):
+        carpeta, moodle, cmid = self.publicada(tmp_path)
+        presencia = PresenciaFalsa(real=True, sobrescribir=False)
+        documento = self.segunda(carpeta, moodle, presencia)
+        assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+        assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("Repaso",)]
+        assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+        assert moodle.formularios[cmid]["page[text]"] == "<p>A mano en el aula</p>"
+
+    def test_el_docente_dice_que_si_y_se_publica(self, tmp_path):
+        carpeta, moodle, cmid = self.publicada(tmp_path)
+        presencia = PresenciaFalsa(real=True, sobrescribir=True)
+        documento = self.segunda(carpeta, moodle, presencia)
+        assert documento["errores"] == []
+        assert "CAMBIO_DEL_AULA_DESCARTADO" in [p["codigo"] for p in documento["pasos"]]
+        assert "A mano" not in moodle.formularios[cmid]["page[text]"]
+
+    def test_si_el_agente_retira_la_peticion_mientras_se_pregunta_no_se_pisa(self, tmp_path):
+        carpeta, moodle, cmid = self.publicada(tmp_path)
+        datos = peticion("real", visible=False, id="c" * 32)
+        ruta = dejar_peticion(carpeta, datos)
+
+        class RetiraAlPreguntar(PresenciaFalsa):
+            def confirmar_sobrescribir(self, resumen):
+                ruta.unlink()  # el agente deja de esperar antes de que el docente conteste
+                return super().confirmar_sobrescribir(resumen)
+
+        presencia = RetiraAlPreguntar(real=True, sobrescribir=True)
+        documento = atender(datos, moodle, CFG_SIN_PRUEBAS, carpeta, presencia)
+        assert documento["errores"] == ["PETICION_RETIRADA"]
+        assert moodle.formularios[cmid]["page[text]"] == "<p>A mano en el aula</p>"

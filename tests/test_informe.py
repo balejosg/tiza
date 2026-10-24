@@ -637,3 +637,20 @@ def test_el_resumen_de_rellenar_lleva_las_sustituciones():
         informe.Relleno("P.docx", "S.docx", 2, (), "3")
     with pytest.raises(informe.ErrorInforme):
         informe.validar_relleno({k: v for k, v in resumen.a_dict().items() if k != "sustituciones"})
+
+
+def test_el_paso_de_cambio_del_aula_descartado_esta_registrado():
+    assert "CAMBIO_DEL_AULA_DESCARTADO" in informe.PASOS
+    informe.validar(
+        informe.crear(
+            "publicar",
+            "ok",
+            [Paso("CAMBIO_DEL_AULA_DESCARTADO", detalle="pagina.md")],
+            [],
+            [],
+            "real",
+            5678,
+        )
+    )
+    with pytest.raises(ErrorInforme):
+        Paso("CAMBIO_DEL_AULA_DESCARTADO", detalle="<b>esto viene de Moodle</b>")

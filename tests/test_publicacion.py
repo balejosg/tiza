@@ -1521,8 +1521,12 @@ def test_actividad_borrada_en_el_aula_se_avisa_y_se_crea_de_nuevo(tmp_path):
         "Ya no está en el aula: se creará de nuevo."
         in mensajes.detalle_real(resumen).documentos[0].lineas
     )
+    # Recreada: la huella y la marca de la anterior no valen; en real, la base es la releída.
     assert estado.cargar_publicados(carpeta / ".tiza", 5678)["p.md"] == estado.Publicado(
-        cmid=fichero["cmid"], tipo="pagina"
+        cmid=fichero["cmid"],
+        tipo="pagina",
+        huella=_huella_del_aula_en(moodle, carpeta, fichero["cmid"]),
+        marca=None,
     )
 
 
@@ -1637,3 +1641,492 @@ def test_con_varios_cursos_reales_hay_una_entrada_por_curso(tmp_path):
     for curso in (5678, 9999):
         assert list(estado.cargar_publicados(carpeta / ".tiza", curso)) == ["p.md"]
     assert estado.cargar_publicados(carpeta / ".tiza", 1234) == {}
+
+
+# --- Cambios a mano en el aula: detectar, preguntar y guardar la huella --------------------
+
+CFG_DOS_REALES = config.Config(
+    url="https://aula.ejemplo.org/centro",
+    usuario="profe",
+    cursos={"pruebas": 1234},
+    reales=(5678, 9999),
+)
+
+
+def _pagina_texto(carpeta: Path, nombre="A", texto="Texto.", fichero="p.md") -> None:
+    (carpeta / fichero).write_text(
+        f"---\ntipo: pagina\nnombre: {nombre}\nseccion: 3\n---\n\n{texto}\n", encoding="utf-8"
+    )
+
+
+def _aula_varios_cursos() -> MoodleFalso:
+    return MoodleFalso(
+        secciones_por_curso={
+            curso: [{"numero": 3, "nombre": "Tema 3", "id": curso + 1, "modulos": []}]
+            for curso in (1234, 5678, 9999)
+        }
+    )
+
+
+def _en(carpeta, moodle, entorno, ficheros=("p.md",), presencia=None, cfg=CFG, **opciones):
+    """Publica con el registro cargado (``raiz``); devuelve (informe, presencia)."""
+    presencia = presencia or PresenciaFalsa()
+    documentos = [contenido.cargar(carpeta / f, raiz=carpeta) for f in ficheros]
+    verificados: dict = {}
+    for doc in documentos:
+        estado.anotar_verificado(verificados, contenido.hash_documento(doc), doc.ruta.name, 100)
+    documento = publicacion.publicar_en_cursos(
+        moodle,
+        cfg,
+        documentos,
+        carpeta,
+        presencia,
+        entorno=entorno,
+        verificados=verificados,
+        **opciones,
+    )
+    return documento, presencia
+
+
+def _entrada(carpeta: Path, curso=5678, ruta="p.md") -> estado.Publicado:
+    return estado.cargar_publicados(carpeta / ".tiza", curso)[ruta]
+
+
+def _huella_del_aula_en(moodle, carpeta: Path, cmid: int, fichero="p.md") -> str:
+    doc = contenido.cargar(carpeta / fichero)
+    return tipos.huella_del_formulario(tipos.obtener(doc.tipo), doc, moodle.leer_modulo(cmid))
+
+
+def _retocar(moodle, cmid: int, *, nombre=None, texto=None, campos=None) -> None:
+    """Lo que haría el docente a mano en el formulario de la actividad."""
+    formulario = moodle.formularios[cmid]
+    if nombre is not None:
+        formulario["name"] = nombre
+        for secciones in (moodle.secciones, *moodle.secciones_por_curso.values()):
+            for seccion in secciones:
+                for modulo in seccion["modulos"]:
+                    if modulo["cmid"] == cmid:
+                        modulo["nombre"] = nombre
+    if texto is not None:
+        formulario["page[text]" if "page[text]" in formulario else "introeditor[text]"] = texto
+    formulario.update(campos or {})
+
+
+def _lecturas(moodle) -> int:
+    return len([c for c in moodle.llamadas if c[0] == "leer_modulo"])
+
+
+def _escrituras(moodle, cmid: int) -> list:
+    return [c for c in moodle.llamadas if c[0] == "actualizar" and c[1] == cmid]
+
+
+def _publicada_y_retocada(tmp_path, **retoque):
+    """Una página «A» publicada en real y retocada a mano en el aula; el fichero cambia después."""
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    _retocar(moodle, cmid, **retoque)
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    return carpeta, moodle, cmid
+
+
+def test_la_primera_publicacion_en_real_guarda_la_huella_releida(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    documento, presencia = _en(carpeta, moodle, "real")
+    cmid = documento["ficheros"][0]["cmid"]
+    assert _entrada(carpeta) == estado.Publicado(
+        cmid, "pagina", huella=_huella_del_aula_en(moodle, carpeta, cmid), marca=None
+    )
+    assert presencia.resumenes_sobrescribir == []
+
+
+def test_en_pruebas_no_se_guarda_huella_ni_se_lee_de_mas(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina_texto(carpeta)
+    en_pruebas, en_real = _aula_dos_cursos(), _aula_dos_cursos()
+    _en(carpeta, en_pruebas, "pruebas")
+    assert _entrada(carpeta, 1234).huella is None
+    _en(carpeta, en_real, "real")
+    # En real se relee una vez más (la huella que se guarda); en pruebas, nada de más.
+    assert _lecturas(en_real) == _lecturas(en_pruebas) + 1
+    # Ni siquiera una entrada con huella hace leer más en pruebas.
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        1234,
+        "p.md",
+        estado.Publicado(_entrada(carpeta, 1234).cmid, "pagina", "a" * 64),
+    )
+    antes = _lecturas(en_pruebas)
+    _en(carpeta, en_pruebas, "pruebas")
+    sin_huella = _aula_dos_cursos()
+    _en(carpeta, sin_huella, "pruebas")
+    assert _lecturas(en_pruebas) - antes == _lecturas(sin_huella)
+
+
+def test_se_conservan_huella_y_marca_si_es_el_mismo_cmid_y_nadie_cambia_nada(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "pruebas")
+    cmid = primero["ficheros"][0]["cmid"]
+    entrada = estado.Publicado(cmid, "pagina", huella="a" * 64, marca="b" * 64)
+    estado.guardar_publicado(carpeta / ".tiza", 1234, "p.md", entrada)
+    _pagina_texto(carpeta, texto="Otro texto.")
+    segundo, _ = _en(carpeta, moodle, "pruebas")
+    assert segundo["ficheros"][0]["cmid"] == cmid
+    assert _entrada(carpeta, 1234) == entrada  # pruebas no compara ni toca la base
+    # Si la actividad se recrea (otro cmid), van a None.
+    for seccion in moodle._de(1234):
+        seccion["modulos"] = []
+    tercero, _ = _en(carpeta, moodle, "pruebas")
+    assert _entrada(carpeta, 1234) == estado.Publicado(tercero["ficheros"][0]["cmid"], "pagina")
+
+
+def test_republicar_sin_cambios_a_mano_no_pregunta_y_renueva_la_huella(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    antes = _entrada(carpeta).huella
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    segundo, presencia = _en(carpeta, moodle, "real")
+    assert segundo["errores"] == [] and presencia.resumenes_sobrescribir == []
+    assert len(_escrituras(moodle, cmid)) == 1
+    assert "CAMBIO_DEL_AULA_DESCARTADO" not in [p["codigo"] for p in segundo["pasos"]]
+    ahora = _entrada(carpeta)
+    assert ahora.huella != antes
+    assert ahora.huella == _huella_del_aula_en(moodle, carpeta, cmid)
+    # Una tercera vez, sin tocar nada, tampoco pregunta.
+    tercero, presencia = _en(carpeta, moodle, "real")
+    assert tercero["errores"] == [] and presencia.resumenes_sobrescribir == []
+
+
+@pytest.mark.parametrize("retoque", [{"texto": "<p>A mano</p>"}, {"nombre": "Z"}])
+def test_un_cambio_a_mano_y_no_a_sobrescribir_no_publica_y_el_resto_sigue(tmp_path, retoque):
+    carpeta, moodle, cmid = _publicada_y_retocada(tmp_path, **retoque)
+    _pagina_texto(carpeta, nombre="Otra", fichero="otra.md")
+    huella = _entrada(carpeta).huella
+    escrituras = len(_escrituras(moodle, cmid))
+    documento, presencia = _en(carpeta, moodle, "real", ("p.md", "otra.md"))
+    informe.validar(documento)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert {"codigo": "PUBLICAR", "resultado": "fallo", "detalle": "p.md"} in documento["pasos"]
+    assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
+    assert len(_escrituras(moodle, cmid)) == escrituras  # no se tocó
+    assert presencia.resumenes_sobrescribir == [
+        publicacion.ResumenSobrescribir(5678, None, ("A",), 1, 1)
+    ]
+    [aviso] = [a for a in presencia.avisos if a.codigo == "CAMBIADA_EN_EL_AULA"]
+    assert "«A»" in mensajes.lineas_de_aviso(aviso)[0].texto
+    assert _entrada(carpeta).huella == huella  # la base no se renueva
+
+
+def test_un_cambio_a_mano_de_fecha_tambien_se_pregunta(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    tarea_en(carpeta)
+    primero, _ = _en(carpeta, moodle, "real", ("tarea.md",))
+    cmid = primero["ficheros"][0]["cmid"]
+    _retocar(moodle, cmid, campos=fecha_en_formulario("duedate", (2026, 11, 3, 10, 0)))
+    documento, presencia = _en(carpeta, moodle, "real", ("tarea.md",))
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("Problemas",)]
+
+
+@pytest.mark.parametrize("retoque", [{"texto": "<p>A mano</p>"}, {"nombre": "Z"}])
+def test_sobrescribir_publica_deja_el_paso_y_renueva_la_huella(tmp_path, retoque):
+    carpeta, moodle, cmid = _publicada_y_retocada(tmp_path, **retoque)
+    presencia = PresenciaFalsa(sobrescribir=True)
+    documento, presencia = _en(carpeta, moodle, "real", presencia=presencia)
+    informe.validar(documento)
+    assert documento["errores"] == [] and documento["resultado"] == "ok"
+    assert {"codigo": "CAMBIO_DEL_AULA_DESCARTADO", "resultado": "ok", "detalle": "p.md"} in (
+        documento["pasos"]
+    )
+    assert moodle.formularios[cmid]["name"] == "A"
+    assert "Texto de tiza, nuevo." in moodle.formularios[cmid]["page[text]"]
+    assert _entrada(carpeta).huella == _huella_del_aula_en(moodle, carpeta, cmid)
+    assert "CAMBIADA_EN_EL_AULA" not in presencia.codigos()
+
+
+def test_la_pregunta_no_sale_si_el_docente_dice_que_no_a_la_confirmacion(tmp_path):
+    carpeta, moodle, cmid = _publicada_y_retocada(tmp_path, texto="<p>A mano</p>")
+    escrituras = len(_escrituras(moodle, cmid))
+    presencia = PresenciaFalsa(real=False, sobrescribir=True)
+    documento, presencia = _en(carpeta, moodle, "real", presencia=presencia)
+    assert presencia.resumenes_sobrescribir == []
+    assert len(_escrituras(moodle, cmid)) == escrituras
+
+
+def test_la_pregunta_va_despues_de_la_confirmacion_normal(tmp_path):
+    carpeta, moodle, _cmid = _publicada_y_retocada(tmp_path, texto="<p>A mano</p>")
+    orden: list[str] = []
+
+    class Ordenada(PresenciaFalsa):
+        def confirmar_real(self, resumen):
+            orden.append("real")
+            return super().confirmar_real(resumen)
+
+        def confirmar_sobrescribir(self, resumen):
+            orden.append("sobrescribir")
+            return super().confirmar_sobrescribir(resumen)
+
+    _en(carpeta, moodle, "real", presencia=Ordenada())
+    assert orden == ["real", "sobrescribir"]
+
+
+def test_con_la_peticion_retirada_en_la_pregunta_no_se_sobrescribe(tmp_path):
+    carpeta, moodle, cmid = _publicada_y_retocada(tmp_path, texto="<p>A mano</p>")
+    escrituras = len(_escrituras(moodle, cmid))
+    respuestas = iter([True, False])  # vigente tras la confirmación; retirada tras la pregunta
+    documento, presencia = _en(
+        carpeta,
+        moodle,
+        "real",
+        presencia=PresenciaFalsa(sobrescribir=True),
+        vigente=lambda: next(respuestas),
+    )
+    assert documento["errores"] == ["PETICION_RETIRADA"]
+    assert len(_escrituras(moodle, cmid)) == escrituras
+    assert "A mano" in moodle.formularios[cmid]["page[text]"]
+
+
+def test_un_intento_anterior_a_medias_no_cuenta_como_cambio(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    # Un intento anterior ya escribió esto y falló al verificar: la base sigue siendo la vieja.
+    nuevo = contenido.cargar(carpeta / "p.md")
+    _retocar(moodle, cmid, texto=contenido.html_para_moodle(nuevo))
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == [] and presencia.resumenes_sobrescribir == []
+
+
+def test_una_marca_igual_al_fichero_cuenta_como_cambiada_aunque_el_aula_no_cambie(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    sha = hashlib.sha256((carpeta / "p.md").read_bytes()).hexdigest()
+    base = _entrada(carpeta)
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "p.md", estado.Publicado(cmid, "pagina", base.huella, sha)
+    )
+    lecturas = _lecturas(moodle)
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("A",)]
+    assert _lecturas(moodle) == lecturas  # con la marca ya se sabe: no se lee el aula
+    assert _entrada(carpeta).marca == sha
+
+
+def test_con_el_fichero_ya_juntado_la_marca_no_cuenta_y_tras_publicar_queda_a_none(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    sha = hashlib.sha256((carpeta / "p.md").read_bytes()).hexdigest()
+    base = _entrada(carpeta)
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "p.md", estado.Publicado(cmid, "pagina", base.huella, sha)
+    )
+    _pagina_texto(carpeta, texto="Con lo que cambió en el aula.")  # el docente junta
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == [] and presencia.resumenes_sobrescribir == []
+    assert _entrada(carpeta).marca is None
+    assert _entrada(carpeta).huella == _huella_del_aula_en(moodle, carpeta, cmid)
+
+
+def test_un_cambio_entre_la_confirmacion_y_la_escritura_no_se_pisa(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+
+    class RetocaTrasMirar(PresenciaFalsa):
+        def confirmar_real(self, resumen):
+            _retocar(moodle, cmid, texto="<p>A mano, justo ahora</p>")
+            return super().confirmar_real(resumen)
+
+    escrituras = len(_escrituras(moodle, cmid))
+    documento, presencia = _en(carpeta, moodle, "real", presencia=RetocaTrasMirar())
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert len(_escrituras(moodle, cmid)) == escrituras
+    assert "A mano, justo ahora" in moodle.formularios[cmid]["page[text]"]
+    assert presencia.resumenes_sobrescribir == []  # no estaba cambiado cuando se preguntó
+    assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+
+
+def test_con_varios_cursos_reales_se_pregunta_solo_en_el_que_cambio(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_varios_cursos()
+    _pagina_texto(carpeta)
+    _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=PresenciaFalsa(real=(True, True)))
+    cmid = _entrada(carpeta, 5678).cmid
+    _retocar(moodle, cmid, texto="<p>A mano</p>")
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    presencia = PresenciaFalsa(real=(True, True), sobrescribir=(True,))
+    documento, presencia = _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=presencia)
+    assert documento["errores"] == []
+    assert [(r.curso, r.posicion, r.total) for r in presencia.resumenes_sobrescribir] == [
+        (5678, 1, 2)
+    ]
+    for curso in (5678, 9999):
+        assert "nuevo" in moodle.formularios[_entrada(carpeta, curso).cmid]["page[text]"]
+
+
+def test_con_varios_cursos_reales_la_pregunta_lleva_la_posicion_del_curso(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_varios_cursos()
+    _pagina_texto(carpeta)
+    _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=PresenciaFalsa(real=(True, True)))
+    _retocar(moodle, _entrada(carpeta, 9999).cmid, texto="<p>A mano</p>")
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    documento, presencia = _en(
+        carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=PresenciaFalsa(real=(True, True))
+    )
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [(r.curso, r.posicion, r.total) for r in presencia.resumenes_sobrescribir] == [
+        (9999, 2, 2)
+    ]
+    # El primero, sin cambios a mano, se publicó sin preguntar.
+    assert "nuevo" in moodle.formularios[_entrada(carpeta, 5678).cmid]["page[text]"]
+    assert "A mano" in moodle.formularios[_entrada(carpeta, 9999).cmid]["page[text]"]
+
+
+def test_un_documento_con_origen_en_su_curso_sigue_su_camino_sin_pregunta_nueva(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "importada.md", estado.Publicado(501, "pagina", "a" * 64)
+    )
+    moodle = _aula_importada()
+    documento, presencia = _en(carpeta, moodle, "real", ("importada.md",))
+    assert documento["errores"] == [] and presencia.resumenes_sobrescribir == []
+    # La base del registro no se toca ni se relee: manda ``copia.json``.
+    assert _entrada(carpeta, ruta="importada.md").huella == "a" * 64
+    assert _lecturas(moodle) == 2  # comparar con la copia y verificar; nada más
+
+
+def _tarea_publicada(tmp_path, entrega="2026-10-12"):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    tarea_en(carpeta, entrega=entrega)
+    primero, _ = _en(carpeta, moodle, "real", ("tarea.md",))
+    return carpeta, moodle, primero["ficheros"][0]["cmid"]
+
+
+def test_solo_fechas_sin_cambio_a_mano_cambia_las_fechas_y_renueva_la_huella(tmp_path):
+    carpeta, moodle, cmid = _tarea_publicada(tmp_path)
+    antes = _entrada(carpeta, ruta="tarea.md").huella
+    tarea_en(carpeta, entrega="2026-10-20")
+    documento, presencia = _en(carpeta, moodle, "real", ("tarea.md",), solo_fechas=True)
+    assert documento["errores"] == [] and presencia.resumenes_sobrescribir == []
+    assert len(_escrituras(moodle, cmid)) == 1  # la creación no es un ``actualizar``
+    ahora = _entrada(carpeta, ruta="tarea.md").huella
+    assert ahora != antes
+    assert ahora == _huella_del_aula_en(moodle, carpeta, cmid, "tarea.md")
+
+
+def test_solo_fechas_con_cambio_a_mano_y_si_escribe_las_fechas_y_no_renueva(tmp_path):
+    carpeta, moodle, cmid = _tarea_publicada(tmp_path)
+    antes = _entrada(carpeta, ruta="tarea.md").huella
+    _retocar(moodle, cmid, texto="<p>Enunciado a mano</p>")
+    tarea_en(carpeta, entrega="2026-10-20")
+    documento, presencia = _en(
+        carpeta, moodle, "real", ("tarea.md",), PresenciaFalsa(sobrescribir=True), solo_fechas=True
+    )
+    assert documento["errores"] == []
+    assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("Problemas",)]
+    assert {"codigo": "CAMBIO_DEL_AULA_DESCARTADO", "resultado": "ok", "detalle": "tarea.md"} in (
+        documento["pasos"]
+    )
+    assert len(_escrituras(moodle, cmid)) == 1
+    assert moodle.formularios[cmid]["introeditor[text]"] == "<p>Enunciado a mano</p>"
+    assert _entrada(carpeta, ruta="tarea.md").huella == antes  # el texto de la aula sigue contando
+
+
+def test_solo_fechas_con_cambio_a_mano_y_no_no_escribe_nada(tmp_path):
+    carpeta, moodle, cmid = _tarea_publicada(tmp_path)
+    _retocar(moodle, cmid, nombre="Otro nombre")
+    tarea_en(carpeta, entrega="2026-10-20")
+    documento, presencia = _en(carpeta, moodle, "real", ("tarea.md",), solo_fechas=True)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert _escrituras(moodle, cmid) == []
+    assert "CAMBIADA_EN_EL_AULA" in presencia.codigos()
+
+
+def test_si_no_se_puede_leer_el_aula_al_buscar_cambios_cuenta_como_cambiada(tmp_path):
+    carpeta, moodle, cmid = _publicada_y_retocada(tmp_path)
+    original = moodle.leer_modulo
+
+    def leer(cmid_pedido):
+        if cmid_pedido == cmid:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        return original(cmid_pedido)
+
+    moodle.leer_modulo = leer
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("A",)]
+
+
+def test_si_no_se_puede_releer_tras_publicar_la_entrada_queda_sin_huella_y_se_avisa(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _pagina_texto(carpeta)
+    primero, _ = _en(carpeta, moodle, "real")
+    cmid = primero["ficheros"][0]["cmid"]
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    original = moodle.leer_modulo
+    lecturas = []
+
+    def leer(cmid_pedido):
+        lecturas.append(cmid_pedido)
+        # Las tres primeras (buscar cambios, comprobar y verificar) valen; la última falla.
+        if len(lecturas) == 4:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        return original(cmid_pedido)
+
+    moodle.leer_modulo = leer
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["ficheros"][0]["cmid"] == cmid  # la publicación quedó hecha
+    assert _entrada(carpeta) == estado.Publicado(cmid, "pagina", huella=None, marca=None)
+    [paso] = [p for p in documento["pasos"] if p["codigo"] == "REGISTRO_NO_GUARDADO"]
+    assert (paso["resultado"], paso["detalle"]) == ("fallo", "p.md")
+    assert "REGISTRO_NO_GUARDADO" in presencia.codigos()
+    assert documento["errores"] == []
+    # La próxima vez no se puede comparar: es como una entrada antigua.
+    siguiente, presencia = _en(carpeta, moodle, "real")
+    assert siguiente["errores"] == [] and presencia.resumenes_sobrescribir == []
+
+
+def test_sin_curso_de_pruebas_tambien_se_pregunta_tras_la_confirmacion_corta(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    sin_pruebas = config.Config(
+        url="https://aula.ejemplo.org/centro", usuario="profe", cursos={}, reales=(5678,)
+    )
+    _pagina_texto(carpeta)
+    _en(carpeta, moodle, "real", cfg=sin_pruebas, visible=False)
+    cmid = _entrada(carpeta).cmid
+    _retocar(moodle, cmid, texto="<p>A mano</p>")
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    documento, presencia = _en(carpeta, moodle, "real", cfg=sin_pruebas, visible=False)
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA"]
+    assert len(presencia.resumenes_cortos) == 1
+    assert [r.actividades for r in presencia.resumenes_sobrescribir] == [("A",)]
+    assert moodle.formularios[cmid]["page[text]"] == "<p>A mano</p>"

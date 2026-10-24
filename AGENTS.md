@@ -162,7 +162,11 @@ en español.
   constructor tipado por aviso—, resúmenes, vistas previas). Lo que distingue a
   cada llamador entra como decisión explícita
   y documentada (`verificados` en memoria o disco, `vigente` solo en la sesión,
-  `cupo` solo en la sesión, `omitidos` de la terminal directa).
+  `cupo` solo en la sesión, `omitidos` de la terminal directa). Los retoques a mano del docente en lo que tiza
+  publicó (solo cursos reales, por el registro `publicados.json`): `cambiadas_en_el_aula` los detecta
+  antes de confirmar, `Presencia.confirmar_sobrescribir` pregunta tras el sí normal y `publicar_con`
+  recibe lo decidido (`sobrescribir`, `no_publicar`); `publicar.py` lo vuelve a comprobar justo antes
+  de escribir (`comprobar_registro`). La petición del agente no lleva nada de esto.
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
   autoprueba y el ciclo de la sesión). Solo habla con el docente a través de una
   `Presencia` y no importa `terminal` ni `cli`; todo recibe la carpeta de la

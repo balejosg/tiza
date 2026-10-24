@@ -90,7 +90,7 @@ def test_el_doble_cumple_la_interfaz_de_presencia():
         for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
-    assert len(metodos) == 14
+    assert len(metodos) == 15
     for nombre in metodos:
         esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaFalsa, nombre)).parameters)
@@ -761,6 +761,22 @@ class TestPresenciaVigilada:
                 return True
 
         assert sesion._PresenciaVigilada(Presencia(), cierre).confirmar_orden(None) is False
+
+    def test_la_pregunta_de_sobrescribir_tambien_se_vigila(self, tmp_path):
+        cierre, *_ = TestCierrePedido().preparar(tmp_path)
+        vistos: list[bool] = []
+
+        class Presencia(PresenciaFalsa):
+            def confirmar_sobrescribir(self, resumen):
+                vistos.append(cierre.esperando.is_set())
+                return True
+
+        vigilada = sesion._PresenciaVigilada(Presencia(), cierre)
+        assert vigilada.confirmar_sobrescribir(None) is True
+        assert vistos == [True] and not cierre.esperando.is_set()
+        cierre.pedido.set()  # pedido el cierre, responde no sin preguntar
+        assert vigilada.confirmar_sobrescribir(None) is False
+        assert vistos == [True]
 
     def test_cumple_la_interfaz_de_presencia(self):
         metodos = [

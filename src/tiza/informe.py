@@ -87,6 +87,7 @@ PASOS = (
             "CALIFICADOR_BLOQUEAR",
             "CALIFICADOR_COLOCAR",
             "CAMBIADO_A_MANO",
+            "CAMBIO_DEL_AULA_DESCARTADO",
             "COMPROBAR",
             "COPIA_A_MANO",
             "COPIAR",
