@@ -39,6 +39,7 @@ from tiza import (
     mensajes,
     publicacion,
     publicar,
+    recorrido,
     tipos,
     vigilancia,
 )
@@ -65,13 +66,6 @@ def _documentos(carpeta: Path) -> list:
     return [contenido.cargar(carpeta / "pagina.md")]
 
 
-def _verificados(carpeta: Path) -> dict:
-    doc = contenido.cargar(carpeta / "pagina.md")
-    registro: dict = {}
-    estado.anotar_verificado(registro, contenido.hash_documento(doc), "pagina.md", 100)
-    return registro
-
-
 def test_puerta_real_con_registro_en_memoria_ignora_el_disco(tmp_path):
     carpeta = _carpeta(tmp_path)
     doc = _documentos(carpeta)[0]
@@ -80,108 +74,6 @@ def test_puerta_real_con_registro_en_memoria_ignora_el_disco(tmp_path):
     assert publicacion.puerta_real(carpeta, [doc]) == []
     # Con el registro vacío en memoria (la sesión), el disco no cuenta.
     assert publicacion.puerta_real(carpeta, [doc], {}) == ["pagina.md"]
-
-
-def test_el_cupo_de_pruebas_se_agota_y_sin_cupo_no_hay_tope(tmp_path):
-    carpeta = _carpeta(tmp_path)
-    documentos = _documentos(carpeta)
-    cupo = {"pruebas": publicacion.MAX_PUBLICACIONES_PRUEBAS}
-    documento = publicacion.publicar_en_cursos(
-        MoodleFalso(), CFG, documentos, carpeta, PresenciaFalsa(), entorno="pruebas", cupo=cupo
-    )
-    assert documento["errores"] == ["LIMITE_PUBLICACIONES"]
-    # Sin cupo (la terminal del docente) la misma petición se publica.
-    documento = publicacion.publicar_en_cursos(
-        MoodleFalso(), CFG, documentos, carpeta, PresenciaFalsa(), entorno="pruebas"
-    )
-    assert documento["resultado"] == "ok"
-
-
-def test_las_pruebas_sin_curso_configurado_fallan(tmp_path):
-    carpeta = _carpeta(tmp_path)
-    cfg = config.Config(
-        url="https://aula.ejemplo.org/centro", usuario="profe", cursos={}, reales=(5678,)
-    )
-    documento = publicacion.publicar_en_cursos(
-        MoodleFalso(), cfg, _documentos(carpeta), carpeta, PresenciaFalsa(), entorno="pruebas"
-    )
-    assert documento["errores"] == ["SIN_CURSO_PRUEBAS"]
-
-
-@pytest.mark.parametrize("avisar", [True, False])
-def test_el_aviso_de_pruebas_solo_lo_pide_la_sesion(tmp_path, avisar):
-    carpeta = _carpeta(tmp_path)
-    presencia = PresenciaFalsa()
-    documento = publicacion.publicar_en_cursos(
-        MoodleFalso(),
-        CFG,
-        _documentos(carpeta),
-        carpeta,
-        presencia,
-        entorno="pruebas",
-        avisar_en_pruebas=avisar,
-    )
-    assert documento["resultado"] == "ok"
-    assert ("PUBLICANDO_EN_PRUEBAS" in presencia.codigos()) is avisar
-
-
-def test_sin_vigente_no_hay_peticion_que_retirar(tmp_path):
-    """La terminal directa no tiene buzón: sin ``vigente`` nada se retira."""
-    carpeta = _carpeta(tmp_path)
-    documento = publicacion.publicar_en_cursos(
-        MoodleFalso(),
-        CFG,
-        _documentos(carpeta),
-        carpeta,
-        PresenciaFalsa(real=True),
-        entorno="real",
-        verificados=_verificados(carpeta),
-    )
-    assert documento["resultado"] == "ok"
-
-
-def test_con_vigente_falsa_se_retira_tras_confirmar(tmp_path):
-    carpeta = _carpeta(tmp_path)
-    presencia = PresenciaFalsa(real=True)
-    moodle = MoodleFalso()
-    documento = publicacion.publicar_en_cursos(
-        moodle,
-        CFG,
-        _documentos(carpeta),
-        carpeta,
-        presencia,
-        entorno="real",
-        verificados=_verificados(carpeta),
-        vigente=lambda: False,
-    )
-    assert documento["errores"] == ["PETICION_RETIRADA"]
-    assert "PETICION_RETIRADA" in presencia.codigos()
-    assert not any(llamada[0] == "crear" for llamada in moodle.llamadas)
-
-
-def test_los_omitidos_no_se_confirman_y_salen_en_el_informe(tmp_path):
-    """Los cursos que la terminal descartó antes de la contraseña no se vuelven a preguntar."""
-    carpeta = _carpeta(tmp_path)
-    cfg = config.Config(
-        url="https://aula.ejemplo.org/centro",
-        usuario="profe",
-        cursos={"pruebas": 1234},
-        reales=(101, 102),
-    )
-    presencia = PresenciaFalsa(real=True)
-    documento = publicacion.publicar_en_cursos(
-        MoodleFalso(),
-        cfg,
-        _documentos(carpeta),
-        carpeta,
-        presencia,
-        entorno="real",
-        verificados=_verificados(carpeta),
-        omitidos={101},
-    )
-    assert [resumen.curso for resumen in presencia.resumenes] == [102]
-    assert {"codigo": "CURSO_OMITIDO", "resultado": "ok", "detalle": "101"} in documento["pasos"]
-    assert documento["resultado"] == "ok"
 
 
 class TestCambiosDeFechas:
@@ -2283,8 +2175,8 @@ def test_un_curso_no_ok_sin_errores_y_con_un_no_a_sobrescribir_corta(tmp_path, m
     def sin_errores(aula, entorno, curso, *args, **kwargs):
         cursos.append(curso)
         if len(cursos) == 1:  # un curso que no sale ok y no dice por qué
-            return publicacion.ResultadoCurso(
-                informe.crear("publicar", "abortado", [], [], [], entorno, curso), True
+            return recorrido.Resultado.hecho(
+                informe.crear("publicar", "abortado", [], [], [], entorno, curso), corta=True
             )
         return publicar_con(aula, entorno, curso, *args, **kwargs)
 
@@ -2361,28 +2253,6 @@ def test_quien_depende_de_un_no_tampoco_corta_los_cursos_siguientes(tmp_path):
     assert documento["errores"] == ["CAMBIADA_EN_EL_AULA", "DEPENDENCIA_NO_PUBLICADA"]
     assert len(presencia.resumenes) == 2
     assert "nuevo" in moodle.formularios[_entrada(carpeta, 9999).cmid]["page[text]"]
-
-
-def test_otro_fallo_en_un_curso_sigue_cortando_los_siguientes(tmp_path):
-    carpeta = tmp_path.resolve()
-    moodle = _aula_varios_cursos()
-    _pagina_texto(carpeta)
-    _en(carpeta, moodle, "real", cfg=CFG_DOS_REALES, presencia=PresenciaFalsa(real=(True, True)))
-    cmid = _entrada(carpeta, 5678).cmid
-    _retocar(moodle, cmid, texto="<p>A mano</p>")
-    # Además del N, un rechazo de siempre en el mismo curso: un ``origen`` que ya no está.
-    _fichero_importado(carpeta)
-    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
-    documento, presencia = _en(
-        carpeta,
-        moodle,
-        "real",
-        ("p.md", "importada.md"),
-        cfg=CFG_DOS_REALES,
-        presencia=PresenciaFalsa(real=(True, True)),
-    )
-    assert "ORIGEN_NO_ENCONTRADO" in documento["errores"]
-    assert len(presencia.resumenes) == 1  # el segundo curso no se llegó a confirmar
 
 
 # --- Base de lo publicado en un curso real: publicados/<curso>/<cmid>/ ----------------------

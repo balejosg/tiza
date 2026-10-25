@@ -337,22 +337,6 @@ class TestAtenderSinPruebas:
         assert documento["errores"] == ["ABORTADO"]
         assert not any(llamada[0] == "crear" for llamada in moodle.llamadas)
 
-    def test_peticion_retirada_tras_confirmar(self, tmp_path):
-        carpeta = preparar_carpeta(tmp_path)
-        presencia = PresenciaFalsa(real=True)
-        documento = atender(
-            peticion("real", visible=False), MoodleFalso(), CFG_SIN_PRUEBAS, carpeta, presencia
-        )
-        assert documento["errores"] == ["PETICION_RETIRADA"]
-        assert "PETICION_RETIRADA" in presencia.codigos()
-
-    def test_pruebas_sin_curso_devuelve_sin_curso_pruebas(self, tmp_path):
-        carpeta = preparar_carpeta(tmp_path)
-        documento = atender(
-            peticion("pruebas"), MoodleFalso(), CFG_SIN_PRUEBAS, carpeta, PresenciaFalsa()
-        )
-        assert documento["errores"] == ["SIN_CURSO_PRUEBAS"]
-
     def test_estructura_sin_curso_de_pruebas(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)
         peticion_estructura = {
@@ -428,19 +412,6 @@ class TestVistasPrivadas:
         assert doc.vista_previa != falsa
         assert "FALSA" not in doc.vista_previa.read_text(encoding="utf-8")
         assert falsa.read_text(encoding="utf-8") == "VISTA FALSA DEL AGENTE"
-
-
-class PresenciaQueRetira(PresenciaFalsa):
-    """Confirma, pero antes retira la petición como si el agente hubiera dejado de esperar."""
-
-    def __init__(self, ruta_peticion: Path) -> None:
-        super().__init__(real=True)
-        self._ruta = ruta_peticion
-
-    def confirmar_real(self, resumen):
-        self.resumenes.append(resumen)
-        self._ruta.unlink()
-        return True
 
 
 class TestSoloFechas:
@@ -550,19 +521,6 @@ class TestSoloFechas:
         assert documento["errores"] == ["MODULO_AUSENTE"]
         assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
         assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 10, 23, 59)
-
-    def test_si_se_retira_tras_confirmar_no_publica(self, tmp_path):
-        carpeta = preparar_carpeta(tmp_path)
-        tarea_en(carpeta)
-        datos = peticion("real")
-        datos["ficheros"] = ["tarea.md"]
-        datos["solo_fechas"] = True
-        dejar_peticion(carpeta, datos)
-        ruta = buzon.carpeta_buzon(carpeta / ".tiza") / f"{datos['id']}{buzon.SUFIJO_PETICION}"
-        moodle = aula_con_tarea()
-        documento = atender(datos, moodle, CFG, carpeta, PresenciaQueRetira(ruta))
-        assert documento["errores"] == ["PETICION_RETIRADA"]
-        assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
 
     def test_el_informe_no_guarda_las_fechas_del_aula(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)
@@ -688,14 +646,6 @@ class TestVariosCursosReales:
         assert [(f["curso"]) for f in documento["ficheros"]] == [102]
         assert ("CURSO_OMITIDO", "101") in [(p["codigo"], p["detalle"]) for p in documento["pasos"]]
 
-    def test_no_en_todos_es_abortado(self, tmp_path):
-        presencia = PresenciaFalsa(real=False)
-        _, moodle, documento = publicar_en_real(tmp_path, presencia)
-        assert documento["resultado"] == "abortado"
-        assert documento["errores"] == ["ABORTADO"]
-        assert not any(llamada[0] == "crear" for llamada in moodle.llamadas)
-        assert [p["codigo"] for p in documento["pasos"]] == ["CURSO_OMITIDO", "CURSO_OMITIDO"]
-
     def test_un_fallo_en_el_segundo_deja_hecho_el_primero(self, tmp_path):
         moodle = aula_con_dos_cursos()
         moodle.secciones_por_curso[102] = []  # sin la sección 3: no se puede publicar ahí
@@ -706,27 +656,6 @@ class TestVariosCursosReales:
         assert documento["errores"]
         pasos = [(p["codigo"], p["resultado"]) for p in documento["pasos"]]
         assert ("CURSO", "ok") in pasos and ("CURSO", "fallo") in pasos
-
-    def test_un_fallo_en_el_primero_no_sigue_con_el_segundo(self, tmp_path):
-        moodle = aula_con_dos_cursos()
-        moodle.secciones_por_curso[101] = []
-        presencia = PresenciaFalsa(real=(True, True))
-        _, _, documento = publicar_en_real(tmp_path, presencia, moodle=moodle)
-        assert documento["resultado"] == "error"
-        assert documento["ficheros"] == []
-        assert [r.curso for r in presencia.resumenes] == [101]
-
-    def test_retirada_entre_cursos(self, tmp_path, monkeypatch):
-        respuestas = iter(
-            [True, True, False]
-        )  # antes del 1.º (tras confirmar), 2.º y tras confirmar
-        monkeypatch.setattr(buzon, "peticion_pendiente", lambda *a, **k: next(respuestas))
-        presencia = PresenciaFalsa(real=(True, True))
-        _, moodle, documento = publicar_en_real(tmp_path, presencia)
-        assert documento["resultado"] == "error"
-        assert documento["errores"] == ["PETICION_RETIRADA"]
-        assert [f["curso"] for f in documento["ficheros"]] == [101]
-        assert "PETICION_RETIRADA" in presencia.codigos()
 
     def test_las_secciones_nuevas_se_avisan_solo_en_el_curso_que_las_necesita(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)
@@ -788,25 +717,6 @@ class TestVariosCursosReales:
         assert all(p["codigo"] not in ("CURSO", "CURSO_OMITIDO") for p in documento["pasos"])
         [resumen] = presencia.resumenes
         assert (resumen.posicion, resumen.total) == (1, 1)
-
-    def test_un_solo_curso_dicho_que_no_es_abortado_como_siempre(self, tmp_path):
-        carpeta = preparar_carpeta(tmp_path)
-        verificados = verificar_en_pruebas(carpeta)
-        datos = peticion("real")
-        dejar_peticion(carpeta, datos)
-        documento = atender(
-            datos,
-            MoodleFalso(),
-            CFG,
-            carpeta,
-            PresenciaFalsa(real=False),
-            verificados=verificados,
-        )
-        assert (documento["resultado"], documento["errores"], documento["pasos"]) == (
-            "abortado",
-            ["ABORTADO"],
-            [],
-        )
 
     def test_solo_fechas_pregunta_en_cada_curso(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)
@@ -1077,24 +987,6 @@ class TestBuzonEntero:
         [resumen] = presencia.resumenes
         assert (resumen.curso, resumen.posicion) == (5678, 1)
         assert [f["curso"] for f in respuesta["ficheros"]] == [5678]
-
-    def test_el_agente_retira_la_peticion_y_la_sesion_no_publica(self, tmp_path):
-        carpeta = preparar_carpeta(tmp_path)
-        dir_tiza = carpeta / ".tiza"
-        verificados = verificar_en_pruebas(carpeta)
-        peticion_agente = agente.peticion_publicar(["pagina.md"], "real")
-        ruta = buzon.carpeta_buzon(dir_tiza) / f"{peticion_agente['id']}{buzon.SUFIJO_PETICION}"
-        presencia = PresenciaQueRetira(ruta)
-        abierta = sesion_abierta.SesionAbierta(
-            MoodleFalso(), CFG, carpeta, presencia, verificados=verificados
-        )
-
-        respuesta = cruzar_el_buzon(dir_tiza, abierta.atender, peticion_agente)
-
-        assert respuesta["resultado"] == "error"
-        assert respuesta["errores"] == ["PETICION_RETIRADA"]
-        assert "PETICION_RETIRADA" in presencia.codigos()
-        assert respuesta["ficheros"] == []
 
 
 class TestCalificadorEnLaSesion:

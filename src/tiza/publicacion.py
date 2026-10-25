@@ -69,7 +69,6 @@ __all__ = [
     "ElementoCalificador",
     "EvaluacionCerrada",
     "FicheroAislamiento",
-    "MAX_PUBLICACIONES_PRUEBAS",
     "PlanCalificador",
     "Presencia",
     "ResumenAislamiento",
@@ -79,7 +78,6 @@ __all__ = [
     "ResumenPublicacion",
     "ResumenSinPruebas",
     "ResumenSobrescribir",
-    "ResultadoCurso",
     "SeccionOrden",
     "cambios_de_fechas",
     "cambios_de_nombre",
@@ -92,7 +90,6 @@ __all__ = [
     "copiar_curso",
     "depurar",
     "exige_oculto_sin_pruebas",
-    "informe_de_cursos",
     "itinerario_de",
     "nombres_de_cursos",
     "ordenar_con",
@@ -108,7 +105,6 @@ __all__ = [
 ]
 
 AVISO_DEBUG = "AVISO: salida de depuración; no la compartas."
-MAX_PUBLICACIONES_PRUEBAS = 50  # por sesión: frena a un agente en bucle
 CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
 CUPO_COPIAS_ACTIVIDAD = 20  # copias de una sola actividad por sesión (cada actividad gasta 1)
 # Moodle reescala los pesos de los hermanos al guardar uno: fijarlos converge, pero no de golpe.
@@ -1004,14 +1000,6 @@ def resumen_solo_fechas(
     )
 
 
-@dataclass(frozen=True)
-class ResultadoCurso:
-    """PROVISIONAL: lo sustituirá el resultado del recorrido."""
-
-    informe: dict
-    corta: bool
-
-
 def publicar_con(
     aula: AulaVirtual,
     entorno: str,
@@ -1025,7 +1013,7 @@ def publicar_con(
     solo_fechas: bool = False,
     sobrescribir: frozenset[Path] = frozenset(),
     no_publicar: frozenset[Path] = frozenset(),
-) -> ResultadoCurso:
+) -> recorrido.Resultado:
     """Con el aula ya abierta: publica y verifica los documentos.
 
     Con ``solo_fechas`` solo cambia las fechas de lo que ya existe: no crea secciones,
@@ -1049,7 +1037,7 @@ def publicar_con(
         if ordenados is None:
             borrador.fallo("DEPENDENCIAS", "DEPENDENCIA_CIRCULAR")
             borrador.error("DEPENDENCIA_CIRCULAR")
-            return ResultadoCurso(borrador.documento("error"), True)
+            return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
         documentos = ordenados
     try:
         estructura = aula.estructura(curso)
@@ -1057,7 +1045,7 @@ def publicar_con(
         borrador.fallo("ESTRUCTURA", exc.codigo)
         borrador.error(exc.codigo)
         depurar(exc, debug)
-        return ResultadoCurso(borrador.documento("error"), True)
+        return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
     # Lo que se rechaza por su origen se dice ya y no deja nada hecho (ni una sección creada).
     dir_tiza = Path(carpeta) / rutas.CARPETA_TRABAJO
     real = entorno == "real"
@@ -1066,7 +1054,7 @@ def publicar_con(
     except estado.ErrorEstado as exc:
         borrador.fallo("PREPARAR", exc.codigo)
         borrador.error(exc.codigo)
-        return ResultadoCurso(borrador.documento("error"), True)
+        return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
     aceptados, rechazos = _separar_rechazados(
         documentos, estructura, base, solo_fechas, vigilancia, no_publicar
     )
@@ -1087,14 +1075,14 @@ def publicar_con(
         if faltante is not None:
             borrador.fallo("DEPENDENCIAS", faltante[1])
             borrador.error(faltante[0])
-            return ResultadoCurso(borrador.documento("error"), True)
+            return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
     if solo_fechas:
         # Todo o nada: si alguno de los documentos no se puede cambiar, no se cambia ninguno.
         codigo = codigo_solo_fechas(estructura, documentos, curso)
         if codigo is not None:
             borrador.fallo("SOLO_FECHAS", codigo)
             borrador.error(codigo)
-            return ResultadoCurso(borrador.documento("error"), True)
+            return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
     else:
         for nombre in estructura.secciones_que_faltan(documentos):
             presencia.informar(Aviso.creando_seccion(nombre))
@@ -1104,7 +1092,7 @@ def publicar_con(
             borrador.fallo("CREAR_SECCION", exc.codigo)
             borrador.error(exc.codigo)
             depurar(exc, debug)
-            return ResultadoCurso(borrador.documento("error"), True)
+            return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
         for nombre in creadas:
             borrador.paso("CREAR_SECCION", detalle=nombre)
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
@@ -1140,7 +1128,7 @@ def publicar_con(
             depurar(exc, debug)
             borrador.error(exc.codigo)
             if exc.codigo not in ERRORES_POR_FICHERO:
-                return ResultadoCurso(borrador.documento("error"), True)
+                return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
             # Esta actividad no se toca; las demás del lote siguen.
             if exc.codigo == "CAMBIADA_EN_EL_AULA":
                 de_copia = vigilada.de_copia if vigilada is not None else aplica_origen(doc, curso)
@@ -1179,7 +1167,7 @@ def publicar_con(
             if not motor:
                 borrador.paso("FORMULAS_NO_DIBUJADAS", detalle=doc.ruta.name)
     documento = borrador.documento()
-    return ResultadoCurso(documento, _corta(documento, rechazos, no_publicar))
+    return recorrido.Resultado.hecho(documento, corta=_corta(documento, rechazos, no_publicar))
 
 
 # Fallos que paran solo a su fichero: la actividad no se toca y el resto del lote sigue.
@@ -1404,8 +1392,8 @@ def publicar_en_cursos(
     Las diferencias entre la sesión y la terminal directa están documentadas arriba, en
     el docstring del módulo.
     """
-    if entorno == "pruebas":
-        return _en_pruebas(
+    return recorrido.recorrer(
+        _TrabajoPublicar(
             aula,
             cfg,
             documentos,
@@ -1413,290 +1401,264 @@ def publicar_en_cursos(
             presencia,
             visible=visible,
             solo_fechas=solo_fechas,
-            cupo=cupo,
-            avisar=avisar_en_pruebas,
+            verificados=verificados,
+            dir_vistas=dir_vistas,
             debug=debug,
-        )
-    return _en_real(
-        aula,
+        ),
         cfg,
-        documentos,
-        base,
         presencia,
-        visible=visible,
-        solo_fechas=solo_fechas,
-        verificados=verificados,
+        entorno=entorno,
         vigente=vigente,
+        cupo=cupo,
+        avisar_en_pruebas=avisar_en_pruebas,
         omitidos=omitidos,
-        nombres=nombres or {},
-        dir_vistas=dir_vistas,
-        debug=debug,
+        nombres=nombres,
     )
 
 
-def _en_pruebas(
-    aula: AulaVirtual,
-    cfg: Config,
-    documentos: list[Documento],
-    base: Path,
-    presencia: Presencia,
-    *,
-    visible: bool | None,
-    solo_fechas: bool,
-    cupo: dict | None,
-    avisar: bool,
-    debug: bool,
-) -> dict:
-    """El curso de pruebas: sin confirmación (la del destino es del llamador), con cupo."""
-    comando, entorno = "publicar", "pruebas"
-    curso = cfg.cursos.get("pruebas")
-    if curso is None:
-        return informe.crear(comando, "error", [], [], ["SIN_CURSO_PRUEBAS"], entorno)
-    if solo_fechas:
+class _TrabajoPublicar(recorrido.TrabajoBase):
+    """Lo que publicar hace en un curso; el bucle y las preguntas son del recorrido."""
+
+    comando = "publicar"
+
+    def __init__(
+        self,
+        aula: AulaVirtual,
+        cfg: Config,
+        documentos: list[Documento],
+        base: Path,
+        presencia: Presencia,
+        *,
+        visible: bool | None,
+        solo_fechas: bool,
+        verificados: Mapping[str, estado.Verificado] | None,
+        dir_vistas: Path | None,
+        debug: bool,
+    ) -> None:
+        self._aula = aula
+        self._cfg = cfg
+        self._documentos = documentos
+        self._base = base
+        self._presencia = presencia
+        self._visible = visible
+        self._solo_fechas = solo_fechas
+        self._verificados = verificados
+        self._dir_vistas = dir_vistas
+        self._debug = debug
+        self._sin_pruebas = "pruebas" not in cfg.cursos
+        self._vistas: list[Path | None] = [None] * len(documentos)
+        self._cal: calendario.Calendario | None = None
+        self._aviso_calendario: str | None = None
+
+    def gasto_en_pruebas(self) -> int:
+        # Los de un origen repetido no se publican: ni gastan cupo ni se anuncian.
+        validos, _repetidos = _sin_origen_repetido(self._documentos)
+        return len(validos)
+
+    def comprobar_en_pruebas(self, curso: int) -> str | None:
+        if not self._solo_fechas:
+            return None
         # Todo o nada antes de tocar el cupo ni la presencia: si algo no se puede cambiar,
         # no se consume cupo por un cambio que no va a ocurrir.
         try:
-            estructura = aula.estructura(curso)
+            estructura = self._aula.estructura(curso)
         except ErrorPublicacion as exc:
-            return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
-        codigo = codigo_solo_fechas(estructura, documentos, curso)
-        if codigo is not None:
-            return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
-    # Los de un origen repetido no se publican: ni gastan cupo ni se anuncian.
-    validos, _repetidos = _sin_origen_repetido(documentos)
-    if cupo is not None:
-        if cupo["pruebas"] + len(validos) > MAX_PUBLICACIONES_PRUEBAS:
-            return informe.crear(comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso)
-        cupo["pruebas"] += len(validos)
-    if avisar:
-        presencia.informar(
-            Aviso.publicando_en_pruebas(tuple(DocumentoResumen.de(doc, base) for doc in validos))
+            return exc.codigo
+        return codigo_solo_fechas(estructura, self._documentos, curso)
+
+    def aviso_en_pruebas(self) -> Aviso:
+        validos, _repetidos = _sin_origen_repetido(self._documentos)
+        return Aviso.publicando_en_pruebas(
+            tuple(DocumentoResumen.de(doc, self._base) for doc in validos)
         )
-    return publicar_con(
-        aula,
-        entorno,
-        curso,
-        documentos,
-        visible,
-        base,
-        presencia,
-        debug=debug,
-        solo_fechas=solo_fechas,
-    ).informe
 
+    def preparar_real(self) -> str | None:
+        """La puerta, las vistas y el calendario, una vez antes de los cursos reales."""
+        if not self._solo_fechas:
+            if self._sin_pruebas:
+                if exige_oculto_sin_pruebas(
+                    self._cfg, self._visible, solo_fechas=self._solo_fechas
+                ):
+                    return "SOLO_OCULTO_SIN_PRUEBAS"
+                self._visible = False
+            elif puerta_real(self._base, self._documentos, self._verificados):
+                return "VERIFICACION_PENDIENTE"
+        self._vistas = [None] * len(self._documentos)
+        if not self._solo_fechas and not self._sin_pruebas:
+            # Sin curso de pruebas no hay verificación previa ni vista que enseñar:
+            # se compensa publicando solo en oculto y con una confirmación corta.
+            raiz_vistas = (
+                self._dir_vistas
+                if self._dir_vistas is not None
+                else self._base / rutas.CARPETA_TRABAJO
+            )
+            try:
+                self._vistas = [
+                    contenido.previsualizar(doc, raiz_vistas, nombre=nombre)
+                    for doc, nombre in zip(
+                        self._documentos, _nombres_de_vista(self._documentos), strict=True
+                    )
+                ]
+            except ErrorContenido as exc:
+                return exc.codigo
+        self._cal, self._aviso_calendario = cargar_calendario(self._base)
+        return None
 
-def _preguntar_sobrescribir(
-    presencia: Presencia,
-    curso: int,
-    nombre_curso: str | None,
-    cambiadas: tuple[Documento, ...],
-    posicion: int,
-    total: int,
-) -> tuple[frozenset[Path], frozenset[Path]]:
-    """(``sobrescribir``, ``no_publicar``) tras preguntar por lo que el docente retocó a mano.
-
-    Solo tras el sí de siempre; sin respuesta o con la petición retirada, es no. Sin ``cambiadas``
-    no se pregunta y no hay nada que sobrescribir ni que dejar sin publicar.
-    """
-    if not cambiadas:
-        return frozenset(), frozenset()
-    rutas_cambiadas = frozenset(doc.ruta.resolve() for doc in cambiadas)
-    if presencia.confirmar_sobrescribir(
-        ResumenSobrescribir(
-            curso=curso,
-            nombre_curso=nombre_curso,
-            actividades=tuple(doc.nombre for doc in cambiadas),
-            posicion=posicion,
-            total=total,
+    def en_pruebas(self, curso: int) -> dict:
+        resultado = publicar_con(
+            self._aula,
+            "pruebas",
+            curso,
+            self._documentos,
+            self._visible,
+            self._base,
+            self._presencia,
+            debug=self._debug,
+            solo_fechas=self._solo_fechas,
         )
-    ):
-        return rutas_cambiadas, frozenset()
-    return frozenset(), rutas_cambiadas
+        assert resultado.informe is not None
+        return resultado.informe
 
-
-def _en_real(
-    aula: AulaVirtual,
-    cfg: Config,
-    documentos: list[Documento],
-    base: Path,
-    presencia: Presencia,
-    *,
-    visible: bool | None,
-    solo_fechas: bool,
-    verificados: Mapping[str, estado.Verificado] | None,
-    vigente: Callable[[], bool] | None,
-    omitidos: Collection[int],
-    nombres: Mapping[int, str],
-    dir_vistas: Path | None,
-    debug: bool,
-) -> dict:
-    """Publica en cada curso real, en el orden de ``tiza.toml``, con una confirmación por curso.
-
-    Si el docente dice que no a un curso, se omite y se sigue con el siguiente; si un curso
-    falla, se para ahí y el informe dice qué cursos quedaron hechos. La puerta de real se
-    comprueba una vez (el hash es del documento) y las vistas previas se generan una vez.
-    """
-    comando, entorno = "publicar", "real"
-    reales = cfg.reales
-    total = len(reales)
-    sin_pruebas = "pruebas" not in cfg.cursos
-    unico = reales[0] if total == 1 else None
-
-    def fallo(codigo: str, curso: int | None = unico) -> dict:
-        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
-
-    if not solo_fechas:
-        if sin_pruebas:
-            if exige_oculto_sin_pruebas(cfg, visible, solo_fechas=solo_fechas):
-                return fallo("SOLO_OCULTO_SIN_PRUEBAS")
-            visible = False
-        elif puerta_real(base, documentos, verificados):
-            return fallo("VERIFICACION_PENDIENTE")
-    vistas: list[Path | None] = [None] * len(documentos)
-    if not solo_fechas and not sin_pruebas:
-        # Sin curso de pruebas no hay verificación previa ni vista que enseñar:
-        # se compensa publicando solo en oculto y con una confirmación corta.
-        raiz_vistas = dir_vistas if dir_vistas is not None else base / rutas.CARPETA_TRABAJO
+    def en_curso(self, turno: recorrido.Turno) -> recorrido.Resultado:
+        curso = turno.curso
         try:
-            vistas = [
-                contenido.previsualizar(doc, raiz_vistas, nombre=nombre)
-                for doc, nombre in zip(documentos, _nombres_de_vista(documentos), strict=True)
-            ]
-        except ErrorContenido as exc:
-            return fallo(exc.codigo)
-    cal, aviso_calendario = cargar_calendario(base)
-
-    registro: list[tuple[int, int, dict | None]] = []  # (posición, curso, informe o None: omitido)
-    for posicion, curso in enumerate(reales, 1):
-        if curso in omitidos:
-            registro.append((posicion, curso, None))
-            continue
-        if vigente is not None and posicion > 1 and not vigente():
-            presencia.informar(Aviso.peticion_retirada())
-            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-            break
-        try:
-            estructura = aula.estructura(curso)
+            estructura = self._aula.estructura(curso)
         except ErrorPublicacion as exc:
-            registro.append((posicion, curso, fallo(exc.codigo, curso)))
-            break
-        nombre_curso = nombres.get(curso)
+            return recorrido.Resultado.fallo(exc.codigo)
         # Lo que se rechaza por su origen sale con su código y no entra en lo que se confirma.
         try:
             vigilancia = Vigilancia.de(
-                aula, base / rutas.CARPETA_TRABAJO, curso, documentos, real=True
+                self._aula,
+                self._base / rutas.CARPETA_TRABAJO,
+                curso,
+                self._documentos,
+                real=True,
             )
         except estado.ErrorEstado as exc:
-            registro.append((posicion, curso, fallo(exc.codigo, curso)))
-            break
-        a_publicar, _ = _separar_rechazados(documentos, estructura, base, solo_fechas, vigilancia)
+            return recorrido.Resultado.fallo(exc.codigo)
+        a_publicar, _ = _separar_rechazados(
+            self._documentos, estructura, self._base, self._solo_fechas, vigilancia
+        )
         ids = {id(doc) for doc in a_publicar}
         # Lo que el docente retocó a mano en el aula; se le pregunta tras su sí de siempre.
         cambiadas: tuple[Documento, ...] = ()
         if not a_publicar:
             confirmado = True  # nada que confirmar: publicar_con solo informa de los rechazos
-        elif solo_fechas:
+        elif self._solo_fechas:
             codigo = codigo_solo_fechas(estructura, a_publicar, curso)
             if codigo is not None:
-                registro.append((posicion, curso, fallo(codigo, curso)))
-                break
+                return recorrido.Resultado.fallo(codigo)
             cambiadas = vigilancia.retoques(estructura, a_publicar, solo_fechas=True)
             resumen = resumen_solo_fechas(
-                aula,
+                self._aula,
                 curso,
-                nombre_curso,
+                turno.nombre_curso,
                 a_publicar,
-                base,
+                self._base,
                 estructura,
-                debug=debug,
-                posicion=posicion,
-                total=total,
+                debug=self._debug,
+                posicion=turno.posicion,
+                total=turno.total,
             )
-            confirmado = presencia.confirmar_real(resumen)
-        elif sin_pruebas:
+            confirmado = turno.preguntar(lambda presencia: presencia.confirmar_real(resumen))
+        elif self._sin_pruebas:
             cambiadas = vigilancia.retoques(estructura, a_publicar)
             corto = ResumenSinPruebas(
                 curso=curso,
-                nombre_curso=nombre_curso,
+                nombre_curso=turno.nombre_curso,
                 documentos=tuple(
                     DocumentoBreve(
                         fichero=doc.ruta.name,
                         tipo=doc.tipo,
                         nombre=doc.nombre,
                         existe=estructura.ya_existe(doc, curso),
-                        itinerario=itinerario_de(doc, base),
+                        itinerario=itinerario_de(doc, self._base),
                         borrada=estructura.localizar(doc, curso).borrada,
                     )
                     for doc in a_publicar
                 ),
                 secciones_nuevas=tuple(estructura.secciones_que_faltan(a_publicar)),
-                posicion=posicion,
-                total=total,
+                posicion=turno.posicion,
+                total=turno.total,
                 movimientos=cambios_de_seccion(estructura, a_publicar, curso),
                 nombres=cambios_de_nombre(estructura, a_publicar, curso),
             )
-            confirmado = presencia.confirmar_real_sin_pruebas(corto)
+            confirmado = turno.preguntar(
+                lambda presencia: presencia.confirmar_real_sin_pruebas(corto)
+            )
         else:
             cambiadas = vigilancia.retoques(estructura, a_publicar)
             resumen = ResumenPublicacion(
                 curso=curso,
-                nombre_curso=nombre_curso,
+                nombre_curso=turno.nombre_curso,
                 documentos=tuple(
                     DocumentoResumen.de(
                         doc,
-                        base,
+                        self._base,
                         vista,
                         cambios=cambios_de_fechas(
-                            aula, estructura, doc, cal, debug=debug, curso=curso
+                            self._aula,
+                            estructura,
+                            doc,
+                            self._cal,
+                            debug=self._debug,
+                            curso=curso,
                         ),
                         borrada=estructura.localizar(doc, curso).borrada,
                     )
-                    for doc, vista in zip(documentos, vistas, strict=True)
+                    for doc, vista in zip(self._documentos, self._vistas, strict=True)
                     if id(doc) in ids
                 ),
                 secciones_nuevas=tuple(estructura.secciones_que_faltan(a_publicar)),
-                visible=visible,
-                aviso_calendario=aviso_calendario,
-                posicion=posicion,
-                total=total,
+                visible=self._visible,
+                aviso_calendario=self._aviso_calendario,
+                posicion=turno.posicion,
+                total=turno.total,
                 movimientos=cambios_de_seccion(estructura, a_publicar, curso),
                 nombres=cambios_de_nombre(estructura, a_publicar, curso),
             )
-            confirmado = presencia.confirmar_real(resumen)
+            confirmado = turno.preguntar(lambda presencia: presencia.confirmar_real(resumen))
         if not confirmado:
-            registro.append((posicion, curso, None))
-            continue
-        if vigente is not None and not vigente():
-            presencia.informar(Aviso.peticion_retirada())
-            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-            break
-        sobrescribir, no_publicar = _preguntar_sobrescribir(
-            presencia, curso, nombre_curso, cambiadas, posicion, total
-        )
-        if cambiadas and vigente is not None and not vigente():
-            presencia.informar(Aviso.peticion_retirada())
-            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-            break
-        resultado_curso = publicar_con(
-            aula,
-            entorno,
+            return recorrido.Resultado.declinado()
+        sobrescribir, no_publicar = self._preguntar_sobrescribir(turno, cambiadas)
+        return publicar_con(
+            self._aula,
+            "real",
             curso,
-            documentos,
-            None if solo_fechas else visible,
-            base,
-            presencia,
-            debug=debug,
-            solo_fechas=solo_fechas,
+            self._documentos,
+            None if self._solo_fechas else self._visible,
+            self._base,
+            self._presencia,
+            debug=self._debug,
+            solo_fechas=self._solo_fechas,
             sobrescribir=sobrescribir,
             no_publicar=no_publicar,
         )
-        documento = resultado_curso.informe
-        registro.append((posicion, curso, documento))
-        if documento["resultado"] != "ok" and resultado_curso.corta:
-            # Un no a sobrescribir es una decisión del docente, no un fallo: los cursos
-            # siguientes se publican. Cualquier otro error corta como siempre.
-            break
-    return informe_de_cursos(comando, entorno, total, unico, registro)
+
+    def _preguntar_sobrescribir(
+        self, turno: recorrido.Turno, cambiadas: tuple[Documento, ...]
+    ) -> tuple[frozenset[Path], frozenset[Path]]:
+        """(``sobrescribir``, ``no_publicar``) tras preguntar por los retoques a mano.
+
+        Sin ``cambiadas`` no se pregunta. Con el «no» se publica el resto del lote, así que
+        la vigencia se mira también tras esa respuesta (``tras_no``).
+        """
+        if not cambiadas:
+            return frozenset(), frozenset()
+        rutas_cambiadas = frozenset(doc.ruta.resolve() for doc in cambiadas)
+        resumen = ResumenSobrescribir(
+            curso=turno.curso,
+            nombre_curso=turno.nombre_curso,
+            actividades=tuple(doc.nombre for doc in cambiadas),
+            posicion=turno.posicion,
+            total=turno.total,
+        )
+        if turno.preguntar(
+            lambda presencia: presencia.confirmar_sobrescribir(resumen),
+            tras_no=True,
+        ):
+            return rutas_cambiadas, frozenset()
+        return frozenset(), rutas_cambiadas
 
 
 def cambios_de_seccion(
@@ -2434,47 +2396,6 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
             debug=self._debug,
         )
         return recorrido.Resultado.hecho(documento)
-
-
-def informe_de_cursos(
-    comando: str,
-    entorno: str,
-    total: int,
-    unico: int | None,
-    registro: list[tuple[int, int, dict | None]],
-) -> dict:
-    """Un informe con lo que pasó en cada curso real; con un solo curso, el de siempre."""
-    if total == 1:
-        informe_unico = registro[0][2]
-        if informe_unico is None:
-            return informe.crear(comando, "abortado", [], [], ["ABORTADO"], entorno, unico)
-        return informe_unico
-    borrador = informe.Borrador(comando, entorno=entorno)
-    login = any(
-        paso["codigo"] == "LOGIN"
-        for _, _, doc in registro
-        if doc is not None
-        for paso in doc["pasos"]
-    )
-    if login:
-        borrador.paso("LOGIN")
-    publicados = 0
-    for posicion, curso, doc in registro:
-        if doc is None:
-            borrador.paso("CURSO_OMITIDO", detalle=str(curso))
-            continue
-        fallido = doc["resultado"] != "ok"
-        borrador.paso("CURSO", "fallo" if fallido else "ok", f"{posicion} de {total}: {curso}")
-        borrador.agregar(doc, excluir={"LOGIN"})
-        if fallido:
-            continue
-        publicados += 1
-    if borrador.errores:
-        return borrador.documento("error")
-    if publicados == 0:
-        borrador.error("ABORTADO")
-        return borrador.documento("abortado")
-    return borrador.documento()
 
 
 def _curso_de_copia(cfg: Config, nombre: str) -> tuple[str, int]:
