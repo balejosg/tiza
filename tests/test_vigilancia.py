@@ -16,7 +16,13 @@ from dobles import estructura_de
 from tiza import contenido, estado, tipos
 from tiza.contenido import Documento, Origen
 from tiza.publicar import ErrorPublicacion
-from tiza.vigilancia import Cambio, EstadoDeCambios, Rechazo, Vigilancia
+from tiza.vigilancia import (
+    Anotacion,
+    Cambio,
+    EstadoDeCambios,
+    Rechazo,
+    Vigilancia,
+)
 
 
 class Aula:
@@ -612,11 +618,18 @@ def test_solo_fechas_de_registro_con_las_fechas_ya_puestas_se_acepta_sin_huella_
 def test_solo_fechas_con_sobrescribir_no_compara_ni_renueva(tmp_path):
     carpeta = tmp_path.resolve()
     doc = _doc(carpeta, tipo="tarea", publicados=_entrada(huella="a" * 64, marca="b" * 64))
-    assert (
-        _vigilancia(Aula(), carpeta, [doc]).actividad(
-            _estructura(tipo="tarea"), doc, sobrescribe=True
-        )
-        is None
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(501, "tarea", huella="a" * 64, marca="b" * 64),
+    )
+    vigilancia = _vigilancia(Aula(), carpeta, [doc])
+    assert vigilancia.actividad(_estructura(tipo="tarea"), doc, sobrescribe=True) is None
+    # Sin actividad vigilada no hay huella nueva y no se renueva nada.
+    assert vigilancia.anotar_fechas(doc, "A.md", None) == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "tarea", huella="a" * 64, marca="b" * 64
     )
 
 
@@ -638,3 +651,197 @@ def test_con_un_problema_de_localizacion_no_hay_actividad_vigilada(tmp_path):
     doc = _doc(carpeta, origen=Origen(curso=5678, cmid=999))
     _copia(carpeta, huella="a" * 64, cmid=999)
     assert _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc) is None
+
+
+# --- R1: renovar la huella de la copia ------------------------------------------------------
+
+
+def test_anotar_renueva_la_huella_de_la_copia_con_lo_enviado_sin_releer(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64, marca=doc.sha256_fichero)
+    aula = Aula(falla=True)
+    anotacion = _vigilancia(aula, carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion()
+    esperada = tipos.huella_de_lo_enviado(
+        tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
+    )
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {501: esperada}
+    assert estado.marcas_de_copia(carpeta / ".tiza", 5678) == {}
+    [actividad] = estado.cargar_copia(carpeta / ".tiza")["cursos"]["5678"]["actividades"]
+    assert actividad["estado"] == "IMPORTADA"
+    assert aula.lecturas == []
+
+
+def test_anotar_renueva_solo_la_entrada_de_su_curso(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    datos = estado.cargar_copia(carpeta / ".tiza")
+    otra = {
+        **datos["cursos"]["5678"],
+        "actividades": [dict(datos["cursos"]["5678"]["actividades"][0])],
+    }
+    otra["actividades"][0]["huella_aula"] = "b" * 64
+    datos["cursos"]["9999"] = otra
+    estado.escribir_copia(carpeta / ".tiza", datos)
+    _vigilancia(Aula(), carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+    ahora = estado.cargar_copia(carpeta / ".tiza")
+    assert ahora["cursos"]["9999"]["actividades"][0]["huella_aula"] == "b" * 64
+    assert ahora["cursos"]["5678"]["actividades"][0]["huella_aula"] != "a" * 64
+
+
+@pytest.mark.parametrize("renueva", [False, True])
+def test_anotar_fechas_de_copia_renueva_solo_si_hay_huella_nueva(tmp_path, renueva):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64, marca=doc.sha256_fichero)
+    vigilancia = _vigilancia(Aula(), carpeta, [doc])
+    vigilada = vigilancia.actividad(_estructura(), doc)
+    assert vigilada is not None and vigilada.de_copia
+    leido = _form(doc)
+    if renueva:
+        vigilada.fechas_verificadas(leido)
+        nueva = vigilada.huella_nueva
+        assert nueva is not None
+    else:
+        assert not vigilada.comprobar(Lector(leido), solo_fechas=True)
+        vigilada.fechas_verificadas(leido)
+        nueva = "a" * 64
+    assert vigilancia.anotar_fechas(doc, "A.md", vigilada) == Anotacion()
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {501: nueva}
+    assert estado.marcas_de_copia(carpeta / ".tiza", 5678) == (
+        {} if renueva else {501: doc.sha256_fichero}
+    )
+
+
+def test_anotar_con_copia_sin_la_actividad_calla(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64, cmid=999)
+    anotacion = _vigilancia(Aula(), carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion()
+
+
+def test_anotar_con_copia_que_no_se_puede_escribir_da_huella_no_guardada(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+
+    def falla(*_args, **_kwargs):
+        raise OSError("disco lleno")
+
+    monkeypatch.setattr(estado, "guardar_huella_de_copia", falla)
+    anotacion = _vigilancia(Aula(), carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion(("HUELLA_NO_GUARDADA",))
+
+
+# --- R2: renovar la entrada del registro tras --solo-fechas ---------------------------------
+
+
+def _vigilada_de_registro(carpeta: Path, doc: Documento, *, cmid: int = 501):
+    vigilancia = _vigilancia(Aula(), carpeta, [doc])
+    vigilada = vigilancia.actividad(_estructura(cmid=cmid, tipo=doc.tipo), doc)
+    assert vigilada is not None and not vigilada.de_copia
+    vigilada.fechas_verificadas(_form(doc))
+    assert vigilada.huella_nueva is not None
+    return vigilancia, vigilada
+
+
+def test_anotar_fechas_de_registro_pone_la_huella_nueva_y_quita_la_marca(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(
+        carpeta,
+        tipo="tarea",
+        publicados={5678: estado.Publicado(501, "tarea", "a" * 64, "b" * 64)},
+    )
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(501, "tarea", "a" * 64, "b" * 64),
+    )
+    vigilancia, vigilada = _vigilada_de_registro(carpeta, doc)
+    assert vigilancia.anotar_fechas(doc, "A.md", vigilada) == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "tarea", vigilada.huella_nueva, None
+    )
+
+
+def test_anotar_fechas_renueva_una_clave_con_dos_puntos_ya_escrita(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(
+        carpeta,
+        tipo="tarea",
+        publicados={5678: estado.Publicado(7, "tarea", "a" * 64)},
+    )
+    (carpeta / ".tiza").mkdir()
+    registro = {
+        "version": 1,
+        "cursos": {
+            "5678": {
+                "ficheros": {
+                    "a:b.md": {
+                        "cmid": 7,
+                        "tipo": "tarea",
+                        "huella": "a" * 64,
+                        "marca": "b" * 64,
+                    }
+                }
+            }
+        },
+    }
+    (carpeta / ".tiza" / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
+    vigilancia, vigilada = _vigilada_de_registro(carpeta, doc, cmid=7)
+    assert vigilancia.anotar_fechas(doc, "a:b.md", vigilada) == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["a:b.md"] == estado.Publicado(
+        7, "tarea", vigilada.huella_nueva, None
+    )
+
+
+def test_anotar_fechas_sin_entrada_no_crea_nada(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(
+        carpeta,
+        tipo="tarea",
+        publicados={5678: estado.Publicado(501, "tarea", "a" * 64)},
+    )
+    vigilancia, vigilada = _vigilada_de_registro(carpeta, doc)
+    assert vigilancia.anotar_fechas(doc, "A.md", vigilada) == Anotacion()
+    assert not (carpeta / ".tiza" / "publicados.json").exists()
+
+
+def test_anotar_fechas_con_registro_que_no_se_puede_escribir_da_registro_no_guardado(
+    tmp_path, monkeypatch
+):
+    carpeta = tmp_path.resolve()
+    doc = _doc(
+        carpeta,
+        tipo="tarea",
+        publicados={5678: estado.Publicado(501, "tarea", "a" * 64)},
+    )
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "A.md", estado.Publicado(501, "tarea", "a" * 64)
+    )
+    vigilancia, vigilada = _vigilada_de_registro(carpeta, doc)
+
+    def falla(*_args, **_kwargs):
+        raise OSError("disco lleno")
+
+    monkeypatch.setattr(estado, "guardar_publicado", falla)
+    assert vigilancia.anotar_fechas(doc, "A.md", vigilada) == Anotacion(("REGISTRO_NO_GUARDADO",))
+
+
+def test_anotar_fechas_con_una_ruta_que_no_vale_no_hace_nada(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(
+        carpeta,
+        tipo="tarea",
+        publicados={5678: estado.Publicado(501, "tarea", "a" * 64)},
+    )
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "A.md", estado.Publicado(501, "tarea", "a" * 64)
+    )
+    vigilancia, vigilada = _vigilada_de_registro(carpeta, doc)
+    assert vigilancia.anotar_fechas(doc, "../A.md", vigilada) == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"].huella == "a" * 64

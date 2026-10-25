@@ -49,7 +49,7 @@ from .estado import ErrorEstado
 from .estructura import Estructura, aplica_origen
 from .publicar import AulaVirtual, CalificadorAula, ErrorPublicacion
 from .tipos import CAMPO_RECORDATORIO, FechaActividad
-from .vigilancia import EstadoDeCambios, Rechazo, Vigilancia
+from .vigilancia import Anotacion, EstadoDeCambios, Rechazo, Vigilancia
 
 if TYPE_CHECKING:  # solo para el tipo; la sesión importa este módulo
     from .sesion import CursoSesion
@@ -1113,14 +1113,12 @@ def publicar_con(
     for doc in documentos:
         vigilada = None
         try:
-            huella_nueva = None  # solo --solo-fechas: la deja la actividad vigilada
             decidido = doc.ruta.resolve() in sobrescribir
             vigilada = vigilancia.actividad(estructura, doc, sobrescribe=decidido)
             if solo_fechas:
                 resultado = publicar.publicar_fechas(
                     aula, estructura, doc, curso, vigilada=vigilada
                 )
-                huella_nueva = vigilada.huella_nueva if vigilada is not None else None
             else:
                 dependencias = {
                     fichero: cmids[fichero]
@@ -1153,16 +1151,15 @@ def publicar_con(
                     else Aviso.cambiada_desde_la_publicacion(doc.nombre)
                 )
             continue
-        # Con --solo-fechas la huella nueva la da publicar.py; sin ella, se deja la que había.
-        if aplica_origen(doc, curso) and (not solo_fechas or huella_nueva is not None):
-            _renovar_huella(dir_tiza, curso, doc, borrador, presencia, huella_nueva)
-        elif solo_fechas and huella_nueva is not None:
-            # Sin ``origen``: la base de lo publicado, si no se pisó un cambio del docente.
-            _renovar_base_registrada(
-                dir_tiza, curso, _relativa(doc.ruta, base), doc, huella_nueva, borrador, presencia
+        ruta = _relativa(doc.ruta, base)
+        if solo_fechas:
+            _anotar_anotacion(
+                vigilancia.anotar_fechas(doc, ruta, vigilada), doc, borrador, presencia
             )
-        if not solo_fechas:
-            ruta = _relativa(doc.ruta, base)
+        else:
+            _anotar_anotacion(
+                vigilancia.anotar_publicado(doc, ruta, cmids[ruta]), doc, borrador, presencia
+            )
             cmid_nuevo = cmids[ruta]  # el de arriba: acaba de crearla o actualizarla
             previo = _cmid_registrado(dir_tiza, curso, ruta)
             _registrar_publicado(
@@ -1306,6 +1303,30 @@ def _corta(documento: dict, rechazos: Sequence[Rechazo], no_publicar: Collection
         return True
     por_el_no = Counter(rechazo.codigo for rechazo in rechazos if rechazo.por_decision)
     return bool(Counter(documento["errores"]) - por_el_no)
+
+
+def _anotar_anotacion(
+    anotacion: Anotacion,
+    doc: Documento,
+    borrador: informe.Borrador,
+    presencia: Presencia,
+) -> None:
+    """Lo que no se pudo guardar al anotar, como pasos y avisos, en el orden de las escrituras.
+
+    ``BASE_NO_GUARDADA`` no lleva aviso: el docente no nota nada. La tabla código → aviso vive
+    aquí, donde viven los constructores tipados de :class:`Aviso`.
+    """
+    for codigo in anotacion.fallos:
+        borrador.fallo(codigo, doc.ruta.name)
+        aviso = _AVISO_DE_ANOTACION.get(codigo)
+        if aviso is not None:
+            presencia.informar(aviso(doc.nombre))
+
+
+_AVISO_DE_ANOTACION: dict[str, Callable[[str], Aviso]] = {
+    "HUELLA_NO_GUARDADA": Aviso.huella_no_guardada,
+    "REGISTRO_NO_GUARDADO": Aviso.registro_no_guardado,
+}
 
 
 def _renovar_huella(

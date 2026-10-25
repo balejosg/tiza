@@ -16,13 +16,18 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from . import contenido, estado, tipos
+from . import contenido, estado, ficheros, tipos
 from .contenido import Documento
 from .estructura import Estructura, aplica_origen
 from .publicar import ErrorPublicacion
 
 if TYPE_CHECKING:
     from .publicar import AulaVirtual
+
+
+HUELLA_NO_GUARDADA = "HUELLA_NO_GUARDADA"
+REGISTRO_NO_GUARDADO = "REGISTRO_NO_GUARDADO"
+BASE_NO_GUARDADA = "BASE_NO_GUARDADA"
 
 
 class EstadoDeCambios(Enum):
@@ -46,6 +51,18 @@ class Rechazo:
     codigo: str
     por_decision: bool = False
     cmid_copia: int | None = None
+
+
+@dataclass(frozen=True)
+class Anotacion:
+    """Lo que no se pudo guardar al anotar lo publicado, en el orden de las escrituras.
+
+    ``fallos``: códigos de paso de ``informe.PASOS`` (``HUELLA_NO_GUARDADA``,
+    ``REGISTRO_NO_GUARDADO`` o ``BASE_NO_GUARDADA``), sin texto ni nombres. Vacía si todo se
+    guardó.
+    """
+
+    fallos: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -250,6 +267,67 @@ class Vigilancia:
                 _marca=entrada.marca,
             )
         return None
+
+    def anotar_publicado(self, doc: Documento, ruta: str, cmid: int) -> Anotacion:
+        """Anota lo publicado entero: primero la huella de la copia, si el documento tiene origen."""
+        fallos: list[str] = []
+        if aplica_origen(doc, self.curso) and not self._renovar_copia(doc):
+            fallos.append(HUELLA_NO_GUARDADA)
+        return Anotacion(tuple(fallos))
+
+    def anotar_fechas(
+        self, doc: Documento, ruta: str, vigilada: ActividadVigilada | None
+    ) -> Anotacion:
+        """Anota lo publicado con ``--solo-fechas``: solo renueva si hay huella nueva.
+
+        Con la actividad de la copia renueva ``copia.json``; con la del registro, su entrada.
+        Sin actividad vigilada (el docente dijo que sí a sobrescribir) no se renueva nada: el
+        texto del aula no se pisó y el retoque debe seguir contando.
+        """
+        nueva = vigilada.huella_nueva if vigilada is not None else None
+        if nueva is None:
+            return Anotacion()
+        if vigilada is not None and vigilada.de_copia:
+            return Anotacion(() if self._renovar_copia(doc, nueva) else (HUELLA_NO_GUARDADA,))
+        return Anotacion(() if self._renovar_entrada(ruta, nueva) else (REGISTRO_NO_GUARDADO,))
+
+    def _renovar_copia(self, doc: Documento, nueva: str | None = None) -> bool:
+        """Renueva la huella de ``copia.json`` con lo enviado (o ``nueva``); ``False`` si falló.
+
+        Sin ``nueva`` se calcula con lo que tiza envió, sin releer el aula. Que ``copia.json``
+        no exista o no tenga la actividad no es un fallo (se conserva el silencio de siempre).
+        """
+        assert doc.origen is not None
+        try:
+            if nueva is None:
+                nueva = tipos.huella_de_lo_enviado(
+                    tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
+                )
+            estado.guardar_huella_de_copia(self.dir_tiza, self.curso, doc.origen.cmid, nueva)
+        except (estado.ErrorEstado, OSError):
+            return False
+        return True
+
+    def _renovar_entrada(self, ruta: str, nueva: str) -> bool:
+        """Renueva la entrada del registro tras ``--solo-fechas``; ``False`` si no se pudo.
+
+        Se lee con la regla de lectura (admite «:»). Si la entrada no está, no se crea.
+        """
+        if not estado.ruta_de_registro_valida(ruta):
+            return True
+        try:
+            anterior = estado.cargar_publicados(self.dir_tiza, self.curso).get(ruta)
+            if anterior is None:
+                return True
+            estado.guardar_publicado(
+                self.dir_tiza,
+                self.curso,
+                ruta,
+                estado.Publicado(anterior.cmid, anterior.tipo, nueva, None),
+            )
+        except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+            return False
+        return True
 
     def estado_por_documento(
         self, estructura: Estructura, documentos: Sequence[Documento]
