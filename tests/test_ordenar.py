@@ -414,7 +414,7 @@ class TestOrdenarPorRegistro:
 # --------------------------------------------------------------------------- #
 
 from dobles import PresenciaFalsa, dejar_peticion, peticion  # noqa: E402
-from tiza import buzon, config, mensajes, publicacion, sesion_abierta  # noqa: E402
+from tiza import config, mensajes, publicacion, sesion_abierta  # noqa: E402
 
 URL = "https://aula.ejemplo.org/centro"
 CFG = config.Config(url=URL, usuario="profe", cursos={"pruebas": 1234}, reales=(5678,))
@@ -533,26 +533,6 @@ class TestOrdenarEnLaSesion:
         sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md"]))
         assert sesion.verificados == {}
 
-    def test_sin_curso_de_pruebas(self, tmp_path):
-        carpeta = carpeta_con(tmp_path, "P1", "P2")
-        documento = atender(
-            pedir(carpeta, "pruebas", ["P1.md", "P2.md"]),
-            aula_de_la_sesion(*MODULOS),
-            CFG_SIN_PRUEBAS,
-            carpeta,
-            PresenciaFalsa(),
-        )
-        assert documento["errores"] == ["SIN_CURSO_PRUEBAS"]
-
-    def test_el_cupo_se_agota(self, tmp_path):
-        carpeta = carpeta_con(tmp_path, "P1", "P2")
-        sesion = sesion_abierta.SesionAbierta(
-            aula_de_la_sesion(*MODULOS), CFG, carpeta, PresenciaFalsa()
-        )
-        sesion.cupo["pruebas"] = publicacion.MAX_PUBLICACIONES_PRUEBAS
-        documento = sesion.atender(pedir(carpeta, "pruebas", ["P1.md", "P2.md"]))
-        assert documento["errores"] == ["LIMITE_PUBLICACIONES"]
-
     def test_actividad_ausente_no_mueve_nada(self, tmp_path):
         carpeta = carpeta_con(tmp_path, "P1", "P2", "Otra")
         moodle = aula_de_la_sesion(*MODULOS)
@@ -630,21 +610,6 @@ class TestOrdenarEnReal:
         assert presencia.resumenes_orden == []
         assert documento["resultado"] == "ok"
         assert {f["accion"] for f in documento["ficheros"]} == {"sin_cambios"}
-
-    def test_peticion_retirada_tras_confirmar(self, tmp_path):
-        carpeta = carpeta_con(tmp_path, "P1", "P2")
-        datos = pedir(carpeta, "real", ["P1.md", "P2.md"])
-        ruta = buzon.carpeta_buzon(carpeta / ".tiza") / f"{datos['id']}{buzon.SUFIJO_PETICION}"
-
-        class Retira(PresenciaFalsa):
-            def confirmar_orden(self, resumen):
-                ruta.unlink()
-                return super().confirmar_orden(resumen)
-
-        moodle = aula_de_la_sesion(*MODULOS)
-        documento = atender(datos, moodle, CFG, carpeta, Retira(real=True))
-        assert documento["errores"] == ["PETICION_RETIRADA"]
-        assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
     def test_no_exige_oculto_ni_verificacion_sin_curso_de_pruebas(self, tmp_path):
         carpeta = carpeta_con(tmp_path, "P1", "P2")

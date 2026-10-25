@@ -36,7 +36,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from . import calendario, contenido, estado, informe, publicar, rutas, tipos
+from . import calendario, contenido, estado, informe, publicar, recorrido, rutas, tipos
 from .calificacion import reconciliar as rc
 from .calificacion.deseado import Deseado
 from .calificacion.deseado import deseado as calcular_deseado
@@ -1860,71 +1860,71 @@ def ordenar_en_cursos(
     curso y parada en el primer fallo; ordenar no cambia contenido ni visibilidad, así que no
     pasa por la puerta de pruebas ni exige «oculto» sin curso de pruebas.
     """
+    return recorrido.recorrer(
+        _TrabajoOrdenar(aula, entorno, documentos, base, debug=debug),
+        cfg,
+        presencia,
+        entorno=entorno,
+        vigente=vigente,
+        cupo=cupo,
+        avisar_en_pruebas=avisar_en_pruebas,
+        omitidos=omitidos,
+        nombres=nombres,
+    )
+
+
+class _TrabajoOrdenar(recorrido.TrabajoBase):
+    """Lo que ordenar hace en un curso; el bucle y las preguntas son del recorrido."""
+
     comando = "ordenar"
-    if entorno == "pruebas":
-        curso = cfg.cursos.get("pruebas")
-        if curso is None:
-            return informe.crear(comando, "error", [], [], ["SIN_CURSO_PRUEBAS"], entorno)
-        if cupo is not None:
-            if cupo["pruebas"] + 1 > MAX_PUBLICACIONES_PRUEBAS:
-                return informe.crear(
-                    comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso
-                )
-            cupo["pruebas"] += 1
-        if avisar_en_pruebas:
-            presencia.informar(
-                Aviso.ordenando_en_pruebas(
-                    tuple(DocumentoBreve(doc.ruta.name, doc.tipo, doc.nombre) for doc in documentos)
-                )
-            )
-        return ordenar_con(aula, entorno, curso, documentos, debug=debug)
 
-    reales = cfg.reales
-    total = len(reales)
-    unico = reales[0] if total == 1 else None
-    nombres = nombres or {}
+    def __init__(
+        self,
+        aula: AulaVirtual,
+        entorno: str,
+        documentos: list[Documento],
+        base: Path,
+        *,
+        debug: bool,
+    ) -> None:
+        self._aula = aula
+        self._entorno = entorno
+        self._documentos = documentos
+        self._base = base
+        self._debug = debug
 
-    def fallo(codigo: str, curso: int | None = unico) -> dict:
-        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+    def aviso_en_pruebas(self) -> Aviso:
+        return Aviso.ordenando_en_pruebas(
+            tuple(DocumentoBreve(doc.ruta.name, doc.tipo, doc.nombre) for doc in self._documentos)
+        )
 
-    registro: list[tuple[int, int, dict | None]] = []
-    for posicion, curso in enumerate(reales, 1):
-        if curso in omitidos:
-            registro.append((posicion, curso, None))
-            continue
-        if vigente is not None and posicion > 1 and not vigente():
-            presencia.informar(Aviso.peticion_retirada())
-            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-            break
+    def en_pruebas(self, curso: int) -> dict:
+        return ordenar_con(self._aula, self._entorno, curso, self._documentos, debug=self._debug)
+
+    def en_curso(self, turno: recorrido.Turno) -> recorrido.Resultado:
         try:
-            estructura = aula.estructura(curso)
+            estructura = self._aula.estructura(turno.curso)
             resumen = resumen_orden(
-                curso,
-                nombres.get(curso),
+                turno.curso,
+                turno.nombre_curso,
                 estructura,
-                documentos,
-                base,
-                posicion=posicion,
-                total=total,
+                self._documentos,
+                self._base,
+                posicion=turno.posicion,
+                total=turno.total,
             )
         except ErrorPublicacion as exc:
             # Cada curso resuelve lo suyo antes de mover nada en él (ACTIVIDAD_AUSENTE…).
-            registro.append((posicion, curso, fallo(exc.codigo, curso)))
-            break
-        if resumen is not None:
-            if not presencia.confirmar_orden(resumen):
-                registro.append((posicion, curso, None))
-                continue
-            if vigente is not None and not vigente():
-                presencia.informar(Aviso.peticion_retirada())
-                registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-                break
+            return recorrido.Resultado.fallo(exc.codigo)
+        if resumen is not None and not turno.preguntar(
+            lambda presencia: presencia.confirmar_orden(resumen)
+        ):
+            return recorrido.Resultado.declinado()
         # Sin cambios no hay nada que confirmar: se informa de ``sin_cambios`` sin tocar el aula.
-        documento = ordenar_con(aula, entorno, curso, documentos, debug=debug)
-        registro.append((posicion, curso, documento))
-        if documento["resultado"] != "ok":
-            break
-    return informe_de_cursos(comando, entorno, total, unico, registro)
+        documento = ordenar_con(
+            self._aula, self._entorno, turno.curso, self._documentos, debug=self._debug
+        )
+        return recorrido.Resultado.hecho(documento)
 
 
 # --------------------------------------------------------------------------- #
