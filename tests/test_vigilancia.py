@@ -748,6 +748,15 @@ def _vigilada_de_registro(carpeta: Path, doc: Documento, *, cmid: int = 501):
     return vigilancia, vigilada
 
 
+def _vigilada_de_copia(carpeta: Path, doc: Documento):
+    vigilancia = _vigilancia(Aula(), carpeta, [doc])
+    vigilada = vigilancia.actividad(_estructura(), doc)
+    assert vigilada is not None and vigilada.de_copia
+    vigilada.fechas_verificadas(_form(doc))
+    assert vigilada.huella_nueva is not None
+    return vigilancia, vigilada
+
+
 def test_anotar_fechas_de_registro_pone_la_huella_nueva_y_quita_la_marca(tmp_path):
     carpeta = tmp_path.resolve()
     doc = _doc(
@@ -845,3 +854,332 @@ def test_anotar_fechas_con_una_ruta_que_no_vale_no_hace_nada(tmp_path):
     vigilancia, vigilada = _vigilada_de_registro(carpeta, doc)
     assert vigilancia.anotar_fechas(doc, "../A.md", vigilada) == Anotacion()
     assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"].huella == "a" * 64
+
+
+# --- R3: el registro de lo publicado -------------------------------------------------------
+
+
+def test_primera_publicacion_en_pruebas_registra_sin_huella_y_en_real_con_la_releida(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    anotacion = _vigilancia(Aula(falla=True), carpeta, [doc], real=False).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "pagina"
+    )
+    leido = _form(doc)
+    aula = Aula({501: leido})
+    anotacion = _vigilancia(aula, carpeta, [doc], real=True).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "pagina", _huella(doc, leido), None
+    )
+    assert aula.lecturas == [501]
+
+
+def test_mismo_cmid_conserva_huella_y_marca_si_no_se_relee(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, publicados=_entrada(huella="a" * 64, marca="b" * 64))
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(501, "pagina", huella="a" * 64, marca="b" * 64),
+    )
+    aula = Aula(falla=True)
+    anotacion = _vigilancia(aula, carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "pagina", huella="a" * 64, marca="b" * 64
+    )
+    assert aula.lecturas == []
+
+
+def test_cmid_distinto_borra_huella_y_marca(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(400, "pagina", huella="a" * 64, marca="b" * 64),
+    )
+    anotacion = _vigilancia(Aula(), carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "pagina"
+    )
+
+
+def test_con_origen_en_real_no_relee_y_conserva(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64, marca=doc.sha256_fichero)
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(501, "pagina", huella="a" * 64, marca="b" * 64),
+    )
+    aula = Aula(falla=True)
+    anotacion = _vigilancia(aula, carpeta, [doc], real=True).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "pagina", huella="a" * 64, marca="b" * 64
+    )
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678)[501] != "a" * 64
+    assert aula.lecturas == []
+
+
+def test_si_falla_la_relectura_la_entrada_queda_sin_huella_y_se_avisa(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    anotacion = _vigilancia(Aula(falla=True), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion == Anotacion(("REGISTRO_NO_GUARDADO",))
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "pagina"
+    )
+
+
+def test_una_ruta_nueva_con_dos_puntos_no_se_registra_ni_se_avisa_pero_guarda_la_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    anotacion = _vigilancia(Aula(), carpeta, [doc], real=True).anotar_publicado(doc, "A:b.md", 501)
+    assert anotacion == Anotacion()
+    assert not (carpeta / ".tiza" / "publicados.json").exists()
+    base = estado.ruta_base(carpeta / ".tiza", 5678, 501)
+    assert (base / estado.FICHERO_BASE_FUENTE).read_bytes() == doc.ruta.read_bytes()
+    assert (base / estado.FICHERO_BASE_ENVIADO).read_text(encoding="utf-8") == (
+        contenido.html_para_moodle(doc)
+    )
+
+
+def test_un_registro_danado_da_registro_no_guardado(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    (carpeta / ".tiza").mkdir()
+    (carpeta / ".tiza" / "publicados.json").write_text("no es json", encoding="utf-8")
+    anotacion = _vigilancia(Aula(), carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion(("REGISTRO_NO_GUARDADO",))
+
+
+def test_anotar_fechas_no_escribe_la_entrada_entera(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(501, "pagina", huella="c" * 64),
+    )
+    vigilancia, vigilada = _vigilada_de_copia(carpeta, doc)
+    assert vigilancia.anotar_fechas(doc, "A.md", vigilada) == Anotacion()
+    assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
+        501, "pagina", huella="c" * 64
+    )
+
+
+# --- R4: la base de lo publicado -----------------------------------------------------------
+
+
+def test_en_real_guarda_la_base_con_fuente_y_enviado(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    anotacion = _vigilancia(Aula({501: _form(doc)}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion == Anotacion()
+    base = estado.ruta_base(carpeta / ".tiza", 5678, 501)
+    assert (base / estado.FICHERO_BASE_FUENTE).read_bytes() == doc.ruta.read_bytes()
+    assert (base / estado.FICHERO_BASE_ENVIADO).read_text(encoding="utf-8") == (
+        contenido.html_para_moodle(doc)
+    )
+
+
+def test_en_pruebas_no_guarda_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    assert (
+        _vigilancia(Aula(), carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
+        == Anotacion()
+    )
+    assert not (carpeta / ".tiza" / "publicados").exists()
+
+
+def test_recreada_guarda_la_base_nueva_antes_de_olvidar_la_vieja(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    dir_tiza = carpeta / ".tiza"
+    estado.guardar_publicado(
+        dir_tiza, 5678, "A.md", estado.Publicado(400, "pagina", huella="a" * 64)
+    )
+    estado.guardar_base(dir_tiza, 5678, 400, b"viejo", "viejo")
+    orden = []
+    guardar, olvidar = estado.guardar_base, estado.olvidar_base
+    monkeypatch.setattr(
+        estado, "guardar_base", lambda *a, **k: (orden.append("guardar"), guardar(*a, **k))[1]
+    )
+    monkeypatch.setattr(
+        estado,
+        "olvidar_base",
+        lambda *a, **k: (orden.append(("olvidar", a[2])), olvidar(*a, **k))[1],
+    )
+    assert (
+        _vigilancia(Aula({501: _form(doc)}), carpeta, [doc], real=True).anotar_publicado(
+            doc, "A.md", 501
+        )
+        == Anotacion()
+    )
+    assert orden == ["guardar", ("olvidar", 400)]
+    assert not estado.ruta_base(dir_tiza, 5678, 400).exists()
+    assert estado.ruta_base(dir_tiza, 5678, 501).is_dir()
+
+
+def test_si_falla_guardar_la_base_no_queda_la_anterior_y_da_base_no_guardada(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    estado.guardar_base(carpeta / ".tiza", 5678, 501, b"viejo", "viejo")
+
+    def falla(*_args, **_kwargs):
+        raise OSError("disco lleno")
+
+    monkeypatch.setattr(estado, "guardar_base", falla)
+    anotacion = _vigilancia(Aula({501: _form(doc)}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion == Anotacion(("BASE_NO_GUARDADA",))
+    assert not estado.ruta_base(carpeta / ".tiza", 5678, 501).exists()
+
+
+def test_fichero_cambiado_tras_cargarlo_no_guarda_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    leido = _form(doc)
+    doc.ruta.write_text(doc.ruta.read_text(encoding="utf-8") + "\nMás.\n", encoding="utf-8")
+    anotacion = _vigilancia(Aula({501: leido}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion == Anotacion(("BASE_NO_GUARDADA",))
+    assert not (carpeta / ".tiza" / "publicados").exists()
+
+
+def test_registro_danado_no_da_previo_ni_borra_nada(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    dir_tiza = carpeta / ".tiza"
+    estado.guardar_base(dir_tiza, 5678, 400, b"viejo", "viejo")
+    (dir_tiza / "publicados.json").write_text("no es json", encoding="utf-8")
+    anotacion = _vigilancia(Aula(), carpeta, [doc], real=True).anotar_publicado(doc, "A.md", 501)
+    assert anotacion == Anotacion(("REGISTRO_NO_GUARDADO",))
+    assert estado.ruta_base(dir_tiza, 5678, 400).is_dir()
+    assert estado.ruta_base(dir_tiza, 5678, 501).is_dir()
+
+
+def test_el_previo_con_dos_puntos_se_lee(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    dir_tiza = carpeta / ".tiza"
+    dir_tiza.mkdir()
+    registro = {
+        "version": 1,
+        "cursos": {
+            "5678": {
+                "ficheros": {
+                    "A:b.md": {"cmid": 400, "tipo": "pagina", "huella": None, "marca": None}
+                }
+            }
+        },
+    }
+    (dir_tiza / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
+    estado.guardar_base(dir_tiza, 5678, 400, b"viejo", "viejo")
+    anotacion = _vigilancia(Aula(), carpeta, [doc], real=True).anotar_publicado(doc, "A:b.md", 501)
+    assert anotacion == Anotacion()
+    assert not estado.ruta_base(dir_tiza, 5678, 400).exists()
+    assert estado.ruta_base(dir_tiza, 5678, 501).is_dir()
+
+
+def test_anotar_fechas_no_guarda_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(
+        carpeta,
+        tipo="tarea",
+        publicados={5678: estado.Publicado(501, "tarea", "a" * 64)},
+    )
+    estado.guardar_publicado(
+        carpeta / ".tiza", 5678, "A.md", estado.Publicado(501, "tarea", "a" * 64)
+    )
+    vigilancia, vigilada = _vigilada_de_registro(carpeta, doc)
+    assert vigilancia.anotar_fechas(doc, "A.md", vigilada) == Anotacion()
+    assert not (carpeta / ".tiza" / "publicados").exists()
+
+
+# --- O.1: el orden de las escrituras -------------------------------------------------------
+
+
+def test_los_fallos_salen_en_el_orden_de_las_escrituras(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+
+    def falla(*_args, **_kwargs):
+        raise OSError("disco lleno")
+
+    monkeypatch.setattr(estado, "guardar_huella_de_copia", falla)
+    monkeypatch.setattr(estado, "guardar_publicado", falla)
+    monkeypatch.setattr(estado, "guardar_base", falla)
+    anotacion = _vigilancia(Aula({501: _form(doc)}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion.fallos == (
+        "HUELLA_NO_GUARDADA",
+        "REGISTRO_NO_GUARDADO",
+        "BASE_NO_GUARDADA",
+    )
+
+
+def test_renovar_copia_sin_huella_nueva_usa_lo_enviado(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    assert _vigilancia(Aula(), carpeta, [doc], real=False)._renovar_copia(doc)
+    esperada = tipos.huella_de_lo_enviado(
+        tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
+    )
+    assert estado.huellas_de_copia(carpeta / ".tiza", 5678) == {501: esperada}
+
+
+def test_anotar_con_una_ruta_que_no_vale_no_la_registra_pero_guarda_la_base(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    anotacion = _vigilancia(Aula({501: _form(doc)}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "../A.md", 501
+    )
+    assert anotacion == Anotacion()
+    assert not (carpeta / ".tiza" / "publicados.json").exists()
+    assert estado.ruta_base(carpeta / ".tiza", 5678, 501).is_dir()
+
+
+def test_si_la_base_vieja_no_se_puede_olvidar_la_publicacion_sigue(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    dir_tiza = carpeta / ".tiza"
+    estado.guardar_publicado(
+        dir_tiza, 5678, "A.md", estado.Publicado(400, "pagina", huella="a" * 64)
+    )
+    estado.guardar_base(dir_tiza, 5678, 400, b"viejo", "viejo")
+
+    def no_olvida(*_args, **_kwargs):
+        raise OSError("no se puede")
+
+    monkeypatch.setattr(estado, "olvidar_base", no_olvida)
+    anotacion = _vigilancia(Aula({501: _form(doc)}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion == Anotacion()
+    assert estado.ruta_base(dir_tiza, 5678, 400).is_dir()
+    assert estado.ruta_base(dir_tiza, 5678, 501).is_dir()

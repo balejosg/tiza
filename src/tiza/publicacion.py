@@ -26,7 +26,6 @@ Lo que cambia según quién publica entra explícito, nunca por accidente:
 
 from __future__ import annotations
 
-import hashlib
 import re
 import sys
 import traceback
@@ -37,7 +36,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from . import calendario, contenido, estado, ficheros, informe, publicar, rutas, tipos
+from . import calendario, contenido, estado, informe, publicar, rutas, tipos
 from .calificacion import reconciliar as rc
 from .calificacion.deseado import Deseado
 from .calificacion.deseado import deseado as calcular_deseado
@@ -1153,27 +1152,10 @@ def publicar_con(
             continue
         ruta = _relativa(doc.ruta, base)
         if solo_fechas:
-            _anotar_anotacion(
-                vigilancia.anotar_fechas(doc, ruta, vigilada), doc, borrador, presencia
-            )
+            anotacion = vigilancia.anotar_fechas(doc, ruta, vigilada)
         else:
-            _anotar_anotacion(
-                vigilancia.anotar_publicado(doc, ruta, cmids[ruta]), doc, borrador, presencia
-            )
-            cmid_nuevo = cmids[ruta]  # el de arriba: acaba de crearla o actualizarla
-            previo = _cmid_registrado(dir_tiza, curso, ruta)
-            _registrar_publicado(
-                dir_tiza,
-                curso,
-                ruta,
-                doc,
-                cmid_nuevo,
-                borrador,
-                presencia,
-                aula=aula if real else None,
-            )
-            if real:
-                _guardar_base(dir_tiza, curso, doc, cmid_nuevo, previo, borrador)
+            anotacion = vigilancia.anotar_publicado(doc, ruta, cmids[ruta])
+        _anotar_anotacion(anotacion, doc, borrador, presencia)
         if entorno == "pruebas" and not solo_fechas:
             assert resultado.cmid is not None and resultado.hash is not None
             estado.guardar_verificado(
@@ -1329,31 +1311,6 @@ _AVISO_DE_ANOTACION: dict[str, Callable[[str], Aviso]] = {
 }
 
 
-def _renovar_huella(
-    dir_tiza: Path,
-    curso: int,
-    doc: Documento,
-    borrador: informe.Borrador,
-    presencia: Presencia,
-    nueva: str | None = None,
-) -> None:
-    """Guarda en ``copia.json`` la huella de lo que se acaba de publicar, para el siguiente lote.
-
-    Sin ``nueva`` se calcula con lo que tiza envió, sin releer el aula (espiga 5). Si no se puede
-    guardar, la publicación sigue siendo buena; solo se avisa de que la próxima saltará.
-    """
-    assert doc.origen is not None
-    try:
-        if nueva is None:
-            nueva = tipos.huella_de_lo_enviado(
-                tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
-            )
-        estado.guardar_huella_de_copia(dir_tiza, curso, doc.origen.cmid, nueva)
-    except (estado.ErrorEstado, OSError):
-        borrador.fallo("HUELLA_NO_GUARDADA", doc.ruta.name)
-        presencia.informar(Aviso.huella_no_guardada(doc.nombre))
-
-
 def cambios_de_nombre(
     estructura: Estructura, documentos: list[Documento], curso: int
 ) -> tuple[CambioNombre, ...]:
@@ -1421,135 +1378,6 @@ def cambios_en_el_aula(
         )
         for cambio in vigilancia.estado_por_documento(estructura, documentos)
     ]
-
-
-def _registrar_publicado(
-    dir_tiza: Path,
-    curso: int,
-    ruta: str,
-    doc: Documento,
-    cmid: int,
-    borrador: informe.Borrador,
-    presencia: Presencia,
-    *,
-    aula: AulaVirtual | None = None,
-) -> None:
-    """Anota en ``publicados.json`` qué actividad es el fichero en este curso, para hallarla luego.
-
-    Conserva la huella y la marca de la entrada anterior si es la misma actividad; si el cmid
-    cambió (se recreó), van a None. Con ``aula`` (solo en un curso real) relee el formulario de
-    lo que se acaba de publicar y guarda su huella como base de la próxima comparación, y la marca
-    pasa a None; si la relectura falla, la entrada queda sin huella (como una antigua) y se avisa.
-    Lo que se halla por ``origen`` no se relee: manda ``copia.json``. Si no se puede guardar, la
-    publicación sigue siendo buena. Una ruta que no vale como clave no se registra ni se avisa:
-    no es culpa del docente.
-    """
-    if not estado.ruta_publicada_valida(ruta):
-        return
-    no_guardado = False  # no se pudo guardar la entrada o no se pudo guardar con su huella
-    try:
-        anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
-        igual = anterior is not None and anterior.cmid == cmid
-        huella = anterior.huella if igual and anterior else None
-        marca = anterior.marca if igual and anterior else None
-        if aula is not None and not aplica_origen(doc, curso):
-            marca = None
-            try:
-                huella = tipos.huella_del_formulario(
-                    tipos.obtener(doc.tipo), doc, aula.leer_modulo(cmid)
-                )
-            except ErrorPublicacion:
-                huella, no_guardado = None, True
-        estado.guardar_publicado(
-            dir_tiza, curso, ruta, estado.Publicado(cmid, doc.tipo, huella=huella, marca=marca)
-        )
-    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
-        no_guardado = True
-    if no_guardado:
-        borrador.fallo("REGISTRO_NO_GUARDADO", doc.ruta.name)
-        presencia.informar(Aviso.registro_no_guardado(doc.nombre))
-
-
-def _cmid_registrado(dir_tiza: Path, curso: int, ruta: str) -> int | None:
-    """El cmid que ``publicados.json`` daba a ``ruta`` en ``curso`` antes de publicar, o ``None``.
-
-    Un registro que no se puede leer no impide publicar: ``_registrar_publicado`` ya lo avisa.
-    """
-    if not estado.ruta_de_registro_valida(ruta):  # es una lectura: la regla de lectura
-        return None
-    try:
-        anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
-    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
-        return None
-    return anterior.cmid if anterior is not None else None
-
-
-def _fuente_cargada(doc: Documento) -> bytes:
-    """Los bytes del fichero tal como se cargaron. Si cambiaron después, ``FicheroNoSeguro``."""
-    bruto = ficheros.leer_bytes_acotado(doc.ruta, estado.MAX_BASE_BYTES)
-    if hashlib.sha256(bruto).hexdigest() != doc.sha256_fichero:
-        raise ficheros.FicheroNoSeguro("cambiado")
-    return bruto
-
-
-def _guardar_base(
-    dir_tiza: Path,
-    curso: int,
-    doc: Documento,
-    cmid: int,
-    previo: int | None,
-    borrador: informe.Borrador,
-) -> None:
-    """En un curso real, guarda la base de lo publicado: el fichero fuente y el HTML enviado.
-
-    ``previo`` distinto de ``cmid`` es una actividad recreada: su base vieja se borra después de
-    guardar la nueva (si no se puede borrar, se queda: no estorba). Si algo falla, lo publicado
-    queda publicado: solo se anota ``BASE_NO_GUARDADA`` (sin aviso al docente, que no nota nada).
-    """
-    try:
-        estado.guardar_base(
-            dir_tiza, curso, cmid, _fuente_cargada(doc), contenido.html_para_moodle(doc)
-        )
-    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
-        borrador.fallo("BASE_NO_GUARDADA", doc.ruta.name)
-        try:  # sin base: mejor eso que la de una publicación anterior, que se tomaría por la última
-            estado.olvidar_base(dir_tiza, curso, cmid)
-        except (OSError, ficheros.FicheroNoSeguro):
-            pass
-        return
-    if previo is not None and previo != cmid:
-        try:
-            estado.olvidar_base(dir_tiza, curso, previo)
-        except (OSError, ficheros.FicheroNoSeguro):
-            pass
-
-
-def _renovar_base_registrada(
-    dir_tiza: Path,
-    curso: int,
-    ruta: str,
-    doc: Documento,
-    nueva: str,
-    borrador: informe.Borrador,
-    presencia: Presencia,
-) -> None:
-    """``--solo-fechas`` en real: la huella de lo releído pasa a ser la base de ``ruta``.
-
-    La marca queda a None. Si no se puede guardar, las fechas ya están puestas; solo se avisa.
-    La entrada ya existe (se lee con la regla de lectura); aquí solo se renueva, no se crea.
-    """
-    if not estado.ruta_de_registro_valida(ruta):
-        return
-    try:
-        anterior = estado.cargar_publicados(dir_tiza, curso).get(ruta)
-        if anterior is None:
-            return
-        estado.guardar_publicado(
-            dir_tiza, curso, ruta, estado.Publicado(anterior.cmid, anterior.tipo, nueva, None)
-        )
-    except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
-        borrador.fallo("REGISTRO_NO_GUARDADO", doc.ruta.name)
-        presencia.informar(Aviso.registro_no_guardado(doc.nombre))
 
 
 def _nombres_de_vista(documentos: list[Documento]) -> list[str | None]:

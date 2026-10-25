@@ -40,6 +40,7 @@ from tiza import (
     publicacion,
     publicar,
     tipos,
+    vigilancia,
 )
 from tiza.copia import abrir_copia
 from tiza.publicar import ErrorPublicacion
@@ -2183,11 +2184,11 @@ def test_si_no_se_puede_releer_tras_publicar_la_entrada_queda_sin_huella_y_se_av
     _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
     original = moodle.leer_modulo
     registrando = []
-    registrar = publicacion._registrar_publicado
+    anotar = vigilancia.Vigilancia.anotar_publicado
 
-    def registrar_marcando(*args, **kwargs):
+    def anotar_marcando(self, doc, ruta, cmid):
         registrando.append(True)  # desde aquí se relee el formulario para guardar la huella
-        return registrar(*args, **kwargs)
+        return anotar(self, doc, ruta, cmid)
 
     def leer(cmid_pedido):
         # Buscar cambios, comprobar y verificar valen; falla la relectura del registro.
@@ -2196,7 +2197,7 @@ def test_si_no_se_puede_releer_tras_publicar_la_entrada_queda_sin_huella_y_se_av
             raise ErrorPublicacion("ERROR_CONSULTA")
         return original(cmid_pedido)
 
-    monkeypatch.setattr(publicacion, "_registrar_publicado", registrar_marcando)
+    monkeypatch.setattr(vigilancia.Vigilancia, "anotar_publicado", anotar_marcando)
     moodle.leer_modulo = leer
     documento, presencia = _en(carpeta, moodle, "real")
     assert documento["ficheros"][0]["cmid"] == cmid  # la publicación quedó hecha
@@ -2476,36 +2477,6 @@ def test_la_base_vieja_se_borra_despues_de_guardar_la_nueva(tmp_path, monkeypatc
     assert orden == ["guardar", ("olvidar", viejo)]
 
 
-def test_cmid_registrado_con_registro_danado_es_none_y_no_borra_nada(tmp_path):
-    carpeta = tmp_path.resolve()
-    _pagina_texto(carpeta)
-    _en(carpeta, _aula_dos_cursos(), "real")
-    dir_tiza = carpeta / ".tiza"
-    antes = sorted(p.relative_to(carpeta).as_posix() for p in carpeta.rglob("*"))
-    (dir_tiza / "publicados.json").write_text("no es json", encoding="utf-8")
-    assert publicacion._cmid_registrado(dir_tiza, 5678, "p.md") is None
-    despues = sorted(p.relative_to(carpeta).as_posix() for p in carpeta.rglob("*"))
-    assert despues == antes
-
-
-def test_cmid_registrado_lee_con_la_regla_de_lectura(tmp_path):
-    carpeta = tmp_path.resolve()
-    _pagina_texto(carpeta)
-    dir_tiza = carpeta / ".tiza"
-    # Una entrada con «:» ya escrita (0.29.0 en Linux) se sigue leyendo.
-    registro = {
-        "version": 1,
-        "cursos": {
-            "5678": {
-                "ficheros": {"a:b.md": {"cmid": 7, "tipo": "pagina", "huella": None, "marca": None}}
-            }
-        },
-    }
-    dir_tiza.mkdir()
-    (dir_tiza / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
-    assert publicacion._cmid_registrado(dir_tiza, 5678, "a:b.md") == 7
-
-
 @pytest.mark.skipif(sys.platform == "win32", reason="en Windows un fichero no puede llevar «:»")
 def test_recrear_una_actividad_registrada_con_dos_puntos_borra_su_base_vieja(tmp_path):
     carpeta = tmp_path.resolve()
@@ -2525,24 +2496,6 @@ def test_recrear_una_actividad_registrada_con_dos_puntos_borra_su_base_vieja(tmp
     estado.guardar_base(dir_tiza, 5678, 7, b"viejo", "viejo")
     _en(carpeta, moodle, "real", ficheros=("a:b.md",))
     assert not estado.ruta_base(dir_tiza, 5678, 7).exists()
-
-
-def test_renovar_base_de_una_entrada_con_dos_puntos_no_da_registro_no_guardado(tmp_path):
-    carpeta = tmp_path.resolve()
-    _pagina_texto(carpeta)
-    dir_tiza = carpeta / ".tiza"
-    dir_tiza.mkdir()
-    registro = {"cmid": 7, "tipo": "pagina", "huella": None, "marca": None}
-    datos = {"version": 1, "cursos": {"5678": {"ficheros": {"a:b.md": registro}}}}
-    (dir_tiza / "publicados.json").write_text(json.dumps(datos), encoding="utf-8")
-    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
-    borrador = informe.Borrador("publicar")
-    presencia = PresenciaFalsa()
-    huella = "a" * 64
-    publicacion._renovar_base_registrada(dir_tiza, 5678, "a:b.md", doc, huella, borrador, presencia)
-    assert "REGISTRO_NO_GUARDADO" not in [p.codigo for p in borrador._pasos]
-    assert presencia.avisos == []
-    assert estado.cargar_publicados(dir_tiza, 5678)["a:b.md"].huella == huella
 
 
 def test_si_falla_guardar_la_base_no_queda_la_anterior(tmp_path, monkeypatch):

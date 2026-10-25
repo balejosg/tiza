@@ -10,6 +10,7 @@ Vocabulario de dominio en ``CONTEXT.md``: huella, marca, base, registro, retoque
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -269,10 +270,26 @@ class Vigilancia:
         return None
 
     def anotar_publicado(self, doc: Documento, ruta: str, cmid: int) -> Anotacion:
-        """Anota lo publicado entero: primero la huella de la copia, si el documento tiene origen."""
+        """Anota lo publicado entero: copia, registro y base, en el orden de las escrituras.
+
+        Primero renueva ``copia.json`` (si el documento se halla por su ``origen`` en este
+        curso); después lee el cmid previo, escribe la entrada del registro y, en un curso real,
+        guarda la base. Si la actividad se recreó, la base nueva se guarda antes de olvidar la
+        vieja. Lo que no se pudo guardar sale en ``Anotacion.fallos``, nunca como excepción.
+        """
         fallos: list[str] = []
-        if aplica_origen(doc, self.curso) and not self._renovar_copia(doc):
-            fallos.append(HUELLA_NO_GUARDADA)
+        nueva: str | None = None
+        if aplica_origen(doc, self.curso):
+            nueva = tipos.huella_de_lo_enviado(
+                tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
+            )
+            if not self._renovar_copia(doc, nueva):
+                fallos.append(HUELLA_NO_GUARDADA)
+        previo = self._cmid_previo(ruta)
+        if not self._anotar_registro(doc, ruta, cmid):
+            fallos.append(REGISTRO_NO_GUARDADO)
+        if self.real and not self._guardar_base(doc, cmid, previo):
+            fallos.append(BASE_NO_GUARDADA)
         return Anotacion(tuple(fallos))
 
     def anotar_fechas(
@@ -306,6 +323,83 @@ class Vigilancia:
             estado.guardar_huella_de_copia(self.dir_tiza, self.curso, doc.origen.cmid, nueva)
         except (estado.ErrorEstado, OSError):
             return False
+        return True
+
+    def _cmid_previo(self, ruta: str) -> int | None:
+        """El cmid que el registro daba a ``ruta`` antes de publicar, o nada.
+
+        Se lee con la regla de lectura (admite «:»). Un registro que no se puede leer no impide
+        publicar: :meth:`_anotar_registro` ya lo avisa.
+        """
+        if not estado.ruta_de_registro_valida(ruta):
+            return None
+        try:
+            anterior = estado.cargar_publicados(self.dir_tiza, self.curso).get(ruta)
+        except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+            return None
+        return anterior.cmid if anterior is not None else None
+
+    def _anotar_registro(self, doc: Documento, ruta: str, cmid: int) -> bool:
+        """Escribe la entrada del registro; ``False`` si no se pudo guardar o releer.
+
+        Una ruta que no vale como clave nueva no se registra ni se avisa (la base sí se guarda).
+        Conserva la huella y la marca de la entrada anterior si es la misma actividad; si el
+        cmid cambió (se recreó), van a nada. En un curso real y sin ``origen``, relee el
+        formulario para la huella y limpia la marca; si la relectura falla, la entrada queda sin
+        huella y se avisa.
+        """
+        if not estado.ruta_publicada_valida(ruta):
+            return True
+        try:
+            anterior = estado.cargar_publicados(self.dir_tiza, self.curso).get(ruta)
+            igual = anterior is not None and anterior.cmid == cmid
+            huella = anterior.huella if igual and anterior is not None else None
+            marca = anterior.marca if igual and anterior is not None else None
+            no_guardado = False
+            if self.real and not aplica_origen(doc, self.curso):
+                marca = None
+                try:
+                    huella = tipos.huella_del_formulario(
+                        tipos.obtener(doc.tipo), doc, self.aula.leer_modulo(cmid)
+                    )
+                except ErrorPublicacion:
+                    huella, no_guardado = None, True
+            estado.guardar_publicado(
+                self.dir_tiza,
+                self.curso,
+                ruta,
+                estado.Publicado(cmid, doc.tipo, huella=huella, marca=marca),
+            )
+        except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+            return False
+        return not no_guardado
+
+    def _guardar_base(self, doc: Documento, cmid: int, previo: int | None) -> bool:
+        """En un curso real, guarda el fichero fuente y el HTML enviado; ``False`` si falló.
+
+        ``previo`` distinto de ``cmid`` es una actividad recreada: su base vieja se borra
+        después de guardar la nueva (si no se puede borrar, se queda: no estorba). Si algo
+        falla, lo publicado queda publicado; solo se anota ``BASE_NO_GUARDADA``.
+        """
+        try:
+            estado.guardar_base(
+                self.dir_tiza,
+                self.curso,
+                cmid,
+                _fuente_cargada(doc),
+                contenido.html_para_moodle(doc),
+            )
+        except (estado.ErrorEstado, OSError, ficheros.FicheroNoSeguro):
+            try:  # sin base: mejor eso que la de una publicación anterior, que se tomaría por la última
+                estado.olvidar_base(self.dir_tiza, self.curso, cmid)
+            except (OSError, ficheros.FicheroNoSeguro):
+                pass
+            return False
+        if previo is not None and previo != cmid:
+            try:
+                estado.olvidar_base(self.dir_tiza, self.curso, previo)
+            except (OSError, ficheros.FicheroNoSeguro):
+                pass
         return True
 
     def _renovar_entrada(self, ruta: str, nueva: str) -> bool:
@@ -381,6 +475,14 @@ class _Cambio(Enum):
     IGUAL = "igual"
     YA_TENIA = "ya_tenia"
     CAMBIADA = "cambiada"
+
+
+def _fuente_cargada(doc: Documento) -> bytes:
+    """Los bytes del fichero tal como se cargaron. Si cambiaron después, ``FicheroNoSeguro``."""
+    bruto = ficheros.leer_bytes_acotado(doc.ruta, estado.MAX_BASE_BYTES)
+    if hashlib.sha256(bruto).hexdigest() != doc.sha256_fichero:
+        raise ficheros.FicheroNoSeguro("cambiado")
+    return bruto
 
 
 def _comparar(
