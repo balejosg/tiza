@@ -1417,6 +1417,20 @@ def test_huella_no_guardada_llega_al_docente(tmp_path, monkeypatch):
     assert "la próxima vez pide una copia nueva" in linea.texto and "«Nuevo»" in linea.texto
 
 
+def test_huella_no_guardada_tambien_si_no_se_guarda(tmp_path, monkeypatch):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    monkeypatch.setattr(estado, "guardar_huella_de_copia", lambda *_a, **_k: False)
+    presencia = PresenciaFalsa()
+    documento = _publicar_real(carpeta, _aula_importada(), ["importada.md"], presencia)
+    assert documento["errores"] == []
+    assert "HUELLA_NO_GUARDADA" in [p["codigo"] for p in documento["pasos"]]
+    [aviso] = [a for a in presencia.avisos if a.codigo == "HUELLA_NO_GUARDADA"]
+    [linea] = mensajes.lineas_de_aviso(aviso)
+    assert "la próxima vez pide una copia nueva" in linea.texto and "«Nuevo»" in linea.texto
+
+
 # Dependencias entre ficheros del lote
 
 

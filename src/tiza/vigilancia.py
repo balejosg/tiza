@@ -312,7 +312,7 @@ class Vigilancia:
         """Renueva la huella de ``copia.json`` con lo enviado (o ``nueva``); ``False`` si falló.
 
         Sin ``nueva`` se calcula con lo que tiza envió, sin releer el aula. Que ``copia.json``
-        no exista o no tenga la actividad no es un fallo (se conserva el silencio de siempre).
+        no exista o no tenga la actividad también es un fallo: no se guardó la huella.
         """
         assert doc.origen is not None
         try:
@@ -320,7 +320,10 @@ class Vigilancia:
                 nueva = tipos.huella_de_lo_enviado(
                     tipos.obtener(doc.tipo), doc, contenido.html_para_moodle(doc)
                 )
-            estado.guardar_huella_de_copia(self.dir_tiza, self.curso, doc.origen.cmid, nueva)
+            if not estado.guardar_huella_de_copia(
+                self.dir_tiza, self.curso, doc.origen.cmid, nueva
+            ):
+                return False
         except (estado.ErrorEstado, OSError):
             return False
         return True

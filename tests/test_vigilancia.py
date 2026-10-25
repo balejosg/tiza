@@ -715,12 +715,12 @@ def test_anotar_fechas_de_copia_renueva_solo_si_hay_huella_nueva(tmp_path, renue
     )
 
 
-def test_anotar_con_copia_sin_la_actividad_calla(tmp_path):
+def test_anotar_con_copia_sin_la_actividad_da_huella_no_guardada(tmp_path):
     carpeta = tmp_path.resolve()
     doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
     _copia(carpeta, huella="a" * 64, cmid=999)
     anotacion = _vigilancia(Aula(), carpeta, [doc], real=False).anotar_publicado(doc, "A.md", 501)
-    assert anotacion == Anotacion()
+    assert anotacion == Anotacion(("HUELLA_NO_GUARDADA",))
 
 
 def test_anotar_con_copia_que_no_se_puede_escribir_da_huella_no_guardada(tmp_path, monkeypatch):

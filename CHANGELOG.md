@@ -9,6 +9,7 @@ se avisa aquí con **Cambia**.
 ### Corregido
 - Si un fichero con «:» en el nombre ya estaba en el registro de lo publicado y su actividad se vuelve a publicar (por ejemplo, porque se recreó en el aula), el registro apunta ahora a la actividad nueva en vez de quedarse con la anterior.
 - Al publicar una actividad importada (con `origen`), el registro de lo publicado se queda con la versión que acaba de publicar tiza. Si luego quitas el `origen` del fichero, la siguiente publicación no te pregunta por un cambio del aula que ya no existe.
+- Si tiza no puede guardar la huella de la copia tras publicar (por ejemplo, porque `copia.json` ya no está), ahora te avisa de que la próxima vez pedirá una copia nueva, en vez de callarse.
 
 ## 0.30.0 — 2026-10-24
 
