@@ -39,13 +39,17 @@ Vocabulario del dominio para quien lee o cambia el código. Las reglas de trabaj
   docente puede **sobrescribir** un retoque. Al publicar entero, lo publicado pasa a ser la huella
   nueva; con `--solo-fechas` no se renueva (el texto del aula no se pisó) y el retoque sigue
   contando la próxima vez.
-- **Vigilancia (de lo publicado)**: el módulo que responde, por documento y curso real, si hay
-  retoque y si hay que rechazarlo antes de confirmar, y que renueva registro, huella, marca y base
-  tras publicar. Tiene dos almacenes detrás de la misma seam: el registro y `copia.json`. Los
-  formatos de disco no cambian.
+- **Vigilancia (de lo publicado)**: el módulo que responde, por documento y curso, si hay retoque
+  (solo en cursos reales) y si hay que rechazarlo antes de confirmar, y que renueva registro,
+  huella, marca y base tras publicar. Tiene dos almacenes detrás de la misma seam: el registro y
+  `copia.json`. Los formatos de disco no cambian.
 - **Actividad vigilada**: lo que la vigilancia entrega a publicar para un documento: con el
   formulario ya leído dice si hay retoque y, en solo-fechas, cuál es la huella nueva tras verificar.
   No hay actividad vigilada en pruebas sin `origen` ni cuando el docente decidió sobrescribir.
+- **Anotar (lo publicado)**: lo que la vigilancia escribe tras publicar, en este orden: la huella de
+  `copia.json`, la entrada del registro (con su marca) y la base. Si algo no se puede guardar, la
+  publicación sigue siendo buena y lo dice con `HUELLA_NO_GUARDADA`, `REGISTRO_NO_GUARDADO` o
+  `BASE_NO_GUARDADA`; la base no lleva aviso al docente.
 
 ## El recorrido por cursos
 

@@ -81,7 +81,6 @@ __all__ = [
     "ResumenSobrescribir",
     "ResultadoCurso",
     "SeccionOrden",
-    "cambiadas_en_el_aula",
     "cambios_de_fechas",
     "cambios_de_nombre",
     "cambios_de_seccion",
@@ -1007,7 +1006,7 @@ def resumen_solo_fechas(
 
 @dataclass(frozen=True)
 class ResultadoCurso:
-    """PROVISIONAL: lo sustituirá el resultado del recorrido (propuesta-1 §2, fase 16)."""
+    """PROVISIONAL: lo sustituirá el resultado del recorrido."""
 
     informe: dict
     corta: bool
@@ -1033,12 +1032,13 @@ def publicar_con(
     no sube recursos y no registra nada como verificado en pruebas.
 
     En un curso real (``entorno == "real"``), lo que el docente retocó a mano en el aula desde que
-    tiza lo publicó no se pisa: ``publicar.publicar_documento`` lo comprueba justo antes de
-    escribir (``CAMBIADA_EN_EL_AULA``). Las decisiones del docente entran explícitas, por ruta
-    resuelta del documento: ``sobrescribir`` (dijo que sí a perder ese cambio: se publica y el
-    informe lleva ``CAMBIO_DEL_AULA_DESCARTADO``) y ``no_publicar`` (dijo que no: se rechaza como
-    ``CAMBIADA_EN_EL_AULA``, con el resto del lote). Tras publicar en real se relee el aula y se
-    guarda su huella como base de la próxima comparación. En pruebas no se compara ni se guarda.
+    tiza lo publicó no se pisa: la actividad vigilada que construye la ``Vigilancia`` lo comprueba
+    justo antes de escribir (``CAMBIADA_EN_EL_AULA``). Las decisiones del docente entran explícitas,
+    por ruta resuelta del documento: ``sobrescribir`` (dijo que sí a perder ese cambio: se publica y
+    el informe lleva ``CAMBIO_DEL_AULA_DESCARTADO``) y ``no_publicar`` (dijo que no: se rechaza como
+    ``CAMBIADA_EN_EL_AULA``, con el resto del lote). Tras publicar, la vigilancia anota la huella de
+    la copia, la entrada del registro y la base; en pruebas no se compara el registro ni se guarda
+    la base.
     """
     borrador = informe.Borrador("publicar", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
@@ -1332,21 +1332,6 @@ def cambios_de_nombre(
     return tuple(cambios)
 
 
-def cambiadas_en_el_aula(
-    vigilancia: Vigilancia,
-    estructura: Estructura,
-    documentos: Sequence[Documento],
-    solo_fechas: bool = False,
-) -> tuple[Documento, ...]:
-    """Los documentos cuya actividad retocó el docente a mano: delega en la vigilancia.
-
-    Solo mira los hallados por el registro y con huella en él; del resto no lee nada. Lo que no
-    se puede leer cuenta como cambiado, para no pisarlo a ciegas. Es solo lectura: el docente
-    decide después (``Presencia.confirmar_sobrescribir``).
-    """
-    return vigilancia.retoques(estructura, documentos, solo_fechas)
-
-
 _ACCION_DE_CAMBIO = {
     EstadoDeCambios.CAMBIADA: "cambiada",
     EstadoDeCambios.SIN_CAMBIOS: "sin_cambios",
@@ -1615,7 +1600,7 @@ def _en_real(
             if codigo is not None:
                 registro.append((posicion, curso, fallo(codigo, curso)))
                 break
-            cambiadas = cambiadas_en_el_aula(vigilancia, estructura, a_publicar, solo_fechas=True)
+            cambiadas = vigilancia.retoques(estructura, a_publicar, solo_fechas=True)
             resumen = resumen_solo_fechas(
                 aula,
                 curso,
@@ -1629,7 +1614,7 @@ def _en_real(
             )
             confirmado = presencia.confirmar_real(resumen)
         elif sin_pruebas:
-            cambiadas = cambiadas_en_el_aula(vigilancia, estructura, a_publicar)
+            cambiadas = vigilancia.retoques(estructura, a_publicar)
             corto = ResumenSinPruebas(
                 curso=curso,
                 nombre_curso=nombre_curso,
@@ -1652,7 +1637,7 @@ def _en_real(
             )
             confirmado = presencia.confirmar_real_sin_pruebas(corto)
         else:
-            cambiadas = cambiadas_en_el_aula(vigilancia, estructura, a_publicar)
+            cambiadas = vigilancia.retoques(estructura, a_publicar)
             resumen = ResumenPublicacion(
                 curso=curso,
                 nombre_curso=nombre_curso,

@@ -104,57 +104,10 @@ def test_sin_retoque_sin_cambios(publicada):
     assert documento["ficheros"][0]["tipo"] == "pagina"
 
 
-@pytest.mark.parametrize(
-    "retoque",
-    [{"nombre": "Z"}, {"texto": "<p>A mano</p>"}],
-)
-def test_con_retoque_cambiada(publicada, retoque):
-    carpeta, moodle, cmid = publicada
-    _retocar(moodle, cmid, **retoque)
-    assert _acciones(_cambios(carpeta, moodle)) == [("p.md", "cambiada", 5678, cmid)]
-
-
-def test_un_cambio_de_fecha_de_tarea_es_cambiada(tmp_path):
-    from dobles import fecha_en_formulario, tarea_en
-
-    carpeta = tmp_path.resolve()
-    moodle = _aula()
-    tarea_en(carpeta)
-    cmid = _publicar(carpeta, moodle, ficheros=("tarea.md",))["ficheros"][0]["cmid"]
-    assert _acciones(_cambios(carpeta, moodle, ficheros=("tarea.md",)))[0][1] == "sin_cambios"
-    _retocar(moodle, cmid, campos=fecha_en_formulario("duedate", (2026, 11, 3, 10, 0)))
-    assert _acciones(_cambios(carpeta, moodle, ficheros=("tarea.md",)))[0][1] == "cambiada"
-
-
-def test_la_marca_igual_al_sha_del_fichero_es_cambiada_sin_leer_el_aula(publicada):
-    carpeta, moodle, cmid = publicada
-    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
-    entrada = estado.cargar_publicados(carpeta / ".tiza", 5678)["p.md"]
-    estado.guardar_publicado(
-        carpeta / ".tiza",
-        5678,
-        "p.md",
-        estado.Publicado(entrada.cmid, "pagina", huella=entrada.huella, marca=doc.sha256_fichero),
-    )
-    antes = _lecturas(moodle)
-    assert _acciones(_cambios(carpeta, moodle)) == [("p.md", "cambiada", 5678, cmid)]
-    assert _lecturas(moodle) == antes
-
-
 def test_sin_entrada_en_el_registro_es_sin_registro(tmp_path):
     carpeta = tmp_path.resolve()
     _pagina(carpeta)
     assert _acciones(_cambios(carpeta, _aula())) == [("p.md", "sin_registro", 5678, None)]
-
-
-def test_una_entrada_sin_huella_es_sin_registro_con_su_cmid(publicada):
-    carpeta, moodle, cmid = publicada
-    estado.guardar_publicado(
-        carpeta / ".tiza", 5678, "p.md", estado.Publicado(cmid, "pagina", huella=None)
-    )
-    antes = _lecturas(moodle)
-    assert _acciones(_cambios(carpeta, moodle)) == [("p.md", "sin_registro", 5678, cmid)]
-    assert _lecturas(moodle) == antes
 
 
 def test_si_la_lectura_del_formulario_falla_es_cambiada(publicada, monkeypatch):
@@ -262,28 +215,6 @@ def test_importado_sin_retoque_sin_cambios(tmp_path):
     assert _acciones(_cambios(carpeta, moodle, ficheros=("i.md",))) == [
         ("i.md", "sin_cambios", 5678, 501)
     ]
-
-
-def test_importado_con_retoque_cambiada(tmp_path):
-    carpeta, moodle = _importada(tmp_path)
-    _retocar(moodle, 501, texto="<p>A mano</p>")
-    assert _acciones(_cambios(carpeta, moodle, ficheros=("i.md",))) == [
-        ("i.md", "cambiada", 5678, 501)
-    ]
-
-
-def test_importado_sin_huella_en_copia_json_es_sin_registro(tmp_path):
-    carpeta, moodle = _importada(tmp_path, huella=False)
-    assert _acciones(_cambios(carpeta, moodle, ficheros=("i.md",))) == [
-        ("i.md", "sin_registro", 5678, 501)
-    ]
-
-
-def test_importado_con_marca_sin_juntar_es_cambiada_sin_leer_el_aula(tmp_path):
-    carpeta, moodle = _importada(tmp_path, marca=True)
-    antes = _lecturas(moodle)
-    assert _acciones(_cambios(carpeta, moodle, ficheros=("i.md",)))[0][1] == "cambiada"
-    assert _lecturas(moodle) == antes
 
 
 # --- Buzón y sesión -----------------------------------------------------------------------

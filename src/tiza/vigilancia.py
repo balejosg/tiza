@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Any
 from . import contenido, estado, ficheros, tipos
 from .contenido import Documento
 from .estructura import Estructura, aplica_origen
-from .publicar import ErrorPublicacion
 
 if TYPE_CHECKING:
     from .publicar import AulaVirtual
@@ -213,6 +212,8 @@ class Vigilancia:
         para no pisar a ciegas. Con ``solo_fechas``, lo que ya tiene las fechas del fichero no
         cuenta. En un curso de pruebas no hay retoques ni lecturas.
         """
+        from .publicar import ErrorPublicacion
+
         if not self.real:
             return ()
         retocados: list[Documento] = []
@@ -353,6 +354,8 @@ class Vigilancia:
         ``origen``, relee el formulario para la huella y limpia la marca; si la relectura falla,
         la entrada queda sin huella y se avisa.
         """
+        from .publicar import ErrorPublicacion
+
         if not estado.ruta_de_registro_valida(ruta):
             return True
         try:
@@ -441,6 +444,8 @@ class Vigilancia:
         localización no se puede resolver) es ``SIN_REGISTRO``. La marca sin juntar es
         ``CAMBIADA`` sin leer; una lectura fallida también cuenta como cambiada.
         """
+        from .publicar import ErrorPublicacion
+
         cambios: list[Cambio] = []
         for doc in documentos:
             loc = estructura.localizar(doc, self.curso)

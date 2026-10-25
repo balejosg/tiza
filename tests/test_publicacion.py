@@ -729,24 +729,6 @@ def test_quitar_el_origen_tras_publicar_no_pregunta_por_un_retoque_que_no_existe
     assert "cambiado" in moodle.formularios[501]["page[text]"]
 
 
-def test_la_huella_se_renueva_solo_en_la_entrada_de_su_curso(tmp_path):
-    carpeta = tmp_path.resolve()
-    _fichero_importado(carpeta)
-    _escribir_copia(carpeta, _huella_del_aula())
-    datos = estado.cargar_copia(carpeta / ".tiza")
-    otra = {
-        **datos["cursos"]["5678"],
-        "actividades": [dict(datos["cursos"]["5678"]["actividades"][0])],
-    }
-    otra["actividades"][0]["huella_aula"] = "b" * 64
-    datos["cursos"]["9999"] = otra
-    estado.escribir_copia(carpeta / ".tiza", datos)
-    _publicar_real(carpeta, _aula_importada(), ["importada.md"])
-    ahora = estado.cargar_copia(carpeta / ".tiza")
-    assert ahora["cursos"]["9999"]["actividades"][0]["huella_aula"] == "b" * 64
-    assert ahora["cursos"]["5678"]["actividades"][0]["huella_aula"] != _huella_del_aula()
-
-
 def test_cambiada_en_el_aula_no_publica_y_las_demas_siguen(tmp_path):
     carpeta = tmp_path.resolve()
     _fichero_importado(carpeta)
@@ -1893,25 +1875,6 @@ def test_en_pruebas_no_se_guarda_huella_ni_se_lee_de_mas(tmp_path):
     assert _lecturas(en_pruebas) - antes == _lecturas(sin_huella)
 
 
-def test_se_conservan_huella_y_marca_si_es_el_mismo_cmid_y_nadie_cambia_nada(tmp_path):
-    carpeta = tmp_path.resolve()
-    moodle = _aula_dos_cursos()
-    _pagina_texto(carpeta)
-    primero, _ = _en(carpeta, moodle, "pruebas")
-    cmid = primero["ficheros"][0]["cmid"]
-    entrada = estado.Publicado(cmid, "pagina", huella="a" * 64, marca="b" * 64)
-    estado.guardar_publicado(carpeta / ".tiza", 1234, "p.md", entrada)
-    _pagina_texto(carpeta, texto="Otro texto.")
-    segundo, _ = _en(carpeta, moodle, "pruebas")
-    assert segundo["ficheros"][0]["cmid"] == cmid
-    assert _entrada(carpeta, 1234) == entrada  # pruebas no compara ni toca la base
-    # Si la actividad se recrea (otro cmid), van a None.
-    for seccion in moodle._de(1234):
-        seccion["modulos"] = []
-    tercero, _ = _en(carpeta, moodle, "pruebas")
-    assert _entrada(carpeta, 1234) == estado.Publicado(tercero["ficheros"][0]["cmid"], "pagina")
-
-
 def test_republicar_sin_cambios_a_mano_no_pregunta_y_renueva_la_huella(tmp_path):
     carpeta = tmp_path.resolve()
     moodle = _aula_dos_cursos()
@@ -2571,24 +2534,6 @@ def test_base_que_no_cabe_no_para_la_publicacion(tmp_path, monkeypatch):
     documento, _ = _en(carpeta, _aula_dos_cursos(), "real")
     assert documento["errores"] == []
     assert len(documento["ficheros"]) == 1
-    [paso] = [p for p in documento["pasos"] if p["codigo"] == "BASE_NO_GUARDADA"]
-    assert (paso["resultado"], paso["detalle"]) == ("fallo", "p.md")
-    assert not (carpeta / ".tiza" / "publicados").exists()
-
-
-def test_fichero_cambiado_tras_cargarlo_no_guarda_base(tmp_path):
-    carpeta = tmp_path.resolve()
-    moodle = _aula_dos_cursos()
-    _pagina_texto(carpeta)
-    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
-    registro: dict = {}
-    estado.anotar_verificado(registro, contenido.hash_documento(doc), "p.md", 100)
-    _pagina_texto(carpeta, texto="Cambiado después de cargarlo.")
-    presencia = PresenciaFalsa()
-    documento = publicacion.publicar_en_cursos(
-        moodle, CFG, [doc], carpeta, presencia, entorno="real", verificados=registro
-    )
-    assert documento["errores"] == []
     [paso] = [p for p in documento["pasos"] if p["codigo"] == "BASE_NO_GUARDADA"]
     assert (paso["resultado"], paso["detalle"]) == ("fallo", "p.md")
     assert not (carpeta / ".tiza" / "publicados").exists()

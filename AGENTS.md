@@ -121,6 +121,15 @@ en español.
   interpreta a medias. Los verificados usan una sola dataclass (`Verificado`)
   en disco y en memoria. No
   importa python-moodle: `agente` lo usa sin cargar el aula.
+- `src/tiza/vigilancia.py`: **la vigilancia de lo publicado**, por curso: responde si un documento
+  tiene un retoque antes de confirmar (`rechazos`, `retoques`), qué dice `tiza estructura --cambios`
+  de cada uno (`estado_por_documento`) y qué actividad hay que comprobar justo antes de escribir
+  (`actividad`). Es el único sitio que compara con la huella y la marca y el que anota tras publicar
+  (`anotar_publicado`, `anotar_fechas`): huella de la copia, entrada del registro, marca y base, en
+  ese orden. Los dos almacenes —el registro (`publicados.json` + `publicados/`) y `copia.json`— son
+  los dos adapters de la misma seam; los formatos de disco no cambian. No habla con el aula salvo
+  `leer_modulo` y no importa python-moodle al cargarse: `publicar` entra diferido solo por su error.
+  No la importan `estado`, `agente` ni `importar`.
 - `src/tiza/publicar.py`: **único módulo que habla con el aula**
   (python-moodle). Reduce toda excepción a códigos propios y nunca deja pasar
   texto de Moodle. Al importar parchea APIs privadas de python-moodle (sin token
@@ -129,7 +138,9 @@ en español.
   parches. `Moodle.estructura` lee con tolerancia la respuesta del aula y devuelve
   `estructura.Estructura` (un `ErrorEstructura` es `ERROR_ESTRUCTURA`).
   `publicar_documento` y `publicar_fechas` devuelven el
-  `informe.Fichero` ya construido (nada de dicts con claves sueltas). También
+  `informe.Fichero` ya construido (nada de dicts con claves sueltas) y reciben la actividad
+  vigilada (el `Protocol` que define este módulo): la comprueban justo antes de escribir, sin
+  conocer la vigilancia ni importarla. También
   mueve y ordena: `Moodle.mover` (`cm_move`), `plan_de_orden` (pura),
   `ordenar_documentos` y `asegurar_secciones`; cambiar
   `seccion:` mueve la actividad existente (`movida`) en vez de duplicarla.
@@ -177,10 +188,10 @@ en español.
   cada llamador entra como decisión explícita
   y documentada (`verificados` en memoria o disco, `vigente` solo en la sesión,
   `cupo` solo en la sesión, `omitidos` de la terminal directa). Los retoques a mano del docente en lo que tiza
-  publicó (solo cursos reales, por el registro `publicados.json`): `cambiadas_en_el_aula` los detecta
-  antes de confirmar, `Presencia.confirmar_sobrescribir` pregunta tras el sí normal y `publicar_con`
-  recibe lo decidido (`sobrescribir`, `no_publicar`); `publicar.py` lo vuelve a comprobar justo antes
-  de escribir (`comprobar_registro`). `cambios_en_el_aula` (`tiza estructura --cambios`) y
+  publicó (solo cursos reales, por el registro `publicados.json`): construye una `Vigilancia` por
+  curso y le pide los retoques (`Vigilancia.retoques`) antes de confirmar; `Presencia.confirmar_sobrescribir`
+  pregunta tras el sí normal y `publicar_con` recibe lo decidido (`sobrescribir`, `no_publicar`), que
+  pasa a publicar como la actividad vigilada. `cambios_en_el_aula` (`tiza estructura --cambios`) y
   `copiar_actividades` (`tiza copia --actividad`) son la otra mitad de lo mismo. La petición del agente no lleva nada de esto.
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
   autoprueba y el ciclo de la sesión). Solo habla con el docente a través de una

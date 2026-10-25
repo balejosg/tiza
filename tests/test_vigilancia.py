@@ -7,6 +7,8 @@ almacenes son ``copia.json`` y ``publicados.json`` en ``tmp_path``.
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -1236,3 +1238,60 @@ def test_anotar_publicado_con_origen_guarda_en_el_registro_la_huella_de_la_copia
     entrada = estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"]
     assert entrada.huella == estado.huellas_de_copia(carpeta / ".tiza", 5678)[501]
     assert entrada.marca is None
+
+
+def test_vigilancia_no_importa_python_moodle_en_tiempo_de_ejecucion():
+    codigo = (
+        "import sys\n"
+        "import tiza.vigilancia\n"
+        "assert 'py_moodle' not in sys.modules, 'python-moodle cargado'\n"
+        "assert 'tiza.publicar' not in sys.modules, 'publicar cargado'\n"
+    )
+    subprocess.run([sys.executable, "-I", "-c", codigo], check=True)
+
+
+def test_el_lado_offline_no_importa_la_vigilancia():
+    codigo = (
+        "import sys\n"
+        "import tiza.agente, tiza.estado, tiza.importar\n"
+        "assert 'tiza.vigilancia' not in sys.modules, 'vigilancia cargada'\n"
+        "assert 'py_moodle' not in sys.modules, 'python-moodle cargado'\n"
+    )
+    subprocess.run([sys.executable, "-I", "-c", codigo], check=True)
+
+
+@pytest.mark.parametrize("retoque", [{"nombre": "Z"}, {"texto": "<p>A mano</p>"}])
+def test_estado_de_un_registro_cambiado(tmp_path, retoque):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, publicados=_entrada(huella="a" * 64))
+    leido = _form(doc, texto=retoque.get("texto"))
+    if "nombre" in retoque:
+        leido["nombre"] = retoque["nombre"]
+    cambio = _vigilancia(Aula({501: leido}), carpeta, [doc]).estado_por_documento(
+        _estructura(), [doc]
+    )
+    assert [(c.cmid, c.estado) for c in cambio] == [(501, EstadoDeCambios.CAMBIADA)]
+
+
+def test_estado_de_una_tarea_con_la_fecha_cambiada(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, tipo="tarea")
+    leido = _form(doc)
+    doc = replace(doc, publicados=_entrada(huella=_huella(doc, leido)))
+    cambiado = {**leido, "fechas": {**leido["fechas"], "duedate": (2026, 11, 3, 10, 0)}}
+    cambio = _vigilancia(Aula({501: cambiado}), carpeta, [doc]).estado_por_documento(
+        _estructura(tipo="tarea"), [doc]
+    )
+    assert [(c.cmid, c.estado) for c in cambio] == [(501, EstadoDeCambios.CAMBIADA)]
+
+
+def test_estado_de_un_registro_con_marca_sin_juntar_es_cambiada_sin_leer(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    doc = replace(
+        doc, publicados={5678: estado.Publicado(501, "pagina", "a" * 64, doc.sha256_fichero)}
+    )
+    aula = Aula(falla=True)
+    cambio = _vigilancia(aula, carpeta, [doc]).estado_por_documento(_estructura(), [doc])
+    assert [(c.cmid, c.estado) for c in cambio] == [(501, EstadoDeCambios.CAMBIADA)]
+    assert aula.lecturas == []
