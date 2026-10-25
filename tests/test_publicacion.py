@@ -2494,8 +2494,12 @@ def test_recrear_una_actividad_registrada_con_dos_puntos_borra_su_base_vieja(tmp
     }
     (dir_tiza / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
     estado.guardar_base(dir_tiza, 5678, 7, b"viejo", "viejo")
-    _en(carpeta, moodle, "real", ficheros=("a:b.md",))
+    documento, _ = _en(carpeta, moodle, "real", ficheros=("a:b.md",))
     assert not estado.ruta_base(dir_tiza, 5678, 7).exists()
+    assert (
+        estado.cargar_publicados(dir_tiza, 5678)["a:b.md"].cmid
+        == (documento["ficheros"][0]["cmid"])
+    )
 
 
 def test_si_falla_guardar_la_base_no_queda_la_anterior(tmp_path, monkeypatch):

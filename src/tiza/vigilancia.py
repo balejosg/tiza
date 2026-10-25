@@ -342,16 +342,18 @@ class Vigilancia:
     def _anotar_registro(self, doc: Documento, ruta: str, cmid: int) -> bool:
         """Escribe la entrada del registro; ``False`` si no se pudo guardar o releer.
 
-        Una ruta que no vale como clave nueva no se registra ni se avisa (la base sí se guarda).
-        Conserva la huella y la marca de la entrada anterior si es la misma actividad; si el
-        cmid cambió (se recreó), van a nada. En un curso real y sin ``origen``, relee el
-        formulario para la huella y limpia la marca; si la relectura falla, la entrada queda sin
-        huella y se avisa.
+        Una ruta que no se puede leer no es clave del registro. Una clave nueva con «:» no se
+        crea (la base sí se guarda); una que ya estaba se actualiza aunque la lleve. Conserva la
+        huella y la marca de la entrada anterior si es la misma actividad; si el cmid cambió (se
+        recreó), van a nada. En un curso real y sin ``origen``, relee el formulario para la
+        huella y limpia la marca; si la relectura falla, la entrada queda sin huella y se avisa.
         """
-        if not estado.ruta_publicada_valida(ruta):
+        if not estado.ruta_de_registro_valida(ruta):
             return True
         try:
             anterior = estado.cargar_publicados(self.dir_tiza, self.curso).get(ruta)
+            if anterior is None and not estado.ruta_publicada_valida(ruta):
+                return True
             igual = anterior is not None and anterior.cmid == cmid
             huella = anterior.huella if igual and anterior is not None else None
             marca = anterior.marca if igual and anterior is not None else None

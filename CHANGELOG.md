@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Corregido
+- Si un fichero con «:» en el nombre ya estaba en el registro de lo publicado y su actividad se vuelve a publicar (por ejemplo, porque se recreó en el aula), el registro apunta ahora a la actividad nueva en vez de quedarse con la anterior.
+
 ## 0.30.0 — 2026-10-24
 
 ### Añadido

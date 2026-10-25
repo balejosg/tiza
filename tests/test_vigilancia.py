@@ -1097,7 +1097,9 @@ def test_el_previo_con_dos_puntos_se_lee(tmp_path):
     }
     (dir_tiza / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
     estado.guardar_base(dir_tiza, 5678, 400, b"viejo", "viejo")
-    anotacion = _vigilancia(Aula(), carpeta, [doc], real=True).anotar_publicado(doc, "A:b.md", 501)
+    anotacion = _vigilancia(Aula({501: _form(doc)}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A:b.md", 501
+    )
     assert anotacion == Anotacion()
     assert not estado.ruta_base(dir_tiza, 5678, 400).exists()
     assert estado.ruta_base(dir_tiza, 5678, 501).is_dir()
@@ -1183,3 +1185,34 @@ def test_si_la_base_vieja_no_se_puede_olvidar_la_publicacion_sigue(tmp_path, mon
     assert anotacion == Anotacion()
     assert estado.ruta_base(dir_tiza, 5678, 400).is_dir()
     assert estado.ruta_base(dir_tiza, 5678, 501).is_dir()
+
+
+def test_anotar_publicado_actualiza_una_clave_con_dos_puntos_ya_escrita(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    dir_tiza = carpeta / ".tiza"
+    dir_tiza.mkdir()
+    registro = {
+        "version": 1,
+        "cursos": {
+            "5678": {
+                "ficheros": {
+                    "A:b.md": {
+                        "cmid": 7,
+                        "tipo": "pagina",
+                        "huella": "a" * 64,
+                        "marca": "b" * 64,
+                    }
+                }
+            }
+        },
+    }
+    (dir_tiza / "publicados.json").write_text(json.dumps(registro), encoding="utf-8")
+    leido = _form(doc)
+    anotacion = _vigilancia(Aula({501: leido}), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A:b.md", 501
+    )
+    assert anotacion == Anotacion()
+    assert estado.cargar_publicados(dir_tiza, 5678)["A:b.md"] == estado.Publicado(
+        501, "pagina", _huella(doc, leido), None
+    )
