@@ -1882,6 +1882,27 @@ def test_con_la_peticion_retirada_en_la_pregunta_no_se_sobrescribe(tmp_path):
     assert "A mano" in moodle.formularios[cmid]["page[text]"]
 
 
+def test_con_la_peticion_retirada_tras_el_no_a_sobrescribir_no_se_publica_nada(tmp_path):
+    # Con el «no» a sobrescribir se publicaría el resto del lote: también se mira la vigencia.
+    carpeta, moodle, cmid = _publicada_y_retocada(tmp_path, texto="<p>A mano</p>")
+    _pagina_texto(carpeta, nombre="Otra", fichero="otra.md")
+    llamadas = len(moodle.llamadas)
+    respuestas = iter([True, False])  # vigente tras la confirmación; retirada tras el «no»
+    documento, presencia = _en(
+        carpeta,
+        moodle,
+        "real",
+        ("p.md", "otra.md"),
+        presencia=PresenciaFalsa(sobrescribir=False),
+        vigente=lambda: next(respuestas),
+    )
+    assert documento["errores"] == ["PETICION_RETIRADA"]
+    assert len(presencia.resumenes_sobrescribir) == 1
+    escrituras = {"crear", "actualizar", "subir", "mover", "crear_seccion", "borrar"}
+    assert [c for c in moodle.llamadas[llamadas:] if c[0] in escrituras] == []
+    assert "A mano" in moodle.formularios[cmid]["page[text]"]
+
+
 def test_un_intento_anterior_a_medias_no_cuenta_como_cambio(tmp_path):
     carpeta = tmp_path.resolve()
     moodle = _aula_dos_cursos()
