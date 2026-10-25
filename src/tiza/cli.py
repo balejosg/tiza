@@ -1058,8 +1058,8 @@ def _publicar_directa(args) -> int:
             if entorno == "real"
             else {}
         )
-        necesita_vistas = entorno == "real" and not solo_fechas and not sin_pruebas
-        dir_vistas = sesion.crear_dir_vistas() if necesita_vistas else None
+        con_vistas = entorno == "real" and publicacion.necesita_vistas(cfg, solo_fechas=solo_fechas)
+        dir_vistas = sesion.crear_dir_vistas() if con_vistas else None
         try:
             documento = publicacion.publicar_en_cursos(
                 moodle,

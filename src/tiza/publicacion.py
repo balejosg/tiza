@@ -91,6 +91,7 @@ __all__ = [
     "depurar",
     "exige_oculto_sin_pruebas",
     "itinerario_de",
+    "necesita_vistas",
     "nombres_de_cursos",
     "ordenar_con",
     "ordenar_en_cursos",
@@ -827,6 +828,16 @@ def exige_oculto_sin_pruebas(cfg: Config, visible: bool | None, *, solo_fechas: 
     return "pruebas" not in cfg.cursos and not solo_fechas and visible is not False
 
 
+def necesita_vistas(cfg: Config, *, solo_fechas: bool) -> bool:
+    """Regla común: publicar en real hace vistas previas solo con curso de pruebas y sin solo-fechas.
+
+    Sin curso de pruebas no hay verificación previa ni vista que enseñar: se compensa publicando
+    solo en oculto y con una confirmación corta. La terminal directa la usa para crear (y borrar)
+    el directorio de las vistas.
+    """
+    return "pruebas" in cfg.cursos and not solo_fechas
+
+
 def nombres_de_cursos(aula: AulaVirtual, presencia: Presencia, debug: bool) -> dict[int, str]:
     """Nombres de los cursos del docente: solo para la presencia, nunca a .tiza."""
     try:
@@ -1484,9 +1495,7 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
             elif puerta_real(self._base, self._documentos, self._verificados):
                 return "VERIFICACION_PENDIENTE"
         self._vistas = [None] * len(self._documentos)
-        if not self._solo_fechas and not self._sin_pruebas:
-            # Sin curso de pruebas no hay verificación previa ni vista que enseñar:
-            # se compensa publicando solo en oculto y con una confirmación corta.
+        if necesita_vistas(self._cfg, solo_fechas=self._solo_fechas):
             raiz_vistas = (
                 self._dir_vistas
                 if self._dir_vistas is not None
