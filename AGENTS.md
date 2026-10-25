@@ -103,28 +103,38 @@ en español.
   `aula/`) y acepta las copias de una sola actividad (`COPIA_DE_ACTIVIDAD_DESCONOCIDA`).
 - `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
   `pdftotext`; la caché vive fuera del repo.
+- `src/tiza/estructura.py`: **la estructura del aula, tipada y pura**: `Actividad`, `Seccion` y
+  `Estructura` inmutables, los constructores que validan la forma una sola vez
+  (`ESTRUCTURA_DEL_AULA_INVALIDA`) y las operaciones que antes estaban repartidas: búsqueda de
+  sección, `localizar`, `ya_existe`, `desde_donde_se_mueve`, `secciones_que_faltan` y
+  `resolver_orden`. No habla con el aula ni importa python-moodle; `Documento` entra solo para los
+  tipos. `localizar` es **la única búsqueda de «la actividad del aula de este documento»** (origen,
+  luego `Documento.publicados` del curso —`.tiza/publicados.json`—, luego tipo + nombre en su
+  sección y en otra): publicar, ordenar, solo-fechas y el calificador pasan por ella; no busques
+  actividades por otro camino.
 - `src/tiza/estado.py`: **único dueño del estado de trabajo de `.tiza`**: los
   nombres de los ficheros (`informe.json`, `estructura.json`, `verificados.json`,
   `calificador.json`, `publicados.json`, `publicados/` y `preview/`), sus formatos y su validación al leer. `cargar_estructura`
-  devuelve un `Estructura` con v1 y v2 ya unificados (el agente no reinterpreta
+  devuelve un `CursosGuardados` (con `CursoGuardado`: id y una `Estructura` sin actividades) con v1
+  y v2 ya unificados (el agente no reinterpreta
   versiones); un fichero fuera del esquema es `ESTRUCTURA_INVALIDA`, no se
   interpreta a medias. Los verificados usan una sola dataclass (`Verificado`)
-  en disco y en memoria. `buscar_seccion` y `nombre_de_seccion` viven aquí. No
+  en disco y en memoria. No
   importa python-moodle: `agente` lo usa sin cargar el aula.
 - `src/tiza/publicar.py`: **único módulo que habla con el aula**
   (python-moodle). Reduce toda excepción a códigos propios y nunca deja pasar
   texto de Moodle. Al importar parchea APIs privadas de python-moodle (sin token
   móvil, sin `list_courses`, User-Agent): es intencionado, no lo quites sin
   tests. `python-moodle` está fijado a `1.0.2`; subirlo obliga a revisar esos
-  parches. `publicar_documento` y `publicar_fechas` devuelven el
+  parches. `Moodle.estructura` lee con tolerancia la respuesta del aula y devuelve
+  `estructura.Estructura` (un `ErrorEstructura` es `ERROR_ESTRUCTURA`).
+  `publicar_documento` y `publicar_fechas` devuelven el
   `informe.Fichero` ya construido (nada de dicts con claves sueltas). También
-  mueve y ordena: `Moodle.mover` (`cm_move`), `modulos_de`/`modulos_fuera`,
-  `plan_de_orden` (pura), `resolver_orden` y `ordenar_documentos`; cambiar
+  mueve y ordena: `Moodle.mover` (`cm_move`), `plan_de_orden` (pura),
+  `ordenar_documentos` y `asegurar_secciones`; cambiar
   `seccion:` mueve la actividad existente (`movida`) en vez de duplicarla.
-  `localizar` es **la única búsqueda de «la actividad del aula de este documento»** (origen, luego
-  `Documento.publicados` del curso —`.tiza/publicados.json`—, luego tipo + nombre en su sección y en
-  otra): `modulo_de`, `ya_existe`, `origen_de_movimiento`, `resolver_orden`, solo-fechas, publicar
-  y el calificador pasan por ella; no busques actividades por otro camino.
+  `_convertir` es el único sitio que convierte un problema de `estructura` en
+  `ErrorPublicacion`: quien escribe en el aula lo llama; quien solo lee, mira el problema.
 - `src/tiza/filtro.py`: **única fuente de la política de HTML** (etiquetas,
   atributos, CSS, clases y servidores de iframe) sobre el árbol de html5lib.
   Lo que se publica es ese árbol validado, serializado con `filtro.serializar`
@@ -161,7 +171,9 @@ en español.
   `informe_de_cursos`, y `tiza ordenar` (`ordenar_en_cursos`, `ordenar_con`,
   `resumen_orden`, `ResumenOrden`: una confirmación por curso real, sin puerta de
   pruebas), y los tipos que ve la `Presencia` (`Aviso` —con un
-  constructor tipado por aviso—, resúmenes, vistas previas). Lo que distingue a
+  constructor tipado por aviso—, resúmenes, vistas previas). Recibe la estructura
+  del aula ya tipada (`estructura.Estructura`): los problemas de `localizar` se
+  leen, no se capturan. Lo que distingue a
   cada llamador entra como decisión explícita
   y documentada (`verificados` en memoria o disco, `vigente` solo en la sesión,
   `cupo` solo en la sesión, `omitidos` de la terminal directa). Los retoques a mano del docente en lo que tiza
