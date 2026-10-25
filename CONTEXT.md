@@ -67,7 +67,8 @@ Vocabulario del dominio para quien lee o cambia el código. Las reglas de trabaj
   si todos quedan omitidos, el informe es `ABORTADO`.
 - **Petición vigente / retirada**: la petición del agente en el buzón es vigente mientras sigue allí;
   si el agente la retira, desde ese momento nada se escribe en el aula. Se comprueba antes de cada
-  curso salvo el primero y tras cada «sí» del docente. En la terminal directa no hay nada que
-  retirar.
+  curso salvo el primero y tras cada respuesta con la que tiza todavía escribe: cada «sí» y también
+  el «no» a sobrescribir (con él se publica el resto del lote). El «no» que declina un curso no la
+  comprueba. En la terminal directa no hay nada que retirar.
 - **Corte**: parar el recorrido en un curso para no tocar los siguientes. Cortan los fallos y la
   retirada; no corta que el docente diga que no (ni, en publicar, el «no» a sobrescribir).

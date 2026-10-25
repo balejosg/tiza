@@ -178,10 +178,11 @@ en español.
   (informe.json) y la respuesta del buzón al escribirla y al leerla.
 - `src/tiza/publicacion.py`: **la publicación como proceso**, común a la terminal
   directa y a la sesión: puertas (`puerta_real`, `SOLO_OCULTO_SIN_PRUEBAS`),
-  resúmenes y confirmación por curso, flujo de solo-fechas, `publicar_con` e
-  `informe_de_cursos`, y `tiza ordenar` (`ordenar_en_cursos`, `ordenar_con`,
-  `resumen_orden`, `ResumenOrden`: una confirmación por curso real, sin puerta de
-  pruebas), y los tipos que ve la `Presencia` (`Aviso` —con un
+  resúmenes y confirmación por curso, flujo de solo-fechas, `publicar_con` (devuelve el
+  resultado del curso: el informe y si corta) y los tres **trabajos** que ejecuta el
+  recorrido (`_TrabajoPublicar`, `_TrabajoOrdenar` y `_TrabajoCalificador`, con
+  `ordenar_con`, `resumen_orden`, `preparar_calificador`, `resumen_calificador` y
+  `calificador_con`), y los tipos que ve la `Presencia` (`Aviso` —con un
   constructor tipado por aviso—, resúmenes, vistas previas). Recibe la estructura
   del aula ya tipada (`estructura.Estructura`): los problemas de `localizar` se
   leen, no se capturan. Lo que distingue a
@@ -193,6 +194,14 @@ en español.
   pregunta tras el sí normal y `publicar_con` recibe lo decidido (`sobrescribir`, `no_publicar`), que
   pasa a publicar como la actividad vigilada. `cambios_en_el_aula` (`tiza estructura --cambios`) y
   `copiar_actividades` (`tiza copia --actividad`) son la otra mitad de lo mismo. La petición del agente no lleva nada de esto.
+- `src/tiza/recorrido.py`: **el recorrido por cursos**, común a publicar, ordenar y
+  calificador: en pruebas, `SIN_CURSO_PRUEBAS`, cupo (`MAX_PUBLICACIONES_PRUEBAS`),
+  comprobación previa que no gasta cupo y aviso; en real, una visita por curso real en el
+  orden de `tiza.toml`, `omitidos`, vigencia, corte e informe por cursos. Cada comando
+  aporta un `Trabajo` con lo suyo; las preguntas pasan solo por `Turno.preguntar`, que
+  comprueba la vigencia tras cada respuesta con la que tiza sigue escribiendo (cada «sí» y
+  el «no» a sobrescribir) y lanza `PeticionRetirada`, que solo captura el recorrido. No
+  importa `publicacion` al cargarse: el `Aviso` de retirada entra diferido.
 - `src/tiza/sesion.py`: el lado del docente sin terminal (login, cursos,
   autoprueba y el ciclo de la sesión). Solo habla con el docente a través de una
   `Presencia` y no importa `terminal` ni `cli`; todo recibe la carpeta de la

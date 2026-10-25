@@ -6,6 +6,12 @@ vigencia, corte e informe) con un trabajo que solo apunta lo que le piden.
 
 from __future__ import annotations
 
+import ast
+import inspect
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 from dobles import PresenciaFalsa
@@ -274,6 +280,20 @@ def test_retirada_antes_de_un_curso_para_con_aviso_y_registro():
     ]
 
 
+def test_sin_vigente_no_hay_peticion_que_retirar():
+    trabajo = TrabajoQuePregunta(segunda=True)
+    documento = recorrido.recorrer(
+        trabajo,
+        CFG_UNO,
+        PresenciaFalsa(real=True, sobrescribir=True),
+        entorno="real",
+    )
+    assert trabajo.llamadas_preguntar == 2
+    assert trabajo.preguntas == [True, True]
+    assert trabajo.escribio is True
+    assert documento["resultado"] == "ok"
+
+
 def test_retirada_tras_un_si_interrumpe_el_trabajo_sin_escribir():
     trabajo = TrabajoQuePregunta()
     documento = recorrido.recorrer(
@@ -517,3 +537,114 @@ def test_nombre_y_posicion_del_turno():
         (101, 1, 2, "1º A"),
         (102, 2, 2, None),
     ]
+
+
+# --------------------------------------------------------------------------- #
+# La estructura: el bucle y las preguntas viven solo en el recorrido
+# --------------------------------------------------------------------------- #
+
+
+def _arbol(modulo) -> tuple[ast.Module, str]:
+    fuente = Path(modulo.__file__).read_text(encoding="utf-8")
+    return ast.parse(fuente), fuente
+
+
+def _padres(arbol: ast.AST) -> dict[ast.AST, ast.AST]:
+    return {hijo: nodo for nodo in ast.walk(arbol) for hijo in ast.iter_child_nodes(nodo)}
+
+
+def _llamadas(arbol: ast.AST) -> list[ast.Call]:
+    return [nodo for nodo in ast.walk(arbol) if isinstance(nodo, ast.Call)]
+
+
+def _dentro_de_preguntar(nodo: ast.AST, padres: dict[ast.AST, ast.AST]) -> bool:
+    actual = nodo
+    while actual in padres:
+        actual = padres[actual]
+        if not isinstance(actual, ast.Call):
+            continue
+        funcion = actual.func
+        if (
+            isinstance(funcion, ast.Attribute)
+            and funcion.attr == "preguntar"
+            and isinstance(funcion.value, ast.Name)
+            and funcion.value.id == "turno"
+        ):
+            return True
+    return False
+
+
+def _arbol_de(objeto) -> ast.AST:
+    return ast.parse(inspect.getsource(objeto))
+
+
+def test_solo_el_recorrido_recorre_los_cursos_y_mira_la_vigencia():
+    def enumera_los_reales(arbol: ast.AST) -> bool:
+        return any(
+            isinstance(llamada.func, ast.Name)
+            and llamada.func.id == "enumerate"
+            and llamada.args
+            and isinstance(llamada.args[0], ast.Name)
+            and llamada.args[0].id == "reales"
+            for llamada in _llamadas(arbol)
+        )
+
+    def llama_a_vigente(arbol: ast.AST) -> bool:
+        return any(
+            isinstance(llamada.func, ast.Name) and llamada.func.id == "vigente"
+            for llamada in _llamadas(arbol)
+        )
+
+    recorridos = (
+        publicacion.publicar_en_cursos,
+        publicacion.ordenar_en_cursos,
+        publicacion.calificador_en_cursos,
+        publicacion._TrabajoPublicar,
+        publicacion._TrabajoOrdenar,
+        publicacion._TrabajoCalificador,
+    )
+    for objeto in recorridos:
+        arbol = _arbol_de(objeto)
+        assert not enumera_los_reales(arbol), objeto.__name__
+        assert not llama_a_vigente(arbol), objeto.__name__
+    arbol_recorrido, _ = _arbol(recorrido)
+    assert enumera_los_reales(arbol_recorrido)
+    assert llama_a_vigente(arbol_recorrido)
+
+
+def test_las_confirmaciones_de_los_trabajos_pasan_por_el_turno():
+    for clase in (
+        publicacion._TrabajoPublicar,
+        publicacion._TrabajoOrdenar,
+        publicacion._TrabajoCalificador,
+    ):
+        arbol = _arbol_de(clase)
+        padres = _padres(arbol)
+        for llamada in _llamadas(arbol):
+            funcion = llamada.func
+            if isinstance(funcion, ast.Attribute) and funcion.attr.startswith("confirmar_"):
+                assert _dentro_de_preguntar(llamada, padres), f"{clase.__name__}: {funcion.attr}"
+
+
+def test_las_funciones_externas_delegan_en_el_recorrido_sin_bucle():
+    fuente = Path(publicacion.__file__).read_text(encoding="utf-8")
+    arbol = ast.parse(fuente)
+    for nombre in ("publicar_en_cursos", "ordenar_en_cursos", "calificador_en_cursos"):
+        nodo = next(
+            nodo for nodo in arbol.body if isinstance(nodo, ast.FunctionDef) and nodo.name == nombre
+        )
+        assert not any(isinstance(hijo, (ast.For, ast.AsyncFor)) for hijo in ast.walk(nodo))
+        segmento = ast.get_source_segment(fuente, nodo)
+        assert segmento is not None and "recorrido.recorrer(" in segmento
+    assert not hasattr(publicacion, "MAX_PUBLICACIONES_PRUEBAS")
+    assert hasattr(recorrido, "MAX_PUBLICACIONES_PRUEBAS")
+
+
+def test_recorrido_no_carga_publicacion_ni_python_moodle():
+    codigo = (
+        "import sys\n"
+        "import tiza.recorrido\n"
+        "assert 'tiza.publicacion' not in sys.modules, 'publicacion cargada'\n"
+        "assert 'py_moodle' not in sys.modules, 'python-moodle cargado'\n"
+    )
+    subprocess.run([sys.executable, "-I", "-c", codigo], check=True)
