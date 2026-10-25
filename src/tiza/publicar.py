@@ -20,7 +20,7 @@ import secrets
 import shutil
 import tempfile
 import time
-from collections.abc import Collection, Iterator, Mapping, Sequence
+from collections.abc import Collection, Iterator, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import unquote, urljoin, urlsplit
@@ -2470,10 +2470,10 @@ def publicar_documento(
     sigue como estaba en la copia: si no, ``CAMBIADA_EN_EL_AULA`` y no se toca nada.
 
     ``comprobar_registro``: la actividad hallada por el registro de lo publicado y con huella en él
-    (``cambio_a_mano``) se compara justo antes de escribir con el formulario que se carga para
-    actualizar; si el docente la retocó a mano, ``CAMBIADA_EN_EL_AULA`` y no se toca nada. Lo pone
-    quien publica en un curso real. ``sobrescribir``: el docente ya dijo que sí a perder ese
-    cambio, y no se compara. Ninguno de los dos cambia lo que se halla por ``origen``.
+    se compara justo antes de escribir con el formulario que se carga para actualizar; si el
+    docente la retocó a mano, ``CAMBIADA_EN_EL_AULA`` y no se toca nada. Lo pone quien publica en
+    un curso real. ``sobrescribir``: el docente ya dijo que sí a perder ese cambio, y no se
+    compara. Ninguno de los dos cambia lo que se halla por ``origen``.
     """
     with tempfile.TemporaryDirectory(prefix="tiza-recursos-") as temporal:
         copia = _congelar_recursos(doc, Path(temporal))
@@ -2883,21 +2883,10 @@ def _marca_sin_juntar(doc: Documento, entrada: Publicado) -> bool:
 
 
 def _formulario_cambiado(doc: Documento, base: str, leido: dict, solo_fechas: bool = False) -> bool:
-    """¿Difiere el formulario ``leido`` de la huella ``base`` y de lo que tiza iba a enviar?
+    """La regla única de comparación mientras dura la migración (vive en ``vigilancia``)."""
+    from .vigilancia import formulario_cambiado
 
-    Lo segundo cubre un intento anterior que escribió y falló al verificar: el aula ya tiene lo
-    de tiza y no hay cambio ajeno que perder. Con ``solo_fechas`` lo que tiza iba a enviar son
-    solo las fechas (el nombre y el texto del aula, con las fechas del fichero). Solo se
-    compara; la huella nunca sale de aquí. Vale para la base del registro y para la de
-    ``copia.json``.
-    """
-    tipo = tipos.obtener(doc.tipo)
-    en_el_aula = tipos.huella_del_formulario(tipo, doc, leido)
-    if en_el_aula == base:
-        return False
-    if solo_fechas:
-        return en_el_aula != tipos.huella_con_las_fechas_de(tipo, doc, leido)
-    return en_el_aula != tipos.huella_de_lo_enviado(tipo, doc, html_para_moodle(doc))
+    return formulario_cambiado(doc, base, leido, solo_fechas=solo_fechas)
 
 
 def _huella_cambiada(
@@ -2906,93 +2895,6 @@ def _huella_cambiada(
     """¿Difiere el formulario ``leido`` de la base de la entrada del registro y de lo enviado?"""
     assert entrada.huella is not None  # ``_entrada_vigilada`` solo da entradas con huella
     return _formulario_cambiado(doc, entrada.huella, leido, solo_fechas)
-
-
-def _retocada(
-    moodle: AulaVirtual,
-    doc: Documento,
-    base: str,
-    sin_juntar: bool,
-    cmid: int,
-    solo_fechas: bool = False,
-) -> bool:
-    """¿Cambió el docente la actividad ``cmid`` desde que tiza guardó la huella ``base``?
-
-    Con la marca sin juntar ya se sabe sin leer el aula. Si no se puede leer el formulario, no se
-    sabe: cuenta como cambiado, para no pisar a ciegas.
-    """
-    if sin_juntar:
-        return True
-    try:
-        leido = moodle.leer_modulo(cmid)
-    except ErrorPublicacion:
-        return True
-    return _formulario_cambiado(doc, base, leido, solo_fechas)
-
-
-def cambio_a_mano(
-    moodle: AulaVirtual,
-    estructura: Estructura,
-    doc: Documento,
-    curso: int,
-    solo_fechas: bool = False,
-) -> bool:
-    """¿Retocó el docente a mano en el aula lo que tiza publicó de ``doc``? Solo en cursos reales.
-
-    Vale para lo hallado por el registro con huella (``_entrada_vigilada``); para lo demás, no. Con
-    la marca sin juntar ya se sabe sin leer el aula. Si no se puede leer el formulario, no se sabe:
-    cuenta como cambiado, para no pisar a ciegas. Una actividad ambigua no es de esta pregunta:
-    ya la rechazará la publicación con su código. Con ``solo_fechas``, lo que ya tiene las fechas
-    del fichero tampoco cuenta (un intento anterior las escribió y falló al verificar).
-    """
-    loc = estructura.localizar(doc, curso)
-    if loc.problema is not None:
-        return False
-    entrada = _entrada_vigilada(doc, curso, loc)
-    if entrada is None:
-        return False
-    assert entrada.huella is not None and loc.modulo is not None
-    return _retocada(
-        moodle,
-        doc,
-        entrada.huella,
-        _marca_sin_juntar(doc, entrada),
-        loc.modulo.cmid,
-        solo_fechas,
-    )
-
-
-def cambio_desde_la_base(
-    moodle: AulaVirtual,
-    estructura: Estructura,
-    doc: Documento,
-    curso: int,
-    huellas: Mapping[int, str],
-    marcas: Mapping[int, str],
-) -> tuple[bool | None, int | None]:
-    """(¿lo retocó el docente?, cmid de la actividad) de ``doc`` en el curso real ``curso``.
-
-    La regla de la publicación (``cambio_a_mano``), ampliada a lo hallado por ``origen``, cuya base
-    es ``copia.json`` (``huellas``/``marcas`` por cmid). El primer valor es ``None`` si no hay base
-    con la que comparar: la actividad no está, no la halló el registro o el ``origen``, o su
-    entrada no tiene huella. Solo lectura.
-    """
-    loc = estructura.localizar(doc, curso)
-    if loc.problema is not None:
-        return None, None
-    cmid = loc.modulo.cmid if loc.modulo is not None else None
-    if loc.por == "origen" and loc.modulo is not None:
-        base = huellas.get(loc.modulo.cmid)
-        if base is None:
-            return None, cmid
-        sin_juntar = marca_sin_juntar(marcas.get(loc.modulo.cmid), doc)
-        return _retocada(moodle, doc, base, sin_juntar, loc.modulo.cmid), cmid
-    entrada = _entrada_vigilada(doc, curso, loc)
-    if entrada is None or entrada.huella is None or loc.modulo is None:
-        return None, cmid
-    return _retocada(
-        moodle, doc, entrada.huella, _marca_sin_juntar(doc, entrada), loc.modulo.cmid
-    ), cmid
 
 
 def asegurar_secciones(

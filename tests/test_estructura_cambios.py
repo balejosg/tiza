@@ -1,7 +1,7 @@
 """``tiza estructura --cambios``: ¿retocó el docente esas actividades a mano en el aula?
 
 Se prueba por ``estructura_con`` y ``SesionAbierta.atender`` con los dobles; la regla de fondo
-es la de la publicación (``publicar.cambio_desde_la_base``).
+es la de la publicación (``vigilancia.estado_por_documento``).
 """
 
 from __future__ import annotations

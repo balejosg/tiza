@@ -49,6 +49,7 @@ from .estado import ErrorEstado
 from .estructura import Estructura, aplica_origen
 from .publicar import AulaVirtual, CalificadorAula, ErrorPublicacion
 from .tipos import CAMPO_RECORDATORIO, FechaActividad
+from .vigilancia import EstadoDeCambios, Rechazo, Vigilancia
 
 if TYPE_CHECKING:  # solo para el tipo; la sesión importa este módulo
     from .sesion import CursoSesion
@@ -79,6 +80,7 @@ __all__ = [
     "ResumenPublicacion",
     "ResumenSinPruebas",
     "ResumenSobrescribir",
+    "ResultadoCurso",
     "SeccionOrden",
     "cambiadas_en_el_aula",
     "cambios_de_fechas",
@@ -1004,6 +1006,14 @@ def resumen_solo_fechas(
     )
 
 
+@dataclass(frozen=True)
+class ResultadoCurso:
+    """PROVISIONAL: lo sustituirá el resultado del recorrido (propuesta-1 §2, fase 16)."""
+
+    informe: dict
+    corta: bool
+
+
 def publicar_con(
     aula: AulaVirtual,
     entorno: str,
@@ -1017,7 +1027,7 @@ def publicar_con(
     solo_fechas: bool = False,
     sobrescribir: frozenset[Path] = frozenset(),
     no_publicar: frozenset[Path] = frozenset(),
-) -> dict:
+) -> ResultadoCurso:
     """Con el aula ya abierta: publica y verifica los documentos.
 
     Con ``solo_fechas`` solo cambia las fechas de lo que ya existe: no crea secciones,
@@ -1040,7 +1050,7 @@ def publicar_con(
         if ordenados is None:
             borrador.fallo("DEPENDENCIAS", "DEPENDENCIA_CIRCULAR")
             borrador.error("DEPENDENCIA_CIRCULAR")
-            return borrador.documento("error")
+            return ResultadoCurso(borrador.documento("error"), True)
         documentos = ordenados
     try:
         estructura = aula.estructura(curso)
@@ -1048,30 +1058,29 @@ def publicar_con(
         borrador.fallo("ESTRUCTURA", exc.codigo)
         borrador.error(exc.codigo)
         depurar(exc, debug)
-        return borrador.documento("error")
+        return ResultadoCurso(borrador.documento("error"), True)
     # Lo que se rechaza por su origen se dice ya y no deja nada hecho (ni una sección creada).
     dir_tiza = Path(carpeta) / rutas.CARPETA_TRABAJO
+    real = entorno == "real"
     try:
-        huellas, marcas = _guardado_de_copia(dir_tiza, curso, documentos)
+        vigilancia = Vigilancia.de(aula, dir_tiza, curso, documentos, real)
     except estado.ErrorEstado as exc:
         borrador.fallo("PREPARAR", exc.codigo)
         borrador.error(exc.codigo)
-        return borrador.documento("error")
-    aceptados, rechazados = _separar_rechazados(
-        documentos, estructura, curso, base, solo_fechas, huellas, marcas, no_publicar
+        return ResultadoCurso(borrador.documento("error"), True)
+    aceptados, rechazos = _separar_rechazados(
+        documentos, estructura, base, solo_fechas, vigilancia, no_publicar
     )
-    real = entorno == "real"
-    for rechazado, motivo in rechazados:
-        detalle = rechazado.ruta.name
-        if motivo == "CAMBIADA_EN_EL_AULA" and aplica_origen(rechazado, curso):
-            assert rechazado.origen is not None
-            cmid = rechazado.origen.cmid
-            detalle += f": junta antes los cambios de .tiza/copia/{cmid}.html"
-            presencia.informar(Aviso.cambiada_en_el_aula(rechazado.nombre, cmid))
-        elif motivo == "CAMBIADA_EN_EL_AULA":  # el docente retocó a mano y dijo que no
-            presencia.informar(Aviso.cambiada_desde_la_publicacion(rechazado.nombre))
+    for rechazo in rechazos:
+        doc = rechazo.documento
+        detalle = doc.ruta.name
+        if rechazo.cmid_copia is not None:
+            detalle += f": junta antes los cambios de .tiza/copia/{rechazo.cmid_copia}.html"
+            presencia.informar(Aviso.cambiada_en_el_aula(doc.nombre, rechazo.cmid_copia))
+        elif rechazo.por_decision:
+            presencia.informar(Aviso.cambiada_desde_la_publicacion(doc.nombre))
         borrador.fallo(paso, detalle)
-        borrador.error(motivo)
+        borrador.error(rechazo.codigo)
     documentos = aceptados
     existentes: dict[str, int] = {}
     if not solo_fechas:
@@ -1079,14 +1088,14 @@ def publicar_con(
         if faltante is not None:
             borrador.fallo("DEPENDENCIAS", faltante[1])
             borrador.error(faltante[0])
-            return borrador.documento("error")
+            return ResultadoCurso(borrador.documento("error"), True)
     if solo_fechas:
         # Todo o nada: si alguno de los documentos no se puede cambiar, no se cambia ninguno.
         codigo = codigo_solo_fechas(estructura, documentos, curso)
         if codigo is not None:
             borrador.fallo("SOLO_FECHAS", codigo)
             borrador.error(codigo)
-            return borrador.documento("error")
+            return ResultadoCurso(borrador.documento("error"), True)
     else:
         for nombre in estructura.secciones_que_faltan(documentos):
             presencia.informar(Aviso.creando_seccion(nombre))
@@ -1096,7 +1105,7 @@ def publicar_con(
             borrador.fallo("CREAR_SECCION", exc.codigo)
             borrador.error(exc.codigo)
             depurar(exc, debug)
-            return borrador.documento("error")
+            return ResultadoCurso(borrador.documento("error"), True)
         for nombre in creadas:
             borrador.paso("CREAR_SECCION", detalle=nombre)
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
@@ -1107,7 +1116,7 @@ def publicar_con(
             huella_nueva = None  # solo --solo-fechas: la calcula publicar.py con lo que relee
             if doc.origen is not None and aplica_origen(doc, curso):
                 # Sin huella no se llega aquí: ``_separar_rechazados`` ya lo dejó fuera.
-                huella = huellas.get(doc.origen.cmid)
+                huella = vigilancia.huellas.get(doc.origen.cmid)
             decidido = doc.ruta.resolve() in sobrescribir
             if solo_fechas:
                 resultado, huella_nueva = publicar.publicar_fechas_con_huella(
@@ -1143,7 +1152,7 @@ def publicar_con(
             depurar(exc, debug)
             borrador.error(exc.codigo)
             if exc.codigo not in ERRORES_POR_FICHERO:
-                return borrador.documento("error")
+                return ResultadoCurso(borrador.documento("error"), True)
             # Esta actividad no se toca; las demás del lote siguen.
             if exc.codigo == "CAMBIADA_EN_EL_AULA":
                 presencia.informar(
@@ -1198,7 +1207,8 @@ def publicar_con(
                 motor = publicar.aula_dibuja_formulas(aula, curso)
             if not motor:
                 borrador.paso("FORMULAS_NO_DIBUJADAS", detalle=doc.ruta.name)
-    return borrador.documento()
+    documento = borrador.documento()
+    return ResultadoCurso(documento, _corta(documento, rechazos, no_publicar))
 
 
 # Fallos que paran solo a su fichero: la actividad no se toca y el resto del lote sigue.
@@ -1211,19 +1221,6 @@ ERRORES_POR_FICHERO = frozenset(
         "DEPENDENCIA_NO_PUBLICADA",
     }
 )
-
-
-def _guardado_de_copia(
-    dir_tiza: Path, curso: int, documentos: list[Documento]
-) -> tuple[dict[int, str], dict[int, str]]:
-    """De ``copia.json``, lo de este curso: (huella del aula, marca del fichero) por cmid.
-
-    Solo se lee si algún documento viene de este curso por su ``origen``. Un ``copia.json``
-    que no vale da ``ErrorEstado``.
-    """
-    if not any(aplica_origen(doc, curso) for doc in documentos):
-        return {}, {}
-    return estado.huellas_de_copia(dir_tiza, curso), estado.marcas_de_copia(dir_tiza, curso)
 
 
 def _sin_origen_repetido(documentos: list[Documento]) -> tuple[list[Documento], list[Documento]]:
@@ -1242,63 +1239,81 @@ def _sin_origen_repetido(documentos: list[Documento]) -> tuple[list[Documento], 
 def _separar_rechazados(
     documentos: list[Documento],
     estructura: Estructura,
-    curso: int,
     base: Path,
     solo_fechas: bool,
-    huellas: Mapping[int, str],
-    marcas: Mapping[int, str],
+    vigilancia: Vigilancia,
     no_publicar: Collection[Path] = (),
-) -> tuple[list[Documento], list[tuple[Documento, str]]]:
-    """(los que se pueden publicar, los rechazados con su código), mirando solo la estructura.
+) -> tuple[list[Documento], list[Rechazo]]:
+    """(los que se pueden publicar, los rechazados), mirando solo la estructura.
 
     Se rechazan antes de confirmar y de crear nada: dos ficheros del mismo ``origen``
-    (``ORIGEN_DUPLICADO``), un ``origen`` que ya no está en este curso (``ORIGEN_NO_ENCONTRADO``),
-    una actividad de la que ``copia.json`` no guarda la huella (``ORIGEN_SIN_HUELLA``: sin ella no
-    se puede saber si cambió en el aula), una cuyo fichero sigue como cuando se marcó cambiada en
-    el aula (``CAMBIADA_EN_EL_AULA``: el docente aún no juntó los cambios) y quien depende de uno
-    rechazado (``DEPENDENCIA_NO_PUBLICADA``). Con ``--solo-fechas`` el origen no encontrado y las
-    dependencias no cuentan: es todo o nada.
-
-    ``no_publicar``: rutas resueltas de lo que el docente retocó a mano en el aula y no quiso
-    sobrescribir (``CAMBIADA_EN_EL_AULA``, como los de ``origen``); quien depende de ellos también
-    queda fuera.
+    (``ORIGEN_DUPLICADO``), lo que rechaza la vigilancia por su ``origen``
+    (``ORIGEN_NO_ENCONTRADO``, ``ORIGEN_SIN_HUELLA`` y ``CAMBIADA_EN_EL_AULA`` por la marca de
+    ``copia.json``), lo que el docente decidió no sobrescribir (``CAMBIADA_EN_EL_AULA`` con
+    ``por_decision``) y quien depende de uno rechazado (``DEPENDENCIA_NO_PUBLICADA``). Con
+    ``--solo-fechas`` el origen no encontrado y las dependencias no cuentan: es todo o nada.
     """
     base = Path(base).resolve()
     claves = [_relativa(doc.ruta, base) for doc in documentos]
     cuantos = Counter((doc.origen.curso, doc.origen.cmid) for doc in documentos if doc.origen)
-    rechazados: dict[int, str] = {}
+    rechazados: dict[int, Rechazo] = {}
     for indice, doc in enumerate(documentos):
         if doc.origen is not None and cuantos[(doc.origen.curso, doc.origen.cmid)] > 1:
-            rechazados[indice] = "ORIGEN_DUPLICADO"
+            rechazados[indice] = Rechazo(doc, "ORIGEN_DUPLICADO")
+    de_la_vigilancia = {
+        id(rechazo.documento): rechazo
+        for rechazo in vigilancia.rechazos(estructura, documentos, solo_fechas)
+    }
     for indice, doc in enumerate(documentos):
-        if indice in rechazados or doc.origen is None or not aplica_origen(doc, curso):
-            continue
-        if not solo_fechas:
-            if estructura.localizar(doc, curso).problema is not None:
-                rechazados[indice] = "ORIGEN_NO_ENCONTRADO"
-                continue
-        if doc.origen.cmid not in huellas:
-            rechazados[indice] = "ORIGEN_SIN_HUELLA"
-        elif publicar.marca_sin_juntar(marcas.get(doc.origen.cmid), doc):
-            rechazados[indice] = "CAMBIADA_EN_EL_AULA"
+        if indice not in rechazados and id(doc) in de_la_vigilancia:
+            rechazados[indice] = de_la_vigilancia[id(doc)]
+    if not solo_fechas:
+        _cerrar_dependencias(documentos, claves, rechazados, por_decision=False)
     if no_publicar:
         for indice, doc in enumerate(documentos):
             if indice not in rechazados and doc.ruta.resolve() in no_publicar:
-                rechazados[indice] = "CAMBIADA_EN_EL_AULA"
-    if not solo_fechas:
-        crecio = True
-        while crecio:  # quien depende de un rechazado, también (de forma transitiva)
-            crecio = False
-            fuera = {claves[indice] for indice in rechazados}
-            for indice, doc in enumerate(documentos):
-                deps = doc.restricciones.completar if doc.restricciones else ()
-                if indice not in rechazados and any(dep in fuera for dep in deps):
-                    rechazados[indice] = "DEPENDENCIA_NO_PUBLICADA"
-                    crecio = True
+                rechazados[indice] = vigilancia.rechazo_del_no(doc)
+        if not solo_fechas:
+            _cerrar_dependencias(documentos, claves, rechazados, por_decision=True)
     return (
         [doc for indice, doc in enumerate(documentos) if indice not in rechazados],
-        [(documentos[indice], rechazados[indice]) for indice in sorted(rechazados)],
+        [rechazados[indice] for indice in sorted(rechazados)],
     )
+
+
+def _cerrar_dependencias(
+    documentos: list[Documento],
+    claves: list[str],
+    rechazados: dict[int, Rechazo],
+    *,
+    por_decision: bool,
+) -> None:
+    """Añade a ``rechazados`` quien depende de un rechazado, de forma transitiva."""
+    crecio = True
+    while crecio:
+        crecio = False
+        fuera = {claves[indice] for indice in rechazados}
+        for indice, doc in enumerate(documentos):
+            deps = doc.restricciones.completar if doc.restricciones else ()
+            if indice not in rechazados and any(dep in fuera for dep in deps):
+                rechazados[indice] = Rechazo(
+                    doc, "DEPENDENCIA_NO_PUBLICADA", por_decision=por_decision
+                )
+                crecio = True
+
+
+def _corta(documento: dict, rechazos: Sequence[Rechazo], no_publicar: Collection[Path]) -> bool:
+    """Si el resultado del curso corta los siguientes: un «no» del docente no corta.
+
+    Es falso si el informe es ``ok``, o si el único motivo de sus errores es el «no» y lo que
+    arrastra. Cualquier otro caso corta.
+    """
+    if documento["resultado"] == "ok":
+        return False
+    if not no_publicar or not documento["errores"]:
+        return True
+    por_el_no = Counter(rechazo.codigo for rechazo in rechazos if rechazo.por_decision)
+    return bool(Counter(documento["errores"]) - por_el_no)
 
 
 def _renovar_huella(
@@ -1326,29 +1341,6 @@ def _renovar_huella(
         presencia.informar(Aviso.huella_no_guardada(doc.nombre))
 
 
-def _rechazos_por_el_no(
-    documentos: list[Documento],
-    estructura: Estructura,
-    curso: int,
-    base: Path,
-    solo_fechas: bool,
-    huellas: Mapping[int, str],
-    marcas: Mapping[int, str],
-    no_publicar: Collection[Path],
-    de_siempre: list[tuple[Documento, str]],
-) -> Counter[str]:
-    """Los códigos de error que da el no del docente (y lo que arrastra), y nada más.
-
-    Son los rechazos de ``_separar_rechazados`` con ``no_publicar`` que no estaban ya sin él
-    (``de_siempre``): si el informe del curso no tiene otros errores, el curso no ha fallado.
-    """
-    _, con_el_no = _separar_rechazados(
-        documentos, estructura, curso, base, solo_fechas, huellas, marcas, no_publicar
-    )
-    ya = {id(doc) for doc, _ in de_siempre}
-    return Counter(motivo for doc, motivo in con_el_no if id(doc) not in ya)
-
-
 def cambios_de_nombre(
     estructura: Estructura, documentos: list[Documento], curso: int
 ) -> tuple[CambioNombre, ...]:
@@ -1371,25 +1363,25 @@ def cambios_de_nombre(
 
 
 def cambiadas_en_el_aula(
-    aula: AulaVirtual,
+    vigilancia: Vigilancia,
     estructura: Estructura,
-    documentos: list[Documento],
-    curso: int,
+    documentos: Sequence[Documento],
     solo_fechas: bool = False,
 ) -> tuple[Documento, ...]:
-    """Los documentos cuya actividad retocó el docente a mano en el aula desde que tiza la publicó.
+    """Los documentos cuya actividad retocó el docente a mano: delega en la vigilancia.
 
-    Solo mira los hallados por el registro y con huella en él (``publicar.cambio_a_mano``): del
-    resto no lee nada. Lo que no se puede leer cuenta como cambiado, para no pisarlo a ciegas.
-    Con ``solo_fechas``, lo que ya tiene las fechas del fichero no cuenta (un intento anterior las
-    escribió y falló al verificar). Es solo lectura: el docente decide después
-    (``Presencia.confirmar_sobrescribir``).
+    Solo mira los hallados por el registro y con huella en él; del resto no lee nada. Lo que no
+    se puede leer cuenta como cambiado, para no pisarlo a ciegas. Es solo lectura: el docente
+    decide después (``Presencia.confirmar_sobrescribir``).
     """
-    return tuple(
-        doc
-        for doc in documentos
-        if publicar.cambio_a_mano(aula, estructura, doc, curso, solo_fechas)
-    )
+    return vigilancia.retoques(estructura, documentos, solo_fechas)
+
+
+_ACCION_DE_CAMBIO = {
+    EstadoDeCambios.CAMBIADA: "cambiada",
+    EstadoDeCambios.SIN_CAMBIOS: "sin_cambios",
+    EstadoDeCambios.SIN_REGISTRO: "sin_registro",
+}
 
 
 def cambios_en_el_aula(
@@ -1401,22 +1393,21 @@ def cambios_en_el_aula(
 ) -> list[informe.Fichero]:
     """Un ``Fichero`` por documento: ``cambiada``, ``sin_cambios`` o ``sin_registro`` en ``curso``.
 
-    Para ``tiza estructura --cambios`` (solo cursos reales; el llamador no pide el de pruebas). Con
-    la regla de la publicación (``publicar.cambio_desde_la_base``); no escribe nada ni lleva texto
-    del aula. ``copia.json`` solo se lee si algún documento viene de este curso por su ``origen``
-    (``ErrorEstado`` si no vale).
+    Para ``tiza estructura --cambios`` (solo cursos reales; el llamador no pide el de pruebas).
+    Delega en la vigilancia; no escribe nada ni lleva texto del aula. ``copia.json`` solo se lee
+    si algún documento viene de este curso por su ``origen`` (``ErrorEstado`` si no vale).
     """
-    huellas, marcas = _guardado_de_copia(dir_tiza, curso, list(documentos))
-    ficheros = []
-    for doc in documentos:
-        cambiada, cmid = publicar.cambio_desde_la_base(
-            aula, estructura, doc, curso, huellas, marcas
+    vigilancia = Vigilancia.de(aula, dir_tiza, curso, list(documentos), real=True)
+    return [
+        informe.Fichero(
+            cambio.documento.ruta.name,
+            cambio.documento.tipo,
+            cmid=cambio.cmid,
+            accion=_ACCION_DE_CAMBIO[cambio.estado],
+            curso=curso,
         )
-        accion = "sin_registro" if cambiada is None else "cambiada" if cambiada else "sin_cambios"
-        ficheros.append(
-            informe.Fichero(doc.ruta.name, doc.tipo, cmid=cmid, accion=accion, curso=curso)
-        )
-    return ficheros
+        for cambio in vigilancia.estado_por_documento(estructura, documentos)
+    ]
 
 
 def _registrar_publicado(
@@ -1665,7 +1656,7 @@ def _en_pruebas(
         presencia,
         debug=debug,
         solo_fechas=solo_fechas,
-    )
+    ).informe
 
 
 def _preguntar_sobrescribir(
@@ -1766,13 +1757,13 @@ def _en_real(
         nombre_curso = nombres.get(curso)
         # Lo que se rechaza por su origen sale con su código y no entra en lo que se confirma.
         try:
-            huellas, marcas = _guardado_de_copia(base / rutas.CARPETA_TRABAJO, curso, documentos)
+            vigilancia = Vigilancia.de(
+                aula, base / rutas.CARPETA_TRABAJO, curso, documentos, real=True
+            )
         except estado.ErrorEstado as exc:
             registro.append((posicion, curso, fallo(exc.codigo, curso)))
             break
-        a_publicar, rechazados_de_siempre = _separar_rechazados(
-            documentos, estructura, curso, base, solo_fechas, huellas, marcas
-        )
+        a_publicar, _ = _separar_rechazados(documentos, estructura, base, solo_fechas, vigilancia)
         ids = {id(doc) for doc in a_publicar}
         # Lo que el docente retocó a mano en el aula; se le pregunta tras su sí de siempre.
         cambiadas: tuple[Documento, ...] = ()
@@ -1783,7 +1774,7 @@ def _en_real(
             if codigo is not None:
                 registro.append((posicion, curso, fallo(codigo, curso)))
                 break
-            cambiadas = cambiadas_en_el_aula(aula, estructura, a_publicar, curso, solo_fechas=True)
+            cambiadas = cambiadas_en_el_aula(vigilancia, estructura, a_publicar, solo_fechas=True)
             resumen = resumen_solo_fechas(
                 aula,
                 curso,
@@ -1797,7 +1788,7 @@ def _en_real(
             )
             confirmado = presencia.confirmar_real(resumen)
         elif sin_pruebas:
-            cambiadas = cambiadas_en_el_aula(aula, estructura, a_publicar, curso)
+            cambiadas = cambiadas_en_el_aula(vigilancia, estructura, a_publicar)
             corto = ResumenSinPruebas(
                 curso=curso,
                 nombre_curso=nombre_curso,
@@ -1820,7 +1811,7 @@ def _en_real(
             )
             confirmado = presencia.confirmar_real_sin_pruebas(corto)
         else:
-            cambiadas = cambiadas_en_el_aula(aula, estructura, a_publicar, curso)
+            cambiadas = cambiadas_en_el_aula(vigilancia, estructura, a_publicar)
             resumen = ResumenPublicacion(
                 curso=curso,
                 nombre_curso=nombre_curso,
@@ -1860,7 +1851,7 @@ def _en_real(
             presencia.informar(Aviso.peticion_retirada())
             registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
             break
-        documento = publicar_con(
+        resultado_curso = publicar_con(
             aula,
             entorno,
             curso,
@@ -1873,28 +1864,12 @@ def _en_real(
             sobrescribir=sobrescribir,
             no_publicar=no_publicar,
         )
+        documento = resultado_curso.informe
         registro.append((posicion, curso, documento))
-        if documento["resultado"] != "ok":
+        if documento["resultado"] != "ok" and resultado_curso.corta:
             # Un no a sobrescribir es una decisión del docente, no un fallo: los cursos
-            # siguientes se publican. Cualquier otro error corta como siempre; y también si el
-            # curso no salió ok y no hay ningún error que explique que fue por el no.
-            if (
-                not no_publicar
-                or not documento["errores"]
-                or Counter(documento["errores"])
-                - _rechazos_por_el_no(
-                    documentos,
-                    estructura,
-                    curso,
-                    base,
-                    solo_fechas,
-                    huellas,
-                    marcas,
-                    no_publicar,
-                    rechazados_de_siempre,
-                )
-            ):
-                break
+            # siguientes se publican. Cualquier otro error corta como siempre.
+            break
     return informe_de_cursos(comando, entorno, total, unico, registro)
 
 

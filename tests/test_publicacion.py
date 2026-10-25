@@ -43,6 +43,7 @@ from tiza import (
 )
 from tiza.copia import abrir_copia
 from tiza.publicar import ErrorPublicacion
+from tiza.vigilancia import Vigilancia
 
 PAGINA = "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\n---\n\n## Repaso\n\nContenido.\n"
 
@@ -788,10 +789,14 @@ def test_el_origen_ausente_manda_sobre_un_registro_ambiguo(tmp_path):
         publicados={5678: estado.Publicado(cmid=601, tipo="pagina")},
     )
     aceptados, rechazados = publicacion._separar_rechazados(
-        [doc], _estructura_con_paginas(), 5678, carpeta, False, {}, {}
+        [doc],
+        _estructura_con_paginas(),
+        carpeta,
+        False,
+        Vigilancia.de(MoodleFalso(), carpeta / ".tiza", 5678, [doc], False),
     )
     assert aceptados == []
-    assert [(d.ruta.name, motivo) for d, motivo in rechazados] == [
+    assert [(r.documento.ruta.name, r.codigo) for r in rechazados] == [
         ("pagina.md", "ORIGEN_NO_ENCONTRADO")
     ]
 
@@ -2270,7 +2275,9 @@ def test_un_curso_no_ok_sin_errores_y_con_un_no_a_sobrescribir_corta(tmp_path, m
     def sin_errores(aula, entorno, curso, *args, **kwargs):
         cursos.append(curso)
         if len(cursos) == 1:  # un curso que no sale ok y no dice por qué
-            return informe.crear("publicar", "abortado", [], [], [], entorno, curso)
+            return publicacion.ResultadoCurso(
+                informe.crear("publicar", "abortado", [], [], [], entorno, curso), True
+            )
         return publicar_con(aula, entorno, curso, *args, **kwargs)
 
     monkeypatch.setattr(publicacion, "publicar_con", sin_errores)

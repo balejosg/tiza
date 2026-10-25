@@ -545,7 +545,7 @@ class TestSoloFechas:
         moodle = aula_con_tarea()  # «Problemas» existe; «Otra», no
         documento = publicacion.publicar_con(
             moodle, "pruebas", 1234, documentos, None, carpeta, PresenciaFalsa(), solo_fechas=True
-        )
+        ).informe
         assert documento["resultado"] == "error"
         assert documento["errores"] == ["MODULO_AUSENTE"]
         assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
