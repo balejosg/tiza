@@ -29,6 +29,7 @@ from .calificacion.carpeta import cargar_calificacion
 from .calificacion.esquema import ErrorCalificacion
 from .config import Config
 from .contenido import Documento, ErrorContenido
+from .estructura import Estructura
 from .publicacion import Presencia
 from .publicar import AulaVirtual, ErrorPublicacion
 
@@ -66,7 +67,7 @@ def estructura_con(
     borrador = informe.Borrador("estructura")
     borrador.paso("LOGIN")
     cursos: dict[str, Any] = {}
-    reales: list[tuple[int, list[dict]]] = []  # las secciones de cada curso real, para --cambios
+    reales: list[tuple[int, Estructura]] = []  # las secciones de cada curso real, para --cambios
     try:
         destinos: list[tuple[str, int]] = []
         if "pruebas" in cfg.cursos:
@@ -76,14 +77,7 @@ def estructura_con(
             secciones = aula.estructura(curso_id)
             curso = {
                 "id": curso_id,
-                "secciones": [
-                    {
-                        "numero": seccion["numero"],
-                        "nombre": seccion["nombre"],
-                        "id": seccion["id"],
-                    }
-                    for seccion in secciones
-                ],
+                "secciones": [seccion.para_fichero() for seccion in secciones],
             }
             if nombre == "real":
                 cursos.setdefault("real", []).append(curso)

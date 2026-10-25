@@ -291,9 +291,26 @@ class TestAtenderSinPruebas:
 
     def test_resumen_avisa_si_no_puede_comprobar_si_existe(self, tmp_path):
         carpeta = preparar_carpeta(tmp_path)
+        # El registro apunta a una actividad con otro nombre y en la sección del documento
+        # hay otra con el suyo: la localización es ambigua y no se puede saber si existe.
+        estado.guardar_publicado(
+            carpeta / ".tiza", 5678, "pagina.md", estado.Publicado(cmid=100, tipo="pagina")
+        )
         datos = peticion("real", visible=False)
         dejar_peticion(carpeta, datos)
-        moodle = MoodleFalso(secciones=[{"numero": 3, "nombre": "Tema 3", "id": 30}])
+        moodle = MoodleFalso(
+            secciones=[
+                {
+                    "numero": 3,
+                    "nombre": "Tema 3",
+                    "id": 30,
+                    "modulos": [
+                        {"cmid": 100, "nombre": "Viejo", "tipo": "pagina"},
+                        {"cmid": 101, "nombre": "Repaso", "tipo": "pagina"},
+                    ],
+                }
+            ]
+        )
         presencia = PresenciaFalsa(real=False)  # solo interesa el resumen
         documento = atender(datos, moodle, CFG_SIN_PRUEBAS, carpeta, presencia)
         assert documento["errores"] == ["ABORTADO"]
@@ -833,14 +850,17 @@ class TestEstructuraConVariosReales:
         assert datos["cursos"]["real"][1]["secciones"][0]["nombre"] == "Tema tres"
         assert "1º A" not in json.dumps(datos, ensure_ascii=False)
 
-    def test_fuera_del_esquema_no_se_escribe(self, tmp_path):
+    def test_un_nombre_hostil_se_sanea_antes_de_escribir(self, tmp_path):
+        # La seam del aula sanea el nombre al construir la estructura: lo que se escribe
+        # ya cumple el esquema cerrado.
         carpeta = preparar_carpeta(tmp_path)
         moodle = MoodleFalso(
             secciones=[{"numero": 1, "nombre": "<b>x</b>", "id": 9, "modulos": []}]
         )
         documento = sesion_abierta.estructura_con(moodle, CFG, carpeta)
-        assert documento["errores"] == ["ESTRUCTURA_INVALIDA"]
-        assert not (carpeta / ".tiza" / "estructura.json").exists()
+        assert documento["resultado"] == "ok"
+        datos = json.loads((carpeta / ".tiza" / "estructura.json").read_text(encoding="utf-8"))
+        assert datos["cursos"]["real"][0]["secciones"][0]["nombre"] == "‹b›x‹/b›"
 
 
 def md_it(carpeta: Path, nombre: str, titulo: str, extra: str = "") -> None:

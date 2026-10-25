@@ -141,7 +141,7 @@ class Cuestionario(Tipo):
         nuevas: list[int] = []
 
         if p.existente is None:
-            cmid = p.moodle.crear(p.curso_id, p.seccion["id"], self.nombre, payload)
+            cmid = p.moodle.crear(p.curso_id, p.seccion.id, self.nombre, payload)
             try:
                 categoria = p.moodle.categoria_cuestionario(cmid)
                 nuevas = importar_preguntas(p.moodle, p.curso_id, cmid, categoria, xml, cuantas)
@@ -151,7 +151,7 @@ class Cuestionario(Tipo):
                 raise
             accion = "creada"
         else:
-            cmid = p.existente["cmid"]
+            cmid = p.existente.cmid
             if p.moodle.tiene_intentos(cmid):
                 raise ErrorPublicacion("CUESTIONARIO_CON_INTENTOS", DETALLE_INTENTOS)
             categoria = p.moodle.categoria_cuestionario(cmid)

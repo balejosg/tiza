@@ -52,7 +52,14 @@ from .calificacion.formulas import texto_numero as _texto_numero
 from .config import AdaptadorAula, DestinoNoPermitido, coincide_dominio
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
 from .estado import MARCA_ILEGIBLE, Publicado
-from .estructura import nombre_de_seccion
+from .estructura import (
+    Actividad,
+    ErrorEstructura,
+    Estructura,
+    Localizacion,
+    aplica_origen,
+    nombre_de_seccion,
+)
 from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
 from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
@@ -60,7 +67,6 @@ __all__ = [
     "AulaVirtual",
     "CopiaDescargada",
     "ErrorPublicacion",
-    "Localizacion",
     "Moodle",
     "autenticar",
     "asegurar_secciones",
@@ -69,15 +75,8 @@ __all__ = [
     "aplicar_itinerario",
     "fechas_esperadas",
     "es_disponibilidad_de_tiza",
-    "localizar",
     "Movimiento",
-    "aplica_origen",
-    "modulo_de",
-    "modulo_por_origen",
-    "modulos_de",
-    "modulos_fuera",
     "ordenar_documentos",
-    "origen_de_movimiento",
     "plan_de_orden",
     "payload_disponibilidad",
     "payload_finalizacion",
@@ -92,7 +91,6 @@ __all__ = [
     "url_modulo",
     "urls_paquete_h5p",
     "urls_pluginfile",
-    "ya_existe",
 ]
 
 PAUSA_POR_DEFECTO = 0.4
@@ -338,7 +336,7 @@ class AulaVirtual(Protocol):
         """Cierra la sesión del aula; nunca lanza."""
         ...
 
-    def estructura(self, curso_id: int) -> list[dict]: ...
+    def estructura(self, curso_id: int) -> Estructura: ...
 
     def mis_cursos(self) -> list[dict]: ...
 
@@ -513,7 +511,7 @@ class Moodle:
         destino = (getattr(respuesta, "headers", None) or {}).get("Location", "")
         return "/login/" not in destino
 
-    def estructura(self, curso_id: int) -> list[dict]:
+    def estructura(self, curso_id: int) -> Estructura:
         self._esperar()
         secciones = self._reducir(
             "ERROR_ESTRUCTURA",
@@ -557,7 +555,10 @@ class Moodle:
                     "modulos": modulos,
                 }
             )
-        return sorted(salida, key=lambda item: item["numero"])
+        try:
+            return Estructura.de_dicts(sorted(salida, key=lambda item: item["numero"]))
+        except ErrorEstructura as exc:
+            raise ErrorPublicacion("ERROR_ESTRUCTURA") from exc
 
     def mis_cursos(self) -> list[dict]:
         """Cursos en los que está matriculado el usuario: id y nombre."""
@@ -2439,10 +2440,16 @@ def fechas_esperadas(doc: Documento) -> dict[str, tuple[int, int, int, int, int]
 # --------------------------------------------------------------------------- #
 
 
+def _convertir(problema: tuple[str, str] | None) -> None:
+    """El único sitio que convierte un problema de ``estructura`` en error de publicación."""
+    if problema is not None:
+        raise ErrorPublicacion(*problema)
+
+
 def publicar_documento(
     moodle: AulaVirtual,
     curso_id: int,
-    secciones: list[dict],
+    estructura: Estructura,
     doc: Documento,
     *,
     visible: bool | None,
@@ -2473,7 +2480,7 @@ def publicar_documento(
         return _publicar_congelado(
             moodle,
             curso_id,
-            secciones,
+            estructura,
             copia,
             visible=visible,
             original=doc,
@@ -2502,7 +2509,7 @@ def _congelar_recursos(doc: Documento, carpeta: Path) -> Documento:
 def _publicar_congelado(
     moodle: AulaVirtual,
     curso_id: int,
-    secciones: list[dict],
+    estructura: Estructura,
     doc: Documento,
     *,
     visible: bool | None,
@@ -2512,23 +2519,24 @@ def _publicar_congelado(
     comprobar_registro: bool = False,
     sobrescribir: bool = False,
 ) -> informe.Fichero:
-    seccion = _seccion_de(secciones, doc.seccion)
+    seccion = estructura.buscar_seccion(doc.seccion)
     if seccion is None:
         raise ErrorPublicacion("SECCION_AUSENTE", doc.ruta.name)
-    loc = localizar(secciones, doc, curso_id)
+    loc = estructura.localizar(doc, curso_id)
+    _convertir((loc.problema, doc.ruta.name) if loc.problema is not None else None)
     if loc.por == "otra_seccion" and loc.modulo is None:
         # Varias iguales en otras secciones y ninguna en la suya: no se sabe cuál es.
         raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
     existente = loc.modulo
     # Hallada en otra sección (por su ``origen``, su registro o su nombre): cambió ``seccion:``.
     movido = existente is not None and (
-        loc.por == "otra_seccion" or (loc.seccion or {}).get("id") != seccion.get("id")
+        loc.por == "otra_seccion" or loc.seccion is None or loc.seccion.id != seccion.id
     )
     # Hallada por su ``origen`` o su registro con otro nombre en el aula: se renombra, no se duplica.
     renombrado = (
         existente is not None
         and loc.por in ("origen", "registro")
-        and existente.get("nombre") != doc.nombre
+        and existente.nombre != doc.nombre
     )
     leido: dict | None = None
     if loc.por == "origen":
@@ -2538,7 +2546,7 @@ def _publicar_congelado(
         if huella_aula is not None:
             # El formulario de edición que se carga para actualizar: lo que hay en el aula
             # se compara aquí y no sale; solo llega un código.
-            leido = moodle.leer_modulo(encontrado["cmid"])
+            leido = moodle.leer_modulo(encontrado.cmid)
             # Como estaba en la copia, o ya con lo que tiza iba a escribir (un intento anterior
             # escribió y falló al verificar): en los dos casos no hay cambio ajeno que perder.
             if _formulario_cambiado(doc, huella_aula, leido):
@@ -2551,17 +2559,17 @@ def _publicar_congelado(
             if _marca_sin_juntar(doc, entrada):
                 raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
             assert existente is not None  # ``_entrada_vigilada`` exige el módulo
-            leido = moodle.leer_modulo(existente["cmid"])
+            leido = moodle.leer_modulo(existente.cmid)
             if _huella_cambiada(doc, entrada, leido):
                 raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
     # Si el payload necesita algo del formulario de edición, se carga una sola vez.
     if leido is None and existente is not None:
         if tipos.obtener(doc.tipo).lee_formulario_al_actualizar:
-            leido = moodle.leer_modulo(existente["cmid"])
+            leido = moodle.leer_modulo(existente.cmid)
     # Antes de escribir nada: una restricción ajena o una finalización bloqueada paran todo.
     envio = preparar_itinerario(moodle, doc, existente, dependencias, leido)
     if movido and existente is not None:
-        moodle.mover(curso_id, existente["cmid"], seccion["id"], None)
+        moodle.mover(curso_id, existente.cmid, seccion.id, None)
 
     # Sin indicación: lo nuevo nace oculto y lo que ya existe conserva su visibilidad.
     if visible is None and existente is None:
@@ -2602,7 +2610,7 @@ def _publicar_congelado(
         accion="renombrada" if renombrado else "movida" if movido else accion,
         oculto=_oculto(visible, info),
         url=url_modulo(moodle.base_url, doc.tipo, cmid),
-        seccion=seccion["nombre"],
+        seccion=seccion.nombre,
         hash=hash_documento(doc),
     )
 
@@ -2767,7 +2775,7 @@ class EnvioItinerario:
 def preparar_itinerario(
     moodle: AulaVirtual,
     doc: Documento,
-    existente: dict | None,
+    existente: Actividad | None,
     dependencias: dict[str, int],
     leido: dict | None = None,
 ) -> EnvioItinerario:
@@ -2792,7 +2800,7 @@ def preparar_itinerario(
     actual: dict | None = None
     if existente is not None:
         if leido is None:
-            leido = moodle.leer_modulo(existente["cmid"])
+            leido = moodle.leer_modulo(existente.cmid)
         actual = leido.get("itinerario") or {}
         if doc.restricciones is not None and not es_disponibilidad_de_tiza(
             actual.get("disponibilidad", "")
@@ -2845,171 +2853,6 @@ def _verificar_itinerario(doc: Documento, leido: dict, envio: EnvioItinerario) -
         leido.get("disponibilidad", ""), envio.disponibilidad
     ):
         raise ErrorPublicacion("ITINERARIO_NO_APLICADO", doc.ruta.name)
-
-
-def modulos_de(secciones: list[dict], doc: Documento) -> list[dict]:
-    """Los módulos de la sección de ``doc`` con su tipo y su nombre (casi siempre uno o ninguno)."""
-    try:
-        seccion = _seccion_de(secciones, doc.seccion)
-    except (TypeError, ValueError):
-        return []
-    modulos = seccion.get("modulos") if seccion is not None else None
-    if not isinstance(modulos, list):
-        return []
-    return [
-        modulo
-        for modulo in modulos
-        if isinstance(modulo, dict)
-        and modulo.get("tipo") == doc.tipo
-        and modulo.get("nombre") == doc.nombre
-    ]
-
-
-def _seccion_de(secciones: list[dict], clave: int | str) -> dict | None:
-    """Sección por número o por nombre, mientras ``publicar.py`` aún habla con dicts.
-
-    Es la antigua ``estado.buscar_seccion``, tal cual; desaparece con las funciones que la
-    usan al cambiar la seam del aula (fase siguiente).
-    """
-    for seccion in secciones:
-        if not isinstance(seccion, dict):
-            continue
-        if isinstance(clave, int):
-            if seccion.get("numero") == clave:
-                return seccion
-        elif (
-            nombre_de_seccion(seccion.get("nombre") or "").casefold()
-            == nombre_de_seccion(clave).casefold()
-        ):
-            return seccion
-    return None
-
-
-def aplica_origen(doc: Documento, curso: int | None) -> bool:
-    """Si ``doc`` se busca en el aula por su ``origen``: solo en el curso del que viene.
-
-    En el curso de pruebas o en otro curso real (``curso`` distinto o desconocido) se busca como
-    siempre: sección, tipo y nombre.
-    """
-    return doc.origen is not None and curso is not None and doc.origen.curso == curso
-
-
-def modulo_por_origen(secciones: list[dict], doc: Documento) -> tuple[dict, dict]:
-    """(sección, módulo) del aula con el ``cmid`` del ``origen`` de ``doc`` y el tipo de ``doc``.
-
-    ``ErrorPublicacion("ORIGEN_NO_ENCONTRADO")`` si ya no existe o es de otro tipo: no se crea
-    nada en su lugar. El nombre y la sección no cuentan: pueden haber cambiado.
-    """
-    assert doc.origen is not None
-    for seccion in secciones:
-        modulos = seccion.get("modulos") if isinstance(seccion, dict) else None
-        if not isinstance(modulos, list):
-            continue
-        for modulo in modulos:
-            if isinstance(modulo, dict) and modulo.get("cmid") == doc.origen.cmid:
-                if modulo.get("tipo") == doc.tipo:
-                    return seccion, modulo
-                break
-    raise ErrorPublicacion("ORIGEN_NO_ENCONTRADO", doc.ruta.name)
-
-
-_SE_MUEVE = ("origen", "registro", "otra_seccion")  # por qué se halla fuera de su sección
-
-
-@dataclasses.dataclass(frozen=True)
-class Localizacion:
-    """Dónde está en el aula la actividad de un documento (resultado de :func:`localizar`).
-
-    ``por`` dice cómo se halló: ``"origen"``, ``"registro"``, ``"nombre"``, ``"otra_seccion"`` o
-    ``None`` (no está: se creará). ``seccion`` es la sección en la que está el ``modulo`` (o la del
-    documento, si es nueva y existe). ``borrada``: el registro la daba por publicada pero ya no
-    está en el aula (o es de otro tipo). ``varios``: en el paso que decidió había más de un
-    candidato del mismo tipo y nombre; con ``por="otra_seccion"`` y sin ``modulo``, son varios en
-    otras secciones y no se sabe cuál es.
-    """
-
-    seccion: dict | None
-    modulo: dict | None
-    por: str | None
-    borrada: bool = False
-    varios: bool = False
-
-    @property
-    def actividad(self) -> dict | None:
-        """La actividad que actualizaría el documento: la hallada por origen, registro o nombre.
-
-        La de otra sección no cuenta: solo ``publicar`` la mueve. Es lo que usan las funciones de
-        solo lectura y las que ordenan o cambian fechas, que no mueven nada de sección.
-        """
-        return self.modulo if self.por in ("origen", "registro", "nombre") else None
-
-
-def _modulo_con_cmid(secciones: list[dict], cmid: int, tipo: str) -> tuple[dict, dict] | None:
-    """(sección, módulo) con ese ``cmid`` y ese tipo, o ``None`` si no está o es de otro tipo."""
-    for seccion in secciones:
-        modulos = seccion.get("modulos") if isinstance(seccion, dict) else None
-        if not isinstance(modulos, list):
-            continue
-        for modulo in modulos:
-            if isinstance(modulo, dict) and modulo.get("cmid") == cmid:
-                return (seccion, modulo) if modulo.get("tipo") == tipo else None
-    return None
-
-
-def localizar(secciones: list[dict], doc: Documento, curso: int | None) -> Localizacion:
-    """La actividad del aula que corresponde a ``doc``: la única búsqueda de tiza. Pura, sin red.
-
-    En este orden:
-
-    1. El ``origen`` de ``doc`` en su curso (``modulo_por_origen``; ``ORIGEN_NO_ENCONTRADO`` si ya
-       no está): manda sobre el registro.
-    2. El registro de lo publicado (``doc.publicados`` de ``curso``): el módulo de ese ``cmid`` y
-       del tipo de ``doc``, se llame como se llame y esté en la sección que esté. Si se llama
-       distinto que ``doc`` y la sección de ``doc`` ya tiene otro del mismo tipo con su nombre,
-       ``ACTIVIDAD_AMBIGUA``: no se sabe cuál es.
-    3. Mismo tipo y nombre en la sección de ``doc`` (el primero; ``varios`` si hay más).
-    4. Mismo tipo y nombre en otra sección: uno es ``"otra_seccion"`` (cambió ``seccion:``); varios
-       quedan sin módulo y con ``varios``, y quien escribe decide (``publicar`` da
-       ``ACTIVIDAD_AMBIGUA``; las demás no mueven nada).
-    5. Nada: actividad nueva (``por=None``), con ``borrada`` si el registro la daba por publicada.
-
-    Con ``curso`` desconocido (``None``) no se usan ni el ``origen`` ni el registro.
-    """
-    if aplica_origen(doc, curso):
-        donde, encontrado = modulo_por_origen(secciones, doc)
-        return Localizacion(donde, encontrado, "origen")
-    entrada = doc.publicados.get(curso) if curso is not None else None
-    if entrada is not None:
-        hallado = _modulo_con_cmid(secciones, entrada.cmid, doc.tipo)
-        if hallado is not None:
-            donde, modulo = hallado
-            if modulo.get("nombre") != doc.nombre and modulos_de(secciones, doc):
-                raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
-            return Localizacion(donde, modulo, "registro")
-    try:
-        propia = _seccion_de(secciones, doc.seccion)
-    except (TypeError, ValueError):
-        propia = None
-    en_su_seccion = modulos_de(secciones, doc)
-    if en_su_seccion:
-        return Localizacion(propia, en_su_seccion[0], "nombre", varios=len(en_su_seccion) > 1)
-    fuera = modulos_fuera(secciones, doc)
-    if len(fuera) == 1:
-        return Localizacion(fuera[0][0], fuera[0][1], "otra_seccion")
-    if fuera:
-        return Localizacion(None, None, "otra_seccion", varios=True)
-    return Localizacion(propia, None, None, borrada=entrada is not None)
-
-
-def modulo_de(secciones: list[dict], doc: Documento, curso: int | None = None) -> dict | None:
-    """El módulo del aula que actualizaría ``doc``, o ``None`` si no existe.
-
-    Lo que decide :func:`localizar` (``origen``, registro de lo publicado o misma sección, tipo y
-    nombre); el módulo de otra sección no cuenta: solo ``publicar`` lo mueve. Con ``origen`` en su
-    curso y la actividad ausente, ``ORIGEN_NO_ENCONTRADO``. ``None`` también si la estructura no
-    permite comprobarlo.
-    """
-    return localizar(secciones, doc, curso).actividad
 
 
 def _entrada_vigilada(doc: Documento, curso: int | None, loc: Localizacion) -> Publicado | None:
@@ -3089,7 +2932,7 @@ def _retocada(
 
 def cambio_a_mano(
     moodle: AulaVirtual,
-    secciones: list[dict],
+    estructura: Estructura,
     doc: Documento,
     curso: int,
     solo_fechas: bool = False,
@@ -3102,9 +2945,8 @@ def cambio_a_mano(
     ya la rechazará la publicación con su código. Con ``solo_fechas``, lo que ya tiene las fechas
     del fichero tampoco cuenta (un intento anterior las escribió y falló al verificar).
     """
-    try:
-        loc = localizar(secciones, doc, curso)
-    except (ErrorPublicacion, TypeError, ValueError):
+    loc = estructura.localizar(doc, curso)
+    if loc.problema is not None:
         return False
     entrada = _entrada_vigilada(doc, curso, loc)
     if entrada is None:
@@ -3115,14 +2957,14 @@ def cambio_a_mano(
         doc,
         entrada.huella,
         _marca_sin_juntar(doc, entrada),
-        loc.modulo["cmid"],
+        loc.modulo.cmid,
         solo_fechas,
     )
 
 
 def cambio_desde_la_base(
     moodle: AulaVirtual,
-    secciones: list[dict],
+    estructura: Estructura,
     doc: Documento,
     curso: int,
     huellas: Mapping[int, str],
@@ -3135,130 +2977,43 @@ def cambio_desde_la_base(
     con la que comparar: la actividad no está, no la halló el registro o el ``origen``, o su
     entrada no tiene huella. Solo lectura.
     """
-    try:
-        loc = localizar(secciones, doc, curso)
-    except (ErrorPublicacion, TypeError, ValueError):
+    loc = estructura.localizar(doc, curso)
+    if loc.problema is not None:
         return None, None
-    cmid = loc.modulo["cmid"] if loc.modulo is not None else None
+    cmid = loc.modulo.cmid if loc.modulo is not None else None
     if loc.por == "origen" and loc.modulo is not None:
-        base = huellas.get(loc.modulo["cmid"])
+        base = huellas.get(loc.modulo.cmid)
         if base is None:
             return None, cmid
-        sin_juntar = marca_sin_juntar(marcas.get(loc.modulo["cmid"]), doc)
-        return _retocada(moodle, doc, base, sin_juntar, loc.modulo["cmid"]), cmid
+        sin_juntar = marca_sin_juntar(marcas.get(loc.modulo.cmid), doc)
+        return _retocada(moodle, doc, base, sin_juntar, loc.modulo.cmid), cmid
     entrada = _entrada_vigilada(doc, curso, loc)
     if entrada is None or entrada.huella is None or loc.modulo is None:
         return None, cmid
     return _retocada(
-        moodle, doc, entrada.huella, _marca_sin_juntar(doc, entrada), loc.modulo["cmid"]
+        moodle, doc, entrada.huella, _marca_sin_juntar(doc, entrada), loc.modulo.cmid
     ), cmid
 
 
-def modulos_fuera(secciones: list[dict], doc: Documento) -> list[tuple[dict, dict]]:
-    """(sección, módulo) con el tipo y nombre de ``doc`` en las demás secciones del curso.
-
-    Con ``doc`` publicado en otra sección, ahí es donde habría que buscarlo para moverlo.
-    """
-    try:
-        propia = _seccion_de(secciones, doc.seccion)
-    except (TypeError, ValueError):
-        propia = None
-    salida: list[tuple[dict, dict]] = []
-    for seccion in secciones:
-        if not isinstance(seccion, dict) or seccion is propia:
-            continue
-        if not isinstance(seccion.get("modulos"), list):
-            continue
-        salida += [
-            (seccion, modulo)
-            for modulo in seccion["modulos"]
-            if isinstance(modulo, dict)
-            and modulo.get("tipo") == doc.tipo
-            and modulo.get("nombre") == doc.nombre
-        ]
-    return salida
-
-
-def origen_de_movimiento(
-    secciones: list[dict], doc: Documento, curso: int | None = None
-) -> str | None:
-    """Nombre de la sección de la que se movería ``doc`` al publicarlo, o None si no se mueve.
-
-    Solo lectura, sobre :func:`localizar`: se mueve la actividad de su ``origen`` o de su registro
-    si no está en su sección, y la única del mismo tipo y nombre que haya en otra si no existe en
-    la suya. Lo que no se puede resolver (``origen`` ausente, varias en otras secciones, nombre
-    ambiguo) no se mueve.
-    """
-    try:
-        loc = localizar(secciones, doc, curso)
-    except ErrorPublicacion:
-        return None
-    if loc.modulo is None or loc.seccion is None or loc.por not in _SE_MUEVE:
-        return None
-    if loc.por != "otra_seccion":
-        try:
-            propia = _seccion_de(secciones, doc.seccion)
-        except (TypeError, ValueError):
-            propia = None
-        if propia is not None and propia.get("id") == loc.seccion.get("id"):
-            return None
-    return str(loc.seccion.get("nombre") or "")
-
-
-def ya_existe(secciones: list[dict], doc: Documento, curso: int | None = None) -> bool | None:
-    """Si al publicar ``doc`` se actualizaría un módulo que ya existe.
-
-    Solo lectura, con el mismo criterio que ``publicar_documento`` (:func:`localizar`: en el curso
-    de su ``origen``, el ``cmid``; luego el registro de lo publicado; y si no, misma sección, tipo
-    y nombre). ``None`` si la estructura del aula no permite comprobarlo (o el ``origen`` ya no
-    está, o el nombre es ambiguo): quien lo muestre debe avisar de que puede existir, sin abortar.
-    """
-    try:
-        loc = localizar(secciones, doc, curso)
-    except (ErrorPublicacion, TypeError, ValueError):  # TypeError: una estructura que no es lista
-        return None
-    if loc.por in ("origen", "registro"):
-        return True
-    try:
-        seccion = _seccion_de(secciones, doc.seccion)
-    except (TypeError, ValueError):
-        return None
-    if seccion is None:
-        return False
-    if not isinstance(seccion.get("modulos"), list):
-        return None
-    return loc.por == "nombre"
-
-
-def secciones_que_faltan(secciones: list[dict], documentos: list[Documento]) -> list[str]:
-    """Nombres de sección pedidos por los documentos que aún no existen."""
-    faltan: list[str] = []
-    for doc in documentos:
-        if isinstance(doc.seccion, str) and _seccion_de(secciones, doc.seccion) is None:
-            if doc.seccion.casefold() not in {nombre.casefold() for nombre in faltan}:
-                faltan.append(doc.seccion)
-    return faltan
-
-
 def asegurar_secciones(
-    moodle: AulaVirtual, curso_id: int, secciones: list[dict], documentos: list[Documento]
-) -> tuple[list[dict], list[str]]:
+    moodle: AulaVirtual, curso_id: int, estructura: Estructura, documentos: list[Documento]
+) -> tuple[Estructura, list[str]]:
     """Crea (ocultas) las secciones por nombre que falten y relee la estructura."""
-    creadas = secciones_que_faltan(secciones, documentos)
+    creadas = estructura.secciones_que_faltan(documentos)
     if not creadas:
-        return secciones, []
+        return estructura, []
     for nombre in creadas:
         moodle.crear_seccion(curso_id, nombre)
-    secciones = moodle.estructura(curso_id)
+    estructura = moodle.estructura(curso_id)
     for nombre in creadas:
-        if _seccion_de(secciones, nombre) is None:
+        if estructura.buscar_seccion(nombre) is None:
             raise ErrorPublicacion("SECCION_NO_CREADA", nombre)
-    return secciones, creadas
+    return estructura, creadas
 
 
 def publicar_fechas(
     moodle: AulaVirtual,
-    secciones: list[dict],
+    estructura: Estructura,
     doc: Documento,
     curso: int | None = None,
     huella_aula: str | None = None,
@@ -3273,7 +3028,7 @@ def publicar_fechas(
     """
     return publicar_fechas_con_huella(
         moodle,
-        secciones,
+        estructura,
         doc,
         curso,
         huella_aula,
@@ -3284,7 +3039,7 @@ def publicar_fechas(
 
 def publicar_fechas_con_huella(
     moodle: AulaVirtual,
-    secciones: list[dict],
+    estructura: Estructura,
     doc: Documento,
     curso: int | None = None,
     huella_aula: str | None = None,
@@ -3305,11 +3060,12 @@ def publicar_fechas_con_huella(
     devuelve la huella nueva. Con ``sobrescribir`` no se compara y no hay huella nueva: el texto del
     aula no se pisó, y el cambio del docente debe seguir contando la próxima vez.
     """
-    loc = localizar(secciones, doc, curso)
+    loc = estructura.localizar(doc, curso)
+    _convertir((loc.problema, doc.ruta.name) if loc.problema is not None else None)
     existente = loc.actividad
     if existente is None:
         raise ErrorPublicacion("MODULO_AUSENTE", doc.ruta.name)
-    cmid = existente["cmid"]
+    cmid = existente.cmid
     por_origen = aplica_origen(doc, curso)
     tipo = tipos.obtener(doc.tipo)
     renovar = por_origen
@@ -3337,7 +3093,7 @@ def publicar_fechas_con_huella(
                 renovar = False
     moodle.actualizar(cmid, payload_solo_fechas(doc))
     info = _verificar_fechas(moodle, doc, cmid)
-    seccion = _seccion_de(secciones, doc.seccion) or {}
+    seccion = estructura.buscar_seccion(doc.seccion)
     fichero = informe.Fichero(
         nombre=doc.ruta.name,
         tipo=doc.tipo,
@@ -3345,7 +3101,7 @@ def publicar_fechas_con_huella(
         accion="actualizada",
         oculto=_oculto(None, info),
         url=url_modulo(moodle.base_url, doc.tipo, cmid),
-        seccion=seccion.get("nombre") or str(doc.seccion),
+        seccion=(seccion.nombre if seccion is not None else "") or str(doc.seccion),
         # El contenido no cambia: el hash es el que el docente ya vio al confirmar.
         hash=doc.hash_cargado or None,
     )
@@ -3371,7 +3127,9 @@ def orden_final(actual: list[int], deseado: list[int]) -> list[int]:
     return final
 
 
-def plan_de_orden(secciones: list[dict], deseados: list[tuple[int, list[int]]]) -> list[Movimiento]:
+def plan_de_orden(
+    estructura: Estructura, deseados: list[tuple[int, list[int]]]
+) -> list[Movimiento]:
     """Los movimientos que dejan, en cada sección, los módulos nombrados en el orden pedido.
 
     Pura. ``deseados``: por sección, su id y los cmids en el orden deseado (todos de esa
@@ -3381,8 +3139,9 @@ def plan_de_orden(secciones: list[dict], deseados: list[tuple[int, list[int]]]) 
     """
     movimientos: list[Movimiento] = []
     for seccion_id, cmids in deseados:
-        seccion = next(s for s in secciones if s["id"] == seccion_id)
-        actual = [modulo["cmid"] for modulo in seccion["modulos"]]
+        seccion = estructura.seccion_con_id(seccion_id)
+        assert seccion is not None  # el id sale de ``resolver_orden``
+        actual = list(seccion.cmids)
         final = orden_final(actual, cmids)
         nombrados = set(cmids)
         for indice in range(len(final) - 1, -1, -1):
@@ -3400,54 +3159,24 @@ def plan_de_orden(secciones: list[dict], deseados: list[tuple[int, list[int]]]) 
     return movimientos
 
 
-def resolver_orden(
-    secciones: list[dict], docs: list[Documento], curso: int | None = None
-) -> list[tuple[dict, list[tuple[Documento, dict]]]]:
-    """Cada sección con sus documentos en el orden pedido y el módulo del aula de cada uno.
-
-    Cada actividad se halla con :func:`localizar` (``curso``: el del aula, para el ``origen`` y el
-    registro) y se ordena en la sección en la que está. ``FICHERO_REPETIDO``,
-    ``ACTIVIDAD_AUSENTE``, ``ACTIVIDAD_AMBIGUA`` y ``ORIGEN_NO_ENCONTRADO`` (el ``origen`` ya no
-    está en el aula) se dan antes de mover nada.
-    """
-    vistos: set[Path] = set()
-    cmids: set[int] = set()
-    grupos: dict[int, tuple[dict, list[tuple[Documento, dict]]]] = {}
-    for doc in docs:
-        ruta = doc.ruta.resolve()
-        if ruta in vistos:
-            raise ErrorPublicacion("FICHERO_REPETIDO", doc.ruta.name)
-        vistos.add(ruta)
-        loc = localizar(secciones, doc, curso)
-        modulo = loc.actividad
-        if modulo is None:
-            raise ErrorPublicacion("ACTIVIDAD_AUSENTE", doc.ruta.name)
-        # Dos ficheros que apuntan a la misma actividad: no hay orden entre ellos.
-        if loc.varios or modulo["cmid"] in cmids:
-            raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
-        cmids.add(modulo["cmid"])
-        seccion = loc.seccion
-        assert seccion is not None  # ``localizar`` la dio con el módulo
-        grupos.setdefault(seccion["id"], (seccion, []))[1].append((doc, modulo))
-    return list(grupos.values())
-
-
 def ordenar_documentos(
-    moodle: AulaVirtual, curso_id: int, secciones: list[dict], docs: list[Documento]
+    moodle: AulaVirtual, curso_id: int, estructura: Estructura, docs: list[Documento]
 ) -> list[informe.Fichero]:
     """Deja las actividades de ``docs`` en el orden dado dentro de su sección y lo comprueba.
 
     Sin cambios no llama al aula. Si falla a medias no se deshace nada: mover no destruye y
     repetir converge.
     """
-    grupos = resolver_orden(secciones, docs, curso_id)
-    deseados = [(seccion["id"], [modulo["cmid"] for _, modulo in par]) for seccion, par in grupos]
-    movimientos = plan_de_orden(secciones, deseados)
+    resolucion = estructura.resolver_orden(docs, curso_id)
+    _convertir(resolucion.problema)
+    grupos = resolucion.grupos
+    deseados = [(seccion.id, [actividad.cmid for _, actividad in par]) for seccion, par in grupos]
+    movimientos = plan_de_orden(estructura, deseados)
     if movimientos:
         esperados = {
-            seccion["id"]: orden_final(
-                [modulo["cmid"] for modulo in seccion["modulos"]],
-                [modulo["cmid"] for _, modulo in par],
+            seccion.id: orden_final(
+                [actividad.cmid for actividad in seccion.actividades],
+                [actividad.cmid for _, actividad in par],
             )
             for seccion, par in grupos
         }
@@ -3455,22 +3184,22 @@ def ordenar_documentos(
             moodle.mover(curso_id, *movimiento)
         releida = moodle.estructura(curso_id)
         for seccion_id, esperado in esperados.items():
-            nueva = next((s for s in releida if s["id"] == seccion_id), None)
-            if nueva is None or [m["cmid"] for m in nueva["modulos"]] != esperado:
+            nueva = releida.seccion_con_id(seccion_id)
+            if nueva is None or list(nueva.cmids) != esperado:
                 raise ErrorPublicacion("ORDEN_NO_APLICADO")
     cambiadas = {movimiento.seccion_id for movimiento in movimientos}
     return [
         informe.Fichero(
             nombre=doc.ruta.name,
             tipo=doc.tipo,
-            cmid=modulo["cmid"],
-            accion="ordenada" if seccion["id"] in cambiadas else "sin_cambios",
-            url=url_modulo(moodle.base_url, doc.tipo, modulo["cmid"]),
-            seccion=seccion["nombre"],
+            cmid=actividad.cmid,
+            accion="ordenada" if seccion.id in cambiadas else "sin_cambios",
+            url=url_modulo(moodle.base_url, doc.tipo, actividad.cmid),
+            seccion=seccion.nombre,
             hash=hash_documento(doc),
         )
         for seccion, par in grupos
-        for doc, modulo in par
+        for doc, actividad in par
     ]
 
 
@@ -3559,7 +3288,7 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
             paso("FORMULAS_NO_DIBUJADAS", "ok", "el aula no carga el motor de fórmulas")
         if not aula_deja_copiar(moodle, curso_id):
             paso("COPIA_A_MANO", "ok", DETALLE_COPIA_A_MANO)
-        seccion = secciones[0]["numero"]
+        seccion = secciones.secciones[0].numero
         with tempfile.TemporaryDirectory(prefix="tiza-autoprueba-") as temporal:
             documentos = _ejemplos(Path(temporal), seccion)
             for doc in documentos:
@@ -3620,14 +3349,14 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
             paso("VERIFICAR_CATEGORIA", "ok", f"{len(en_banco)} preguntas")
             codigo_actual = "CREAR_SECCION"
             nombre_seccion = "Autoprueba tiza (seccion)"
-            existente = _seccion_de(secciones, nombre_seccion)
+            existente = secciones.buscar_seccion(nombre_seccion)
             if existente is not None:
-                seccion_id = existente["id"]
+                seccion_id = existente.id
             else:
                 seccion_id = moodle.crear_seccion(curso_id, nombre_seccion)
             seccion_temporal = seccion_id
             secciones = moodle.estructura(curso_id)
-            if _seccion_de(secciones, nombre_seccion) is None:
+            if secciones.buscar_seccion(nombre_seccion) is None:
                 raise ErrorPublicacion("SECCION_NO_CREADA")
             paso("CREAR_SECCION", "ok", None)
             codigo_actual = "ORDENAR"

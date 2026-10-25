@@ -149,7 +149,7 @@ class H5P(Tipo):
         """Crea o actualiza la actividad H5P y la verifica."""
         from ..publicar import DETALLE_H5P_INTENTOS, ErrorPublicacion
 
-        if p.existente is not None and p.moodle.h5p_tiene_intentos(p.existente["cmid"]):
+        if p.existente is not None and p.moodle.h5p_tiene_intentos(p.existente.cmid):
             raise ErrorPublicacion("H5P_CON_INTENTOS", DETALLE_H5P_INTENTOS)
         machine_name, paquete, nombre_base = self._paquete(p.doc)
         itemid_paquete = p.itemid + 1
@@ -162,11 +162,11 @@ class H5P(Tipo):
         payload = self.payload(p.doc, p.html, p.itemid, p.visible, itemid_paquete=itemid_paquete)
 
         if p.existente is not None:
-            cmid = p.existente["cmid"]
+            cmid = p.existente.cmid
             p.moodle.actualizar(cmid, payload)
             accion = "actualizada"
         else:
-            cmid = p.moodle.crear(p.curso_id, p.seccion["id"], self.nombre, payload)
+            cmid = p.moodle.crear(p.curso_id, p.seccion.id, self.nombre, payload)
             accion = "creada"
 
         try:

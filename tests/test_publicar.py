@@ -18,6 +18,7 @@ from py_moodle.session import MoodleSessionError
 
 from dobles import MoodleFalso, aula_con_tarea, estructura_de, fecha_en_formulario, tarea_en
 from tiza import config, contenido, estado, publicar, tipos
+from tiza.estructura import Actividad
 from tiza.publicar import ErrorPublicacion
 
 
@@ -525,9 +526,9 @@ def test_estructura_ajax_reconoce_la_etiqueta(monkeypatch):
     ]
     monkeypatch.setattr(publicar.py_course, "get_course", lambda *a, **k: estado)
     moodle = publicar.Moodle("https://aula", object(), "clave", pausa=0)
-    assert moodle.estructura(838)[0]["modulos"] == [
-        {"cmid": 57078, "nombre": "Bienvenida", "tipo": "etiqueta"}
-    ]
+    assert moodle.estructura(838).secciones[0].actividades == (
+        Actividad(cmid=57078, nombre="Bienvenida", tipo="etiqueta"),
+    )
 
 
 def test_borrar_usa_ajax_con_el_curso_conocido():
@@ -581,8 +582,8 @@ def test_estructura_ajax_reconoce_el_tipo_por_module(monkeypatch):
     ]
     monkeypatch.setattr(publicar.py_course, "get_course", lambda *a, **k: estado)
     moodle = publicar.Moodle("https://aula", object(), "clave", pausa=0)
-    modulos = moodle.estructura(838)[0]["modulos"]
-    assert modulos == [{"cmid": 57073, "nombre": "Repaso", "tipo": "pagina"}]
+    modulos = moodle.estructura(838).secciones[0].actividades
+    assert modulos == (Actividad(cmid=57073, nombre="Repaso", tipo="pagina"),)
 
 
 class _Respuesta:
@@ -741,9 +742,9 @@ def test_estructura_ajax_reconoce_el_cuestionario(monkeypatch):
     ]
     monkeypatch.setattr(publicar.py_course, "get_course", lambda *a, **k: estado)
     moodle = publicar.Moodle("https://aula", object(), "clave", pausa=0)
-    assert moodle.estructura(838)[0]["modulos"] == [
-        {"cmid": 57078, "nombre": "Repaso", "tipo": "cuestionario"}
-    ]
+    assert moodle.estructura(838).secciones[0].actividades == (
+        Actividad(cmid=57078, nombre="Repaso", tipo="cuestionario"),
+    )
 
 
 def test_estructura_ajax_convierte_los_ids_a_entero(monkeypatch):
@@ -757,9 +758,9 @@ def test_estructura_ajax_convierte_los_ids_a_entero(monkeypatch):
     ]
     monkeypatch.setattr(publicar.py_course, "get_course", lambda *a, **k: estado)
     moodle = publicar.Moodle("https://aula", object(), "clave", pausa=0)
-    seccion = moodle.estructura(838)[0]
-    assert seccion["id"] == 30
-    assert seccion["modulos"] == [{"cmid": 57078, "nombre": "Tarea", "tipo": "tarea"}]
+    seccion = moodle.estructura(838).secciones[0]
+    assert seccion.id == 30
+    assert seccion.actividades == (Actividad(cmid=57078, nombre="Tarea", tipo="tarea"),)
 
 
 def test_estructura_limpia_los_nombres_de_seccion(monkeypatch):
@@ -769,7 +770,7 @@ def test_estructura_limpia_los_nombres_de_seccion(monkeypatch):
     ]
     monkeypatch.setattr(publicar.py_course, "get_course", lambda *a, **k: estado)
     moodle = publicar.Moodle("https://aula", object(), "clave", pausa=0)
-    assert [seccion["nombre"] for seccion in moodle.estructura(838)] == ["Tema ‹1› repaso"]
+    assert [seccion.nombre for seccion in moodle.estructura(838)] == ["Tema ‹1› repaso"]
 
 
 @pytest.mark.parametrize(
@@ -1195,55 +1196,6 @@ def test_motor_de_formulas_es_una_regla_estructural_con_plazo():
     assert con.motor_de_formulas(2) is True
     assert sin.motor_de_formulas(2) is False
     assert con.sesion.llamadas[-1][1]["timeout"] == publicar.TIEMPO_ESPERA
-
-
-class TestYaExiste:
-    def test_documento_nuevo(self, tmp_path):
-        doc = documento(tmp_path)
-        secciones = [{"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []}]
-        assert publicar.ya_existe(estructura_de(secciones), doc) is False
-
-    def test_mismo_tipo_y_nombre_en_su_seccion(self, tmp_path):
-        doc = documento(tmp_path)
-        secciones = [
-            {
-                "numero": 3,
-                "nombre": "Tema 3",
-                "id": 30,
-                "modulos": [{"cmid": 100, "nombre": "Repaso", "tipo": "pagina"}],
-            }
-        ]
-        assert publicar.ya_existe(estructura_de(secciones), doc) is True
-
-    def test_otro_tipo_u_otro_nombre_no_cuenta(self, tmp_path):
-        doc = documento(tmp_path)
-        secciones = [
-            {
-                "numero": 3,
-                "nombre": "Tema 3",
-                "id": 30,
-                "modulos": [
-                    {"cmid": 100, "nombre": "Repaso", "tipo": "tarea"},
-                    {"cmid": 101, "nombre": "Otro", "tipo": "pagina"},
-                ],
-            }
-        ]
-        assert publicar.ya_existe(estructura_de(secciones), doc) is False
-
-    def test_si_la_seccion_no_existe_es_nuevo(self, tmp_path):
-        doc = documento(tmp_path)
-        assert (
-            publicar.ya_existe(estructura_de([{"numero": 4, "nombre": "T", "id": 40}]), doc)
-            is False
-        )
-
-    def test_estructura_incompleta_no_se_puede_saber(self, tmp_path):
-        doc = documento(tmp_path)
-        assert (
-            publicar.ya_existe(estructura_de([{"numero": 3, "nombre": "Tema 3", "id": 30}]), doc)
-            is None
-        )
-        assert publicar.ya_existe(None, doc) is None
 
 
 def test_el_doble_y_el_adaptador_cumplen_la_misma_interfaz():
@@ -2259,9 +2211,9 @@ class TestPublicarH5P:
         ]
         monkeypatch.setattr(publicar.py_course, "get_course", lambda *a, **k: estado)
         moodle = publicar.Moodle("https://aula", object(), "clave", pausa=0)
-        assert moodle.estructura(838)[0]["modulos"] == [
-            {"cmid": 57078, "nombre": "Repaso", "tipo": "h5p"}
-        ]
+        assert moodle.estructura(838).secciones[0].actividades == (
+            Actividad(cmid=57078, nombre="Repaso", tipo="h5p"),
+        )
 
     def test_urls_pluginfile_y_del_paquete(self):
         assert publicar.urls_pluginfile("https://aula", 97, "h5p", 5, "paquete.h5p") == [
@@ -3713,26 +3665,6 @@ class TestPublicarPorOrigen:
         otra = publicar.publicar_documento(moodle, 2, moodle.estructura(2), doc, visible=None)
         assert (otra.accion, otra.cmid) == ("actualizada", resultado.cmid)
 
-    def test_modulo_de_y_ya_existe_siguen_el_curso_del_origen(self, tmp_path):
-        moodle = _aula_con_origen()
-        doc = _documento_con_origen(tmp_path)
-        assert publicar.modulo_de(estructura_de(moodle.secciones), doc, 3)["cmid"] == 501
-        assert (
-            publicar.modulo_de(estructura_de(moodle.secciones), doc, 2) is None
-        )  # otro curso: por nombre
-        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 3) is True
-        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 2) is False
-        assert (
-            publicar.ya_existe(
-                estructura_de(moodle.secciones), _documento_con_origen(tmp_path, cmid=9), 3
-            )
-            is None
-        )
-        with pytest.raises(ErrorPublicacion):
-            publicar.modulo_de(
-                estructura_de(moodle.secciones), _documento_con_origen(tmp_path, cmid=9), 3
-            )
-
     def test_cambiada_en_el_aula_no_toca_la_actividad(self, tmp_path):
         moodle = _aula_con_origen()
         doc = _documento_con_origen(tmp_path, seccion='"Tema 3"')
@@ -4801,159 +4733,6 @@ def _aula_del_registro(*modulos_por_seccion):
             }
         )
     return MoodleFalso(secciones=secciones)
-
-
-class TestLocalizar:
-    # ``documento(tmp_path)``: página «Repaso» en la sección 3 (id 30).
-
-    def test_sin_nada_es_nueva(self, tmp_path):
-        moodle = _aula_del_registro([], [("Otra", 7, "pagina")])
-        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
-        assert (loc.modulo, loc.por, loc.borrada, loc.varios) == (None, None, False, False)
-        assert loc.seccion["id"] == 30 and loc.actividad is None
-
-    def test_por_nombre_en_su_seccion(self, tmp_path):
-        moodle = _aula_del_registro([("Repaso", 8, "pagina")], [("Repaso", 7, "pagina")])
-        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
-        assert (loc.modulo["cmid"], loc.por, loc.seccion["id"]) == (7, "nombre", 30)
-        assert loc.actividad is loc.modulo
-
-    def test_varias_con_su_nombre_en_su_seccion_marca_varios_y_da_la_primera(self, tmp_path):
-        moodle = _aula_del_registro([], [("Repaso", 7, "pagina"), ("Repaso", 9, "pagina")])
-        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
-        assert (loc.modulo["cmid"], loc.por, loc.varios) == (7, "nombre", True)
-
-    def test_en_otra_seccion_si_solo_hay_una(self, tmp_path):
-        moodle = _aula_del_registro([("Repaso", 8, "pagina")], [])
-        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
-        assert (loc.modulo["cmid"], loc.por, loc.seccion["id"]) == (8, "otra_seccion", 20)
-        assert loc.actividad is None  # solo la mueve publicar
-
-    def test_varias_en_otras_secciones_no_dan_modulo(self, tmp_path):
-        moodle = _aula_del_registro([("Repaso", 8, "pagina"), ("Repaso", 9, "pagina")], [])
-        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
-        assert (loc.modulo, loc.por, loc.varios, loc.actividad) == (
-            None,
-            "otra_seccion",
-            True,
-            None,
-        )
-
-    def test_otro_tipo_u_otro_nombre_no_cuenta(self, tmp_path):
-        moodle = _aula_del_registro([("Repaso", 8, "tarea")], [("Otro", 9, "pagina")])
-        assert (
-            publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5).por is None
-        )
-
-    def test_el_registro_la_halla_se_llame_como_se_llame(self, tmp_path):
-        moodle = _aula_del_registro([], [("Nombre viejo", 7, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
-        assert (loc.modulo["cmid"], loc.por, loc.borrada, loc.seccion["id"]) == (
-            7,
-            "registro",
-            False,
-            30,
-        )
-
-    def test_el_registro_la_halla_en_la_seccion_que_este(self, tmp_path):
-        moodle = _aula_del_registro([("Nombre viejo", 7, "pagina")], [])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
-        assert (loc.modulo["cmid"], loc.por, loc.seccion["id"]) == (7, "registro", 20)
-        assert loc.actividad is loc.modulo
-
-    def test_el_registro_gana_al_nombre_en_otra_seccion(self, tmp_path):
-        moodle = _aula_del_registro([("Repaso", 8, "pagina")], [("Viejo", 7, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.localizar(estructura_de(moodle.secciones), doc, 5).modulo["cmid"] == 7
-
-    def test_el_registro_con_su_mismo_nombre_no_es_conflicto(self, tmp_path):
-        moodle = _aula_del_registro([], [("Repaso", 7, "pagina"), ("Repaso", 9, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 9)
-        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
-        assert (loc.modulo["cmid"], loc.por) == (9, "registro")
-
-    def test_el_origen_manda_sobre_el_registro(self, tmp_path):
-        moodle = _aula_del_registro([], [("Viejo", 501, "pagina"), ("Otro", 7, "pagina")])
-        doc = _con_registro(_documento_con_origen(tmp_path, seccion="3"), 3, 7)
-        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 3)
-        assert (loc.modulo["cmid"], loc.por) == (501, "origen")
-
-    def test_el_origen_ausente_se_propaga_aunque_haya_registro(self, tmp_path):
-        moodle = _aula_del_registro([], [("Otro", 7, "pagina")])
-        doc = _con_registro(_documento_con_origen(tmp_path, cmid=999), 3, 7)
-        with pytest.raises(ErrorPublicacion) as exc:
-            publicar.localizar(estructura_de(moodle.secciones), doc, 3)
-        assert exc.value.codigo == "ORIGEN_NO_ENCONTRADO"
-
-    def test_el_registro_de_un_cmid_que_ya_no_esta_es_nueva_y_borrada(self, tmp_path):
-        moodle = _aula_del_registro([], [("Otra", 8, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
-        assert (loc.modulo, loc.por, loc.borrada) == (None, None, True)
-
-    def test_el_registro_de_un_cmid_de_otro_tipo_es_nueva_y_borrada(self, tmp_path):
-        moodle = _aula_del_registro([], [("Viejo", 7, "tarea")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
-        assert (loc.modulo, loc.por, loc.borrada) == (None, None, True)
-
-    def test_borrada_en_el_registro_pero_con_su_nombre_en_el_aula_se_halla_por_nombre(
-        self, tmp_path
-    ):
-        moodle = _aula_del_registro([], [("Repaso", 8, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
-        assert (loc.modulo["cmid"], loc.por, loc.borrada) == (8, "nombre", False)
-
-    def test_conflicto_de_nombre_es_ambiguo(self, tmp_path):
-        # El registro dice que es la 7 («Viejo») y en su sección hay otra llamada «Repaso».
-        moodle = _aula_del_registro([], [("Viejo", 7, "pagina"), ("Repaso", 8, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        with pytest.raises(ErrorPublicacion) as exc:
-            publicar.localizar(estructura_de(moodle.secciones), doc, 5)
-        assert (exc.value.codigo, exc.value.detalle) == ("ACTIVIDAD_AMBIGUA", "pagina.md")
-
-    def test_sin_curso_o_con_otro_curso_se_ignora_el_registro(self, tmp_path):
-        moodle = _aula_del_registro([], [("Viejo", 7, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.localizar(estructura_de(moodle.secciones), doc, None).por is None
-        assert publicar.localizar(estructura_de(moodle.secciones), doc, 6) == publicar.localizar(
-            estructura_de(moodle.secciones), documento(tmp_path), 6
-        )
-
-    def test_sin_curso_tampoco_se_usa_el_origen(self, tmp_path):
-        moodle = _aula_del_registro([], [("Viejo", 501, "pagina")])
-        loc = publicar.localizar(
-            estructura_de(moodle.secciones), _documento_con_origen(tmp_path), None
-        )
-        assert loc.por is None
-
-    def test_las_funciones_de_solo_lectura_siguen_a_localizar(self, tmp_path):
-        moodle = _aula_del_registro([("Viejo", 7, "pagina")], [])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.modulo_de(estructura_de(moodle.secciones), doc, 5)["cmid"] == 7
-        assert publicar.modulo_de(estructura_de(moodle.secciones), doc, None) is None
-        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 5) is True
-        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, None) is False
-        # Está en la sección 2 y el documento es de la 3: se movería de «Tema 2».
-        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, 5) == "Tema 2"
-        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, None) is None
-
-    def test_el_conflicto_no_aborta_las_funciones_de_solo_lectura(self, tmp_path):
-        moodle = _aula_del_registro([], [("Viejo", 7, "pagina"), ("Repaso", 8, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 5) is None
-        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, 5) is None
-        with pytest.raises(ErrorPublicacion) as exc:
-            publicar.modulo_de(estructura_de(moodle.secciones), doc, 5)
-        assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
-
-    def test_el_registro_en_su_seccion_no_se_mueve(self, tmp_path):
-        moodle = _aula_del_registro([], [("Viejo", 7, "pagina")])
-        doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, 5) is None
 
 
 class TestPublicarPorRegistro:

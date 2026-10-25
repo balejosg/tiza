@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 import pytest
 
 from tiza import aislamiento, buzon, config, informe, publicacion, rutas
+from tiza.estructura import Estructura
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
     CAMPOS_FECHA_TAREA,
@@ -27,13 +28,26 @@ PAGINA = (
 )
 
 
-def estructura_de(secciones: list[dict]) -> list[dict]:
-    """La estructura del aula que reciben las funciones de tiza, desde las secciones como dicts.
+def estructura_de(
+    secciones: list[dict] | Estructura | MoodleFalso,
+) -> Estructura:
+    """La estructura tipada del aula, desde las secciones como dicts (o un doble ya montado).
 
-    Por ahora la devuelve tal cual: la misma lista, sin copiar (hay tests que miran las
-    mutaciones del doble).
+    Si a una sección le falta ``modulos``, se rellena vacía: los tests antiguos no la escriben
+    porque les daba igual. No toca las secciones recibidas: el resultado es inmutable.
     """
-    return secciones
+    if isinstance(secciones, Estructura):
+        return secciones
+    if isinstance(secciones, MoodleFalso):
+        secciones = secciones.secciones
+    return Estructura.de_dicts(
+        [
+            {**seccion, "modulos": seccion.get("modulos", [])}
+            if isinstance(seccion, dict)
+            else seccion
+            for seccion in secciones
+        ]
+    )
 
 
 def peticion(entorno: str = "pruebas", visible: bool | None = None, **cambios) -> dict:
@@ -205,7 +219,7 @@ class MoodleFalso:
 
     def estructura(self, curso_id):
         self.llamadas.append(("estructura", curso_id))
-        return self._de(curso_id)
+        return Estructura.de_dicts(self._de(curso_id))
 
     def mis_cursos(self):
         self.llamadas.append(("mis_cursos",))

@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 import sys
+from dataclasses import replace
 from datetime import date, datetime
 from pathlib import Path
 
@@ -240,12 +241,24 @@ class TestCambiosDeFechas:
         assert {c.estado for c in cambios} == {"desconocida"}
         assert cambios[1].despues == (2026, 10, 12, 23, 59)
 
+    def test_un_origen_que_ya_no_esta_se_ensena_como_desconocida(self, tmp_path):
+        tarea_en(tmp_path)
+        doc = contenido.cargar(tmp_path / "tarea.md")
+        doc = replace(doc, origen=contenido.Origen(curso=5678, cmid=999))
+        moodle = aula_con_tarea()
+        cambios = publicacion.cambios_de_fechas(
+            moodle, estructura_de(moodle.secciones), doc, None, curso=5678
+        )
+        assert {c.estado for c in cambios} == {"desconocida"}
+        assert all(c.antes is None for c in cambios)
+
     def test_los_avisos_del_calendario_van_con_su_fecha(self, tmp_path):
         tarea_en(tmp_path)  # entrega lunes 12 de octubre de 2026
         doc = contenido.cargar(tmp_path / "tarea.md")
         festivo = calendario.Calendario(festivos=((date(2026, 10, 12), date(2026, 10, 12)),))
         cambios = {
-            c.campo: c for c in publicacion.cambios_de_fechas(MoodleFalso(), [], doc, festivo)
+            c.campo: c
+            for c in publicacion.cambios_de_fechas(MoodleFalso(), estructura_de([]), doc, festivo)
         }
         assert cambios["entrega"].avisos == ("FECHA_FESTIVA",)
         assert cambios["apertura"].avisos == ()
@@ -745,6 +758,54 @@ def test_el_origen_no_encontrado_solo_para_su_fichero(tmp_path):
     assert documento["errores"] == ["ORIGEN_NO_ENCONTRADO"]
     assert [f["nombre"] for f in documento["ficheros"]] == ["otra.md"]
     assert [c[0] for c in moodle.llamadas if c[0] == "crear"] == ["crear"]  # solo «Otra»
+
+
+def _estructura_con_paginas():
+    """Sección 3 con la 601 «Viejo» y la 602 «Repaso» (el documento es «Repaso»)."""
+    return estructura_de(
+        [
+            {
+                "numero": 3,
+                "nombre": "Tema 3",
+                "id": 30,
+                "modulos": [
+                    {"cmid": 601, "nombre": "Viejo", "tipo": "pagina"},
+                    {"cmid": 602, "nombre": "Repaso", "tipo": "pagina"},
+                ],
+            }
+        ]
+    )
+
+
+def test_el_origen_ausente_manda_sobre_un_registro_ambiguo(tmp_path):
+    # ``_separar_rechazados``: con ``aplica_origen`` verdadero, el problema solo puede ser
+    # ``ORIGEN_NO_ENCONTRADO`` (el registro ni se mira); el resultado no cambia.
+    carpeta = _carpeta(tmp_path)
+    doc = contenido.cargar(carpeta / "pagina.md")
+    doc = replace(
+        doc,
+        origen=contenido.Origen(curso=5678, cmid=999),
+        publicados={5678: estado.Publicado(cmid=601, tipo="pagina")},
+    )
+    aceptados, rechazados = publicacion._separar_rechazados(
+        [doc], _estructura_con_paginas(), 5678, carpeta, False, {}, {}
+    )
+    assert aceptados == []
+    assert [(d.ruta.name, motivo) for d, motivo in rechazados] == [
+        ("pagina.md", "ORIGEN_NO_ENCONTRADO")
+    ]
+
+
+def test_los_cmids_solo_relanzan_la_actividad_ambigua(tmp_path):
+    carpeta = _carpeta(tmp_path)
+    doc = contenido.cargar(carpeta / "pagina.md")
+    ambiguo = replace(doc, publicados={5678: estado.Publicado(cmid=601, tipo="pagina")})
+    with pytest.raises(ErrorPublicacion) as exc:
+        publicacion._cmids_de(_estructura_con_paginas(), [ambiguo], 5678, carpeta)
+    assert (exc.value.codigo, exc.value.detalle) == ("ACTIVIDAD_AMBIGUA", "pagina.md")
+    # El origen ausente no se relanza: la actividad queda pendiente para el calificador.
+    perdido = replace(doc, origen=contenido.Origen(curso=5678, cmid=999))
+    assert publicacion._cmids_de(_estructura_con_paginas(), [perdido], 5678, carpeta) == {}
 
 
 def test_dos_ficheros_con_el_mismo_origen_no_se_publican(tmp_path):
@@ -2596,6 +2657,20 @@ def test_copiar_actividades_por_origen(tmp_path):
     )
     moodle, _p, documento, _c = _copiar_actividades(carpeta, ["pagina.md"])
     assert documento["resultado"] == "ok" and moodle.copias_de_actividad == [(5678, 601)]
+
+
+def test_copiar_actividades_origen_ausente_da_el_mismo_codigo(tmp_path):
+    carpeta = _carpeta_con_registro(tmp_path, publicadas=())
+    (carpeta / "pagina.md").write_text(
+        "---\ntipo: pagina\nnombre: Repaso\nseccion: 3\norigen:\n  curso: 5678\n  cmid: 999\n"
+        "---\n\nHola.\n",
+        encoding="utf-8",
+    )
+    moodle, presencia, documento, cupo = _copiar_actividades(carpeta, ["pagina.md"])
+    assert (documento["resultado"], documento["errores"]) == ("error", ["ORIGEN_NO_ENCONTRADO"])
+    assert [f["nombre"] for f in documento["ficheros"]] == ["pagina.md"]
+    assert presencia.resumenes_copia == [] and moodle.copias_de_actividad == []
+    assert cupo["copias_actividad"] == 0
 
 
 def test_copiar_actividades_dos_ficheros_de_la_misma_actividad_cuentan_una(tmp_path):

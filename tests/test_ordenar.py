@@ -203,23 +203,6 @@ class TestOrigenAlOrdenar:
         )
         return contenido.cargar(ruta)
 
-    def test_el_origen_encontrado_en_otra_seccion_manda_su_seccion(self, tmp_path):
-        moodle = aula(1, 2)  # sección 30 con P1 y P2
-        moodle.secciones.append(
-            {
-                "numero": 4,
-                "nombre": "Tema 4",
-                "id": 40,
-                "modulos": [{"cmid": 7, "nombre": "Cambiada", "tipo": "pagina"}],
-            }
-        )
-        docs = [self._origen(tmp_path, "Renombrada", 7), documento(tmp_path, "P1")]
-        grupos = publicar.resolver_orden(estructura_de(moodle.secciones), docs, 1234)
-        assert [(s["id"], [m["cmid"] for _, m in par]) for s, par in grupos] == [
-            (40, [7]),
-            (30, [1]),
-        ]
-
     def test_ordenar_con_origen_encontrado_no_mueve_nada_si_ya_esta(self, tmp_path):
         moodle = aula(1, 2)
         docs = [self._origen(tmp_path, "P2", 2)]
@@ -228,32 +211,13 @@ class TestOrigenAlOrdenar:
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
     def test_origen_ausente_es_origen_no_encontrado(self, tmp_path):
+        # La conversión del problema de ``resolver_orden`` en el error de siempre.
         moodle = aula(1, 2)
         docs = [self._origen(tmp_path, "Perdida", 9)]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.resolver_orden(estructura_de(moodle.secciones), docs, 1234)
-        assert (exc.value.codigo, exc.value.detalle) == ("ORIGEN_NO_ENCONTRADO", "perdida.md")
-        with pytest.raises(ErrorPublicacion) as exc:
             publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
-        assert exc.value.codigo == "ORIGEN_NO_ENCONTRADO"
+        assert (exc.value.codigo, exc.value.detalle) == ("ORIGEN_NO_ENCONTRADO", "perdida.md")
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
-
-
-class TestModulosFuera:
-    def test_salta_las_secciones_que_no_son_dict(self, tmp_path):
-        secciones = [
-            None,
-            "basura",
-            {
-                "numero": 4,
-                "nombre": "Tema 4",
-                "id": 40,
-                "modulos": [{"cmid": 1, "nombre": "P1", "tipo": "pagina"}],
-            },
-        ]
-        doc = documento(tmp_path, "P1")
-        hallados = publicar.modulos_fuera(estructura_de(secciones), doc)
-        assert [(s["id"], m["cmid"]) for s, m in hallados] == [(40, 1)]
 
 
 class TestMoodleMover:
@@ -376,14 +340,6 @@ class TestMoverAlCambiarDeSeccion:
             moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
         )
         assert resultado.oculto is False
-
-    def test_origen_de_movimiento_solo_lectura(self, tmp_path):
-        moodle = self._aula([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
-        doc = documento(tmp_path, "Repaso", seccion_=4)
-        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc) == "Tema 3"
-        assert not [x for x in moodle.llamadas if x[0] == "mover"]
-        moodle2 = self._aula([], [{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
-        assert publicar.origen_de_movimiento(estructura_de(moodle2.secciones), doc) is None
 
 
 class TestOrdenarPorRegistro:

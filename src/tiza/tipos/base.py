@@ -25,6 +25,7 @@ from zoneinfo import ZoneInfo
 
 if TYPE_CHECKING:  # solo para anotar; los adapters sí importan las clases al construir
     from ..contenido import ActividadH5P, Cuestionario, Documento, Fechas, PaqueteH5P
+    from ..estructura import Actividad, Seccion
     from ..publicar import AulaVirtual, ErrorPublicacion
 
 # Nombre llano del «recordarme calificar antes de» de una tarea: tiza nunca lo pone y
@@ -97,12 +98,12 @@ class ContextoPublicacion:
 
     moodle: AulaVirtual
     curso_id: int
-    seccion: dict
+    seccion: Seccion
     doc: Documento
     html: str  # el texto del documento, ya con @@PLUGINFILE@@
     itemid: int  # borrador del texto
     visible: bool | None  # None: lo que ya exista conserva su visibilidad
-    existente: dict | None  # el módulo que se actualizaría, si ya existe
+    existente: Actividad | None  # el módulo que se actualizaría, si ya existe
     leido: dict | None = None  # su formulario de edición, si ``publicar`` ya lo cargó
 
 
@@ -160,11 +161,11 @@ class Tipo:
         """Crea o actualiza el módulo y lo verifica; devuelve (cmid, acción, formulario)."""
         payload = self.payload_de(p)
         if p.existente is not None:
-            cmid = p.existente["cmid"]
+            cmid = p.existente.cmid
             p.moodle.actualizar(cmid, payload)
             accion = "actualizada"
         else:
-            cmid = p.moodle.crear(p.curso_id, p.seccion["id"], self.nombre, payload)
+            cmid = p.moodle.crear(p.curso_id, p.seccion.id, self.nombre, payload)
             accion = "creada"
         from ..publicar import ErrorPublicacion
 
