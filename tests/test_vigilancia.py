@@ -545,6 +545,94 @@ def test_registro_sin_huella_no_da_actividad_vigilada(tmp_path):
     assert _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc) is None
 
 
+# --- M4: la actividad vigilada en solo-fechas ----------------------------------------------
+
+_FECHAS_VIEJAS = {
+    "allowsubmissionsfromdate": (2026, 10, 1, 0, 0),
+    "duedate": (2026, 10, 10, 23, 59),
+    "cutoffdate": None,
+}
+
+
+def test_solo_fechas_de_copia_cambiada_si_cambio_el_texto_y_las_fechas_no_son_las_pedidas(
+    tmp_path,
+):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, tipo="tarea", origen=Origen(curso=5678, cmid=501))
+    base = _huella(doc, _form(doc, texto="<p>Texto viejo</p>", fechas=_FECHAS_VIEJAS))
+    _copia(carpeta, huella=base)
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(tipo="tarea"), doc)
+    assert vigilada is not None
+    leido = _form(doc, texto="<p>Texto a mano</p>", fechas=_FECHAS_VIEJAS)
+    assert vigilada.comprobar(Lector(leido), solo_fechas=True)
+
+
+def test_solo_fechas_de_copia_con_las_fechas_ya_puestas_se_acepta_sin_huella_nueva(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, tipo="tarea", origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(tipo="tarea"), doc)
+    assert vigilada is not None
+    leido = _form(doc)
+    assert not vigilada.comprobar(Lector(leido), solo_fechas=True)
+    vigilada.fechas_verificadas(leido)
+    assert vigilada.huella_nueva is None
+
+
+def test_solo_fechas_de_registro_cambiada_por_marca_o_por_texto(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, tipo="tarea")
+    doc = replace(
+        doc, publicados={5678: estado.Publicado(501, "tarea", "a" * 64, doc.sha256_fichero)}
+    )
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(tipo="tarea"), doc)
+    assert vigilada is not None
+    lector = Lector(_form(doc))
+    assert vigilada.comprobar(lector, solo_fechas=True)
+    assert lector.llamadas == 0
+    doc = replace(doc, publicados={5678: estado.Publicado(501, "tarea", "a" * 64)})
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(tipo="tarea"), doc)
+    assert vigilada is not None
+    leido = _form(doc, texto="<p>Texto a mano</p>", fechas=_FECHAS_VIEJAS)
+    assert vigilada.comprobar(Lector(leido), solo_fechas=True)
+
+
+def test_solo_fechas_de_registro_con_las_fechas_ya_puestas_se_acepta_sin_huella_nueva(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, tipo="tarea", publicados=_entrada(huella="a" * 64))
+    doc = replace(doc, publicados={5678: estado.Publicado(501, "tarea", "a" * 64, None)})
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(tipo="tarea"), doc)
+    assert vigilada is not None
+    leido = _form(doc)
+    assert not vigilada.comprobar(Lector(leido), solo_fechas=True)
+    vigilada.fechas_verificadas(leido)
+    assert vigilada.huella_nueva is None
+
+
+def test_solo_fechas_con_sobrescribir_no_compara_ni_renueva(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, tipo="tarea", publicados=_entrada(huella="a" * 64, marca="b" * 64))
+    assert (
+        _vigilancia(Aula(), carpeta, [doc]).actividad(
+            _estructura(tipo="tarea"), doc, sobrescribe=True
+        )
+        is None
+    )
+
+
+def test_la_huella_nueva_es_la_del_formulario_verificado(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, tipo="tarea", origen=Origen(curso=5678, cmid=501))
+    leido = _form(doc)
+    _copia(carpeta, huella=_huella(doc, leido))
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(tipo="tarea"), doc)
+    assert vigilada is not None
+    assert not vigilada.comprobar(Lector(leido), solo_fechas=True)
+    vigilada.fechas_verificadas(leido)
+    assert vigilada.huella_nueva == _huella(doc, leido)
+    assert vigilada.huella_nueva is not None
+
+
 def test_con_un_problema_de_localizacion_no_hay_actividad_vigilada(tmp_path):
     carpeta = tmp_path.resolve()
     doc = _doc(carpeta, origen=Origen(curso=5678, cmid=999))

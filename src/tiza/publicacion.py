@@ -1113,23 +1113,14 @@ def publicar_con(
     for doc in documentos:
         vigilada = None
         try:
-            huella = None
-            huella_nueva = None  # solo --solo-fechas: la calcula publicar.py con lo que relee
-            if doc.origen is not None and aplica_origen(doc, curso):
-                # Sin huella no se llega aquí: ``_separar_rechazados`` ya lo dejó fuera.
-                huella = vigilancia.huellas.get(doc.origen.cmid)
+            huella_nueva = None  # solo --solo-fechas: la deja la actividad vigilada
             decidido = doc.ruta.resolve() in sobrescribir
             vigilada = vigilancia.actividad(estructura, doc, sobrescribe=decidido)
             if solo_fechas:
-                resultado, huella_nueva = publicar.publicar_fechas_con_huella(
-                    aula,
-                    estructura,
-                    doc,
-                    curso,
-                    huella,
-                    comprobar_registro=real,
-                    sobrescribir=decidido,
+                resultado = publicar.publicar_fechas(
+                    aula, estructura, doc, curso, vigilada=vigilada
                 )
+                huella_nueva = vigilada.huella_nueva if vigilada is not None else None
             else:
                 dependencias = {
                     fichero: cmids[fichero]

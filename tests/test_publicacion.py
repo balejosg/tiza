@@ -2322,6 +2322,39 @@ def test_un_no_a_sobrescribir_no_corta_los_cursos_siguientes(tmp_path):
     assert "nuevo" in moodle.formularios[_entrada(carpeta, 9999).cmid]["page[text]"]
 
 
+def test_quien_depende_de_un_no_tampoco_corta_los_cursos_siguientes(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_varios_cursos()
+    _pagina_texto(carpeta)
+    (carpeta / "siguiente.md").write_text(
+        "---\ntipo: pagina\nnombre: Siguiente\nseccion: 3\n"
+        "restricciones:\n  completar: [p.md]\n---\n\nDespués.\n",
+        encoding="utf-8",
+    )
+    _en(
+        carpeta,
+        moodle,
+        "real",
+        ("p.md", "siguiente.md"),
+        cfg=CFG_DOS_REALES,
+        presencia=PresenciaFalsa(real=(True, True)),
+    )
+    _retocar(moodle, _entrada(carpeta, 5678).cmid, texto="<p>A mano</p>")
+    _pagina_texto(carpeta, texto="Texto de tiza, nuevo.")
+    documento, presencia = _en(
+        carpeta,
+        moodle,
+        "real",
+        ("p.md", "siguiente.md"),
+        cfg=CFG_DOS_REALES,
+        presencia=PresenciaFalsa(real=(True, True)),
+    )
+    # El no y lo que arrastra son decisión del docente: el curso siguiente se publica.
+    assert documento["errores"] == ["CAMBIADA_EN_EL_AULA", "DEPENDENCIA_NO_PUBLICADA"]
+    assert len(presencia.resumenes) == 2
+    assert "nuevo" in moodle.formularios[_entrada(carpeta, 9999).cmid]["page[text]"]
+
+
 def test_otro_fallo_en_un_curso_sigue_cortando_los_siguientes(tmp_path):
     carpeta = tmp_path.resolve()
     moodle = _aula_varios_cursos()

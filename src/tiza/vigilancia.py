@@ -325,17 +325,6 @@ def _comparar(
     return _Cambio.YA_TENIA if en_el_aula == esperada else _Cambio.CAMBIADA
 
 
-def formulario_cambiado(
-    doc: Documento, base: str, leido: Mapping[str, Any], *, solo_fechas: bool = False
-) -> bool:
-    """Si el formulario ``leido`` difiere de la ``base`` y de lo que tiza iba a enviar.
-
-    Es la regla única de comparación, en su forma booleana: la usan la vigilancia y, mientras
-    dura la migración, las comprobaciones de ``publicar.py``.
-    """
-    return _comparar(doc, base, leido, solo_fechas=solo_fechas) is _Cambio.CAMBIADA
-
-
 def _marca_sin_juntar(marca: str | None, doc: Documento) -> bool:
     """Si la versión del aula traída en ``marca`` sigue sin juntar en el fichero del docente.
 
