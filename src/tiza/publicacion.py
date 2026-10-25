@@ -1918,7 +1918,7 @@ def cambios_de_seccion(
         origen = publicar.origen_de_movimiento(secciones, doc, curso)
         if origen is None:
             continue
-        destino = estado.buscar_seccion(secciones, doc.seccion)
+        destino = publicar._seccion_de(secciones, doc.seccion)
         nombre_destino = destino["nombre"] if destino is not None else str(doc.seccion)
         cambios.append(CambioSeccion(doc.ruta.name, origen, str(nombre_destino)))
     return tuple(cambios)

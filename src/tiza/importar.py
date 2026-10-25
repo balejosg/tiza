@@ -42,6 +42,7 @@ from .copia import (
     FicheroCopia,
     SeccionCopia,
 )
+from .estructura import nombre_de_seccion
 from .ficheros import fichero_en_carpeta, leer_bytes_acotado
 from .importar_cuestionario import (
     ajustes_del_cuestionario,
@@ -120,7 +121,7 @@ def nombre_de_recurso(nombre: str) -> str:
 
 def _texto_seguro(texto: str, defecto: str = "") -> str:
     """Un texto de la copia apto para ``copia.json``: sin controles ni ``<`` ``>``."""
-    return estado.nombre_de_seccion(texto) or defecto
+    return nombre_de_seccion(texto) or defecto
 
 
 # --------------------------------------------------------------------------- #

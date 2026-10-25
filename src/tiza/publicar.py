@@ -51,7 +51,8 @@ from .calificacion.formulas import (  # noqa: F401  (se reexportan: son de la AP
 from .calificacion.formulas import texto_numero as _texto_numero
 from .config import AdaptadorAula, DestinoNoPermitido, coincide_dominio
 from .contenido import Documento, Recurso, hash_documento, html_para_moodle
-from .estado import MARCA_ILEGIBLE, Publicado, buscar_seccion, nombre_de_seccion
+from .estado import MARCA_ILEGIBLE, Publicado
+from .estructura import nombre_de_seccion
 from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
 from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
@@ -2511,7 +2512,7 @@ def _publicar_congelado(
     comprobar_registro: bool = False,
     sobrescribir: bool = False,
 ) -> informe.Fichero:
-    seccion = buscar_seccion(secciones, doc.seccion)
+    seccion = _seccion_de(secciones, doc.seccion)
     if seccion is None:
         raise ErrorPublicacion("SECCION_AUSENTE", doc.ruta.name)
     loc = localizar(secciones, doc, curso_id)
@@ -2849,7 +2850,7 @@ def _verificar_itinerario(doc: Documento, leido: dict, envio: EnvioItinerario) -
 def modulos_de(secciones: list[dict], doc: Documento) -> list[dict]:
     """Los módulos de la sección de ``doc`` con su tipo y su nombre (casi siempre uno o ninguno)."""
     try:
-        seccion = buscar_seccion(secciones, doc.seccion)
+        seccion = _seccion_de(secciones, doc.seccion)
     except (TypeError, ValueError):
         return []
     modulos = seccion.get("modulos") if seccion is not None else None
@@ -2862,6 +2863,26 @@ def modulos_de(secciones: list[dict], doc: Documento) -> list[dict]:
         and modulo.get("tipo") == doc.tipo
         and modulo.get("nombre") == doc.nombre
     ]
+
+
+def _seccion_de(secciones: list[dict], clave: int | str) -> dict | None:
+    """Sección por número o por nombre, mientras ``publicar.py`` aún habla con dicts.
+
+    Es la antigua ``estado.buscar_seccion``, tal cual; desaparece con las funciones que la
+    usan al cambiar la seam del aula (fase siguiente).
+    """
+    for seccion in secciones:
+        if not isinstance(seccion, dict):
+            continue
+        if isinstance(clave, int):
+            if seccion.get("numero") == clave:
+                return seccion
+        elif (
+            nombre_de_seccion(seccion.get("nombre") or "").casefold()
+            == nombre_de_seccion(clave).casefold()
+        ):
+            return seccion
+    return None
 
 
 def aplica_origen(doc: Documento, curso: int | None) -> bool:
@@ -2966,7 +2987,7 @@ def localizar(secciones: list[dict], doc: Documento, curso: int | None) -> Local
                 raise ErrorPublicacion("ACTIVIDAD_AMBIGUA", doc.ruta.name)
             return Localizacion(donde, modulo, "registro")
     try:
-        propia = buscar_seccion(secciones, doc.seccion)
+        propia = _seccion_de(secciones, doc.seccion)
     except (TypeError, ValueError):
         propia = None
     en_su_seccion = modulos_de(secciones, doc)
@@ -3139,7 +3160,7 @@ def modulos_fuera(secciones: list[dict], doc: Documento) -> list[tuple[dict, dic
     Con ``doc`` publicado en otra sección, ahí es donde habría que buscarlo para moverlo.
     """
     try:
-        propia = buscar_seccion(secciones, doc.seccion)
+        propia = _seccion_de(secciones, doc.seccion)
     except (TypeError, ValueError):
         propia = None
     salida: list[tuple[dict, dict]] = []
@@ -3176,7 +3197,7 @@ def origen_de_movimiento(
         return None
     if loc.por != "otra_seccion":
         try:
-            propia = buscar_seccion(secciones, doc.seccion)
+            propia = _seccion_de(secciones, doc.seccion)
         except (TypeError, ValueError):
             propia = None
         if propia is not None and propia.get("id") == loc.seccion.get("id"):
@@ -3199,7 +3220,7 @@ def ya_existe(secciones: list[dict], doc: Documento, curso: int | None = None) -
     if loc.por in ("origen", "registro"):
         return True
     try:
-        seccion = buscar_seccion(secciones, doc.seccion)
+        seccion = _seccion_de(secciones, doc.seccion)
     except (TypeError, ValueError):
         return None
     if seccion is None:
@@ -3213,7 +3234,7 @@ def secciones_que_faltan(secciones: list[dict], documentos: list[Documento]) -> 
     """Nombres de sección pedidos por los documentos que aún no existen."""
     faltan: list[str] = []
     for doc in documentos:
-        if isinstance(doc.seccion, str) and buscar_seccion(secciones, doc.seccion) is None:
+        if isinstance(doc.seccion, str) and _seccion_de(secciones, doc.seccion) is None:
             if doc.seccion.casefold() not in {nombre.casefold() for nombre in faltan}:
                 faltan.append(doc.seccion)
     return faltan
@@ -3230,7 +3251,7 @@ def asegurar_secciones(
         moodle.crear_seccion(curso_id, nombre)
     secciones = moodle.estructura(curso_id)
     for nombre in creadas:
-        if buscar_seccion(secciones, nombre) is None:
+        if _seccion_de(secciones, nombre) is None:
             raise ErrorPublicacion("SECCION_NO_CREADA", nombre)
     return secciones, creadas
 
@@ -3316,7 +3337,7 @@ def publicar_fechas_con_huella(
                 renovar = False
     moodle.actualizar(cmid, payload_solo_fechas(doc))
     info = _verificar_fechas(moodle, doc, cmid)
-    seccion = buscar_seccion(secciones, doc.seccion) or {}
+    seccion = _seccion_de(secciones, doc.seccion) or {}
     fichero = informe.Fichero(
         nombre=doc.ruta.name,
         tipo=doc.tipo,
@@ -3599,14 +3620,14 @@ def autoprueba(moodle: AulaVirtual, curso_id: int) -> dict:
             paso("VERIFICAR_CATEGORIA", "ok", f"{len(en_banco)} preguntas")
             codigo_actual = "CREAR_SECCION"
             nombre_seccion = "Autoprueba tiza (seccion)"
-            existente = buscar_seccion(secciones, nombre_seccion)
+            existente = _seccion_de(secciones, nombre_seccion)
             if existente is not None:
                 seccion_id = existente["id"]
             else:
                 seccion_id = moodle.crear_seccion(curso_id, nombre_seccion)
             seccion_temporal = seccion_id
             secciones = moodle.estructura(curso_id)
-            if buscar_seccion(secciones, nombre_seccion) is None:
+            if _seccion_de(secciones, nombre_seccion) is None:
                 raise ErrorPublicacion("SECCION_NO_CREADA")
             paso("CREAR_SECCION", "ok", None)
             codigo_actual = "ORDENAR"

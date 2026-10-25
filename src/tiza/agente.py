@@ -23,7 +23,8 @@ from .calificacion.carpeta import cargar_calificacion
 from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
 from .contenido import Documento, ErrorContenido, hash_documento
 from .escritura import ErrorEscritura
-from .estado import ErrorEstado, Estructura, buscar_seccion, cargar_estructura
+from .estado import CursosGuardados, ErrorEstado, cargar_estructura
+from .estructura import Estructura
 from .ficheros import (
     FicheroNoSeguro,
     asegurar_directorio,
@@ -88,7 +89,7 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
     resultados: list[FicheroComprobado] = []
     # Un esquema de calificación (.yaml) no necesita la estructura del aula ni el calendario.
     con_documentos = any(Path(n).suffix.lower() not in EXTENSIONES_ESQUEMA for n in ficheros)
-    estructura: Estructura | None = None
+    estructura: CursosGuardados | None = None
     cal = None
     if con_documentos:
         try:
@@ -142,7 +143,7 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
                 # puede tenerla puesta a mano y tiza no lee el aula al comprobar).
                 borrador.paso("DEPENDENCIA_SIN_FINALIZACION", detalle=f"{ruta.name}: {relativa}")
         curso = _curso_a_comprobar(estructura)
-        seccion = buscar_seccion(curso[1], doc.seccion) if curso is not None else None
+        seccion = curso[1].buscar_seccion(doc.seccion) if curso is not None else None
         if curso is not None and seccion is None and isinstance(doc.seccion, str):
             borrador.paso("COMPROBAR", detalle=ruta.name)
             borrador.fichero(_fichero(doc, doc.seccion))
@@ -179,7 +180,7 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
                     "SECCION_DISTINTA_ENTRE_CURSOS", detalle=f"{ruta.name}: sección {doc.seccion}"
                 )
             resultados.append(FicheroComprobado(ruta.name, vista_previa=vista, avisos=avisos))
-        borrador.fichero(_fichero(doc, seccion["nombre"] if seccion else None))
+        borrador.fichero(_fichero(doc, seccion.nombre if seccion else None))
 
     return Comprobacion(borrador.documento(), tuple(resultados))
 
@@ -258,25 +259,25 @@ def _fichero(doc: Documento, seccion: str | None) -> informe.Fichero:
     )
 
 
-def _cursos_de(estructura: Estructura | None, entorno: str) -> list[list]:
+def _cursos_de(estructura: CursosGuardados | None, entorno: str) -> list[Estructura]:
     """Las secciones de cada curso de ``entorno`` (estado ya unifica v1 y v2)."""
     if estructura is None:
         return []
-    return [curso["secciones"] for curso in estructura.cursos(entorno)]
+    return [curso.estructura for curso in estructura.cursos(entorno)]
 
 
-def _curso_a_comprobar(estructura: Estructura | None) -> tuple[str, list] | None:
+def _curso_a_comprobar(estructura: CursosGuardados | None) -> tuple[str, Estructura] | None:
     """El curso donde se publicará: el de pruebas o, si no hay, el primer real."""
     if estructura is None:
         return None
     for entorno in ("pruebas", "real"):
         cursos = estructura.cursos(entorno)
         if cursos:
-            return entorno, cursos[0]["secciones"]
+            return entorno, cursos[0].estructura
     return None
 
 
-def _seccion_distinta_entre_cursos(estructura: Estructura | None, doc: Documento) -> bool:
+def _seccion_distinta_entre_cursos(estructura: CursosGuardados | None, doc: Documento) -> bool:
     """¿El número de sección de ``doc`` tiene nombres distintos en los cursos reales?"""
     if not isinstance(doc.seccion, int) or isinstance(doc.seccion, bool):
         return False
@@ -285,20 +286,20 @@ def _seccion_distinta_entre_cursos(estructura: Estructura | None, doc: Documento
         return False
     nombres = set()
     for secciones in reales:
-        seccion = buscar_seccion(secciones, doc.seccion)
-        nombres.add(str(seccion.get("nombre")) if seccion else None)
+        seccion = secciones.buscar_seccion(doc.seccion)
+        nombres.add(str(seccion.nombre) if seccion else None)
     return len(nombres) > 1
 
 
-def _pista_de_id(estructura: Estructura, doc: Documento) -> str | None:
+def _pista_de_id(estructura: CursosGuardados, doc: Documento) -> str | None:
     """Si ``seccion`` es el id de la URL del aula, el texto que dice qué número poner."""
     for entorno in ("pruebas", "real"):
         for secciones in _cursos_de(estructura, entorno):
             for seccion in secciones:
-                if isinstance(seccion, dict) and seccion.get("id") == doc.seccion:
+                if seccion.id == doc.seccion:
                     return (
-                        f"{doc.seccion} es el id de la sección «{seccion.get('nombre')}» del curso "
-                        f"de {entorno}; escribe «seccion: {seccion.get('numero')}»."
+                        f"{doc.seccion} es el id de la sección «{seccion.nombre}» del curso "
+                        f"de {entorno}; escribe «seccion: {seccion.numero}»."
                     )
     return None
 

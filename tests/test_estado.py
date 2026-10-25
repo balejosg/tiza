@@ -9,7 +9,6 @@ from datetime import datetime
 
 import pytest
 
-from dobles import estructura_de
 from tiza import estado
 
 CURSOS = {
@@ -27,15 +26,53 @@ class TestEstructuraFichero:
         assert crudo["generado"]
         assert list(crudo["cursos"]) == ["pruebas", "real"]
         estructura = estado.cargar_estructura(tmp_path / ".tiza")
-        assert estructura.pruebas["id"] == 1234
-        assert [curso["id"] for curso in estructura.reales] == [5678]
-        assert estructura.cursos("pruebas")[0]["secciones"][0]["numero"] == 3
+        assert estructura.pruebas.id == 1234
+        assert [curso.id for curso in estructura.reales] == [5678]
+        assert estructura.cursos("pruebas")[0].estructura.secciones[0].numero == 3
+
+    def test_la_estructura_guardada_llega_tipada_y_sin_actividades(self, tmp_path):
+        estado.escribir_estructura(tmp_path, CURSOS)
+        estructura = estado.cargar_estructura(tmp_path)
+        guardada = estructura.pruebas
+        assert guardada is not None
+        assert [seccion.nombre for seccion in guardada.estructura] == ["Tema 3"]
+        assert all(seccion.actividades == () for seccion in guardada.estructura)
+
+    @pytest.mark.parametrize(
+        "seccion",
+        [
+            {"numero": None, "nombre": "Tema 3", "id": 30},
+            {"numero": 3, "nombre": None, "id": 30},
+            {"numero": 3, "nombre": "Tema 3", "id": None},
+        ],
+    )
+    def test_lo_que_el_esquema_deja_pasar_lo_rechaza_el_constructor(self, tmp_path, seccion):
+        datos = {
+            "version": 2,
+            "generado": "x",
+            "cursos": {"real": [{"id": 1234, "secciones": [seccion]}]},
+        }
+        (tmp_path / "estructura.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as exc:
+            estado.cargar_estructura(tmp_path)
+        assert exc.value.codigo == "ESTRUCTURA_INVALIDA"
+
+    def test_un_id_de_curso_que_no_es_entero_es_invalido(self, tmp_path):
+        datos = {
+            "version": 2,
+            "generado": "x",
+            "cursos": {"real": [{"id": None, "secciones": []}]},
+        }
+        (tmp_path / "estructura.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as exc:
+            estado.cargar_estructura(tmp_path)
+        assert exc.value.codigo == "ESTRUCTURA_INVALIDA"
 
     def test_admite_real_como_lista(self, tmp_path):
         reales = [CURSOS["real"], {**CURSOS["real"], "id": 9}]
         estado.escribir_estructura(tmp_path, {"real": reales})
         estructura = estado.cargar_estructura(tmp_path)
-        assert [curso["id"] for curso in estructura.reales] == [5678, 9]
+        assert [curso.id for curso in estructura.reales] == [5678, 9]
 
     def test_un_entorno_desconocido_no_tiene_cursos(self, tmp_path):
         estado.escribir_estructura(tmp_path, CURSOS)
@@ -50,8 +87,8 @@ class TestEstructuraFichero:
         }
         (tmp_path / "estructura.json").write_text(json.dumps(v1), encoding="utf-8")
         estructura = estado.cargar_estructura(tmp_path)
-        assert [curso["id"] for curso in estructura.reales] == [5678]
-        assert estructura.pruebas["id"] == 1234
+        assert [curso.id for curso in estructura.reales] == [5678]
+        assert estructura.pruebas.id == 1234
 
     def test_ausente_falla(self, tmp_path):
         with pytest.raises(estado.ErrorEstado) as exc:
@@ -132,31 +169,6 @@ class TestVerificados:
         registro = {"a" * 64: estado.Verificado("pagina.md", 1, "2026-10-10T10:00:00+00:00")}
         assert estado.comprobar_puerta_real(registro, [("pagina.md", "a" * 64)]) == []
         assert estado.comprobar_puerta_real(registro, [("tarea.md", "b" * 64)]) == ["tarea.md"]
-
-
-class TestSecciones:
-    def test_buscar_por_numero_y_por_nombre(self):
-        secciones = [{"numero": 1, "nombre": "Proyecto", "id": 9}]
-        assert estado.buscar_seccion(estructura_de(secciones), 1)["id"] == 9
-        assert estado.buscar_seccion(estructura_de(secciones), "proyecto")["id"] == 9
-        assert estado.buscar_seccion(estructura_de(secciones), "Otra") is None
-
-    def test_una_entrada_que_no_es_seccion_se_salta(self):
-        secciones = ["basura", {"numero": 1, "nombre": "Proyecto", "id": 9}]
-        assert estado.buscar_seccion(estructura_de(secciones), 1)["id"] == 9
-
-    def test_la_busqueda_normaliza_como_la_estructura(self):
-        # La estructura guarda los nombres ya saneados (nombre_de_seccion colapsa
-        # los espacios); la búsqueda debe normalizar igual para encontrarlos.
-        saneada = [{"numero": 3, "nombre": "Tema 1", "id": 30}]
-        assert estado.buscar_seccion(estructura_de(saneada), "Tema  1")["id"] == 30
-        # Simétrico: también si el nombre guardado llevara espacios de más.
-        bruta = [{"numero": 3, "nombre": "Tema  1", "id": 30}]
-        assert estado.buscar_seccion(estructura_de(bruta), "Tema 1")["id"] == 30
-        assert estado.buscar_seccion(estructura_de(saneada), "Tema 2") is None
-
-    def test_nombre_de_seccion_sanea_angulos_y_controles(self):
-        assert estado.nombre_de_seccion("Tema <1>\x07  repaso") == "Tema ‹1› repaso"
 
 
 class TestCopiasDeTiza:

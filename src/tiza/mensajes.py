@@ -103,7 +103,7 @@ __all__ = [
 # Controles C0/C1 (incluido ESC y CSI) y controles bidireccionales (incluido
 # U+061C, ARABIC LETTER MARK): con ellos un texto ajeno podría borrar o
 # reescribir lo que el docente lee antes de confirmar. Misma clase de caracteres
-# que informe._TEXTO_PROHIBIDO, contenido._CONTROL y publicar._NO_IMPRIMIBLE;
+# que informe._TEXTO_PROHIBIDO, contenido._CONTROL y estructura._NO_IMPRIMIBLE;
 # mantén las cuatro sincronizadas.
 _NO_IMPRIMIBLE = re.compile(r"[\x00-\x1f\x7f-\x9f\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
 

@@ -236,7 +236,7 @@ _DATA_IMAGEN = re.compile(r"\Adata:image/(?:png|jpeg|gif|webp)[;,]", re.IGNORECA
 _ESPACIO_DE_NOMBRES_HTML = (None, "http://www.w3.org/1999/xhtml")
 
 # Misma clase de caracteres que mensajes.texto_seguro, informe._TEXTO_PROHIBIDO y
-# publicar._NO_IMPRIMIBLE; mantén las cuatro sincronizadas.
+# estructura._NO_IMPRIMIBLE; mantén las cuatro sincronizadas.
 CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
 
 

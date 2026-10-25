@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from . import rutas
+from .estructura import ErrorEstructura, Estructura
 from .ficheros import (
     FicheroNoSeguro,
     asegurar_directorio,
@@ -48,8 +49,9 @@ __all__ = [
     "CARPETA_LECTURAS",
     "CARPETA_PREVIEW",
     "CARPETA_PUBLICADOS",
+    "CursoGuardado",
+    "CursosGuardados",
     "ErrorEstado",
-    "Estructura",
     "FICHERO_BASE_ENVIADO",
     "FICHERO_BASE_FUENTE",
     "FICHERO_CALIFICADOR",
@@ -65,7 +67,6 @@ __all__ = [
     "Publicado",
     "Verificado",
     "anotar_verificado",
-    "buscar_seccion",
     "guardar_base",
     "olvidar_base",
     "ruta_base",
@@ -87,7 +88,6 @@ __all__ = [
     "huellas_de_copia",
     "marcas_de_copia",
     "nombre_de_copia",
-    "nombre_de_seccion",
     "olvidar_publicado",
     "quitar_aviso_cambiada",
     "reservar_copia",
@@ -136,18 +136,25 @@ class ErrorEstado(Exception):
 
 
 @dataclass(frozen=True)
-class Estructura:
+class CursoGuardado:
+    """Un curso de ``estructura.json``: su id y sus secciones, ya sin actividades."""
+
+    id: int
+    estructura: Estructura
+
+
+@dataclass(frozen=True)
+class CursosGuardados:
     """La estructura de secciones ya validada: la misma forma para v1 y v2.
 
     ``pruebas`` es el curso de pruebas o None; ``reales``, los cursos reales (en
-    v1 venía un solo objeto: se normaliza a una tupla de uno). Cada curso es el
-    dict del fichero: ``id`` y ``secciones`` (``numero``, ``nombre``, ``id``).
+    v1 venía un solo objeto: se normaliza a una tupla de uno).
     """
 
-    pruebas: dict | None
-    reales: tuple[dict, ...]
+    pruebas: CursoGuardado | None
+    reales: tuple[CursoGuardado, ...]
 
-    def cursos(self, entorno: str) -> tuple[dict, ...]:
+    def cursos(self, entorno: str) -> tuple[CursoGuardado, ...]:
         """Los cursos de un entorno; la versión del fichero ya no se interpreta."""
         if entorno == "pruebas":
             return (self.pruebas,) if self.pruebas is not None else ()
@@ -173,11 +180,12 @@ def escribir_estructura(dir_tiza: str | Path, cursos: Mapping[str, Any]) -> Path
     return escribir_json(Path(dir_tiza) / FICHERO_ESTRUCTURA, datos)
 
 
-def cargar_estructura(dir_tiza: str | Path) -> Estructura:
+def cargar_estructura(dir_tiza: str | Path) -> CursosGuardados:
     """Lee ``estructura.json`` y lo devuelve validado; v1 y v2 quedan iguales.
 
     Un fichero que no cumple el esquema no se interpreta a medias:
-    ``ESTRUCTURA_INVALIDA``.
+    ``ESTRUCTURA_INVALIDA``. Después del esquema, el constructor estricto de
+    :class:`tiza.estructura.Estructura` comprueba los tipos.
     """
     ruta = Path(dir_tiza) / FICHERO_ESTRUCTURA
     if not ruta.is_file():
@@ -189,10 +197,38 @@ def cargar_estructura(dir_tiza: str | Path) -> Estructura:
     _validar_estructura(datos)
     cursos = datos["cursos"]
     real = cursos.get("real")
-    return Estructura(
-        pruebas=cursos.get("pruebas"),
-        reales=(real,) if isinstance(real, dict) else tuple(real or ()),
+    pruebas = cursos.get("pruebas")
+    reales: list[CursoGuardado] = []
+    for curso in _cursos_reales(real):
+        reales.append(_curso_guardado(curso))
+    return CursosGuardados(
+        pruebas=_curso_guardado(pruebas) if pruebas is not None else None,
+        reales=tuple(reales),
     )
+
+
+def _cursos_reales(real: Any) -> list[Mapping[str, Any]]:
+    """Los cursos reales del fichero, con v1 (un curso) y v2 (una lista) iguales."""
+    if isinstance(real, dict):
+        return [real]
+    if isinstance(real, list):
+        return real
+    return []
+
+
+def _curso_guardado(datos: Mapping[str, Any]) -> CursoGuardado:
+    """El curso del fichero con su estructura ya tipada."""
+    try:
+        identificador = datos["id"]
+        if isinstance(identificador, bool) or not isinstance(identificador, int):
+            raise ErrorEstado("ESTRUCTURA_INVALIDA")
+        return CursoGuardado(
+            id=identificador, estructura=Estructura.de_dicts_guardada(datos["secciones"])
+        )
+    except ErrorEstructura as exc:
+        raise ErrorEstado("ESTRUCTURA_INVALIDA") from exc
+    except KeyError as exc:  # el esquema ya exige las claves; defensa del tipo
+        raise ErrorEstado("ESTRUCTURA_INVALIDA") from exc
 
 
 def escribir_copia(dir_tiza: str | Path, datos: Mapping[str, Any]) -> Path:
@@ -849,35 +885,6 @@ def comprobar_puerta_real(
 ) -> list[str]:
     """Nombres de los ficheros sin verificación previa en pruebas."""
     return [nombre for nombre, hash_doc in pares if hash_doc not in verificados]
-
-
-# Misma clase de caracteres que mensajes.texto_seguro, contenido._CONTROL e
-# informe._TEXTO_PROHIBIDO; mantén las cuatro sincronizadas.
-_NO_IMPRIMIBLE = re.compile(r"[\x00-\x1f\x7f-\x9f\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
-
-
-def nombre_de_seccion(texto: str) -> str:
-    """Nombre de sección apto para el esquema cerrado: sin < > ni controles."""
-    limpio = _NO_IMPRIMIBLE.sub(" ", texto).replace("<", "‹").replace(">", "›")
-    return " ".join(limpio.split())[:255]
-
-
-def buscar_seccion(secciones: list[dict], clave: int | str) -> dict | None:
-    """Sección por número (entero) o por nombre (texto, sin distinguir mayúsculas)."""
-    for seccion in secciones:
-        if not isinstance(seccion, dict):
-            continue
-        if isinstance(clave, int):
-            if seccion.get("numero") == clave:
-                return seccion
-        # El nombre ya se saneó al construir la estructura (nombre_de_seccion);
-        # aquí se aplica la misma normalización para que la comparación coincida.
-        elif (
-            nombre_de_seccion(seccion.get("nombre") or "").casefold()
-            == nombre_de_seccion(clave).casefold()
-        ):
-            return seccion
-    return None
 
 
 def ruta_lectura(carpeta: str | Path, fichero: str | Path) -> Path:
