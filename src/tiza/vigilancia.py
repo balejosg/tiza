@@ -286,7 +286,7 @@ class Vigilancia:
             if not self._renovar_copia(doc, nueva):
                 fallos.append(HUELLA_NO_GUARDADA)
         previo = self._cmid_previo(ruta)
-        if not self._anotar_registro(doc, ruta, cmid):
+        if not self._anotar_registro(doc, ruta, cmid, nueva=nueva):
             fallos.append(REGISTRO_NO_GUARDADO)
         if self.real and not self._guardar_base(doc, cmid, previo):
             fallos.append(BASE_NO_GUARDADA)
@@ -339,14 +339,16 @@ class Vigilancia:
             return None
         return anterior.cmid if anterior is not None else None
 
-    def _anotar_registro(self, doc: Documento, ruta: str, cmid: int) -> bool:
+    def _anotar_registro(self, doc: Documento, ruta: str, cmid: int, *, nueva: str | None) -> bool:
         """Escribe la entrada del registro; ``False`` si no se pudo guardar o releer.
 
         Una ruta que no se puede leer no es clave del registro. Una clave nueva con «:» no se
-        crea (la base sí se guarda); una que ya estaba se actualiza aunque la lleve. Conserva la
-        huella y la marca de la entrada anterior si es la misma actividad; si el cmid cambió (se
-        recreó), van a nada. En un curso real y sin ``origen``, relee el formulario para la
-        huella y limpia la marca; si la relectura falla, la entrada queda sin huella y se avisa.
+        crea (la base sí se guarda); una que ya estaba se actualiza aunque la lleve. Con
+        ``nueva`` (lo hallado por su ``origen``), la entrada guarda esa misma huella y la marca
+        queda vacía. Si no, conserva la huella y la marca de la entrada anterior cuando es la
+        misma actividad; si el cmid cambió (se recreó), van a nada. En un curso real y sin
+        ``origen``, relee el formulario para la huella y limpia la marca; si la relectura falla,
+        la entrada queda sin huella y se avisa.
         """
         if not estado.ruta_de_registro_valida(ruta):
             return True
@@ -358,7 +360,9 @@ class Vigilancia:
             huella = anterior.huella if igual and anterior is not None else None
             marca = anterior.marca if igual and anterior is not None else None
             no_guardado = False
-            if self.real and not aplica_origen(doc, self.curso):
+            if nueva is not None:
+                huella, marca = nueva, None
+            elif self.real and not aplica_origen(doc, self.curso):
                 marca = None
                 try:
                     huella = tipos.huella_del_formulario(

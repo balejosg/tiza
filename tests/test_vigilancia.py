@@ -913,7 +913,7 @@ def test_cmid_distinto_borra_huella_y_marca(tmp_path):
     )
 
 
-def test_con_origen_en_real_no_relee_y_conserva(tmp_path):
+def test_con_origen_en_real_no_relee_y_guarda_la_huella_de_la_copia(tmp_path):
     carpeta = tmp_path.resolve()
     doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
     _copia(carpeta, huella="a" * 64, marca=doc.sha256_fichero)
@@ -926,10 +926,11 @@ def test_con_origen_en_real_no_relee_y_conserva(tmp_path):
     aula = Aula(falla=True)
     anotacion = _vigilancia(aula, carpeta, [doc], real=True).anotar_publicado(doc, "A.md", 501)
     assert anotacion == Anotacion()
+    nueva = estado.huellas_de_copia(carpeta / ".tiza", 5678)[501]
+    assert nueva != "a" * 64
     assert estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"] == estado.Publicado(
-        501, "pagina", huella="a" * 64, marca="b" * 64
+        501, "pagina", huella=nueva, marca=None
     )
-    assert estado.huellas_de_copia(carpeta / ".tiza", 5678)[501] != "a" * 64
     assert aula.lecturas == []
 
 
@@ -1216,3 +1217,22 @@ def test_anotar_publicado_actualiza_una_clave_con_dos_puntos_ya_escrita(tmp_path
     assert estado.cargar_publicados(dir_tiza, 5678)["A:b.md"] == estado.Publicado(
         501, "pagina", _huella(doc, leido), None
     )
+
+
+def test_anotar_publicado_con_origen_guarda_en_el_registro_la_huella_de_la_copia(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64, marca=doc.sha256_fichero)
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(501, "pagina", huella="b" * 64, marca=doc.sha256_fichero),
+    )
+    anotacion = _vigilancia(Aula(falla=True), carpeta, [doc], real=True).anotar_publicado(
+        doc, "A.md", 501
+    )
+    assert anotacion == Anotacion()
+    entrada = estado.cargar_publicados(carpeta / ".tiza", 5678)["A.md"]
+    assert entrada.huella == estado.huellas_de_copia(carpeta / ".tiza", 5678)[501]
+    assert entrada.marca is None

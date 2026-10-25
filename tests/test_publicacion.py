@@ -701,6 +701,34 @@ def test_publicar_por_origen_actualiza_la_actividad_y_renueva_la_huella(tmp_path
     assert segunda["errores"] == [] and segunda["resultado"] == "ok"
 
 
+def test_quitar_el_origen_tras_publicar_no_pregunta_por_un_retoque_que_no_existe(tmp_path):
+    carpeta = tmp_path.resolve()
+    _fichero_importado(carpeta)
+    _escribir_copia(carpeta, _huella_del_aula())
+    viejo = contenido.cargar(carpeta / "importada.md", raiz=carpeta)
+    # El registro conserva la huella vieja y una marca sin juntar, como tras importar un cambio.
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "importada.md",
+        estado.Publicado(501, "pagina", huella=_huella_del_aula(), marca=viejo.sha256_fichero),
+    )
+    moodle = _aula_importada()
+    primero, presencia = _en(carpeta, moodle, "real", ("importada.md",))
+    assert primero["errores"] == [] and presencia.resumenes_sobrescribir == []
+    entrada = _entrada(carpeta, ruta="importada.md")
+    assert entrada.huella == estado.huellas_de_copia(carpeta / ".tiza", 5678)[501]
+    assert entrada.marca is None
+    # El docente edita el fichero y quita el origen: el aula sigue como la dejó tiza.
+    (carpeta / "importada.md").write_text(
+        "---\ntipo: pagina\nnombre: Nuevo\nseccion: 2\n---\n\nTexto nuevo, cambiado.\n",
+        encoding="utf-8",
+    )
+    segundo, presencia = _en(carpeta, moodle, "real", ("importada.md",))
+    assert segundo["errores"] == [] and presencia.resumenes_sobrescribir == []
+    assert "cambiado" in moodle.formularios[501]["page[text]"]
+
+
 def test_la_huella_se_renueva_solo_en_la_entrada_de_su_curso(tmp_path):
     carpeta = tmp_path.resolve()
     _fichero_importado(carpeta)
@@ -2105,8 +2133,10 @@ def test_un_documento_con_origen_en_su_curso_sigue_su_camino_sin_pregunta_nueva(
     moodle = _aula_importada()
     documento, presencia = _en(carpeta, moodle, "real", ("importada.md",))
     assert documento["errores"] == [] and presencia.resumenes_sobrescribir == []
-    # La base del registro no se toca ni se relee: manda ``copia.json``.
-    assert _entrada(carpeta, ruta="importada.md").huella == "a" * 64
+    # El registro guarda la misma huella que ``copia.json`` y la marca queda vacía.
+    entrada = _entrada(carpeta, ruta="importada.md")
+    assert entrada.huella == estado.huellas_de_copia(carpeta / ".tiza", 5678)[501]
+    assert entrada.marca is None
     assert _lecturas(moodle) == 2  # comparar con la copia y verificar; nada más
 
 
