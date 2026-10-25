@@ -7,7 +7,7 @@ import random
 
 import pytest
 
-from dobles import MoodleFalso
+from dobles import MoodleFalso, estructura_de
 from tiza import contenido, estado, publicar
 from tiza.publicar import ErrorPublicacion, Movimiento, plan_de_orden
 
@@ -33,32 +33,32 @@ class TestPlanDeOrden:
     def test_el_ejemplo_de_los_huecos(self):
         # [Foro, quiz, Archivo, intro, tarea] con «intro tarea quiz» → [Foro, intro, Archivo, tarea, quiz]
         secciones = [seccion(30, [1, 2, 3, 4, 5])]
-        movimientos = plan_de_orden(secciones, [(30, [4, 5, 2])])
+        movimientos = plan_de_orden(estructura_de(secciones), [(30, [4, 5, 2])])
         assert aplicar(secciones, movimientos) == {30: [1, 4, 3, 5, 2]}
 
     def test_lo_no_nombrado_no_se_mueve(self):
         secciones = [seccion(30, [1, 2, 3, 4, 5])]
-        movimientos = plan_de_orden(secciones, [(30, [5, 2])])
+        movimientos = plan_de_orden(estructura_de(secciones), [(30, [5, 2])])
         assert {m.cmid for m in movimientos} <= {2, 5}
         assert aplicar(secciones, movimientos) == {30: [1, 5, 3, 4, 2]}
 
     def test_ya_ordenado_no_mueve_nada(self):
         secciones = [seccion(30, [1, 2, 3, 4])]
-        assert plan_de_orden(secciones, [(30, [2, 4])]) == []
-        assert plan_de_orden(secciones, [(30, [1, 2, 3, 4])]) == []
+        assert plan_de_orden(estructura_de(secciones), [(30, [2, 4])]) == []
+        assert plan_de_orden(estructura_de(secciones), [(30, [1, 2, 3, 4])]) == []
 
     def test_un_solo_elemento_no_mueve_nada(self):
-        assert plan_de_orden([seccion(30, [1, 2, 3])], [(30, [2])]) == []
+        assert plan_de_orden(estructura_de([seccion(30, [1, 2, 3])]), [(30, [2])]) == []
 
     def test_el_ultimo_de_la_seccion_va_al_final(self):
         secciones = [seccion(30, [1, 2, 3])]
-        movimientos = plan_de_orden(secciones, [(30, [3, 1])])
+        movimientos = plan_de_orden(estructura_de(secciones), [(30, [3, 1])])
         assert aplicar(secciones, movimientos) == {30: [3, 2, 1]}
         assert movimientos[0] == Movimiento(1, 30, None)
 
     def test_varias_secciones(self):
         secciones = [seccion(30, [1, 2, 3]), seccion(40, [4, 5, 6])]
-        movimientos = plan_de_orden(secciones, [(30, [3, 2]), (40, [6, 5, 4])])
+        movimientos = plan_de_orden(estructura_de(secciones), [(30, [3, 2]), (40, [6, 5, 4])])
         assert aplicar(secciones, movimientos) == {30: [1, 3, 2], 40: [6, 5, 4]}
 
     @pytest.mark.parametrize("semilla", range(40))
@@ -67,11 +67,11 @@ class TestPlanDeOrden:
         cmids = list(range(1, azar.randint(2, 9)))
         nombrados = azar.sample(cmids, azar.randint(1, len(cmids)))
         secciones = [seccion(30, cmids)]
-        movimientos = plan_de_orden(secciones, [(30, nombrados)])
+        movimientos = plan_de_orden(estructura_de(secciones), [(30, nombrados)])
         obtenido = aplicar(secciones, movimientos)[30]
         esperado = publicar.orden_final(cmids, nombrados)
         assert obtenido == esperado
-        assert plan_de_orden([seccion(30, obtenido)], [(30, nombrados)]) == []
+        assert plan_de_orden(estructura_de([seccion(30, obtenido)]), [(30, nombrados)]) == []
         assert len(movimientos) <= len(nombrados)
 
 
@@ -103,7 +103,7 @@ class TestOrdenarDocumentos:
     def test_ordena_y_relee(self, tmp_path):
         moodle = aula(1, 2, 3)
         docs = [documento(tmp_path, f"P{c}") for c in (3, 1)]
-        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        ficheros = publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [3, 2, 1]
         assert [(f.nombre, f.accion, f.cmid) for f in ficheros] == [
             ("p3.md", "ordenada", 3),
@@ -117,7 +117,7 @@ class TestOrdenarDocumentos:
     def test_ya_ordenado_no_llama_al_aula(self, tmp_path):
         moodle = aula(1, 2, 3)
         docs = [documento(tmp_path, f"P{c}") for c in (1, 3)]
-        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        ficheros = publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert {f.accion for f in ficheros} == {"sin_cambios"}
         assert not [x for x in moodle.llamadas if x[0] in ("mover", "estructura")]
 
@@ -125,7 +125,7 @@ class TestOrdenarDocumentos:
         moodle = aula(1, 2)
         docs = [documento(tmp_path, "P2"), documento(tmp_path, "Otra")]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert (exc.value.codigo, exc.value.detalle) == ("ACTIVIDAD_AUSENTE", "otra.md")
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
@@ -134,7 +134,7 @@ class TestOrdenarDocumentos:
         moodle.secciones[0]["modulos"].append({"cmid": 9, "nombre": "P1", "tipo": "pagina"})
         docs = [documento(tmp_path, "P1"), documento(tmp_path, "P2")]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
 
     def test_dos_ficheros_para_la_misma_actividad(self, tmp_path):
@@ -144,14 +144,14 @@ class TestOrdenarDocumentos:
             documento(tmp_path, "P1", fichero="b.md"),
         ]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
 
     def test_fichero_repetido(self, tmp_path):
         moodle = aula(1, 2)
         doc = documento(tmp_path, "P1")
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, [doc, doc])
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), [doc, doc])
         assert exc.value.codigo == "FICHERO_REPETIDO"
 
     def test_orden_no_aplicado_si_el_aula_no_lo_hace(self, tmp_path):
@@ -159,7 +159,7 @@ class TestOrdenarDocumentos:
         moodle.mover_sin_efecto = True
         docs = [documento(tmp_path, f"P{c}") for c in (3, 1)]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert exc.value.codigo == "ORDEN_NO_APLICADO"
 
     def test_error_mover(self, tmp_path):
@@ -167,7 +167,7 @@ class TestOrdenarDocumentos:
         moodle.mover_falla = True
         docs = [documento(tmp_path, f"P{c}") for c in (3, 1)]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert exc.value.codigo == "ERROR_MOVER"
 
     def test_varias_secciones(self, tmp_path):
@@ -186,7 +186,7 @@ class TestOrdenarDocumentos:
             documento(tmp_path, "Q8", seccion_=4),
             documento(tmp_path, "Q7", seccion_=4),
         ]
-        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        ficheros = publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert [[m["cmid"] for m in s["modulos"]] for s in moodle.secciones] == [[2, 1], [8, 7]]
         assert {f.accion for f in ficheros} == {"ordenada"}
 
@@ -214,7 +214,7 @@ class TestOrigenAlOrdenar:
             }
         )
         docs = [self._origen(tmp_path, "Renombrada", 7), documento(tmp_path, "P1")]
-        grupos = publicar.resolver_orden(moodle.secciones, docs, 1234)
+        grupos = publicar.resolver_orden(estructura_de(moodle.secciones), docs, 1234)
         assert [(s["id"], [m["cmid"] for _, m in par]) for s, par in grupos] == [
             (40, [7]),
             (30, [1]),
@@ -223,7 +223,7 @@ class TestOrigenAlOrdenar:
     def test_ordenar_con_origen_encontrado_no_mueve_nada_si_ya_esta(self, tmp_path):
         moodle = aula(1, 2)
         docs = [self._origen(tmp_path, "P2", 2)]
-        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        ficheros = publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert {f.accion for f in ficheros} == {"sin_cambios"}
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
@@ -231,10 +231,10 @@ class TestOrigenAlOrdenar:
         moodle = aula(1, 2)
         docs = [self._origen(tmp_path, "Perdida", 9)]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.resolver_orden(moodle.secciones, docs, 1234)
+            publicar.resolver_orden(estructura_de(moodle.secciones), docs, 1234)
         assert (exc.value.codigo, exc.value.detalle) == ("ORIGEN_NO_ENCONTRADO", "perdida.md")
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert exc.value.codigo == "ORIGEN_NO_ENCONTRADO"
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
@@ -252,7 +252,7 @@ class TestModulosFuera:
             },
         ]
         doc = documento(tmp_path, "P1")
-        hallados = publicar.modulos_fuera(secciones, doc)
+        hallados = publicar.modulos_fuera(estructura_de(secciones), doc)
         assert [(s["id"], m["cmid"]) for s, m in hallados] == [(40, 1)]
 
 
@@ -315,7 +315,9 @@ class TestMoverAlCambiarDeSeccion:
         antiguo = {"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}
         moodle = self._aula([antiguo])
         doc = documento(tmp_path, "Repaso", seccion_=4)
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+        )
         assert resultado.accion == "movida"
         assert resultado.cmid == 55
         assert resultado.seccion == "Tema 4"
@@ -332,14 +334,18 @@ class TestMoverAlCambiarDeSeccion:
         moodle.secciones.append({"numero": 5, "nombre": "Tema 5", "id": 50, "modulos": [b]})
         doc = documento(tmp_path, "Repaso", seccion_=4)
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
+            publicar.publicar_documento(
+                moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+            )
         assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
         assert not [x for x in moodle.llamadas if x[0] in ("mover", "crear", "actualizar")]
 
     def test_ninguno_se_crea(self, tmp_path):
         moodle = self._aula([])
         doc = documento(tmp_path, "Repaso", seccion_=4)
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert resultado.accion == "creada"
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
@@ -348,30 +354,36 @@ class TestMoverAlCambiarDeSeccion:
         dentro = {"cmid": 66, "nombre": "Repaso", "tipo": "pagina"}
         moodle = self._aula([fuera], [dentro])
         doc = documento(tmp_path, "Repaso", seccion_=4)
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+        )
         assert (resultado.accion, resultado.cmid) == ("actualizada", 66)
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
     def test_otro_tipo_o_nombre_en_otra_seccion_no_cuenta(self, tmp_path):
         moodle = self._aula([{"cmid": 55, "nombre": "Repaso", "tipo": "tarea"}])
         doc = documento(tmp_path, "Repaso", seccion_=4)
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert resultado.accion == "creada"
 
     def test_conserva_la_visibilidad(self, tmp_path):
         moodle = self._aula([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
         moodle.formularios[55] = {"visible": "1"}
         doc = documento(tmp_path, "Repaso", seccion_=4)
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+        )
         assert resultado.oculto is False
 
     def test_origen_de_movimiento_solo_lectura(self, tmp_path):
         moodle = self._aula([{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
         doc = documento(tmp_path, "Repaso", seccion_=4)
-        assert publicar.origen_de_movimiento(moodle.secciones, doc) == "Tema 3"
+        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc) == "Tema 3"
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
         moodle2 = self._aula([], [{"cmid": 55, "nombre": "Repaso", "tipo": "pagina"}])
-        assert publicar.origen_de_movimiento(moodle2.secciones, doc) is None
+        assert publicar.origen_de_movimiento(estructura_de(moodle2.secciones), doc) is None
 
 
 class TestOrdenarPorRegistro:
@@ -386,7 +398,7 @@ class TestOrdenarPorRegistro:
             self.con_registro(documento(tmp_path, nombre), 1234, cmid)
             for nombre, cmid in (("Tercera", 3), ("Primera", 1))
         ]
-        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        ficheros = publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [3, 2, 1]
         assert [(f.nombre, f.accion, f.cmid) for f in ficheros] == [
             ("tercera.md", "ordenada", 3),
@@ -397,7 +409,7 @@ class TestOrdenarPorRegistro:
         moodle = aula(1, 2, 3)
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.ordenar_documentos(
-                moodle, 1234, moodle.secciones, [documento(tmp_path, "Primera")]
+                moodle, 1234, estructura_de(moodle.secciones), [documento(tmp_path, "Primera")]
             )
         assert exc.value.codigo == "ACTIVIDAD_AUSENTE"
 
@@ -405,7 +417,7 @@ class TestOrdenarPorRegistro:
         moodle = aula(1, 2, 3)
         doc = self.con_registro(documento(tmp_path, "Primera"), 9999, 1)
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, [doc])
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), [doc])
         assert exc.value.codigo == "ACTIVIDAD_AUSENTE"
 
     def test_dos_ficheros_con_el_mismo_cmid_en_el_registro_son_ambiguos(self, tmp_path):
@@ -414,7 +426,7 @@ class TestOrdenarPorRegistro:
             self.con_registro(documento(tmp_path, nombre), 1234, 1) for nombre in ("Uno", "Dos")
         ]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+            publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
         assert not [x for x in moodle.llamadas if x[0] == "mover"]
 
@@ -435,7 +447,7 @@ class TestOrdenarPorRegistro:
             self.con_registro(documento(tmp_path, nombre), 1234, cmid)
             for nombre, cmid in (("Segunda", 2), ("Primera", 1))
         ]
-        ficheros = publicar.ordenar_documentos(moodle, 1234, moodle.secciones, docs)
+        ficheros = publicar.ordenar_documentos(moodle, 1234, estructura_de(moodle.secciones), docs)
         assert [m["cmid"] for m in moodle.secciones[0]["modulos"]] == [2, 1]
         assert {f.seccion for f in ficheros} == {"Tema 2"}
         assert not [x for x in moodle.llamadas if x[0] == "mover" and x[3] != 20]

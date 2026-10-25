@@ -9,6 +9,7 @@ from datetime import datetime
 
 import pytest
 
+from dobles import estructura_de
 from tiza import estado
 
 CURSOS = {
@@ -136,23 +137,23 @@ class TestVerificados:
 class TestSecciones:
     def test_buscar_por_numero_y_por_nombre(self):
         secciones = [{"numero": 1, "nombre": "Proyecto", "id": 9}]
-        assert estado.buscar_seccion(secciones, 1)["id"] == 9
-        assert estado.buscar_seccion(secciones, "proyecto")["id"] == 9
-        assert estado.buscar_seccion(secciones, "Otra") is None
+        assert estado.buscar_seccion(estructura_de(secciones), 1)["id"] == 9
+        assert estado.buscar_seccion(estructura_de(secciones), "proyecto")["id"] == 9
+        assert estado.buscar_seccion(estructura_de(secciones), "Otra") is None
 
     def test_una_entrada_que_no_es_seccion_se_salta(self):
         secciones = ["basura", {"numero": 1, "nombre": "Proyecto", "id": 9}]
-        assert estado.buscar_seccion(secciones, 1)["id"] == 9
+        assert estado.buscar_seccion(estructura_de(secciones), 1)["id"] == 9
 
     def test_la_busqueda_normaliza_como_la_estructura(self):
         # La estructura guarda los nombres ya saneados (nombre_de_seccion colapsa
         # los espacios); la búsqueda debe normalizar igual para encontrarlos.
         saneada = [{"numero": 3, "nombre": "Tema 1", "id": 30}]
-        assert estado.buscar_seccion(saneada, "Tema  1")["id"] == 30
+        assert estado.buscar_seccion(estructura_de(saneada), "Tema  1")["id"] == 30
         # Simétrico: también si el nombre guardado llevara espacios de más.
         bruta = [{"numero": 3, "nombre": "Tema  1", "id": 30}]
-        assert estado.buscar_seccion(bruta, "Tema 1")["id"] == 30
-        assert estado.buscar_seccion(saneada, "Tema 2") is None
+        assert estado.buscar_seccion(estructura_de(bruta), "Tema 1")["id"] == 30
+        assert estado.buscar_seccion(estructura_de(saneada), "Tema 2") is None
 
     def test_nombre_de_seccion_sanea_angulos_y_controles(self):
         assert estado.nombre_de_seccion("Tema <1>\x07  repaso") == "Tema ‹1› repaso"

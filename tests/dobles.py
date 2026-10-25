@@ -27,6 +27,15 @@ PAGINA = (
 )
 
 
+def estructura_de(secciones: list[dict]) -> list[dict]:
+    """La estructura del aula que reciben las funciones de tiza, desde las secciones como dicts.
+
+    Por ahora la devuelve tal cual: la misma lista, sin copiar (hay tests que miran las
+    mutaciones del doble).
+    """
+    return secciones
+
+
 def peticion(entorno: str = "pruebas", visible: bool | None = None, **cambios) -> dict:
     """Una petición del buzón válida; cada test cambia solo lo que mira."""
     datos = {

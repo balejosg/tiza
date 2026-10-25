@@ -16,7 +16,7 @@ from py_moodle.draftfile import MoodleDraftFileError
 from py_moodle.module import MoodleModuleError
 from py_moodle.session import MoodleSessionError
 
-from dobles import MoodleFalso, aula_con_tarea, fecha_en_formulario, tarea_en
+from dobles import MoodleFalso, aula_con_tarea, estructura_de, fecha_en_formulario, tarea_en
 from tiza import config, contenido, estado, publicar, tipos
 from tiza.publicar import ErrorPublicacion
 
@@ -64,7 +64,7 @@ class TestEtiqueta:
     def test_publica_una_etiqueta_nueva_oculta_y_la_verifica(self, tmp_path):
         moodle = MoodleFalso()
         resultado = publicar.publicar_documento(
-            moodle, 1234, moodle.secciones, etiqueta(tmp_path), visible=None
+            moodle, 1234, estructura_de(moodle.secciones), etiqueta(tmp_path), visible=None
         )
         assert (resultado.tipo, resultado.accion, resultado.oculto) == (
             "etiqueta",
@@ -78,8 +78,12 @@ class TestEtiqueta:
     def test_republicar_una_etiqueta_la_actualiza(self, tmp_path):
         moodle = MoodleFalso()
         doc = etiqueta(tmp_path)
-        publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
-        repetido = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
+        publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+        )
+        repetido = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+        )
         assert (repetido.accion, repetido.cmid) == ("actualizada", 100)
 
     def test_etiqueta_con_imagen_comprueba_mod_label(self, tmp_path):
@@ -87,7 +91,9 @@ class TestEtiqueta:
         (tmp_path / "img" / "foto.png").write_bytes(b"png")
         doc = etiqueta(tmp_path, "![foto](img/foto.png)")
         moodle = MoodleFalso()
-        publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
+        publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+        )
         assert moodle.pluginfiles == [
             "https://aula.example.org/centro/pluginfile.php/999/mod_label/intro/foto.png"
         ]
@@ -148,7 +154,9 @@ class TestPublicarDocumento:
     def test_crea_y_verifica(self, tmp_path):
         doc = documento_con_imagen(tmp_path)
         moodle = MoodleFalso()
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert resultado.accion == "creada"
         assert resultado.cmid == 100
         assert resultado.oculto is True
@@ -178,7 +186,9 @@ class TestPublicarDocumento:
             }
         ]
         moodle = MoodleFalso(secciones=secciones)
-        resultado = publicar.publicar_documento(moodle, 1234, secciones, doc, visible=True)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(secciones), doc, visible=True
+        )
         assert resultado.accion == "actualizada"
         assert resultado.cmid == 55
         assert resultado.oculto is False
@@ -191,7 +201,7 @@ class TestPublicarDocumento:
         secciones = [{"numero": 1, "nombre": "General", "id": 10, "modulos": []}]
         moodle = MoodleFalso(secciones=secciones)
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_documento(moodle, 1234, secciones, doc, visible=False)
+            publicar.publicar_documento(moodle, 1234, estructura_de(secciones), doc, visible=False)
         assert exc.value.codigo == "SECCION_AUSENTE"
 
     def test_verificacion_sin_el_recurso_falla(self, tmp_path):
@@ -205,14 +215,18 @@ class TestPublicarDocumento:
             "contexto": 999,
         }
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+            publicar.publicar_documento(
+                moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+            )
         assert exc.value.codigo == "VERIFICACION_TEXTO"
 
     def test_pluginfile_que_no_da_200_falla(self, tmp_path):
         doc = documento_con_imagen(tmp_path)
         moodle = MoodleFalso(pluginfiles_ok=False)
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+            publicar.publicar_documento(
+                moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+            )
         assert exc.value.codigo == "VERIFICACION_FICHERO"
 
 
@@ -629,7 +643,9 @@ class TestSeccionesPorNombre:
         assert [l for l in moodle.llamadas if l[0] == "crear_seccion"] == [
             ("crear_seccion", 1234, "Fracciones")
         ]
-        resultado = publicar.publicar_documento(moodle, 1234, secciones, docs[0], visible=False)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(secciones), docs[0], visible=False
+        )
         assert resultado.seccion == "Fracciones"
 
     def test_existente_no_se_crea(self, tmp_path):
@@ -830,7 +846,11 @@ def test_un_recurso_cambiado_tras_cargar_no_se_publica(tmp_path):
     moodle = MoodleFalso()
     with pytest.raises(ErrorPublicacion) as exc:
         publicar.publicar_documento(
-            moodle, 1, [{"numero": 1, "nombre": "T", "id": 9, "modulos": []}], doc, visible=False
+            moodle,
+            1,
+            estructura_de([{"numero": 1, "nombre": "T", "id": 9, "modulos": []}]),
+            doc,
+            visible=False,
         )
     assert exc.value.codigo == "FICHERO_MODIFICADO"
 
@@ -1073,7 +1093,9 @@ class TestVisibilidad:
         doc = documento(tmp_path)
         secciones = _seccion_con_repaso()
         moodle = MoodleFalso(secciones=secciones)
-        resultado = publicar.publicar_documento(moodle, 1234, secciones, doc, visible=None)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(secciones), doc, visible=None
+        )
         payload = next(llamada[2] for llamada in moodle.llamadas if llamada[0] == "actualizar")
         assert "visible" not in payload
         assert resultado.oculto is False
@@ -1081,7 +1103,9 @@ class TestVisibilidad:
     def test_crear_sin_indicar_lo_crea_oculto(self, tmp_path):
         doc = documento(tmp_path)
         moodle = MoodleFalso()
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=None)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+        )
         payload = next(llamada[4] for llamada in moodle.llamadas if llamada[0] == "crear")
         assert payload["visible"] == "0"
         assert resultado.oculto is True
@@ -1090,7 +1114,9 @@ class TestVisibilidad:
         doc = documento(tmp_path)
         secciones = _seccion_con_repaso()
         moodle = MoodleFalso(secciones=secciones)
-        resultado = publicar.publicar_documento(moodle, 1234, secciones, doc, visible=False)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(secciones), doc, visible=False
+        )
         assert resultado.oculto is True
 
     def test_autoprueba_detecta_que_no_se_conserva(self):
@@ -1175,7 +1201,7 @@ class TestYaExiste:
     def test_documento_nuevo(self, tmp_path):
         doc = documento(tmp_path)
         secciones = [{"numero": 3, "nombre": "Tema 3", "id": 30, "modulos": []}]
-        assert publicar.ya_existe(secciones, doc) is False
+        assert publicar.ya_existe(estructura_de(secciones), doc) is False
 
     def test_mismo_tipo_y_nombre_en_su_seccion(self, tmp_path):
         doc = documento(tmp_path)
@@ -1187,7 +1213,7 @@ class TestYaExiste:
                 "modulos": [{"cmid": 100, "nombre": "Repaso", "tipo": "pagina"}],
             }
         ]
-        assert publicar.ya_existe(secciones, doc) is True
+        assert publicar.ya_existe(estructura_de(secciones), doc) is True
 
     def test_otro_tipo_u_otro_nombre_no_cuenta(self, tmp_path):
         doc = documento(tmp_path)
@@ -1202,15 +1228,21 @@ class TestYaExiste:
                 ],
             }
         ]
-        assert publicar.ya_existe(secciones, doc) is False
+        assert publicar.ya_existe(estructura_de(secciones), doc) is False
 
     def test_si_la_seccion_no_existe_es_nuevo(self, tmp_path):
         doc = documento(tmp_path)
-        assert publicar.ya_existe([{"numero": 4, "nombre": "T", "id": 40}], doc) is False
+        assert (
+            publicar.ya_existe(estructura_de([{"numero": 4, "nombre": "T", "id": 40}]), doc)
+            is False
+        )
 
     def test_estructura_incompleta_no_se_puede_saber(self, tmp_path):
         doc = documento(tmp_path)
-        assert publicar.ya_existe([{"numero": 3, "nombre": "Tema 3", "id": 30}], doc) is None
+        assert (
+            publicar.ya_existe(estructura_de([{"numero": 3, "nombre": "Tema 3", "id": 30}]), doc)
+            is None
+        )
         assert publicar.ya_existe(None, doc) is None
 
 
@@ -1635,7 +1667,9 @@ class TestPublicarCuestionario:
 
         doc = documento_cuestionario(tmp_path)
         moodle = MoodleFalso()
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert resultado.accion == "creada"
         assert resultado.oculto is True
         assert resultado.url.endswith("/mod/quiz/view.php?id=100")
@@ -1657,7 +1691,9 @@ class TestPublicarCuestionario:
         (tmp_path / "img" / "foto.png").write_bytes(b"png")
         doc = documento_cuestionario(tmp_path, cuerpo="Mira ![foto](img/foto.png).")
         moodle = MoodleFalso()
-        publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert moodle.pluginfiles
         assert all("mod_quiz/intro" in url for url in moodle.pluginfiles)
 
@@ -1669,7 +1705,11 @@ class TestPublicarCuestionario:
         moodle = MoodleSinImportar()
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_cuestionario(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "ERROR_IMPORTACION"
         assert exc.value.cmid is None  # el módulo se borró
@@ -1683,7 +1723,11 @@ class TestPublicarCuestionario:
         moodle = MoodleSinAnadir()
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_cuestionario(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "ERROR_ANADIR_PREGUNTAS"
         assert moodle.secciones[0]["modulos"] == []
@@ -1699,7 +1743,11 @@ class TestPublicarCuestionario:
         moodle = MoodleQueNoBorra()
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_cuestionario(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "ERROR_IMPORTACION"
         assert exc.value.cmid == 100  # que la autoprueba lo limpie
@@ -1723,7 +1771,7 @@ class TestPublicarCuestionario:
     def test_las_imagenes_de_las_preguntas_se_verifican_en_el_aula(self, tmp_path):
         moodle = MoodleFalso()
         publicar.publicar_documento(
-            moodle, 1234, moodle.secciones, self._con_imagen(tmp_path), visible=False
+            moodle, 1234, estructura_de(moodle.secciones), self._con_imagen(tmp_path), visible=False
         )
         consultas = [llamada for llamada in moodle.llamadas if llamada[0] == "imagenes_de_pregunta"]
         assert len(consultas) == 1  # solo la pregunta que lleva imagen
@@ -1733,7 +1781,11 @@ class TestPublicarCuestionario:
     def test_sin_imagenes_no_se_pregunta_por_ellas(self, tmp_path):
         moodle = MoodleFalso()
         publicar.publicar_documento(
-            moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=False
+            moodle,
+            1234,
+            estructura_de(moodle.secciones),
+            documento_cuestionario(tmp_path),
+            visible=False,
         )
         assert not [ll for ll in moodle.llamadas if ll[0] == "imagenes_de_pregunta"]
 
@@ -1741,7 +1793,11 @@ class TestPublicarCuestionario:
         moodle = MoodleFalso(imagenes_servidas=False)
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, self._con_imagen(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                self._con_imagen(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "VERIFICACION_IMAGENES"
         assert moodle.secciones[0]["modulos"] == []
@@ -1754,7 +1810,11 @@ class TestPublicarCuestionario:
         moodle = MoodleQuePierde()
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, self._con_imagen(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                self._con_imagen(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "VERIFICACION_IMAGENES"
 
@@ -1766,7 +1826,11 @@ class TestPublicarCuestionario:
         moodle = MoodleQueDesordena()
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_cuestionario(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "VERIFICACION_PREGUNTAS"
         assert moodle.secciones[0]["modulos"] == []
@@ -1783,7 +1847,9 @@ class TestPublicarCuestionario:
         moodle = MoodleQueRedondea()
         doc = documento_cuestionario(tmp_path, apertura="2026-10-20", cierre="2026-10-27")
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+            publicar.publicar_documento(
+                moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+            )
         assert exc.value.codigo == "FECHAS_NO_APLICADAS"
         assert moodle.secciones[0]["modulos"] == []  # era nuevo: no queda nada
 
@@ -1797,7 +1863,11 @@ class TestPublicarCuestionario:
     def test_un_cuestionario_sin_crear_siempre_oculto(self, tmp_path):
         moodle = MoodleFalso()
         resultado = publicar.publicar_documento(
-            moodle, 1234, moodle.secciones, documento_cuestionario(tmp_path), visible=None
+            moodle,
+            1234,
+            estructura_de(moodle.secciones),
+            documento_cuestionario(tmp_path),
+            visible=None,
         )
         assert resultado.oculto is True
 
@@ -2073,7 +2143,9 @@ class TestPublicarH5P:
 
         doc = documento_h5p(tmp_path)
         moodle = MoodleFalso()
-        resultado = publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        resultado = publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert (resultado.tipo, resultado.accion, resultado.oculto) == (
             "h5p",
             "creada",
@@ -2096,7 +2168,9 @@ class TestPublicarH5P:
 
         doc = documento_paquete_h5p(tmp_path)
         moodle = MoodleFalso()
-        publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert moodle.subidas[-1][1] == reempaquetar(doc.paquete.ruta)
         assert b"H5P.Blanks-1.14/library.json" not in moodle.subidas[-1][1]
 
@@ -2114,7 +2188,9 @@ class TestPublicarH5P:
         )
         doc = contenido.cargar(ruta)
         moodle = MoodleFalso()
-        publicar.publicar_documento(moodle, 1234, moodle.secciones, doc, visible=False)
+        publicar.publicar_documento(
+            moodle, 1234, estructura_de(moodle.secciones), doc, visible=False
+        )
         assert any("mod_h5pactivity/intro" in url for url in moodle.pluginfiles)
 
     def test_si_no_se_despliega_se_borra_la_actividad(self, tmp_path):
@@ -2126,7 +2202,11 @@ class TestPublicarH5P:
         moodle = MoodleSinDesplegar()
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, documento_h5p(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_h5p(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "H5P_NO_DESPLEGADO"
         assert exc.value.cmid is None
@@ -2145,7 +2225,11 @@ class TestPublicarH5P:
         moodle = MoodleSinLibreria()
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, documento_h5p(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_h5p(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "H5P_LIBRERIA_AUSENTE"
         assert "H5P.Blanks" in exc.value.detalle
@@ -2155,7 +2239,11 @@ class TestPublicarH5P:
         moodle = MoodleFalso(pluginfiles_ok=False)
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 1234, moodle.secciones, documento_h5p(tmp_path), visible=False
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_h5p(tmp_path),
+                visible=False,
             )
         assert exc.value.codigo == "VERIFICACION_PAQUETE"
         assert moodle.secciones[0]["modulos"] == []
@@ -2412,7 +2500,7 @@ class TestSoloFechas:
         doc = self.tarea(tmp_path)
         antiguas = {"duedate": (2026, 10, 10, 23, 59)}
         moodle = self.aula_con(doc, antiguas)
-        resultado = publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        resultado = publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), doc)
         assert (resultado.accion, resultado.cmid) == ("actualizada", 55)
         assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)
         formulario = moodle.formularios[55]
@@ -2430,7 +2518,7 @@ class TestSoloFechas:
         antiguas = {"timeclose": (2026, 10, 26, 23, 59)}
         moodle = self.aula_con(doc, antiguas)
         moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Repaso", "tipo": "cuestionario"}]
-        publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), doc)
         assert moodle.leer_modulo(55)["fechas"]["timeclose"] == (2026, 10, 27, 23, 59)
         assert moodle.formularios[55]["attempts"] == "2"
         assert not ({llamada[0] for llamada in moodle.llamadas} & _ESCRITURAS_DE_CONTENIDO)
@@ -2439,14 +2527,14 @@ class TestSoloFechas:
         doc = self.cuestionario(tmp_path, cierre=None)
         moodle = self.aula_con(doc, {"timeclose": (2026, 10, 26, 23, 59)})
         moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Repaso", "tipo": "cuestionario"}]
-        publicar.publicar_fechas(moodle, moodle.secciones, doc)
+        publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), doc)
         assert moodle.leer_modulo(55)["fechas"]["timeclose"] is None
 
     def test_sin_el_modulo_no_envia_nada(self, tmp_path):
         doc = self.tarea(tmp_path)
         moodle = MoodleFalso()
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_fechas(moodle, moodle.secciones, doc)
+            publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), doc)
         assert exc.value.codigo == "MODULO_AUSENTE"
         assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
 
@@ -2463,7 +2551,7 @@ class TestSoloFechas:
         moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
         moodle.formularios[55] = {"name": "Problemas", "visible": "1"}
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_fechas(moodle, moodle.secciones, doc)
+            publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), doc)
         assert exc.value.codigo == "FECHAS_NO_APLICADAS"
 
     def test_una_pagina_con_modulo_tampoco_admite_solo_fechas(self, tmp_path):
@@ -2473,7 +2561,7 @@ class TestSoloFechas:
         moodle = MoodleFalso()
         moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "P", "tipo": "pagina"}]
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.publicar_fechas(moodle, moodle.secciones, doc)
+            publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), doc)
         assert exc.value.codigo == "SOLO_FECHAS_NO_APLICA"
         assert not any(llamada[0] == "actualizar" for llamada in moodle.llamadas)
 
@@ -2503,7 +2591,7 @@ def aula_con(modulos=None, **opciones) -> MoodleFalso:
 
 def publicar_itinerario(moodle, doc, dependencias=None):
     return publicar.publicar_documento(
-        moodle, 1234, moodle.secciones, doc, visible=None, dependencias=dependencias
+        moodle, 1234, estructura_de(moodle.secciones), doc, visible=None, dependencias=dependencias
     )
 
 
@@ -3628,15 +3716,22 @@ class TestPublicarPorOrigen:
     def test_modulo_de_y_ya_existe_siguen_el_curso_del_origen(self, tmp_path):
         moodle = _aula_con_origen()
         doc = _documento_con_origen(tmp_path)
-        assert publicar.modulo_de(moodle.secciones, doc, 3)["cmid"] == 501
-        assert publicar.modulo_de(moodle.secciones, doc, 2) is None  # otro curso: por nombre
-        assert publicar.ya_existe(moodle.secciones, doc, 3) is True
-        assert publicar.ya_existe(moodle.secciones, doc, 2) is False
+        assert publicar.modulo_de(estructura_de(moodle.secciones), doc, 3)["cmid"] == 501
         assert (
-            publicar.ya_existe(moodle.secciones, _documento_con_origen(tmp_path, cmid=9), 3) is None
+            publicar.modulo_de(estructura_de(moodle.secciones), doc, 2) is None
+        )  # otro curso: por nombre
+        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 3) is True
+        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 2) is False
+        assert (
+            publicar.ya_existe(
+                estructura_de(moodle.secciones), _documento_con_origen(tmp_path, cmid=9), 3
+            )
+            is None
         )
         with pytest.raises(ErrorPublicacion):
-            publicar.modulo_de(moodle.secciones, _documento_con_origen(tmp_path, cmid=9), 3)
+            publicar.modulo_de(
+                estructura_de(moodle.secciones), _documento_con_origen(tmp_path, cmid=9), 3
+            )
 
     def test_cambiada_en_el_aula_no_toca_la_actividad(self, tmp_path):
         moodle = _aula_con_origen()
@@ -4713,30 +4808,30 @@ class TestLocalizar:
 
     def test_sin_nada_es_nueva(self, tmp_path):
         moodle = _aula_del_registro([], [("Otra", 7, "pagina")])
-        loc = publicar.localizar(moodle.secciones, documento(tmp_path), 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
         assert (loc.modulo, loc.por, loc.borrada, loc.varios) == (None, None, False, False)
         assert loc.seccion["id"] == 30 and loc.actividad is None
 
     def test_por_nombre_en_su_seccion(self, tmp_path):
         moodle = _aula_del_registro([("Repaso", 8, "pagina")], [("Repaso", 7, "pagina")])
-        loc = publicar.localizar(moodle.secciones, documento(tmp_path), 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
         assert (loc.modulo["cmid"], loc.por, loc.seccion["id"]) == (7, "nombre", 30)
         assert loc.actividad is loc.modulo
 
     def test_varias_con_su_nombre_en_su_seccion_marca_varios_y_da_la_primera(self, tmp_path):
         moodle = _aula_del_registro([], [("Repaso", 7, "pagina"), ("Repaso", 9, "pagina")])
-        loc = publicar.localizar(moodle.secciones, documento(tmp_path), 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
         assert (loc.modulo["cmid"], loc.por, loc.varios) == (7, "nombre", True)
 
     def test_en_otra_seccion_si_solo_hay_una(self, tmp_path):
         moodle = _aula_del_registro([("Repaso", 8, "pagina")], [])
-        loc = publicar.localizar(moodle.secciones, documento(tmp_path), 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
         assert (loc.modulo["cmid"], loc.por, loc.seccion["id"]) == (8, "otra_seccion", 20)
         assert loc.actividad is None  # solo la mueve publicar
 
     def test_varias_en_otras_secciones_no_dan_modulo(self, tmp_path):
         moodle = _aula_del_registro([("Repaso", 8, "pagina"), ("Repaso", 9, "pagina")], [])
-        loc = publicar.localizar(moodle.secciones, documento(tmp_path), 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5)
         assert (loc.modulo, loc.por, loc.varios, loc.actividad) == (
             None,
             "otra_seccion",
@@ -4746,12 +4841,14 @@ class TestLocalizar:
 
     def test_otro_tipo_u_otro_nombre_no_cuenta(self, tmp_path):
         moodle = _aula_del_registro([("Repaso", 8, "tarea")], [("Otro", 9, "pagina")])
-        assert publicar.localizar(moodle.secciones, documento(tmp_path), 5).por is None
+        assert (
+            publicar.localizar(estructura_de(moodle.secciones), documento(tmp_path), 5).por is None
+        )
 
     def test_el_registro_la_halla_se_llame_como_se_llame(self, tmp_path):
         moodle = _aula_del_registro([], [("Nombre viejo", 7, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(moodle.secciones, doc, 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
         assert (loc.modulo["cmid"], loc.por, loc.borrada, loc.seccion["id"]) == (
             7,
             "registro",
@@ -4762,44 +4859,44 @@ class TestLocalizar:
     def test_el_registro_la_halla_en_la_seccion_que_este(self, tmp_path):
         moodle = _aula_del_registro([("Nombre viejo", 7, "pagina")], [])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(moodle.secciones, doc, 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
         assert (loc.modulo["cmid"], loc.por, loc.seccion["id"]) == (7, "registro", 20)
         assert loc.actividad is loc.modulo
 
     def test_el_registro_gana_al_nombre_en_otra_seccion(self, tmp_path):
         moodle = _aula_del_registro([("Repaso", 8, "pagina")], [("Viejo", 7, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.localizar(moodle.secciones, doc, 5).modulo["cmid"] == 7
+        assert publicar.localizar(estructura_de(moodle.secciones), doc, 5).modulo["cmid"] == 7
 
     def test_el_registro_con_su_mismo_nombre_no_es_conflicto(self, tmp_path):
         moodle = _aula_del_registro([], [("Repaso", 7, "pagina"), ("Repaso", 9, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 9)
-        loc = publicar.localizar(moodle.secciones, doc, 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
         assert (loc.modulo["cmid"], loc.por) == (9, "registro")
 
     def test_el_origen_manda_sobre_el_registro(self, tmp_path):
         moodle = _aula_del_registro([], [("Viejo", 501, "pagina"), ("Otro", 7, "pagina")])
         doc = _con_registro(_documento_con_origen(tmp_path, seccion="3"), 3, 7)
-        loc = publicar.localizar(moodle.secciones, doc, 3)
+        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 3)
         assert (loc.modulo["cmid"], loc.por) == (501, "origen")
 
     def test_el_origen_ausente_se_propaga_aunque_haya_registro(self, tmp_path):
         moodle = _aula_del_registro([], [("Otro", 7, "pagina")])
         doc = _con_registro(_documento_con_origen(tmp_path, cmid=999), 3, 7)
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.localizar(moodle.secciones, doc, 3)
+            publicar.localizar(estructura_de(moodle.secciones), doc, 3)
         assert exc.value.codigo == "ORIGEN_NO_ENCONTRADO"
 
     def test_el_registro_de_un_cmid_que_ya_no_esta_es_nueva_y_borrada(self, tmp_path):
         moodle = _aula_del_registro([], [("Otra", 8, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(moodle.secciones, doc, 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
         assert (loc.modulo, loc.por, loc.borrada) == (None, None, True)
 
     def test_el_registro_de_un_cmid_de_otro_tipo_es_nueva_y_borrada(self, tmp_path):
         moodle = _aula_del_registro([], [("Viejo", 7, "tarea")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(moodle.secciones, doc, 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
         assert (loc.modulo, loc.por, loc.borrada) == (None, None, True)
 
     def test_borrada_en_el_registro_pero_con_su_nombre_en_el_aula_se_halla_por_nombre(
@@ -4807,7 +4904,7 @@ class TestLocalizar:
     ):
         moodle = _aula_del_registro([], [("Repaso", 8, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        loc = publicar.localizar(moodle.secciones, doc, 5)
+        loc = publicar.localizar(estructura_de(moodle.secciones), doc, 5)
         assert (loc.modulo["cmid"], loc.por, loc.borrada) == (8, "nombre", False)
 
     def test_conflicto_de_nombre_es_ambiguo(self, tmp_path):
@@ -4815,46 +4912,48 @@ class TestLocalizar:
         moodle = _aula_del_registro([], [("Viejo", 7, "pagina"), ("Repaso", 8, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.localizar(moodle.secciones, doc, 5)
+            publicar.localizar(estructura_de(moodle.secciones), doc, 5)
         assert (exc.value.codigo, exc.value.detalle) == ("ACTIVIDAD_AMBIGUA", "pagina.md")
 
     def test_sin_curso_o_con_otro_curso_se_ignora_el_registro(self, tmp_path):
         moodle = _aula_del_registro([], [("Viejo", 7, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.localizar(moodle.secciones, doc, None).por is None
-        assert publicar.localizar(moodle.secciones, doc, 6) == publicar.localizar(
-            moodle.secciones, documento(tmp_path), 6
+        assert publicar.localizar(estructura_de(moodle.secciones), doc, None).por is None
+        assert publicar.localizar(estructura_de(moodle.secciones), doc, 6) == publicar.localizar(
+            estructura_de(moodle.secciones), documento(tmp_path), 6
         )
 
     def test_sin_curso_tampoco_se_usa_el_origen(self, tmp_path):
         moodle = _aula_del_registro([], [("Viejo", 501, "pagina")])
-        loc = publicar.localizar(moodle.secciones, _documento_con_origen(tmp_path), None)
+        loc = publicar.localizar(
+            estructura_de(moodle.secciones), _documento_con_origen(tmp_path), None
+        )
         assert loc.por is None
 
     def test_las_funciones_de_solo_lectura_siguen_a_localizar(self, tmp_path):
         moodle = _aula_del_registro([("Viejo", 7, "pagina")], [])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.modulo_de(moodle.secciones, doc, 5)["cmid"] == 7
-        assert publicar.modulo_de(moodle.secciones, doc, None) is None
-        assert publicar.ya_existe(moodle.secciones, doc, 5) is True
-        assert publicar.ya_existe(moodle.secciones, doc, None) is False
+        assert publicar.modulo_de(estructura_de(moodle.secciones), doc, 5)["cmid"] == 7
+        assert publicar.modulo_de(estructura_de(moodle.secciones), doc, None) is None
+        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 5) is True
+        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, None) is False
         # Está en la sección 2 y el documento es de la 3: se movería de «Tema 2».
-        assert publicar.origen_de_movimiento(moodle.secciones, doc, 5) == "Tema 2"
-        assert publicar.origen_de_movimiento(moodle.secciones, doc, None) is None
+        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, 5) == "Tema 2"
+        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, None) is None
 
     def test_el_conflicto_no_aborta_las_funciones_de_solo_lectura(self, tmp_path):
         moodle = _aula_del_registro([], [("Viejo", 7, "pagina"), ("Repaso", 8, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.ya_existe(moodle.secciones, doc, 5) is None
-        assert publicar.origen_de_movimiento(moodle.secciones, doc, 5) is None
+        assert publicar.ya_existe(estructura_de(moodle.secciones), doc, 5) is None
+        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, 5) is None
         with pytest.raises(ErrorPublicacion) as exc:
-            publicar.modulo_de(moodle.secciones, doc, 5)
+            publicar.modulo_de(estructura_de(moodle.secciones), doc, 5)
         assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
 
     def test_el_registro_en_su_seccion_no_se_mueve(self, tmp_path):
         moodle = _aula_del_registro([], [("Viejo", 7, "pagina")])
         doc = _con_registro(documento(tmp_path), 5, 7)
-        assert publicar.origen_de_movimiento(moodle.secciones, doc, 5) is None
+        assert publicar.origen_de_movimiento(estructura_de(moodle.secciones), doc, 5) is None
 
 
 class TestPublicarPorRegistro:
@@ -4918,8 +5017,10 @@ class TestPublicarPorRegistro:
         tarea_en(tmp_path)
         doc = contenido.cargar(tmp_path / "tarea.md")
         with pytest.raises(ErrorPublicacion) as exc:  # sin registro, no la halla
-            publicar.publicar_fechas(moodle, moodle.secciones, doc, 5)
+            publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), doc, 5)
         assert exc.value.codigo == "MODULO_AUSENTE"
-        resultado = publicar.publicar_fechas(moodle, moodle.secciones, _con_registro(doc, 5, 55), 5)
+        resultado = publicar.publicar_fechas(
+            moodle, estructura_de(moodle.secciones), _con_registro(doc, 5, 55), 5
+        )
         assert (resultado.accion, resultado.cmid) == ("actualizada", 55)
         assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)

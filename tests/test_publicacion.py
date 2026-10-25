@@ -25,6 +25,7 @@ from dobles import (
     aula_con_tarea,
     copia_sintetica,
     enlace_simbolico,
+    estructura_de,
     fecha_en_formulario,
     tarea_en,
 )
@@ -186,7 +187,10 @@ class TestCambiosDeFechas:
         doc = contenido.cargar(tmp_path / "tarea.md")
         moodle = aula_con_tarea()
         cambios = {
-            c.campo: c for c in publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+            c.campo: c
+            for c in publicacion.cambios_de_fechas(
+                moodle, estructura_de(moodle.secciones), doc, None
+            )
         }
         assert cambios["apertura"].estado == "igual"
         assert cambios["entrega"].estado == "cambia"
@@ -203,7 +207,10 @@ class TestCambiosDeFechas:
         moodle = aula_con_tarea()
         moodle.formularios[55].update(fecha_en_formulario("gradingduedate", (2026, 10, 20, 0, 0)))
         cambios = {
-            c.campo: c for c in publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+            c.campo: c
+            for c in publicacion.cambios_de_fechas(
+                moodle, estructura_de(moodle.secciones), doc, None
+            )
         }
         recordatorio = cambios[publicacion.CAMPO_RECORDATORIO]
         assert recordatorio.estado == "cambia"
@@ -215,7 +222,7 @@ class TestCambiosDeFechas:
         tarea_en(tmp_path)
         doc = contenido.cargar(tmp_path / "tarea.md")
         moodle = MoodleFalso()
-        cambios = publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        cambios = publicacion.cambios_de_fechas(moodle, estructura_de(moodle.secciones), doc, None)
         assert {c.estado for c in cambios} == {"nueva"}
         assert all(c.antes is None for c in cambios)
 
@@ -229,7 +236,7 @@ class TestCambiosDeFechas:
 
         moodle = AulaCaida()
         moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "Problemas", "tipo": "tarea"}]
-        cambios = publicacion.cambios_de_fechas(moodle, moodle.secciones, doc, None)
+        cambios = publicacion.cambios_de_fechas(moodle, estructura_de(moodle.secciones), doc, None)
         assert {c.estado for c in cambios} == {"desconocida"}
         assert cambios[1].despues == (2026, 10, 12, 23, 59)
 
@@ -973,10 +980,13 @@ def test_solo_fechas_busca_por_origen_y_si_no_esta_no_cambia_nada(tmp_path):
             "modulos": [{"cmid": 601, "nombre": "Vieja", "tipo": "tarea"}],
         }
     ]
-    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) is None
-    assert publicacion.codigo_solo_fechas(secciones, [doc], 1234) == "MODULO_AUSENTE"
+    assert publicacion.codigo_solo_fechas(estructura_de(secciones), [doc], 5678) is None
+    assert publicacion.codigo_solo_fechas(estructura_de(secciones), [doc], 1234) == "MODULO_AUSENTE"
     secciones[0]["modulos"][0]["cmid"] = 602
-    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "ORIGEN_NO_ENCONTRADO"
+    assert (
+        publicacion.codigo_solo_fechas(estructura_de(secciones), [doc], 5678)
+        == "ORIGEN_NO_ENCONTRADO"
+    )
 
 
 def test_solo_fechas_busca_por_el_registro_una_actividad_con_otro_nombre(tmp_path):
@@ -992,16 +1002,18 @@ def test_solo_fechas_busca_por_el_registro_una_actividad_con_otro_nombre(tmp_pat
         }
     ]
     doc = contenido.cargar(carpeta / "tarea.md", raiz=carpeta)
-    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "MODULO_AUSENTE"
+    assert publicacion.codigo_solo_fechas(estructura_de(secciones), [doc], 5678) == "MODULO_AUSENTE"
     estado.guardar_publicado(
         carpeta / ".tiza", 5678, "tarea.md", estado.Publicado(cmid=55, tipo="tarea")
     )
     doc = contenido.cargar(carpeta / "tarea.md", raiz=carpeta)
-    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) is None
-    assert publicacion.codigo_solo_fechas(secciones, [doc], 1234) == "MODULO_AUSENTE"
+    assert publicacion.codigo_solo_fechas(estructura_de(secciones), [doc], 5678) is None
+    assert publicacion.codigo_solo_fechas(estructura_de(secciones), [doc], 1234) == "MODULO_AUSENTE"
     # Si el nombre es ambiguo (hay otra «Problemas» en su sección), no se sabe cuál y se dice.
     secciones[0]["modulos"].append({"cmid": 56, "nombre": "Problemas", "tipo": "tarea"})
-    assert publicacion.codigo_solo_fechas(secciones, [doc], 5678) == "ACTIVIDAD_AMBIGUA"
+    assert (
+        publicacion.codigo_solo_fechas(estructura_de(secciones), [doc], 5678) == "ACTIVIDAD_AMBIGUA"
+    )
 
 
 # --- Ronda de arreglos 1 ------------------------------------------------------------------

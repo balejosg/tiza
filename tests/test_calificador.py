@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from dobles import MoodleFalso, PresenciaFalsa, dejar_peticion, peticion
+from dobles import MoodleFalso, PresenciaFalsa, dejar_peticion, estructura_de, peticion
 from tiza import agente, buzon, config, estado, informe, mensajes, publicacion, sesion_abierta
 from tiza.calificacion.carpeta import documentos_de_la_carpeta
 from tiza.publicar import CalificadorAula, ErrorPublicacion, NodoAula
@@ -1354,15 +1354,20 @@ def test_el_calificador_encuentra_por_el_registro_la_actividad_que_cambio_de_nom
     secciones[0]["modulos"][0]["nombre"] = "Otro nombre en el aula"  # a.md, cmid 11
     documentos = documentos_de_la_carpeta(carpeta)
     esperado = {"d.md": 12, "c.md": 13}
-    assert publicacion._cmids_de(secciones, documentos, CURSO, carpeta) == esperado
+    assert publicacion._cmids_de(estructura_de(secciones), documentos, CURSO, carpeta) == esperado
 
     estado.guardar_publicado(
         carpeta / ".tiza", CURSO, "a.md", estado.Publicado(cmid=11, tipo="tarea")
     )
     documentos = documentos_de_la_carpeta(carpeta)
-    assert publicacion._cmids_de(secciones, documentos, CURSO, carpeta) == {"a.md": 11, **esperado}
+    assert publicacion._cmids_de(estructura_de(secciones), documentos, CURSO, carpeta) == {
+        "a.md": 11,
+        **esperado,
+    }
     # En otro curso el registro no cuenta.
-    assert publicacion._cmids_de(secciones, documentos, CURSO + 1, carpeta) == esperado
+    assert (
+        publicacion._cmids_de(estructura_de(secciones), documentos, CURSO + 1, carpeta) == esperado
+    )
 
 
 def test_el_calificador_no_adivina_si_el_registro_y_el_nombre_apuntan_a_actividades_distintas(
@@ -1376,5 +1381,7 @@ def test_el_calificador_no_adivina_si_el_registro_y_el_nombre_apuntan_a_activida
         carpeta / ".tiza", CURSO, "a.md", estado.Publicado(cmid=11, tipo="tarea")
     )
     with pytest.raises(ErrorPublicacion) as exc:
-        publicacion._cmids_de(secciones, documentos_de_la_carpeta(carpeta), CURSO, carpeta)
+        publicacion._cmids_de(
+            estructura_de(secciones), documentos_de_la_carpeta(carpeta), CURSO, carpeta
+        )
     assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
