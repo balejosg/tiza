@@ -880,29 +880,6 @@ def test_pruebas_gasta_un_cupo_y_avisa(tmp_path):
     assert presencia.resumenes_calificador == []  # en pruebas no se pregunta
 
 
-def test_el_cupo_se_agota(tmp_path):
-    carpeta = carpeta_fp(tmp_path)
-    sesion = sesion_abierta.SesionAbierta(AulaViva(), CFG, carpeta, PresenciaFalsa())
-    sesion.cupo["pruebas"] = publicacion.MAX_PUBLICACIONES_PRUEBAS
-    assert sesion.atender(pedir(carpeta))["errores"] == ["LIMITE_PUBLICACIONES"]
-
-
-def test_peticion_retirada_tras_confirmar(tmp_path):
-    carpeta = carpeta_fp(tmp_path)
-    datos = pedir(carpeta, "real")
-    ruta = buzon.carpeta_buzon(carpeta / ".tiza") / f"{datos['id']}{buzon.SUFIJO_PETICION}"
-
-    class Retira(PresenciaFalsa):
-        def confirmar_calificador(self, resumen):
-            ruta.unlink()
-            return super().confirmar_calificador(resumen)
-
-    moodle = AulaViva()
-    documento = atender(datos, moodle, carpeta, Retira(real=True))
-    assert documento["errores"] == ["PETICION_RETIRADA"]
-    assert moodle.escrituras == []
-
-
 def test_varios_cursos_reales_se_confirman_uno_a_uno(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     moodle = AulaViva()  # el doble tiene un solo calificador: el curso 102 lo encuentra como esté
@@ -915,23 +892,6 @@ def test_varios_cursos_reales_se_confirman_uno_a_uno(tmp_path):
     assert documento["resultado"] == "ok"
     assert [p["detalle"] for p in pasos(documento, "CURSO_OMITIDO")] == ["101"]
     assert moodle.metodos().count("colocar_actividad") == 3  # solo el 102
-
-
-def test_varios_cursos_reales_paran_en_el_primer_fallo(tmp_path):
-    carpeta = carpeta_fp(tmp_path)
-    moodle = AulaViva()
-    moodle.fallos["colocar_actividad"] = ["ERROR_ACTUALIZAR"]
-    presencia = PresenciaFalsa(real=(True, True))
-    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia, cfg=CFG_DOS)
-    assert documento["resultado"] == "error"
-    assert [r.curso for r in presencia.resumenes_calificador] == [101]  # al 102 ni se le pregunta
-
-
-def test_sin_curso_de_pruebas(tmp_path):
-    carpeta = carpeta_fp(tmp_path)
-    sin = config.Config(url=URL, usuario="profe", cursos={}, reales=(5678,), sin_pruebas=True)
-    documento = atender(pedir(carpeta), AulaViva(), carpeta, cfg=sin)
-    assert documento["errores"] == ["SIN_CURSO_PRUEBAS"]
 
 
 # --------------------------------------------------------------------------- #

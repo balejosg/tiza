@@ -2335,6 +2335,7 @@ def calificador_en_cursos(
     vigente: Callable[[], bool] | None = None,
     cupo: dict | None = None,
     avisar_en_pruebas: bool = False,
+    omitidos: Collection[int] = (),
     nombres: Mapping[int, str] | None = None,
     debug: bool = False,
 ) -> dict:
@@ -2344,61 +2345,95 @@ def calificador_en_cursos(
     curso (con todo lo que va a pasar en llano) y parada en el primer fallo; sin puerta de
     pruebas, como ``ordenar``. Si en un curso no hay nada que cambiar no se pregunta.
     """
+    return recorrido.recorrer(
+        _TrabajoCalificador(
+            aula,
+            entorno,
+            esquema,
+            documentos,
+            base,
+            nombre_esquema,
+            debug=debug,
+        ),
+        cfg,
+        presencia,
+        entorno=entorno,
+        vigente=vigente,
+        cupo=cupo,
+        avisar_en_pruebas=avisar_en_pruebas,
+        omitidos=omitidos,
+        nombres=nombres,
+    )
+
+
+class _TrabajoCalificador(recorrido.TrabajoBase):
+    """Lo que el calificador hace en un curso; el bucle y las preguntas son del recorrido."""
+
     comando = "calificador"
-    dir_tiza = Path(base) / rutas.CARPETA_TRABAJO
-    if entorno == "pruebas":
-        curso = cfg.cursos.get("pruebas")
-        if curso is None:
-            return informe.crear(comando, "error", [], [], ["SIN_CURSO_PRUEBAS"], entorno)
-        if cupo is not None:
-            if cupo["pruebas"] + 1 > MAX_PUBLICACIONES_PRUEBAS:
-                return informe.crear(
-                    comando, "error", [], [], ["LIMITE_PUBLICACIONES"], entorno, curso
-                )
-            cupo["pruebas"] += 1
-        if avisar_en_pruebas:
-            presencia.informar(Aviso.calificando_en_pruebas(nombre_esquema))
-        return calificador_con(aula, entorno, curso, esquema, documentos, dir_tiza, debug=debug)
 
-    reales = cfg.reales
-    total = len(reales)
-    unico = reales[0] if total == 1 else None
-    nombres = nombres or {}
+    def __init__(
+        self,
+        aula: AulaVirtual,
+        entorno: str,
+        esquema: Esquema,
+        documentos: list[Documento],
+        base: Path,
+        nombre_esquema: str,
+        *,
+        debug: bool,
+    ) -> None:
+        self._aula = aula
+        self._entorno = entorno
+        self._esquema = esquema
+        self._documentos = documentos
+        self._dir_tiza = Path(base) / rutas.CARPETA_TRABAJO
+        self._nombre_esquema = nombre_esquema
+        self._debug = debug
 
-    def fallo(codigo: str, curso: int | None = unico) -> dict:
-        return informe.crear(comando, "error", [], [], [codigo], entorno, curso)
+    def aviso_en_pruebas(self) -> Aviso:
+        return Aviso.calificando_en_pruebas(self._nombre_esquema)
 
-    registro: list[tuple[int, int, dict | None]] = []
-    for posicion, curso in enumerate(reales, 1):
-        if vigente is not None and posicion > 1 and not vigente():
-            presencia.informar(Aviso.peticion_retirada())
-            registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-            break
+    def en_pruebas(self, curso: int) -> dict:
+        return calificador_con(
+            self._aula,
+            self._entorno,
+            curso,
+            self._esquema,
+            self._documentos,
+            self._dir_tiza,
+            debug=self._debug,
+        )
+
+    def en_curso(self, turno: recorrido.Turno) -> recorrido.Resultado:
         try:
-            plan = preparar_calificador(aula, curso, esquema, documentos, dir_tiza)
+            plan = preparar_calificador(
+                self._aula, turno.curso, self._esquema, self._documentos, self._dir_tiza
+            )
         except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
             # Cada curso se lee entero antes de escribir nada en él (y antes de preguntar).
-            registro.append((posicion, curso, fallo(exc.codigo, curso)))
-            break
+            return recorrido.Resultado.fallo(exc.codigo)
         if plan.reconciliacion.hay_trabajo:
             resumen = resumen_calificador(
-                plan, esquema, nombres.get(curso), posicion=posicion, total=total
+                plan,
+                self._esquema,
+                turno.nombre_curso,
+                posicion=turno.posicion,
+                total=turno.total,
             )
-            if not presencia.confirmar_calificador(resumen):
-                registro.append((posicion, curso, None))
-                continue
-            if vigente is not None and not vigente():
-                presencia.informar(Aviso.peticion_retirada())
-                registro.append((posicion, curso, fallo("PETICION_RETIRADA", curso)))
-                break
+            if not turno.preguntar(lambda presencia: presencia.confirmar_calificador(resumen)):
+                return recorrido.Resultado.declinado()
         # Sin operaciones no hay nada que confirmar: se informa de que no había nada que hacer.
         documento = calificador_con(
-            aula, entorno, curso, esquema, documentos, dir_tiza, plan=plan, debug=debug
+            self._aula,
+            self._entorno,
+            turno.curso,
+            self._esquema,
+            self._documentos,
+            self._dir_tiza,
+            plan=plan,
+            debug=self._debug,
         )
-        registro.append((posicion, curso, documento))
-        if documento["resultado"] != "ok":
-            break
-    return informe_de_cursos(comando, entorno, total, unico, registro)
+        return recorrido.Resultado.hecho(documento)
 
 
 def informe_de_cursos(
