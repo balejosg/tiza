@@ -51,6 +51,24 @@ def etiqueta(tmp_path, cuerpo="Texto de la etiqueta"):
     return contenido.cargar(ruta)
 
 
+class VigiladaDePrueba:
+    """Doble de la actividad vigilada: lee el formulario una vez y dice si hay retoque."""
+
+    def __init__(self, cmid: int, retocada: bool = False) -> None:
+        self.cmid = cmid
+        self.retocada = retocada
+        self.lecturas = 0
+        self.huella_nueva: str | None = None
+
+    def comprobar(self, leer, solo_fechas):
+        leer()
+        self.lecturas += 1
+        return self.retocada
+
+    def fechas_verificadas(self, info):
+        pass
+
+
 class TestEtiqueta:
     def test_payload_etiqueta(self, tmp_path):
         payload = publicar.payload_etiqueta(etiqueta(tmp_path), "@@PLUGINFILE@@/f.png", 7, False)
@@ -3668,10 +3686,14 @@ class TestPublicarPorOrigen:
     def test_cambiada_en_el_aula_no_toca_la_actividad(self, tmp_path):
         moodle = _aula_con_origen()
         doc = _documento_con_origen(tmp_path, seccion='"Tema 3"')
-        huella_de_la_copia = tipos.huella_aula("Viejo", "<p>Otro texto</p>")
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 3, moodle.estructura(3), doc, visible=None, huella_aula=huella_de_la_copia
+                moodle,
+                3,
+                moodle.estructura(3),
+                doc,
+                visible=None,
+                vigilada=VigiladaDePrueba(501, retocada=True),
             )
         assert exc.value.codigo == "CAMBIADA_EN_EL_AULA"
         assert _llamadas(moodle, "crear", "actualizar", "mover", "subir") == []
@@ -3679,11 +3701,12 @@ class TestPublicarPorOrigen:
     def test_con_la_huella_de_la_copia_se_actualiza(self, tmp_path):
         moodle = _aula_con_origen()
         doc = _documento_con_origen(tmp_path)
-        igual = tipos.huella_aula("Viejo", "<p>Texto del aula</p>")
+        vigilada = VigiladaDePrueba(501)
         resultado = publicar.publicar_documento(
-            moodle, 3, moodle.estructura(3), doc, visible=None, huella_aula=igual
+            moodle, 3, moodle.estructura(3), doc, visible=None, vigilada=vigilada
         )
         assert resultado.accion == "renombrada"
+        assert vigilada.lecturas == 1
         # El formulario se carga una sola vez antes de escribir: la huella lo aprovecha.
         antes = [i for i, llamada in enumerate(moodle.llamadas) if llamada[0] == "leer_modulo"]
         assert antes[0] < next(
@@ -3748,12 +3771,14 @@ class TestPublicarPorOrigen:
             preguntas=PREGUNTAS_V2,
             origen=f"{{curso: 3, cmid: {cmid}}}",
         )
-        huella = tipos.huella_del_formulario(
-            tipos.obtener("cuestionario"), doc, moodle.leer_modulo(cmid)
-        )
         with pytest.raises(ErrorPublicacion) as exc:
             publicar.publicar_documento(
-                moodle, 3, moodle.estructura(3), doc, visible=None, huella_aula=huella
+                moodle,
+                3,
+                moodle.estructura(3),
+                doc,
+                visible=None,
+                vigilada=VigiladaDePrueba(cmid),
             )
         assert exc.value.codigo == "CUESTIONARIO_CON_INTENTOS"
         assert (

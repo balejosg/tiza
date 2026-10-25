@@ -10,7 +10,7 @@ Vocabulario de dominio en ``CONTEXT.md``: huella, marca, base, registro, retoque
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -55,6 +55,56 @@ class Cambio:
     documento: Documento
     cmid: int | None
     estado: EstadoDeCambios
+
+
+@dataclass
+class ActividadVigilada:
+    """La actividad hallada de un documento, para comprobarla justo antes y renovarla después.
+
+    La construye :meth:`Vigilancia.actividad`; es de un solo uso y no guarda el formulario
+    leído: solo decide con él y, en ``solo_fechas``, calcula la huella nueva.
+    """
+
+    cmid: int
+    de_copia: bool
+    _documento: Documento
+    _base: str
+    _marca: str | None = None
+    _aceptada_por_la_segunda_via: bool = False
+    _huella_nueva: str | None = None
+
+    @property
+    def huella_nueva(self) -> str | None:
+        """La huella que hay que guardar tras verificar las fechas, o nada si no se renueva."""
+        return self._huella_nueva
+
+    def comprobar(self, leer: Callable[[], dict], solo_fechas: bool) -> bool:
+        """Si el docente retocó la actividad: ``True`` y no se escribe nada.
+
+        Del registro mira primero la marca y, si cuenta, no llama a ``leer``. Lo que falla al
+        leer se propaga: lo ilegible al escribir no se adivina.
+        """
+        if not self.de_copia and _marca_sin_juntar(self._marca, self._documento):
+            return True
+        resultado = _comparar(self._documento, self._base, leer(), solo_fechas=solo_fechas)
+        if resultado is _Cambio.IGUAL:
+            return False
+        if resultado is _Cambio.YA_TENIA:
+            self._aceptada_por_la_segunda_via = True
+            return False
+        return True
+
+    def fechas_verificadas(self, info: dict) -> None:
+        """Calcula la huella nueva con el formulario que acaba de releer la verificación.
+
+        Si la comprobación aceptó por la segunda vía (las fechas ya estaban), no hay huella
+        nueva: el texto del aula puede ser un cambio ajeno y no pasa a ser la base.
+        """
+        if self._aceptada_por_la_segunda_via:
+            return
+        self._huella_nueva = tipos.huella_del_formulario(
+            tipos.obtener(self._documento.tipo), self._documento, info
+        )
 
 
 @dataclass(frozen=True)
@@ -168,6 +218,38 @@ class Vigilancia:
             if _comparar(doc, entrada.huella, leido, solo_fechas=solo_fechas) is _Cambio.CAMBIADA:
                 retocados.append(doc)
         return tuple(retocados)
+
+    def actividad(
+        self, estructura: Estructura, doc: Documento, sobrescribe: bool = False
+    ) -> ActividadVigilada | None:
+        """La actividad vigilada de ``doc``, o nada si no hay que comparar antes de escribir.
+
+        La de ``copia.json`` cuando se halla por su ``origen`` y la copia guarda su huella; vale
+        también en pruebas y no la silencia ``sobrescribe``. La del registro cuando se halla por
+        él, su entrada tiene huella, el curso es real y el docente no dijo que sí a sobrescribir.
+        """
+        loc = estructura.localizar(doc, self.curso)
+        if loc.problema is not None or loc.modulo is None:
+            return None
+        if loc.por == "origen":
+            base = self.huellas.get(loc.modulo.cmid)
+            if base is None:
+                return None
+            return ActividadVigilada(
+                cmid=loc.modulo.cmid, de_copia=True, _documento=doc, _base=base
+            )
+        if loc.por == "registro" and self.real and not sobrescribe:
+            entrada = doc.publicados.get(self.curso)
+            if entrada is None or entrada.huella is None:
+                return None
+            return ActividadVigilada(
+                cmid=loc.modulo.cmid,
+                de_copia=False,
+                _documento=doc,
+                _base=entrada.huella,
+                _marca=entrada.marca,
+            )
+        return None
 
     def estado_por_documento(
         self, estructura: Estructura, documentos: Sequence[Documento]

@@ -20,7 +20,7 @@ import secrets
 import shutil
 import tempfile
 import time
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Callable, Collection, Iterator, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import unquote, urljoin, urlsplit
@@ -2446,6 +2446,31 @@ def _convertir(problema: tuple[str, str] | None) -> None:
         raise ErrorPublicacion(*problema)
 
 
+class ActividadVigilada(Protocol):
+    """Lo que ``publicar`` necesita de la actividad vigilada, sin importar ``vigilancia``."""
+
+    cmid: int
+
+    def comprobar(self, leer: Callable[[], dict], solo_fechas: bool) -> bool: ...
+
+    def fechas_verificadas(self, info: dict) -> None: ...
+
+
+class _LectorDeFormulario:
+    """Un formulario leído una sola vez, para la comprobación y para el payload."""
+
+    def __init__(self, moodle: AulaVirtual, cmid: int | None) -> None:
+        self._moodle = moodle
+        self._cmid = cmid
+        self.leido: dict | None = None
+
+    def leer(self) -> dict:
+        if self.leido is None:
+            assert self._cmid is not None
+            self.leido = self._moodle.leer_modulo(self._cmid)
+        return self.leido
+
+
 def publicar_documento(
     moodle: AulaVirtual,
     curso_id: int,
@@ -2454,9 +2479,7 @@ def publicar_documento(
     *,
     visible: bool | None,
     dependencias: dict[str, int] | None = None,
-    huella_aula: str | None = None,
-    comprobar_registro: bool = False,
-    sobrescribir: bool = False,
+    vigilada: ActividadVigilada | None = None,
 ) -> informe.Fichero:
     """Crea o actualiza un documento y lo verifica releyendo el módulo.
 
@@ -2466,14 +2489,9 @@ def publicar_documento(
     ``dependencias``: el cmid, en este curso, de cada fichero de ``restricciones.completar``.
 
     Con ``origen`` en este curso (``curso_id``), la actividad se busca por su ``cmid`` (aunque
-    haya cambiado de nombre o de sección) y, si hay ``huella_aula``, solo se actualiza si el aula
-    sigue como estaba en la copia: si no, ``CAMBIADA_EN_EL_AULA`` y no se toca nada.
-
-    ``comprobar_registro``: la actividad hallada por el registro de lo publicado y con huella en él
-    se compara justo antes de escribir con el formulario que se carga para actualizar; si el
-    docente la retocó a mano, ``CAMBIADA_EN_EL_AULA`` y no se toca nada. Lo pone quien publica en
-    un curso real. ``sobrescribir``: el docente ya dijo que sí a perder ese cambio, y no se
-    compara. Ninguno de los dos cambia lo que se halla por ``origen``.
+    haya cambiado de nombre o de sección). ``vigilada``: la actividad vigilada de este documento
+    (``vigilancia.ActividadVigilada``); justo antes de escribir comprueba si el docente la retocó
+    y, si es así, ``CAMBIADA_EN_EL_AULA`` y no se toca nada. Sin ella no se compara.
     """
     with tempfile.TemporaryDirectory(prefix="tiza-recursos-") as temporal:
         copia = _congelar_recursos(doc, Path(temporal))
@@ -2485,9 +2503,7 @@ def publicar_documento(
             visible=visible,
             original=doc,
             dependencias=dependencias or {},
-            huella_aula=huella_aula,
-            comprobar_registro=comprobar_registro,
-            sobrescribir=sobrescribir,
+            vigilada=vigilada,
         )
 
 
@@ -2515,9 +2531,7 @@ def _publicar_congelado(
     visible: bool | None,
     original: Documento,
     dependencias: dict[str, int],
-    huella_aula: str | None = None,
-    comprobar_registro: bool = False,
-    sobrescribir: bool = False,
+    vigilada: ActividadVigilada | None = None,
 ) -> informe.Fichero:
     seccion = estructura.buscar_seccion(doc.seccion)
     if seccion is None:
@@ -2538,34 +2552,16 @@ def _publicar_congelado(
         and loc.por in ("origen", "registro")
         and existente.nombre != doc.nombre
     )
-    leido: dict | None = None
-    if loc.por == "origen":
-        # La actividad de la copia, con el nombre y en la sección que tenga ahora.
-        encontrado = loc.modulo
-        assert encontrado is not None  # ``localizar`` da ``ORIGEN_NO_ENCONTRADO`` si no está
-        if huella_aula is not None:
-            # El formulario de edición que se carga para actualizar: lo que hay en el aula
-            # se compara aquí y no sale; solo llega un código.
-            leido = moodle.leer_modulo(encontrado.cmid)
-            # Como estaba en la copia, o ya con lo que tiza iba a escribir (un intento anterior
-            # escribió y falló al verificar): en los dos casos no hay cambio ajeno que perder.
-            if _formulario_cambiado(doc, huella_aula, leido):
-                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
-    elif comprobar_registro and not sobrescribir:
-        # Lo hallado por el registro y con base en él: ¿lo retocó el docente a mano desde la
-        # última vez? Se carga el formulario una sola vez y se reutiliza más abajo.
-        entrada = _entrada_vigilada(doc, curso_id, loc)
-        if entrada is not None:
-            if _marca_sin_juntar(doc, entrada):
-                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
-            assert existente is not None  # ``_entrada_vigilada`` exige el módulo
-            leido = moodle.leer_modulo(existente.cmid)
-            if _huella_cambiada(doc, entrada, leido):
-                raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
+    lector = _LectorDeFormulario(moodle, existente.cmid if existente is not None else None)
+    if vigilada is not None:
+        assert existente is not None and vigilada.cmid == existente.cmid
+        if vigilada.comprobar(lector.leer, solo_fechas=False):
+            raise ErrorPublicacion("CAMBIADA_EN_EL_AULA", doc.ruta.name)
+    leido = lector.leido
     # Si el payload necesita algo del formulario de edición, se carga una sola vez.
     if leido is None and existente is not None:
         if tipos.obtener(doc.tipo).lee_formulario_al_actualizar:
-            leido = moodle.leer_modulo(existente.cmid)
+            leido = lector.leer()
     # Antes de escribir nada: una restricción ajena o una finalización bloqueada paran todo.
     envio = preparar_itinerario(moodle, doc, existente, dependencias, leido)
     if movido and existente is not None:

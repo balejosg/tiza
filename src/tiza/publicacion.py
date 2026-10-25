@@ -1111,6 +1111,7 @@ def publicar_con(
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
     motor: bool | None = None  # ¿dibuja el aula las fórmulas? Se mira una vez por curso
     for doc in documentos:
+        vigilada = None
         try:
             huella = None
             huella_nueva = None  # solo --solo-fechas: la calcula publicar.py con lo que relee
@@ -1118,6 +1119,7 @@ def publicar_con(
                 # Sin huella no se llega aquí: ``_separar_rechazados`` ya lo dejó fuera.
                 huella = vigilancia.huellas.get(doc.origen.cmid)
             decidido = doc.ruta.resolve() in sobrescribir
+            vigilada = vigilancia.actividad(estructura, doc, sobrescribe=decidido)
             if solo_fechas:
                 resultado, huella_nueva = publicar.publicar_fechas_con_huella(
                     aula,
@@ -1141,9 +1143,7 @@ def publicar_con(
                     doc,
                     visible=visible,
                     dependencias=dependencias,
-                    huella_aula=huella,
-                    comprobar_registro=real,
-                    sobrescribir=decidido,
+                    vigilada=vigilada,
                 )
                 assert resultado.cmid is not None  # acaba de crearla o actualizarla
                 cmids[_relativa(doc.ruta, base)] = resultado.cmid
@@ -1155,9 +1155,10 @@ def publicar_con(
                 return ResultadoCurso(borrador.documento("error"), True)
             # Esta actividad no se toca; las demás del lote siguen.
             if exc.codigo == "CAMBIADA_EN_EL_AULA":
+                de_copia = vigilada.de_copia if vigilada is not None else aplica_origen(doc, curso)
                 presencia.informar(
                     Aviso.cambiada_en_el_aula(doc.nombre)
-                    if aplica_origen(doc, curso)
+                    if de_copia
                     else Aviso.cambiada_desde_la_publicacion(doc.nombre)
                 )
             continue

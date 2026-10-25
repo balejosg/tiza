@@ -34,6 +34,20 @@ class Aula:
         return self.formularios[cmid]
 
 
+class Lector:
+    """Un lector de formulario que cuenta sus llamadas y puede fallar."""
+
+    def __init__(self, formulario: dict | None = None) -> None:
+        self.formulario = formulario
+        self.llamadas = 0
+
+    def __call__(self) -> dict:
+        self.llamadas += 1
+        if self.formulario is None:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        return self.formulario
+
+
 def _doc(
     carpeta: Path,
     *,
@@ -422,3 +436,117 @@ def test_estado_no_distingue_solo_fechas(tmp_path):
         _estructura(tipo="tarea"), [doc]
     )
     assert [(c.cmid, c.estado) for c in cambio] == [(501, EstadoDeCambios.CAMBIADA)]
+
+
+# --- M3: la actividad vigilada al publicar entero ------------------------------------------
+
+
+def test_actividad_de_copia_cambiada_si_el_formulario_difiere_de_la_huella_y_de_lo_enviado(
+    tmp_path,
+):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc)
+    assert vigilada is not None and vigilada.de_copia
+    assert vigilada.comprobar(Lector(_form(doc, texto="<p>A mano</p>")), solo_fechas=False)
+
+
+def test_actividad_de_copia_que_ya_tiene_lo_de_tiza_se_acepta(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc)
+    assert vigilada is not None
+    assert not vigilada.comprobar(Lector(_form(doc)), solo_fechas=False)
+
+
+def test_actividad_de_copia_no_mira_la_marca_al_escribir(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    leido = _form(doc)
+    _copia(carpeta, huella=_huella(doc, leido), marca=doc.sha256_fichero)
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc)
+    assert vigilada is not None
+    assert not vigilada.comprobar(Lector(leido), solo_fechas=False)
+
+
+def test_actividad_de_registro_con_marca_sin_juntar_no_lee_el_aula(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta)
+    doc = replace(
+        doc, publicados={5678: estado.Publicado(501, "pagina", "a" * 64, doc.sha256_fichero)}
+    )
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc)
+    assert vigilada is not None and not vigilada.de_copia
+    lector = Lector(_form(doc))
+    assert vigilada.comprobar(lector, solo_fechas=False)
+    assert lector.llamadas == 0
+
+
+def test_actividad_de_registro_cambiada_si_difiere(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, publicados=_entrada(huella="a" * 64))
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc)
+    assert vigilada is not None
+    assert vigilada.comprobar(Lector(_form(doc, texto="<p>A mano</p>")), solo_fechas=False)
+
+
+def test_si_el_docente_dijo_si_no_hay_actividad_vigilada_de_registro_pero_si_de_copia(tmp_path):
+    carpeta = tmp_path.resolve()
+    registro = _doc(carpeta, publicados=_entrada(huella="a" * 64))
+    origen = _doc(carpeta, nombre="O", origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    vigilancia = _vigilancia(Aula(), carpeta, [registro, origen])
+    assert vigilancia.actividad(_estructura(), registro, sobrescribe=True) is None
+    de_copia = vigilancia.actividad(_estructura(nombre="O"), origen, sobrescribe=True)
+    assert de_copia is not None and de_copia.de_copia
+
+
+def test_en_pruebas_no_hay_actividad_vigilada_de_registro(tmp_path):
+    carpeta = tmp_path.resolve()
+    registro = _doc(carpeta, publicados=_entrada(huella="a" * 64))
+    origen = _doc(carpeta, nombre="O", origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella="a" * 64)
+    vigilancia = _vigilancia(Aula(), carpeta, [registro, origen], real=False)
+    assert vigilancia.actividad(_estructura(), registro) is None
+    assert vigilancia.actividad(_estructura(nombre="O"), origen) is not None
+
+
+def test_una_lectura_fallida_al_comprobar_se_propaga(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, publicados=_entrada(huella="a" * 64))
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc)
+    assert vigilada is not None
+    with pytest.raises(ErrorPublicacion):
+        vigilada.comprobar(Lector(None), solo_fechas=False)
+
+
+def test_comprobar_usa_el_lector_una_sola_vez(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, publicados=_entrada(huella="a" * 64))
+    vigilada = _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc)
+    assert vigilada is not None
+    lector = Lector(_form(doc))
+    assert not vigilada.comprobar(lector, solo_fechas=False)
+    assert lector.llamadas == 1
+
+
+def test_origen_sin_huella_no_da_actividad_vigilada(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=501))
+    _copia(carpeta, huella=None)
+    assert _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc) is None
+
+
+def test_registro_sin_huella_no_da_actividad_vigilada(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, publicados=_entrada(huella=None))
+    assert _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc) is None
+
+
+def test_con_un_problema_de_localizacion_no_hay_actividad_vigilada(tmp_path):
+    carpeta = tmp_path.resolve()
+    doc = _doc(carpeta, origen=Origen(curso=5678, cmid=999))
+    _copia(carpeta, huella="a" * 64, cmid=999)
+    assert _vigilancia(Aula(), carpeta, [doc]).actividad(_estructura(), doc) is None
