@@ -329,6 +329,36 @@ def test_guia_dua_es_breve_y_dice_lo_que_tiza_no_hace():
         assert parte in texto, parte
 
 
+GUIA_LICENCIAS = SKILL.parent / "guias/licencias.md"
+
+
+def test_guia_licencias_existe_y_se_carga_al_escribir():
+    assert GUIA_LICENCIAS.is_file()
+    texto = SKILL.read_text(encoding="utf-8")
+    escribir = texto.split("2. **Escribe el contenido**", 1)[1].split("\n3. ", 1)[0]
+    assert "guias/licencias.md" in escribir
+    for guia in ("dua.md", "estilo.md"):
+        assert "guias/licencias.md" in (SKILL.parent / "guias" / guia).read_text(encoding="utf-8")
+
+
+def test_guia_licencias_es_breve_y_dice_lo_esencial():
+    texto = GUIA_LICENCIAS.read_text(encoding="utf-8")
+    assert len(texto.splitlines()) <= 110
+    for parte in (
+        "[RELLENA: autor, fuente y licencia]",
+        "figcaption",
+        "BY-ND",
+        "BY-NC",
+        "Todos los derechos reservados",
+        "permiso o licencia",
+        "aula cerrada",
+        "tiza normativa",
+        "preferencias.txt",
+        "iframe",
+    ):
+        assert parte in texto, parte
+
+
 RAIZ = SKILL.parents[4]
 EJEMPLOS_SKILL = SKILL.parent / "ejemplos"
 

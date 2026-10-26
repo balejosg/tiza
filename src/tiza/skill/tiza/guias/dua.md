@@ -41,7 +41,8 @@ adaptarlo después. La maqueta y la accesibilidad del HTML siguen en `guias/esti
 - Bloque «Palabras de esta página» (`guias/estilo.md`) con los términos nuevos de esa
   página, de 2 a 6. Si la unidad suma más de 12, una página de glosario y un H5P `tarjetas`.
 - Las imágenes, los vídeos y los audios los trae el docente: no inventes direcciones. Si
-  faltan, deja el hueco visible (sección 7).
+  faltan, deja el hueco visible (sección 7). Si vienen de otro sitio o no son del
+  docente, sigue `guias/licencias.md`.
 - **Vídeo**: solo en un iframe de los servidores permitidos y con el enlace que te dé el
   docente. Pídele que compruebe que tiene subtítulos (tú no puedes verlo) y escribe debajo
   un resumen en texto.

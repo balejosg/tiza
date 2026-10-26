@@ -623,11 +623,29 @@ class TestEjemplosDelRepo:
             except filtro.HtmlPeligroso as exc:
                 pytest.fail(f"el fragmento {numero} de estilo.md no pasa el filtro: {exc.detalle}")
 
+    def test_el_bloque_de_autoria_de_la_guia_pasa_el_filtro(self, tmp_path):
+        fragmentos = bloques_html(RAIZ_SKILL / "guias" / "licencias.md")
+        assert fragmentos, "la guía de licencias debería traer el bloque de autoría"
+        _con_imagen(tmp_path, "foto.png")
+        doc = cargar(escribir_html(tmp_path, fragmentos[0]))
+        arbol = BeautifulSoup(doc.html, "html.parser")
+        figura = arbol.find("figure")
+        assert figura is not None
+        imagen = figura.find("img")
+        assert imagen is not None
+        assert "img-fluid" in (imagen.get("class") or [])
+        assert imagen.get("alt")
+        pie = figura.find("figcaption")
+        assert pie is not None
+        assert "small" in (pie.get("class") or [])
+        assert len(pie.find_all("a", href=True)) == 3
+
     def test_ni_la_guia_ni_los_ejemplos_usan_clases_de_bootstrap_5_que_no_existen_en_moodle_4_5(
         self,
     ):
         ficheros = [
             RAIZ_SKILL / "guias" / "estilo.md",
+            RAIZ_SKILL / "guias" / "licencias.md",
             *sorted((RAIZ_REPO / "ejemplos").glob("*.html")),
             *sorted((RAIZ_REPO / "ejemplos" / "unidad").glob("*.html")),
         ]

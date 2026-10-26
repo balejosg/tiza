@@ -52,7 +52,10 @@ escriben igual, con `\( … \)` y `\[ … \]`.
 - **Una idea por bloque.** Nada de decorar por decorar: como mucho un acento visual por bloque.
 - **Si el concepto es visual** (un diagrama, un esquema, un montaje), no lo describas con una
   tabla ni con un párrafo interminable: pide la imagen al docente o deja un hueco marcado
-  (`[RELLENA: imagen de …]`) y avísale. Las imágenes van con `alt` y `img-fluid`.
+  (`[RELLENA: imagen de …]`) y avísale. Las imágenes van con `alt` y `img-fluid`. Si la
+  imagen no es del docente ni tuya, sigue `guias/licencias.md` para la autoría y la licencia:
+  su bloque de autoría (`<figure>` con `<figcaption>`) es la excepción autorizada a este
+  catálogo.
 
 ## 3. Accesibilidad
 

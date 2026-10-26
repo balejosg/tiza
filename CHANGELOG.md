@@ -6,6 +6,7 @@ se avisa aquí con **Cambia**.
 
 ### Añadido
 - **El agente recuerda tus preferencias.** Si dejas un `preferencias.txt` en la carpeta de la asignatura (tono, maqueta, tareas, material, lo que no quieres), el agente lo lee al empezar y lo aplica sin saltarse las reglas. Te propone la línea cuando corriges lo mismo dos veces y la apunta solo si dices que sí. `ejemplos/preferencias.txt` es un modelo.
+- **Material de otros con su autoría.** Una guía nueva enseña al agente qué preguntar antes de usar una imagen, un texto, un vídeo o un ejercicio que no es suyo ni del docente: autor, fuente y licencia, cómo citarlos en el pie de la imagen y qué permite cada licencia. El material lo trae el docente; el agente no descarga ni inventa direcciones.
 
 ## 0.35.0 — 2026-10-26
 
