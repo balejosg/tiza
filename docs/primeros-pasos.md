@@ -68,11 +68,14 @@ hace un panel con ventanas.
      Entra como siempre. `tiza` no ve tu contraseña;
    - los cursos de pruebas y real, elegidos por su nombre;
    - la autoprueba, si toca.
-5. **Déjalo abierto.** El panel muestra «Sesión abierta hasta…» y queda de fondo
-   mientras trabajas. Cuando el agente quiera publicar en el curso real, el panel
-   se pone delante y parpadea, con el mismo resumen de siempre y los botones
-   **Sí** y **No** (también «Ver vista previa»). Nada se publica sin tu sí.
-6. **Cerrar.** El botón «Cerrar la sesión» o cerrar la ventana cierra la sesión.
+5. **Déjalo abierto.** El panel muestra una insignia con los minutos de sesión que
+   quedan y queda de fondo mientras trabajas. Cuando el agente quiera publicar en el
+   curso real, el panel se pone delante y parpadea, con el mismo resumen de siempre y
+   botones que dicen lo que hacen («Publicar en este curso», «Saltar este curso»…;
+   también «Ver vista previa»). Nada se publica sin tu sí.
+6. **Cerrar.** El botón «Cerrar la sesión y salir» pide confirmación; también puedes
+   cerrar la ventana. Al terminar, «Volver a empezar» elige otra carpeta sin reabrir
+   el panel.
 
 Para pedirle contenido al agente, abre Claude en la **misma carpeta** de la
 asignatura, igual que en el primer día de la terminal.
