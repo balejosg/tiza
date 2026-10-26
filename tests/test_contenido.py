@@ -60,7 +60,7 @@ class TestCarga:
         assert doc.seccion == 3
         assert doc.fechas is None
         assert doc.recursos == []
-        assert "<h2>Repaso</h2>" in doc.html
+        assert "<h3>Repaso</h3>" in doc.html
         assert "<strong>fracciones</strong>" in doc.html
 
     def test_carga_tarea_valida(self, tmp_path):
@@ -109,7 +109,7 @@ class TestCarga:
         doc = cargar(escribir(tmp_path, texto))
         assert (doc.tipo, doc.nombre, doc.seccion) == ("etiqueta", "Bienvenida", 3)
         assert doc.fechas is None and doc.cuestionario is None
-        assert "<h2>Hola</h2>" in doc.html
+        assert "<h3>Hola</h3>" in doc.html
 
     def test_fechas_en_etiqueta_fallan(self, tmp_path):
         texto = "---\ntipo: etiqueta\nnombre: Bienvenida\nseccion: 3\nentrega: 2026-10-10\n---\n\nHola\n"
@@ -196,6 +196,84 @@ class TestCarga:
         with pytest.raises(ErrorContenido) as exc:
             cargar(escribir(tmp_path, md, "tarea.md"))
         assert exc.value.detalle == "debe cumplirse apertura < entrega"
+
+
+class TestConversionDeMarkdown:
+    """Lo que tiza maqueta sola al convertir un ``.md``; un ``.html`` no se toca."""
+
+    def test_los_titulos_bajan_desde_el_mas_alto(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina("## Enunciado\n\n### Ejercicio 1")))
+        assert "<h3>Enunciado</h3>" in doc.html
+        assert "<h4>Ejercicio 1</h4>" in doc.html
+
+    def test_un_h1_tambien_pasa_a_h3(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina("# Título\n\n## Apartado")))
+        assert "<h3>Título</h3>" in doc.html
+        assert "<h4>Apartado</h4>" in doc.html
+
+    def test_un_documento_que_empieza_en_h3_se_queda_igual(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina("### Uno\n\n#### Dos")))
+        assert "<h3>Uno</h3>" in doc.html
+        assert "<h4>Dos</h4>" in doc.html
+
+    def test_el_tope_es_h6(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina("# Uno\n\n##### Cinco\n\n###### Seis")))
+        assert "<h3>Uno</h3>" in doc.html
+        assert "<h6>Cinco</h6>" in doc.html
+        assert "<h6>Seis</h6>" in doc.html
+        assert "<h7" not in doc.html
+
+    def test_las_tablas_llevan_clase_y_envoltura(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina("| A | B |\n|---|---|\n| 1 | 2 |")))
+        tabla = BeautifulSoup(doc.html, "html.parser").find("table")
+        assert tabla["class"] == ["table", "table-striped"]
+        assert tabla.parent.name == "div"
+        assert tabla.parent["class"] == ["table-responsive"]
+        assert [th.get_text() for th in tabla.select("th")] == ["A", "B"]
+
+    def test_los_bloques_de_codigo_llevan_estilo_y_lenguaje(self, tmp_path):
+        doc = cargar(escribir(tmp_path, pagina("```java\nint x = 1;\n```")))
+        pre = BeautifulSoup(doc.html, "html.parser").find("pre")
+        assert pre["class"] == ["bg-light", "border", "rounded", "p-3"]
+        assert "line-height:1.5" in pre["style"]
+        assert "font-size:0.9rem" in pre["style"]
+        codigo = pre.find("code")
+        assert codigo["class"] == ["language-java"]
+        assert codigo.get_text().strip() == "int x = 1;"
+
+    def test_la_conversion_pasa_el_filtro(self):
+        html = contenido._render(
+            "## Título\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n```py\nprint(1)\n```\n"
+        )
+        filtro.analizar(html)  # no lanza: las clases y estilos están en la lista blanca
+
+    def test_un_html_no_se_toca(self, tmp_path):
+        cuerpo = "## no es markdown\n\n<table><tr><td>x</td></tr></table>\n\n<pre>x</pre>\n"
+        doc = cargar(escribir_html(tmp_path, cuerpo))
+        assert "## no es markdown" in doc.html
+        tabla = BeautifulSoup(doc.html, "html.parser").find("table")
+        assert tabla.get("class") is None
+        assert tabla.find("td").get_text() == "x"
+        assert BeautifulSoup(doc.html, "html.parser").find("pre").get("class") is None
+        assert "bg-light" not in doc.html
+
+    def test_el_enunciado_de_un_cuestionario_tambien_convierte_las_tablas(self, tmp_path):
+        texto = (
+            "---\ntipo: cuestionario\nnombre: Tabla\nseccion: 3\npreguntas:\n"
+            "  - tipo: verdadero_falso\n"
+            "    enunciado: |\n"
+            "      | A | B |\n"
+            "      |---|---|\n"
+            "      | 1 | 2 |\n"
+            "    respuesta: verdadero\n"
+            "---\n"
+        )
+        doc = cargar(escribir(tmp_path, texto, "cuestionario.md"))
+        assert doc.cuestionario is not None
+        html = doc.cuestionario.preguntas[0].html
+        tabla = BeautifulSoup(html, "html.parser").find("table")
+        assert tabla["class"] == ["table", "table-striped"]
+        assert tabla.parent["class"] == ["table-responsive"]
 
 
 class TestFiltroHTML:
@@ -779,7 +857,10 @@ class TestFicherosHtml:
 
     def test_en_un_md_los_bloques_de_codigo_van_entre_comillas_invertidas(self, tmp_path):
         doc = cargar(escribir(tmp_path, pagina("```\nprint(1)\n```\n\n    no es código")))
-        assert "<pre><code>print(1)\n</code></pre>" in doc.html
+        assert (
+            '<pre class="bg-light border rounded p-3" '
+            'style="line-height:1.5;font-size:0.9rem"><code>print(1)\n</code></pre>'
+        ) in doc.html
         assert "<p>no es código</p>" in doc.html
 
     def test_las_lineas_en_blanco_y_la_sangria_no_rompen_el_html(self, tmp_path):

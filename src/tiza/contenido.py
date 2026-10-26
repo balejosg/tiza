@@ -10,7 +10,7 @@ import hashlib
 import html as _html
 import os
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time
 from pathlib import Path
@@ -21,6 +21,11 @@ from zoneinfo import ZoneInfo
 import yaml
 from bs4 import BeautifulSoup, Tag
 from markdown_it import MarkdownIt
+from markdown_it.common.utils import escapeHtml, unescapeAll
+from markdown_it.renderer import RendererHTML
+from markdown_it.rules_core import StateCore
+from markdown_it.token import Token
+from markdown_it.utils import EnvType, OptionsDict
 
 from . import filtro, rutas
 from .estado import CARPETA_PREVIEW, ErrorEstado, Publicado, publicados_de_fichero
@@ -814,10 +819,54 @@ def _a_html(ruta: Path, cuerpo: str) -> str:
     return cuerpo if ruta.suffix.lower() in _EXTENSIONES_HTML else _render(cuerpo)
 
 
+class _RendererTiza(RendererHTML):
+    """Las reglas de maqueta que tiza aplica al Markdown, sin tocar el HTML en bruto."""
+
+    def table_open(
+        self, tokens: Sequence[Token], idx: int, options: OptionsDict, env: EnvType
+    ) -> str:
+        return '<div class="table-responsive">\n<table class="table table-striped">\n'
+
+    def table_close(
+        self, tokens: Sequence[Token], idx: int, options: OptionsDict, env: EnvType
+    ) -> str:
+        return "</table>\n</div>\n"
+
+    def fence(self, tokens: Sequence[Token], idx: int, options: OptionsDict, env: EnvType) -> str:
+        info = unescapeAll(tokens[idx].info).strip() if tokens[idx].info else ""
+        lenguaje = info.split(maxsplit=1)[0] if info else ""
+        clase = f' class="language-{escapeHtml(lenguaje)}"' if lenguaje else ""
+        return (
+            '<pre class="bg-light border rounded p-3" '
+            'style="line-height:1.5;font-size:0.9rem"><code'
+            f"{clase}>{escapeHtml(tokens[idx].content)}</code></pre>\n"
+        )
+
+
+def _titulos_relativos(state: StateCore) -> None:
+    """El título más alto del documento pasa a ``h3``; los demás bajan lo mismo.
+
+    El aula ya pone el nombre de la actividad como ``h2``. El tope es ``h6`` y un
+    documento que ya empieza en ``h3`` (o más abajo) se queda como está.
+    """
+    niveles = [int(token.tag[1]) for token in state.tokens if token.type == "heading_open"]
+    if not niveles or min(niveles) >= 3:
+        return
+    desplazamiento = 3 - min(niveles)
+    for token in state.tokens:
+        if token.type in {"heading_open", "heading_close"}:
+            token.tag = f"h{min(6, int(token.tag[1]) + desplazamiento)}"
+
+
 def _render(cuerpo: str) -> str:
     # Sin bloques de código por sangría: el HTML sangrado tras una línea en blanco
     # se publicaba escapado dentro de <pre><code>. El código va entre ```.
-    markdown = MarkdownIt("commonmark", {"html": True}).enable("table").disable("code")
+    markdown = (
+        MarkdownIt("commonmark", {"html": True}, renderer_cls=_RendererTiza)
+        .enable("table")
+        .disable("code")
+    )
+    markdown.core.ruler.push("titulos_relativos", _titulos_relativos)
     # Un bloque HTML que empieza por <div> termina en la primera línea en blanco, y lo
     # que queda de un <pre> se leería como Markdown. Dentro de <pre> las líneas en
     # blanco se sustituyen por una marca y se restauran tras el render.
