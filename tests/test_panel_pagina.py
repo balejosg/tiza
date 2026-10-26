@@ -184,6 +184,30 @@ def test_la_zona_de_anuncio_es_corta_y_no_toda_la_tarjeta(sin_csp):
     assert 'document.getElementById("anuncio").textContent = pantalla.titulo || ""' in sin_csp
 
 
+def test_las_confirmaciones_largas_llevan_barra_fija(sin_csp):
+    assert "position: sticky" in sin_csp and "bottom: 0" in sin_csp
+    assert sin_csp.count("nodos.push(acciones(p.pregunta, siNo(p)))") == 2
+    assert 'function acciones(pregunta, cajaBotones)' in sin_csp
+
+
+def test_cerrar_la_sesion_se_confirma_en_dos_pasos(sin_csp):
+    assert "Cerrar la sesión y salir" in sin_csp
+    assert "El asistente dejará de poder publicar. ¿Cerrar?" in sin_csp
+    assert 'id="cerrar-de-verdad" class="peligro"' in sin_csp
+    assert "Seguir trabajando" in sin_csp
+    assert sin_csp.count("puente.terminar(") == 1
+    assert 'document.getElementById("cerrar-sesion").addEventListener("click", function () {\n    cierrePreguntado = true;' in sin_csp
+    assert 'document.getElementById("seguir-trabajando").addEventListener("click", retirarCierre)' in sin_csp
+
+
+def test_el_registro_se_pliega_mientras_hay_pregunta(sin_csp):
+    assert "registroPlegado" in sin_csp and "ultimaPregunta" in sin_csp
+    assert '"Ver registro (" + ultimoRegistro.length' in sin_csp
+    assert '"Ocultar registro"' in sin_csp
+    assert "pintarPlegado(estado.pregunta === true)" in sin_csp
+    assert "if (abajo) { ul.scrollTop = ul.scrollHeight; }" in sin_csp
+
+
 def _llamadas_al_puente(texto: str) -> list[tuple[str, int]]:
     """(método, número de argumentos) de cada ``puente.<método>(...)`` de la página."""
     resultado = []

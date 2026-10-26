@@ -252,6 +252,7 @@ class Panel:
                 "carpeta": self._carpeta,
                 "servidor": self._servidor,
                 "sesion_abierta": self._sesion_abierta,
+                "pregunta": self._validar is not None,
             }
 
     def esperar_cambio(self, ultimo_numero: int, timeout: float) -> int:

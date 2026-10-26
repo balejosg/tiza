@@ -26,17 +26,25 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; background: var(--fondo); color: var(--texto); }
-header { background: linear-gradient(135deg, #383C40 0%, var(--pizarra) 55%, #292C2F 100%); color: #F4F7F8; padding: 13px 22px; display: flex; align-items: center; gap: 14px; border-bottom: 3px solid var(--marca); }
+header { background: linear-gradient(135deg, #383C40 0%, var(--pizarra) 55%, #292C2F 100%); color: #F4F7F8; padding: 13px 22px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-bottom: 3px solid var(--marca); }
 header img { height: 54px; width: 90px; flex: none; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
 header div { flex: 1; min-width: 0; }
 header h1 { margin: 0; font-size: 23px; font-weight: 700; letter-spacing: .4px; }
 header p { margin: 4px 0 0; font-size: 12px; color: #B9C2C8; overflow-wrap: anywhere; }
 header button { background: transparent; color: #F4F7F8; border-color: rgba(255,255,255,.5); }
 header button:hover { background: rgba(255,255,255,.1); border-color: #fff; }
+header .confirmar-cierre { flex: 1 1 100%; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding-top: 4px; }
+header .confirmar-cierre[hidden] { display: none; }
+header .confirmar-cierre span { font-size: 13px; color: #E7DDD8; }
+header .confirmar-cierre .peligro { background: var(--peligro); border-color: var(--peligro); color: #fff; }
 main { max-width: 820px; margin: 0 auto; padding: 24px 22px 34px; }
 .tarjeta { background: var(--papel); border: 1px solid var(--borde); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; box-shadow: 0 2px 3px rgba(46,49,52,.04), 0 12px 28px rgba(46,49,52,.05); }
 h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: .1px; }
 h2::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--coral); margin-right: 9px; vertical-align: 2px; }
+#ver-registro { font-size: 12px; padding: 4px 10px; margin-left: 8px; vertical-align: 1px; }
+.acciones { position: sticky; bottom: 0; z-index: 2; margin: 16px -22px -20px; padding: 12px 22px 14px; background: var(--papel); border-top: 1px solid var(--borde); border-radius: 0 0 14px 14px; box-shadow: 0 -8px 16px rgba(46,49,52,.08); }
+.acciones p { margin: 0 0 10px; }
+.acciones .botones { margin-top: 0; }
 p { margin: 7px 0; }
 .suave { color: var(--suave); }
 .error { color: var(--peligro); }
@@ -72,6 +80,7 @@ ul { margin: 8px 0; padding-left: 22px; }
   header h1 { font-size: 20px; }
   main { padding: 16px 12px 26px; }
   .tarjeta { padding: 16px; }
+  .acciones { margin: 16px -16px -16px; padding: 12px 16px; }
 }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 </style>
@@ -83,13 +92,18 @@ ul { margin: 8px 0; padding-left: 22px; }
     <h1>tiza</h1>
     <p id="contexto"></p>
   </div>
-  <button type="button" id="cerrar-sesion" hidden>Cerrar la sesión</button>
+  <button type="button" id="cerrar-sesion" hidden>Cerrar la sesión y salir</button>
+  <div id="confirmar-cierre" class="confirmar-cierre" hidden>
+    <span>El asistente dejará de poder publicar. ¿Cerrar?</span>
+    <button type="button" id="cerrar-de-verdad" class="peligro">Cerrar</button>
+    <button type="button" id="seguir-trabajando">Seguir trabajando</button>
+  </div>
 </header>
 <main>
   <p id="anuncio" class="sr-only" aria-live="polite"></p>
   <section id="pantalla" class="tarjeta"></section>
   <section class="tarjeta">
-    <h2>Registro</h2>
+    <h2>Registro <button type="button" id="ver-registro" hidden></button></h2>
     <ul id="registro"></ul>
   </section>
 </main>
@@ -103,6 +117,10 @@ ul { margin: 8px 0; padding-left: 22px; }
   var respuestas = [];       // botones que se habilitan a los 0,7 s de pintar la pantalla
   var botonPrincipal = null; // el que activa Enter en un campo de texto de la pantalla
   var pintada = 0;           // cuándo se pintó la pantalla (para la espera de los botones)
+  var registroPlegado = false;
+  var ultimaPregunta = false;
+  var ultimoRegistro = [];
+  var cierrePreguntado = false;
 
   function api() {
     return window.pywebview && window.pywebview.api;
@@ -192,6 +210,13 @@ ul { margin: 8px 0; padding-left: 22px; }
     return p.riesgo === "peligro" ? botones(no, si) : botones(si, no);
   }
 
+  function acciones(pregunta, cajaBotones) {
+    var barra = el("div", "acciones");
+    if (pregunta) { barra.appendChild(el("p", null, pregunta)); }
+    barra.appendChild(cajaBotones);
+    return barra;
+  }
+
   // Un entero positivo escrito por el docente, o null si no lo es.
   function entero(texto) {
     var t = String(texto).trim();
@@ -227,8 +252,7 @@ ul { margin: 8px 0; padding-left: 22px; }
       var nodos = [el("h2", null, p.titulo)];
       parrafos(nodos, p.lineas);
       (p.bloques || []).forEach(function (bloque) { nodos.push(pintarBloque(p, bloque)); });
-      nodos.push(el("p", null, p.pregunta));
-      nodos.push(siNo(p));
+      nodos.push(acciones(p.pregunta, siNo(p)));
       return nodos;
     },
     elegir_curso: function (p) {
@@ -392,12 +416,11 @@ ul { margin: 8px 0; padding-left: 22px; }
     ampliar: function (p) {
       var nodos = [el("h2", null, p.titulo)];
       parrafos(nodos, p.lineas);
-      nodos.push(el("p", null, p.pregunta));
       if (p.plazo > 0) {
         nodos.push(el("p", "aviso", "Si no contestas en " + Math.max(1, Math.round(p.plazo / 60)) +
           " minutos, la sesión se cierra."));
       }
-      nodos.push(siNo(p));
+      nodos.push(acciones(p.pregunta, siNo(p)));
       return nodos;
     },
     carpeta: function (p) {
@@ -458,12 +481,34 @@ ul { margin: 8px 0; padding-left: 22px; }
     var firma = JSON.stringify(registro);
     if (firma === firmaRegistro) { return; }
     firmaRegistro = firma;
+    ultimoRegistro = registro;
     var ul = document.getElementById("registro");
+    var abajo = ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 4;
     var items = registro.map(function (linea) {
-      return el("li", linea.error ? "error" : null, linea.texto);
+      return el("li", linea.error ? "error" : null,
+        (linea.error ? "Error: " : "") + linea.texto);
     });
     ul.replaceChildren.apply(ul, items);
-    ul.scrollTop = ul.scrollHeight;
+    if (abajo) { ul.scrollTop = ul.scrollHeight; }
+    pintarPlegado(ultimaPregunta);
+  }
+
+  function pintarPlegado(pregunta) {
+    if (pregunta !== ultimaPregunta) {
+      registroPlegado = pregunta;
+      ultimaPregunta = pregunta;
+    }
+    document.getElementById("registro").hidden = registroPlegado;
+    var boton = document.getElementById("ver-registro");
+    boton.hidden = !pregunta;
+    boton.textContent = registroPlegado
+      ? "Ver registro (" + ultimoRegistro.length + ")"
+      : "Ocultar registro";
+  }
+
+  function retirarCierre() {
+    cierrePreguntado = false;
+    document.getElementById("confirmar-cierre").hidden = true;
   }
 
   function pintarContexto(estado) {
@@ -472,6 +517,7 @@ ul { margin: 8px 0; padding-left: 22px; }
     if (estado.servidor) { partes.push(estado.servidor); }
     document.getElementById("contexto").textContent = partes.join(" · ");
     document.getElementById("cerrar-sesion").hidden = !estado.sesion_abierta;
+    if (!estado.sesion_abierta) { retirarCierre(); }
   }
 
   function sondear() {
@@ -483,9 +529,11 @@ ul { margin: 8px 0; padding-left: 22px; }
       pintarContexto(estado);
       if (estado.pantalla.numero !== ultimo) {
         ultimo = estado.pantalla.numero;
+        retirarCierre();  // una pantalla nueva retira la confirmación de cierre
         pintar(estado.pantalla);
       }
       pintarRegistro(estado.registro);
+      pintarPlegado(estado.pregunta === true);
     }, function () {
       enCurso = false;
     });
@@ -498,8 +546,20 @@ ul { margin: 8px 0; padding-left: 22px; }
   });
 
   document.getElementById("cerrar-sesion").addEventListener("click", function () {
+    cierrePreguntado = true;
+    document.getElementById("confirmar-cierre").hidden = false;
+  });
+
+  document.getElementById("seguir-trabajando").addEventListener("click", retirarCierre);
+
+  document.getElementById("cerrar-de-verdad").addEventListener("click", function () {
     var puente = api();
     if (puente && ultimo !== null) { puente.terminar(ultimo); }
+  });
+
+  document.getElementById("ver-registro").addEventListener("click", function () {
+    registroPlegado = !registroPlegado;
+    pintarPlegado(ultimaPregunta);
   });
 
   setInterval(sondear, 300);

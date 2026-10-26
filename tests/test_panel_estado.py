@@ -1104,12 +1104,15 @@ def test_esperar_cambio_despierta_con_un_dialogo_o_una_salida_pedidos(entorno):
 
 def test_pregunta_pendiente_solo_mientras_se_espera(entorno):
     assert entorno.panel.pregunta_pendiente is False
+    assert entorno.puente.estado()["pregunta"] is False
     leer = entorno.lanzar(entorno.presencia.confirmar_autoprueba)
     p = entorno.pantalla()
     assert entorno.panel.pregunta_pendiente is True
+    assert entorno.puente.estado()["pregunta"] is True
     entorno.responder(p, True)
     leer()
     assert entorno.panel.pregunta_pendiente is False
+    assert entorno.puente.estado()["pregunta"] is False
 
 
 def test_el_estado_lleva_carpeta_servidor_y_si_la_sesion_esta_abierta(entorno):
