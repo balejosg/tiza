@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.34.0 — 2026-10-26
+
+### Cambiado
+- **Mejor maqueta al publicar Markdown.** Los títulos se adaptan al nombre de la actividad (`##` pasa a `h3`), las tablas salen con bordes y rayado, y los bloques de código, en un recuadro legible. Los `.html` no se tocan. La guía de la skill trae plantillas de página y de tarea para copiar y rellenar.
+
 ## 0.33.0 — 2026-10-26
 
 ### Añadido
