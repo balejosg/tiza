@@ -146,6 +146,44 @@ def test_enseña_lo_que_tiene_que_enseñar(sin_csp):
     assert "button.real" in sin_csp
 
 
+def test_valida_en_linea_y_no_llama_al_puente_con_datos_invalidos(sin_csp):
+    for texto in (
+        "Escribe solo el número que va tras id=",
+        "Escribe los ids separados por comas.",
+        "Escribe solo números separados por comas.",
+        "Como mucho ",
+        "Hay ids repetidos.",
+        "Marca al menos un curso.",
+        "Escribe la dirección del aula.",
+        "Escribe tu usuario.",
+    ):
+        assert texto in sin_csp, texto
+    assert 'ponerError(errorUrl, direccion ? "" : "Escribe la dirección del aula.")' in sin_csp
+    assert 'if (!direccion || !nombre) { return; }' in sin_csp
+    assert "usar.condicion" in sin_csp and "actualizarBoton(usar)" in sin_csp
+    assert 'contador.textContent = marcadas() + " de " + p.maximo + " marcados"' in sin_csp
+
+
+def test_enter_solo_pulsa_el_boton_principal_cuando_ya_esta_habilitado(sin_csp):
+    assert 'evento.key !== "Enter"' in sin_csp
+    assert 'evento.target.tagName !== "INPUT"' in sin_csp
+    assert "if (botonPrincipal && !botonPrincipal.disabled) { botonPrincipal.click(); }" in sin_csp
+    assert "actualizarBoton(usarId)" in sin_csp
+
+
+def test_el_foco_va_al_titulo_y_en_configurar_al_primer_campo_vacio(sin_csp):
+    assert "titulo.tabIndex = -1;" in sin_csp
+    assert "titulo.focus();" in sin_csp
+    assert "if (!campos[i].value) { destino = campos[i]; break; }" in sin_csp
+    assert "if (destino) { destino.focus(); }" in sin_csp
+
+
+def test_la_zona_de_anuncio_es_corta_y_no_toda_la_tarjeta(sin_csp):
+    assert '<p id="anuncio" class="sr-only" aria-live="polite"></p>' in sin_csp
+    assert '<section id="pantalla" class="tarjeta">' in sin_csp
+    assert 'document.getElementById("anuncio").textContent = pantalla.titulo || ""' in sin_csp
+
+
 def _llamadas_al_puente(texto: str) -> list[tuple[str, int]]:
     """(método, número de argumentos) de cada ``puente.<método>(...)`` de la página."""
     resultado = []
