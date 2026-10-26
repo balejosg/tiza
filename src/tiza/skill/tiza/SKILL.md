@@ -28,7 +28,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
 1. **Lee la estructura**: abre `.tiza/estructura.json` en la carpeta de la asignatura. Contiene las secciones (número y nombre) de los cursos configurados: `pruebas` (un objeto; puede faltar) y `real` (una **lista** con un objeto por curso real, en el orden de `tiza.toml`; versión 1 del fichero: un solo objeto). Si no existe, ejecuta `tiza estructura` cuando haya sesión abierta; si no la hay, pide al docente que la abra. `tiza empezar` ya deja `.tiza/estructura.json` escrita (si la lectura de la estructura tuvo éxito).
 
-2. **Escribe el contenido**: uno o más ficheros en esa carpeta, con este formato. Las páginas y las etiquetas se escriben en `.html` por defecto: antes de escribir una página o una etiqueta, carga `guias/estilo.md` y síguela. La descripción de una tarea con más de un párrafo, una lista o una tabla va en `.html` con la plantilla de tareas de `guias/estilo.md`; si es una frase o un párrafo corto, va en `.md`. Cuestionarios y H5P siguen en `.md`, y el `.md` queda para cuando el docente lo pida o el texto sea muy breve.
+2. **Escribe el contenido**: uno o más ficheros en esa carpeta, con este formato. Las páginas y las etiquetas se escriben en `.html` por defecto: antes de escribir una página o una etiqueta, carga `guias/estilo.md` y síguela. La descripción de una tarea con más de un párrafo, una lista o una tabla va en `.html` con la plantilla de tareas de `guias/estilo.md`; si es una frase o un párrafo corto, va en `.md`. Cuestionarios y H5P siguen en `.md`, y el `.md` queda para cuando el docente lo pida o el texto sea muy breve. Antes de escribir cualquier pieza (página, etiqueta, tarea, cuestionario o H5P), carga también `guias/dua.md` y síguela: se aplica siempre, aunque el docente no la pida.
 
    <!-- formato:inicio -->
    Elige el tipo antes de escribir, según lo que pida el docente:
@@ -103,9 +103,9 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
      - tipo: opcion_multiple
        enunciado: ¿Cuánto es **2 + 2**?
        opciones:
-         - {texto: "4", correcta: true, retro: ¡Bien!}
-         - {texto: "5"}
-         - {texto: "3", retro: Casi.}
+         - {texto: "4", correcta: true, retro: "Sí: dos más dos son cuatro."}
+         - {texto: "5", retro: "Has contado uno de más."}
+         - {texto: "3", retro: "Has contado uno de menos."}
        retro: Repasa las sumas.
      - tipo: verdadero_falso
        enunciado: El agua hierve a 100 °C a nivel del mar.
@@ -316,7 +316,7 @@ Si el docente parte de su programación, o pide una unidad o una situación de a
 Se aplica cuando el docente pide un **tema entero**. Para una pieza suelta, el flujo de siempre.
 
 1. **Averigua antes de escribir**: mira primero la carpeta y pregunta **en un solo mensaje** lo que falte: materia y curso, número de sesiones y fechas, sección (por nombre), si hay documento curricular o material propio que reutilizar y si la unidad acaba en un producto final.
-2. **Propón la secuencia al docente antes de escribir los ficheros.** Referencia, que se adapta: presentación (`etiqueta`) → contenido en páginas cortas → práctica sin nota (H5P, o cuestionario con intentos ilimitados y retroalimentación) → cuestionario de comprobación → tarea con el producto final → refuerzo y ampliación, opcionales. `ejemplos/unidad/` del repositorio de tiza muestra una unidad así.
+2. **Propón la secuencia al docente antes de escribir los ficheros**, y escribe cada pieza siguiendo `guias/dua.md`. Referencia, que se adapta: presentación (`etiqueta`) → contenido en páginas cortas → práctica sin nota (H5P, o cuestionario con intentos ilimitados y retroalimentación) → cuestionario de comprobación → tarea con el producto final → refuerzo y ampliación, opcionales. `ejemplos/unidad/` del repositorio de tiza muestra una unidad así.
 3. **Itinerario**: cada pieza lleva su `finalizacion` (páginas `ver`, práctica `manual`, cuestionario `calificar`, tarea `entregar`) y se encadenan con `restricciones.completar`. El curso debe tener activada la finalización (`FINALIZACION_DESACTIVADA`).
 4. **Fechas**: salen del calendario del docente y del número de sesiones. Propónlas y no cambies ninguna sin preguntar.
 5. **Currículo**: **no cites normativa de memoria ni la busques en internet.**

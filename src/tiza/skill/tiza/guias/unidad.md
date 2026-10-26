@@ -47,7 +47,8 @@ dos versiones y que decida el docente. Antes de decir que hay un error, mira
 Tres niveles: **normativa** (tiza), **documentos del centro o del docente** (con documento
 y apartado o página, y que tiza no lo ha comprobado) y **propuesta tuya**. Si el docente
 prefiere una redacción distinta de la normativa, enséñale los dos textos una vez y respétalo:
-esa fila pasa a tener como fuente su programación.
+esa fila pasa a tener como fuente su programación. Lo que haces para que el material llegue
+a toda la clase (`guias/dua.md`) es propuesta tuya, salvo lo que cite `tiza normativa`.
 
 ## 6. Propón en el chat
 
@@ -59,7 +60,7 @@ Haz solo las preguntas que únicamente el docente puede contestar, y todas junta
 Escribe `unidad-N.md` y conviértelo con `tiza documento unidad-N.md`. Si ya existe ese Word
 (`DOCUMENTO_EXISTE`), genera otro con `--salida unidad-N-v2.docx` y dilo: nunca se borra un
 Word del docente. Después, las actividades: las páginas y etiquetas se escriben en `.html` siguiendo
-`guias/estilo.md` (los cuestionarios, H5P y tareas cortas, en `.md`), y el camino de siempre:
+`guias/estilo.md` (los cuestionarios, H5P y tareas cortas, en `.md`), todas con `guias/dua.md`, y el camino de siempre:
 `tiza comprobar`, pruebas y real.
 
 ### Markdown que admite `tiza documento`

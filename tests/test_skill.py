@@ -298,3 +298,31 @@ def test_guia_juntar_es_breve_y_cita_los_comandos():
         "sin_registro",
     ):
         assert parte in texto
+
+
+GUIA_DUA = SKILL.parent / "guias/dua.md"
+
+
+def test_guia_dua_existe_y_se_carga_al_escribir_y_en_la_unidad():
+    assert GUIA_DUA.is_file()
+    texto = SKILL.read_text(encoding="utf-8")
+    escribir = texto.split("2. **Escribe el contenido**", 1)[1].split("\n3. ", 1)[0]
+    assert "guias/dua.md" in escribir
+    unidad = texto.split("## Unidad completa", 1)[1].split("\n## ", 1)[0]
+    assert "guias/dua.md" in unidad
+    for guia in ("unidad.md", "programacion.md", "estilo.md"):
+        assert "guias/dua.md" in (SKILL.parent / "guias" / guia).read_text(encoding="utf-8")
+
+
+def test_guia_dua_es_breve_y_dice_lo_que_tiza_no_hace():
+    texto = GUIA_DUA.read_text(encoding="utf-8")
+    assert len(texto.splitlines()) <= 150
+    for parte in (
+        "a mano en el aula",  # lo individual lo pone el docente
+        "tipos de entrega",  # tiza no los fija
+        "[RELLENA",  # tiza no detecta los huecos
+        "`opcion_multiple`",  # retro por opción solo ahí
+        "guias/juntar.md",
+        "diseño universal",  # lo que se busca con tiza normativa
+    ):
+        assert parte in texto, parte

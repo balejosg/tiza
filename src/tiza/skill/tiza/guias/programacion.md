@@ -28,6 +28,10 @@ Para lo que exige la normativa, consulta `tiza normativa programacion eso|bachil
 y, para cada elemento curricular, `tiza normativa ficha <codigo>`. Cita los textos literales
 y di de qué fecha son los datos (`version_datos`).
 
+En el apartado de atención a la diversidad, sigue la sección 9 de `guias/dua.md`: cita lo que
+dé `tiza normativa` y marca como propuesta tuya las medidas para toda la clase. Las medidas
+para un alumno concreto las redacta el docente, nunca tú.
+
 Si `tiza normativa` da `CURSO_SIN_DATOS` para el curso siguiente, usa el último curso con
 datos y **díselo al docente**: marca como sin confirmar lo que dependa de las instrucciones
 del curso nuevo.

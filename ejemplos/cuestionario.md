@@ -8,8 +8,8 @@ preguntas:
     enunciado: ¿Qué fracción es equivalente a **1/2**?
     opciones:
       - {texto: "2/4", correcta: true, retro: Multiplica numerador y denominador por 2.}
-      - {texto: "1/4"}
-      - {texto: "2/3"}
+      - {texto: "1/4", retro: "Has cambiado solo el denominador: 1/4 es la mitad de 1/2."}
+      - {texto: "2/3", retro: "Has sumado 1 arriba y abajo: sumar no conserva la cantidad."}
     retro: Dos fracciones son equivalentes si representan la misma cantidad.
   - tipo: verdadero_falso
     enunciado: En la figura 1 de la descripción, el punto está coloreado.

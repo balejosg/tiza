@@ -2,7 +2,8 @@
 
 Se usa antes de escribir una página, una tarea o una etiqueta. Léela entera y escribe en
 `.html`. El resultado debe verse cuidado, igual en todas las páginas del curso y bien en el
-tema del aula, sin imitar ninguna marca.
+tema del aula, sin imitar ninguna marca. Lo que cuenta cada pieza (una idea de más de una
+forma, glosario, tareas con varias formas de entrega, tests) sigue `guias/dua.md`.
 
 ## 1. Cuándo se usa
 
@@ -251,6 +252,23 @@ Lista de enlaces con texto descriptivo.
 </div>
 ```
 
+### Palabras de esta página
+
+Los términos nuevos de la página, de 2 a 6, con una definición corta cada uno. Va antes del
+«Resumen».
+
+```html
+<div class="card bg-light mb-3">
+  <div class="card-body">
+    <h4 class="card-title"><i class="fa-solid fa-fw fa-book" aria-hidden="true"></i> Palabras de esta página</h4>
+    <dl class="mb-0">
+      <dt>Numerador</dt><dd>El número de arriba: cuántas partes tomamos.</dd>
+      <dt>Denominador</dt><dd>El número de abajo: en cuántas partes iguales se reparte el todo.</dd>
+    </dl>
+  </div>
+</div>
+```
+
 ### Cierre o resumen
 
 ```html
@@ -268,8 +286,8 @@ Lista de enlaces con texto descriptivo.
 - **Página de presentación**: contenedor, `lead`, «Qué vas a aprender», explicación breve,
   tarjetas con las partes de la unidad y «Para saber más».
 - **Página de contenido**: contenedor, `lead`, «Qué vas a aprender», los apartados (`h3`),
-  un ejemplo o un «Recuerda», «Resumen» y «Actividad». Añade tabla, código o tarjetas solo
-  si el contenido lo pide.
+  un ejemplo o un «Recuerda», «Palabras de esta página» si hay términos nuevos, «Resumen» y
+  «Actividad». Añade tabla, código o tarjetas solo si el contenido lo pide.
 - **Etiqueta**: se ve en la portada del curso. Corta: uno o dos bloques (un `alert` con un
   aviso, o un título y un párrafo). Sin contenedor, sin cabecera grande ni `h3` de página.
   El título va en `<strong>` dentro del `alert` (la portada del curso ya pone la sección como
@@ -283,8 +301,9 @@ Lista de enlaces con texto descriptivo.
   ```
 - **Tarea**: siempre en `.html` si tiene más de un párrafo, una lista o una tabla. Lleva
   contexto en un `lead`, «Qué tienes que hacer» con los ejercicios en `h4`, «Qué entregas»
-  en un `card` con `fa-download`, «Cómo se califica» con una tabla y «Normas» en un
-  `alert-warning` solo si las hay. Sin fechas en el texto: las pone Moodle.
+  en un `card` con `fa-download` (con varias formas de entregar), «Cómo se califica» con una
+  tabla, «Antes de entregar, comprueba», un ejemplo resuelto y «Normas» en un `alert-warning`
+  solo si las hay. Sin fechas en el texto: las pone Moodle.
 
 ## 6. Plantillas para copiar y rellenar
 
@@ -384,6 +403,16 @@ seccion: "[RELLENA: nombre de la sección]"
     </div>
   </div>
 
+  <div class="card bg-light mb-3">
+    <div class="card-body">
+      <h4 class="card-title"><i class="fa-solid fa-fw fa-book" aria-hidden="true"></i> Palabras de esta página</h4>
+      <dl class="mb-0">
+        <dt>[RELLENA: término nuevo]</dt><dd>[RELLENA: definición corta.]</dd>
+        <dt>[RELLENA: término nuevo]</dt><dd>[RELLENA: definición corta.]</dd>
+      </dl>
+    </div>
+  </div>
+
   <div class="alert alert-success">
     <h4><i class="fa-solid fa-fw fa-lightbulb" aria-hidden="true"></i> Resumen</h4>
     <ul class="mb-0">
@@ -402,8 +431,10 @@ seccion: "[RELLENA: nombre de la sección]"
 </div>
 ```
 
+«Palabras de esta página» es opcional: bórralo entero si la página no trae términos nuevos.
 Si el contenido pide código, añade un bloque «Código» (sección 5). Si pide una imagen,
-déjala con `alt` y `img-fluid`; si no la tienes, deja el hueco marcado y avisa al docente.
+déjala con `alt` y `img-fluid`; si no la tienes, deja el aviso «Falta:» de `guias/dua.md` y
+avisa al docente.
 
 ### Tarea
 
@@ -434,8 +465,10 @@ limite: 2026-11-13     # [RELLENA: fecha límite; opcional]
   <div class="card border-primary mb-3">
     <div class="card-body">
       <h4 class="card-title"><i class="fa-solid fa-fw fa-download" aria-hidden="true"></i> Qué entregas</h4>
+      <p>Elige la forma que prefieras. Se califica igual:</p>
       <ul class="mb-0">
-        <li>[RELLENA: fichero, foto o texto que hay que entregar.]</li>
+        <li>[RELLENA: una forma de entregar, por ejemplo un texto.]</li>
+        <li>[RELLENA: otra forma, por ejemplo una foto o un audio.]</li>
       </ul>
     </div>
   </div>
@@ -447,10 +480,27 @@ limite: 2026-11-13     # [RELLENA: fecha límite; opcional]
         <tr><th scope="col">Criterio</th><th scope="col">Puntos</th></tr>
       </thead>
       <tbody>
-        <tr><td>[RELLENA: criterio]</td><td>[RELLENA: puntos]</td></tr>
+        <tr><td>[RELLENA: criterio: qué se demuestra, no con qué medio]</td><td>[RELLENA: puntos]</td></tr>
         <tr><td>[RELLENA: criterio]</td><td>[RELLENA: puntos]</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <h3>Antes de entregar, comprueba</h3>
+  <ul>
+    <li>[RELLENA: algo que el alumnado puede comprobar por sí mismo.]</li>
+    <li>[RELLENA: otra comprobación.]</li>
+  </ul>
+
+  <div class="card bg-light mb-3">
+    <div class="card-body">
+      <h4 class="card-title">Ejemplo resuelto</h4>
+      <p class="card-text">[RELLENA: un caso parecido, pero distinto del que se pide.]</p>
+      <details>
+        <summary>Ver el ejemplo</summary>
+        <p class="mt-2 mb-0">[RELLENA: el ejemplo resuelto.]</p>
+      </details>
+    </div>
   </div>
 
   <div class="alert alert-warning">
@@ -463,7 +513,9 @@ limite: 2026-11-13     # [RELLENA: fecha límite; opcional]
 ```
 
 El bloque «Normas» y los ejercicios que no necesites son opcionales: bórralos enteros. No
-borres el contenedor, la tabla de calificación ni «Qué entregas».
+borres el contenedor, la tabla de calificación, «Qué entregas», «Antes de entregar,
+comprueba» ni el ejemplo resuelto. tiza no fija los tipos de entrega de la tarea: pregunta
+al docente si tiene activadas las formas que ofreces (`guias/dua.md`).
 
 `ejemplos/tarea-con-estilo.html` del repositorio de tiza muestra la tarea entera rellena.
 `ejemplos/pagina-con-estilo.html` muestra una página de contenido con estos bloques.

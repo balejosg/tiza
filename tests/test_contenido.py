@@ -2540,3 +2540,23 @@ class TestPublicadosDelDocumento:
         assert hash_documento(despues) == hash_documento(antes)
         assert despues.hash_cargado == antes.hash_cargado
         assert "publicados" not in repr(despues)
+
+
+class TestEjemplosDeLaUnidad:
+    def test_el_cuestionario_de_la_unidad_explica_cada_opcion(self):
+        doc = cargar(RAIZ_REPO / "ejemplos" / "unidad" / "5-comprobacion.md")
+        for pregunta in doc.cuestionario.preguntas:
+            assert pregunta.retro, f"«{pregunta.enunciado}» no lleva retroalimentación general"
+            for opcion in pregunta.opciones:
+                assert opcion.retro, f"una opción de «{pregunta.enunciado}» no explica su porqué"
+
+    def test_las_tareas_de_ejemplo_ofrecen_varias_formas_de_entrega_y_una_comprobacion(self):
+        for fichero in (
+            RAIZ_REPO / "ejemplos" / "tarea-con-estilo.html",
+            RAIZ_REPO / "ejemplos" / "unidad" / "6-reparto-final.html",
+        ):
+            arbol = BeautifulSoup(cargar(fichero).html, "html.parser")
+            entregas = arbol.find("i", class_="fa-download").find_parent("div", class_="card-body")
+            assert len(entregas.find_all("li")) >= 2, f"{fichero.name}: una sola forma de entrega"
+            assert "Antes de entregar" in arbol.get_text(), f"{fichero.name}: falta la comprobación"
+            assert arbol.find("details") is not None, f"{fichero.name}: falta el ejemplo resuelto"
