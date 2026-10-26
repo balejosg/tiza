@@ -454,6 +454,14 @@ ul { margin: 8px 0; padding-left: 22px; }
       nodos.push(acciones(p.pregunta, siNo(p)));
       return nodos;
     },
+    final: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas);
+      nodos.push(botones(boton(p.texto_si || "Volver a empezar", "principal", function () {
+        responder(p.numero, true);
+      }, true)));
+      return nodos;
+    },
     carpeta: function (p) {
       var nodos = [el("h2", null, p.titulo)];
       parrafos(nodos, p.lineas, "suave");

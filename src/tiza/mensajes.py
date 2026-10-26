@@ -76,6 +76,7 @@ __all__ = [
     "SIN_PRUEBAS_AVISO",
     "SOLO_FECHAS_TEXTO",
     "VISIBILIDAD",
+    "VOLVER_A_EMPEZAR",
     "cabecera_de_curso",
     "cambian_fechas",
     "describir_cambios",
@@ -749,6 +750,7 @@ NO_SE_ENTRO_TITULO = "No se entró en el aula"
 NO_SE_ENTRO_TEXTO = "La ventana de entrada se cerró o pasó el tiempo."
 NO_SE_ENTRO_QUE_HACER = "Vuelve a abrir tiza para intentarlo."
 SEPARADOR_NUEVA_SESION = "— Nueva sesión —"
+VOLVER_A_EMPEZAR = "Volver a empezar"
 ACTUALIZANDO_TITULO = "Se está actualizando"
 ACTUALIZANDO_TEXTO = "Se está actualizando; el panel se abrirá solo en un minuto o dos."
 

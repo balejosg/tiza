@@ -1232,6 +1232,25 @@ def test_acreditar_fija_el_servidor_en_la_cabecera():
     assert e.puente.estado()["servidor"] == "aula.ejemplo.org"
 
 
+def test_preguntar_final_ofrece_volver_a_empezar_sobre_el_reposo(entorno):
+    entorno.panel.reposo("Cancelado", ["No se eligió carpeta."])
+    leer = entorno.lanzar(entorno.panel.preguntar_final)
+    p = entorno.pantalla(tipo="final")
+    assert p["titulo"] == "Cancelado"
+    assert p["lineas"] == ("No se eligió carpeta.",)
+    assert p["texto_si"] == mensajes.VOLVER_A_EMPEZAR
+    assert entorno.responder(p, True)
+    assert leer() is True
+    assert entorno.panel.estado()["pantalla"]["tipo"] == "reposo"
+
+
+def test_preguntar_final_con_el_panel_cerrado_no_bloquea():
+    panel = Panel()
+    panel.reposo("Fin")
+    panel.cerrar()
+    assert panel.preguntar_final() is False
+
+
 def test_reposo_deja_una_pantalla_saneada_y_cierra_la_sesion(entorno):
     entorno.panel.marcar_sesion(True)
     entorno.panel.reposo("Fin\x1b[0m", ["una", "dos"])

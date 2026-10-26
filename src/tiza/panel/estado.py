@@ -80,6 +80,7 @@ TIPOS_DE_PANTALLA = frozenset(
         "entrando",
         "ampliar",
         "carpeta",
+        "final",
     }
 )
 
@@ -558,6 +559,17 @@ class Panel:
             self._vistas = ()
             self._publicar(self._base)
             return respuesta
+
+    def preguntar_final(self) -> bool:
+        """Ofrece volver a empezar sobre la pantalla de reposo actual; True si lo pide."""
+        with self._cv:
+            base = self._base
+        pantalla = dataclasses.replace(
+            base,
+            tipo="final",
+            texto_si=mensajes.VOLVER_A_EMPEZAR,
+        )
+        return self.preguntar(pantalla, lambda r: _bool(r, None)) is True
 
 
 def _opciones_de_carpetas(rutas: Sequence[Path]) -> tuple[Opcion, ...]:

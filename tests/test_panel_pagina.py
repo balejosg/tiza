@@ -239,6 +239,12 @@ def test_el_registro_lleva_hora_y_se_puede_copiar(sin_csp):
     assert 'id="copiar-registro" hidden' in sin_csp
 
 
+def test_la_pantalla_final_ofrece_volver_a_empezar(sin_csp):
+    assert 'p.texto_si || "Volver a empezar"' in sin_csp
+    assert "final: function (p)" in sin_csp
+    assert "responder(p.numero, true);" in sin_csp
+
+
 def _llamadas_al_puente(texto: str) -> list[tuple[str, int]]:
     """(método, número de argumentos) de cada ``puente.<método>(...)`` de la página."""
     resultado = []

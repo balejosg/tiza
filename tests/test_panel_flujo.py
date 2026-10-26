@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from dobles import PresenciaFalsa
-from tiza import __version__, actualizacion, arranque, config, informe, publicacion
+from tiza import __version__, actualizacion, arranque, config, informe, mensajes, publicacion
 from tiza.aislamiento import Comprobacion
 from tiza.panel import flujo, recientes
 from tiza.panel.estado import RETARDO_RESPUESTA, Panel, PresenciaPanel
@@ -101,7 +101,30 @@ class Escenario:
         assert self.panel.pedir_dialogo(p["numero"])
         assert self.panel.atender_dialogo(lambda: str(carpeta))
 
+    def final_pendiente(self) -> dict | None:
+        """Espera a que el flujo deje la pantalla final esperando respuesta."""
+        limite = time.monotonic() + 5
+        while time.monotonic() < limite:
+            estado = self.panel.estado()
+            if estado["pantalla"]["tipo"] == "final" and self.panel.pregunta_pendiente:
+                return estado["pantalla"]
+            if not self.hilo.is_alive():
+                return None
+            time.sleep(0.01)
+        return None
+
+    def responder_final(self, volver: bool = True) -> None:
+        final = self.final_pendiente()
+        assert final is not None, "no llegó la pantalla final"
+        if volver:
+            self.reloj.ahora += RETARDO_RESPUESTA + 0.1
+            assert self.panel.responder(final["numero"], True)
+        else:
+            self.panel.cerrar()
+
     def terminar(self) -> int:
+        if self.final_pendiente() is not None:
+            self.panel.cerrar()
         self.hilo.join(5)
         assert not self.hilo.is_alive(), "el flujo sigue bloqueado"
         assert "error" not in self.resultado, self.resultado.get("error")
@@ -376,6 +399,43 @@ def test_un_error_inesperado_no_cuelga_el_panel(asignatura, donde):
     final = e.final()
     assert final["titulo"] == "Algo ha fallado"
     assert "detalle interno" not in str(e.panel.estado())
+
+
+def test_volver_a_empezar_reinicia_la_vuelta_sin_cerrar_la_ventana(asignatura):
+    e = Escenario().empezar()
+    e.elegir_con_dialogo(asignatura)
+    e.responder_final(volver=True)
+    # La misma ventana vuelve a la pantalla de carpeta y deja elegir otra vez.
+    p = e.pantalla_de_carpeta()
+    assert p["tipo"] == "carpeta"
+    e.elegir_con_dialogo(asignatura)
+    assert e.terminar() == 0
+    assert len(e.llamadas) == 4  # preparar y abrir, dos vueltas
+    registro = [linea["texto"] for linea in e.panel.estado()["registro"]]
+    assert mensajes.SEPARADOR_NUEVA_SESION in registro
+    assert e.panel.estado()["carpeta"] == "centro / mates"
+
+
+def test_tras_actualizar_no_se_ofrece_volver_a_empezar(asignatura):
+    e = Escenario(
+        preparar=lambda *_a, **_k: arranque.Resultado(arranque.Estado.ACTUALIZADA)
+    ).empezar()
+    e.elegir_con_dialogo(asignatura)
+    assert e.terminar() == 0
+    assert e.panel.salida_pedida and e.panel.cerrado
+    assert e.final()["tipo"] == "reposo"
+    assert e.llamadas == []
+
+
+def test_tras_cerrar_la_sesion_y_salir_no_se_ofrece_volver_a_empezar(asignatura):
+    def abrir_sesion(_carpeta, _presencia, **_k):
+        e.panel.salir()
+        return 0
+
+    e = Escenario(abrir_sesion=abrir_sesion).empezar()
+    e.elegir_con_dialogo(asignatura)
+    assert e.terminar() == 0
+    assert e.final()["tipo"] == "reposo"
 
 
 def test_con_una_presencia_falsa_el_flujo_no_depende_del_panel(asignatura):
