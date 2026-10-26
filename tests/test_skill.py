@@ -64,6 +64,13 @@ def test_unidad_completa_carga_la_guia_antes_del_primer_paso():
     assert seccion.index("guias/unidad.md") < seccion.index("\n1. ")
 
 
+def test_unidad_propone_la_carga_de_trabajo():
+    texto = SKILL.read_text(encoding="utf-8")
+    paso = texto.split("4. **Fechas y carga de trabajo**", 1)[1].split("\n5. ", 1)[0]
+    for cadena in ("sesiones", "misma semana", "tiempo", "cabe", "qué quitar"):
+        assert cadena in paso
+
+
 GUIA_ESTILO = SKILL.parent / "guias/estilo.md"
 
 
