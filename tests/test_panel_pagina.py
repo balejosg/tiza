@@ -140,6 +140,10 @@ def test_enseña_lo_que_tiene_que_enseñar(sin_csp):
     assert "estado.sesion_abierta" in sin_csp
     assert "estado.servidor" in sin_csp and "estado.carpeta" in sin_csp
     assert 'linea.error ? "error"' in sin_csp  # los errores del registro, en rojo
+    for campo in ("texto_si", "texto_no", "riesgo"):
+        assert campo in sin_csp, campo
+    assert 'p.riesgo === "real"' in sin_csp and 'p.riesgo === "peligro"' in sin_csp
+    assert "button.real" in sin_csp
 
 
 def _llamadas_al_puente(texto: str) -> list[tuple[str, int]]:

@@ -52,6 +52,8 @@ button:focus-visible { outline: 3px solid rgba(127,185,220,.55); outline-offset:
 button:disabled { opacity: .5; cursor: default; }
 button.principal { background: var(--marca); border-color: var(--marca-fuerte); color: var(--marca-tinta); font-weight: 700; }
 button.principal:hover { background: #98CBE8; }
+button.real { background: var(--coral); border-color: var(--coral); color: #2A1712; font-weight: 700; }
+button.real:hover { background: #DE6748; }
 button.peligro { background: var(--peligro); border-color: var(--peligro); color: #fff; }
 button.peligro:hover { background: #AE3926; }
 .documento { border-top: 1px dashed #DDD5C8; padding-top: 12px; margin-top: 14px; }
@@ -150,10 +152,19 @@ ul { margin: 8px 0; padding-left: 22px; }
     (lineas || []).forEach(function (linea) { nodos.push(el("p", clase || null, linea)); });
   }
 
-  function siNo(p, claseSi) {
-    return botones(
-      boton("Sí", claseSi || "principal", function () { responder(p.numero, true); }, true),
-      boton("No", null, function () { responder(p.numero, false); }, true));
+  function siNo(p) {
+    var claseAfirmativo = p.riesgo === "real" ? "real" : "principal";
+    if (p.riesgo === "peligro") {
+      claseAfirmativo = "peligro";
+    }
+    var si = boton(p.texto_si || "Sí", claseAfirmativo, function () {
+      responder(p.numero, true);
+    }, true);
+    var no = boton(p.texto_no || "No", p.riesgo === "peligro" ? "principal" : null, function () {
+      responder(p.numero, false);
+    }, true);
+    // En una decisión peligrosa, la opción segura va primero y con el aspecto principal.
+    return p.riesgo === "peligro" ? botones(no, si) : botones(si, no);
   }
 
   // Un entero positivo escrito por el docente, o null si no lo es.

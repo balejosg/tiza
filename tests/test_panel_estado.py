@@ -356,6 +356,98 @@ def test_preguntas_de_si_o_no(entorno, metodo, args, texto, valor):
     assert leer() is valor
 
 
+@pytest.mark.parametrize(
+    ("metodo", "args"),
+    [
+        ("confirmar_real", (_resumen(),)),
+        (
+            "confirmar_real_sin_pruebas",
+            (
+                publicacion.ResumenSinPruebas(
+                    curso=5678,
+                    nombre_curso="Mates",
+                    documentos=(publicacion.DocumentoBreve("t.md", "tarea", "Problemas"),),
+                    secciones_nuevas=(),
+                ),
+            ),
+        ),
+        (
+            "confirmar_orden",
+            (
+                publicacion.ResumenOrden(
+                    curso=5678,
+                    nombre_curso="Mates",
+                    secciones=(publicacion.SeccionOrden("Tema 1", ()),),
+                    posicion=1,
+                    total=1,
+                ),
+            ),
+        ),
+        (
+            "confirmar_calificador",
+            (
+                publicacion.ResumenCalificador(
+                    curso=5678,
+                    nombre_curso="Mates",
+                    lineas_esquema=(),
+                    mueve=(),
+                    bloquea=(),
+                    ids_nuevos=(),
+                    cerradas=(),
+                    avisos=(),
+                ),
+            ),
+        ),
+        (
+            "confirmar_sobrescribir",
+            (publicacion.ResumenSobrescribir(5678, "Mates", ("Problemas",)),),
+        ),
+        (
+            "confirmar_copia",
+            (publicacion.ResumenCopia(5678, "Mates", "real", ("Problemas",)),),
+        ),
+        ("confirmar_cursos", ([],)),
+        ("confirmar_sin_pruebas", ()),
+        ("confirmar_autoprueba", ()),
+        ("confirmar_actualizacion", ("v0.33.0", "0.32.0")),
+        ("confirmar_carpeta_dudosa", ("/tmp/nada",)),
+        ("ofrecer_aislamiento", ()),
+        (
+            "confirmar_aislamiento",
+            (publicacion.ResumenAislamiento((publicacion.FicheroAislamiento("/x", ("y",)),), ()),),
+        ),
+        ("seguir_sin_aislar", ([],)),
+        ("cerrar_sesion_anterior", (False,)),
+    ],
+)
+def test_cada_confirmacion_publica_sus_rotulos_y_su_riesgo(entorno, metodo, args):
+    leer = entorno.lanzar(getattr(entorno.presencia, metodo), *args)
+    p = entorno.pantalla()
+    esperado = mensajes.rotulos(metodo)
+    assert p["texto_si"] == esperado["texto_si"]
+    assert p["texto_no"] == esperado["texto_no"]
+    assert p["riesgo"] == esperado["riesgo"]
+    entorno.responder(p, False)
+    leer()
+
+
+def test_la_ampliacion_lleva_sus_minutos_en_el_rotulo(entorno):
+    leer = entorno.lanzar(entorno.presencia.ofrecer_ampliacion, 30, 60.0)
+    p = entorno.pantalla()
+    assert p["texto_si"] == "Ampliar 30 minutos"
+    assert p["texto_no"] == "Cerrar la sesión"
+    assert p["riesgo"] == ""
+    entorno.responder(p, False)
+    assert leer() is False
+
+
+def test_un_riesgo_desconocido_es_un_error_y_las_pantallas_sin_rotulos_siguen_vacias():
+    with pytest.raises(ValueError):
+        pe.Pantalla(0, "reposo", riesgo="rojo")
+    pantalla = pe.Pantalla(0, "reposo")
+    assert (pantalla.texto_si, pantalla.texto_no, pantalla.riesgo) == ("", "", "")
+
+
 def test_ofrecer_aislamiento(entorno):
     leer = entorno.lanzar(entorno.presencia.ofrecer_aislamiento)
     p = entorno.pantalla()

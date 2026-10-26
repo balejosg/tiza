@@ -94,6 +94,8 @@ __all__ = [
     "lineas_de_error",
     "nombre_llano",
     "pregunta_ampliacion",
+    "rotulos",
+    "rotulos_ampliacion",
     "texto_actualizacion",
     "texto_carpeta_dudosa",
     "texto_cierre",
@@ -670,6 +672,50 @@ PREGUNTA_AISLAR_AQUI = "¿Aplicar ahora el aislamiento a esta carpeta?"
 PREGUNTA_AISLAMIENTO = "¿Aplicarlos?"
 PREGUNTA_SEGUIR_SIN_AISLAR = "¿Seguir sin aislar el agente?"
 PREGUNTA_SESION_ANTERIOR = "¿Cerrarla y abrir esta?"
+
+# Rótulos de los botones de cada confirmación del panel: (sí, no, riesgo). El riesgo vacío
+# deja el «sí» como botón principal; «real» lo pinta en coral y «peligro» pone delante el
+# «no» como principal y el «sí» en rojo. La terminal no los usa: sigue con [s/N].
+_ROTULOS: dict[str, tuple[str, str, str]] = {
+    "confirmar_real": ("Publicar en este curso", "Saltar este curso", "real"),
+    "confirmar_real_sin_pruebas": ("Publicar en este curso", "Saltar este curso", "real"),
+    "confirmar_orden": ("Ordenar este curso", "Saltar este curso", "real"),
+    "confirmar_calificador": ("Cambiar el calificador", "Saltar este curso", "real"),
+    "confirmar_sobrescribir": (
+        "Sobrescribir y perder sus cambios",
+        "Conservar los cambios del aula",
+        "peligro",
+    ),
+    "confirmar_copia": ("Hacer la copia", "No hacerla", ""),
+    "confirmar_cursos": ("Abrir la sesión", "Cancelar", ""),
+    "confirmar_sin_pruebas": ("Abrir sin curso de pruebas", "Cancelar", "real"),
+    "confirmar_autoprueba": ("Pasarla ahora", "Ahora no", ""),
+    "confirmar_actualizacion": ("Actualizar ahora", "Ahora no", ""),
+    "confirmar_carpeta_dudosa": ("Abrir aquí de todos modos", "No abrir", "peligro"),
+    "ofrecer_aislamiento": ("Aplicar el aislamiento", "No aplicarlo", ""),
+    "confirmar_aislamiento": ("Aplicar el aislamiento", "No aplicarlo", ""),
+    "seguir_sin_aislar": ("Seguir sin aislar", "No seguir", "peligro"),
+    "cerrar_sesion_anterior": (
+        "Cerrar la anterior y abrir esta",
+        "Dejar la anterior",
+        "",
+    ),
+}
+
+
+def rotulos(confirmacion: str) -> dict[str, str]:
+    """Los rótulos de una confirmación del panel, con los valores por defecto si no tiene."""
+    texto_si, texto_no, riesgo = _ROTULOS.get(confirmacion, ("", "", ""))
+    return {"texto_si": texto_si, "texto_no": texto_no, "riesgo": riesgo}
+
+
+def rotulos_ampliacion(minutos: int) -> dict[str, str]:
+    """Los rótulos de la pregunta de ampliación, con sus minutos."""
+    return {
+        "texto_si": f"Ampliar {minutos} minutos",
+        "texto_no": "Cerrar la sesión",
+        "riesgo": "",
+    }
 
 
 def linea_destino(entorno: str, curso: int, nombre: str | None = None) -> str:

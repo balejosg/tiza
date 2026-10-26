@@ -126,10 +126,15 @@ class Pantalla:
     servidor: str = ""
     url: str = ""
     usuario: str = ""
+    texto_si: str = ""  # vacío = «Sí»
+    texto_no: str = ""  # vacío = «No»
+    riesgo: str = ""  # "", "real" o "peligro": decide el estilo de los botones
 
     def __post_init__(self) -> None:
         if self.tipo not in TIPOS_DE_PANTALLA:
             raise ValueError(f"tipo de pantalla desconocido: {self.tipo}")
+        if self.riesgo not in ("", "real", "peligro"):
+            raise ValueError(f"riesgo de pantalla desconocido: {self.riesgo}")
 
     def a_dict(self) -> dict:
         return dataclasses.asdict(self)
@@ -520,6 +525,9 @@ class PresenciaPanel:
         vistas: tuple[Path | None, ...] = (),
         plazo: float | None = None,
         tipo: str = "confirmar",
+        texto_si: str = "",
+        texto_no: str = "",
+        riesgo: str = "",
     ) -> bool:
         pantalla = Pantalla(
             0,
@@ -529,6 +537,9 @@ class PresenciaPanel:
             bloques=bloques,
             pregunta=_t(pregunta),
             plazo=plazo or 0.0,
+            texto_si=_t(texto_si),
+            texto_no=_t(texto_no),
+            riesgo=riesgo,
         )
         respuesta = self._panel.preguntar(
             pantalla, lambda r: _bool(r, None), vistas=vistas, plazo=plazo, reloj=self._reloj
@@ -608,15 +619,26 @@ class PresenciaPanel:
 
     def confirmar_cursos(self, cursos: list[CursoSesion]) -> bool:
         return self._si(
-            "Abrir la sesión", mensajes.lineas_de_cursos(cursos), mensajes.PREGUNTA_CURSOS
+            "Abrir la sesión",
+            mensajes.lineas_de_cursos(cursos),
+            mensajes.PREGUNTA_CURSOS,
+            **mensajes.rotulos("confirmar_cursos"),
         )
 
     def confirmar_autoprueba(self) -> bool:
-        return self._si("Autoprueba", [mensajes.AUTOPRUEBA_TEXTO], mensajes.PREGUNTA_AUTOPRUEBA)
+        return self._si(
+            "Autoprueba",
+            [mensajes.AUTOPRUEBA_TEXTO],
+            mensajes.PREGUNTA_AUTOPRUEBA,
+            **mensajes.rotulos("confirmar_autoprueba"),
+        )
 
     def confirmar_sin_pruebas(self) -> bool:
         return self._si(
-            "Sin curso de pruebas", [mensajes.SIN_PRUEBAS_AVISO], mensajes.PREGUNTA_SIN_PRUEBAS
+            "Sin curso de pruebas",
+            [mensajes.SIN_PRUEBAS_AVISO],
+            mensajes.PREGUNTA_SIN_PRUEBAS,
+            **mensajes.rotulos("confirmar_sin_pruebas"),
         )
 
     # --- confirmaciones de real ---
@@ -643,6 +665,7 @@ class PresenciaPanel:
             mensajes.PREGUNTA_DESTINO,
             bloques=bloques,
             vistas=tuple(doc.vista_previa for doc in detalle.documentos),
+            **mensajes.rotulos("confirmar_real"),
         )
 
     def confirmar_real_sin_pruebas(self, resumen: ResumenSinPruebas) -> bool:
@@ -654,7 +677,13 @@ class PresenciaPanel:
             detalle.finales,
             [mensajes.linea_destino("real", resumen.curso, resumen.nombre_curso)],
         )
-        return self._si(detalle.encabezado, lineas, mensajes.PREGUNTA_DESTINO, bloques=bloques)
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            mensajes.PREGUNTA_DESTINO,
+            bloques=bloques,
+            **mensajes.rotulos("confirmar_real_sin_pruebas"),
+        )
 
     def confirmar_orden(self, resumen: ResumenOrden) -> bool:
         detalle = mensajes.detalle_orden(resumen)
@@ -664,7 +693,13 @@ class PresenciaPanel:
             detalle.finales,
             [mensajes.linea_destino("real", resumen.curso, resumen.nombre_curso)],
         )
-        return self._si(detalle.encabezado, lineas, mensajes.PREGUNTA_DESTINO, bloques=bloques)
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            mensajes.PREGUNTA_DESTINO,
+            bloques=bloques,
+            **mensajes.rotulos("confirmar_orden"),
+        )
 
     def confirmar_calificador(self, resumen: ResumenCalificador) -> bool:
         detalle = mensajes.detalle_calificador(resumen)
@@ -673,7 +708,12 @@ class PresenciaPanel:
             detalle.lineas,
             [mensajes.linea_destino("real", resumen.curso, resumen.nombre_curso)],
         )
-        return self._si(detalle.encabezado, lineas, mensajes.PREGUNTA_DESTINO)
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            mensajes.PREGUNTA_DESTINO,
+            **mensajes.rotulos("confirmar_calificador"),
+        )
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
         detalle = mensajes.detalle_copia(resumen)
@@ -681,7 +721,12 @@ class PresenciaPanel:
             [mensajes.linea_de_copia(detalle)],
             [f"· {actividad}" for actividad in detalle.actividades],
         )
-        return self._si("Copia de seguridad", lineas, detalle.pregunta)
+        return self._si(
+            "Copia de seguridad",
+            lineas,
+            detalle.pregunta,
+            **mensajes.rotulos("confirmar_copia"),
+        )
 
     def confirmar_sobrescribir(self, resumen: ResumenSobrescribir) -> bool:
         detalle = mensajes.detalle_sobrescribir(resumen)
@@ -689,7 +734,12 @@ class PresenciaPanel:
             [mensajes.cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)],
             detalle.lineas,
         )
-        return self._si(detalle.encabezado, lineas, detalle.pregunta)
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            detalle.pregunta,
+            **mensajes.rotulos("confirmar_sobrescribir"),
+        )
 
     # --- arranque ---
 
@@ -730,6 +780,7 @@ class PresenciaPanel:
             "Actualizar tiza",
             [mensajes.texto_actualizacion(nueva, actual)],
             mensajes.PREGUNTA_ACTUALIZAR,
+            **mensajes.rotulos("confirmar_actualizacion"),
         )
 
     def confirmar_carpeta_dudosa(self, carpeta: Path) -> bool:
@@ -737,10 +788,16 @@ class PresenciaPanel:
             "Carpeta dudosa",
             [mensajes.texto_carpeta_dudosa(carpeta)],
             mensajes.PREGUNTA_CARPETA_DUDOSA,
+            **mensajes.rotulos("confirmar_carpeta_dudosa"),
         )
 
     def ofrecer_aislamiento(self) -> bool:
-        return self._si("Aislamiento", [], mensajes.PREGUNTA_AISLAR_AQUI)
+        return self._si(
+            "Aislamiento",
+            [],
+            mensajes.PREGUNTA_AISLAR_AQUI,
+            **mensajes.rotulos("ofrecer_aislamiento"),
+        )
 
     def confirmar_aislamiento(self, resumen: ResumenAislamiento) -> bool:
         lineas = mensajes.lineas_de_aislamiento(resumen)
@@ -748,7 +805,12 @@ class PresenciaPanel:
             for linea in lineas:
                 self._panel.anotar(linea)
             return True
-        if self._si("Aislamiento", lineas, mensajes.PREGUNTA_AISLAMIENTO):
+        if self._si(
+            "Aislamiento",
+            lineas,
+            mensajes.PREGUNTA_AISLAMIENTO,
+            **mensajes.rotulos("confirmar_aislamiento"),
+        ):
             return True
         self._panel.anotar("No se ha cambiado nada.", error=True)
         return False
@@ -757,13 +819,23 @@ class PresenciaPanel:
         lineas = [
             f"- {getattr(falta, 'agente', '')}: {getattr(falta, 'texto', '')}" for falta in faltas
         ]
-        return self._si("Sin aislar", lineas, mensajes.PREGUNTA_SEGUIR_SIN_AISLAR)
+        return self._si(
+            "Sin aislar",
+            lineas,
+            mensajes.PREGUNTA_SEGUIR_SIN_AISLAR,
+            **mensajes.rotulos("seguir_sin_aislar"),
+        )
 
     def cerrar_sesion_anterior(self, atendiendo: bool) -> bool:
         lineas = [mensajes.SESION_ANTERIOR_TEXTO]
         if atendiendo:
             lineas.append(mensajes.SESION_ANTERIOR_ATENDIENDO)
-        return self._si("Sesión anterior", lineas, mensajes.PREGUNTA_SESION_ANTERIOR)
+        return self._si(
+            "Sesión anterior",
+            lineas,
+            mensajes.PREGUNTA_SESION_ANTERIOR,
+            **mensajes.rotulos("cerrar_sesion_anterior"),
+        )
 
     # --- sesión abierta ---
 
@@ -774,6 +846,7 @@ class PresenciaPanel:
             mensajes.pregunta_ampliacion(minutos),
             plazo=plazo,
             tipo="ampliar",
+            **mensajes.rotulos_ampliacion(minutos),
         )
 
     def informar(self, aviso: Aviso) -> None:
