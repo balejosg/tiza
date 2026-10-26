@@ -1014,6 +1014,18 @@ def _exigir_permitido(ruta: Path, raiz: Path) -> None:
         )
 
 
+def _es_documento(ruta: Path) -> bool:
+    """Si es un ``.md`` o ``.html`` con frontmatter: otro documento de tiza, no un recurso."""
+    if ruta.suffix.lower() not in {".md", ".html", ".htm"}:
+        return False
+    try:
+        with ruta.open("rb") as fichero:
+            inicio = fichero.read(8)
+    except OSError:
+        return False
+    return inicio.removeprefix(b"\xef\xbb\xbf").startswith(b"---")
+
+
 def _recursos_locales(
     locales: list[str], base: Path, raiz: Path | None = None
 ) -> tuple[list[Recurso], dict[str, Recurso]]:
@@ -1033,6 +1045,12 @@ def _recursos_locales(
             raise ErrorContenido(
                 "RECURSO_DEMASIADO_GRANDE",
                 f"«{ruta.name}» pesa más de {MAX_RECURSO_BYTES // 2**20} MB",
+            )
+        if _es_documento(ruta):
+            raise ErrorContenido(
+                "ENLACE_A_DOCUMENTO",
+                f"«{ruta.name}» es otro documento de la carpeta: el aula ya enlaza la actividad "
+                "siguiente; quita el enlace o nombra la actividad sin enlazarla",
             )
         anterior = por_nombre.get(ruta.name)
         if anterior is not None and anterior != ruta:

@@ -718,6 +718,17 @@ def _html_de_campo(
         analisis = filtro.analizar(ctx.render(texto))
     except filtro.HtmlPeligroso as exc:
         raise ErrorContenido("HTML_PELIGROSO", f"{donde}: {exc.detalle}") from None
+    # «*», «+» o «-» solos son una lista vacía en Markdown: llegarían en blanco al aula.
+    if (
+        texto.strip()
+        and not analisis.cuerpo.get_text(strip=True)
+        and analisis.cuerpo.find(["img", "iframe"]) is None
+    ):
+        raise ErrorContenido(
+            "MARKDOWN_SIN_TEXTO",
+            f"{donde}: «{texto.strip()[:20]}» se queda sin texto al convertir el Markdown; "
+            "escríbelo como código (`*`) o con una barra delante (\\*)",
+        )
     if analisis.locales:
         _tomar_imagenes(ctx, analisis, donde, imagenes)
     for url in analisis.externos:

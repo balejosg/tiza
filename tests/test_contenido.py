@@ -322,6 +322,20 @@ class TestRecursos:
             cargar(escribir(tmp_path, pagina("![foto](img/no-existe.png)")))
         assert exc.value.codigo == "RECURSO_AUSENTE"
 
+    @pytest.mark.parametrize("otro", ["2-siguiente.md", "2-siguiente.html"])
+    def test_enlace_a_otro_documento_falla(self, tmp_path, otro):
+        # Subirlo como recurso daría al alumnado el fichero fuente, con su frontmatter.
+        escribir(tmp_path, "﻿" + pagina("Otra"), nombre=otro)
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, pagina(f"[Continuar]({otro})")))
+        assert exc.value.codigo == "ENLACE_A_DOCUMENTO"
+        assert otro in exc.value.detalle
+
+    def test_un_html_sin_frontmatter_es_un_recurso(self, tmp_path):
+        (tmp_path / "simulacion.html").write_text("<p>Hola</p>", encoding="utf-8")
+        doc = cargar(escribir(tmp_path, pagina("[Abrir](simulacion.html)")))
+        assert [recurso.nombre for recurso in doc.recursos] == ["simulacion.html"]
+
     def test_recurso_duplicado_falla(self, tmp_path):
         (tmp_path / "a").mkdir()
         (tmp_path / "b").mkdir()
@@ -1171,6 +1185,18 @@ def test_fecha_sin_hora_usa_el_fin_del_dia_en_el_cierre(tmp_path):
             {},
             "OPCIONES_INVALIDAS",
             "ninguna opción",
+        ),
+        (  # Markdown hace de «*» y «+» una lista vacía: la opción llegaría en blanco
+            PREGUNTA_MULTIPLE.replace('{texto: "5"}', '{texto: "*"}'),
+            {},
+            "MARKDOWN_SIN_TEXTO",
+            "opción 2",
+        ),
+        (
+            PREGUNTA_MULTIPLE.replace('{texto: "5"}', '{texto: "5", retro: "+"}'),
+            {},
+            "MARKDOWN_SIN_TEXTO",
+            "opción 2",
         ),
         (
             "- tipo: verdadero_falso\n  enunciado: x\n  respuesta: quizá\n",
