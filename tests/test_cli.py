@@ -498,6 +498,13 @@ class TestInstalarSkill:
         cli.instalar_skill(tmp_path)
         assert ajeno.read_text(encoding="utf-8") == "no tocar"
 
+    def test_instalar_skill_copia_ejemplos(self, tmp_path):
+        cli.instalar_skill(tmp_path)
+        carpeta = tmp_path / ".claude/skills/tiza"
+        assert (carpeta / "ejemplos/unidad/2-que-es-una-fraccion.html").is_file()
+        lineas = (carpeta / ".tiza-instalado").read_text(encoding="utf-8").splitlines()
+        assert "ejemplos/unidad/2-que-es-una-fraccion.html" in lineas
+
 
 def informe_ok(*, comando="publicar", entorno="pruebas", curso=1234) -> dict:
     return informe.crear(comando, "ok", [informe.Paso("LOGIN")], entorno=entorno, curso=curso)

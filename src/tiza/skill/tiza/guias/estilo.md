@@ -517,8 +517,9 @@ borres el contenedor, la tabla de calificación, «Qué entregas», «Antes de e
 comprueba» ni el ejemplo resuelto. tiza no fija los tipos de entrega de la tarea: pregunta
 al docente si tiene activadas las formas que ofreces (`guias/dua.md`).
 
-`ejemplos/tarea-con-estilo.html` del repositorio de tiza muestra la tarea entera rellena.
-`ejemplos/pagina-con-estilo.html` muestra una página de contenido con estos bloques.
+`ejemplos/tarea-con-estilo.html` de esta skill muestra la tarea entera rellena.
+`ejemplos/pagina-con-estilo.html` de esta skill muestra una página de contenido con estos
+bloques.
 
 ## 7. Repaso antes de `tiza comprobar`
 

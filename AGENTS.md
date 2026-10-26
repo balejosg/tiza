@@ -310,6 +310,10 @@ en español.
   cookies viajan por la salida estándar del hijo: nunca por disco, argumentos ni entorno.
   La acreditación (`publicar.Contrasena` o `publicar.Cookies`) entra por
   `Presencia.acreditar`, y `publicar.autenticar_con` elige el login.
+- `src/tiza/skill/tiza/`: la skill que `cli.instalar_skill` copia a los agentes. `ejemplos/` es
+  una copia de texto (`.md`, `.html` y `.txt`) de `ejemplos/` de la raíz, sin las imágenes ni los
+  ejemplos que no enseña la skill; `test_skill.test_los_ejemplos_de_la_skill_son_los_del_repositorio`
+  exige que las dos copias coincidan.
 - Estado de trabajo en `.tiza/` (`informe.json`, `estructura.json`,
   `verificados.json`, `publicados.json`, `publicados/`, `preview/`, `buzon/`): los nombres y formatos de lo que
   no es buzón viven en `estado.py`. `.tiza/`, `planes/` y `dist/` están

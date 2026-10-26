@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from tiza.calificacion.esquema import cargar_esquema
@@ -326,3 +327,78 @@ def test_guia_dua_es_breve_y_dice_lo_que_tiza_no_hace():
         "diseño universal",  # lo que se busca con tiza normativa
     ):
         assert parte in texto, parte
+
+
+RAIZ = SKILL.parents[4]
+EJEMPLOS_SKILL = SKILL.parent / "ejemplos"
+
+# Los ejemplos que viajan con la skill (D3): los demás del repositorio se quedan fuera.
+EJEMPLOS_QUE_VIAJAN = (
+    "unidad/1-presentacion.html",
+    "unidad/2-que-es-una-fraccion.html",
+    "unidad/3-comparar-fracciones.html",
+    "unidad/4-practica.md",
+    "unidad/5-comprobacion.md",
+    "unidad/6-reparto-final.html",
+    "pagina-con-estilo.html",
+    "tarea-con-estilo.html",
+    "etiqueta.md",
+    "cuestionario.md",
+    "h5p-huecos.md",
+    "h5p-tarjetas.md",
+    "formulas.md",
+)
+
+# El ejemplo del calificador con criterios no viaja: lo incrusta su guía.
+EJEMPLOS_QUE_NO_SE_CITAN = {"calificacion-criterios.yaml"}
+
+CITA_DE_EJEMPLO = re.compile(r"`ejemplos/([^`]+?)/?`")
+
+
+def _md_de_la_skill() -> list[Path]:
+    """La skill y sus guías: los ficheros que hablan con el agente."""
+    return [SKILL, *sorted((SKILL.parent / "guias").glob("*.md"))]
+
+
+def test_los_ejemplos_de_la_skill_son_los_del_repositorio():
+    for fichero in sorted(EJEMPLOS_SKILL.rglob("*")):
+        if not fichero.is_file():
+            continue
+        relativa = fichero.relative_to(EJEMPLOS_SKILL)
+        original = RAIZ / "ejemplos" / relativa
+        assert original.is_file(), f"la skill trae {relativa} y el repositorio no"
+        assert fichero.read_text(encoding="utf-8") == original.read_text(encoding="utf-8"), (
+            f"{relativa} no coincide con ejemplos/ del repositorio"
+        )
+    for relativa in EJEMPLOS_QUE_VIAJAN:
+        assert (EJEMPLOS_SKILL / relativa).is_file(), f"falta {relativa}"
+
+
+def test_la_skill_solo_trae_texto():
+    for fichero in sorted(SKILL.parent.rglob("*")):
+        if not fichero.is_file():
+            continue
+        assert fichero.suffix in {".md", ".html", ".txt"}, f"la skill trae {fichero.name}"
+        fichero.read_text(encoding="utf-8")  # lanza UnicodeDecodeError si no es texto
+
+
+def test_lo_que_cita_la_skill_de_ejemplos_existe():
+    for fichero in _md_de_la_skill():
+        for relativa in CITA_DE_EJEMPLO.findall(fichero.read_text(encoding="utf-8")):
+            if relativa in EJEMPLOS_QUE_NO_SE_CITAN:
+                continue
+            assert (EJEMPLOS_SKILL / relativa).exists(), f"{fichero.name} cita {relativa}"
+
+
+def test_la_skill_no_remite_al_repositorio():
+    for fichero in _md_de_la_skill():
+        assert "del repositorio de tiza" not in fichero.read_text(encoding="utf-8"), (
+            f"{fichero.name} remite al repositorio"
+        )
+
+
+def test_la_skill_avisa_de_que_las_imagenes_de_los_ejemplos_no_vienen():
+    texto = SKILL.read_text(encoding="utf-8")
+    paso = texto.split("2. **Escribe el contenido**", 1)[1].split("\n3. ", 1)[0]
+    assert "ejemplos/" in paso
+    assert "imágenes" in paso
