@@ -13,9 +13,10 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from markdown_it import MarkdownIt
 
 from dobles import estructura_de
-from tiza import contenido, estado, tipos
+from tiza import contenido, estado, filtro, tipos
 from tiza.contenido import Documento, Origen
 from tiza.publicar import ErrorPublicacion
 from tiza.vigilancia import (
@@ -311,6 +312,36 @@ def test_formulario_igual_a_lo_enviado_no_es_retoque(tmp_path):
     leido = _form(doc)
     assert _huella(doc, leido) != "a" * 64
     assert _vigilancia(Aula({501: leido}), carpeta, [doc]).retoques(_estructura(), [doc]) == ()
+
+
+def test_un_md_publicado_con_la_conversion_anterior_no_es_retoque(tmp_path):
+    """La base es la huella del aula; que cambie la conversión de tiza no es un retoque."""
+    carpeta = tmp_path.resolve()
+    cuerpo = "## Apartado\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n```java\nint x = 1;\n```\n"
+    ruta = carpeta / "A.md"
+    ruta.write_text(f"---\ntipo: pagina\nnombre: A\nseccion: 3\n---\n\n{cuerpo}", encoding="utf-8")
+    doc = contenido.cargar(ruta)
+    # Lo que publicó y registró la versión anterior: el Markdown sin las reglas de maqueta.
+    viejo = filtro.serializar(
+        filtro.analizar(
+            MarkdownIt("commonmark", {"html": True}).enable("table").render(cuerpo)
+        ).cuerpo
+    )
+    nuevo = contenido.html_para_moodle(doc)
+    assert nuevo != viejo  # la conversión nueva sí cambia el HTML que se enviaría
+    leido = _form(doc, texto=viejo)
+    estado.guardar_publicado(
+        carpeta / ".tiza",
+        5678,
+        "A.md",
+        estado.Publicado(501, "pagina", huella=_huella(doc, leido)),
+    )
+    doc = contenido.cargar(ruta, raiz=carpeta)
+    vigilancia = _vigilancia(Aula({501: leido}), carpeta, [doc])
+    assert vigilancia.retoques(_estructura(), [doc]) == ()
+    assert vigilancia.estado_por_documento(_estructura(), [doc])[0].estado is (
+        EstadoDeCambios.SIN_CAMBIOS
+    )
 
 
 def test_con_solo_fechas_las_fechas_ya_puestas_no_son_retoque(tmp_path):
