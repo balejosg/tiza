@@ -6,7 +6,13 @@ completos en [`ejemplos/`](../ejemplos/).
 
 Frontmatter YAML + Markdown (`.md`) o HTML (`.html`). En un `.md` la sangría no
 crea bloques de código (el código va entre ```), así que el HTML sangrado se
-publica como HTML. Los recursos locales se suben solos:
+publica como HTML. Los recursos locales se suben solos.
+
+Al convertir un `.md`, tiza adapta los títulos al nombre de la actividad: el nivel más alto del
+documento pasa a `h3` y los demás bajan lo mismo, con tope en `h6`; así, `## Repaso` se publica
+como `h3` y `### Ejercicio` como `h4`. Las tablas salen con `table table-striped` dentro de un
+`div` con `table-responsive`, y los bloques de código, en un recuadro con fondo, borde e
+interlineado holgado. Un `.html` no se toca: se publica tal como pasa el filtro.
 
 ```markdown
 ---

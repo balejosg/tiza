@@ -1,16 +1,19 @@
-# Guía: estilo de las páginas y las etiquetas
+# Guía: estilo de las páginas y las tareas
 
-Se usa antes de escribir una página o una etiqueta. Léela entera y escribe en `.html`.
-El resultado debe verse cuidado, igual en todas las páginas del curso y bien en el tema
-del aula, sin imitar ninguna marca.
+Se usa antes de escribir una página, una tarea o una etiqueta. Léela entera y escribe en
+`.html`. El resultado debe verse cuidado, igual en todas las páginas del curso y bien en el
+tema del aula, sin imitar ninguna marca.
 
 ## 1. Cuándo se usa
 
 - Páginas y etiquetas: `.html` por defecto.
-- Descripción de una tarea: `.html` solo si es larga. Si es corta, `.md`.
+- Descripción de una tarea: `.html` si tiene **más de un párrafo, una lista o una tabla**.
+  Si es una sola frase o un párrafo corto, `.md`.
 - Cuestionarios y H5P: siguen en `.md`.
 - Usa `.md` solo si el docente lo pide («prefiero editarlo yo en Markdown») o el texto es
   muy breve.
+- Si vas a escribir una página o una tarea en `.html`, copia la plantilla de la sección 6
+  y rellénala. No compongas la página bloque a bloque.
 
 Un `.html` lleva el mismo bloque YAML (`---`) arriba que un `.md`. Después de ese bloque no
 se interpreta Markdown: ni `**negrita**`, ni `#`, ni `-` de lista. Las fórmulas LaTeX se
@@ -18,9 +21,12 @@ escriben igual, con `\( … \)` y `\[ … \]`.
 
 ## 2. Principios
 
+- **La anchura de lectura la pone el contenedor.** Toda página y toda descripción de tarea
+  en `.html` va dentro de `<div style="max-width:52rem">`, alineada a la izquierda. Las
+  etiquetas no lo llevan: se ven dentro de la página del curso.
 - **El color lo pone el tema del aula.** Usa clases semánticas: `alert-info`, `alert-warning`,
-  `alert-success`, `card` con `border-primary`, `text-primary`, `bg-light`,
-  `badge badge-primary`. Así la página sigue el tema de cada aula.
+  `alert-success`, `card` con `border-primary`, `text-primary`, `bg-light`. Así la página
+  sigue el tema de cada aula.
 - **El `style` en línea es para medidas**: márgenes, radios, rejilla, anchura máxima. Como
   mucho, un acento. Nunca fijes colores de texto sobre fondos inventados ni colores de marca.
 - **Solo clases que existen en el aula** (Moodle 4.5 usa Bootstrap 4.6.2). Algunas del
@@ -43,12 +49,16 @@ escriben igual, con `\( … \)` y `\[ … \]`.
 - **Un catálogo cerrado de bloques** (sección 5), siempre los mismos. Así las páginas de un
   curso se parecen entre sí. No inventes bloques nuevos.
 - **Una idea por bloque.** Nada de decorar por decorar: como mucho un acento visual por bloque.
+- **Si el concepto es visual** (un diagrama, un esquema, un montaje), no lo describas con una
+  tabla ni con un párrafo interminable: pide la imagen al docente o deja un hueco marcado
+  (`[RELLENA: imagen de …]`) y avísale. Las imágenes van con `alt` y `img-fluid`.
 
 ## 3. Accesibilidad
 
-- Títulos desde `h3`: el aula ya pone el `h2` con el nombre de la actividad. No saltes
-  niveles (`h3`, luego `h4`; nunca `h3` y luego `h5`). Una página empieza por la cabecera
-  (`h3`); los títulos de los bloques del catálogo (`alert`, `card`) son `h4`.
+- Títulos desde `h3`: el aula ya pone el `h2` con el nombre de la actividad. No repitas ese
+  nombre en un `h3` ni pongas un `badge` con la sesión. Una página empieza por un `p.lead`
+  y el bloque «Qué vas a aprender»; los apartados son `h3` y los títulos de los bloques,
+  `h4`. No saltes niveles (`h3`, luego `h4`; nunca `h3` y luego `h5`).
 - Contraste suficiente (AA): no pongas colores propios al texto; deja los del tema.
 - El color nunca es el único significado. El bloque «Importante» lleva la palabra
   «Importante», no solo el amarillo.
@@ -80,17 +90,12 @@ Font Awesome 6 está cargado en el aula. Reglas:
 
 ### Cabecera
 
-Título (`h3`), después un `badge` con la sesión, si ayuda, y el subtítulo.
+Sin `h3` que repita el nombre de la actividad y sin `badge`. Empieza con una frase de
+contexto y el bloque «Qué vas a aprender».
 
 ```html
-<h3>Las fracciones</h3>
-<p><span class="badge badge-primary">Sesión 1</span></p>
-<p class="lead">Qué son, cómo se comparan y para qué sirven.</p>
-```
+<p class="lead">Qué son las fracciones, cómo se comparan y para qué sirven.</p>
 
-### Qué vas a aprender
-
-```html
 <div class="alert alert-info">
   <h4><i class="fa-solid fa-fw fa-bullseye" aria-hidden="true"></i> Qué vas a aprender</h4>
   <ul class="mb-0">
@@ -158,6 +163,24 @@ El enunciado se ve; la solución va plegada.
 </div>
 ```
 
+### Código
+
+Título corto opcional (`h4`), el bloque de código y una frase que diga qué hace. El `pre`
+lleva siempre estas clases y este estilo; el `code` conserva su `language-*`.
+
+Regla del `<code>` en línea: solo lo que el alumno teclea (`print`, `int`, un nombre de
+fichero). Nunca en títulos, en la primera columna de una tabla ni para nombrar un concepto:
+«la clase String», no `String`.
+
+```html
+<h4>Código: sumar los números del 1 al 10</h4>
+<p>Este bucle recorre los números y acumula el total en una variable.</p>
+<pre class="bg-light border rounded p-3" style="line-height:1.5;font-size:0.9rem"><code class="language-java">int total = 0;
+for (int i = 1; i != 11; i++) {
+    total += i;
+}</code></pre>
+```
+
 ### Actividad o tarea
 
 Un botón-enlace. `btn` solo vale en `<a>`.
@@ -186,7 +209,8 @@ Lista de enlaces con texto descriptivo.
 
 ### Tarjetas en dos columnas
 
-`mb-3` en cada columna, para que en el móvil no se peguen.
+`mb-3` en cada columna, para que en el móvil no se peguen. Como mucho dos columnas
+(`col-md-6`).
 
 ```html
 <div class="row">
@@ -241,14 +265,15 @@ Lista de enlaces con texto descriptivo.
 
 ### Qué bloques lleva cada cosa
 
-- **Página de presentación**: cabecera, «Qué vas a aprender», explicación breve, tarjetas
-  con las partes de la unidad y «Para saber más».
-- **Página de contenido**: cabecera corta, explicación, ejemplo resuelto, «Recuerda» o
-  «Importante», actividad y cierre. Añade tabla o tarjetas solo si el contenido lo pide.
+- **Página de presentación**: contenedor, `lead`, «Qué vas a aprender», explicación breve,
+  tarjetas con las partes de la unidad y «Para saber más».
+- **Página de contenido**: contenedor, `lead`, «Qué vas a aprender», los apartados (`h3`),
+  un ejemplo o un «Recuerda», «Resumen» y «Actividad». Añade tabla, código o tarjetas solo
+  si el contenido lo pide.
 - **Etiqueta**: se ve en la portada del curso. Corta: uno o dos bloques (un `alert` con un
-  aviso, o un título y un párrafo). Sin cabecera grande ni `h3` de página. El título va en
-  `<strong>` dentro del `alert` (la portada del curso ya pone la sección como `h3`); sin
-  `h3` ni `h4`:
+  aviso, o un título y un párrafo). Sin contenedor, sin cabecera grande ni `h3` de página.
+  El título va en `<strong>` dentro del `alert` (la portada del curso ya pone la sección como
+  `h3`); sin `h3` ni `h4`:
 
   ```html
   <div class="alert alert-info">
@@ -256,26 +281,214 @@ Lista de enlaces con texto descriptivo.
     <p class="mb-0">Empezamos con un repaso de fracciones.</p>
   </div>
   ```
+- **Tarea**: siempre en `.html` si tiene más de un párrafo, una lista o una tabla. Lleva
+  contexto en un `lead`, «Qué tienes que hacer» con los ejercicios en `h4`, «Qué entregas»
+  en un `card` con `fa-download`, «Cómo se califica» con una tabla y «Normas» en un
+  `alert-warning` solo si las hay. Sin fechas en el texto: las pone Moodle.
 
-## 6. Plantilla completa
+## 6. Plantillas para copiar y rellenar
 
-`ejemplos/pagina-con-estilo.html` del repositorio de tiza muestra una página entera con
-estos bloques. Ábrela si dudas de cómo se combinan y copia su estructura.
+Copia la plantilla entera, rellena los huecos `[RELLENA: …]` y borra solo los bloques
+marcados como opcionales. No cambies las clases ni añadas bloques nuevos.
+
+Límites que se pueden contar:
+
+- Una página de contenido tiene como mucho **600 palabras y 6 apartados `h3`**. Si pasa,
+  pártela en dos páginas y propónselo al docente antes de publicar.
+- Como mucho **dos columnas** (`col-md-6`).
+- Toda página de contenido termina con «Resumen» y un bloque «Actividad» que lleva a lo
+  siguiente.
+- Sin fechas en el texto: las pone Moodle.
+
+Todas llevan encima el bloque YAML de siempre, con `tipo`, `nombre` y `seccion`:
+
+```yaml
+---
+tipo: pagina
+nombre: "[RELLENA: nombre de la actividad]"
+seccion: "[RELLENA: nombre de la sección]"
+---
+```
+
+### Página de presentación
+
+```html
+<div style="max-width:52rem">
+  <p class="lead">[RELLENA: una frase que diga qué es esta unidad y para qué sirve.]</p>
+
+  <div class="alert alert-info">
+    <h4><i class="fa-solid fa-fw fa-bullseye" aria-hidden="true"></i> Qué vas a aprender</h4>
+    <ul class="mb-0">
+      <li>[RELLENA: objetivo 1.]</li>
+      <li>[RELLENA: objetivo 2.]</li>
+    </ul>
+  </div>
+
+  <h3>[RELLENA: título del primer apartado]</h3>
+  <p>[RELLENA: explicación breve, sin repetir la lista de objetivos.]</p>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <h4 class="card-title">[RELLENA: parte de la unidad]</h4>
+          <p class="card-text">[RELLENA: qué se trabaja en esta parte.]</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <h4 class="card-title">[RELLENA: otra parte de la unidad]</h4>
+          <p class="card-text">[RELLENA: qué se trabaja en esta parte.]</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h4><i class="fa-solid fa-fw fa-book-open" aria-hidden="true"></i> Para saber más</h4>
+  <ul>
+    <li><a href="[RELLENA: dirección]">[RELLENA: qué encontrará el alumnado]</a></li>
+  </ul>
+</div>
+```
+
+### Página de contenido
+
+```html
+<div style="max-width:52rem">
+  <p class="lead">[RELLENA: una frase de contexto: qué se aprende y para qué sirve.]</p>
+
+  <div class="alert alert-info">
+    <h4><i class="fa-solid fa-fw fa-bullseye" aria-hidden="true"></i> Qué vas a aprender</h4>
+    <ul class="mb-0">
+      <li>[RELLENA: objetivo 1.]</li>
+      <li>[RELLENA: objetivo 2.]</li>
+    </ul>
+  </div>
+
+  <h3>[RELLENA: apartado 1]</h3>
+  <p>[RELLENA: explicación.]</p>
+
+  <h3>[RELLENA: apartado 2]</h3>
+  <p>[RELLENA: explicación.]</p>
+
+  <div class="card bg-light mb-3">
+    <div class="card-body">
+      <h4 class="card-title">Ejemplo</h4>
+      <p class="card-text">[RELLENA: enunciado del ejemplo.]</p>
+      <details>
+        <summary>Ver la solución</summary>
+        <p class="mt-2 mb-0">[RELLENA: solución paso a paso.]</p>
+      </details>
+    </div>
+  </div>
+
+  <div class="alert alert-success">
+    <h4><i class="fa-solid fa-fw fa-lightbulb" aria-hidden="true"></i> Resumen</h4>
+    <ul class="mb-0">
+      <li>[RELLENA: idea que hay que recordar.]</li>
+      <li>[RELLENA: otra idea que hay que recordar.]</li>
+    </ul>
+  </div>
+
+  <div class="card border-primary mb-3">
+    <div class="card-body">
+      <h4 class="card-title"><i class="fa-solid fa-fw fa-pen" aria-hidden="true"></i> Actividad</h4>
+      <p class="card-text">[RELLENA: qué tiene que hacer el alumnado ahora.]</p>
+      <a class="btn btn-primary" href="[RELLENA: dirección de la actividad]">[RELLENA: texto del botón]</a>
+    </div>
+  </div>
+</div>
+```
+
+Si el contenido pide código, añade un bloque «Código» (sección 5). Si pide una imagen,
+déjala con `alt` y `img-fluid`; si no la tienes, deja el hueco marcado y avisa al docente.
+
+### Tarea
+
+```yaml
+---
+tipo: tarea
+nombre: "[RELLENA: nombre de la tarea]"
+seccion: "[RELLENA: nombre de la sección]"
+apertura: 2026-11-03   # [RELLENA: fecha de apertura]
+entrega: 2026-11-10    # [RELLENA: fecha de entrega]
+limite: 2026-11-13     # [RELLENA: fecha límite; opcional]
+---
+```
+
+```html
+<div style="max-width:52rem">
+  <p class="lead">[RELLENA: contexto en una frase: qué van a practicar y para qué.]</p>
+
+  <h3>Qué tienes que hacer</h3>
+  <h4>Ejercicio 1. [RELLENA: título corto]</h4>
+  <p>[RELLENA: enunciado del ejercicio.]</p>
+  <h4>Ejercicio 2. [RELLENA: título corto]</h4>
+  <ul>
+    <li>[RELLENA: apartado del ejercicio.]</li>
+    <li>[RELLENA: apartado del ejercicio.]</li>
+  </ul>
+
+  <div class="card border-primary mb-3">
+    <div class="card-body">
+      <h4 class="card-title"><i class="fa-solid fa-fw fa-download" aria-hidden="true"></i> Qué entregas</h4>
+      <ul class="mb-0">
+        <li>[RELLENA: fichero, foto o texto que hay que entregar.]</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Cómo se califica</h3>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr><th scope="col">Criterio</th><th scope="col">Puntos</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>[RELLENA: criterio]</td><td>[RELLENA: puntos]</td></tr>
+        <tr><td>[RELLENA: criterio]</td><td>[RELLENA: puntos]</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="alert alert-warning">
+    <h4><i class="fa-solid fa-fw fa-triangle-exclamation" aria-hidden="true"></i> Normas</h4>
+    <ul class="mb-0">
+      <li>[RELLENA: plazo, penalización o copia.]</li>
+    </ul>
+  </div>
+</div>
+```
+
+El bloque «Normas» y los ejercicios que no necesites son opcionales: bórralos enteros. No
+borres el contenedor, la tabla de calificación ni «Qué entregas».
+
+`ejemplos/tarea-con-estilo.html` del repositorio de tiza muestra la tarea entera rellena.
+`ejemplos/pagina-con-estilo.html` muestra una página de contenido con estos bloques.
 
 ## 7. Repaso antes de `tiza comprobar`
 
 Revisa tu `.html`:
 
+- ¿Hay algún `h2`?
+- ¿Alguna `<table>` sin `class="table table-striped"` o sin `table-responsive`?
+- ¿Algún `<pre>` sin el bloque «Código» (`bg-light border rounded p-3` y
+  `style="line-height:1.5;font-size:0.9rem"`)?
+- ¿Falta el contenedor `<div style="max-width:52rem">`?
+- ¿Pasa de 600 palabras?
 - ¿Solo clases de este catálogo y ninguna de Bootstrap 5 (`fw-*`, `fst-*`, `gap-*`…)?
-- ¿Títulos desde `h3`, sin saltos de nivel?
+- ¿Títulos desde `h3`, sin saltos de nivel y sin repetir el nombre de la actividad?
 - ¿`alt` en todas las imágenes?
 - ¿Iconos con `aria-hidden="true"` y con texto al lado?
 - ¿Colores solo por clase y `style` solo para medidas?
 - ¿Sin anchos fijos en píxeles?
 - ¿Solo bloques del catálogo?
 
-Después ejecuta `tiza comprobar <fichero>.html`. Si da `HTML_PELIGROSO`, corrige lo que
-diga y repite: tiza no limpia nada en silencio.
+Si la respuesta es sí a cualquiera de las cinco primeras, no lo retoques: rehazlo con la
+plantilla. Después ejecuta `tiza comprobar <fichero>.html`. Si da `HTML_PELIGROSO`, corrige
+lo que diga y repite: tiza no limpia nada en silencio.
 
 ## 8. Si el aula limpia los estilos
 

@@ -574,6 +574,46 @@ class TestEjemplosDelRepo:
         for marca in ("alert alert-info", "card", "<details", "fa-solid"):
             assert marca in doc.html, f"la plantilla debería llevar «{marca}»"
 
+    def test_la_plantilla_de_tarea_con_estilo_pasa_el_filtro(self):
+        doc = cargar(RAIZ_REPO / "ejemplos" / "tarea-con-estilo.html")
+        assert doc.tipo == "tarea"
+        arbol = BeautifulSoup(doc.html, "html.parser")
+        assert arbol.find("div", style=re.compile(r"max-width:\s*52rem")) is not None
+        assert arbol.find("i", class_="fa-download") is not None
+        assert arbol.find("table", class_="table-striped") is not None
+        assert arbol.find("div", class_="alert-warning") is not None
+        assert arbol.find("h2") is None
+
+    def test_los_ejemplos_de_pagina_y_tarea_siguen_la_maqueta(self):
+        ficheros = [
+            *sorted((RAIZ_REPO / "ejemplos").glob("*.html")),
+            *sorted((RAIZ_REPO / "ejemplos" / "unidad").glob("*.html")),
+        ]
+        revisados = set()
+        for fichero in ficheros:
+            doc = cargar(fichero)
+            if doc.tipo not in {"pagina", "tarea"}:
+                continue  # una etiqueta no lleva contenedor
+            revisados.add(fichero.name)
+            arbol = BeautifulSoup(doc.html, "html.parser")
+            assert arbol.find("h2") is None, f"{fichero.name}: no puede haber h2"
+            assert arbol.find("div", style=re.compile(r"max-width:\s*52rem")) is not None, (
+                f"{fichero.name}: falta el contenedor de anchura"
+            )
+            for tabla in arbol.find_all("table"):
+                assert "table-striped" in (tabla.get("class") or []), (
+                    f"{fichero.name}: una tabla no lleva table-striped"
+                )
+            for pre in arbol.find_all("pre"):
+                clases = set(pre.get("class") or [])
+                assert {"bg-light", "border", "rounded", "p-3"} <= clases, (
+                    f"{fichero.name}: un pre no lleva el bloque «Código»"
+                )
+                assert "line-height" in (pre.get("style") or ""), (
+                    f"{fichero.name}: un pre no lleva el interlineado del bloque «Código»"
+                )
+        assert {"pagina-con-estilo.html", "maquetado.html", "tarea-con-estilo.html"} <= revisados
+
     def test_los_fragmentos_de_la_guia_de_estilo_pasan_el_filtro(self):
         fragmentos = bloques_html(RAIZ_SKILL / "guias" / "estilo.md")
         assert len(fragmentos) >= 5, "la guía de estilo debería tener al menos 5 fragmentos html"

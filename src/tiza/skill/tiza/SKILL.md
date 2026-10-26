@@ -28,7 +28,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
 1. **Lee la estructura**: abre `.tiza/estructura.json` en la carpeta de la asignatura. Contiene las secciones (número y nombre) de los cursos configurados: `pruebas` (un objeto; puede faltar) y `real` (una **lista** con un objeto por curso real, en el orden de `tiza.toml`; versión 1 del fichero: un solo objeto). Si no existe, ejecuta `tiza estructura` cuando haya sesión abierta; si no la hay, pide al docente que la abra. `tiza empezar` ya deja `.tiza/estructura.json` escrita (si la lectura de la estructura tuvo éxito).
 
-2. **Escribe el contenido**: uno o más ficheros en esa carpeta, con este formato. Las páginas y las etiquetas se escriben en `.html` por defecto: antes de escribir una página o una etiqueta, carga `guias/estilo.md` y síguela. La descripción de una tarea va en `.html` solo si es larga. Cuestionarios y H5P siguen en `.md`, y el `.md` queda para cuando el docente lo pida o el texto sea muy breve.
+2. **Escribe el contenido**: uno o más ficheros en esa carpeta, con este formato. Las páginas y las etiquetas se escriben en `.html` por defecto: antes de escribir una página o una etiqueta, carga `guias/estilo.md` y síguela. La descripción de una tarea con más de un párrafo, una lista o una tabla va en `.html` con la plantilla de tareas de `guias/estilo.md`; si es una frase o un párrafo corto, va en `.md`. Cuestionarios y H5P siguen en `.md`, y el `.md` queda para cuando el docente lo pida o el texto sea muy breve.
 
    <!-- formato:inicio -->
    Elige el tipo antes de escribir, según lo que pida el docente:
@@ -53,12 +53,22 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    seccion: 3
    ---
 
-   <h3>Repaso</h3>
+   <div style="max-width:52rem">
+   <p class="lead">Repaso de fracciones: practica y comprueba lo que sabes.</p>
+
+   <div class="alert alert-info">
+     <h4><i class="fa-solid fa-fw fa-bullseye" aria-hidden="true"></i> Qué vas a aprender</h4>
+     <ul class="mb-0">
+       <li>Reconocer una fracción en una situación real.</li>
+     </ul>
+   </div>
+
    <p>Practica con <strong>fracciones</strong>: <a href="apuntes.pdf">apuntes</a>.</p>
    <p><img src="img/foto.png" alt="Tarta dividida en cuartos" class="img-fluid"></p>
-   <div class="alert alert-info">
+   <div class="alert alert-success">
      <h4><i class="fa-solid fa-fw fa-lightbulb" aria-hidden="true"></i> Recuerda</h4>
      <p class="mb-0">Una fracción reparte un todo en partes iguales.</p>
+   </div>
    </div>
    ```
 
