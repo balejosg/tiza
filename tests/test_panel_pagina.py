@@ -216,6 +216,7 @@ def test_el_registro_se_pliega_mientras_hay_pregunta(sin_csp):
     assert '"Ocultar registro"' in sin_csp
     assert "pintarPlegado(estado.pregunta === true)" in sin_csp
     assert "if (abajo) { ul.scrollTop = ul.scrollHeight; }" in sin_csp
+    assert "if (estabaPlegado && !registroPlegado) { ul.scrollTop = ul.scrollHeight; }" in sin_csp
 
 
 def test_la_ampliacion_cuenta_atras_desde_el_plazo(sin_csp):
@@ -238,6 +239,7 @@ def test_el_registro_lleva_hora_y_se_puede_copiar(sin_csp):
     assert "navigator.clipboard.writeText(texto)" in sin_csp
     assert "Copiar el registro" in sin_csp and '"Copiado"' in sin_csp
     assert 'id="copiar-registro" hidden' in sin_csp
+    assert "copiar.hidden = true;  // si el portapapeles no vale" in sin_csp
 
 
 def test_la_pantalla_final_ofrece_volver_a_empezar(sin_csp):

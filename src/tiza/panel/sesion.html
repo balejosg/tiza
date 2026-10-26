@@ -614,11 +614,14 @@ ul { margin: 8px 0; padding-left: 22px; }
   }
 
   function pintarPlegado(pregunta) {
+    var estabaPlegado = registroPlegado;
     if (pregunta !== ultimaPregunta) {
       registroPlegado = pregunta;
       ultimaPregunta = pregunta;
     }
-    document.getElementById("registro").hidden = registroPlegado;
+    var ul = document.getElementById("registro");
+    ul.hidden = registroPlegado;
+    if (estabaPlegado && !registroPlegado) { ul.scrollTop = ul.scrollHeight; }
     var boton = document.getElementById("ver-registro");
     boton.hidden = !pregunta;
     boton.textContent = registroPlegado
@@ -733,7 +736,9 @@ ul { margin: 8px 0; padding-left: 22px; }
       navigator.clipboard.writeText(texto).then(function () {
         copiar.textContent = "Copiado";
         setTimeout(function () { copiar.textContent = "Copiar el registro"; }, 1500);
-      }, function () {});
+      }, function () {
+        copiar.hidden = true;  // si el portapapeles no vale en esta ventana, no se enseña
+      });
     });
   }
 
