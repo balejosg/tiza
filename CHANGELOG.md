@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.35.0 — 2026-10-26
 
 ### Añadido
 - **Material y tests para toda la clase.** La skill trae una guía nueva que el agente sigue siempre: cada idea de más de una forma, glosario «Palabras de esta página», tareas con varias formas de entrega y los mismos criterios, preguntas que explican cada opción y nada pensado para un alumno concreto. Los ejemplos de la unidad la siguen.
