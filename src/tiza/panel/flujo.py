@@ -90,6 +90,7 @@ def ejecutar(
     Con una versión nueva el arranque ofrece actualizar: ``instalar`` lanza el actualizador,
     el panel deja una pantalla de reposo y se cierra para que el actualizador siga.
     """
+    panel.fijar_paso("carpeta")
     carpeta = panel.esperar_carpeta(recientes.leer())
     if carpeta is None:
         panel.reposo("Cancelado", ["No se ha elegido ninguna carpeta."])

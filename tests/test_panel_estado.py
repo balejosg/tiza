@@ -33,7 +33,7 @@ class Entorno:
 
     def __init__(self, abrir_login=None, abrir=None) -> None:
         self.reloj = Reloj()
-        self.panel = Panel(reloj=self.reloj)
+        self.panel = Panel(reloj=self.reloj, ahora=lambda: datetime(2030, 1, 1, 10, 30))
         self.presencia = PresenciaPanel(self.panel, abrir_login=abrir_login, reloj=self.reloj)
         self.abiertas: list[str] = []
         self.puente = Puente(self.panel, abrir=abrir or self.abiertas.append)
@@ -149,6 +149,7 @@ def test_el_puente_no_expone_atributos_publicos_que_sean_objetos(entorno):
         "buscar_carpeta",
         "elegir_reciente",
         "estado",
+        "quitar_reciente",
         "responder",
         "terminar",
         "ver_vista_previa",
@@ -467,13 +468,15 @@ def test_confirmar_aislamiento_con_cambios(entorno):
     entorno.responder(p, False)
     assert leer() is False
     registro = entorno.puente.estado()["registro"]
-    assert {"texto": "No se ha cambiado nada.", "error": True} in registro
+    assert {"texto": "No se ha cambiado nada.", "error": True, "hora": "10:30"} in registro
 
 
 def test_confirmar_aislamiento_sin_ficheros_no_pregunta(entorno):
     resumen = publicacion.ResumenAislamiento(ficheros=(), manuales=("Solo a mano.",))
     assert entorno.presencia.confirmar_aislamiento(resumen) is True
-    assert entorno.puente.estado()["registro"] == [{"texto": "Solo a mano.", "error": False}]
+    assert entorno.puente.estado()["registro"] == [
+        {"texto": "Solo a mano.", "error": False, "hora": "10:30"}
+    ]
 
 
 def test_elegir_curso_por_indice_y_sin_curso(entorno):
@@ -820,7 +823,11 @@ def test_el_registro_tiene_limite_y_marca_los_errores(entorno):
         entorno.panel.anotar(f"línea {i}", error=i % 2 == 0)
     registro = entorno.puente.estado()["registro"]
     assert len(registro) == pe.MAX_REGISTRO
-    assert registro[-1] == {"texto": f"línea {pe.MAX_REGISTRO + 24}", "error": True}
+    assert registro[-1] == {
+        "texto": f"línea {pe.MAX_REGISTRO + 24}",
+        "error": True,
+        "hora": "10:30",
+    }
     assert registro[0]["texto"] == "línea 25"
 
 
@@ -946,6 +953,49 @@ def test_una_reciente_que_ya_no_existe_no_se_elige(entorno, carpetas):
     assert entorno.puente.elegir_reciente(p["numero"], 0) is False
     assert entorno.puente.elegir_reciente(p["numero"], 1) is True
     assert leer() == carpetas[1]
+
+
+def test_quitar_reciente_actualiza_la_pantalla_y_el_fichero(
+    entorno, carpetas, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "global")
+    for carpeta in carpetas:
+        recientes.anotar(carpeta)
+    leer = entorno.lanzar(entorno.panel.esperar_carpeta, recientes.leer())
+    p = entorno.pantalla(tipo="carpeta")
+    assert [o["texto"] for o in p["opciones"]] == [
+        "curso / fisica",
+        "curso / mates",
+        "curso / lengua",
+    ]
+    assert entorno.puente.quitar_reciente(p["numero"], 1) is False  # demasiado pronto
+    entorno.reloj.avanzar(2)
+    for malo in (-1, 3, None, True, "0"):
+        assert entorno.puente.quitar_reciente(p["numero"], malo) is False
+    assert entorno.puente.quitar_reciente(p["numero"] + 1, 1) is False
+    assert entorno.puente.quitar_reciente(p["numero"], 1) is True
+    estado = entorno.puente.estado()
+    assert estado["pantalla"]["tipo"] == "carpeta"
+    assert estado["pantalla"]["numero"] > p["numero"]
+    assert [o["texto"] for o in estado["pantalla"]["opciones"]] == [
+        "curso / fisica",
+        "curso / lengua",
+    ]
+    assert recientes.leer() == [carpetas[2], carpetas[0]]
+    # El índice de la pantalla nueva ya apunta a la carpeta que quedó en ese hueco.
+    entorno.reloj.avanzar(2)
+    assert entorno.puente.elegir_reciente(estado["pantalla"]["numero"], 1) is True
+    assert leer() == carpetas[0]
+
+
+def test_quitar_reciente_solo_en_la_pantalla_de_carpeta(entorno, carpetas, monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "directorio_global", lambda: tmp_path / "global")
+    leer = entorno.lanzar(entorno.presencia.confirmar_autoprueba)
+    p = entorno.pantalla()
+    entorno.reloj.avanzar(2)
+    assert entorno.puente.quitar_reciente(p["numero"], 0) is False
+    entorno.responder(p, False)
+    assert leer() is False
 
 
 def test_elegir_reciente_no_contesta_otras_pantallas(entorno):
@@ -1118,15 +1168,62 @@ def test_pregunta_pendiente_solo_mientras_se_espera(entorno):
 def test_el_estado_lleva_carpeta_servidor_y_si_la_sesion_esta_abierta(entorno):
     est = entorno.puente.estado()
     assert (est["carpeta"], est["servidor"], est["sesion_abierta"]) == ("", "", False)
+    assert (est["caduca"], est["paso"]) == ("", "")
     entorno.panel.fijar_carpeta("curso / mates\x1b[31m")
     entorno.panel.fijar_servidor("aula.ejemplo.org")
     est = entorno.puente.estado()
     assert est["carpeta"] == "curso / mates[31m" and est["servidor"] == "aula.ejemplo.org"
     json.dumps(est)
     entorno.presencia.informar(publicacion.Aviso.sesion_abierta(datetime(2030, 1, 1, tzinfo=UTC)))
-    assert entorno.puente.estado()["sesion_abierta"] is True
+    est = entorno.puente.estado()
+    assert est["sesion_abierta"] is True
+    assert est["caduca"] == "2030-01-01T00:00:00+00:00"
+    assert est["paso"] == "sesion"
+    entorno.presencia.informar(
+        publicacion.Aviso.sesion_abierta(datetime(2030, 1, 1, 1, 0, tzinfo=UTC))
+    )
+    assert entorno.puente.estado()["caduca"] == "2030-01-01T01:00:00+00:00"
     entorno.presencia.informar(publicacion.Aviso.sesion_cerrada("caducada"))
-    assert entorno.puente.estado()["sesion_abierta"] is False
+    est = entorno.puente.estado()
+    assert est["sesion_abierta"] is False and est["caduca"] == ""
+
+
+def test_fijar_caducidad_normaliza_a_utc_y_la_borra(entorno):
+    desde = datetime(2030, 1, 1, 12, 0)
+    entorno.panel.fijar_caducidad(desde)
+    assert entorno.puente.estado()["caduca"] == "2030-01-01T12:00:00+00:00"
+    entorno.panel.fijar_caducidad(None)
+    assert entorno.puente.estado()["caduca"] == ""
+
+
+def test_los_pasos_del_arranque_son_cerrados(entorno):
+    for paso in pe.PASOS_DE_ARRANQUE:
+        entorno.panel.fijar_paso(paso)
+        assert entorno.puente.estado()["paso"] == paso
+    with pytest.raises(ValueError):
+        entorno.panel.fijar_paso("inventado")
+    entorno.panel.fijar_paso("")
+    assert entorno.puente.estado()["paso"] == ""
+    entorno.panel.fijar_paso("sesion")
+    entorno.panel.reposo("Fin")
+    assert entorno.puente.estado()["paso"] == ""
+
+
+def test_nueva_vuelta_limpia_lo_de_la_anterior_y_separa_el_registro(entorno):
+    entorno.panel.fijar_carpeta("curso / mates")
+    entorno.panel.fijar_servidor("aula.ejemplo.org")
+    entorno.panel.fijar_caducidad(datetime(2030, 1, 1, tzinfo=UTC))
+    entorno.panel.fijar_paso("sesion")
+    entorno.panel.marcar_sesion(True)
+    entorno.panel.nueva_vuelta()
+    est = entorno.puente.estado()
+    assert (est["carpeta"], est["servidor"], est["caduca"], est["paso"]) == ("", "", "", "")
+    assert est["sesion_abierta"] is False
+    assert est["registro"][-1] == {
+        "texto": mensajes.SEPARADOR_NUEVA_SESION,
+        "error": False,
+        "hora": "10:30",
+    }
 
 
 def test_acreditar_fija_el_servidor_en_la_cabecera():

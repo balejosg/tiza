@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -42,7 +43,7 @@ class Escenario:
         self, *, preparar=None, abrir_sesion=None, revisar=None, presencia=None, abrir_login=None
     ) -> None:
         self.reloj = Reloj()
-        self.panel = Panel(reloj=self.reloj)
+        self.panel = Panel(reloj=self.reloj, ahora=lambda: datetime(2030, 1, 1, 10, 30))
         self.presencia = presencia or PresenciaPanel(
             self.panel, reloj=self.reloj, abrir_login=abrir_login
         )
@@ -164,7 +165,11 @@ def test_un_fallo_del_arranque_enseña_las_lineas_del_error(asignatura):
     assert final["titulo"] == "No se pudo abrir la sesión"
     assert final["lineas"][0] == "ERROR [URL_INVALIDA]: la url no vale"
     registro = e.panel.estado()["registro"]
-    assert registro[0] == {"texto": "ERROR [URL_INVALIDA]: la url no vale", "error": True}
+    assert registro[0] == {
+        "texto": "ERROR [URL_INVALIDA]: la url no vale",
+        "error": True,
+        "hora": "10:30",
+    }
 
 
 def test_abortado_por_falta_de_aislamiento_dice_que_falta(asignatura):

@@ -57,6 +57,7 @@ __all__ = [
     "PREGUNTA_SESION_ANTERIOR",
     "PREGUNTA_SIN_PRUEBAS",
     "AVISO_AJENO",
+    "SEPARADOR_NUEVA_SESION",
     "SESION_ANTERIOR_ATENDIENDO",
     "SESION_ANTERIOR_TEXTO",
     "DetalleCalificador",
@@ -747,6 +748,7 @@ def lineas_de_cursos(cursos: Sequence[CursoSesion]) -> tuple[str, ...]:
 NO_SE_ENTRO_TITULO = "No se entró en el aula"
 NO_SE_ENTRO_TEXTO = "La ventana de entrada se cerró o pasó el tiempo."
 NO_SE_ENTRO_QUE_HACER = "Vuelve a abrir tiza para intentarlo."
+SEPARADOR_NUEVA_SESION = "— Nueva sesión —"
 ACTUALIZANDO_TITULO = "Se está actualizando"
 ACTUALIZANDO_TEXTO = "Se está actualizando; el panel se abrirá solo en un minuto o dos."
 

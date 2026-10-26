@@ -37,11 +37,22 @@ header .confirmar-cierre { flex: 1 1 100%; display: flex; align-items: center; g
 header .confirmar-cierre[hidden] { display: none; }
 header .confirmar-cierre span { font-size: 13px; color: #E7DDD8; }
 header .confirmar-cierre .peligro { background: var(--peligro); border-color: var(--peligro); color: #fff; }
+header .insignia { display: flex; align-items: center; gap: 7px; margin: 6px 0 0; font-size: 12px; color: #D7F5D4; }
+header .insignia[hidden] { display: none; }
+header .insignia .punto { width: 8px; height: 8px; border-radius: 50%; background: #8FE38B; flex: none; }
+header .insignia.urgente { color: #FFD98A; }
+header .insignia.urgente .punto { background: #FFD98A; }
+header .pasos { flex: 1 1 100%; display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8E9AA1; }
+header .pasos[hidden] { display: none; }
+header .pasos .paso.hecho { color: #C8D2D8; }
+header .pasos .paso.activo { color: #FFFFFF; font-weight: 700; }
+header .pasos .separador { color: #5F6A70; }
 main { max-width: 820px; margin: 0 auto; padding: 24px 22px 34px; }
 .tarjeta { background: var(--papel); border: 1px solid var(--borde); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; box-shadow: 0 2px 3px rgba(46,49,52,.04), 0 12px 28px rgba(46,49,52,.05); }
 h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: .1px; }
 h2::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--coral); margin-right: 9px; vertical-align: 2px; }
-#ver-registro { font-size: 12px; padding: 4px 10px; margin-left: 8px; vertical-align: 1px; }
+#ver-registro, #copiar-registro { font-size: 12px; padding: 4px 10px; margin-left: 8px; vertical-align: 1px; }
+#copiar-registro { margin-left: 4px; }
 .acciones { position: sticky; bottom: 0; z-index: 2; margin: 16px -22px -20px; padding: 12px 22px 14px; background: var(--papel); border-top: 1px solid var(--borde); border-radius: 0 0 14px 14px; box-shadow: 0 -8px 16px rgba(46,49,52,.08); }
 .acciones p { margin: 0 0 10px; }
 .acciones .botones { margin-top: 0; }
@@ -50,7 +61,16 @@ p { margin: 7px 0; }
 .error { color: var(--peligro); }
 .aviso { color: var(--aviso); }
 label { display: block; font-weight: 600; margin: 14px 0 5px; }
-label.casilla { font-weight: 400; margin: 7px 0; }
+label.casilla { font-weight: 400; margin: 0; padding: 9px 12px; border: 1px solid var(--borde); border-radius: 8px; background: var(--papel); display: flex; align-items: center; gap: 9px; cursor: pointer; }
+label.casilla:hover { background: #F3EFE7; border-color: #CFC7B9; }
+label.casilla .nombre { flex: 1; }
+.opciones { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+button.fila { display: flex; align-items: center; width: 100%; text-align: left; }
+button.fila .nombre { flex: 1; }
+.fila .pista { color: var(--suave); font-size: 12px; margin-left: 12px; }
+.fila-reciente { display: flex; gap: 8px; align-items: stretch; margin-top: 8px; }
+.fila-reciente button.fila { flex: 1; }
+.fila-reciente button.quitar { font-size: 12px; padding: 6px 11px; }
 input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid #D5CEC1; border-radius: 8px; font: inherit; background: #FCFBF8; color: var(--texto); }
 input[type="text"]:focus { outline: none; border-color: var(--marca-fuerte); box-shadow: 0 0 0 3px rgba(127,185,220,.28); }
 .botones { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 16px; }
@@ -73,6 +93,7 @@ ul { margin: 8px 0; padding-left: 22px; }
 #registro::-webkit-scrollbar { width: 8px; }
 #registro::-webkit-scrollbar-thumb { background: #D8D1C5; border-radius: 8px; }
 #registro li.error { color: var(--peligro); }
+#registro .hora { color: var(--suave); margin-right: 7px; font-variant-numeric: tabular-nums; }
 ::selection { background: var(--marca); color: var(--marca-tinta); }
 @media (max-width: 620px) {
   header { padding: 11px 14px; gap: 10px; }
@@ -91,6 +112,7 @@ ul { margin: 8px 0; padding-left: 22px; }
   <div>
     <h1>tiza</h1>
     <p id="contexto"></p>
+    <p id="insignia" class="insignia" hidden><span class="punto"></span><span id="insignia-texto"></span></p>
   </div>
   <button type="button" id="cerrar-sesion" hidden>Cerrar la sesión y salir</button>
   <div id="confirmar-cierre" class="confirmar-cierre" hidden>
@@ -98,12 +120,13 @@ ul { margin: 8px 0; padding-left: 22px; }
     <button type="button" id="cerrar-de-verdad" class="peligro">Cerrar</button>
     <button type="button" id="seguir-trabajando">Seguir trabajando</button>
   </div>
+  <div id="pasos" class="pasos" hidden></div>
 </header>
 <main>
   <p id="anuncio" class="sr-only" aria-live="polite"></p>
   <section id="pantalla" class="tarjeta"></section>
   <section class="tarjeta">
-    <h2>Registro <button type="button" id="ver-registro" hidden></button></h2>
+    <h2>Registro <button type="button" id="ver-registro" hidden></button><button type="button" id="copiar-registro" hidden>Copiar el registro</button></h2>
     <ul id="registro"></ul>
   </section>
 </main>
@@ -121,6 +144,8 @@ ul { margin: 8px 0; padding-left: 22px; }
   var ultimaPregunta = false;
   var ultimoRegistro = [];
   var cierrePreguntado = false;
+  var limiteAmpliar = null;
+  var PASOS = [["carpeta", "Carpeta"], ["aula", "Aula"], ["cursos", "Cursos"], ["sesion", "Sesión"]];
 
   function api() {
     return window.pywebview && window.pywebview.api;
@@ -258,11 +283,16 @@ ul { margin: 8px 0; padding-left: 22px; }
     elegir_curso: function (p) {
       var nodos = [el("h2", null, p.titulo)];
       parrafos(nodos, p.lineas, "suave");
+      var lista = el("div", "opciones");
       (p.opciones || []).forEach(function (opcion) {
-        nodos.push(botones(boton(opcion.texto, null, function () {
+        var fila = boton("", "fila", function () {
           responder(p.numero, opcion.indice);
-        }, true)));
+        }, true);
+        fila.appendChild(el("span", "nombre", opcion.texto));
+        if (opcion.pista) { fila.appendChild(el("span", "pista", opcion.pista)); }
+        lista.appendChild(fila);
       });
+      if ((p.opciones || []).length) { nodos.push(lista); }
       if (p.permite_sin_curso) {
         nodos.push(el("p", "aviso", p.texto_sin_curso));
         nodos.push(botones(boton("No tengo curso de pruebas", null, function () {
@@ -297,7 +327,7 @@ ul { margin: 8px 0; padding-left: 22px; }
       parrafos(nodos, p.lineas, "suave");
       var casillas = [];
       (p.opciones || []).forEach(function (opcion) {
-        var etiqueta = el("label", "casilla");
+        var etiqueta = el("label", "casilla fila");
         var marca = document.createElement("input");
         marca.type = "checkbox";
         casillas.push({ marca: marca, indice: opcion.indice });
@@ -312,7 +342,8 @@ ul { margin: 8px 0; padding-left: 22px; }
           contar();
         });
         etiqueta.appendChild(marca);
-        etiqueta.appendChild(document.createTextNode(" " + opcion.texto));
+        etiqueta.appendChild(el("span", "nombre", opcion.texto));
+        if (opcion.pista) { etiqueta.appendChild(el("span", "pista", opcion.pista)); }
         nodos.push(etiqueta);
       });
       var aviso = el("p", "error");
@@ -417,8 +448,8 @@ ul { margin: 8px 0; padding-left: 22px; }
       var nodos = [el("h2", null, p.titulo)];
       parrafos(nodos, p.lineas);
       if (p.plazo > 0) {
-        nodos.push(el("p", "aviso", "Si no contestas en " + Math.max(1, Math.round(p.plazo / 60)) +
-          " minutos, la sesión se cierra."));
+        nodos.push(el("p", "aviso", ""));
+        nodos[nodos.length - 1].id = "cuenta-ampliar";
       }
       nodos.push(acciones(p.pregunta, siNo(p)));
       return nodos;
@@ -427,10 +458,20 @@ ul { margin: 8px 0; padding-left: 22px; }
       var nodos = [el("h2", null, p.titulo)];
       parrafos(nodos, p.lineas, "suave");
       (p.opciones || []).forEach(function (opcion) {
-        nodos.push(botones(boton(opcion.texto, null, function () {
+        var fila = el("div", "fila-reciente");
+        var elegir = boton("", "fila", function () {
           var puente = api();
           if (puente) { puente.elegir_reciente(p.numero, opcion.indice); }
-        }, true)));
+        }, true);
+        elegir.appendChild(el("span", "nombre", opcion.texto));
+        if (opcion.pista) { elegir.appendChild(el("span", "pista", opcion.pista)); }
+        var quitar = boton("Quitar", "quitar", function () {
+          var puente = api();
+          if (puente) { puente.quitar_reciente(p.numero, opcion.indice); }
+        }, true);
+        fila.appendChild(elegir);
+        fila.appendChild(quitar);
+        nodos.push(fila);
       });
       nodos.push(botones(boton("Elegir otra carpeta…", "principal", function () {
         var puente = api();
@@ -440,14 +481,29 @@ ul { margin: 8px 0; padding-left: 22px; }
     }
   };
 
+  function actualizarAmpliacion() {
+    var nodo = document.getElementById("cuenta-ampliar");
+    if (!nodo) { return; }
+    if (limiteAmpliar === null) { nodo.textContent = ""; return; }
+    var resto = Math.max(0, Math.ceil((limiteAmpliar - Date.now()) / 1000));
+    var minutos = Math.floor(resto / 60);
+    var segundos = resto % 60;
+    nodo.textContent = "La sesión se cierra en " + minutos + ":" +
+      (segundos < 10 ? "0" : "") + segundos + " si no contestas.";
+  }
+
   function pintar(pantalla) {
     var zona = document.getElementById("pantalla");
     var pintor = pintores[pantalla.tipo] || pintores.reposo;
     respuestas = [];
     botonPrincipal = null;
     pintada = Date.now();
+    limiteAmpliar = pantalla.tipo === "ampliar" && pantalla.plazo > 0
+      ? Date.now() + pantalla.plazo * 1000
+      : null;
     var nodos = pintor(pantalla);
     zona.replaceChildren.apply(zona, nodos);
+    actualizarAmpliacion();
     document.getElementById("anuncio").textContent = pantalla.titulo || "";
     var pendientes = respuestas;
     setTimeout(function () {
@@ -485,8 +541,11 @@ ul { margin: 8px 0; padding-left: 22px; }
     var ul = document.getElementById("registro");
     var abajo = ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 4;
     var items = registro.map(function (linea) {
-      return el("li", linea.error ? "error" : null,
-        (linea.error ? "Error: " : "") + linea.texto);
+      var item = el("li", linea.error ? "error" : null);
+      if (linea.hora) { item.appendChild(el("span", "hora", linea.hora)); }
+      item.appendChild(document.createTextNode(
+        (linea.error ? "Error: " : "") + linea.texto));
+      return item;
     });
     ul.replaceChildren.apply(ul, items);
     if (abajo) { ul.scrollTop = ul.scrollHeight; }
@@ -511,12 +570,50 @@ ul { margin: 8px 0; padding-left: 22px; }
     document.getElementById("confirmar-cierre").hidden = true;
   }
 
+  function pintarInsignia(estado) {
+    var insignia = document.getElementById("insignia");
+    var fin = estado.caduca ? Date.parse(estado.caduca) : NaN;
+    if (!estado.sesion_abierta || isNaN(fin)) {
+      insignia.hidden = true;
+      return;
+    }
+    var minutos = Math.max(0, Math.ceil((fin - Date.now()) / 60000));
+    document.getElementById("insignia-texto").textContent =
+      "Sesión abierta · quedan " + minutos + " min";
+    // El mismo umbral que sesion.AVISO_MINUTOS: los últimos cinco minutos, en color de aviso.
+    insignia.className = minutos < 5 ? "insignia urgente" : "insignia";
+    insignia.hidden = false;
+  }
+
+  function pintarPasos(paso) {
+    var caja = document.getElementById("pasos");
+    var indice = -1;
+    for (var i = 0; i < PASOS.length; i++) {
+      if (PASOS[i][0] === paso) { indice = i; break; }
+    }
+    if (indice < 0) {
+      caja.hidden = true;
+      caja.replaceChildren();
+      return;
+    }
+    var nodos = [];
+    for (var j = 0; j < PASOS.length; j++) {
+      if (j) { nodos.push(el("span", "separador", "·")); }
+      var clase = j === indice ? "paso activo" : (j < indice ? "paso hecho" : "paso");
+      nodos.push(el("span", clase, PASOS[j][1]));
+    }
+    caja.replaceChildren.apply(caja, nodos);
+    caja.hidden = false;
+  }
+
   function pintarContexto(estado) {
     var partes = [];
     if (estado.carpeta) { partes.push(estado.carpeta); }
     if (estado.servidor) { partes.push(estado.servidor); }
     document.getElementById("contexto").textContent = partes.join(" · ");
     document.getElementById("cerrar-sesion").hidden = !estado.sesion_abierta;
+    pintarInsignia(estado);
+    pintarPasos(estado.paso);
     if (!estado.sesion_abierta) { retirarCierre(); }
   }
 
@@ -534,6 +631,7 @@ ul { margin: 8px 0; padding-left: 22px; }
       }
       pintarRegistro(estado.registro);
       pintarPlegado(estado.pregunta === true);
+      actualizarAmpliacion();
     }, function () {
       enCurso = false;
     });
@@ -561,6 +659,22 @@ ul { margin: 8px 0; padding-left: 22px; }
     registroPlegado = !registroPlegado;
     pintarPlegado(ultimaPregunta);
   });
+
+  // El portapapeles no está en todas las configuraciones de WebView2: si no está, no se enseña.
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    var copiar = document.getElementById("copiar-registro");
+    copiar.hidden = false;
+    copiar.addEventListener("click", function () {
+      var texto = ultimoRegistro.map(function (linea) {
+        return (linea.hora ? linea.hora + " " : "") +
+          (linea.error ? "Error: " : "") + linea.texto;
+      }).join("\n");
+      navigator.clipboard.writeText(texto).then(function () {
+        copiar.textContent = "Copiado";
+        setTimeout(function () { copiar.textContent = "Copiar el registro"; }, 1500);
+      }, function () {});
+    });
+  }
 
   setInterval(sondear, 300);
 })();

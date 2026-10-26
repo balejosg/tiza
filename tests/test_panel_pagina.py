@@ -140,6 +140,9 @@ def test_enseña_lo_que_tiene_que_enseñar(sin_csp):
     assert "estado.sesion_abierta" in sin_csp
     assert "estado.servidor" in sin_csp and "estado.carpeta" in sin_csp
     assert 'linea.error ? "error"' in sin_csp  # los errores del registro, en rojo
+    assert 'id="insignia"' in sin_csp and "estado.caduca" in sin_csp
+    assert "Sesión abierta · quedan " in sin_csp and "minutos < 5" in sin_csp
+    assert 'id="pasos"' in sin_csp and "pintarPasos(estado.paso)" in sin_csp
     for campo in ("texto_si", "texto_no", "riesgo"):
         assert campo in sin_csp, campo
     assert 'p.riesgo === "real"' in sin_csp and 'p.riesgo === "peligro"' in sin_csp
@@ -159,7 +162,7 @@ def test_valida_en_linea_y_no_llama_al_puente_con_datos_invalidos(sin_csp):
     ):
         assert texto in sin_csp, texto
     assert 'ponerError(errorUrl, direccion ? "" : "Escribe la dirección del aula.")' in sin_csp
-    assert 'if (!direccion || !nombre) { return; }' in sin_csp
+    assert "if (!direccion || !nombre) { return; }" in sin_csp
     assert "usar.condicion" in sin_csp and "actualizarBoton(usar)" in sin_csp
     assert 'contador.textContent = marcadas() + " de " + p.maximo + " marcados"' in sin_csp
 
@@ -187,7 +190,7 @@ def test_la_zona_de_anuncio_es_corta_y_no_toda_la_tarjeta(sin_csp):
 def test_las_confirmaciones_largas_llevan_barra_fija(sin_csp):
     assert "position: sticky" in sin_csp and "bottom: 0" in sin_csp
     assert sin_csp.count("nodos.push(acciones(p.pregunta, siNo(p)))") == 2
-    assert 'function acciones(pregunta, cajaBotones)' in sin_csp
+    assert "function acciones(pregunta, cajaBotones)" in sin_csp
 
 
 def test_cerrar_la_sesion_se_confirma_en_dos_pasos(sin_csp):
@@ -196,8 +199,14 @@ def test_cerrar_la_sesion_se_confirma_en_dos_pasos(sin_csp):
     assert 'id="cerrar-de-verdad" class="peligro"' in sin_csp
     assert "Seguir trabajando" in sin_csp
     assert sin_csp.count("puente.terminar(") == 1
-    assert 'document.getElementById("cerrar-sesion").addEventListener("click", function () {\n    cierrePreguntado = true;' in sin_csp
-    assert 'document.getElementById("seguir-trabajando").addEventListener("click", retirarCierre)' in sin_csp
+    assert (
+        'document.getElementById("cerrar-sesion").addEventListener("click", function () {\n    cierrePreguntado = true;'
+        in sin_csp
+    )
+    assert (
+        'document.getElementById("seguir-trabajando").addEventListener("click", retirarCierre)'
+        in sin_csp
+    )
 
 
 def test_el_registro_se_pliega_mientras_hay_pregunta(sin_csp):
@@ -206,6 +215,28 @@ def test_el_registro_se_pliega_mientras_hay_pregunta(sin_csp):
     assert '"Ocultar registro"' in sin_csp
     assert "pintarPlegado(estado.pregunta === true)" in sin_csp
     assert "if (abajo) { ul.scrollTop = ul.scrollHeight; }" in sin_csp
+
+
+def test_la_ampliacion_cuenta_atras_desde_el_plazo(sin_csp):
+    assert "limiteAmpliar" in sin_csp and 'id = "cuenta-ampliar"' in sin_csp
+    assert '"La sesión se cierra en " + minutos + ":"' in sin_csp
+    assert "Date.now() + pantalla.plazo * 1000" in sin_csp
+
+
+def test_las_recientes_y_los_cursos_son_filas_con_pista_y_quitar(sin_csp):
+    assert "button.fila" in sin_csp and "fila-reciente" in sin_csp
+    assert "puente.quitar_reciente(p.numero, opcion.indice)" in sin_csp
+    assert 'boton("Quitar", "quitar"' in sin_csp
+    assert 'el("span", "pista", opcion.pista)' in sin_csp
+    assert 'el("span", "nombre", opcion.texto)' in sin_csp
+    assert 'el("label", "casilla fila")' in sin_csp
+
+
+def test_el_registro_lleva_hora_y_se_puede_copiar(sin_csp):
+    assert 'el("span", "hora", linea.hora)' in sin_csp
+    assert "navigator.clipboard.writeText(texto)" in sin_csp
+    assert "Copiar el registro" in sin_csp and '"Copiado"' in sin_csp
+    assert 'id="copiar-registro" hidden' in sin_csp
 
 
 def _llamadas_al_puente(texto: str) -> list[tuple[str, int]]:
@@ -233,6 +264,7 @@ def test_las_llamadas_al_puente_existen_y_no_llevan_argumentos_sobrantes(sin_csp
         "estado": 0,
         "responder": 2,
         "elegir_reciente": 2,
+        "quitar_reciente": 2,
         "buscar_carpeta": 1,
         "terminar": 1,
         "ver_vista_previa": 2,

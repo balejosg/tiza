@@ -8,11 +8,23 @@ fichero roto, ajeno o ilegible se trata como vacío y un fallo al escribir se ig
 from __future__ import annotations
 
 import json
+import os
+from collections.abc import Sequence
 from pathlib import Path
 
 from .. import config, ficheros, mensajes
 
-__all__ = ["MAXIMO", "NOMBRE", "anotar", "carpeta_valida", "leer", "nombre_visible", "ruta"]
+__all__ = [
+    "MAXIMO",
+    "NOMBRE",
+    "anotar",
+    "carpeta_valida",
+    "etiquetas",
+    "leer",
+    "nombre_visible",
+    "quitar",
+    "ruta",
+]
 
 MAXIMO = 8
 NOMBRE = "panel-recientes.json"
@@ -60,6 +72,13 @@ def leer() -> list[Path]:
     return _sin_repetir([c for c in validas if c is not None])
 
 
+def _guardar(lista: list[Path]) -> None:
+    try:
+        ficheros.escribir_json(ruta(), {"version": VERSION, "carpetas": [str(c) for c in lista]})
+    except OSError:
+        pass
+
+
 def anotar(carpeta: str | Path) -> list[Path]:
     """Pone ``carpeta`` la primera (sin repetirla) y devuelve la lista guardada.
 
@@ -71,10 +90,19 @@ def anotar(carpeta: str | Path) -> list[Path]:
     if nueva is None:
         return actuales
     lista = _sin_repetir([nueva, *actuales])
-    try:
-        ficheros.escribir_json(ruta(), {"version": VERSION, "carpetas": [str(c) for c in lista]})
-    except OSError:
-        pass
+    _guardar(lista)
+    return lista
+
+
+def quitar(carpeta: str | Path) -> list[Path]:
+    """Quita ``carpeta`` de las recientes (si está) y devuelve la lista guardada."""
+    if not isinstance(carpeta, (str, Path)) or "\x00" in str(carpeta):
+        return leer()
+    objetivo = Path(carpeta)
+    actuales = leer()
+    lista = [c for c in actuales if c != objetivo]
+    if lista != actuales:
+        _guardar(lista)
     return lista
 
 
@@ -87,3 +115,24 @@ def nombre_visible(carpeta: str | Path) -> str:
     padre = carpeta.parent.name
     texto = f"{padre} / {nombre}" if padre else nombre
     return mensajes.texto_seguro(texto, 80)
+
+
+def _pista(carpeta: Path) -> str:
+    """La carpeta madre corta, para distinguir dos recientes con el mismo nombre visible."""
+    padre = carpeta.parent
+    abuelo = padre.parent
+    if padre.name and abuelo.name:
+        texto = f"en {abuelo.name}{os.sep}{padre.name}"
+    elif padre.name:
+        texto = f"en {padre.name}"
+    else:
+        return ""
+    return mensajes.texto_seguro(texto, 60)
+
+
+def etiquetas(carpetas: Sequence[str | Path]) -> list[tuple[str, str]]:
+    """(nombre visible, pista) de cada reciente; la pista solo si el nombre se repite."""
+    rutas = [Path(c) for c in carpetas]
+    nombres = [nombre_visible(c) for c in rutas]
+    repetidos = {n for n in nombres if nombres.count(n) > 1}
+    return [(n, _pista(c) if n in repetidos else "") for n, c in zip(nombres, rutas, strict=True)]

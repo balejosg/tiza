@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -152,3 +153,49 @@ def test_nombre_visible_sanea_y_acota(tmp_path):
 def test_nombre_visible_de_una_raiz():
     raiz = Path(Path.cwd().anchor)
     assert recientes.nombre_visible(raiz) == str(raiz)
+
+
+def test_quitar_una_reciente(tmp_path):
+    a, b, c = _carpetas(tmp_path, 3)
+    for carpeta in (a, b, c):
+        recientes.anotar(carpeta)
+    assert recientes.quitar(b) == [c, a]
+    assert recientes.leer() == [c, a]
+    assert recientes.quitar(b) == [c, a]  # ya no estaba: no cambia nada
+
+
+def test_quitar_algo_que_no_es_una_ruta_util_no_toca_el_fichero(tmp_path):
+    (a,) = _carpetas(tmp_path, 1)
+    recientes.anotar(a)
+    assert recientes.quitar("a\x00b") == [a]
+    assert recientes.quitar(tmp_path / "no_existe") == [a]
+
+
+def test_etiquetas_sin_pista_si_los_nombres_no_se_repiten(tmp_path):
+    a, b = _carpetas(tmp_path, 2)
+    assert recientes.etiquetas([a, b]) == [
+        ("asignaturas / curso0", ""),
+        ("asignaturas / curso1", ""),
+    ]
+
+
+def test_etiquetas_con_pista_solo_si_el_nombre_visible_se_repite(tmp_path):
+    uno = tmp_path / "A" / "2026" / "mates"
+    otro = tmp_path / "B" / "2026" / "mates"
+    tercero = tmp_path / "C" / "lengua"
+    for carpeta in (uno, otro, tercero):
+        carpeta.mkdir(parents=True)
+    etiquetas = dict(enumerate(recientes.etiquetas([uno, otro, tercero])))
+    assert etiquetas[0] == ("2026 / mates", f"en A{os.sep}2026")
+    assert etiquetas[1] == ("2026 / mates", f"en B{os.sep}2026")
+    assert etiquetas[2] == ("C / lengua", "")
+
+
+def test_la_pista_sanea_y_acota(tmp_path):
+    carpeta = tmp_path / ("a\x1b[31m" * 40) / ("b\x1b[31m" * 40) / "mates"
+    texto = recientes.etiquetas([carpeta])[0][1]
+    assert texto == ""  # sin repetir el nombre, no hay pista
+    otra = tmp_path / ("a\x1b[31m" * 40) / ("b\x1b[31m" * 40) / "mates"
+    texto = recientes.etiquetas([carpeta, otra])[0][1]
+    assert "\x1b" not in texto
+    assert len(texto) <= 60

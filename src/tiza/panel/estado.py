@@ -27,6 +27,7 @@ import time
 import webbrowser
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -48,6 +49,7 @@ from . import recientes
 
 __all__ = [
     "MAX_REGISTRO",
+    "PASOS_DE_ARRANQUE",
     "RETARDO_RESPUESTA",
     "TIPOS_DE_PANTALLA",
     "Bloque",
@@ -81,6 +83,9 @@ TIPOS_DE_PANTALLA = frozenset(
     }
 )
 
+# Los pasos del arranque que enseña el panel, en orden. ``fijar_paso`` rechaza otros.
+PASOS_DE_ARRANQUE = ("carpeta", "aula", "cursos", "sesion")
+
 # Los avisos que además dejan su texto como pantalla de reposo.
 _CIERRAN = frozenset({"AUTOPRUEBA_FALLIDA", "CANCELADA", "FALLO", "SESION_CERRADA"})
 
@@ -104,6 +109,7 @@ class Bloque:
 class Opcion:
     indice: int
     texto: str
+    pista: str = ""  # solo cuando dos recientes comparten nombre visible
 
 
 @dataclass(frozen=True)
@@ -200,8 +206,14 @@ def _configurar(respuesta: Any, _opciones: Any) -> Any:
 class Panel:
     """Pantalla actual, pregunta pendiente, registro y cierre, con un cerrojo."""
 
-    def __init__(self, *, reloj: Callable[[], float] = time.monotonic) -> None:
+    def __init__(
+        self,
+        *,
+        reloj: Callable[[], float] = time.monotonic,
+        ahora: Callable[[], datetime] = datetime.now,
+    ) -> None:
         self._reloj = reloj
+        self._ahora = ahora
         self._cv = threading.Condition()
         self._cierre = threading.Event()
         self._numero = 0
@@ -211,10 +223,13 @@ class Panel:
         self._validar: Callable[[Any], Any] | None = None
         self._respuesta: Any = _INVALIDA
         self._vistas: tuple[Path | None, ...] = ()
-        self._registro: list[tuple[str, bool]] = []
+        self._registro: list[tuple[str, bool, str]] = []
         self._carpeta = ""
         self._servidor = ""
         self._sesion_abierta = False
+        self._caduca = ""
+        self._paso = ""
+        self._rutas_carpeta: list[Path] = []
         self._dialogo = False  # el docente pidió el diálogo de carpeta y nadie lo ha atendido
         self._dialogo_en_curso = False
         self._salir = False  # el docente pidió cerrar la sesión
@@ -247,11 +262,13 @@ class Panel:
         with self._cv:
             return {
                 "pantalla": self._pantalla.a_dict(),
-                "registro": [{"texto": t, "error": e} for t, e in self._registro],
+                "registro": [{"texto": t, "error": e, "hora": h} for t, e, h in self._registro],
                 "cerrado": self._cierre.is_set(),
                 "carpeta": self._carpeta,
                 "servidor": self._servidor,
                 "sesion_abierta": self._sesion_abierta,
+                "caduca": self._caduca,
+                "paso": self._paso,
                 "pregunta": self._validar is not None,
             }
 
@@ -278,15 +295,44 @@ class Panel:
         with self._cv:
             self._servidor = _t(servidor, 100)
 
+    def fijar_caducidad(self, caduca: datetime | None) -> None:
+        """Cuándo caduca la sesión abierta, en ISO 8601 UTC (vacío si no hay sesión)."""
+        with self._cv:
+            self._caduca = _iso_utc(caduca)
+            self._cv.notify_all()
+
+    def fijar_paso(self, nombre: str) -> None:
+        """El paso del arranque que se está dando (``""`` lo oculta)."""
+        if nombre not in ("", *PASOS_DE_ARRANQUE):
+            raise ValueError(f"paso de arranque desconocido: {nombre}")
+        with self._cv:
+            self._paso = nombre
+            self._cv.notify_all()
+
     def reposo(self, titulo: str, lineas: Sequence[str] = ()) -> None:
         """Deja una pantalla de reposo saneada y marca la sesión como cerrada."""
         self.marcar_sesion(False)
+        self.fijar_paso("")
         self.mostrar(Pantalla(0, "reposo", titulo=_t(titulo), lineas=_lineas(lineas)))
 
     def marcar_sesion(self, abierta: bool) -> None:
         """La sesión está abierta (se enseña «Cerrar la sesión») o ya no lo está."""
         with self._cv:
             self._sesion_abierta = bool(abierta)
+            if not abierta:
+                self._caduca = ""
+            self._cv.notify_all()
+
+    def nueva_vuelta(self) -> None:
+        """Limpia lo que dependía de la vuelta anterior y separa el registro."""
+        with self._cv:
+            self._carpeta = ""
+            self._servidor = ""
+            self._sesion_abierta = False
+            self._caduca = ""
+            self._paso = ""
+            self._rutas_carpeta = []
+            self._anotar_con_cerrojo(mensajes.SEPARADOR_NUEVA_SESION)
             self._cv.notify_all()
 
     def cerrar(self) -> None:
@@ -397,7 +443,7 @@ class Panel:
         (la da ``atender_dialogo``): JSON nunca produce una tupla, así que
         ``Puente.responder`` no puede contestar esta pantalla.
         """
-        rutas = tuple(Path(r) for r in usadas)[: recientes.MAXIMO]
+        rutas = [Path(r) for r in usadas][: recientes.MAXIMO]
 
         def validar(respuesta: Any) -> Any:
             if not isinstance(respuesta, tuple) or len(respuesta) != 2:
@@ -414,9 +460,37 @@ class Panel:
             "carpeta",
             titulo="Elige la carpeta de la asignatura",
             lineas=_lineas(["Aquí trabajará tu asistente. Elige una reciente o busca otra."]),
-            opciones=tuple(Opcion(i, recientes.nombre_visible(r)) for i, r in enumerate(rutas)),
+            opciones=_opciones_de_carpetas(rutas),
         )
-        return self.preguntar(pantalla, validar)
+        with self._cv:
+            self._rutas_carpeta = rutas
+        try:
+            return self.preguntar(pantalla, validar)
+        finally:
+            with self._cv:
+                self._rutas_carpeta = []
+
+    def quitar_reciente(self, numero: Any, indice: Any) -> bool:
+        """Quita una reciente de la lista y vuelve a publicar la pantalla sin ella.
+
+        El índice es el de la pantalla actual (nunca una ruta); la ruta real no sale del Panel.
+        """
+        with self._cv:
+            if (
+                self._validar is None
+                or self._pantalla.tipo != "carpeta"
+                or not self._atendible(numero)
+                or not _entero(indice)
+                or not 0 <= indice < len(self._rutas_carpeta)
+            ):
+                return False
+            carpeta = self._rutas_carpeta.pop(indice)
+            nueva = dataclasses.replace(
+                self._pantalla, opciones=_opciones_de_carpetas(self._rutas_carpeta)
+            )
+            self._publicar(nueva)
+        recientes.quitar(carpeta)
+        return True
 
     def vista(self, numero: Any, indice: Any) -> Path | None:
         """La vista previa ``indice`` de la pantalla actual, que fijó tiza; None si no hay."""
@@ -445,10 +519,13 @@ class Panel:
             if self._validar is None:
                 self._publicar(pantalla)
 
+    def _anotar_con_cerrojo(self, texto: str, error: bool = False) -> None:
+        self._registro.append((_t(texto), error, self._ahora().strftime("%H:%M")))
+        del self._registro[:-MAX_REGISTRO]
+
     def anotar(self, texto: str, error: bool = False) -> None:
         with self._cv:
-            self._registro.append((_t(texto), error))
-            del self._registro[:-MAX_REGISTRO]
+            self._anotar_con_cerrojo(texto, error)
             self._cv.notify_all()
 
     def preguntar(
@@ -483,8 +560,22 @@ class Panel:
             return respuesta
 
 
+def _opciones_de_carpetas(rutas: Sequence[Path]) -> tuple[Opcion, ...]:
+    return tuple(
+        Opcion(i, texto, pista) for i, (texto, pista) in enumerate(recientes.etiquetas(rutas))
+    )
+
+
 def _lineas(*grupos: Sequence[str | None]) -> tuple[str, ...]:
     return tuple(_t(linea) for grupo in grupos for linea in grupo if linea is not None)
+
+
+def _iso_utc(caduca: datetime | None) -> str:
+    if caduca is None:
+        return ""
+    if caduca.tzinfo is None:
+        caduca = caduca.replace(tzinfo=UTC)
+    return caduca.astimezone(UTC).isoformat()
 
 
 def _servidor(url: str) -> str:
@@ -551,6 +642,7 @@ class PresenciaPanel:
 
     def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
         servidor = _servidor(url)
+        self._panel.fijar_paso("aula")
         self._panel.fijar_servidor(servidor)
         self._panel.mostrar(
             Pantalla(
@@ -578,6 +670,7 @@ class PresenciaPanel:
         return acreditacion
 
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:
+        self._panel.fijar_paso("cursos")
         validos = [curso for curso in cursos if curso["id"] != excluir]
         sin_curso = entorno == "pruebas"
         pantalla = Pantalla(
@@ -599,6 +692,7 @@ class PresenciaPanel:
         return self._panel.preguntar(pantalla, lambda r: _elegir(r, opciones), reloj=self._reloj)
 
     def elegir_cursos_reales(self, cursos: list[dict], excluir: int | None) -> list[int] | None:
+        self._panel.fijar_paso("cursos")
         validos = [curso for curso in cursos if curso["id"] != excluir]
         pantalla = Pantalla(
             0,
@@ -619,6 +713,7 @@ class PresenciaPanel:
         )
 
     def confirmar_cursos(self, cursos: list[CursoSesion]) -> bool:
+        self._panel.fijar_paso("cursos")
         return self._si(
             "Abrir la sesión",
             mensajes.lineas_de_cursos(cursos),
@@ -865,6 +960,7 @@ class PresenciaPanel:
             # «Has respondido que no» confunde cuando lo que pasó es que no se entró.
             self._panel.anotar(f"{mensajes.NO_SE_ENTRO_TITULO}. {mensajes.NO_SE_ENTRO_TEXTO}", True)
             self._panel.marcar_sesion(False)
+            self._panel.fijar_paso("")
             self._panel.mostrar(
                 Pantalla(
                     0,
@@ -878,6 +974,9 @@ class PresenciaPanel:
         for linea in lineas:
             self._panel.anotar(linea.texto, linea.error)
         if aviso.codigo == "SESION_ABIERTA" or aviso.codigo in _CIERRAN:
+            if aviso.codigo == "SESION_ABIERTA":
+                self._panel.fijar_caducidad(aviso.datos["caduca"])
+                self._panel.fijar_paso("sesion")
             self._panel.marcar_sesion(aviso.codigo == "SESION_ABIERTA")
             self._panel.mostrar(
                 Pantalla(
@@ -914,6 +1013,10 @@ class Puente:
     def elegir_reciente(self, numero: Any = None, indice: Any = None) -> bool:
         """Elige la carpeta reciente número ``indice`` (la ruta real no sale del ``Panel``)."""
         return self._panel.responder(numero, ("reciente", indice))
+
+    def quitar_reciente(self, numero: Any = None, indice: Any = None) -> bool:
+        """Quita la reciente ``indice`` de la pantalla actual (la ruta no sale del ``Panel``)."""
+        return self._panel.quitar_reciente(numero, indice)
 
     def buscar_carpeta(self, numero: Any = None) -> bool:
         """Pide el diálogo de carpeta. No lo abre: lo atiende el hilo de la ventana."""
