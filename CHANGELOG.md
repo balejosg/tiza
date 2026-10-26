@@ -13,6 +13,7 @@ se avisa aquí con **Cambia**.
 ### Cambiado
 - **Páginas sin botones entre actividades y desplegables con nombre propio.** La plantilla y los ejemplos ya no cierran cada página con un botón a la siguiente (el agente no puede saber su dirección); la nombran. Los desplegables dicen lo que esconden («Solución», «Cómo se resuelve») en vez de empezar siempre por «Ver».
 - **El agente no deja notas para ti en lo que ve el alumnado**, no repite el producto final en una página aparte de la tarea y no publica en real con huecos `[RELLENA]` sin decírtelo.
+- **El agente te pide las imágenes al proponer.** En la propuesta de una unidad te dice qué imágenes o esquemas necesita cada página y qué debe mostrar cada uno, en vez de dejar solo texto.
 
 ## 0.36.0 — 2026-10-26
 
