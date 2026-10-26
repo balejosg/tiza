@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.32.0 — 2026-10-26
 
 ### Cambiado
 - **Nueva imagen de tiza en el panel de Windows.** La cabecera es una pizarra oscura con el logo y el resto del panel usa papel claro, azul lápiz y coral; el acceso del menú Inicio, la ventana del panel y la ventana de entrada al aula llevan el icono de tiza.
