@@ -487,6 +487,12 @@ class TestEjecutarHijo:
             ventana.SALIDA_SIN_MOTOR
         )
 
+    def test_en_windows_la_ventana_lleva_el_icono_de_tiza(self, monkeypatch):
+        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(ventana.webview2, "instalado", lambda: True)
+        _, webview, _, _ = self._ejecutar([f"{AULA}/my/"], [])
+        assert webview.arrancado["icon"].endswith("tiza.ico")
+
 
 class TestCanalPropio:
     def test_lo_que_escriba_el_motor_no_se_mezcla_con_el_resultado(self):

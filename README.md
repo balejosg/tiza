@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.jpg" alt="tiza" width="280">
+</p>
+
 # tiza
 
 **Pide a tu asistente de IA el material de clase y publícalo en tu aula Moodle,

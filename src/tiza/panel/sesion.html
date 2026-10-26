@@ -10,38 +10,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>tiza</title>
 <style nonce="__NONCE__">
-:root { --fondo: #F6F3EE; --texto: #1F2328; --suave: #5B6169; --marca: #7A1F2B; --borde: #D9D3C7; --aviso: #8A5A00; --peligro: #A4161A; }
+:root {
+  --fondo: #F7F4EE;      /* papel */
+  --papel: #FFFFFF;
+  --texto: #22272C;
+  --suave: #5E676F;
+  --pizarra: #2E3134;    /* la pizarra del logo */
+  --marca: #A9D6EF;      /* azul lápiz */
+  --marca-fuerte: #7FB9DC;
+  --marca-tinta: #14303F;
+  --coral: #E9785A;      /* los circuitos */
+  --peligro: #C6452F;
+  --aviso: #8A5A00;
+  --borde: #DED7CB;
+}
 * { box-sizing: border-box; }
-body { margin: 0; font: 15px/1.45 "Segoe UI", system-ui, sans-serif; background: var(--fondo); color: var(--texto); }
-header { background: var(--marca); color: #fff; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
+body { margin: 0; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; background: var(--fondo); color: var(--texto); }
+header { background: linear-gradient(135deg, #383C40 0%, var(--pizarra) 55%, #292C2F 100%); color: #F4F7F8; padding: 13px 22px; display: flex; align-items: center; gap: 14px; border-bottom: 3px solid var(--marca); }
+header img { height: 54px; width: 90px; flex: none; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
 header div { flex: 1; min-width: 0; }
-header h1 { margin: 0; font-size: 17px; font-weight: 600; }
-header p { margin: 2px 0 0; font-size: 12px; opacity: .85; word-break: break-all; }
-header button { background: transparent; color: #fff; border-color: #fff; }
-main { padding: 18px; }
-.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
-h2 { font-size: 16px; margin: 0 0 10px; }
-p { margin: 6px 0; }
+header h1 { margin: 0; font-size: 23px; font-weight: 700; letter-spacing: .4px; }
+header p { margin: 4px 0 0; font-size: 12px; color: #B9C2C8; overflow-wrap: anywhere; }
+header button { background: transparent; color: #F4F7F8; border-color: rgba(255,255,255,.5); }
+header button:hover { background: rgba(255,255,255,.1); border-color: #fff; }
+main { max-width: 820px; margin: 0 auto; padding: 24px 22px 34px; }
+.tarjeta { background: var(--papel); border: 1px solid var(--borde); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; box-shadow: 0 2px 3px rgba(46,49,52,.04), 0 12px 28px rgba(46,49,52,.05); }
+h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: .1px; }
+h2::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--coral); margin-right: 9px; vertical-align: 2px; }
+p { margin: 7px 0; }
 .suave { color: var(--suave); }
 .error { color: var(--peligro); }
 .aviso { color: var(--aviso); }
-label { display: block; font-weight: 600; margin: 10px 0 4px; }
-label.casilla { font-weight: 400; margin: 6px 0; }
-input[type="text"] { width: 100%; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; }
-.botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--borde); background: #fff; cursor: pointer; }
+label { display: block; font-weight: 600; margin: 14px 0 5px; }
+label.casilla { font-weight: 400; margin: 7px 0; }
+input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid #D5CEC1; border-radius: 8px; font: inherit; background: #FCFBF8; color: var(--texto); }
+input[type="text"]:focus { outline: none; border-color: var(--marca-fuerte); box-shadow: 0 0 0 3px rgba(127,185,220,.28); }
+.botones { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 16px; }
+button { font: inherit; padding: 9px 17px; border-radius: 8px; border: 1px solid var(--borde); background: var(--papel); color: var(--texto); cursor: pointer; transition: background .12s, border-color .12s; }
+button:hover { background: #F3EFE7; border-color: #CFC7B9; }
+button:focus-visible { outline: 3px solid rgba(127,185,220,.55); outline-offset: 2px; }
 button:disabled { opacity: .5; cursor: default; }
-button.principal { background: var(--marca); border-color: var(--marca); color: #fff; }
+button.principal { background: var(--marca); border-color: var(--marca-fuerte); color: var(--marca-tinta); font-weight: 700; }
+button.principal:hover { background: #98CBE8; }
 button.peligro { background: var(--peligro); border-color: var(--peligro); color: #fff; }
-.documento { border-top: 1px solid var(--borde); padding-top: 10px; margin-top: 10px; }
+button.peligro:hover { background: #AE3926; }
+.documento { border-top: 1px dashed #DDD5C8; padding-top: 12px; margin-top: 14px; }
 .documento .titulo { font-weight: 600; }
-ul { margin: 6px 0; padding-left: 20px; }
-#registro { font-size: 13px; max-height: 220px; overflow: auto; }
+ul { margin: 8px 0; padding-left: 22px; }
+#registro { font-size: 13px; max-height: 220px; overflow: auto; color: var(--suave); }
+#registro::-webkit-scrollbar { width: 8px; }
+#registro::-webkit-scrollbar-thumb { background: #D8D1C5; border-radius: 8px; }
 #registro li.error { color: var(--peligro); }
+::selection { background: var(--marca); color: var(--marca-tinta); }
+@media (max-width: 620px) {
+  header { padding: 11px 14px; gap: 10px; }
+  header img { height: 44px; width: 73px; }
+  header h1 { font-size: 20px; }
+  main { padding: 16px 12px 26px; }
+  .tarjeta { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
 </style>
 </head>
 <body>
 <header>
+  <img src="__LOGO__" alt="" width="90" height="54">
   <div>
     <h1>tiza</h1>
     <p id="contexto"></p>

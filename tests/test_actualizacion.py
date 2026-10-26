@@ -50,7 +50,14 @@ def test_los_accesos_apuntan_al_exe_del_panel_en_el_inicio_y_el_escritorio():
     assert "WScript.Shell" in ACCESOS_PS
     assert "$acceso.TargetPath = $panel" in ACCESOS_PS
     assert "$acceso.WorkingDirectory = $env:USERPROFILE" in ACCESOS_PS
-    assert '$acceso.IconLocation = "${panel},0"' in ACCESOS_PS
+    assert "$acceso.IconLocation = $icono" in ACCESOS_PS
+    assert "$herramientas = (uv tool dir) | Select-Object -First 1" in ACCESOS_PS
+    assert (
+        r"$candidato = Join-Path $herramientas "
+        r"'tiza\Lib\site-packages\tiza\recursos\tiza.ico'" in ACCESOS_PS
+    )
+    assert "if (Test-Path -LiteralPath $candidato)" in ACCESOS_PS
+    assert '$icono = "${panel},0"' in ACCESOS_PS  # una versión sin el icono no rompe el acceso
     assert "RunAs" not in ACCESOS_PS  # sin administrador
 
 

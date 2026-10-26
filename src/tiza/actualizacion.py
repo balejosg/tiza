@@ -196,13 +196,22 @@ function Crear-AccesosTiza([string]$bin) {
         Write-Host 'No se instaló el panel de tiza (falta la ventana): tiza se usa solo desde la terminal.'
         return $false
     }
+    # El icono de tiza viaja en el paquete; si no se encuentra (una versión vieja), el del ejecutable.
+    $icono = "${panel},0"
+    try {
+        $herramientas = (uv tool dir) | Select-Object -First 1
+        $candidato = Join-Path $herramientas 'tiza\\Lib\\site-packages\\tiza\\recursos\\tiza.ico'
+        if (Test-Path -LiteralPath $candidato) {
+            $icono = $candidato
+        }
+    } catch {}
     $shell = New-Object -ComObject WScript.Shell
     foreach ($carpeta in @([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop'))) {
         try {
             $acceso = $shell.CreateShortcut((Join-Path $carpeta 'tiza.lnk'))
             $acceso.TargetPath = $panel
             $acceso.WorkingDirectory = $env:USERPROFILE
-            $acceso.IconLocation = "${panel},0"
+            $acceso.IconLocation = $icono
             $acceso.Description = 'Abrir tiza'
             $acceso.Save()
         } catch {

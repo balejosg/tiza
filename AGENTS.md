@@ -285,7 +285,8 @@ en español.
     /`eval`/`new Function`; todo con `createElement` + `textContent`; CSP con nonce por arranque y
     `'unsafe-eval'` (lo exige el puente de pywebview) pero sin `'unsafe-inline'`; sondeo de
     `estado()` cada 300 ms; nunca llama al puente con argumentos sobrantes (pywebview pasa
-    `undefined` como `None`). Lo vigila `tests/test_panel_pagina.py`.
+    `undefined` como `None`). La única imagen es el logo del paquete, que `pagina` incrusta
+    como `data:`. Lo vigila `tests/test_panel_pagina.py`.
   - `__init__.py`: la capa de ventana y **el único módulo del subpaquete que importa `webview`**,
     solo dentro de `main()` (el CI no instala el extra; `import tiza.panel` no lo carga). Lo
     comprobable va en funciones puras (`que_falta`, `galletas_de`, `ya_dentro`, `ruta_del_dialogo`…).
@@ -295,6 +296,10 @@ en español.
     ese hilo, nunca dentro de una llamada del `js_api`: cuelgan la ventana. Al arrancar, `vigilar`
     muestra la ventana una vez (con reintentos si aún no hay HWND) por si nació oculta. `abrir_login` crea la
     ventana de entrada en el mismo proceso, sin `js_api`; la cookie nunca sale del proceso.
+- `src/tiza/recursos/`: los recursos gráficos que viajan en la wheel: `logo.png` (la marca con
+  transparencia que la página del panel incrusta como `data:`) y `tiza.ico` (el icono de varias
+  medidas de las ventanas y del acceso de Windows). `ruta` solo sirve para ficheros reales;
+  `datos` también dentro de un paquete comprimido.
 - `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
   Windows, macOS y Linux con escritorio, con Qt o GTK). **Solo enseña la página de login del aula y devuelve las cookies de
   sesión del servidor del aula**: nada más pasa por ella (cursos, aislamiento y

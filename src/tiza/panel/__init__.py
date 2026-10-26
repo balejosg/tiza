@@ -23,6 +23,7 @@ Reglas de ventana (se comprobaron en Windows 11 con pywebview 6.2.1):
 
 from __future__ import annotations
 
+import base64
 import importlib.resources
 import importlib.util
 import os
@@ -35,7 +36,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from .. import config, publicar
+from .. import config, publicar, recursos
 from ..ventana import TIEMPO_MAXIMO, entrada, webview2
 from . import flujo
 from .estado import Panel, PresenciaPanel, Puente
@@ -72,9 +73,10 @@ def nuevo_nonce() -> str:
 
 
 def pagina(nonce: str) -> str:
-    """El HTML del panel con el nonce de este arranque en su CSP, su estilo y su script."""
+    """El HTML del panel con el nonce de este arranque, su estilo, su script y su logo."""
     texto = importlib.resources.files(__name__).joinpath("sesion.html").read_text(encoding="utf-8")
-    return texto.replace("__NONCE__", nonce)
+    logo = base64.b64encode(recursos.datos("logo.png")).decode("ascii")
+    return texto.replace("__NONCE__", nonce).replace("__LOGO__", f"data:image/png;base64,{logo}")
 
 
 def redirigir_salidas() -> None:
@@ -480,8 +482,12 @@ def main() -> int:
         vigilante.start()
         flujo_hilo.start()
 
+    icono = recursos.ruta("tiza.ico")
+    opciones: dict[str, Any] = {"private_mode": True}
+    if icono is not None:
+        opciones["icon"] = str(icono)
     try:
-        webview.start(arrancar, private_mode=True)
+        webview.start(arrancar, **opciones)
     except Exception as exc:  # noqa: BLE001 - sin motor de ventanas: se dice, no se calla
         avisar(f"No se pudo abrir la ventana del panel ({type(exc).__name__}).")
         return 1

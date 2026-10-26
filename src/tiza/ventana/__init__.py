@@ -20,6 +20,7 @@ from collections.abc import Callable
 from typing import Any, TextIO
 from urllib.parse import urlsplit
 
+from .. import recursos
 from . import entrada, webview2
 
 __all__ = ["ErrorVentana", "disponible", "ejecutar_hijo", "entrar", "principal"]
@@ -162,6 +163,10 @@ def ejecutar_hijo(
 
     web.events.loaded += cargada
     opciones: dict[str, Any] = {"private_mode": True}
+    if sys.platform == "win32":
+        icono = recursos.ruta("tiza.ico")
+        if icono is not None:
+            opciones["icon"] = str(icono)
     if sys.platform.startswith("linux") and importlib.util.find_spec("gi") is None:
         opciones["gui"] = (
             "qt"  # sin GTK, directo a Qt: pywebview no ensucia la terminal probando GTK

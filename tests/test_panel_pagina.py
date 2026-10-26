@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import importlib.resources
 import re
 
@@ -36,9 +37,13 @@ def test_es_un_dato_del_paquete(html):
 def test_no_hay_etiquetas_a_ni_otros_modos_de_navegar(html):
     sin_comentarios = re.sub(r"<!--.*?-->", "", html, flags=re.S)
     assert "<a" not in sin_comentarios.lower()
-    for prohibido in ("<iframe", "<object", "<embed", "<form", "<link", "<base", "<img"):
+    for prohibido in ("<iframe", "<object", "<embed", "<form", "<link", "<base"):
         assert prohibido not in sin_comentarios.lower(), prohibido
-    assert not re.search(r"\b(href|src|action)\s*=", sin_comentarios)
+    # La única imagen es el logo del paquete, que ``pagina`` convierte en un data: URI.
+    assert len(re.findall(r"<img\b", sin_comentarios, re.I)) == 1
+    sin_logo = re.sub(r'<img\b[^>]*\bsrc="__LOGO__"[^>]*>', "", sin_comentarios)
+    assert not re.search(r"\b(href|src|action)\s*=", sin_logo)
+    assert 'src="__LOGO__"' in sin_comentarios
     assert "javascript:" not in sin_comentarios.lower()
     assert "window.open" not in sin_comentarios and "location" not in sin_comentarios
 
@@ -94,6 +99,14 @@ def test_pagina_pone_un_nonce_por_arranque_en_todos_los_sitios(html):
     assert "__NONCE__" not in texto
     assert texto.count(uno) == html.count("__NONCE__") == 4
     assert re.fullmatch(r"[A-Za-z0-9_-]+", uno)  # nada que rompa el atributo
+
+
+def test_pagina_incrusta_el_logo_del_paquete_como_data_uri():
+    texto = panel_pkg.pagina("nonce")
+    assert "__LOGO__" not in texto
+    logos = re.findall(r'src="data:image/png;base64,([A-Za-z0-9+/=]+)"', texto)
+    assert len(logos) == 1
+    assert base64.b64decode(logos[0]).startswith(b"\x89PNG\r\n\x1a\n")
 
 
 def test_hay_un_render_por_tipo_de_pantalla(sin_csp):
