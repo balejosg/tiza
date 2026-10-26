@@ -1,0 +1,30 @@
+# Preferencias de esta asignatura. Una línea por preferencia: «Tema: preferencia».
+# Vale solo para esta carpeta: si las quieres en otra asignatura, copia este fichero.
+
+# Grupo y nivel (sin nombres)
+Nivel: 3.º de ESO
+Materia: Matemáticas
+
+# Tono
+Tono: cercano y directo, sin infantilizar
+Trato: de tú al docente y de vosotros a la clase
+
+# Maqueta
+Maqueta: sin iconos de Font Awesome
+Maqueta: títulos cortos y un solo color de aviso por página
+Maqueta: nada de animaciones ni de cosas que se muevan solas
+
+# Tareas
+Tareas: siempre con la tabla de calificación a la vista
+Tareas: una entrega por tema, al final
+Tareas: el enunciado empieza por lo que hay que hacer
+
+# Material
+Material: letra y espaciado holgados
+Material: los ejemplos con números redondos
+Material: una imagen solo si aporta algo
+
+# Lo que no quiero
+Lo que no quiero: más de una actividad con nota en la misma semana
+Lo que no quiero: enlaces que saquen al alumnado del aula sin avisar
+Lo que no quiero: mayúsculas para llamar la atención

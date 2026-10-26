@@ -974,6 +974,17 @@ def test_la_carpeta_se_lee_sin_carpetas_ocultas_ni_ficheros_que_no_son_de_tiza(t
     assert nombres == ["a.md", "c.md", "d.md", "unidad/e.html"]
 
 
+def test_las_preferencias_no_cuentan_como_actividad(tmp_path):
+    # preferencias.txt es un .txt para que el calificador no lo mire: «evaluación» contiene
+    # «evalua» y un fichero que no carga haría fallar `tiza calificador`.
+    carpeta = tmp_path / "asignatura"
+    carpeta.mkdir()
+    (carpeta / "preferencias.txt").write_text(
+        "Evaluación: tareas con criterios a la vista\n", encoding="utf-8"
+    )
+    assert documentos_de_la_carpeta(carpeta) == []
+
+
 def test_demasiados_ficheros(tmp_path, monkeypatch):
     from tiza.calificacion import carpeta as modulo
     from tiza.calificacion.esquema import ErrorCalificacion

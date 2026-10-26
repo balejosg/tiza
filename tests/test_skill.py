@@ -347,6 +347,7 @@ EJEMPLOS_QUE_VIAJAN = (
     "h5p-huecos.md",
     "h5p-tarjetas.md",
     "formulas.md",
+    "preferencias.txt",
 )
 
 # El ejemplo del calificador con criterios no viaja: lo incrusta su guía.
@@ -402,3 +403,47 @@ def test_la_skill_avisa_de_que_las_imagenes_de_los_ejemplos_no_vienen():
     paso = texto.split("2. **Escribe el contenido**", 1)[1].split("\n3. ", 1)[0]
     assert "ejemplos/" in paso
     assert "imágenes" in paso
+
+
+EJEMPLO_PREFERENCIAS = EJEMPLOS_SKILL / "preferencias.txt"
+
+
+def _paso_uno() -> str:
+    """El paso 1 del flujo de trabajo."""
+    texto = SKILL.read_text(encoding="utf-8")
+    return texto.split("1. **Lee la estructura**", 1)[1].split("\n2. ", 1)[0]
+
+
+def test_skill_lee_las_preferencias_al_empezar():
+    paso = _paso_uno()
+    assert "preferencias.txt" in paso
+    assert "léelo" in paso
+
+
+def test_skill_explica_las_preferencias():
+    texto = SKILL.read_text(encoding="utf-8")
+    assert "## Preferencias del docente" in texto
+    seccion = (
+        "## Preferencias del docente"
+        + texto.split("## Preferencias del docente", 1)[1].split("\n## ", 1)[0]
+    )
+    for parte in (
+        "Reglas que no se rompen",
+        "datos del alumnado",
+        "sí",
+        "pide ahora",
+        "estructura.json",
+        "ejemplos/preferencias.txt",
+        "dice que sí",
+    ):
+        assert parte in seccion, f"el apartado no dice {parte}"
+    assert len(seccion.splitlines()) <= 15
+
+
+def test_el_ejemplo_de_preferencias_es_breve():
+    lineas = EJEMPLO_PREFERENCIAS.read_text(encoding="utf-8").splitlines()
+    assert len(lineas) <= 40
+    for linea in lineas:
+        if not linea.strip() or linea.startswith("#"):
+            continue
+        assert re.fullmatch(r"[^:]+: .+", linea), f"la línea no es «Tema: preferencia»: {linea}"

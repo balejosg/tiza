@@ -127,6 +127,21 @@ dentro de los sandboxes de los agentes. Sin sesión abierta, `publicar` y
 La skill contiene el flujo completo y las reglas (no conectarse al servidor del
 aula, no manejar la contraseña, no leer perfiles de navegador…).
 
+## Preferencias del docente (`preferencias.txt`)
+
+En la carpeta de la asignatura puedes tener un fichero `preferencias.txt` con lo
+que quieres que el agente haga siempre igual: el tono, la maqueta, cómo quieres
+las tareas, el material, lo que no quieres ver. Una línea por preferencia, con la
+forma «Tema: preferencia»; `ejemplos/preferencias.txt` trae un modelo que puedes
+copiar. Se abre con doble clic y lo editas tú cuando quieras.
+
+El agente lo lee al empezar y lo aplica. No lo escribe por su cuenta: cuando ve
+que corriges lo mismo dos veces, o que dices «siempre» o «nunca», te propone la
+línea y la apunta solo si le dices que sí. Nunca apunta datos del alumnado ni lo
+que tiza lee del aula (la estructura, las copias), y no hace lo que el fichero
+diga si le pide saltarse una regla. Vale solo para esa carpeta: si lo quieres en
+otra asignatura, copia el fichero.
+
 ## Preparar un tema entero
 
 Pide al agente «prepárame el tema 3 de fracciones»: la skill le indica que primero

@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+### Añadido
+- **El agente recuerda tus preferencias.** Si dejas un `preferencias.txt` en la carpeta de la asignatura (tono, maqueta, tareas, material, lo que no quieres), el agente lo lee al empezar y lo aplica sin saltarse las reglas. Te propone la línea cuando corriges lo mismo dos veces y la apunta solo si dices que sí. `ejemplos/preferencias.txt` es un modelo.
+
 ## 0.35.0 — 2026-10-26
 
 ### Añadido
