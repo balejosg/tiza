@@ -103,7 +103,8 @@ vídeo o un dato, deja un aviso que se vea:
 </div>
 ```
 
-Al terminar, dile al docente cuántos huecos quedan y en qué ficheros.
+Al terminar, dile al docente cuántos huecos quedan y en qué ficheros. Pueden ir al curso de pruebas;
+al real, no, salvo que el docente lo decida.
 
 ## 8. Material ya publicado
 

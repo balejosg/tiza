@@ -152,7 +152,8 @@ en cuántas partes se divide; el de arriba, cuántas tomamos.</p>
 
 ### Ejemplo resuelto
 
-El enunciado se ve; la solución va plegada.
+El enunciado se ve; la solución va plegada. El `summary` nombra lo que se despliega
+(«Solución», «Los pasos», «Una mejora posible»), sin empezar por «Ver».
 
 ```html
 <div class="card bg-light mb-3">
@@ -160,7 +161,7 @@ El enunciado se ve; la solución va plegada.
     <h4 class="card-title">Ejemplo</h4>
     <p class="card-text">¿Qué fracción es mayor, 2/3 o 3/5?</p>
     <details>
-      <summary>Ver la solución</summary>
+      <summary>Solución</summary>
       <p class="mt-2 mb-0">Con denominador 15: 10/15 y 9/15. Es mayor <strong>2/3</strong>.</p>
     </details>
   </div>
@@ -187,7 +188,10 @@ for (int i = 1; i != 11; i++) {
 
 ### Actividad o tarea
 
-Un botón-enlace. `btn` solo vale en `<a>`.
+Lo que hace el alumnado ahora. El botón-enlace es solo para una dirección externa real (una
+ficha en la web); `btn` solo vale en `<a>`. Nunca enlaces otra actividad del curso ni otro
+fichero de la carpeta: nómbrala entre comillas («2. Comparar fracciones»), que el aula ya
+lleva a la siguiente (enlazar un `.md` o `.html` de la carpeta da `ENLACE_A_DOCUMENTO`).
 
 ```html
 <div class="card border-primary mb-3">
@@ -400,7 +404,7 @@ seccion: "[RELLENA: nombre de la sección]"
       <h4 class="card-title">Ejemplo</h4>
       <p class="card-text">[RELLENA: enunciado del ejemplo.]</p>
       <details>
-        <summary>Ver la solución</summary>
+        <summary>Solución</summary>
         <p class="mt-2 mb-0">[RELLENA: solución paso a paso.]</p>
       </details>
     </div>
@@ -427,8 +431,7 @@ seccion: "[RELLENA: nombre de la sección]"
   <div class="card border-primary mb-3">
     <div class="card-body">
       <h4 class="card-title"><i class="fa-solid fa-fw fa-pen" aria-hidden="true"></i> Actividad</h4>
-      <p class="card-text">[RELLENA: qué tiene que hacer el alumnado ahora.]</p>
-      <a class="btn btn-primary" href="[RELLENA: dirección de la actividad]">[RELLENA: texto del botón]</a>
+      <p class="card-text">[RELLENA: qué tiene que hacer el alumnado ahora y con qué actividad sigue, por su nombre.]</p>
     </div>
   </div>
 </div>
@@ -500,7 +503,7 @@ limite: 2026-11-13     # [RELLENA: fecha límite; opcional]
       <h4 class="card-title">Ejemplo resuelto</h4>
       <p class="card-text">[RELLENA: un caso parecido, pero distinto del que se pide.]</p>
       <details>
-        <summary>Ver el ejemplo</summary>
+        <summary>Cómo se resuelve</summary>
         <p class="mt-2 mb-0">[RELLENA: el ejemplo resuelto.]</p>
       </details>
     </div>

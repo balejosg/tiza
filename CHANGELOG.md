@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Corregido
+- **Un enlace a otra página de la carpeta ya no publica su fichero fuente.** Si una página enlazaba otro documento de la carpeta (`2-siguiente.html`), tiza lo subía tal cual y el alumnado abría el código con su cabecera. Ahora se rechaza con `ENLACE_A_DOCUMENTO`: el aula ya lleva a la actividad siguiente.
+- **Una opción que sea solo `*`, `+` o `-` ya no llega en blanco al cuestionario.** El Markdown la convertía en una lista vacía; ahora tiza lo avisa con `MARKDOWN_SIN_TEXTO` y dice cómo escribirla.
+
+### Cambiado
+- **Páginas sin botones entre actividades y desplegables con nombre propio.** La plantilla y los ejemplos ya no cierran cada página con un botón a la siguiente (el agente no puede saber su dirección); la nombran. Los desplegables dicen lo que esconden («Solución», «Cómo se resuelve») en vez de empezar siempre por «Ver».
+- **El agente no deja notas para ti en lo que ve el alumnado**, no repite el producto final en una página aparte de la tarea y no publica en real con huecos `[RELLENA]` sin decírtelo.
+
 ## 0.36.0 — 2026-10-26
 
 ### Añadido
