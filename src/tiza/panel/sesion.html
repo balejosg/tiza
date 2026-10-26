@@ -21,8 +21,26 @@
   --marca-tinta: #14303F;
   --coral: #E9785A;      /* los circuitos */
   --peligro: #C6452F;
+  --error: var(--peligro);
   --aviso: #8A5A00;
   --borde: #DED7CB;
+  --hover: #F3EFE7;
+  --campo: #FCFBF8;
+}
+/* Contraste AA comprobado sobre --papel y --fondo; el coral y el rojo llevan texto oscuro
+   o blanco, respectivamente. La cabecera ya es oscura en los dos modos. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #171A1D;
+    --papel: #23272B;
+    --texto: #ECF0F2;
+    --suave: #B7C0C7;
+    --borde: #3A4045;
+    --error: #FF9B85;
+    --aviso: #F0C060;
+    --hover: #2D3237;
+    --campo: #1C2023;
+  }
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; background: var(--fondo); color: var(--texto); }
@@ -58,11 +76,19 @@ h2::before { content: ""; display: inline-block; width: 8px; height: 8px; border
 .acciones .botones { margin-top: 0; }
 p { margin: 7px 0; }
 .suave { color: var(--suave); }
-.error { color: var(--peligro); }
+.puntos { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
+.puntos span { width: 6px; height: 6px; border-radius: 50%; background: var(--suave); animation: latido 1s infinite ease-in-out; }
+.puntos span:nth-child(2) { animation-delay: .15s; }
+.puntos span:nth-child(3) { animation-delay: .3s; }
+@keyframes latido {
+  0%, 80%, 100% { opacity: .25; transform: scale(.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+.error { color: var(--error); }
 .aviso { color: var(--aviso); }
 label { display: block; font-weight: 600; margin: 14px 0 5px; }
 label.casilla { font-weight: 400; margin: 0; padding: 9px 12px; border: 1px solid var(--borde); border-radius: 8px; background: var(--papel); display: flex; align-items: center; gap: 9px; cursor: pointer; }
-label.casilla:hover { background: #F3EFE7; border-color: #CFC7B9; }
+label.casilla:hover { background: var(--hover); border-color: var(--marca-fuerte); }
 label.casilla .nombre { flex: 1; }
 .opciones { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
 button.fila { display: flex; align-items: center; width: 100%; text-align: left; }
@@ -71,11 +97,11 @@ button.fila .nombre { flex: 1; }
 .fila-reciente { display: flex; gap: 8px; align-items: stretch; margin-top: 8px; }
 .fila-reciente button.fila { flex: 1; }
 .fila-reciente button.quitar { font-size: 12px; padding: 6px 11px; }
-input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid #D5CEC1; border-radius: 8px; font: inherit; background: #FCFBF8; color: var(--texto); }
+input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; font: inherit; background: var(--campo); color: var(--texto); }
 input[type="text"]:focus { outline: none; border-color: var(--marca-fuerte); box-shadow: 0 0 0 3px rgba(127,185,220,.28); }
 .botones { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 16px; }
-button { font: inherit; padding: 9px 17px; border-radius: 8px; border: 1px solid var(--borde); background: var(--papel); color: var(--texto); cursor: pointer; transition: background .12s, border-color .12s; }
-button:hover { background: #F3EFE7; border-color: #CFC7B9; }
+button { font: inherit; padding: 9px 17px; border-radius: 8px; border: 1px solid var(--borde); background: var(--papel); color: var(--texto); cursor: pointer; transition: background .12s, border-color .12s, opacity .25s; }
+button:hover { background: var(--hover); border-color: var(--marca-fuerte); }
 button:focus-visible { outline: 3px solid rgba(127,185,220,.55); outline-offset: 2px; }
 button:disabled { opacity: .5; cursor: default; }
 button.principal { background: var(--marca); border-color: var(--marca-fuerte); color: var(--marca-tinta); font-weight: 700; }
@@ -92,7 +118,7 @@ ul { margin: 8px 0; padding-left: 22px; }
 #registro { font-size: 13px; max-height: 220px; overflow: auto; color: var(--suave); }
 #registro::-webkit-scrollbar { width: 8px; }
 #registro::-webkit-scrollbar-thumb { background: #D8D1C5; border-radius: 8px; }
-#registro li.error { color: var(--peligro); }
+#registro li.error { color: var(--error); }
 #registro .hora { color: var(--suave); margin-right: 7px; font-variant-numeric: tabular-nums; }
 ::selection { background: var(--marca); color: var(--marca-tinta); }
 @media (max-width: 620px) {
@@ -103,7 +129,18 @@ ul { margin: 8px 0; padding-left: 22px; }
   .tarjeta { padding: 16px; }
   .acciones { margin: 16px -16px -16px; padding: 12px 16px; }
 }
-@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+/* En la ventana mínima (520 px de alto) la cabecera no se come la pantalla. */
+@media (max-height: 600px) {
+  header { padding: 7px 16px; gap: 10px; }
+  header img { height: 34px; width: 57px; }
+  header h1 { display: none; }
+  header #contexto { margin-top: 0; font-size: 13px; color: #F4F7F8; }
+  main { padding-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+  .puntos span { animation: none; opacity: .7; }
+}
 </style>
 </head>
 <body>
@@ -200,6 +237,18 @@ ul { margin: 8px 0; padding-left: 22px; }
     (lineas || []).forEach(function (linea) { nodos.push(el("p", clase || null, linea)); });
   }
 
+  function puntos() {
+    var caja = el("span", "puntos");
+    for (var i = 0; i < 3; i++) { caja.appendChild(el("span")); }
+    return caja;
+  }
+
+  function conPuntos(texto) {
+    var parrafo = el("p", "suave", texto);
+    parrafo.appendChild(puntos());
+    return parrafo;
+  }
+
   function zonaDeError(contenedor) {
     var nodo = el("p", "error");
     nodo.hidden = true;
@@ -266,10 +315,14 @@ ul { margin: 8px 0; padding-left: 22px; }
   var pintores = {
     reposo: function (p) {
       var nodos = [];
-      if (p.titulo) { nodos.push(el("h2", null, p.titulo)); }
+      if (p.titulo) {
+        var titulo = el("h2", null, p.titulo);
+        if (p.titulo === "Conectando…") { titulo.appendChild(puntos()); }
+        nodos.push(titulo);
+      }
       parrafos(nodos, p.lineas);
       if (!p.titulo && !(p.lineas || []).length) {
-        nodos.push(el("p", "suave", "Esperando…"));
+        nodos.push(conPuntos("Esperando…"));
       }
       return nodos;
     },
@@ -441,7 +494,7 @@ ul { margin: 8px 0; padding-left: 22px; }
     entrando: function (p) {
       var nodos = [el("h2", null, p.titulo)];
       parrafos(nodos, p.lineas);
-      nodos.push(el("p", "suave", "Esperando a que entres en la ventana del aula…"));
+      nodos.push(conPuntos("Esperando a que entres en la ventana del aula…"));
       return nodos;
     },
     ampliar: function (p) {

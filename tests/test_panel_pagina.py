@@ -245,6 +245,20 @@ def test_la_pantalla_final_ofrece_volver_a_empezar(sin_csp):
     assert "responder(p.numero, true);" in sin_csp
 
 
+def test_pulido_visual_con_movimiento_reducido_y_modo_oscuro(sin_csp):
+    assert "@media (prefers-color-scheme: dark)" in sin_csp
+    assert "--fondo: #171A1D" in sin_csp and "--papel: #23272B" in sin_csp
+    assert "--error: #FF9B85" in sin_csp and "--aviso: #F0C060" in sin_csp
+    assert "@media (prefers-reduced-motion: reduce)" in sin_csp
+    assert ".puntos span { animation: none; opacity: .7; }" in sin_csp
+    assert "@media (max-height: 600px)" in sin_csp
+    assert "header h1 { display: none; }" in sin_csp
+    assert "transition: background .12s, border-color .12s, opacity .25s" in sin_csp
+    assert 'p.titulo === "Conectando…"' in sin_csp
+    assert 'conPuntos("Esperando…")' in sin_csp
+    assert 'conPuntos("Esperando a que entres en la ventana del aula…")' in sin_csp
+
+
 def _llamadas_al_puente(texto: str) -> list[tuple[str, int]]:
     """(método, número de argumentos) de cada ``puente.<método>(...)`` de la página."""
     resultado = []
