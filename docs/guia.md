@@ -46,8 +46,12 @@ ofrece la versión nueva, aplica la protección de la carpeta (sin ella no abre 
 entra en la página de login de tu aula en una ventana propia, deja elegir los cursos por
 nombre y pasa la autoprueba cuando toca. Después queda abierto mientras trabajas. Cuando el
 agente pide publicar en real, el panel se pone delante y parpadea con el mismo resumen que la
-terminal, y tú confirmas con **Sí** o **No** (también «Ver vista previa»). «Cerrar la sesión»
-o cerrar la ventana cierra la sesión.
+terminal, y tú confirmas con botones que dicen lo que hacen («Publicar en este curso»,
+«Saltar este curso», «Conservar los cambios del aula»…) y con «Ver vista previa». En las
+decisiones peligrosas, la opción segura va primero y el botón que sobrescribe va en rojo.
+«Cerrar la sesión y salir» pide confirmación antes de cerrar; también puedes cerrar la
+ventana. Al terminar, el panel ofrece «Volver a empezar» para elegir otra carpeta sin
+volver a abrirlo.
 
 - **Es del docente.** El agente no puede abrir el panel ni pulsar sus botones: el perfil de
   permisos de `tiza aislar` lo deniega. Si el agente no tiene aislamiento, el panel no abre la

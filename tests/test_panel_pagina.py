@@ -141,7 +141,8 @@ def test_enseña_lo_que_tiene_que_enseñar(sin_csp):
     assert "estado.servidor" in sin_csp and "estado.carpeta" in sin_csp
     assert 'linea.error ? "error"' in sin_csp  # los errores del registro, en rojo
     assert 'id="insignia"' in sin_csp and "estado.caduca" in sin_csp
-    assert "Sesión abierta · quedan " in sin_csp and "minutos < 5" in sin_csp
+    assert "Sesión abierta · quedan " in sin_csp
+    assert "minutos < estado.aviso_minutos" in sin_csp
     assert 'id="pasos"' in sin_csp and "pintarPasos(estado.paso)" in sin_csp
     for campo in ("texto_si", "texto_no", "riesgo"):
         assert campo in sin_csp, campo

@@ -641,8 +641,8 @@ ul { margin: 8px 0; padding-left: 22px; }
     var minutos = Math.max(0, Math.ceil((fin - Date.now()) / 60000));
     document.getElementById("insignia-texto").textContent =
       "Sesión abierta · quedan " + minutos + " min";
-    // El mismo umbral que sesion.AVISO_MINUTOS: los últimos cinco minutos, en color de aviso.
-    insignia.className = minutos < 5 ? "insignia urgente" : "insignia";
+    // El mismo umbral que sesion.AVISO_MINUTOS, que llega en el estado.
+    insignia.className = minutos < estado.aviso_minutos ? "insignia urgente" : "insignia";
     insignia.hidden = false;
   }
 

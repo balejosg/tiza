@@ -16,7 +16,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from . import ayuda, estado, informe, rutas, tipos
 from .informe import ErrorInforme
@@ -675,6 +675,15 @@ PREGUNTA_AISLAMIENTO = "¿Aplicarlos?"
 PREGUNTA_SEGUIR_SIN_AISLAR = "¿Seguir sin aislar el agente?"
 PREGUNTA_SESION_ANTERIOR = "¿Cerrarla y abrir esta?"
 
+
+class Rotulos(TypedDict):
+    """Los tres campos de una pantalla de confirmación que deciden sus botones."""
+
+    texto_si: str
+    texto_no: str
+    riesgo: str
+
+
 # Rótulos de los botones de cada confirmación del panel: (sí, no, riesgo). El riesgo vacío
 # deja el «sí» como botón principal; «real» lo pinta en coral y «peligro» pone delante el
 # «no» como principal y el «sí» en rojo. La terminal no los usa: sigue con [s/N].
@@ -705,13 +714,13 @@ _ROTULOS: dict[str, tuple[str, str, str]] = {
 }
 
 
-def rotulos(confirmacion: str) -> dict[str, str]:
+def rotulos(confirmacion: str) -> Rotulos:
     """Los rótulos de una confirmación del panel, con los valores por defecto si no tiene."""
     texto_si, texto_no, riesgo = _ROTULOS.get(confirmacion, ("", "", ""))
     return {"texto_si": texto_si, "texto_no": texto_no, "riesgo": riesgo}
 
 
-def rotulos_ampliacion(minutos: int) -> dict[str, str]:
+def rotulos_ampliacion(minutos: int) -> Rotulos:
     """Los rótulos de la pregunta de ampliación, con sus minutos."""
     return {
         "texto_si": f"Ampliar {minutos} minutos",

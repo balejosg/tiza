@@ -44,7 +44,7 @@ from ..publicacion import (
     ResumenSinPruebas,
     ResumenSobrescribir,
 )
-from ..sesion import SIN_PRUEBAS, CursoSesion
+from ..sesion import AVISO_MINUTOS, SIN_PRUEBAS, CursoSesion
 from . import recientes
 
 __all__ = [
@@ -269,6 +269,7 @@ class Panel:
                 "servidor": self._servidor,
                 "sesion_abierta": self._sesion_abierta,
                 "caduca": self._caduca,
+                "aviso_minutos": AVISO_MINUTOS,
                 "paso": self._paso,
                 "pregunta": self._validar is not None,
             }

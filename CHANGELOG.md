@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.33.0 — 2026-10-26
+
+### Añadido
+- **Botones con verbo en el panel.** Cada confirmación dice lo que hace («Publicar en este curso», «Saltar este curso», «Conservar los cambios del aula»…) y las decisiones de riesgo se distinguen por color; en las peligrosas, la opción segura va primero.
+- **Cuenta atrás y estado de la sesión en el panel.** La cabecera enseña una insignia con los minutos que quedan, los pasos del arranque y una cuenta atrás en la pantalla de ampliación.
+- **Volver a empezar sin cerrar el panel.** Las pantallas finales ofrecen «Volver a empezar» y vuelven a la elección de carpeta en la misma ventana.
+- **Recientes más claras.** Las carpetas con el mismo nombre llevan una pista de su carpeta madre y se pueden quitar con «Quitar».
+- **Registro con hora y copia.** Cada línea lleva la hora, los errores dicen «Error:» y un botón copia el registro si el portapapeles está disponible.
+- **Validación visible en el panel.** Los campos mal escritos o vacíos explican qué pasa y no se envía nada; Enter envía el formulario cuando los botones ya están habilitados.
+- **Cierre de sesión en dos pasos.** «Cerrar la sesión y salir» pide confirmación en la cabecera.
+
+### Cambiado
+- El panel usa modo oscuro si Windows lo pide, respeta el movimiento reducido y cabe mejor en la ventana mínima.
+- Las confirmaciones largas llevan la pregunta y los botones en una barra fija, y el registro se pliega mientras hay una pregunta pendiente.
+
 ## 0.32.0 — 2026-10-26
 
 ### Cambiado

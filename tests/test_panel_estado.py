@@ -14,7 +14,7 @@ from tiza import aislamiento, config, mensajes, publicacion, publicar
 from tiza.panel import estado as pe
 from tiza.panel import recientes
 from tiza.panel.estado import Panel, PresenciaPanel, Puente
-from tiza.sesion import SIN_PRUEBAS, CursoSesion
+from tiza.sesion import AVISO_MINUTOS, SIN_PRUEBAS, CursoSesion
 
 
 class Reloj:
@@ -1169,6 +1169,7 @@ def test_el_estado_lleva_carpeta_servidor_y_si_la_sesion_esta_abierta(entorno):
     est = entorno.puente.estado()
     assert (est["carpeta"], est["servidor"], est["sesion_abierta"]) == ("", "", False)
     assert (est["caduca"], est["paso"]) == ("", "")
+    assert est["aviso_minutos"] == AVISO_MINUTOS
     entorno.panel.fijar_carpeta("curso / mates\x1b[31m")
     entorno.panel.fijar_servidor("aula.ejemplo.org")
     est = entorno.puente.estado()
