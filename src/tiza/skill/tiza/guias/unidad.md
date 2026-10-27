@@ -54,9 +54,10 @@ a toda la clase (`guias/dua.md`) es propuesta tuya, salvo lo que cite `tiza norm
 
 La unidad, con las relaciones curriculares en una tabla «código | texto literal | procedencia».
 Haz solo las preguntas que únicamente el docente puede contestar, y todas juntas. Di qué
-imágenes o esquemas necesita cada página y qué debe mostrar cada uno, en una línea: los
-esquemas sencillos los puedes dibujar tú con `tiza esquema` (`guias/esquemas.md`); las fotos,
-los mapas reales o el material ajeno los trae el docente.
+imágenes o esquemas necesita cada página y qué debe mostrar cada uno, en una línea, marcado
+como «la dibujo yo (esquema)» o «la traes tú»: los esquemas sencillos los dibujas tú con
+`tiza esquema` (`guias/esquemas.md`) salvo que el docente diga otra cosa; las fotos, los mapas
+reales o el material ajeno los trae el docente.
 
 ## 7. Escribe el Word y las actividades
 

@@ -441,8 +441,9 @@ seccion: "[RELLENA: nombre de la sección]"
 
 «Palabras de esta página» es opcional: bórralo entero si la página no trae términos nuevos.
 Si el contenido pide código, añade un bloque «Código» (sección 5). Si pide una imagen,
-déjala con `alt` y `img-fluid`; si no la tienes, deja el aviso «Falta:» de `guias/dua.md` y
-avisa al docente.
+déjala con `alt` y `img-fluid`. Si es un esquema, dibújalo con `tiza esquema`
+(`guias/esquemas.md`); si es una foto o material ajeno y no la tienes, deja el aviso «Falta:»
+de `guias/dua.md` y avisa al docente.
 
 ### Tarea
 

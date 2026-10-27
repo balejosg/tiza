@@ -8,6 +8,7 @@ se avisa aquí con **Cambia**.
 
 ### Añadido
 - **El agente puede dibujar los esquemas de tus páginas.** Con `tiza esquema <svg>` convierte un SVG de la carpeta en un PNG listo para publicar (fondo blanco, fuente legible y el mismo resultado en todos los equipos). El SVG se valida antes de dibujarlo: solo formas, trazos y texto, sin imágenes, filtros, scripts ni referencias externas, con límites de tamaño y proporción. `tiza esquema` solo sustituye el PNG que él mismo creó desde ese SVG; un PNG tuyo con el mismo nombre se queda como está (`ESQUEMA_EXISTE`). La skill trae una guía nueva, `guias/esquemas.md`, con cuándo dibujar y cuándo pedirte la imagen.
+- **En la propuesta de una unidad, el agente marca cada imagen como «la dibujo yo» o «la traes tú»**, y revisa cada esquema que dibuja antes de citarlo: texto que no cabe, etiquetas que se pisan o letra demasiado pequeña para el móvil.
 
 ### Corregido
 - **Un SVG no se sube como recurso de una página.** El filtro ya rechazaba el SVG incrustado; ahora tampoco se puede colar como fichero enlazado o imagen (`RECURSO_NO_PERMITIDO`). Para publicar un esquema, conviértelo antes con `tiza esquema` y cita el PNG.
