@@ -1,4 +1,4 @@
-"""Escritura de documentos para el docente (hoy, un Word sencillo desde Markdown)."""
+"""Escritura de documentos para el docente: un Word sencillo y un SVG convertido en PNG."""
 
 from __future__ import annotations
 

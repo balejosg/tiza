@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tiza"
-version = "0.36.1"
+version = "0.37.0"
 license = "MIT"
 license-files = ["LICENSE"]
 description = "CLI y skill para publicar contenidos en tu aula virtual Moodle sin exponer datos del alumnado"
@@ -23,6 +23,7 @@ dependencies = [
     "python-docx>=1.2,<2",
     "pypdf>=6,<7",
     "lxml>=5,<7",  # se importa directamente; ya llegaba con python-docx
+    "resvg-py==0.5.0",
 ]
 
 [project.scripts]

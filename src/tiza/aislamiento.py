@@ -102,6 +102,7 @@ _COMANDOS_AGENTE = (
     "normativa",
     "leer",
     "documento",
+    "esquema",
     "rellenar",
     "importar",
     "copia",

@@ -41,6 +41,7 @@ def test_skill_nombra_comandos_del_agente():
         "tiza normativa",
         "tiza leer",
         "tiza documento",
+        "tiza esquema",
         "tiza rellenar",
         "tiza importar",
         "tiza copia",
@@ -362,6 +363,31 @@ def test_guia_licencias_es_breve_y_dice_lo_esencial():
         "tiza normativa",
         "preferencias.txt",
         "iframe",
+    ):
+        assert parte in texto, parte
+
+
+GUIA_ESQUEMAS = SKILL.parent / "guias/esquemas.md"
+
+
+def test_guia_esquemas_existe_y_se_cita():
+    assert GUIA_ESQUEMAS.is_file()
+    assert "guias/esquemas.md" in SKILL.read_text(encoding="utf-8")
+    for guia in ("dua.md", "estilo.md", "unidad.md"):
+        assert "guias/esquemas.md" in (SKILL.parent / "guias" / guia).read_text(encoding="utf-8")
+
+
+def test_guia_esquemas_dice_lo_esencial():
+    texto = GUIA_ESQUEMAS.read_text(encoding="utf-8")
+    assert len(texto.splitlines()) <= 150
+    for parte in (
+        "tiza esquema",
+        "ESQUEMA_EXISTE",
+        "font-family",
+        "fondo siempre es blanco",
+        "1:4",
+        "alt",
+        "LaTeX",
     ):
         assert parte in texto, parte
 

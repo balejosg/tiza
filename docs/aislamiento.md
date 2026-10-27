@@ -205,7 +205,7 @@ su lugar escribe en `.claude/settings.json` de la carpeta de la asignatura un
   todo lo que no esté permitido. Además, `disableBypassPermissionsMode` impide
   pasar a un modo sin permisos;
 - solo se permiten los comandos de tiza que el agente necesita (`tiza normativa`,
-  `leer`, `documento`, `rellenar`, `importar`, `copia`, `calificador`, `comprobar`,
+  `leer`, `documento`, `esquema`, `rellenar`, `importar`, `copia`, `calificador`, `comprobar`,
   `publicar`, `ordenar`, `estructura`, `revisar` y `--help`), y solo puede escribir en la
   carpeta de la asignatura, salvo en `tiza.toml` y en `.claude/` (el agente no
   reescribe su propio perfil);
@@ -407,8 +407,8 @@ Si tu agente no está en la lista:
    del proyecto.
 5. No le permitas ejecutar `tiza empezar`, `tiza sesion`, `tiza autoprueba`,
    `tiza configurar`, `tiza aislar`, `tiza actualizar`, `tiza-panel`
-   ni `python -m tiza.ventana` ni `python -m tiza.panel`. El agente solo necesita `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline;
-   `leer`, `documento`, `rellenar` e `importar` solo trabajan dentro de la carpeta y nunca sobrescriben),
+   ni `python -m tiza.ventana` ni `python -m tiza.panel`. El agente solo necesita `tiza normativa`, `tiza leer`, `tiza documento`, `tiza esquema`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline;
+   `leer`, `documento`, `esquema`, `rellenar` e `importar` solo trabajan dentro de la carpeta; `documento`, `rellenar` e `importar` nunca sobrescriben y `esquema` solo sustituye su propio PNG),
    `tiza publicar`, `tiza ordenar`, `tiza calificador`, `tiza estructura` y `tiza copia` (con la sesión
    abierta no salen de `.tiza/`; sin sesión fallan con `SIN_SESION`) y
    `tiza revisar` (solo lectura).

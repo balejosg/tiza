@@ -28,6 +28,7 @@ from .estructura import Estructura
 from .ficheros import (
     FicheroNoSeguro,
     asegurar_directorio,
+    escribir_bytes,
     escribir_texto,
     fichero_en_carpeta,
     leer_bytes_acotado,
@@ -41,6 +42,7 @@ __all__ = [
     "comprobar",
     "copia",
     "documento",
+    "esquema",
     "estado_sesion",
     "estructura",
     "formato_documento",
@@ -632,6 +634,83 @@ def documento(
     informe.Documento(fuente=fuente_rel, documento=documento_rel, bloques=0)
     bloques = escribir_docx(texto, destino)
     return informe.Documento(fuente=fuente_rel, documento=documento_rel, bloques=bloques)
+
+
+def esquema(
+    fuente: str | Path,
+    carpeta: str | Path,
+    salida: str | Path | None = None,
+    *,
+    ancho: int = 1200,
+) -> informe.Esquema:
+    """Convierte un SVG de la asignatura en un PNG para publicarlo (offline).
+
+    Sin ``salida`` usa el nombre de la fuente con ``.png``. Solo escribe dentro de la
+    carpeta. Sustituye un PNG existente únicamente si lo hizo ``tiza esquema`` desde este
+    mismo SVG (la marca ``tEXt`` del PNG); si no, ``ESQUEMA_EXISTE``. Lanza
+    ``ErrorEscritura`` con un código estable; resvg se importa dentro de la conversión.
+    """
+    from .escritura import esquema as conversor
+
+    base = Path(carpeta)
+    try:
+        origen = fichero_en_carpeta(fuente, base, {".svg"})
+        destino = fichero_en_carpeta(
+            salida if salida is not None else origen.with_suffix(".png"), base, {".png"}
+        )
+    except ErrorLectura as error:
+        raise ErrorEscritura(error.codigo, error.detalle) from None
+    raiz = base.resolve()
+    fuente_rel = origen.relative_to(raiz).as_posix()
+    imagen_rel = destino.relative_to(raiz).as_posix()
+    try:
+        fuente_rel.encode("utf-8")
+        imagen_rel.encode("utf-8")
+    except UnicodeEncodeError:  # nombres con bytes que no son UTF-8 (surrogates)
+        raise ErrorEscritura("NOMBRE_NO_VALIDO", "El nombre del fichero no vale.") from None
+    try:
+        datos = leer_bytes_acotado(origen, conversor.MAX_SVG_BYTES)
+    except FileNotFoundError:
+        raise ErrorEscritura("FICHERO_AUSENTE", f"No existe el fichero {origen.name}.") from None
+    except FicheroNoSeguro as exc:
+        if exc.motivo == "grande":
+            raise ErrorEscritura(
+                "ESQUEMA_DEMASIADO_GRANDE",
+                f"{origen.name} pesa más de {conversor.MAX_SVG_BYTES // 2**10} KB.",
+            ) from None
+        raise ErrorEscritura("FICHERO_BLOQUEADO", f"No se puede leer {origen.name}.") from None
+    except OSError:
+        raise ErrorEscritura("FICHERO_BLOQUEADO", f"No se puede leer {origen.name}.") from None
+    sustituye = False
+    if destino.exists():
+        try:
+            existente = leer_bytes_acotado(destino, conversor.MAX_PNG_BYTES)
+        except (FicheroNoSeguro, OSError):
+            marca = None
+        else:
+            marca = conversor.marca_de_png(existente)
+        if marca != fuente_rel:
+            sugerencia = destino.with_name(f"{destino.stem}-esquema.png")
+            sugerencia_rel = sugerencia.relative_to(raiz).as_posix()
+            raise ErrorEscritura(
+                "ESQUEMA_EXISTE",
+                f"{imagen_rel} ya existe y no lo hizo tiza esquema; usa --salida {sugerencia_rel}.",
+            )
+        sustituye = True
+    png, ancho_real, alto = conversor.convertir(datos, fuente_rel, ancho)
+    resultado = informe.Esquema(
+        fuente=fuente_rel,
+        imagen=imagen_rel,
+        ancho=ancho_real,
+        alto=alto,
+        bytes=len(png),
+        sustituye=sustituye,
+    )
+    try:
+        escribir_bytes(destino, png)
+    except OSError:
+        raise ErrorEscritura("FICHERO_BLOQUEADO", f"No se pudo escribir {imagen_rel}.") from None
+    return resultado
 
 
 def rellenar(relleno: str | Path, carpeta: str | Path) -> informe.Relleno:

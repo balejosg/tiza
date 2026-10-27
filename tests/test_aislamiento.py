@@ -821,6 +821,8 @@ class TestClaudeWindows:
             assert f"{shell}(tiza publicar *)" in allow
             assert f"{shell}(tiza --help)" in allow
             assert f"{shell}(tiza calificador *)" in allow  # el calificador es del agente
+            assert f"{shell}(tiza esquema)" in allow
+            assert f"{shell}(tiza esquema *)" in allow  # el SVG se convierte sin sesión
         assert "Edit(/**)" in allow
         assert any("modo dontAsk" in c for c in cambios)
         assert any("fuera de la carpeta" in c for c in cambios)
@@ -864,6 +866,14 @@ class TestClaudeWindows:
         assert set(aislamiento.reglas_panel_windows()).isdisjoint(
             aislamiento.reglas_agente_windows()
         )
+
+    def test_revisar_sin_las_reglas_de_esquema_falta(self):
+        nuevo, _ = self.perfil(servidor=SERVIDOR)
+        for shell in ("PowerShell", "Bash"):
+            nuevo["permissions"]["allow"].remove(f"{shell}(tiza esquema)")
+            nuevo["permissions"]["allow"].remove(f"{shell}(tiza esquema *)")
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Windows", servidor=SERVIDOR))
+        assert textos == ["comandos de tiza del agente permitidos (faltan 4 reglas)"]
 
     def test_revisar_sin_las_reglas_del_panel_falta(self):
         nuevo, _ = self.perfil(servidor=SERVIDOR)

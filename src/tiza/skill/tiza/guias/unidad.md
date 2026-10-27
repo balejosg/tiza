@@ -53,8 +53,10 @@ a toda la clase (`guias/dua.md`) es propuesta tuya, salvo lo que cite `tiza norm
 ## 6. Propón en el chat
 
 La unidad, con las relaciones curriculares en una tabla «código | texto literal | procedencia».
-Haz solo las preguntas que únicamente el docente puede contestar, y todas juntas. Entre ellas,
-las imágenes o esquemas que necesita cada página: qué debe mostrar cada una, en una línea.
+Haz solo las preguntas que únicamente el docente puede contestar, y todas juntas. Di qué
+imágenes o esquemas necesita cada página y qué debe mostrar cada uno, en una línea: los
+esquemas sencillos los puedes dibujar tú con `tiza esquema` (`guias/esquemas.md`); las fotos,
+los mapas reales o el material ajeno los trae el docente.
 
 ## 7. Escribe el Word y las actividades
 

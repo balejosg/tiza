@@ -92,10 +92,12 @@ funcionando: no le pidas al docente que lo relaje.
 antes de citar un elemento curricular, no completes de memoria lo que responda
 `NORMATIVA_SIN_DATOS` y no busques normativa en internet.
 
-`tiza leer`, `tiza documento` y `tiza rellenar` (offline, solo dentro de la carpeta de la asignatura)
-también son tuyos: el primero convierte un Word o un PDF en texto; el segundo, un `.md` en un Word
-sencillo; el tercero, un `relleno.yaml` en una copia de la plantilla del departamento. Ninguno
-sobrescribe un fichero.
+`tiza leer`, `tiza documento`, `tiza esquema` y `tiza rellenar` (offline, solo dentro de la
+carpeta de la asignatura) también son tuyos: el primero convierte un Word o un PDF en texto; el
+segundo, un `.md` en un Word sencillo; el tercero, un SVG en un PNG para publicarlo (solo formas,
+trazos y texto, sin imágenes ni referencias externas); el cuarto, un `relleno.yaml` en una copia
+de la plantilla del departamento. `documento` y `rellenar` nunca sobrescriben; `esquema` solo
+sustituye un PNG que haya hecho él desde ese mismo SVG.
 
 `tiza importar` (offline) convierte una copia de seguridad del curso, hecha sin usuarios, en
 ficheros de tiza, y `tiza copia` pide esa copia a la sesión abierta del docente, que la confirma

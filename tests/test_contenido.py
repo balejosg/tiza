@@ -336,6 +336,15 @@ class TestRecursos:
         doc = cargar(escribir(tmp_path, pagina("[Abrir](simulacion.html)")))
         assert [recurso.nombre for recurso in doc.recursos] == ["simulacion.html"]
 
+    def test_un_svg_no_se_publica_como_recurso(self, tmp_path):
+        (tmp_path / "x.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg"/>', encoding="utf-8"
+        )
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, pagina("![x](x.svg)")))
+        assert exc.value.codigo == "RECURSO_NO_PERMITIDO"
+        assert "tiza esquema" in exc.value.detalle
+
     def test_recurso_duplicado_falla(self, tmp_path):
         (tmp_path / "a").mkdir()
         (tmp_path / "b").mkdir()

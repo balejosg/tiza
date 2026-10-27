@@ -19,7 +19,7 @@ en español.
   excepción no se copia a la skill ni a los documentos para los agentes de los docentes.
 - **`tiza empezar`, `tiza sesion`, `tiza configurar`, `tiza autoprueba`,
   `tiza aislar`, `tiza actualizar` y `tiza-panel` son del docente** (tampoco lances `python -m tiza.ventana` ni `python -m tiza.panel`): no los ejecutes. El agente puede usar
-  `tiza normativa`, `tiza leer`, `tiza documento`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
+  `tiza normativa`, `tiza leer`, `tiza documento`, `tiza esquema`, `tiza rellenar`, `tiza importar` y `tiza comprobar` (offline) y, mientras el docente mantenga abierta
   `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar`, `tiza calificador`, `tiza estructura` y `tiza copia` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
@@ -79,7 +79,10 @@ en español.
   número de línea) y nunca sobrescribe (`DOCUMENTO_EXISTE`). `tiza rellenar`, también offline:
   `relleno.py` valida el `relleno.yaml` (forma, ids, conflictos) sin abrir la plantilla, y
   `rellenar.py` aplica las operaciones sobre una copia de la plantilla con los ids de
-  `lectura/word.py`, sin sobrescribir nunca.
+  `lectura/word.py`, sin sobrescribir nunca. `esquema.py` es `tiza esquema`: valida el SVG con
+  un esquema cerrado (sin DTD, entidades, imágenes ni referencias externas), lo renderiza con
+  `resvg-py` (import diferido) y escribe el PNG con una marca `tEXt` que dice de qué SVG salió;
+  solo sustituye su propio PNG y mantiene un fondo blanco y la fuente `recursos/`.
 - `src/tiza/calificacion/`: el calificador del aula, puro salvo `ejecutar.py`. `esquema.py`
   valida `calificacion.yaml` (esquema cerrado, con la línea del error); `carpeta.py` lee las
   actividades de la carpeta con su `evalua`; `deseado.py` calcula el árbol deseado (todo cuelga
@@ -155,8 +158,10 @@ en español.
 - `src/tiza/contenido.py`: Markdown o HTML + frontmatter, recursos locales,
   vista previa y hash del documento; todo offline. Valida lo común (nombre,
   sección, finalización, restricciones) y le pide los campos propios y los
-  `Extras` al adapter del tipo; no conoce ningún tipo por su nombre. El formato
-  de las fechas en el hash (`tipos.base.formato_fecha`) no se cambia sin avisar.
+  `Extras` al adapter del tipo; no conoce ningún tipo por su nombre. Un SVG no vale
+  como recurso (`RECURSO_NO_PERMITIDO`): se convierte con `tiza esquema` y se cita el
+  PNG. El formato de las fechas en el hash (`tipos.base.formato_fecha`) no se cambia
+  sin avisar.
 - `src/tiza/cuestionario.py` y `src/tiza/h5p.py`: construcción offline del XML de
   preguntas y del paquete `.h5p` (solo contenido, determinista); la validación de
   las preguntas vive en `tipos/cuestionario.py` y la de las actividades y paquetes
@@ -297,9 +302,11 @@ en español.
     muestra la ventana una vez (con reintentos si aún no hay HWND) por si nació oculta. `abrir_login` crea la
     ventana de entrada en el mismo proceso, sin `js_api`; la cookie nunca sale del proceso.
 - `src/tiza/recursos/`: los recursos gráficos que viajan en la wheel: `logo.png` (la marca con
-  transparencia que la página del panel incrusta como `data:`) y `tiza.ico` (el icono de varias
-  medidas de las ventanas y del acceso de Windows). `ruta` solo sirve para ficheros reales;
-  `datos` también dentro de un paquete comprimido.
+  transparencia que la página del panel incrusta como `data:`), `tiza.ico` (el icono de varias
+  medidas de las ventanas y del acceso de Windows) y las dos variantes de `Liberation Sans`
+  (normal y negrita, OFL 1.1, con su licencia) que usa `tiza esquema` para que el PNG salga
+  igual en todos los equipos. `ruta` solo sirve para ficheros reales; `datos` también dentro de
+  un paquete comprimido.
 - `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
   Windows, macOS y Linux con escritorio, con Qt o GTK). **Solo enseña la página de login del aula y devuelve las cookies de
   sesión del servidor del aula**: nada más pasa por ella (cursos, aislamiento y
@@ -332,7 +339,7 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.36.1`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.37.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y

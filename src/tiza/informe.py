@@ -25,6 +25,7 @@ __all__ = [
     "Borrador",
     "CopiaHecha",
     "ErrorInforme",
+    "Esquema",
     "Fichero",
     "ESTADOS_IMPORTACION",
     "Lectura",
@@ -38,6 +39,7 @@ __all__ = [
     "validar",
     "validar_copia",
     "validar_copia_hecha",
+    "validar_esquema",
     "validar_estructura",
     "validar_importacion",
     "validar_lectura",
@@ -559,6 +561,55 @@ def validar_documento(datos: Any) -> None:
             raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
         _exigir_texto(datos[campo], campo)
     _exigir_entero(datos["bloques"], "bloques")
+
+
+_CAMPOS_ESQUEMA = {"fuente", "imagen", "ancho", "alto", "bytes", "sustituye"}
+
+
+@dataclass(frozen=True)
+class Esquema:
+    """El resumen que imprime ``tiza esquema``: de qué SVG sale qué PNG y cómo es.
+
+    Las rutas son relativas a la carpeta de la asignatura. ``sustituye`` dice si el PNG
+    ya existía y lo había hecho ``tiza esquema`` desde el mismo SVG.
+    Se valida al construirlo.
+    """
+
+    fuente: str
+    imagen: str
+    ancho: int
+    alto: int
+    bytes: int
+    sustituye: bool
+
+    def __post_init__(self) -> None:
+        validar_esquema(self.a_dict())
+
+    def a_dict(self) -> dict:
+        return {
+            "fuente": self.fuente,
+            "imagen": self.imagen,
+            "ancho": self.ancho,
+            "alto": self.alto,
+            "bytes": self.bytes,
+            "sustituye": self.sustituye,
+        }
+
+
+def validar_esquema(datos: Any) -> None:
+    """Esquema cerrado del resumen de ``tiza esquema``."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "el esquema debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_ESQUEMA, "esquema")
+    for campo in ("fuente", "imagen"):
+        if not isinstance(datos[campo], str) or not datos[campo]:
+            raise ErrorInforme("TIPO_INCORRECTO", f"{campo} debe ser texto")
+        _exigir_ruta_relativa(datos[campo], campo)
+    for campo in ("ancho", "alto", "bytes"):
+        _exigir_entero(datos[campo], campo)
+        if datos[campo] <= 0:
+            raise ErrorInforme("VALOR_NO_PERMITIDO", f"{campo} debe ser un número positivo")
+    _exigir_bool(datos["sustituye"], "sustituye")
 
 
 _CAMPOS_RELLENO = {"plantilla", "salida", "operaciones", "sustituciones", "avisos"}

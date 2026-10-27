@@ -51,9 +51,11 @@ escriben igual, con `\( … \)` y `\[ … \]`.
   curso se parecen entre sí. No inventes bloques nuevos.
 - **Una idea por bloque.** Nada de decorar por decorar: como mucho un acento visual por bloque.
 - **Si el concepto es visual** (un diagrama, un esquema, un montaje), no lo describas con una
-  tabla ni con un párrafo interminable: pide la imagen al docente o deja un hueco marcado
-  (`[RELLENA: imagen de …]`) y avísale. Las imágenes van con `alt` y `img-fluid`. Si la
-  imagen no es del docente ni tuya, sigue `guias/licencias.md` para la autoría y la licencia:
+  tabla ni con un párrafo interminable: si son formas y relaciones, dibuja un esquema sencillo
+  con `tiza esquema` (`guias/esquemas.md`); si es una foto, un mapa real o material ajeno,
+  pídelo al docente o deja un hueco marcado (`[RELLENA: imagen de …]`) y avísale. Las imágenes
+  van con `alt` y `img-fluid`, y el `alt` de un esquema dice la relación, no solo el título. Si
+  la imagen no es del docente ni tuya, sigue `guias/licencias.md` para la autoría y la licencia:
   su bloque de autoría (`<figure>` con `<figcaption>`) es la excepción autorizada a este
   catálogo.
 

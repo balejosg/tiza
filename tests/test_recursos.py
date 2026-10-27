@@ -27,3 +27,13 @@ def test_ruta_del_icono_es_un_fichero_de_verdad():
 
 def test_un_recurso_que_no_existe_no_es_una_ruta():
     assert recursos.ruta("no-existe.png") is None
+
+
+def test_las_fuentes_del_esquema_viajan_con_su_licencia():
+    for nombre in ("LiberationSans-Regular.ttf", "LiberationSans-Bold.ttf"):
+        datos = recursos.datos(nombre)
+        assert datos[:4] == b"\x00\x01\x00\x00"  # TrueType
+        assert len(datos) < 1_000_000  # la wheel no engorda sin querer
+        assert recursos.ruta(nombre) is not None
+    licencia = recursos.datos("LiberationSans-LICENSE.txt").decode("utf-8")
+    assert "SIL OPEN FONT LICENSE Version 1.1" in licencia

@@ -96,6 +96,21 @@ def _parser() -> argparse.ArgumentParser:
         "--salida", help="el .docx de salida (por defecto, el nombre del .md con .docx)"
     )
 
+    esquema = sub.add_parser(
+        "esquema",
+        help="convierte un SVG de la carpeta en un PNG para publicarlo (offline)",
+    )
+    esquema.add_argument("fichero", help="el .svg, dentro de la carpeta de la asignatura")
+    esquema.add_argument(
+        "--salida", help="el .png de salida (por defecto, el nombre del .svg con .png)"
+    )
+    esquema.add_argument(
+        "--ancho",
+        type=int,
+        default=1200,
+        help="ancho del PNG en píxeles, de 400 a 2000 (por defecto, 1200)",
+    )
+
     rellenar = sub.add_parser(
         "rellenar",
         help="rellena una copia de una plantilla Word (.docx) según un relleno.yaml (offline)",
@@ -371,6 +386,8 @@ def _despachar(args) -> int:
         return _leer(args)
     if args.comando == "documento":
         return _documento(args)
+    if args.comando == "esquema":
+        return _esquema(args)
     if args.comando == "rellenar":
         return _rellenar(args)
     if args.comando == "importar":
@@ -503,6 +520,23 @@ def _documento(args) -> int:
 
     try:
         resultado = agente.documento(args.fuente, Path.cwd(), args.salida).a_dict()
+        codigo = 0
+    except ErrorEscritura as error:
+        resultado = _error_json(error.codigo, error.detalle)
+        codigo = 2
+    except ErrorInforme:  # un nombre de fichero con símbolos no permitidos
+        resultado = _error_json("NOMBRE_NO_VALIDO", "El nombre del fichero no vale.")
+        codigo = 2
+    _escribir_json(resultado)
+    return codigo
+
+
+def _esquema(args) -> int:
+    """Convierte un SVG en PNG: un único JSON en stdout (resumen o error) y 0 o 2."""
+    from .escritura import ErrorEscritura  # carga diferida
+
+    try:
+        resultado = agente.esquema(args.fichero, Path.cwd(), args.salida, ancho=args.ancho).a_dict()
         codigo = 0
     except ErrorEscritura as error:
         resultado = _error_json(error.codigo, error.detalle)

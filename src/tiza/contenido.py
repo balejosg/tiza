@@ -1046,6 +1046,13 @@ def _recursos_locales(
                 "RECURSO_DEMASIADO_GRANDE",
                 f"«{ruta.name}» pesa más de {MAX_RECURSO_BYTES // 2**20} MB",
             )
+        if ruta.suffix.lower() in (".svg", ".svgz"):
+            # El filtro no admite SVG en el HTML; subirlo como recurso lo saltaría.
+            raise ErrorContenido(
+                "RECURSO_NO_PERMITIDO",
+                f"«{ruta.name}» es un SVG y tiza no lo publica: conviértelo con «tiza esquema» "
+                "y cita el PNG",
+            )
         if _es_documento(ruta):
             raise ErrorContenido(
                 "ENLACE_A_DOCUMENTO",

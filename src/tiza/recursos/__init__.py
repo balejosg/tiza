@@ -1,7 +1,8 @@
-"""Recursos gráficos de tiza: el logo de la página y el icono de la ventana.
+"""Recursos gráficos de tiza: el logo, el icono y las fuentes de los esquemas.
 
 Viven dentro del paquete para que la wheel los lleve: la página del panel incrusta el logo
-como ``data:`` y pywebview carga el ``.ico`` desde su ruta. Sin red y sin ventana.
+como ``data:``, pywebview carga el ``.ico`` desde su ruta y ``tiza esquema`` renderiza con
+las dos variantes de Liberation Sans (OFL 1.1). Sin red y sin ventana.
 """
 
 from __future__ import annotations

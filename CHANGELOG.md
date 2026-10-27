@@ -4,6 +4,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.37.0 — 2026-10-27
+
+### Añadido
+- **El agente puede dibujar los esquemas de tus páginas.** Con `tiza esquema <svg>` convierte un SVG de la carpeta en un PNG listo para publicar (fondo blanco, fuente legible y el mismo resultado en todos los equipos). El SVG se valida antes de dibujarlo: solo formas, trazos y texto, sin imágenes, filtros, scripts ni referencias externas, con límites de tamaño y proporción. `tiza esquema` solo sustituye el PNG que él mismo creó desde ese SVG; un PNG tuyo con el mismo nombre se queda como está (`ESQUEMA_EXISTE`). La skill trae una guía nueva, `guias/esquemas.md`, con cuándo dibujar y cuándo pedirte la imagen.
+
+### Corregido
+- **Un SVG no se sube como recurso de una página.** El filtro ya rechazaba el SVG incrustado; ahora tampoco se puede colar como fichero enlazado o imagen (`RECURSO_NO_PERMITIDO`). Para publicar un esquema, conviértelo antes con `tiza esquema` y cita el PNG.
+
 ## 0.36.1 — 2026-10-27
 
 ### Corregido
