@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.36.1 — 2026-10-27
 
 ### Corregido
 - **Un enlace a otra página de la carpeta ya no publica su fichero fuente.** Si una página enlazaba otro documento de la carpeta (`2-siguiente.html`), tiza lo subía tal cual y el alumnado abría el código con su cabecera. Ahora se rechaza con `ENLACE_A_DOCUMENTO`: el aula ya lleva a la actividad siguiente.
