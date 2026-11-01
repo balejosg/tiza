@@ -1,5 +1,5 @@
-"""El panel de escritorio sin consola (Windows): sustituye a la terminal de ``tiza empezar``
-y ``tiza sesion``. Es del docente, como ellos: ningún agente lo abre.
+"""El panel de escritorio sin consola (Windows y Linux): sustituye a la terminal de
+``tiza empezar`` y ``tiza sesion``. Es del docente, como ellos: ningún agente lo abre.
 
 Piezas:
 
@@ -9,14 +9,18 @@ Piezas:
 - Este módulo: la capa de ventana. Es el único del subpaquete que importa ``webview`` y solo
   dentro de ``main`` (``import tiza.panel`` no lo carga, y el CI no lo tiene instalado). Lo
   demás son funciones puras o que reciben el módulo ``webview`` como argumento.
+- ``linux``: lo propio de Linux (Qt): las operaciones de ventana, la librería que Qt necesita
+  antes de arrancar, la recogida de basura en el hilo de la interfaz y los avisos.
 
-Reglas de ventana (se comprobaron en Windows 11 con pywebview 6.2.1):
+Reglas de ventana (se comprobaron en Windows 11 con pywebview 6.2.1; en Linux, ver ``linux``):
 
 - ``destroy`` y el diálogo de carpeta se hacen siempre desde un hilo propio (``vigilar``),
   nunca dentro de un método del ``js_api``: cuelgan la ventana.
-- «Siempre encima», restaurar y mostrar no usan pywebview (``on_top`` cambia ``TopMost`` sin
-  ``Invoke`` y se bloquea con el sondeo del puente), sino ``SetWindowPos``/``ShowWindowAsync``
-  asíncronos de Win32.
+- En Windows, «siempre encima», restaurar y mostrar no usan pywebview (``on_top`` cambia
+  ``TopMost`` sin ``Invoke`` y se bloquea con el sondeo del puente), sino
+  ``SetWindowPos``/``ShowWindowAsync`` asíncronos de Win32. En Linux sí: Qt va por señales.
+- El panel no arranca dentro de un sandbox de agente (``SANDBOX_RUNTIME``): sería una ventana
+  abierta por el agente que el docente podría creerse.
 - La ventana de entrada al aula se crea en este mismo proceso, sin ``js_api``; las cookies no
   salen del proceso (nunca por disco, tubería, argumentos ni entorno).
 """
@@ -32,13 +36,14 @@ import secrets
 import sys
 import threading
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
 from .. import config, publicar, recursos
 from ..ventana import TIEMPO_MAXIMO, entrada, webview2
-from . import flujo
+from . import flujo, linux
 from .estado import Panel, PresenciaPanel, Puente
 
 __all__ = [
@@ -60,6 +65,8 @@ __all__ = [
 TITULO = "tiza"
 ANCHO, ALTO, MINIMO = 820, 760, (560, 520)
 ESPERA_VIGILANTE = 0.5
+ESPERA_SIN_ENCIMA = 1.5  # lo que espera la ventana de entrada a que el panel deje de estar encima
+MARCA_SANDBOX = "SANDBOX_RUNTIME"  # la pone el sandbox de Claude Code en Linux y macOS
 INTENTOS_MOSTRAR = 20  # con ESPERA_VIGILANTE: unos diez segundos esperando a que haya ventana
 ESPERA_CIERRE = 15.0  # lo que se espera a que la sesión se recoja tras cerrar la ventana
 
@@ -87,19 +94,40 @@ def redirigir_salidas() -> None:
 
 
 def que_falta(
-    plataforma: str, *, hay_webview: bool, hay_webview2: Callable[[], bool]
+    plataforma: str,
+    *,
+    hay_webview: bool,
+    hay_webview2: Callable[[], bool],
+    entorno: Mapping[str, str] | None = None,
 ) -> str | None:
-    """Por qué no se puede abrir el panel aquí (texto para el docente), o None si se puede."""
-    if plataforma != "win32":
+    """Por qué no se puede abrir el panel aquí (texto para el docente), o None si se puede.
+
+    ``entorno``: las variables del proceso (por defecto, ninguna).
+    """
+    entorno = entorno or {}
+    if entorno.get(MARCA_SANDBOX):
         return (
-            "El panel de tiza solo está disponible en Windows. "
+            "tiza no se abre desde un agente: el panel es del docente. "
+            "Ábrelo tú desde el menú de aplicaciones."
+        )
+    linux = plataforma.startswith("linux")
+    if plataforma != "win32" and not linux:
+        return (
+            "El panel de tiza solo está disponible en Windows y Linux. "
             "En este sistema, abre la sesión con «tiza empezar» en la terminal."
+        )
+    if linux and not (entorno.get("DISPLAY") or entorno.get("WAYLAND_DISPLAY")):
+        return (
+            "El panel de tiza necesita un escritorio. Sin él, abre la sesión con «tiza empezar» "
+            "en la terminal."
         )
     if not hay_webview:
         return (
             "Falta pywebview, el componente de ventana de tiza. "
             "Vuelve a instalar tiza con el extra «ventana» (mira INSTALAR_CON_AGENTE.md)."
         )
+    if linux:
+        return None
     if not hay_webview2():
         return (
             "Para abrir el panel de tiza hace falta Microsoft Edge WebView2. "
@@ -179,6 +207,8 @@ def abrir_login(
     servidor = urlsplit(base).hostname or ""
     resultado: list[publicar.Cookies | None] = []
     cerrada = threading.Event()
+    # Si el panel sigue «siempre encima» por la pregunta anterior, la ventana nacería detrás.
+    panel.esperar_sin_encima(ESPERA_SIN_ENCIMA)
     web = webview.create_window(f"Entrar en {servidor}", f"{base}/my/", width=900, height=720)
 
     def cargada() -> None:
@@ -241,9 +271,10 @@ def vigilar(
 
     - Al arrancar: muestra la ventana una vez (aunque no haya pregunta) y, si aún no tiene
       HWND (``mostrar`` devuelve False), lo reintenta unas pocas veces.
-    - Pregunta pendiente: la ventana pasa a estar siempre encima, se restaura si estaba
-      minimizada y parpadea en la barra de tareas (una vez por pregunta). Sin pregunta, deja
-      de estar encima.
+    - Pregunta pendiente: la ventana pasa a estar siempre encima y, con cada pregunta nueva
+      (también si van seguidas), se restaura si estaba minimizada y parpadea en la barra de
+      tareas. Sin pregunta, deja de estar encima. Cada cambio queda anotado en el ``Panel``
+      (``marcar_encima``): la ventana de entrada al aula espera a que deje de estarlo.
     - Petición del diálogo de carpeta: lo abre (``elegir_carpeta``) y el ``Panel`` valida
       lo elegido.
     - Salida pedida (``Puente.terminar``): avisa a la sesión (``cerrar``) y destruye la ventana.
@@ -260,6 +291,7 @@ def vigilar(
         nonlocal delante
         delante = valor
         _intentar(lambda: poner_encima(valor))
+        panel.marcar_encima(valor)
 
     while True:
         numero = panel.esperar_cambio(numero, espera)
@@ -283,11 +315,11 @@ def vigilar(
         if panel.pregunta_pendiente:
             if not delante:
                 encima(True)
+            if avisada != numero:
+                avisada = numero
                 if minimizada():
                     _intentar(restaurar)
                 _intentar(mostrar)
-            if avisada != numero:
-                avisada = numero
                 _intentar(parpadear)
         elif delante:
             avisada = None
@@ -403,8 +435,12 @@ def esta_minimizada(titulo: str) -> bool:
         return True
 
 
-def avisar(texto: str) -> None:
-    """Dice algo al docente sin consola: un cuadro de Windows o, fuera de Windows, stderr."""
+def avisar(texto: str, *, con_qt: bool = False) -> None:
+    """Dice algo al docente sin consola: un cuadro de Windows; en Linux, con Qt (``con_qt``) o
+    con lo que haya (``linux.avisar``); si no, stderr."""
+    if sys.platform.startswith("linux"):
+        linux.avisar(texto, con_qt=con_qt)
+        return
     if sys.platform == "win32":
         try:
             import ctypes
@@ -419,16 +455,73 @@ def avisar(texto: str) -> None:
 # --- punto de entrada -----------------------------------------------------------------------
 
 
+@dataclass
+class _Capa:
+    """Las operaciones de ventana del sistema y lo que hay que hacer al cerrar."""
+
+    parpadear: Callable[[], object]
+    poner_encima: Callable[[bool], object]
+    restaurar: Callable[[], object]
+    mostrar: Callable[[], object]
+    minimizada: Callable[[], bool]
+    al_terminar: Callable[[], None] = lambda: None
+
+
+def _capa_windows() -> _Capa:
+    return _Capa(
+        parpadear=lambda: parpadear_en_la_barra(TITULO),
+        poner_encima=lambda valor: poner_encima(TITULO, valor),
+        restaurar=lambda: mostrar_ventana(TITULO, restaurar=True),
+        mostrar=lambda: mostrar_ventana(TITULO),
+        minimizada=lambda: esta_minimizada(TITULO),
+    )
+
+
+def _capa_linux(ventana: Any) -> _Capa:
+    latido, alertar = linux.preparar_proceso(lambda: getattr(ventana, "native", None))
+    qt = linux.VentanaQt(ventana, alertar=alertar)
+    latido.empezar()
+    return _Capa(
+        parpadear=qt.parpadear,
+        poner_encima=qt.poner_encima,
+        restaurar=qt.restaurar,
+        mostrar=qt.mostrar,
+        minimizada=qt.minimizada,
+        al_terminar=latido.parar,
+    )
+
+
+def abrir_vista(ruta: str, *, webview: Any) -> None:
+    """Linux: la vista previa en una ventana del propio panel, sin ``js_api``.
+
+    El navegador del sistema puede no leerla (el Firefox de Ubuntu es snap y no lee carpetas
+    ocultas como ``~/.cache``) y se abriría detrás del panel. Se crea desde un hilo propio:
+    nunca dentro de una llamada del ``js_api``.
+    """
+
+    def crear() -> None:
+        _intentar(lambda: webview.create_window("Vista previa", ruta, width=1000, height=760))
+
+    threading.Thread(target=crear, name="vista", daemon=True).start()
+
+
 def main() -> int:
     """``tiza-panel``: abre el panel. Es del docente: no se lanza desde un agente."""
     redirigir_salidas()
+    en_linux = sys.platform.startswith("linux")
     falta = que_falta(
         sys.platform,
         hay_webview=importlib.util.find_spec("webview") is not None,
         hay_webview2=webview2.instalado,
+        entorno=os.environ,
     )
+    if falta is None and en_linux:
+        falta = linux.preparar_qt(os.environ)  # sin ella Qt abortaría sin decir nada
+        if falta is not None:
+            avisar(falta)
+            return 1
     if falta is not None:
-        avisar(falta)
+        avisar(falta, con_qt=en_linux and importlib.util.find_spec("qtpy") is not None)
         return 1
 
     import webview  # solo aquí: ni los tests ni la CLI necesitan pywebview
@@ -438,7 +531,10 @@ def main() -> int:
     presencia = PresenciaPanel(
         panel, abrir_login=lambda url: abrir_login(url, webview=webview, panel=panel)
     )
-    puente = Puente(panel)
+    if en_linux:
+        puente = Puente(panel, abrir=lambda ruta: abrir_vista(ruta, webview=webview))
+    else:
+        puente = Puente(panel)
     flujo.contar_actualizacion(presencia)  # si el actualizador acaba de reabrir el panel
     ventana = webview.create_window(
         TITULO,
@@ -449,6 +545,7 @@ def main() -> int:
         min_size=MINIMO,
         text_select=True,
     )
+    capa = _capa_linux(ventana) if en_linux else _capa_windows()
 
     def cerrada() -> None:
         panel.cerrar()
@@ -469,12 +566,12 @@ def main() -> int:
             args=(panel, ventana),
             kwargs={
                 "cerrar": cerrar,
-                "parpadear": lambda: parpadear_en_la_barra(TITULO),
+                "parpadear": capa.parpadear,
                 "elegir_carpeta": lambda: ruta_del_dialogo(ventana.create_file_dialog(modo)),
-                "poner_encima": lambda valor: poner_encima(TITULO, valor),
-                "restaurar": lambda: mostrar_ventana(TITULO, restaurar=True),
-                "mostrar": lambda: mostrar_ventana(TITULO),
-                "minimizada": lambda: esta_minimizada(TITULO),
+                "poner_encima": capa.poner_encima,
+                "restaurar": capa.restaurar,
+                "mostrar": capa.mostrar,
+                "minimizada": capa.minimizada,
             },
             name="ventana",
             daemon=True,
@@ -482,10 +579,12 @@ def main() -> int:
         vigilante.start()
         flujo_hilo.start()
 
-    icono = recursos.ruta("tiza.ico")
+    icono = recursos.ruta("logo.png" if en_linux else "tiza.ico")
     opciones: dict[str, Any] = {"private_mode": True}
     if icono is not None:
         opciones["icon"] = str(icono)
+    if en_linux:
+        opciones["gui"] = "qt"  # sin probar GTK antes (pywebview lo intenta primero)
     try:
         webview.start(arrancar, **opciones)
     except Exception as exc:  # noqa: BLE001 - sin motor de ventanas: se dice, no se calla
@@ -494,4 +593,10 @@ def main() -> int:
     # La ventana ya se cerró: la sesión tiene su tiempo para borrar ``sesion.json`` y la reserva.
     if flujo_hilo.is_alive():
         flujo_hilo.join(ESPERA_CIERRE)
+    capa.al_terminar()
+    if en_linux:
+        # QtWebEngine puede estrellarse al desmontarse: la sesión ya se recogió, se sale ya.
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)
     return 0

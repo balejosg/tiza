@@ -325,10 +325,75 @@ class TestOpencode:
         carpeta.mkdir(parents=True)
         (carpeta / nombre).write_text(contenido, encoding="utf-8")
 
-    def test_v1_bloquea_webfetch_pero_no_las_rutas_de_tiza(self, tmp_path):
+    def test_v1_bloquea_webfetch_pero_no_es_el_perfil_estricto(self, tmp_path):
         self.preparar(tmp_path, json.dumps({"permission": {"webfetch": "deny"}}))
         faltantes = faltas(aislamiento.revisar_opencode(tmp_path, servidor=SERVIDOR))
-        assert len(faltantes) == 1 and "tiza" in faltantes[0]
+        assert not any("webfetch" in f for f in faltantes)
+        assert any("caché de tiza" in f for f in faltantes)
+        assert any("comandos de tiza" in f for f in faltantes)
+        assert any("sin salir de la carpeta" in f for f in faltantes)
+
+    def perfil(self, *quitar, extra=()):
+        reglas = json.loads(aislamiento.contenido_opencode("Linux"))["permissions"]
+        reglas = [r for r in reglas if (r["action"], r["resource"]) not in quitar]
+        return {"permissions": reglas + list(extra)}
+
+    def revisar_perfil(self, tmp_path, datos):
+        self.preparar(tmp_path, json.dumps(datos))
+        return faltas(aislamiento.revisar_opencode(tmp_path, servidor=SERVIDOR))
+
+    @pytest.mark.parametrize(
+        "quitar",
+        [("shell", "*"), ("shell", "*>*"), ("shell", "*<*")],
+    )
+    def test_sin_las_reglas_de_shell_falta(self, tmp_path, quitar):
+        faltantes = self.revisar_perfil(tmp_path, self.perfil(quitar))
+        assert faltantes == ["solo los comandos de tiza del agente (sin el panel ni redirecciones)"]
+
+    @pytest.mark.parametrize(
+        "regla",
+        [
+            {"action": "shell", "resource": "tiza *", "effect": "allow"},
+            {"action": "shell", "resource": "tiza-panel", "effect": "allow"},
+            {"action": "shell", "resource": "*", "effect": "ask"},
+        ],
+    )
+    def test_un_permiso_de_shell_de_mas_falta(self, tmp_path, regla):
+        assert self.revisar_perfil(tmp_path, self.perfil(extra=[regla]))
+
+    @pytest.mark.parametrize(
+        "quitar",
+        [("external_directory", "*"), ("edit", ".opencode/*"), ("edit", "tiza.toml")],
+    )
+    def test_sin_encerrar_en_la_carpeta_falta(self, tmp_path, quitar):
+        faltantes = self.revisar_perfil(tmp_path, self.perfil(quitar))
+        assert len(faltantes) == 1 and "sin salir de la carpeta" in faltantes[0]
+
+    def test_el_perfil_deja_los_comandos_del_agente_y_niega_los_del_docente(self):
+        datos = self.perfil()
+        efecto = aislamiento._efecto_opencode
+        for comando in ("tiza --help", "tiza revisar", "tiza publicar tema1.md --real"):
+            assert efecto(datos, "shell", comando) == "allow", comando
+        for comando in ("tiza empezar", "tiza aislar --global", "tiza actualizar", "tiza-panel"):
+            assert efecto(datos, "shell", comando) == "deny", comando
+        assert efecto(datos, "external_directory", "~/.config/opencode/skills/tiza/SKILL.md") == (
+            "allow"
+        )
+        assert efecto(datos, "edit", "~/.config/opencode/skills/tiza/SKILL.md") == "deny"
+        assert efecto(datos, "edit", "tema1.md") == "allow"
+
+    def test_avisa_de_la_configuracion_de_punto_opencode(self, tmp_path):
+        home = tmp_path / "home"
+        home.mkdir()
+        carpeta = tmp_path / "asig"
+        (carpeta / ".opencode").mkdir(parents=True)
+        (carpeta / "opencode.jsonc").write_text(
+            aislamiento.contenido_opencode("Linux"), encoding="utf-8"
+        )
+        (carpeta / ".opencode" / "opencode.json").write_text("{}", encoding="utf-8")
+        comprobaciones = aislamiento.revisar_opencode(home, carpeta, servidor=SERVIDOR)
+        assert faltas(comprobaciones) == []
+        assert any(".opencode/" in c.texto for c in comprobaciones if c.estado == "aviso")
 
     def test_v2_gana_la_ultima(self, tmp_path):
         reglas = [
@@ -385,7 +450,7 @@ class TestOpencode:
         for ruta in aislamiento.rutas_tiza():
             patron = f"{Path(ruta).as_posix()}/**"
             assert reglas[("read", patron)] == "deny"
-            assert reglas[("write", patron)] == "deny"
+            assert reglas[("edit", patron)] == "deny"
 
     def test_configuracion_opencode_crea_si_no_hay_reglas(self, tmp_path):
         home = tmp_path / "home"
@@ -400,6 +465,37 @@ class TestOpencode:
         assert cambios
         ruta.write_text(texto, encoding="utf-8")
         assert faltas(aislamiento.revisar_opencode(home, carpeta, servidor=SERVIDOR)) == []
+
+    def test_configuracion_opencode_cambia_la_anterior_de_tiza(self, tmp_path):
+        home = tmp_path / "home"
+        (home / ".config" / "opencode").mkdir(parents=True)
+        carpeta = tmp_path / "asig"
+        carpeta.mkdir()
+        anterior = {
+            "$schema": "https://opencode.ai/config.json",
+            "permissions": aislamiento._permisos_opencode_anteriores("Linux"),
+        }
+        (carpeta / "opencode.jsonc").write_text(json.dumps(anterior), encoding="utf-8")
+        assert faltas(aislamiento.revisar_opencode(home, carpeta, servidor=SERVIDOR))
+        propuesta = aislamiento.configuracion_opencode(carpeta, home, "Linux")
+        assert propuesta is not None
+        ruta, texto, cambios = propuesta
+        assert ruta == carpeta / "opencode.jsonc" and "cambiar" in cambios[0]
+        ruta.write_text(texto, encoding="utf-8")
+        assert faltas(aislamiento.revisar_opencode(home, carpeta, servidor=SERVIDOR)) == []
+
+    def test_configuracion_opencode_no_cambia_la_anterior_retocada(self, tmp_path):
+        home = tmp_path / "home"
+        (home / ".config" / "opencode").mkdir(parents=True)
+        carpeta = tmp_path / "asig"
+        carpeta.mkdir()
+        permisos = aislamiento._permisos_opencode_anteriores("Linux")
+        permisos.append({"action": "shell", "resource": "git *", "effect": "allow"})
+        (carpeta / "opencode.jsonc").write_text(
+            json.dumps({"$schema": "https://opencode.ai/config.json", "permissions": permisos}),
+            encoding="utf-8",
+        )
+        assert aislamiento.configuracion_opencode(carpeta, home, "Linux") is None
 
     def test_configuracion_opencode_no_pisa_la_de_la_carpeta(self, tmp_path):
         home = tmp_path / "home"
@@ -798,7 +894,7 @@ class TestCarpetaEnDescargas:
 
     def test_opencode_fuera_de_descargas_no_reabre(self):
         reglas = json.loads(aislamiento.contenido_opencode("Linux"))["permissions"]
-        assert all(r["effect"] != "allow" or r["action"] == "*" for r in reglas)
+        assert not any(r["effect"] == "allow" and r["action"] == "read" for r in reglas)
 
 
 class TestClaudeWindows:
@@ -1094,3 +1190,185 @@ class TestClaudeWindows:
         comprobaciones = aislamiento.revisar_claude(nuevo, "Windows")
         assert faltas(comprobaciones) == []
         assert any("WebFetch hacia el aula sin comprobar" in c.texto for c in comprobaciones)
+
+
+# --- el panel en Linux y el sandbox de verdad -----------------------------------------------
+
+
+class TestPanelLinux:
+    def test_el_perfil_de_linux_deniega_lanzar_el_panel(self):
+        nuevo, cambios = aislamiento.fusionar_claude({}, "Linux", servidor=SERVIDOR)
+        deny = nuevo["permissions"]["deny"]
+        for programa in ("tiza-panel", "python -m tiza.panel", "python3 -m tiza.panel"):
+            assert f"Bash({programa})" in deny
+            assert f"Bash({programa} *)" in deny
+        assert "denegar Bash(tiza-panel)" in cambios
+        assert not any(r.startswith("PowerShell(") for r in aislamiento.reglas_panel("Linux"))
+
+    def test_las_reglas_de_windows_no_cambian(self):
+        assert aislamiento.reglas_panel("Windows") == aislamiento.reglas_panel_windows()
+        assert len(aislamiento.reglas_panel_windows()) == 16
+
+    def test_revisar_sin_las_reglas_del_panel_falta(self):
+        nuevo, _ = aislamiento.fusionar_claude({}, "Linux", servidor=SERVIDOR)
+        nuevo["permissions"]["deny"].remove("Bash(tiza-panel)")
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Linux", servidor=SERVIDOR))
+        assert textos == ["sin abrir el panel de tiza (es del docente) (faltan 1 reglas)"]
+
+    def test_un_perfil_anterior_sin_las_reglas_pide_repetir_el_aislamiento(self):
+        nuevo, _ = aislamiento.fusionar_claude({}, "Linux", servidor=SERVIDOR)
+        for regla in aislamiento.reglas_panel("Linux"):
+            nuevo["permissions"]["deny"].remove(regla)
+        otra, cambios = aislamiento.fusionar_claude(nuevo, "Linux", servidor=SERVIDOR)
+        assert len(cambios) == len(aislamiento.reglas_panel("Linux"))
+        assert not faltas(aislamiento.revisar_claude(otra, "Linux", servidor=SERVIDOR))
+
+    @pytest.mark.parametrize(
+        ("sandbox", "texto"),
+        [
+            ({"network": {"allowAllUnixSockets": True}}, "allowAllUnixSockets"),
+            ({"network": {"allowUnixSockets": ["/run/user/1000/bus"]}}, "allowUnixSockets"),
+            ({"network": {"allowUnixSockets": ["/run/user/1000/wayland-0"]}}, "allowUnixSockets"),
+            ({"network": {"allowUnixSockets": ["/tmp/.X11-unix/X0"]}}, "allowUnixSockets"),
+            ({"excludedCommands": ["tiza-panel"]}, "excludedCommands"),
+            ({"excludedCommands": ["gtk-launch *"]}, "excludedCommands"),
+            ({"excludedCommands": ["systemd-run"]}, "excludedCommands"),
+            ({"excludedCommands": ["*"]}, "excludedCommands"),
+        ],
+    )
+    def test_lo_que_abre_el_escritorio_al_agente_falta(self, sandbox, texto):
+        nuevo, _ = aislamiento.fusionar_claude({}, "Linux", servidor=SERVIDOR)
+        for clave, valor in sandbox.items():
+            if isinstance(valor, dict):
+                nuevo["sandbox"].setdefault(clave, {}).update(valor)
+            else:
+                nuevo["sandbox"][clave] = valor
+        textos = faltas(aislamiento.revisar_claude(nuevo, "Linux", servidor=SERVIDOR))
+        assert len(textos) == 1
+        assert textos[0].startswith("sin salidas del sandbox hacia el escritorio; quita")
+        assert texto in textos[0]
+
+    def test_lo_inofensivo_no_falta(self):
+        nuevo, _ = aislamiento.fusionar_claude({}, "Linux", servidor=SERVIDOR)
+        nuevo["sandbox"]["excludedCommands"] = ["docker"]
+        nuevo["sandbox"]["network"]["allowUnixSockets"] = ["/var/run/docker.sock"]
+        assert not faltas(aislamiento.revisar_claude(nuevo, "Linux", servidor=SERVIDOR))
+
+
+class TestSandboxDeVerdad:
+    @pytest.fixture
+    def home(self, tmp_path):
+        home = tmp_path / "home"
+        (home / ".claude").mkdir(parents=True)
+        carpeta = tmp_path / "asignatura"
+        carpeta.mkdir()
+        return home, carpeta
+
+    @pytest.mark.parametrize(
+        ("estado", "esperado"),
+        [
+            ("ok", "ok"),
+            ("sin_bwrap", "falta"),
+            ("sin_socat", "falta"),
+            ("apparmor", "falta"),
+            ("falla", "falta"),
+        ],
+    )
+    def test_revisar_en_linux_prueba_el_sandbox(self, home, monkeypatch, estado, esperado):
+        monkeypatch.setattr(aislamiento, "probar_sandbox", lambda: estado)
+        casa, carpeta = home
+        lista = aislamiento.revisar(casa, "Linux", carpeta)
+        sandbox = [
+            c for c in lista if "sandbox" in c.texto and c.texto.startswith(("el ", "fal", "App"))
+        ]
+        assert [c.estado for c in sandbox] == [esperado]
+
+    def test_fuera_de_linux_no_se_prueba(self, home, monkeypatch):
+        monkeypatch.setattr(aislamiento, "probar_sandbox", lambda: pytest.fail("no se prueba"))
+        casa, carpeta = home
+        aislamiento.revisar(casa, "Darwin", carpeta)
+        aislamiento.revisar(casa, "Windows", carpeta)
+
+    def test_dentro_de_un_sandbox_que_funciona_es_ok(self, monkeypatch):
+        monkeypatch.undo()  # la fixture común lo sustituye; aquí se prueba la función real
+        monkeypatch.setenv("SANDBOX_RUNTIME", "1")
+        monkeypatch.setattr(aislamiento.subprocess, "run", lambda *_a, **_k: pytest.fail("no"))
+        assert aislamiento.probar_sandbox() == "ok"
+
+    def _real(self, monkeypatch, *, programas, codigo=0, restringe=False, falla=None):
+        monkeypatch.undo()
+        monkeypatch.delenv("SANDBOX_RUNTIME", raising=False)
+        monkeypatch.setattr(
+            aislamiento.shutil, "which", lambda n: f"/usr/bin/{n}" if n in programas else None
+        )
+
+        def run(orden, **_k):
+            if falla is not None:
+                raise falla
+            assert orden[:2] == ["bwrap", "--unshare-net"]
+            return aislamiento.subprocess.CompletedProcess(orden, codigo)
+
+        monkeypatch.setattr(aislamiento.subprocess, "run", run)
+        monkeypatch.setattr(aislamiento, "_apparmor_restringe", lambda: restringe)
+        return aislamiento.probar_sandbox()
+
+    def test_probar_sin_bwrap(self, monkeypatch):
+        assert self._real(monkeypatch, programas={"socat"}) == "sin_bwrap"
+
+    def test_probar_sin_socat(self, monkeypatch):
+        assert self._real(monkeypatch, programas={"bwrap"}) == "sin_socat"
+
+    def test_probar_ok(self, monkeypatch):
+        assert self._real(monkeypatch, programas={"bwrap", "socat"}) == "ok"
+
+    def test_probar_con_apparmor(self, monkeypatch):
+        estado = self._real(monkeypatch, programas={"bwrap", "socat"}, codigo=1, restringe=True)
+        assert estado == "apparmor"
+
+    def test_probar_otro_fallo(self, monkeypatch):
+        assert self._real(monkeypatch, programas={"bwrap", "socat"}, codigo=1) == "falla"
+        falla = aislamiento.subprocess.TimeoutExpired("bwrap", 1)
+        assert self._real(monkeypatch, programas={"bwrap", "socat"}, falla=falla) == "falla"
+
+    def test_con_apparmor_el_plan_lo_dice_y_lo_marca(self, home, monkeypatch):
+        monkeypatch.setattr(aislamiento, "probar_sandbox", lambda: "apparmor")
+        casa, carpeta = home
+        plan = aislamiento.planear_carpeta(carpeta, casa, "Linux", SERVIDOR)
+        assert plan.apparmor is True
+        assert any("AppArmor" in m and "docs/aislamiento.md" in m for m in plan.manuales)
+        assert aislamiento.planear_global(casa, "Linux", SERVIDOR).apparmor is True
+
+    def test_sin_apparmor_el_plan_no_lo_pide(self, home):
+        casa, carpeta = home
+        assert aislamiento.planear_carpeta(carpeta, casa, "Linux", SERVIDOR).apparmor is False
+        assert aislamiento.planear_carpeta(carpeta, casa, "Windows", SERVIDOR).apparmor is False
+
+    def test_la_orden_de_pkexec_no_ejecuta_nada_del_usuario(self):
+        orden = aislamiento.orden_pkexec()
+        assert orden[:3] == ["pkexec", "/bin/sh", "-c"]
+        assert orden[-1] == aislamiento.PERFIL_APPARMOR
+        assert "/etc/apparmor.d/bwrap" in orden[3] and "apparmor_parser -r" in orden[3]
+        assert "$1" in orden[3]  # el perfil entra como argumento, no dentro del código
+        assert str(Path.home()) not in " ".join(orden)
+
+    def test_el_perfil_solo_permite_userns_a_bwrap(self):
+        perfil = aislamiento.PERFIL_APPARMOR
+        assert "profile bwrap /usr/bin/bwrap flags=(unconfined)" in perfil
+        assert "userns," in perfil
+        assert "'" not in perfil  # cabe entre comillas simples en ORDEN_APPARMOR
+
+    @pytest.mark.parametrize("codigo", [0, 126, 127])
+    def test_permitir_devuelve_el_codigo_de_pkexec(self, monkeypatch, codigo):
+        monkeypatch.setattr(aislamiento.shutil, "which", lambda n: f"/usr/bin/{n}")
+        ordenes: list = []
+
+        def ejecutar(orden, **_k):
+            ordenes.append(orden)
+            return aislamiento.subprocess.CompletedProcess(orden, codigo)
+
+        assert aislamiento.permitir_sandbox(ejecutar) == codigo
+        assert ordenes == [aislamiento.orden_pkexec()]
+
+    def test_permitir_sin_pkexec(self, monkeypatch):
+        monkeypatch.setattr(aislamiento.shutil, "which", lambda _n: None)
+        assert aislamiento.permitir_sandbox(lambda *_a, **_k: pytest.fail("no")) == -1

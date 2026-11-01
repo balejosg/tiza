@@ -10,7 +10,7 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 |---|---|---|
 | `tiza empezar [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Todo en uno: ofrece la versión nueva si la hay, configura si hace falta, revisa el aislamiento, abre la sesión, autoprueba si toca y lee la estructura |
 | `tiza configurar` | docente | Guarda la URL y el usuario (nada más); los cursos se eligen por nombre al abrir la sesión en cada carpeta y se guardan en su `tiza.toml` |
-| `tiza-panel` | docente (Windows) | Abre el panel sin consola: hace lo mismo que `tiza empezar` con ventanas (ver [Panel sin consola](#panel-sin-consola-windows)). Lo abre el docente desde el acceso «tiza»; el agente no puede lanzarlo |
+| `tiza-panel` | docente (Windows y Linux) | Abre el panel sin consola: hace lo mismo que `tiza empezar` con ventanas (ver [Panel sin consola](#panel-sin-consola-windows-y-linux)). Lo abre el docente desde el acceso «tiza»; el agente no puede lanzarlo |
 | `tiza instalar-skill` | docente | Instala la skill portable en los agentes |
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |
 | `tiza normativa <consulta>` | agente o docente | Offline: consulta la normativa que trae tiza y devuelve un JSON con código, texto literal y procedencia. Consultas: `catalogo`, `ficha <codigo>`, `elemento <codigo>`, `norma "<cita>"`, `buscar "<texto>" [--en <codigo>]` y `programacion eso\|bachillerato\|fp`; todas menos `norma` aceptan `--curso-academico AAAA-AA` (por defecto, el de hoy) |
@@ -38,10 +38,11 @@ una línea «Qué hacer» con el siguiente paso. Si no se arregla, abre una
 ejecutaste, tu sistema y el código y la línea «Qué hacer» copiados tal cual.
 No adjuntes capturas del aula (pueden salir alumnos) ni tu contraseña.
 
-## Panel sin consola (Windows)
+## Panel sin consola (Windows y Linux)
 
-En Windows, el acceso **«tiza»** del menú Inicio (y el del escritorio) abre `tiza-panel`,
-una ventana sin consola que hace lo mismo que `tiza empezar`: elige la carpeta de la
+En Windows, el acceso **«tiza»** del menú Inicio (y el del escritorio) abre `tiza-panel`; en
+Linux con escritorio, el acceso «tiza» del menú de aplicaciones (si se instaló con
+`TIZA_PANEL=1`). Es una ventana sin consola que hace lo mismo que `tiza empezar`: elige la carpeta de la
 asignatura (las recientes o «Elegir otra carpeta…»), configura el aula la primera vez,
 ofrece la versión nueva, aplica la protección de la carpeta (sin ella no abre la sesión),
 entra en la página de login de tu aula en una ventana propia, deja elegir los cursos por
@@ -54,18 +55,30 @@ decisiones peligrosas, la opción segura va primero y el botón que sobrescribe 
 ventana. Al terminar, el panel ofrece «Volver a empezar» para elegir otra carpeta sin
 volver a abrirlo.
 
-- **Es del docente.** El agente no puede abrir el panel ni pulsar sus botones: el perfil de
-  permisos de `tiza aislar` lo deniega. Si el agente no tiene aislamiento, el panel no abre la
-  sesión.
+- **Es del docente.** El agente no puede abrir el panel ni pulsar sus botones: en Windows, el
+  perfil de permisos de `tiza aislar` lo deniega; en Linux, el sandbox de Claude Code no le deja
+  llegar al escritorio y `tiza aislar` deniega además lanzarlo. Si el agente no tiene
+  aislamiento, el panel no abre la sesión. Dentro del sandbox de un agente, el panel no arranca.
 - **Actualizar desde el panel.** Si hay una versión nueva, el panel la ofrece; si aceptas, se
   instala en una ventana oculta, cuando el panel ya se ha cerrado, y vuelve a abrirse solo.
   Lo que pasa queda en `%LOCALAPPDATA%\tiza\tiza\actualizar.log` (versiones, órdenes de
   instalación y códigos de salida; sin contraseñas ni cookies). Si la actualización falla, el
-  panel lo dice al volver a abrirse.
+  panel lo dice al volver a abrirse. En Linux pasa igual, sin ventana, y el log está en
+  `~/.config/tiza/actualizar.log`.
 - **Accesos.** `install.ps1` y `tiza actualizar` crean dos accesos `tiza.lnk` apuntando a
   `tiza-panel`: uno en el menú Inicio y otro en el escritorio. No necesitan permisos de
-  administrador. `tiza actualizar` los vuelve a crear.
-- **Sin panel.** En macOS y Linux, y para quien lo prefiera en Windows, sigue valiendo
+  administrador. `tiza actualizar` los vuelve a crear. En Linux, `install.sh` con `TIZA_PANEL=1`
+  crea `~/.local/share/applications/tiza.desktop` (y su icono en `~/.local/share/icons`), y el
+  actualizador del panel lo rehace.
+- **Linux.** Funciona en Xorg y en Wayland (probado en Ubuntu 24.04 con GNOME). En Wayland el
+  panel no puede ponerse «siempre encima»: con una pregunta se restaura y el dock lo marca. Si el
+  sistema no tiene `libxcb-cursor0` (Ubuntu 24.04 no la trae), el panel la baja sin permisos de
+  administrador la primera vez. Solo abre la sesión con Claude Code aislado por su sandbox; si
+  Ubuntu (AppArmor) impide el sandbox, el panel te explica por qué y pide la contraseña de
+  administrador del equipo en una ventana del sistema (mira
+  [aislamiento](aislamiento.md#ubuntu-apparmor-y-el-sandbox)). La vista previa se abre en una
+  ventana del panel. Lo que no puede contar en pantalla queda en `~/.config/tiza/panel.log`.
+- **Sin panel.** En macOS, en Linux sin escritorio y para quien lo prefiera, sigue valiendo
   `tiza empezar` en una terminal.
 
 ## Normativa
@@ -374,17 +387,18 @@ versión publicada se instala desde el wheel de su release (sin construir nada) 
 una rama o un commit, desde el `.zip` de GitHub. Lo único que se instala aparte es
 [uv](https://docs.astral.sh/uv/), que trae Python si tu equipo no lo tiene.
 
-En Linux la ventana de entrada trae Qt (cientos de MB), así que no se instala por
+En Linux la ventana de entrada trae Qt (PySide6, unos 700 MB), así que no se instala por
 defecto: si la quieres, ejecuta el instalador con `TIZA_VENTANA=1` delante
 (`curl … | TIZA_VENTANA=1 sh`). Sin ella, `tiza` te pide la contraseña en la
-terminal.
+terminal. Con `TIZA_PANEL=1` se instala la ventana y, además, el acceso «tiza» del panel en el
+menú de aplicaciones.
 
 Para actualizar, `tiza actualizar` instala la última versión publicada (o la de
 `TIZA_REF`, si la defines) y reinstala la skill; conserva la ventana si la tenías. En
 Windows la instalación sigue en otra ventana, cuando `tiza` ya se ha cerrado (Windows no deja
-reemplazar un programa en marcha): espera a que diga que ha terminado. Desde el panel
-(Windows), la actualización se hace en una ventana oculta y el panel se vuelve a abrir cuando
-acaba; su log está en `%LOCALAPPDATA%\tiza\tiza\actualizar.log`. Además, `tiza empezar` te
+reemplazar un programa en marcha): espera a que diga que ha terminado. Desde el panel, la
+actualización se hace sin ventana y el panel se vuelve a abrir cuando acaba; su log está en
+`%LOCALAPPDATA%\tiza\tiza\actualizar.log` (Windows) o `~/.config/tiza/actualizar.log` (Linux). Además, `tiza empezar` te
 avisa cuando hay una versión nueva y te ofrece instalarla. Hasta la
 0.5.1, `tiza actualizar` no salía de la etiqueta instalada: desde esas
 versiones, vuelve a ejecutar el instalador una vez.
@@ -405,12 +419,13 @@ tiza instalar-skill
 2. Borra la carpeta `tiza` de `~/.claude/skills`, `~/.agents/skills`,
    `~/.codex/skills` y `~/.config/opencode/skills`.
 3. En Windows, borra los dos accesos `tiza.lnk`: el del menú Inicio (en
-   `%APPDATA%\Microsoft\Windows\Start Menu\Programs`) y el del escritorio.
+   `%APPDATA%\Microsoft\Windows\Start Menu\Programs`) y el del escritorio. En Linux, borra
+   `~/.local/share/applications/tiza.desktop` y `~/.local/share/icons/tiza.png`.
 4. Si quieres borrar también la URL y el usuario guardados, borra la carpeta de
    configuración `tiza` (`~/.config/tiza` en Linux,
    `~/Library/Application Support/tiza` en macOS y
    `%LOCALAPPDATA%\tiza\tiza` en Windows; ahí están también las carpetas recientes
-   del panel y el log de actualización).
+   del panel, el log de actualización y, en Linux, la librería que bajó el panel).
 
 El aislamiento vive en la carpeta de cada asignatura (`.claude/`, `.codex/`,
 `opencode.jsonc`); `tiza aislar` dejó una copia `…antes-de-tiza-…` de cada

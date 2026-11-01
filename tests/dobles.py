@@ -793,4 +793,6 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         ),
         "SIGUE_LA_VERSION_ACTUAL": publicacion.Aviso.sigue_la_version_actual(),
         "TIZA_ACTUALIZADA": publicacion.Aviso.tiza_actualizada(False),
+        "SANDBOX_PERMITIDO": publicacion.Aviso.sandbox_permitido(),
+        "SANDBOX_NO_PERMITIDO": publicacion.Aviso.sandbox_no_permitido(126),
     }

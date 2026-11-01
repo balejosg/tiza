@@ -45,6 +45,9 @@ y guíame para instalar tiza. Sigue sus reglas al pie de la letra.»*
 1. Comprueba el sistema operativo y que haya conexión a internet.
 2. Ejecuta el instalador del README, sin modificarlo:
    - macOS / Linux: `curl -LsSf https://raw.githubusercontent.com/balejosg/tiza/main/install.sh | sh`
+   - Linux con escritorio (hay `WAYLAND_DISPLAY` o `DISPLAY`) y el docente prefiere no usar la
+     terminal: `curl -LsSf https://raw.githubusercontent.com/balejosg/tiza/main/install.sh | TIZA_PANEL=1 sh`
+     (añade el panel y su acceso «tiza» en el menú de aplicaciones; descarga unos 700 MB)
    - Windows (PowerShell): `irm https://raw.githubusercontent.com/balejosg/tiza/main/install.ps1 | iex`
 
    Instala `uv` si falta, `tiza` y la skill (la versión etiquetada). Antes de
@@ -55,8 +58,11 @@ y guíame para instalar tiza. Sigue sus reglas al pie de la letra.»*
    comprobación.
 
 En Windows, al acabar la instalación dile al docente que abra «tiza» desde el menú Inicio (el panel
-le guía la configuración y el aislamiento; abre la sesión como `tiza empezar`, paso 3). En macOS y
-Linux, dile que siga con `tiza empezar` en su terminal, como hasta ahora (paso 3).
+le guía la configuración y el aislamiento; abre la sesión como `tiza empezar`, paso 3). En Linux
+con `TIZA_PANEL=1`, que busque «tiza» en sus aplicaciones: es el mismo panel. En macOS, y en Linux
+sin el panel, dile que siga con `tiza empezar` en su terminal, como hasta ahora (paso 3). En Linux
+el panel solo abre la sesión con Claude Code aislado por su sandbox; con otro agente, usa la
+terminal.
 
 **Detente aquí** y sigue con el paso 2. No ejecutes nada más de `tiza`.
 
@@ -64,8 +70,9 @@ Linux, dile que siga con `tiza empezar` en su terminal, como hasta ahora (paso 3
 
 El aislamiento se aplica **en la carpeta de la asignatura**, no antes de tener
 carpeta. Cuando el docente la cree y ejecute `tiza empezar` (paso 3), si detecta
-que falta aislamiento le ofrecerá aplicarlo ahí mismo (en Windows, el panel lo propone
-y lo aplica igual); también puede ejecutarlo en
+que falta aislamiento le ofrecerá aplicarlo ahí mismo (con el panel, lo propone y lo aplica
+igual; en Ubuntu puede pedir además la contraseña de administrador del equipo, en una ventana
+del sistema, para que el sandbox de Claude Code funcione); también puede ejecutarlo en
 su terminal, **dentro de esa carpeta**, con `tiza aislar` y responder `s` a los
 cambios que le enseña.
 
@@ -115,7 +122,7 @@ carpeta de la asignatura y ejecute:
     tiza empezar
 
 La primera vez le preguntará la URL del aula (la que ve en el navegador) y su
-usuario; le abrirá la página de entrada de su aula (en Windows y macOS, y en Linux si se instaló con `TIZA_VENTANA=1`; sin ventana, le pedirá la contraseña **solo en su terminal**), le dejará elegir sus
+usuario; le abrirá la página de entrada de su aula (en Windows y macOS, y en Linux si se instaló con `TIZA_VENTANA=1` o `TIZA_PANEL=1`; sin ventana, le pedirá la contraseña **solo en su terminal**), le dejará elegir sus
 cursos por nombre (si da la misma asignatura en 1º A y 1º B, puede elegir varios
 cursos reales: se publica en todos, con una confirmación por curso) y, cuando
 toque (estrenos de versión o curso nuevo, o cada septiembre), le ofrecerá pasar
@@ -126,14 +133,17 @@ real solo se publicará oculto, siempre con su confirmación; cada vez que abra
 la sesión sin pruebas verá el aviso y tendrá que confirmarlo. Si algo falla, que
 te diga el código de error y la línea «Qué hacer»; no necesitas ver nada más.
 
-Si `tiza empezar` (o el panel, en Windows) le ofrece aplicar el aislamiento a la carpeta, que acepte.
+Si `tiza empezar` (o el panel) le ofrece aplicar el aislamiento a la carpeta, que acepte.
 Cuando la sesión esté abierta, ejecuta tú `tiza revisar` desde la carpeta de la
 asignatura: si alguna línea dice `[FALTA]`, explícasela con el texto que aparece
 y repetid. No empieces a trabajar hasta que termine con «Aislamiento correcto.»
 (las líneas `[aviso]` no bloquean, pero léeselas); reinicia la sesión del agente
 para que lea la configuración nueva.
 
-`tiza aislar` crea la configuración de opencode si la carpeta no tiene ninguna.
+`tiza aislar` crea la configuración de opencode si la carpeta no tiene ninguna: un perfil
+estricto con el que, en opencode, solo puedes ejecutar los comandos de tiza que te tocan
+(nada de `ls`, `git` ni `python`; usa sus herramientas de leer y buscar) y no sales de la
+carpeta de la asignatura.
 Si ya existe una configuración de opencode o queda un cambio a mano de Codex,
 `tiza aislar` no toca lo que hay (podría tener reglas propias): ayúdale a
 completarlo siguiendo [docs/aislamiento.md](docs/aislamiento.md).

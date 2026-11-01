@@ -234,6 +234,8 @@ class Panel:
         self._dialogo = False  # el docente pidió el diálogo de carpeta y nadie lo ha atendido
         self._dialogo_en_curso = False
         self._salir = False  # el docente pidió cerrar la sesión
+        self._sin_encima = threading.Event()  # el panel no está «siempre encima»
+        self._sin_encima.set()
 
     # --- lo que lee la capa de ventana y el Puente ---
 
@@ -258,6 +260,18 @@ class Panel:
         """¿Pidió el docente cerrar la sesión? (el hilo de la ventana la destruye)."""
         with self._cv:
             return self._salir
+
+    def marcar_encima(self, valor: bool) -> None:
+        """Lo anota el hilo de la ventana cada vez que pone o quita «siempre encima»."""
+        if valor:
+            self._sin_encima.clear()
+        else:
+            self._sin_encima.set()
+
+    def esperar_sin_encima(self, timeout: float) -> bool:
+        """Espera a que el panel deje de estar encima (antes de abrir otra ventana, para que
+        no nazca detrás); True si ya no lo está."""
+        return self._sin_encima.wait(timeout)
 
     def estado(self) -> dict:
         with self._cv:
@@ -923,6 +937,15 @@ class PresenciaPanel:
             return True
         self._panel.anotar("No se ha cambiado nada.", error=True)
         return False
+
+    def confirmar_permitir_sandbox(self) -> bool:
+        """Linux: antes de la ventana de contraseña del sistema, qué se va a pedir y por qué."""
+        return self._si(
+            mensajes.PERMITIR_SANDBOX_TITULO,
+            mensajes.PERMITIR_SANDBOX_TEXTO,
+            mensajes.PREGUNTA_PERMITIR_SANDBOX,
+            **mensajes.rotulos("permitir_sandbox"),
+        )
 
     def seguir_sin_aislar(self, faltas: list) -> bool:
         lineas = [

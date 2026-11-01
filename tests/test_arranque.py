@@ -283,3 +283,60 @@ def test_aplicar_hace_copia_de_lo_que_existia(tmp_path):
     assert destino.read_text(encoding="utf-8") == "nuevo"
     assert hechas[0][1] is not None and hechas[0][1].read_text(encoding="utf-8") == "viejo"
     assert hechas[1] == (nuevo, None)
+
+
+def test_con_apparmor_el_panel_pide_el_permiso_tras_aislar(entorno, monkeypatch):
+    home, carpeta = entorno
+    configurado()
+    estado = {"sandbox": "apparmor"}
+    monkeypatch.setattr(aislamiento, "probar_sandbox", lambda: estado["sandbox"])
+    pedidos: list[int] = []
+
+    def permitir() -> bool:
+        pedidos.append(1)
+        estado["sandbox"] = "ok"
+        return True
+
+    presencia = PresenciaFalsa()
+    resultado = preparar(
+        carpeta, presencia, home, exigir_aislamiento=True, permitir_sandbox=permitir
+    )
+    assert pedidos == [1]
+    assert resultado.estado is Estado.SEGUIR
+    manuales = presencia.resumenes_aislamiento[0].manuales
+    assert any("AppArmor" in m for m in manuales)
+
+
+def test_con_apparmor_y_sin_permiso_el_panel_no_sigue(entorno, monkeypatch):
+    home, carpeta = entorno
+    configurado()
+    monkeypatch.setattr(aislamiento, "probar_sandbox", lambda: "apparmor")
+    resultado = preparar(
+        carpeta, PresenciaFalsa(), home, exigir_aislamiento=True, permitir_sandbox=lambda: False
+    )
+    assert resultado.estado is Estado.ABORTADO
+
+
+def test_sin_apparmor_no_se_pide_el_permiso(entorno):
+    home, carpeta = entorno
+    configurado()
+    preparar(
+        carpeta,
+        PresenciaFalsa(),
+        home,
+        exigir_aislamiento=True,
+        permitir_sandbox=lambda: pytest.fail("no se pide"),
+    )
+
+
+def test_la_actualizacion_desde_el_panel_sigue_aparte(entorno, monkeypatch):
+    home, carpeta = entorno
+    monkeypatch.setattr(arranque.sys, "platform", "linux")
+    presencia = PresenciaFalsa(actualizar=True)
+    preparar(carpeta, presencia, home, nueva="v9.9.9", exigir_aislamiento=True)
+    avisos = [a for a in presencia.avisos if a.codigo == "TIZA_ACTUALIZADA"]
+    assert [a.datos["aparte"] for a in avisos] == [True]
+    presencia = PresenciaFalsa(actualizar=True)
+    preparar(carpeta, presencia, home, nueva="v9.9.9")
+    avisos = [a for a in presencia.avisos if a.codigo == "TIZA_ACTUALIZADA"]
+    assert [a.datos["aparte"] for a in avisos] == [False]

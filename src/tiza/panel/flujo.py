@@ -21,7 +21,13 @@ from ..publicacion import Aviso, Presencia
 from . import recientes
 from .estado import Panel
 
-__all__ = ["MINUTOS", "contar_actualizacion", "ejecutar", "instalar_con_actualizador"]
+__all__ = [
+    "MINUTOS",
+    "contar_actualizacion",
+    "ejecutar",
+    "instalar_con_actualizador",
+    "permitir_sandbox_con",
+]
 
 MINUTOS = 60
 PAUSA_ACTUALIZACION = 3.0  # lo que se deja leer «Se está actualizando» antes de cerrar
@@ -51,6 +57,22 @@ def contar_actualizacion(presencia: Presencia, entorno: Mapping[str, str] | None
         presencia.informar(Aviso.panel_actualizado(version))
     else:
         presencia.informar(Aviso.panel_no_actualizado(__version__, str(actualizacion.ruta_log())))
+
+
+def permitir_sandbox_con(
+    presencia: Presencia, *, pedir: Callable[[], int] = aislamiento.permitir_sandbox
+) -> bool:
+    """Linux: explica el permiso de administrador (AppArmor), lo pide con la ventana del
+    sistema si el docente quiere y cuenta cómo fue. True si quedó permitido."""
+    confirmar = getattr(presencia, "confirmar_permitir_sandbox", None)
+    if confirmar is None or not confirmar():
+        return False
+    codigo = pedir()
+    if codigo == 0:
+        presencia.informar(Aviso.sandbox_permitido())
+        return True
+    presencia.informar(Aviso.sandbox_no_permitido(codigo))
+    return False
 
 
 def presencia_sin_entrar(presencia: Presencia) -> bool:
@@ -99,6 +121,7 @@ def _una_vuelta(
     minutos: int,
     version_nueva: Callable[[], str | None],
     instalar: Callable[[str], bool],
+    permitir: Callable[[Presencia], bool],
 ) -> _Vuelta:
     """De la carpeta al final de la sesión; no pregunta si se vuelve a empezar."""
     panel.fijar_paso("carpeta")
@@ -116,6 +139,7 @@ def _una_vuelta(
             version_nueva=version_nueva,
             instalar=instalar,
             exigir_aislamiento=True,
+            permitir_sandbox=(lambda: permitir(presencia)) if sistema == "Linux" else None,
         )
     except Exception as exc:  # noqa: BLE001 - el docente ve el tipo; el detalle no sale
         _error_interno(presencia, exc)
@@ -177,6 +201,7 @@ def ejecutar(
     version_nueva: Callable[[], str | None] = actualizacion.version_nueva,
     instalar: Callable[[str], bool] = instalar_con_actualizador,
     pausa: float = PAUSA_ACTUALIZACION,
+    permitir: Callable[[Presencia], bool] = permitir_sandbox_con,
 ) -> int:
     """Carpeta, arranque, sesión y pantalla final. Devuelve 0 si la sesión se abrió y se cerró.
 
@@ -197,6 +222,7 @@ def ejecutar(
             minutos=minutos,
             version_nueva=version_nueva,
             instalar=instalar,
+            permitir=permitir,
         )
         panel.reposo(vuelta.titulo, vuelta.lineas)
         if vuelta.salir:

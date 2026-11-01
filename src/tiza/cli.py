@@ -933,7 +933,8 @@ def _configuracion_inicial(
         if sin_sesion:
             detalle = (
                 "pide al docente que ejecute «tiza empezar» en su terminal, o que abra «tiza» "
-                "desde el menú Inicio (en Windows), con esta misma carpeta"
+                "desde el menú de inicio o de aplicaciones (con el panel, en Windows o Linux), "
+                "con esta misma carpeta"
             )
             pasos: list[informe.Paso] = []
             pista = agente.pista_worktree(Path.cwd())

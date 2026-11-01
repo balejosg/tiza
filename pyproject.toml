@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tiza"
-version = "0.37.0"
+version = "0.38.0"
 license = "MIT"
 license-files = ["LICENSE"]
 description = "CLI y skill para publicar contenidos en tu aula virtual Moodle sin exponer datos del alumnado"
@@ -36,8 +36,8 @@ tiza-panel = "tiza.panel:main"
 dev = ["pytest>=8.0"]
 ventana = [
     "pywebview>=6.2,<7",
-    "pywebview[qt]>=6.2,<7; sys_platform == 'linux'",
-]  # ventana de entrada al aula; en Windows usa WebView2 y en Linux, Qt
+    "pywebview[pyside6]>=6.2,<7; sys_platform == 'linux'",
+]  # ventana de entrada y panel; en Windows usa WebView2 y en Linux, Qt (PySide6, LGPL)
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tiza"]

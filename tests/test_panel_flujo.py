@@ -444,3 +444,84 @@ def test_con_una_presencia_falsa_el_flujo_no_depende_del_panel(asignatura):
     e.elegir_con_dialogo(asignatura)
     assert e.terminar() == 0
     assert e.llamadas[0][2] is presencia
+
+
+# --- el permiso de administrador (AppArmor) -------------------------------------------------
+
+
+class PresenciaConPermiso(PresenciaFalsa):
+    def __init__(self, si: bool) -> None:
+        super().__init__()
+        self._si = si
+        self.preguntado = 0
+
+    def confirmar_permitir_sandbox(self) -> bool:
+        self.preguntado += 1
+        return self._si
+
+
+@pytest.mark.parametrize(
+    ("codigo", "aviso"), [(0, "SANDBOX_PERMITIDO"), (126, "SANDBOX_NO_PERMITIDO")]
+)
+def test_permitir_sandbox_pregunta_pide_y_cuenta(codigo, aviso):
+    presencia = PresenciaConPermiso(True)
+    assert flujo.permitir_sandbox_con(presencia, pedir=lambda: codigo) is (codigo == 0)
+    assert presencia.preguntado == 1
+    assert presencia.codigos() == [aviso]
+
+
+def test_permitir_sandbox_si_el_docente_dice_que_no_no_pide_nada():
+    presencia = PresenciaConPermiso(False)
+    assert flujo.permitir_sandbox_con(presencia, pedir=lambda: pytest.fail("no")) is False
+    assert presencia.codigos() == []
+
+
+def test_permitir_sandbox_sin_la_pregunta_del_panel_no_pide_nada():
+    assert flujo.permitir_sandbox_con(PresenciaFalsa(), pedir=lambda: pytest.fail("no")) is False
+
+
+def test_el_panel_explica_el_permiso_antes_de_la_ventana_del_sistema():
+    reloj = Reloj()
+    panel = Panel(reloj=reloj)
+    presencia = PresenciaPanel(panel, reloj=reloj)
+    resultado: dict = {}
+    hilo = threading.Thread(
+        target=lambda: resultado.setdefault("si", presencia.confirmar_permitir_sandbox()),
+        daemon=True,
+    )
+    hilo.start()
+    limite = time.monotonic() + 5
+    while panel.estado()["pantalla"]["tipo"] == "reposo" and time.monotonic() < limite:
+        time.sleep(0.005)
+    pantalla = panel.estado()["pantalla"]
+    assert pantalla["titulo"] == mensajes.PERMITIR_SANDBOX_TITULO
+    assert any("contraseña" in linea for linea in pantalla["lineas"])
+    reloj.ahora += RETARDO_RESPUESTA + 0.1
+    assert panel.responder(pantalla["numero"], True)
+    hilo.join(5)
+    assert resultado["si"] is True
+
+
+def test_el_panel_solo_pide_el_permiso_en_linux(asignatura, monkeypatch):
+    for sistema, esperado in (("Linux", True), ("Windows", False)):
+        vistos: list = []
+
+        def preparar(carpeta, presencia, vistos=vistos, **opciones):
+            vistos.append(opciones["permitir_sandbox"])
+            return arranque.Resultado(arranque.Estado.ABORTADO)
+
+        panel = Panel()
+        panel.esperar_carpeta = lambda *_a, **_k: asignatura  # type: ignore[method-assign]
+        panel.preguntar_final = lambda: False  # type: ignore[method-assign]
+        flujo.ejecutar(
+            panel,
+            PresenciaFalsa(),
+            home=Path("/casa"),
+            sistema=sistema,
+            cerrar=threading.Event(),
+            preparar=preparar,
+            revisar=lambda *_: [],
+            version_nueva=lambda: None,
+            instalar=lambda _v: False,
+        )
+        assert (vistos[0] is not None) is esperado

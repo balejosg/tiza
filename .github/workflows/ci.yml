@@ -35,9 +35,12 @@ jobs:
       TIZA_REF: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v7
-      - name: Instalar (macOS/Linux)
-        if: runner.os != 'Windows'
+      - name: Instalar (macOS)
+        if: runner.os == 'macOS'
         run: sh install.sh
+      - name: Instalar con el panel (Linux)
+        if: runner.os == 'Linux'
+        run: TIZA_PANEL=1 sh install.sh
       - name: Instalar (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -65,6 +68,18 @@ jobs:
             if [ -x "$py" ]; then "$py" -c "import webview; import tiza.ventana as v; print('ventana importable')" && exit 0; fi
           done
           echo "no se encontró el intérprete de tiza" && exit 1
+      - name: Comprobar el panel y el acceso del menú de aplicaciones (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          panel="$(uv tool dir --bin)/tiza-panel"
+          test -x "$panel" || { echo "Falta $panel"; exit 1; }
+          acceso="$HOME/.local/share/applications/tiza.desktop"
+          test -f "$acceso" || { echo "Falta el acceso $acceso"; exit 1; }
+          grep -qxF "Exec=\"$panel\"" "$acceso" || { echo "El acceso no apunta a $panel"; exit 1; }
+          test -f "$HOME/.local/share/icons/tiza.png" || { echo "Falta el icono"; exit 1; }
+          "$(uv tool dir)/tiza/bin/python" -c "import webview, PySide6; import tiza.panel.linux; print('panel importable')"
       - name: Comprobar el panel y los accesos del menú Inicio (Windows)
         if: runner.os == 'Windows'
         shell: pwsh

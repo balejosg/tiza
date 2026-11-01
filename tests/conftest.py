@@ -19,6 +19,12 @@ def _sin_ventana_de_entrada(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _sandbox_que_arranca(monkeypatch):
+    """La prueba de ``bwrap`` lanza un proceso de verdad: en los tests, el sandbox arranca."""
+    monkeypatch.setattr("tiza.aislamiento.probar_sandbox", lambda: "ok")
+
+
+@pytest.fixture(autouse=True)
 def _sin_consultar_versiones(monkeypatch):
     """«tiza empezar» no pregunta a GitHub por la última versión: los tests no salen a la red."""
     monkeypatch.setattr("tiza.cli._version_nueva", lambda: None)

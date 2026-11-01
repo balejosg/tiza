@@ -155,6 +155,8 @@ AVISOS = frozenset(
         "REGISTRO_NO_GUARDADO",
         "REINICIA_EL_AGENTE",
         "RESULTADO",
+        "SANDBOX_NO_PERMITIDO",
+        "SANDBOX_PERMITIDO",
         "SESION_ABIERTA",
         "SESION_ANTERIOR_CERRADA",
         "SESION_CERRADA",
@@ -365,9 +367,19 @@ class Aviso:
         return cls("SIGUE_LA_VERSION_ACTUAL")
 
     @classmethod
-    def tiza_actualizada(cls, windows: bool) -> Aviso:
-        """``windows``: la instalación sigue en otra ventana y hay que esperar a que acabe."""
-        return cls("TIZA_ACTUALIZADA", {"windows": windows})
+    def sandbox_permitido(cls) -> Aviso:
+        return cls("SANDBOX_PERMITIDO")
+
+    @classmethod
+    def sandbox_no_permitido(cls, codigo: int) -> Aviso:
+        """``codigo``: el de ``pkexec`` (126 canceló, 127 sin permiso; -1, sin ``pkexec``)."""
+        return cls("SANDBOX_NO_PERMITIDO", {"codigo": codigo})
+
+    @classmethod
+    def tiza_actualizada(cls, aparte: bool) -> Aviso:
+        """``aparte``: la instalación sigue en otro proceso (Windows o el panel) y hay que
+        esperar a que acabe."""
+        return cls("TIZA_ACTUALIZADA", {"aparte": aparte})
 
 
 @dataclass(frozen=True)

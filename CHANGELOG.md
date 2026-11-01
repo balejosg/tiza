@@ -4,6 +4,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.38.0 — 2026-10-31
+
+### Añadido
+- **Panel sin consola en Linux.** En Linux con escritorio (probado en Ubuntu 24.04, en Xorg y en Wayland) puedes usar tiza sin terminal, como en Windows: instálalo con `TIZA_PANEL=1` (lo pide `INSTALAR_CON_AGENTE.md` si hay escritorio) y abre «tiza» desde el menú de aplicaciones. Elige la carpeta, configura, aísla, entra en tu aula y responde al agente con botones; con una pregunta, el panel vuelve aunque esté minimizado. La vista previa se abre en una ventana del panel. Si hay versión nueva, se instala sin ventana y el panel se vuelve a abrir solo (log en `~/.config/tiza/actualizar.log`).
+- **El panel consigue solo la librería que le falta a Qt.** Ubuntu 24.04 no trae `libxcb-cursor0` y, sin ella, la ventana no se abría en Xorg sin decir nada. El panel la baja con apt, sin permisos de administrador, la primera vez.
+- **`tiza revisar` comprueba que el sandbox de Claude Code arranca de verdad en Linux**, no solo que está en los ajustes: dice si faltan `bubblewrap` o `socat`, o si Ubuntu (AppArmor) lo impide. En ese caso, el panel te explica por qué y pide la contraseña de administrador en una ventana del sistema para instalar el perfil de AppArmor de `bwrap`; sin el panel, la orden para un administrador está en [aislamiento](docs/aislamiento.md#ubuntu-apparmor-y-el-sandbox).
+
+### Cambia
+- **opencode queda aislado con un perfil estricto.** `tiza aislar` le escribe un `opencode.jsonc` con el que el agente solo ejecuta los comandos de tiza que le tocan (sin el panel, `tiza empezar` ni redirecciones), no lee ni escribe fuera de la carpeta de la asignatura (salvo leer las skills) y no puede cambiar su configuración, sus plugins ni `tiza.toml`. Ya no tienes que confirmar cada comando. El `opencode.jsonc` que creó una versión anterior de tiza se cambia solo si sigue tal cual; si lo retocaste, `tiza revisar` dice qué falta. Probado con OpenCode 2 (también opencode Desktop).
+- **El aislamiento de Claude Code en Linux y macOS deniega lanzar el panel** (`tiza-panel` y `python -m tiza.panel`) y `tiza revisar` marca como falta lo que abre el escritorio al agente (`allowUnixSockets` o `allowAllUnixSockets` del bus, Wayland o X11, y `excludedCommands` con tiza o lanzadores del escritorio). Si `tiza revisar` dice que faltan reglas, vuelve a ejecutar `tiza aislar` en la carpeta.
+- **La ventana de entrada en Linux usa PySide6** (LGPL) en vez de PyQt6; el extra `ventana` cambia de dependencia y pesa algo más (unos 700 MB).
+
+### Corregido
+- **La ventana de entrada al aula ya no nace detrás del panel** cuando el panel seguía delante por la pregunta anterior.
+- **Con dos preguntas seguidas, el panel minimizado vuelve en cada una**, no solo en la primera.
+- **La ventana de entrada en Linux ya no se cae al terminar el login** con PySide6.
+
 ## 0.37.0 — 2026-10-27
 
 ### Añadido

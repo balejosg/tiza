@@ -119,6 +119,7 @@ def _actualizar(
     presencia: Presencia,
     version_nueva: Callable[[], str | None],
     instalar: Callable[[str], bool],
+    aparte: bool,
 ) -> bool:
     """Ofrece la versión nueva; True si se instaló (hay que volver a abrir)."""
     nueva = version_nueva()
@@ -129,14 +130,18 @@ def _actualizar(
     if not instalar(nueva):
         presencia.informar(Aviso.sigue_la_version_actual())
         return False
-    # La instalación sigue en otra ventana cuando tiza corre en Windows (``sys.platform``,
-    # como en ``cli._instalar_version``), no según el ``sistema`` que se revisa para aislar.
-    presencia.informar(Aviso.tiza_actualizada(sys.platform == "win32"))
+    # La instalación sigue aparte cuando tiza corre en Windows (``sys.platform``, como en
+    # ``cli._instalar_version``) o desde el panel, no según el ``sistema`` que se revisa.
+    presencia.informar(Aviso.tiza_actualizada(sys.platform == "win32" or aparte))
     return True
 
 
 def _aislar(
-    carpeta: Path, presencia: Presencia, home: Path, sistema: str
+    carpeta: Path,
+    presencia: Presencia,
+    home: Path,
+    sistema: str,
+    permitir_sandbox: Callable[[], object] | None,
 ) -> Resultado | list[aislamiento.Comprobacion]:
     """Aísla la carpeta; devuelve lo que sigue faltando, o el resultado si no se puede seguir."""
     servidor = aislamiento.servidor_configurado()
@@ -146,6 +151,8 @@ def _aislar(
         return Resultado(Estado.FALLO, exc.codigo, exc.detalle, causa=exc)
     if not aplicar_plan(plan, presencia):
         return _ABORTADO
+    if plan.apparmor and permitir_sandbox is not None:
+        permitir_sandbox()  # pregunta, pide el permiso al sistema y cuenta cómo fue
     faltas = [c for c in aislamiento.revisar(home, sistema, carpeta) if c.estado == "falta"]
     if faltas:
         presencia.informar(Aviso.sigue_faltando(faltas))
@@ -161,14 +168,17 @@ def preparar(
     version_nueva: Callable[[], str | None],
     instalar: Callable[[str], bool],
     exigir_aislamiento: bool = False,
+    permitir_sandbox: Callable[[], object] | None = None,
 ) -> Resultado:
     """Todo lo que ``tiza empezar`` resuelve antes de abrir la sesión.
 
     ``version_nueva`` da la etiqueta más alta si es posterior a la instalada (o None) e
-    ``instalar`` la instala. Con ``exigir_aislamiento`` no se ofrece seguir sin aislar:
-    si el agente no queda aislado, el resultado es ``ABORTADO``.
+    ``instalar`` la instala. Con ``exigir_aislamiento`` (el panel) no se ofrece seguir sin
+    aislar: si el agente no queda aislado, el resultado es ``ABORTADO``; además la
+    actualización sigue aparte. ``permitir_sandbox`` (el panel en Linux) resuelve el paso de
+    administrador del plan (AppArmor); sin él, ese paso queda en los pasos a mano.
     """
-    if _actualizar(presencia, version_nueva, instalar):
+    if _actualizar(presencia, version_nueva, instalar, exigir_aislamiento):
         return Resultado(Estado.ACTUALIZADA)
     try:
         configurado = config.cargar_global() is not None
@@ -188,7 +198,7 @@ def preparar(
         return _SEGUIR
     presencia.informar(Aviso.carpeta_no_aislada())
     if exigir_aislamiento or presencia.ofrecer_aislamiento():
-        hecho = _aislar(carpeta, presencia, home, sistema)
+        hecho = _aislar(carpeta, presencia, home, sistema, permitir_sandbox)
         if isinstance(hecho, Resultado):
             return hecho
         faltas = hecho

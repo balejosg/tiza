@@ -9,7 +9,9 @@ Windows y la construcción de su entorno, que son funciones puras. El lanzamient
 En Windows uv no puede borrar el ``python.exe`` ni el ``tiza.exe`` que están en marcha
 (os error 5): la instalación sigue en otro proceso de PowerShell que espera a que el actual
 termine. Con la consola (``tiza actualizar``) es una consola nueva; con el panel, un
-PowerShell oculto que deja un log y vuelve a abrir ``tiza-panel`` contando cómo fue.
+PowerShell oculto que deja un log y vuelve a abrir ``tiza-panel`` contando cómo fue. En
+Linux el panel hace lo mismo con un ``sh`` desacoplado (``GUION_PANEL_LINUX``): cambiar las
+librerías de Qt debajo de un proceso vivo es buscarse un cuelgue.
 
 Los datos llegan a los guiones por variables de entorno (``TIZA_ACT_*``): nada de lo que
 varía se interpreta como código.
@@ -32,8 +34,10 @@ import requests
 from . import __version__, config
 
 __all__ = [
+    "ACCESO_SH",
     "ACCESOS_PS",
     "GUION_PANEL",
+    "GUION_PANEL_LINUX",
     "GUION_WINDOWS",
     "PYTHON_INSTALADO",
     "REPO_GIT",
@@ -322,6 +326,107 @@ if (Test-Path -LiteralPath $panel) {
 )
 
 
+# --- Linux: el acceso del menú de aplicaciones y el actualizador del panel -------------------
+
+# El acceso «tiza» del menú de aplicaciones (``tiza.desktop``), sin administrador. Es el mismo
+# texto que lleva ``install.sh`` (un test lo comprueba): ese se ejecuta con ``curl | sh``. El
+# nombre ``tiza.desktop`` es el que da el panel a Qt (``setDesktopFileName``): en Wayland así
+# lo asocia GNOME al acceso y el panel minimizado sigue en el dock.
+ACCESO_SH = """\
+crear_acceso_tiza() {
+    panel="$1/tiza-panel"
+    if [ ! -x "$panel" ]; then
+        echo "No se instaló el panel de tiza (falta la ventana): tiza se usa solo desde la terminal."
+        return 1
+    fi
+    datos="${XDG_DATA_HOME:-$HOME/.local/share}"
+    icono="$datos/icons/tiza.png"
+    mkdir -p "$datos/applications" "$datos/icons"
+    for candidato in "$(uv tool dir 2>/dev/null)"/tiza/lib/python*/site-packages/tiza/recursos/logo.png; do
+        if [ -f "$candidato" ]; then
+            cp "$candidato" "$icono"
+            break
+        fi
+    done
+    cat > "$datos/applications/tiza.desktop" <<FIN_DEL_ACCESO
+[Desktop Entry]
+Type=Application
+Name=tiza
+Comment=Abrir la sesión de tiza con el aula virtual
+Exec="$panel"
+Icon=$icono
+Terminal=false
+Categories=Education;
+StartupWMClass=tiza-panel
+FIN_DEL_ACCESO
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "$datos/applications" >/dev/null 2>&1
+    fi
+    return 0
+}
+"""
+
+# La actualización desde el panel en Linux, en un ``sh`` desacoplado (sesión propia, sin
+# terminal): espera a que el panel termine, instala solo con el extra ``ventana``, anota en el
+# log (versiones, órdenes de uv y códigos de salida), rehace el acceso y vuelve a abrir el
+# panel con ``TIZA_PANEL_ACTUALIZACION`` diciendo cómo fue.
+GUION_PANEL_LINUX = (
+    ACCESO_SH
+    + """
+log="$TIZA_ACT_LOG"
+anotar() {
+    printf '%s %s\\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$1" >> "$log" 2>/dev/null
+}
+: > "$log" 2>/dev/null
+anotar "Actualizando tiza de $TIZA_ACT_ANTERIOR a $TIZA_ACT_REF"
+while kill -0 "$TIZA_ACT_PID" 2>/dev/null; do
+    sleep 1
+done
+sleep 1
+uv="$TIZA_ACT_UV"
+hecho=0
+anterior_ifs=$IFS
+IFS='|'
+for paquete in $TIZA_ACT_PAQUETES; do
+    IFS=$anterior_ifs
+    anotar "uv tool install $paquete"
+    "$uv" tool install --force --python "$TIZA_ACT_PYTHON" "$paquete" >> "$log" 2>&1
+    codigo=$?
+    anotar "uv termino con codigo $codigo"
+    if [ "$codigo" -eq 0 ]; then
+        hecho=1
+        break
+    fi
+done
+IFS=$anterior_ifs
+bin="$("$uv" tool dir --bin 2>/dev/null)"
+if [ "$hecho" = 1 ]; then
+    "$bin/tiza" instalar-skill >/dev/null 2>&1
+    anotar "instalar-skill termino con codigo $?"
+    crear_acceso_tiza "$bin" >/dev/null 2>&1
+    TIZA_PANEL_ACTUALIZACION="ok:${TIZA_ACT_REF#v}"
+else
+    anotar "No se pudo instalar tiza."
+    TIZA_PANEL_ACTUALIZACION=fallo
+fi
+export TIZA_PANEL_ACTUALIZACION
+unset TIZA_ACT_PID TIZA_ACT_REF TIZA_ACT_UV TIZA_ACT_PYTHON TIZA_ACT_PAQUETES TIZA_ACT_LOG \\
+    TIZA_ACT_ANTERIOR
+if [ -x "$bin/tiza-panel" ]; then
+    anotar "Se vuelve a abrir el panel."
+    cd "$HOME" || exit 1
+    exec "$bin/tiza-panel"
+fi
+anotar "No se encontro tiza-panel."
+"""
+)
+
+
+def orden_sh(guion: str) -> list[str]:
+    """La orden que ejecuta ``guion`` con ``/bin/sh`` (el guion va como argumento, no por disco)."""
+    return ["/bin/sh", "-c", guion, "tiza-actualizar"]
+
+
 def _codificar(guion: str) -> str:
     return base64.b64encode(guion.encode("utf-16-le")).decode("ascii")
 
@@ -415,9 +520,13 @@ def lanzar_panel_oculto(
     anterior: str | None = None,
     log: Path | None = None,
     lanzar: Callable[..., object] | None = None,
+    plataforma: str | None = None,
 ) -> bool:
-    """Lanza ``GUION_PANEL`` sin ventana; False si no se pudo (el panel sigue como estaba)."""
+    """Lanza el actualizador del panel sin ventana; False si no se pudo (el panel sigue como
+    estaba). En Windows, ``GUION_PANEL``; en Linux, ``GUION_PANEL_LINUX``."""
     destino = log or ruta_log()
+    if (plataforma or sys.platform).startswith("linux"):
+        return _lanzar_panel_linux(uv, ref, anterior=anterior, log=destino, lanzar=lanzar)
     try:
         entorno = entorno_panel(
             os.environ,
@@ -432,6 +541,38 @@ def lanzar_panel_oculto(
             orden_powershell(GUION_PANEL, oculto=True),
             env=entorno,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", CREATE_NO_WINDOW),
+        )
+    except (OSError, ErrorActualizacion):
+        return False
+    return True
+
+
+def _lanzar_panel_linux(
+    uv: str,
+    ref: str,
+    *,
+    anterior: str | None,
+    log: Path,
+    lanzar: Callable[..., object] | None,
+) -> bool:
+    try:
+        entorno = entorno_panel(
+            os.environ,
+            pid=os.getpid(),
+            ref=ref,
+            uv=uv,
+            log=log,
+            anterior=anterior or __version__,
+        )
+        log.parent.mkdir(parents=True, exist_ok=True)
+        (lanzar or subprocess.Popen)(
+            orden_sh(GUION_PANEL_LINUX),
+            env=entorno,
+            cwd=str(Path.home()),
+            start_new_session=True,  # sigue vivo cuando el panel termine
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
     except (OSError, ErrorActualizacion):
         return False

@@ -671,6 +671,16 @@ PREGUNTA_AUTOPRUEBA = "¿Pasarla ahora?"
 PREGUNTA_ACTUALIZAR = "¿Actualizar ahora? Después tendrás que volver a abrir la sesión."
 PREGUNTA_CARPETA_DUDOSA = "¿Abrir la sesión aquí de todos modos?"
 PREGUNTA_AISLAR_AQUI = "¿Aplicar ahora el aislamiento a esta carpeta?"
+PERMITIR_SANDBOX_TITULO = "Permiso de administrador"
+PERMITIR_SANDBOX_TEXTO = (
+    "Ubuntu (AppArmor) impide el sandbox de Claude Code en este equipo, y sin él el agente "
+    "no queda aislado.",
+    "Se arregla una vez, con la contraseña de administrador del equipo. La pide el sistema, "
+    "en su propia ventana: tiza y el agente no la ven.",
+    "Esa ventana enseña la orden que se ejecuta: instala un perfil de AppArmor para bwrap "
+    "(el programa del sandbox).",
+)
+PREGUNTA_PERMITIR_SANDBOX = "¿Pedir ahora el permiso?"
 PREGUNTA_AISLAMIENTO = "¿Aplicarlos?"
 PREGUNTA_SEGUIR_SIN_AISLAR = "¿Seguir sin aislar el agente?"
 PREGUNTA_SESION_ANTERIOR = "¿Cerrarla y abrir esta?"
@@ -706,6 +716,7 @@ _ROTULOS: dict[str, tuple[str, str, str]] = {
     "ofrecer_aislamiento": ("Aplicar el aislamiento", "No aplicarlo", ""),
     "confirmar_aislamiento": ("Aplicar el aislamiento", "No aplicarlo", ""),
     "seguir_sin_aislar": ("Seguir sin aislar", "No seguir", "peligro"),
+    "permitir_sandbox": ("Pedir el permiso", "Ahora no", ""),
     "cerrar_sesion_anterior": (
         "Cerrar la anterior y abrir esta",
         "Dejar la anterior",
@@ -927,8 +938,29 @@ def _sigue_la_version_actual(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea("Se sigue con la versión que tienes."),)
 
 
+def _sandbox_permitido(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("Hecho: el sandbox de Claude Code ya puede funcionar en este equipo."),)
+
+
+def _sandbox_no_permitido(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    codigo = datos["codigo"]
+    if codigo == 126:
+        texto = "No se ha dado el permiso: sin él, el agente no queda aislado."
+    elif codigo == 127:
+        texto = (
+            "Esta cuenta no puede dar permisos de administrador. Pide a quien administre el "
+            "equipo que siga docs/aislamiento.md (AppArmor)."
+        )
+    else:
+        texto = (
+            f"No se pudo pedir el permiso de administrador (código {codigo}). "
+            "Mira docs/aislamiento.md (AppArmor)."
+        )
+    return (Linea(texto, error=True),)
+
+
 def _tiza_actualizada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
-    if datos["windows"]:
+    if datos["aparte"]:
         return (
             Linea(
                 "Vuelve a abrir la sesión cuando la otra ventana diga que tiza está actualizada."
@@ -1164,6 +1196,8 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "SIGUE_FALTANDO": _sigue_faltando,
     "SIGUE_LA_VERSION_ACTUAL": _sigue_la_version_actual,
     "TIZA_ACTUALIZADA": _tiza_actualizada,
+    "SANDBOX_PERMITIDO": _sandbox_permitido,
+    "SANDBOX_NO_PERMITIDO": _sandbox_no_permitido,
 }
 
 

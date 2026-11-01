@@ -210,6 +210,7 @@ def test_lanzar_el_panel_oculto_no_abre_ventana_y_deja_el_log_en_su_carpeta(tmp_
         anterior="0.29.2",
         log=log,
         lanzar=lambda orden, **k: lanzadas.append((orden, k)),
+        plataforma="win32",
     )
     assert ok is True
     [(orden, opciones)] = lanzadas
@@ -230,18 +231,24 @@ def test_si_no_se_puede_lanzar_el_actualizador_se_dice_que_no(tmp_path):
     def sin_powershell(*_a, **_k):
         raise OSError("no")
 
-    assert not actualizacion.lanzar_panel_oculto(
-        "/bin/uv", "v0.30.0", log=tmp_path / "l.log", lanzar=sin_powershell
-    )
+    for plataforma in ("win32", "linux"):
+        assert not actualizacion.lanzar_panel_oculto(
+            "/bin/uv",
+            "v0.30.0",
+            log=tmp_path / "l.log",
+            lanzar=sin_powershell,
+            plataforma=plataforma,
+        )
 
 
 def test_lanzar_con_una_ref_invalida_no_lanza_nada(tmp_path):
     def no(*_a, **_k):
         raise AssertionError("no debe lanzar")
 
-    assert not actualizacion.lanzar_panel_oculto(
-        "/bin/uv", "v1; calc", log=tmp_path / "l.log", lanzar=no
-    )
+    for plataforma in ("win32", "linux"):
+        assert not actualizacion.lanzar_panel_oculto(
+            "/bin/uv", "v1; calc", log=tmp_path / "l.log", lanzar=no, plataforma=plataforma
+        )
 
 
 def test_la_ruta_del_log_esta_en_la_carpeta_global(monkeypatch, tmp_path):
@@ -294,3 +301,146 @@ def test_paquetes_con_ventana_no_tiene_caida_a_sin_ella():
         f"tiza[ventana] @ {actualizacion.REPO_GIT}/archive/main.zip"
     ]
     assert actualizacion.paquetes("main", True)[-1].startswith("tiza @ ")
+
+
+# --- Linux: el acceso y el actualizador del panel ---------------------------------------------
+
+POSIX = pytest.mark.skipif(shutil.which("sh") is None or os.name == "nt", reason="sin sh")
+
+
+def test_install_sh_lleva_el_mismo_bloque_del_acceso_que_la_actualizacion():
+    instalador = (RAIZ / "install.sh").read_text(encoding="utf-8")
+    assert actualizacion.ACCESO_SH in instalador
+    assert actualizacion.GUION_PANEL_LINUX.startswith(actualizacion.ACCESO_SH)
+
+
+def test_install_sh_solo_crea_el_acceso_con_el_panel_y_la_ventana():
+    instalador = (RAIZ / "install.sh").read_text(encoding="utf-8")
+    assert 'if [ "${TIZA_PANEL:-0}" = 1 ] && [ "$(uname -s)" = "Linux" ]' in instalador
+    creacion = 'if [ "$PANEL" = 1 ] && [ "$CON_VENTANA" = 1 ] && crear_acceso_tiza'
+    assert creacion in instalador
+    assert instalador.index(creacion) > instalador.index("tiza instalar-skill")
+    assert "Busca «tiza» en tus aplicaciones" in instalador
+
+
+def _ejecutable(ruta: Path, texto: str) -> Path:
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    ruta.write_text("#!/bin/sh\n" + texto, encoding="utf-8")
+    ruta.chmod(0o755)
+    return ruta
+
+
+@POSIX
+def test_el_acceso_de_linux_apunta_al_panel_con_el_icono(tmp_path):
+    bin_ = tmp_path / "bin"
+    _ejecutable(bin_ / "tiza-panel", "exit 0\n")
+    herramientas = tmp_path / "herramientas"
+    logo = herramientas / "tiza/lib/python3.13/site-packages/tiza/recursos/logo.png"
+    logo.parent.mkdir(parents=True)
+    logo.write_bytes(b"PNG")
+    _ejecutable(tmp_path / "uvbin" / "uv", f'echo "{herramientas}"\n')
+    datos = tmp_path / "datos"
+    entorno = {
+        "PATH": f"{tmp_path / 'uvbin'}:/usr/bin:/bin",
+        "HOME": str(tmp_path),
+        "XDG_DATA_HOME": str(datos),
+    }
+    guion = actualizacion.ACCESO_SH + f'crear_acceso_tiza "{bin_}"\n'
+    resultado = subprocess.run(["sh", "-c", guion], env=entorno, capture_output=True, text=True)
+    assert resultado.returncode == 0, resultado.stderr
+    acceso = (datos / "applications" / "tiza.desktop").read_text(encoding="utf-8")
+    assert f'Exec="{bin_ / "tiza-panel"}"' in acceso
+    assert f"Icon={datos / 'icons' / 'tiza.png'}" in acceso
+    assert "Terminal=false" in acceso and "StartupWMClass=tiza-panel" in acceso
+    assert (datos / "icons" / "tiza.png").read_bytes() == b"PNG"
+
+
+@POSIX
+def test_sin_el_panel_no_se_crea_el_acceso(tmp_path):
+    entorno = {"PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "XDG_DATA_HOME": str(tmp_path)}
+    guion = actualizacion.ACCESO_SH + f'crear_acceso_tiza "{tmp_path / "nada"}"\n'
+    resultado = subprocess.run(["sh", "-c", guion], env=entorno, capture_output=True, text=True)
+    assert resultado.returncode == 1
+    assert "solo desde la terminal" in resultado.stdout
+    assert not (tmp_path / "applications").exists()
+
+
+def _actualizar_en_linux(tmp_path: Path, *, uv_codigo: int) -> tuple[Path, Path]:
+    """Ejecuta GUION_PANEL_LINUX con un uv, un tiza y un tiza-panel falsos; nada sale a la red."""
+    bin_ = tmp_path / "bin"
+    anotado = tmp_path / "reabierto.txt"
+    _ejecutable(bin_ / "tiza", "exit 0\n")
+    _ejecutable(
+        bin_ / "tiza-panel",
+        f'echo "$TIZA_PANEL_ACTUALIZACION ${{TIZA_ACT_REF:-sin}} $PWD" > "{anotado}"\n',
+    )
+    uv = _ejecutable(
+        tmp_path / "uv",
+        f'if [ "$2" = dir ]; then echo "{bin_}"; exit 0; fi\n'
+        f'echo "$@" >> "{tmp_path / "ordenes.txt"}"\n'
+        f"exit {uv_codigo}\n",
+    )
+    terminado = subprocess.Popen(["true"])
+    terminado.wait()
+    log = tmp_path / "actualizar.log"
+    entorno = actualizacion.entorno_panel(
+        {"PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "XDG_DATA_HOME": str(tmp_path / "d")},
+        pid=terminado.pid,
+        ref="v0.38.0",
+        uv=str(uv),
+        log=log,
+        anterior="0.37.0",
+    )
+    resultado = subprocess.run(
+        actualizacion.orden_sh(actualizacion.GUION_PANEL_LINUX),
+        env=entorno,
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert resultado.returncode == 0, resultado.stderr
+    return anotado, log
+
+
+@POSIX
+def test_el_actualizador_de_linux_instala_rehace_el_acceso_y_reabre_el_panel(tmp_path):
+    anotado, log = _actualizar_en_linux(tmp_path, uv_codigo=0)
+    assert anotado.read_text(encoding="utf-8").split() == ["ok:0.38.0", "sin", str(tmp_path)]
+    ordenes = (tmp_path / "ordenes.txt").read_text(encoding="utf-8").splitlines()
+    assert len(ordenes) == 1 and "tiza[ventana] @ " in ordenes[0]
+    assert "--force --python 3.13" in ordenes[0]
+    texto = log.read_text(encoding="utf-8")
+    assert "Actualizando tiza de 0.37.0 a v0.38.0" in texto
+    assert "uv termino con codigo 0" in texto and "Se vuelve a abrir el panel." in texto
+    assert (tmp_path / "d" / "applications" / "tiza.desktop").is_file()
+
+
+@POSIX
+def test_si_uv_falla_el_actualizador_de_linux_reabre_contando_el_fallo(tmp_path):
+    anotado, log = _actualizar_en_linux(tmp_path, uv_codigo=2)
+    assert anotado.read_text(encoding="utf-8").split()[0] == "fallo"
+    ordenes = (tmp_path / "ordenes.txt").read_text(encoding="utf-8").splitlines()
+    assert len(ordenes) == 2  # el wheel y el .zip, los dos con la ventana
+    assert "No se pudo instalar tiza." in log.read_text(encoding="utf-8")
+
+
+def test_lanzar_el_actualizador_de_linux_lo_desacopla_del_panel(tmp_path):
+    log = tmp_path / "global" / "actualizar.log"
+    lanzadas: list[tuple] = []
+    ok = actualizacion.lanzar_panel_oculto(
+        "/bin/uv",
+        "v0.38.0",
+        anterior="0.37.0",
+        log=log,
+        lanzar=lambda orden, **k: lanzadas.append((orden, k)),
+        plataforma="linux",
+    )
+    assert ok is True
+    [(orden, opciones)] = lanzadas
+    assert orden == actualizacion.orden_sh(actualizacion.GUION_PANEL_LINUX)
+    assert opciones["start_new_session"] is True
+    assert opciones["stdin"] == subprocess.DEVNULL
+    assert opciones["env"]["TIZA_ACT_LOG"] == str(log)
+    assert "creationflags" not in opciones
+    assert log.parent.is_dir()

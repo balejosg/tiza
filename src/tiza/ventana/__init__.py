@@ -12,6 +12,7 @@ El padre (``entrar``) lanza ``python -m tiza.ventana <url>``; solo el hijo impor
 
 from __future__ import annotations
 
+import gc
 import importlib.util
 import os
 import subprocess
@@ -213,4 +214,9 @@ def principal(argv: list[str] | None = None) -> int:
         return SALIDA_USO
     # En Linux el proceso sale al entregar la sesión: QtWebEngine puede estrellarse al desmontarse.
     salir = os._exit if sys.platform.startswith("linux") else None
+    if salir is not None:
+        # Con PySide6 el recolector de ciclos puede liberar la vista de QtWebEngine desde otro
+        # hilo (el de los eventos de pywebview) y Qt aborta. Este proceso es corto y sale con
+        # ``os._exit``: basta con no recoger.
+        gc.disable()
     return ejecutar_hijo(argumentos[0], canal=_canal_propio(), salir=salir)

@@ -78,8 +78,9 @@ Detecta Claude Code, Codex, opencode y la app de GitHub Copilot. Te enseña los
 cambios que va a hacer **en la configuración de esa carpeta** (salvo la marca de
 confianza de Codex, que va en `~/.codex/config.toml`; lo explica la sección de
 Codex). Solo añade restricciones, nunca quita permisos. Con opencode crea
-`opencode.jsonc` si esa carpeta todavía no tiene ninguna configuración suya; si
-ya existe, no la toca y te recuerda qué reglas copiar a mano. Con la app de
+`opencode.jsonc` (un perfil estricto: solo los comandos de tiza del agente) si esa
+carpeta todavía no tiene ninguna configuración suya; si ya existe, no la toca
+(salvo la que creó una versión anterior de tiza) y te recuerda qué reglas copiar a mano. Con la app de
 Copilot no puede escribir nada: te imprime la receta para que la apliques en
 sus ajustes (mira la sección «GitHub Copilot»). Con los demás, si dices que sí,
 guarda una copia `…antes-de-tiza-…` del fichero que ya exista y los aplica. La configuración de tus demás proyectos no cambia. Para comprobarlo
@@ -150,6 +151,8 @@ En `.claude/settings.json` **de la carpeta de la asignatura** (o en
     "defaultMode": "default",
     "deny": [
       "WebFetch(domain:aula.ejemplo.org)",
+      "Bash(tiza-panel)",
+      "Bash(tiza-panel *)",
       "mcp__playwright"
     ]
   }
@@ -192,6 +195,54 @@ En `.claude/settings.json` **de la carpeta de la asignatura** (o en
 - El buzón `.tiza/buzon/` está dentro de tu carpeta de trabajo, así que el
   sandbox no lo bloquea: el agente puede ejecutar `tiza publicar` sin salir de
   él ni abrir conexiones.
+- `permissions.deny` deniega también lanzar el panel de tiza desde el shell (`tiza-panel`,
+  `python -m tiza.panel` y `python3 -m tiza.panel`, con y sin argumentos): el panel es del
+  docente. El sandbox ya corta al agente el escritorio (Wayland, X11 y el bus de sesión), así
+  que tampoco podría abrir una ventana; y el panel no arranca dentro de un sandbox.
+- No abras el sandbox hacia el escritorio: `tiza revisar` marca como falta
+  `sandbox.network.allowAllUnixSockets`, los sockets del bus de sesión, Wayland o X11 en
+  `sandbox.network.allowUnixSockets` y `tiza` o los lanzadores del escritorio (`gtk-launch`,
+  `gio`, `systemd-run`, `xdg-open`…) en `sandbox.excludedCommands`, que corren fuera del sandbox.
+
+### Ubuntu: AppArmor y el sandbox
+
+En Linux, `tiza revisar` comprueba además que el sandbox **arranca de verdad** en tu equipo
+(prueba `bwrap`, el programa que usa Claude Code): con los ajustes escritos no basta. Necesita
+`bubblewrap` y `socat` instalados.
+
+Desde Ubuntu 23.10, AppArmor no deja a los programas sin privilegios crear el aislamiento de red
+que usa el sandbox, y `tiza revisar` dice «AppArmor (Ubuntu) impide el sandbox». Se arregla una
+vez, con permisos de administrador, instalando un perfil de AppArmor para `bwrap`:
+
+```
+abi <abi/4.0>,
+include <tunables/global>
+profile bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+  include if exists <local/bwrap>
+}
+```
+
+- Con el panel de tiza, al aislar la carpeta te explica qué va a pasar y, si aceptas, el sistema
+  te pide la contraseña de administrador en su propia ventana (tiza y el agente no la ven).
+  Esa ventana enseña la orden que se ejecuta. Si cancelas, el panel no abre la sesión.
+- Sin el panel, un administrador ejecuta en la terminal:
+
+  ```bash
+  printf '%s' 'abi <abi/4.0>,
+  include <tunables/global>
+  profile bwrap /usr/bin/bwrap flags=(unconfined) {
+    userns,
+    include if exists <local/bwrap>
+  }
+  ' | sudo tee /etc/apparmor.d/bwrap >/dev/null && sudo apparmor_parser -r /etc/apparmor.d/bwrap
+  ```
+
+- Si tu cuenta no es de administrador (un equipo del centro), pide a quien lo administre que
+  lo haga.
+
+El perfil le quita a `bwrap` la restricción de Ubuntu sobre los espacios de nombres sin
+privilegios (Ubuntu hace lo mismo con otras aplicaciones que los necesitan); no cambia nada más.
 
 ### En Windows
 
@@ -287,62 +338,89 @@ network_access = false
 
 ## opencode
 
-En `opencode.jsonc` **de la carpeta de la asignatura** (o en el global, si
-prefieres aplicarlo a todos tus proyectos). `tiza aislar` lo crea por ti si esa
-carpeta aún no tiene ninguna configuración de opencode; si ya existe
-(`opencode.json` u `opencode.jsonc`), no la toca para no perder tus reglas ni
-comentarios, y te recuerda qué hay que copiar a mano. Versión 2:
+opencode (también opencode Desktop) no tiene sandbox de sistema: lo aíslan solo sus
+reglas. Por eso tiza le pone un **perfil estricto**: el agente solo ejecuta los comandos de
+tiza que le tocan, no sale de la carpeta de la asignatura y no puede cambiar su propia
+configuración. Va en `opencode.jsonc` **de la carpeta de la asignatura** (o en el global, si
+prefieres aplicarlo a todos tus proyectos). `tiza aislar` lo crea por ti si esa carpeta aún
+no tiene ninguna configuración de opencode, y cambia el que creó una versión anterior de
+tiza si sigue tal cual; si hay otra (`opencode.json` u `opencode.jsonc`), no la toca para
+no perder tus reglas ni comentarios, y te recuerda qué hay que copiar a mano. Versión 2
+(abreviada: `tiza aislar` escribe una regla `allow` por cada comando del agente, las de
+las tres carpetas de skills y una `deny` por cada perfil de navegador):
 
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
   "permissions": [
     { "action": "*", "resource": "*", "effect": "allow" },
-    { "action": "external_directory", "resource": "*", "effect": "ask" },
-    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "*", "effect": "deny" },
+    { "action": "shell", "resource": "tiza normativa *", "effect": "allow" },
+    { "action": "shell", "resource": "tiza leer *", "effect": "allow" },
+    // … lo mismo con documento, esquema, rellenar, importar, copia, calificador,
+    // comprobar, publicar, ordenar, estructura y revisar
+    { "action": "shell", "resource": "tiza --help", "effect": "allow" },
+    { "action": "external_directory", "resource": "*", "effect": "deny" },
+    { "action": "external_directory", "resource": "~/.config/opencode/skills/*", "effect": "allow" },
+    { "action": "edit", "resource": "~/.config/opencode/skills/*", "effect": "deny" },
+    // … lo mismo con ~/.claude/skills/* y ~/.agents/skills/*
     { "action": "webfetch", "resource": "*", "effect": "deny" },
     { "action": "websearch", "resource": "*", "effect": "deny" },
+    { "action": "execute", "resource": "*", "effect": "deny" },
+    { "action": "subagent", "resource": "*", "effect": "deny" },
+    { "action": "edit", "resource": "opencode.json*", "effect": "deny" },
+    { "action": "edit", "resource": "*/opencode.json*", "effect": "deny" },
+    { "action": "edit", "resource": ".opencode", "effect": "deny" },
+    { "action": "edit", "resource": ".opencode/*", "effect": "deny" },
+    { "action": "edit", "resource": "*/.opencode/*", "effect": "deny" },
+    { "action": "edit", "resource": "tiza.toml", "effect": "deny" },
+    { "action": "edit", "resource": "AGENTS.md", "effect": "deny" },
     { "action": "read", "resource": "~/.config/google-chrome/**", "effect": "deny" },
-    { "action": "read", "resource": "~/.config/chromium/**", "effect": "deny" },
     { "action": "read", "resource": "~/.mozilla/**", "effect": "deny" },
     { "action": "read", "resource": "~/Descargas/**", "effect": "deny" },
     { "action": "read", "resource": "~/Downloads/**", "effect": "deny" },
     { "action": "read", "resource": "~/.config/tiza/**", "effect": "deny" },
-    { "action": "write", "resource": "~/.config/tiza/**", "effect": "deny" },
+    { "action": "edit", "resource": "~/.config/tiza/**", "effect": "deny" },
     { "action": "read", "resource": "~/.cache/tiza/**", "effect": "deny" },
-    { "action": "write", "resource": "~/.cache/tiza/**", "effect": "deny" }
+    { "action": "edit", "resource": "~/.cache/tiza/**", "effect": "deny" },
+    { "action": "shell", "resource": "*>*", "effect": "deny" },
+    { "action": "shell", "resource": "*<*", "effect": "deny" }
   ]
 }
 ```
 
 Las reglas se evalúan en orden y **gana la última que coincida**, por eso las
-generales van primero y las específicas después. Si la carpeta de la asignatura
-está dentro de Descargas, `tiza aislar` añade al final
+generales van primero y las específicas después. Qué consigue cada parte:
+
+- **Comandos**: todo denegado salvo `tiza <comando del agente>`. opencode parte las órdenes
+  compuestas (`;`, `&&`, `|`, `$(…)`, subshells) y exige que cada parte esté permitida, así
+  que `tiza revisar; touch x` se deniega entero. Quedan fuera `tiza empezar`, `tiza aislar`,
+  `tiza actualizar` y el panel (`tiza-panel`), que son tuyos. Las dos últimas reglas
+  deniegan las redirecciones (`>>`, `2>`, `<`…), que tras un comando permitido escribirían
+  fuera de la carpeta.
+- **Fuera de la carpeta**: ni lee ni escribe (`external_directory`), salvo leer las skills
+  instaladas, entre ellas la de tiza.
+- **Su propia configuración**: no edita `opencode.json`/`opencode.jsonc` ni `.opencode/`
+  (los plugins de ahí se cargan solos), ni `tiza.toml` ni `AGENTS.md`.
+- Sin `webfetch` ni `websearch`; los perfiles de navegador, Descargas y la configuración
+  y caché de tiza, bloqueados aunque se reabriera algo.
+
+Si la carpeta de la asignatura está dentro de Descargas, `tiza aislar` añade al final
 `{ "action": "read", "resource": "/ruta/de/la/asignatura/**", "effect": "allow" }`
 para que el agente pueda leerla sin abrir el resto de Descargas.
 
-Versión 1 (si tu opencode todavía usa el objeto `permission`):
-
-```json
-{
-  "permission": {
-    "bash": "ask",
-    "webfetch": "deny",
-    "websearch": "deny",
-    "external_directory": { "*": "ask" },
-    "read": { "~/Descargas/**": "deny", "~/Downloads/**": "deny" }
-  }
-}
-```
+La versión 1 de opencode (el objeto `permission`) no permite este perfil: actualiza
+opencode. `tiza revisar` marca como falta una configuración que no lo cumpla.
 
 - `tiza aislar` crea `opencode.jsonc` en la carpeta cuando no hay ninguna
   configuración de opencode; si ya hay una, no la edita y te señala qué falta.
   Si tienes reglas propias en la global, tampoco crea nada para no debilitarlas
   (la última regla que coincide gana). `tiza revisar` lo comprueba si encuentra
-  `opencode.json` u `opencode.jsonc` en la carpeta (o el global).
-- **Aviso**: opencode no tiene sandbox de sistema; estas reglas dependen de que
-  el agente las respete y de tu confirmación. Para trabajo sensible, ejecútalo
-  en un usuario del sistema sin sesión abierta del aula.
+  `opencode.json` u `opencode.jsonc` en la carpeta (o el global), y avisa si
+  `.opencode/` trae otra configuración, que manda sobre la de la carpeta.
+- **No le añadas permisos** (por ejemplo, `git` o `python` en `shell`): cada uno es una
+  puerta, y opencode no tiene sandbox detrás. Para trabajo sensible, ejecútalo en un
+  usuario del sistema sin sesión abierta del aula.
 - La skill se instala en `~/.config/opencode/skills` y también se descubre desde
   `~/.claude/skills` y `~/.agents/skills`.
 

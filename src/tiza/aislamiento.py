@@ -12,12 +12,15 @@ from __future__ import annotations
 import copy
 import json
 import os
+import re
 import shutil
+import subprocess
 import tomllib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PureWindowsPath
+from typing import Any
 from urllib.parse import urlsplit
 
 import platformdirs
@@ -34,6 +37,8 @@ __all__ = [
     "Escritura",
     "GLOBAL_CLAUDE",
     "OPENCODE",
+    "ORDEN_APPARMOR",
+    "PERFIL_APPARMOR",
     "Plan",
     "aplicar",
     "configuracion_opencode",
@@ -43,8 +48,12 @@ __all__ = [
     "fusionar_confianza_codex",
     "leer_json",
     "planear_carpeta",
+    "orden_pkexec",
+    "permitir_sandbox",
     "planear_global",
+    "probar_sandbox",
     "quitar_permisos_de_mas",
+    "reglas_panel",
     "reglas_panel_windows",
     "regla_ruta",
     "reglas_agente_windows",
@@ -121,6 +130,13 @@ _PROGRAMAS_DOCENTE = (
     "python -m tiza.panel",
     "pythonw -m tiza.panel",
 )
+# Fuera de Windows la barrera es el sandbox, y además se deniega lanzar el panel desde Bash.
+_PROGRAMAS_DOCENTE_POSIX = ("tiza-panel", "python -m tiza.panel", "python3 -m tiza.panel")
+# Lo que, puesto en ``sandbox.excludedCommands``, corre fuera del sandbox y abriría el panel
+# (o cualquier programa del escritorio) por el bus de sesión.
+_LANZADORES = ("gtk-launch", "gio", "systemd-run", "xdg-open", "dbus-send", "busctl", "gdbus")
+# Sockets que el sandbox de Claude Code corta y que, abiertos, dan el escritorio al agente.
+_SOCKETS_DEL_ESCRITORIO = ("bus", "wayland", ".X11-unix", "pipewire")
 # Los comandos de solo lectura integrados se ejecutan sin permiso en cualquier modo: se
 # deniegan para que el agente no lea con ellos fuera de lo que le toca.
 _LECTURA = {
@@ -174,14 +190,28 @@ def reglas_lectura_windows() -> list[str]:
     ]
 
 
-def reglas_panel_windows() -> list[str]:
-    """Reglas ``deny`` de Windows contra lanzar el panel de tiza, con y sin argumentos."""
+def reglas_panel(sistema: str) -> list[str]:
+    """Reglas ``deny`` contra lanzar el panel de tiza, con y sin argumentos.
+
+    En Windows, en PowerShell y Bash; fuera, en Bash (el sandbox ya corta el escritorio).
+    """
+    shells: tuple[str, ...]
+    programas: tuple[str, ...]
+    if sistema == "Windows":
+        shells, programas = _SHELLS, _PROGRAMAS_DOCENTE
+    else:
+        shells, programas = ("Bash",), _PROGRAMAS_DOCENTE_POSIX
     return [
         regla
-        for shell in _SHELLS
-        for programa in _PROGRAMAS_DOCENTE
+        for shell in shells
+        for programa in programas
         for regla in (f"{shell}({programa})", f"{shell}({programa} *)")
     ]
+
+
+def reglas_panel_windows() -> list[str]:
+    """Reglas ``deny`` de Windows contra lanzar el panel de tiza, con y sin argumentos."""
+    return reglas_panel("Windows")
 
 
 def _es_regla_de_shell(regla: object) -> bool:
@@ -547,6 +577,22 @@ def revisar_claude(
         permisos.get("defaultMode") != "bypassPermissions",
         "sin modo de permisos desactivados",
     )
+    sin_panel = [r for r in reglas_panel(sistema) if r not in _lista(permisos, "deny")]
+    _comprobar(
+        lista,
+        CLAUDE,
+        not sin_panel,
+        "sin abrir el panel de tiza (es del docente)"
+        + (f" (faltan {len(sin_panel)} reglas)" if sin_panel else ""),
+    )
+    salidas = _salidas_del_sandbox(sandbox)
+    _comprobar(
+        lista,
+        CLAUDE,
+        not salidas,
+        "sin salidas del sandbox hacia el escritorio"
+        + (f"; quita {', '.join(salidas)}" if salidas else ""),
+    )
     for nombre, datos in proyecto:
         sandbox_p = _seccion(datos, "sandbox")
         permisos_p = _seccion(datos, "permissions")
@@ -575,6 +621,33 @@ def revisar_claude(
     if not aporta and not any(c.estado == "falta" for c in lista):
         lista.append(Comprobacion(CLAUDE, "aviso", AVISO_GLOBAL))
     return lista
+
+
+def _salidas_del_sandbox(sandbox: dict) -> list[str]:
+    """Ajustes del sandbox que dejan al agente hablar con el escritorio o lanzar el panel.
+
+    Lo que va en ``excludedCommands`` corre fuera del sandbox; los sockets Unix permitidos
+    (el bus de sesión, Wayland, X11) le dan la pantalla y los lanzadores del escritorio.
+    """
+    salidas: list[str] = []
+    red = _seccion(sandbox, "network")
+    if red.get("allowAllUnixSockets") is True or sandbox.get("allowAllUnixSockets") is True:
+        salidas.append("sandbox.network.allowAllUnixSockets")
+    sockets = [
+        *_lista(sandbox, "network", "allowUnixSockets"),
+        *_lista(sandbox, "allowUnixSockets"),
+    ]
+    if any(
+        isinstance(s, str) and any(marca in s for marca in _SOCKETS_DEL_ESCRITORIO) for s in sockets
+    ):
+        salidas.append("los sockets del escritorio de sandbox.network.allowUnixSockets")
+    excluidos = [c for c in _lista(sandbox, "excludedCommands") if isinstance(c, str)]
+    if any(
+        "tiza" in c or c.strip() in ("*", "**") or (c.split() or [""])[0] in _LANZADORES
+        for c in excluidos
+    ):
+        salidas.append("tiza y los lanzadores del escritorio de sandbox.excludedCommands")
+    return salidas
 
 
 def _comprobar_webfetch(lista: list[Comprobacion], permisos: dict, servidor: str | None) -> None:
@@ -853,6 +926,7 @@ def fusionar_claude(
         )
     if servidor is not None:
         _anadir(permisos, ("deny",), reglas_webfetch(servidor), cambios, "bloquear {}")
+    _anadir(permisos, ("deny",), reglas_panel(sistema), cambios, "denegar {}")
     modo = permisos.get("defaultMode")
     if modo == "bypassPermissions":
         permisos["defaultMode"] = "default"
@@ -1109,19 +1183,69 @@ def _opencode_bloquea_webfetch(datos: dict, servidor: str) -> bool:
     return efecto == "deny"
 
 
+# Lo que el perfil estricto de opencode tiene que cortar (espiga de 2026-10-31 con OpenCode 2:
+# su escáner parte las órdenes compuestas y exige que cada parte esté permitida, así que basta
+# con mirar órdenes sueltas). Son pruebas: se les pregunta a las reglas qué harían con ellas.
+_OPENCODE_SHELL_PROHIBIDA = (
+    "tiza-panel",
+    "python3 -m tiza.panel",
+    "tiza empezar",
+    "tiza sesion",
+    "tiza aislar",
+    "rm -rf ~",
+    "tiza publicar tema.md >> ~/.bashrc",
+    "tiza revisar 2> /tmp/tiza",
+    "tiza leer tema.md < /etc/passwd",
+)
+_OPENCODE_FUERA = ("/tmp/tiza", "~/.bashrc")
+_OPENCODE_EDICION_PROHIBIDA = (
+    "opencode.jsonc",
+    "opencode.json",
+    "sub/opencode.json",
+    ".opencode/opencode.jsonc",
+    ".opencode/plugins/tiza.js",
+    "tiza.toml",
+    "AGENTS.md",
+)
+
+
+def _coincide_opencode(patron: str, valor: str) -> bool:
+    """El comodín de opencode: ``*`` vale cualquier cosa (también espacios y ``/``), y un
+    `` *`` final, también nada (``tiza revisar *`` cubre ``tiza revisar``)."""
+    base, final = (patron[:-2], "(?: .*)?") if patron.endswith(" *") else (patron, "")
+    expresion = ".*".join(re.escape(parte) for parte in base.split("*")) + final
+    return re.fullmatch(expresion, valor) is not None
+
+
+def _efecto_opencode(datos: dict, accion: str, recurso: str) -> object:
+    """El efecto de la última regla (v2) que cubre esa acción y ese recurso."""
+    efecto = None
+    for regla in _lista(datos, "permissions"):
+        if not isinstance(regla, dict) or regla.get("action") not in (accion, "*"):
+            continue
+        patron = regla.get("resource", "*")
+        if isinstance(patron, str) and _coincide_opencode(patron, recurso):
+            efecto = regla.get("effect")
+    return efecto
+
+
+def _opencode_niega_todo(datos: dict, accion: str, recursos: Sequence[str]) -> bool:
+    return all(_efecto_opencode(datos, accion, recurso) == "deny" for recurso in recursos)
+
+
 def revisar_opencode(
     home: Path, carpeta: Path | None = None, *, servidor: str | None = None
 ) -> list[Comprobacion]:
     sin_sandbox = Comprobacion(
         OPENCODE,
         "aviso",
-        "opencode no tiene sandbox de sistema: las reglas dependen de que confirmes cada comando",
+        "opencode no tiene sandbox de sistema: lo aíslan solo sus reglas; no le añadas permisos",
     )
     candidatas: list[Path] = []
     if carpeta is not None:
-        candidatas += [carpeta / nombre for nombre in ("opencode.json", "opencode.jsonc")]
+        candidatas += [carpeta / nombre for nombre in CONFIG_OPENCODE]
     global_ = home / ".config" / "opencode"
-    candidatas += [global_ / nombre for nombre in ("opencode.json", "opencode.jsonc")]
+    candidatas += [global_ / nombre for nombre in CONFIG_OPENCODE]
     ruta = next((r for r in candidatas if r.is_file()), None)
     if ruta is None:
         return [
@@ -1143,9 +1267,9 @@ def revisar_opencode(
             ),
             sin_sandbox,
         ]
-    ok = isinstance(datos, dict) and (
-        servidor is None or _opencode_bloquea_webfetch(datos, servidor)
-    )
+    if not isinstance(datos, dict):
+        datos = {}
+    ok = servidor is None or _opencode_bloquea_webfetch(datos, servidor)
     if servidor is None:
         lista = [
             Comprobacion(
@@ -1161,8 +1285,8 @@ def revisar_opencode(
     faltan_tiza = [
         (accion, ruta_tiza)
         for ruta_tiza in rutas_tiza()
-        for accion in ("read", "write")
-        if not (isinstance(datos, dict) and _opencode_deniega(datos, accion, ruta_tiza))
+        for accion in ("read", "edit")
+        if not _opencode_deniega(datos, accion, ruta_tiza)
     ]
     lista.append(
         Comprobacion(
@@ -1172,8 +1296,38 @@ def revisar_opencode(
             + (f" (faltan {len(faltan_tiza)} reglas)" if faltan_tiza else ""),
         )
     )
-    if ok and not faltan_tiza and (carpeta is None or ruta.parent != carpeta):
+    shell = _opencode_niega_todo(datos, "shell", _OPENCODE_SHELL_PROHIBIDA)
+    lista.append(
+        Comprobacion(
+            OPENCODE,
+            "ok" if shell else "falta",
+            "solo los comandos de tiza del agente (sin el panel ni redirecciones)",
+        )
+    )
+    encerrado = _opencode_niega_todo(
+        datos, "external_directory", _OPENCODE_FUERA
+    ) and _opencode_niega_todo(datos, "edit", _OPENCODE_EDICION_PROHIBIDA)
+    lista.append(
+        Comprobacion(
+            OPENCODE,
+            "ok" if encerrado else "falta",
+            "sin salir de la carpeta ni cambiar la configuración de opencode ni tiza.toml",
+        )
+    )
+    todo_ok = ok and not faltan_tiza and shell and encerrado
+    if todo_ok and (carpeta is None or ruta.parent != carpeta):
         lista.append(Comprobacion(OPENCODE, "aviso", AVISO_GLOBAL))
+    if carpeta is not None and any(
+        (carpeta / ".opencode" / nombre).exists() for nombre in CONFIG_OPENCODE
+    ):
+        lista.append(
+            Comprobacion(
+                OPENCODE,
+                "aviso",
+                ".opencode/ trae su propia configuración, que manda sobre la de la carpeta; "
+                "tiza no la comprueba: revísala con docs/aislamiento.md",
+            )
+        )
     lista.append(sin_sandbox)
     return lista
 
@@ -1295,11 +1449,70 @@ def receta_copilot(sistema: str, home: Path, *, servidor: str | None = None) -> 
     return lineas
 
 
-def contenido_opencode(sistema: str, reabrir: Sequence[str] = ()) -> str:
-    """Configuración de opencode (v2) que ``revisar_opencode`` acepta como aislada.
+# Lo que opencode puede leer fuera de la carpeta: las skills, en los sitios donde las busca
+# (la de tiza se instala en los tres).
+_OPENCODE_SKILLS = ("~/.config/opencode/skills/*", "~/.claude/skills/*", "~/.agents/skills/*")
+# Lo que el agente no edita aunque esté en la carpeta: la configuración de opencode (y sus
+# plugins de ``.opencode/``, que se cargan sin declararlos) y la de tiza de la asignatura.
+_OPENCODE_SIN_EDITAR = (
+    "opencode.json*",
+    "*/opencode.json*",
+    ".opencode",
+    ".opencode/*",
+    "*/.opencode/*",
+    "tiza.toml",
+    "AGENTS.md",
+)
 
-    ``reabrir`` va al final porque en opencode gana la última regla que coincide.
-    """
+
+def _permisos_opencode(sistema: str) -> list[dict[str, str]]:
+    """El perfil estricto (v2): todo dentro de la carpeta, solo los comandos de tiza del agente,
+    sin red y sin tocar la configuración del agente. Probado con OpenCode 2 en la espiga."""
+    permisos: list[dict[str, str]] = [
+        {"action": "*", "resource": "*", "effect": "allow"},
+        {"action": "shell", "resource": "*", "effect": "deny"},
+    ]
+    permisos += [
+        {"action": "shell", "resource": f"tiza {comando} *", "effect": "allow"}
+        for comando in _COMANDOS_AGENTE
+    ]
+    permisos += [
+        {"action": "shell", "resource": "tiza --help", "effect": "allow"},
+        {"action": "external_directory", "resource": "*", "effect": "deny"},
+    ]
+    permisos += [
+        {"action": accion, "resource": skills, "effect": efecto}
+        for skills in _OPENCODE_SKILLS
+        for accion, efecto in (("external_directory", "allow"), ("edit", "deny"))
+    ]
+    permisos += [
+        {"action": "webfetch", "resource": "*", "effect": "deny"},
+        {"action": "websearch", "resource": "*", "effect": "deny"},
+        {"action": "execute", "resource": "*", "effect": "deny"},
+        {"action": "subagent", "resource": "*", "effect": "deny"},
+    ]
+    permisos += [
+        {"action": "edit", "resource": patron, "effect": "deny"} for patron in _OPENCODE_SIN_EDITAR
+    ]
+    permisos += [
+        {"action": "read", "resource": f"{ruta}/**", "effect": "deny"}
+        for ruta in rutas_privadas(sistema)
+    ]
+    permisos += [
+        {"action": accion, "resource": f"{Path(ruta).as_posix()}/**", "effect": "deny"}
+        for ruta in rutas_tiza()
+        for accion in ("read", "edit")
+    ]
+    # Las redirecciones van al final: tras un comando permitido escribirían fuera (``>>``, ``2>``).
+    permisos += [
+        {"action": "shell", "resource": "*>*", "effect": "deny"},
+        {"action": "shell", "resource": "*<*", "effect": "deny"},
+    ]
+    return permisos
+
+
+def _permisos_opencode_anteriores(sistema: str) -> list[dict[str, str]]:
+    """Lo que creaba ``tiza aislar`` hasta la 0.37 (confirmar cada comando): se sustituye."""
     permisos: list[dict[str, str]] = [
         {"action": "*", "resource": "*", "effect": "allow"},
         {"action": "external_directory", "resource": "*", "effect": "ask"},
@@ -1316,12 +1529,34 @@ def contenido_opencode(sistema: str, reabrir: Sequence[str] = ()) -> str:
         for ruta in rutas_tiza()
         for accion in ("read", "write")
     ]
-    permisos += [
+    return permisos
+
+
+def _reabiertas_opencode(reabrir: Sequence[str]) -> list[dict[str, str]]:
+    return [
         {"action": "read", "resource": f"{Path(ruta).as_posix()}/**", "effect": "allow"}
         for ruta in reabrir
     ]
+
+
+def contenido_opencode(sistema: str, reabrir: Sequence[str] = ()) -> str:
+    """Configuración de opencode (v2) que ``revisar_opencode`` acepta como aislada.
+
+    ``reabrir`` va al final porque en opencode gana la última regla que coincide.
+    """
+    permisos = _permisos_opencode(sistema) + _reabiertas_opencode(reabrir)
     datos = {"$schema": "https://opencode.ai/config.json", "permissions": permisos}
     return json.dumps(datos, ensure_ascii=False, indent=2) + "\n"
+
+
+def _es_la_anterior_de_tiza(ruta: Path, sistema: str, reabrir: Sequence[str]) -> bool:
+    """¿Es, sin tocar, la configuración que creó una versión anterior de tiza?"""
+    try:
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    anterior = _permisos_opencode_anteriores(sistema) + _reabiertas_opencode(reabrir)
+    return datos == {"$schema": "https://opencode.ai/config.json", "permissions": anterior}
 
 
 def _declara_reglas_opencode(ruta: Path) -> bool:
@@ -1339,10 +1574,25 @@ def configuracion_opencode(
     """Propuesta para crear opencode.jsonc, o None si no se debe tocar nada.
 
     No toca una configuración que ya exista en la carpeta (puede tener
-    comentarios o reglas propias) ni crea una nueva si el usuario ya tiene
-    reglas en la global: la última regla que coincide gana, así que el
-    ``allow`` general de la configuración de tiza debilitaría sus denegaciones.
+    comentarios o reglas propias), salvo la que creó una versión anterior de tiza
+    tal cual, ni crea una nueva si el usuario ya tiene reglas en la global: la
+    última regla que coincide gana, así que el ``allow`` general de la
+    configuración de tiza debilitaría sus denegaciones.
     """
+    reabrir = rutas_reabiertas(home, sistema, carpeta)
+    propia = carpeta / "opencode.jsonc"
+    cambios = [
+        "crear opencode.jsonc: solo los comandos de tiza del agente, sin salir de la carpeta, "
+        "sin webfetch ni websearch y con los perfiles de navegador bloqueados"
+    ]
+    if propia.is_file() and not (carpeta / "opencode.json").exists():
+        if not _es_la_anterior_de_tiza(propia, sistema, reabrir):
+            return None
+        cambios = [
+            "cambiar el opencode.jsonc de tiza: solo los comandos de tiza del agente "
+            "(ya no se confirma cada uno) y sin salir de la carpeta"
+        ]
+        return propia, contenido_opencode(sistema, reabrir), cambios
     if any((carpeta / nombre).exists() for nombre in CONFIG_OPENCODE):
         return None
     global_ = home / ".config" / "opencode"
@@ -1351,11 +1601,117 @@ def configuracion_opencode(
         for nombre in CONFIG_OPENCODE
     ):
         return None
-    return (
-        carpeta / "opencode.jsonc",
-        contenido_opencode(sistema, rutas_reabiertas(home, sistema, carpeta)),
-        ["crear opencode.jsonc con webfetch, websearch y perfiles de navegador bloqueados"],
+    return propia, contenido_opencode(sistema, reabrir), cambios
+
+
+# --------------------------------------------------------------------------- #
+# Linux: ¿arranca de verdad el sandbox de Claude Code en este equipo?
+# --------------------------------------------------------------------------- #
+
+# Ubuntu 23.10 y posteriores restringen los espacios de nombres de usuario sin privilegios
+# (``kernel.apparmor_restrict_unprivileged_userns``): ``bwrap --unshare-net``, que usa el
+# sandbox de Claude Code, falla. Este perfil (el mismo patrón que Ubuntu usa con otras
+# aplicaciones que los necesitan) se lo permite a ``bwrap``. Lo instala root, una vez.
+RUTA_APPARMOR = "/etc/apparmor.d/bwrap"
+PERFIL_APPARMOR = """\
+abi <abi/4.0>,
+include <tunables/global>
+profile bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+  include if exists <local/bwrap>
+}
+"""
+_INSTALAR_PERFIL = (
+    f'umask 022; printf "%s" "$1" > {RUTA_APPARMOR} && apparmor_parser -r {RUTA_APPARMOR}'
+)
+# Lo mismo para quien lo haga en una terminal con sudo (el texto del perfil va entre comillas).
+ORDEN_APPARMOR = (
+    "printf '%s' '"
+    + PERFIL_APPARMOR
+    + f"' | sudo tee {RUTA_APPARMOR} >/dev/null && sudo apparmor_parser -r {RUTA_APPARMOR}"
+)
+_RESTRICCION_USERNS = Path("/proc/sys/kernel/apparmor_restrict_unprivileged_userns")
+ESPERA_PRUEBA = 15  # segundos como mucho para la prueba de bwrap
+
+
+def _apparmor_restringe() -> bool:
+    try:
+        return _RESTRICCION_USERNS.read_text(encoding="ascii").strip() == "1"
+    except OSError:
+        return False
+
+
+def probar_sandbox() -> str:
+    """¿Puede ``bwrap`` crear el sandbox de Claude Code? (Linux; lanza ``bwrap`` de verdad).
+
+    ``ok``; ``sin_bwrap`` o ``sin_socat`` (falta el programa); ``apparmor`` (Ubuntu lo
+    impide y se arregla con ``PERFIL_APPARMOR``); ``falla`` (otra causa). Dentro de un
+    sandbox que ya funciona (el agente ejecutando ``tiza revisar``) es ``ok``. Los tests la
+    sustituyen: nunca lanzan nada.
+    """
+    if os.environ.get("SANDBOX_RUNTIME"):
+        return "ok"
+    if shutil.which("bwrap") is None:
+        return "sin_bwrap"
+    if shutil.which("socat") is None:
+        return "sin_socat"
+    try:
+        prueba = subprocess.run(
+            ["bwrap", "--unshare-net", "--ro-bind", "/", "/", "true"],
+            capture_output=True,
+            timeout=ESPERA_PRUEBA,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "falla"
+    if prueba.returncode == 0:
+        return "ok"
+    return "apparmor" if _apparmor_restringe() else "falla"
+
+
+_TEXTOS_SANDBOX = {
+    "ok": "el sandbox arranca en este equipo",
+    "sin_bwrap": "falta bubblewrap para el sandbox: hay que instalarlo "
+    "(en Ubuntu, «sudo apt install bubblewrap socat»)",
+    "sin_socat": "falta socat para el sandbox: hay que instalarlo "
+    "(en Ubuntu, «sudo apt install socat»)",
+    "apparmor": "AppArmor (Ubuntu) impide el sandbox en este equipo: hay que permitirlo una vez "
+    "con la contraseña de administrador («tiza aislar» dice cómo)",
+    "falla": "el sandbox no arranca en este equipo (bwrap falla); mira docs/aislamiento.md",
+}
+
+_MANUAL_APPARMOR = (
+    "AppArmor (Ubuntu) impide el sandbox de Claude Code en este equipo. Hay que permitirlo una "
+    "vez con la contraseña de administrador: el panel de tiza lo pide con la ventana del "
+    "sistema; sin el panel, la orden para un administrador está en docs/aislamiento.md "
+    "(«Ubuntu: AppArmor y el sandbox»)."
+)
+
+
+def _comprobacion_sandbox() -> Comprobacion:
+    estado = probar_sandbox()
+    return Comprobacion(
+        CLAUDE,
+        "ok" if estado == "ok" else "falta",
+        _TEXTOS_SANDBOX.get(estado, _TEXTOS_SANDBOX["falla"]),
     )
+
+
+def orden_pkexec() -> list[str]:
+    """La orden que instala ``PERFIL_APPARMOR`` como root; la contraseña la pide el sistema
+    (polkit), no tiza. El perfil va como argumento fijo: nada que el usuario pueda cambiar
+    se ejecuta como root."""
+    return ["pkexec", "/bin/sh", "-c", _INSTALAR_PERFIL, "sh", PERFIL_APPARMOR]
+
+
+def permitir_sandbox(ejecutar: Callable[..., Any] = subprocess.run) -> int:
+    """Instala el perfil con ``pkexec``; su código: 0 hecho, 126 el docente canceló, 127 sin
+    permiso de administrador; -1 si no hay ``pkexec``."""
+    if shutil.which("pkexec") is None:
+        return -1
+    try:
+        return int(ejecutar(orden_pkexec(), capture_output=True).returncode)
+    except (OSError, subprocess.SubprocessError):
+        return -1
 
 
 def revisar(home: Path, sistema: str, carpeta: Path) -> list[Comprobacion]:
@@ -1384,6 +1740,8 @@ def revisar(home: Path, sistema: str, carpeta: Path) -> list[Comprobacion]:
             )
         except ErrorAislamiento as exc:
             lista.append(Comprobacion(CLAUDE, "falta", f"{exc.codigo}: {exc.detalle}"))
+        if sistema == "Linux":
+            lista.append(_comprobacion_sandbox())
     if (home / ".codex").is_dir():
         ruta = ruta_codex(home)
         try:
@@ -1436,6 +1794,7 @@ class Plan:
 
     escrituras: tuple[Escritura, ...] = ()
     manuales: tuple[str, ...] = ()
+    apparmor: bool = False  # Linux: el sandbox necesita PERFIL_APPARMOR (root)
 
 
 def _copia_de_seguridad(ruta: Path) -> Path | None:
@@ -1489,8 +1848,9 @@ def _plan_opencode(
         ruta, texto, cambios = propuesta
         escrituras.append(Escritura(ruta, texto, tuple(cambios)))
         return
-    # La primera comprobación de revisar_opencode es siempre el webfetch.
-    if revisar_opencode(home, carpeta, servidor=servidor)[0].estado != "ok":
+    # La primera comprobación es el webfetch (o que no se pudo leer la configuración).
+    comprobaciones = revisar_opencode(home, carpeta, servidor=servidor)
+    if comprobaciones[0].estado != "ok" or any(c.estado == "falta" for c in comprobaciones):
         manuales.append(
             f"opencode: ya hay configuración {donde} y tiza no la edita; "
             "añade a mano lo que falte de docs/aislamiento.md."
@@ -1534,6 +1894,7 @@ def planear_carpeta(carpeta: Path, home: Path, sistema: str, servidor: str | Non
         )
     escrituras: list[Escritura] = []
     manuales: list[str] = []
+    apparmor = False
     if (home / ".claude").is_dir():
         ruta = ruta_claude_proyecto(carpeta)
         if ruta.exists() and not ruta.is_file():
@@ -1549,6 +1910,9 @@ def planear_carpeta(carpeta: Path, home: Path, sistema: str, servidor: str | Non
             escrituras.append(Escritura(ruta, _texto_json(nuevo), tuple(cambios)))
         if sistema == "Windows":
             _plan_quitar_permisos_de_mas(escrituras, manuales, carpeta, home)
+        if sistema == "Linux" and probar_sandbox() == "apparmor":
+            manuales.append(_MANUAL_APPARMOR)
+            apparmor = True
     if (home / ".codex").is_dir():
         _plan_codex(escrituras, manuales, ruta_codex_proyecto(carpeta))
         global_ruta = ruta_codex(home)
@@ -1565,13 +1929,14 @@ def planear_carpeta(carpeta: Path, home: Path, sistema: str, servidor: str | Non
         raise ErrorAislamiento(
             "AJUSTES_INESPERADOS", "el aislamiento apunta dos veces al mismo fichero"
         )
-    return Plan(tuple(escrituras), tuple(manuales))
+    return Plan(tuple(escrituras), tuple(manuales), apparmor)
 
 
 def planear_global(home: Path, sistema: str, servidor: str | None) -> Plan:
     """Plan de aislamiento de los ajustes globales del agente (``tiza aislar --global``)."""
     escrituras: list[Escritura] = []
     manuales: list[str] = []
+    apparmor = False
     if (home / ".claude").is_dir() and sistema == "Windows":
         # dontAsk global rompería los demás proyectos y «Edit(/**)» sería relativo a ~/.claude.
         manuales.append(
@@ -1585,10 +1950,13 @@ def planear_global(home: Path, sistema: str, servidor: str | None) -> Plan:
         nuevo, cambios = fusionar_claude(leer_json(ruta), sistema, servidor=servidor)
         if cambios:
             escrituras.append(Escritura(ruta, _texto_json(nuevo), tuple(cambios)))
+        if sistema == "Linux" and probar_sandbox() == "apparmor":
+            manuales.append(_MANUAL_APPARMOR)
+            apparmor = True
     if (home / ".codex").is_dir():
         _plan_codex(escrituras, manuales, ruta_codex(home))
     if (home / ".config" / "opencode").is_dir():
         _plan_opencode(
             escrituras, manuales, home / ".config" / "opencode", home, sistema, "global", servidor
         )
-    return Plan(tuple(escrituras), tuple(manuales))
+    return Plan(tuple(escrituras), tuple(manuales), apparmor)

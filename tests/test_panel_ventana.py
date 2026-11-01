@@ -32,10 +32,39 @@ def _galletas(**dominios: str) -> list[SimpleCookie]:
 # --- funciones puras ----------------------------------------------------------------------
 
 
-def test_que_falta_fuera_de_windows():
-    texto = panel_pkg.que_falta("linux", hay_webview=True, hay_webview2=lambda: pytest.fail("no"))
-    assert texto is not None and "solo está disponible en Windows" in texto
+def test_que_falta_fuera_de_windows_y_linux():
+    texto = panel_pkg.que_falta("darwin", hay_webview=True, hay_webview2=lambda: pytest.fail("no"))
+    assert texto is not None and "solo está disponible en Windows y Linux" in texto
     assert "tiza empezar" in texto
+
+
+def test_que_falta_en_linux_con_escritorio_no_falta_nada():
+    for entorno in ({"DISPLAY": ":0"}, {"WAYLAND_DISPLAY": "wayland-0"}):
+        falta = panel_pkg.que_falta(
+            "linux", hay_webview=True, hay_webview2=lambda: pytest.fail("no"), entorno=entorno
+        )
+        assert falta is None
+
+
+def test_que_falta_en_linux_sin_escritorio():
+    texto = panel_pkg.que_falta("linux", hay_webview=True, hay_webview2=lambda: True, entorno={})
+    assert texto is not None and "escritorio" in texto and "tiza empezar" in texto
+
+
+def test_que_falta_en_linux_sin_pywebview():
+    texto = panel_pkg.que_falta(
+        "linux", hay_webview=False, hay_webview2=lambda: True, entorno={"DISPLAY": ":0"}
+    )
+    assert texto is not None and "pywebview" in texto
+
+
+@pytest.mark.parametrize("plataforma", ["linux", "win32", "darwin"])
+def test_el_panel_no_se_abre_dentro_del_sandbox_de_un_agente(plataforma):
+    entorno = {"SANDBOX_RUNTIME": "1", "DISPLAY": ":0"}
+    texto = panel_pkg.que_falta(
+        plataforma, hay_webview=True, hay_webview2=lambda: True, entorno=entorno
+    )
+    assert texto is not None and "no se abre desde un agente" in texto
 
 
 def test_que_falta_sin_pywebview():
@@ -153,13 +182,25 @@ def test_las_funciones_de_windows_no_hacen_nada_en_otro_sistema(capsys):
         pytest.skip("comprueba el comportamiento fuera de Windows")
     assert panel_pkg.parpadear_en_la_barra("tiza") is False
     assert panel_pkg.esta_minimizada("tiza") is True
+
+
+def test_avisar_en_linux_va_por_la_capa_de_linux(monkeypatch):
+    avisos: list[tuple] = []
+    monkeypatch.setattr(panel_pkg.sys, "platform", "linux")
+    monkeypatch.setattr(panel_pkg.linux, "avisar", lambda t, **k: avisos.append((t, k)))
+    panel_pkg.avisar("hola docente", con_qt=True)
+    assert avisos == [("hola docente", {"con_qt": True})]
+
+
+def test_avisar_en_otro_sistema_escribe_en_stderr(monkeypatch, capsys):
+    monkeypatch.setattr(panel_pkg.sys, "platform", "darwin")
     panel_pkg.avisar("hola docente")
     assert "hola docente" in capsys.readouterr().err
 
 
 def test_main_sin_lo_necesario_avisa_y_sale(monkeypatch):
     avisos: list[str] = []
-    monkeypatch.setattr(panel_pkg, "avisar", avisos.append)
+    monkeypatch.setattr(panel_pkg, "avisar", lambda texto, **_k: avisos.append(texto))
     monkeypatch.setattr(panel_pkg.importlib.util, "find_spec", lambda nombre: None)
     assert panel_pkg.main() == 1
     assert len(avisos) == 1 and avisos[0]
@@ -547,6 +588,45 @@ def test_sin_minimizar_no_se_restaura(vigilancia):
     v.pantalla()
     v.esperar(lambda: ("show",) in v.ventana.cambios)
     assert ("restore",) not in v.ventana.cambios
+
+
+def test_con_preguntas_seguidas_se_restaura_en_cada_una(vigilancia):
+    v = vigilancia()
+    for esperado in (1, 2):
+        hilo, _resultado = v.preguntar(v.presencia.confirmar_autoprueba)
+        p = v.pantalla()
+        v.esperar(lambda esperado=esperado: v.ventana.cambios.count(("restore",)) == esperado)
+        v.panel.responder(p["numero"], True)
+        hilo.join(5)
+
+
+def test_el_panel_anota_cuando_esta_encima(vigilancia):
+    v = vigilancia()
+    assert v.panel.esperar_sin_encima(0)
+    hilo, _resultado = v.preguntar(v.presencia.confirmar_autoprueba)
+    p = v.pantalla()
+    v.esperar(lambda: not v.panel.esperar_sin_encima(0))
+    v.panel.responder(p["numero"], True)
+    hilo.join(5)
+    assert v.panel.esperar_sin_encima(5)
+
+
+def test_la_ventana_de_entrada_espera_a_que_el_panel_deje_de_estar_encima():
+    panel = Panel()
+    panel.marcar_encima(True)
+    webview = WebviewFalso()
+    hilo = threading.Thread(
+        target=panel_pkg.abrir_login,
+        args=(AULA,),
+        kwargs={"webview": webview, "panel": panel, "sondeo": 0.01, "tiempo_maximo": 0.5},
+        daemon=True,
+    )
+    hilo.start()
+    time.sleep(0.1)
+    assert webview.ventanas == []  # aún no: el panel está encima
+    panel.marcar_encima(False)
+    hilo.join(5)
+    assert len(webview.ventanas) == 1
 
 
 def test_cada_pregunta_nueva_parpadea_una_vez(vigilancia):

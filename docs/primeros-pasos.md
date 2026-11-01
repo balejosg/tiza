@@ -44,7 +44,8 @@ tu centro te pide saber qué hace `tiza` con los datos, pásale
 ## En Windows, sin terminal
 
 Si tienes Windows, puedes no abrir nunca una terminal. Lo que hace `tiza` lo
-hace un panel con ventanas.
+hace un panel con ventanas. En Linux con escritorio (Ubuntu, MAX…) también: pide a tu agente
+que lo instale con el panel y, en vez del menú Inicio, busca «tiza» en tus aplicaciones.
 
 1. **Instálalo con tu agente.** Instala Claude Desktop con su instalador normal,
    abre la pestaña **Code** y escribe:

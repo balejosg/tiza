@@ -160,7 +160,7 @@ proyecto). Con Copilot usa una sesión local abierta en la carpeta de la
 asignatura: las sesiones en la nube de la app no ven tu `tiza sesion`, y su
 «computer use» queda fuera por las mismas reglas.
 
-## Panel sin consola (Windows)
+## Panel sin consola (Windows y Linux)
 
 `tiza-panel` (el acceso «tiza») hace lo mismo que `tiza empezar` en una ventana. Sus reglas:
 
@@ -172,10 +172,26 @@ asignatura: las sesiones en la nube de la app no ven tu `tiza sesion`, y su
   con `tiza aislar`: el agente tendría mano libre para pulsar sus botones.
 - **El perfil de Windows deniega lanzarlo.** `tiza aislar` deniega al agente `tiza-panel`,
   `tiza-panel.exe` y `python`/`pythonw -m tiza.panel`; `tiza revisar` lo comprueba.
+- **En Linux, el sandbox le corta el escritorio.** El sandbox de Claude Code no deja al agente
+  conectar con Wayland, X11 ni el bus de sesión (comprobado: «Operation not permitted»), así
+  que no puede abrir ventanas ni lanzar programas fuera del sandbox. Además, `tiza aislar`
+  deniega `tiza-panel` y `python`/`python3 -m tiza.panel` en Bash, y `tiza revisar` marca como
+  falta lo que vuelve a abrir el escritorio (`allowUnixSockets`, `allowAllUnixSockets`,
+  `excludedCommands`) y prueba que el sandbox arranca de verdad.
+- **No arranca dentro de un sandbox.** Si el entorno lleva la marca del sandbox de un agente
+  (`SANDBOX_RUNTIME`), el panel se niega a abrirse: sería una ventana abierta por el agente.
+- **El permiso de AppArmor lo da el sistema.** En Ubuntu, si el sandbox necesita el perfil de
+  AppArmor, el panel lo pide con `pkexec`: la contraseña la pide el sistema en su ventana, y lo
+  que se ejecuta como administrador es una orden fija de tiza con el perfil como argumento,
+  nunca un fichero que el usuario (o el agente) pueda cambiar.
+- **Lo que carga fuera del sandbox es de tiza.** Si falta `libxcb-cursor0`, el panel la baja
+  con `apt-get download` (firmada por el repositorio del sistema) a la carpeta de configuración
+  de tiza, que el perfil de aislamiento prohíbe escribir al agente.
 - **La página no tiene HTML dinámico.** No tiene enlaces ni contenido remoto. Lleva una política
   de contenido (CSP) con un nonce por arranque, sin scripts en línea, y el JavaScript solo puede
   llamar a `estado`, `responder`, `ver_vista_previa`, `elegir_reciente`, `buscar_carpeta` y
-  `terminar`. Lo que muestra sale de la sesión y del aula, nunca de la página.
+  `terminar`. Lo que muestra sale de la sesión y del aula, nunca de la página. En Linux la
+  vista previa se abre en otra ventana del panel, también sin `js_api`.
 - **Las respuestas se validan.** Un clic que llega antes de 0,7 s desde que aparece una pregunta
   se ignora: así no se confirma algo por un clic que era para otra pantalla.
 

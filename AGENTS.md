@@ -23,7 +23,8 @@ en español.
   `tiza sesion` en esa carpeta, `tiza publicar`, `tiza ordenar`, `tiza calificador`, `tiza estructura` y `tiza copia` dejan la
   petición en `.tiza/buzon/` y esperan un informe del esquema cerrado. Sin
   sesión fallan con `SIN_SESION`; pide al docente que ejecute `tiza empezar`
-  en su terminal (o, en Windows, que abra «tiza» desde el menú Inicio).
+  en su terminal (o, con el panel en Windows o Linux, que abra «tiza» desde el menú de inicio o
+  de aplicaciones).
 - **Nunca uses datos del alumnado** (nombres, notas, salud, imágenes) en prompts,
   `.md` ni en nada que vea el agente.
 - **Tests 100 % offline**: no añadas tests que hagan peticiones de red.
@@ -259,15 +260,32 @@ en español.
   `actualizar.log` en la carpeta global y reabre `tiza-panel.exe` en ventana normal). `ACCESOS_PS`
   (los accesos «tiza» del menú Inicio y el escritorio) está **duplicado a propósito en
   `install.ps1`** (se ejecuta con `irm | iex`): un test los mantiene iguales. En PowerShell
-  `"$var:"` es un error de sintaxis (`"${var}:"`). `cli.py` conserva la salida y usa estas piezas.
-- `src/tiza/panel/`: el panel sin consola de Windows (`tiza-panel`, `[project.gui-scripts]`).
+  `"$var:"` es un error de sintaxis (`"${var}:"`). En Linux, `ACCESO_SH` (el acceso
+  `tiza.desktop`, duplicado a propósito en `install.sh`, que crea con `TIZA_PANEL=1`) y
+  `GUION_PANEL_LINUX` (un `sh` desacoplado con `start_new_session`, mismo recorrido que
+  `GUION_PANEL`); `lanzar_panel_oculto` elige por plataforma. `cli.py` conserva la salida y usa
+  estas piezas.
+- `src/tiza/panel/`: el panel sin consola de Windows y Linux (`tiza-panel`, `[project.gui-scripts]`).
   **`tiza-panel` es del docente, como `tiza empezar`: ningún agente lo lanza** (ni con
   `Start-Process`, `explorer` ni `pythonw -m tiza.panel`); sin consola, lo que lo impide es el
   perfil de permisos de `tiza aislar`, y por eso el panel no abre la sesión con el agente sin
   aislar. **El perfil de Windows lo deniega expresamente** (`aislamiento.reglas_panel_windows`:
   `tiza-panel`, `tiza-panel.exe`, `python -m tiza.panel` y `pythonw -m tiza.panel`, con y sin
   argumentos, en PowerShell y Bash); `aislamiento.revisar` las exige y un `allow` que permita el
-  panel es «de más» (`shell_de_mas`, `quitar_permisos_de_mas`). Piezas:
+  panel es «de más» (`shell_de_mas`, `quitar_permisos_de_mas`). **En Linux** la barrera es el
+  sandbox de Claude Code (corta los sockets del escritorio y el bus de sesión), más
+  `aislamiento.reglas_panel("Linux")` en Bash; `revisar` exige esas reglas, marca como falta lo
+  que abre el escritorio al agente (`allowUnixSockets`/`allowAllUnixSockets` del bus, Wayland o
+  X11, y `excludedCommands` con tiza o lanzadores) y prueba de verdad que `bwrap` crea el
+  sandbox (`probar_sandbox`; los tests la sustituyen en `conftest.py`). Si Ubuntu (AppArmor) lo
+  impide, el plan lleva `apparmor` y el paso a mano; el panel lo resuelve con `pkexec`
+  (`permitir_sandbox`, perfil fijo `PERFIL_APPARMOR` como argumento) tras explicarlo
+  (`PresenciaPanel.confirmar_permitir_sandbox`). El panel no arranca con `SANDBOX_RUNTIME` en el
+  entorno (`que_falta`). Con opencode (que no tiene sandbox) la barrera es su perfil estricto
+  (`contenido_opencode`: `shell` denegado salvo `tiza <comando del agente> *`, redirecciones
+  `*>*`/`*<*` al final, `external_directory` denegado salvo leer las skills, sin editar su
+  configuración, `.opencode/` ni `tiza.toml`), que `revisar_opencode` prueba con órdenes y
+  rutas de ejemplo (espiga con OpenCode 2). Piezas:
   - `estado.py`, el modelo: `Pantalla` (datos JSON), `Panel` (estado entre hilos), `PresenciaPanel`
     (cumple `publicacion.Presencia`; cada pregunta bloquea hasta la respuesta o el cierre, que
     cuenta como no) y `Puente` (el `js_api`: solo acciones, respuestas simples, con retardo mínimo
@@ -292,6 +310,16 @@ en español.
     `estado()` cada 300 ms; nunca llama al puente con argumentos sobrantes (pywebview pasa
     `undefined` como `None`). La única imagen es el logo del paquete, que `pagina` incrusta
     como `data:`. Lo vigila `tests/test_panel_pagina.py`.
+  - `linux.py`: lo propio de Linux, sin importar `webview` (Qt solo dentro de funciones):
+    `preparar_qt` (sin `libxcb-cursor0` Qt aborta en Xorg: usa la del sistema, o la baja con
+    `apt-get download` a `config.directorio_global()/lib`, que el agente no puede escribir, y la
+    carga antes que Qt), `VentanaQt` (las operaciones de ventana con la API de pywebview, que en
+    Qt van por señales), `preparar_proceso` (desactiva el recolector y recoge con un `Latido` en
+    el hilo de la interfaz: con PySide6, recoger en otro hilo aborta QtWebEngine;
+    `setDesktopFileName("tiza")` para el dock en Wayland) y `avisar` (Qt, si no `zenity`/
+    `kdialog`/`notify-send`, y siempre `panel.log`). Linux usa `gui="qt"`, abre la vista previa
+    en una ventana propia (`abrir_vista`: el Firefox snap no lee `~/.cache`) y sale con
+    `os._exit` tras recoger la sesión.
   - `__init__.py`: la capa de ventana y **el único módulo del subpaquete que importa `webview`**,
     solo dentro de `main()` (el CI no instala el extra; `import tiza.panel` no lo carga). Lo
     comprobable va en funciones puras (`que_falta`, `galletas_de`, `ya_dentro`, `ruta_del_dialogo`…).
@@ -299,15 +327,19 @@ en español.
     pregunta, abre el diálogo de carpeta y destruye la ventana al cerrar la sesión. Las
     operaciones de ventana (`on_top`, `restore`, `show`, `destroy`, el diálogo) van siempre desde
     ese hilo, nunca dentro de una llamada del `js_api`: cuelgan la ventana. Al arrancar, `vigilar`
-    muestra la ventana una vez (con reintentos si aún no hay HWND) por si nació oculta. `abrir_login` crea la
-    ventana de entrada en el mismo proceso, sin `js_api`; la cookie nunca sale del proceso.
+    muestra la ventana una vez (con reintentos si aún no hay HWND) por si nació oculta; cada
+    pregunta nueva restaura el panel minimizado, y `Panel.marcar_encima` deja saber si está
+    encima. `abrir_login` crea la ventana de entrada en el mismo proceso, sin `js_api`, cuando
+    el panel ya no está encima (`esperar_sin_encima`); la cookie nunca sale del proceso. En
+    Windows, encima/restaurar/mostrar van por Win32 asíncrono; en Linux, por `linux.VentanaQt`.
 - `src/tiza/recursos/`: los recursos gráficos que viajan en la wheel: `logo.png` (la marca con
   transparencia que la página del panel incrusta como `data:`), `tiza.ico` (el icono de varias
   medidas de las ventanas y del acceso de Windows) y las dos variantes de `Liberation Sans`
   (normal y negrita, OFL 1.1, con su licencia) que usa `tiza esquema` para que el PNG salga
   igual en todos los equipos. `ruta` solo sirve para ficheros reales; `datos` también dentro de
   un paquete comprimido.
-- `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview;
+- `src/tiza/ventana/`: la ventana de entrada al aula (extra `[ventana]`, pywebview; en Linux con
+  PySide6 (LGPL) y la recolección de basura apagada en el hijo, que sale con `os._exit`;
   Windows, macOS y Linux con escritorio, con Qt o GTK). **Solo enseña la página de login del aula y devuelve las cookies de
   sesión del servidor del aula**: nada más pasa por ella (cursos, aislamiento y
   confirmaciones siguen en la terminal). `entrada.py` no importa pywebview y es lo que se
@@ -339,7 +371,7 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.37.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.38.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y
