@@ -57,7 +57,8 @@ volver a abrirlo.
 
 - **Es del docente.** El agente no puede abrir el panel ni pulsar sus botones: en Windows, el
   perfil de permisos de `tiza aislar` lo deniega; en Linux, el sandbox de Claude Code no le deja
-  llegar al escritorio y `tiza aislar` deniega además lanzarlo. Si el agente no tiene
+  llegar al escritorio y `tiza aislar` deniega además lanzarlo; con opencode, su perfil estricto
+  solo le deja ejecutar los comandos de tiza que le tocan. Si el agente no tiene
   aislamiento, el panel no abre la sesión. Dentro del sandbox de un agente, el panel no arranca.
 - **Actualizar desde el panel.** Si hay una versión nueva, el panel la ofrece; si aceptas, se
   instala en una ventana oculta, cuando el panel ya se ha cerrado, y vuelve a abrirse solo.
@@ -73,8 +74,9 @@ volver a abrirlo.
 - **Linux.** Funciona en Xorg y en Wayland (probado en Ubuntu 24.04 con GNOME). En Wayland el
   panel no puede ponerse «siempre encima»: con una pregunta se restaura y el dock lo marca. Si el
   sistema no tiene `libxcb-cursor0` (Ubuntu 24.04 no la trae), el panel la baja sin permisos de
-  administrador la primera vez. Solo abre la sesión con Claude Code aislado por su sandbox; si
-  Ubuntu (AppArmor) impide el sandbox, el panel te explica por qué y pide la contraseña de
+  administrador la primera vez. Solo abre la sesión con Claude Code aislado por su sandbox o con
+  opencode con su perfil estricto (mira [aislamiento](aislamiento.md#opencode)); si Ubuntu
+  (AppArmor) impide el sandbox de Claude Code, el panel te explica por qué y pide la contraseña de
   administrador del equipo en una ventana del sistema (mira
   [aislamiento](aislamiento.md#ubuntu-apparmor-y-el-sandbox)). La vista previa se abre en una
   ventana del panel. Lo que no puede contar en pantalla queda en `~/.config/tiza/panel.log`.

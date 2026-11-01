@@ -61,8 +61,8 @@ En Windows, al acabar la instalación dile al docente que abra «tiza» desde el
 le guía la configuración y el aislamiento; abre la sesión como `tiza empezar`, paso 3). En Linux
 con `TIZA_PANEL=1`, que busque «tiza» en sus aplicaciones: es el mismo panel. En macOS, y en Linux
 sin el panel, dile que siga con `tiza empezar` en su terminal, como hasta ahora (paso 3). En Linux
-el panel solo abre la sesión con Claude Code aislado por su sandbox; con otro agente, usa la
-terminal.
+el panel solo abre la sesión con Claude Code aislado por su sandbox o con opencode (también
+opencode Desktop) con su perfil estricto, que crea `tiza aislar`; con otro agente, usa la terminal.
 
 **Detente aquí** y sigue con el paso 2. No ejecutes nada más de `tiza`.
 

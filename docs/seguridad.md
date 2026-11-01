@@ -178,6 +178,10 @@ asignatura: las sesiones en la nube de la app no ven tu `tiza sesion`, y su
   deniega `tiza-panel` y `python`/`python3 -m tiza.panel` en Bash, y `tiza revisar` marca como
   falta lo que vuelve a abrir el escritorio (`allowUnixSockets`, `allowAllUnixSockets`,
   `excludedCommands`) y prueba que el sandbox arranca de verdad.
+- **Con opencode, el perfil estricto.** opencode no tiene sandbox: `tiza aislar` le escribe un
+  perfil que solo le deja ejecutar los comandos de tiza del agente (sin el panel, sin encadenar
+  órdenes ni redirecciones), le impide salir de la carpeta y cambiar su configuración, y
+  `tiza revisar` lo comprueba con órdenes de prueba. Probado con opencode y opencode Desktop.
 - **No arranca dentro de un sandbox.** Si el entorno lleva la marca del sandbox de un agente
   (`SANDBOX_RUNTIME`), el panel se niega a abrirse: sería una ventana abierta por el agente.
 - **El permiso de AppArmor lo da el sistema.** En Ubuntu, si el sandbox necesita el perfil de
