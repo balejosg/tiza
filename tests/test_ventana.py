@@ -473,6 +473,13 @@ class TestEjecutarHijo:
         assert codigo == 0 and entrada.decodificar(salida) == []
         assert not falsa.destruida
 
+    def test_si_el_aula_no_responde_la_ventana_sigue_abierta(self):
+        # Con el aula caída, el motor enseña su página de error con la URL pedida (/my/) y sin
+        # cookies: no se cierra, para que el docente vea el error y pueda recargar.
+        codigo, _, falsa, salida = self._ejecutar([f"{AULA}/my/"], [])
+        assert codigo == 0 and entrada.decodificar(salida) == []
+        assert not falsa.destruida
+
     def test_sin_webview2_en_windows(self, monkeypatch):
         monkeypatch.setattr(sys, "platform", "win32")
         monkeypatch.setattr(ventana.webview2, "instalado", lambda: False)

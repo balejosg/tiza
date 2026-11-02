@@ -217,7 +217,13 @@ def abrir_login(
             web.set_title(titulo_de_login(actual, servidor))
             if resultado or not ya_dentro(actual, base):
                 return
-            resultado.append(acreditacion_de(web.get_cookies(), servidor))
+            acreditacion = acreditacion_de(web.get_cookies(), servidor)
+            # Sin cookies del aula no se ha entrado: si el aula no responde, el motor enseña su
+            # página de error con la URL pedida (``/my/``). La ventana sigue abierta para que el
+            # docente vea el error y pueda recargar.
+            if acreditacion is None:
+                return
+            resultado.append(acreditacion)
             web.destroy()
         except Exception:  # noqa: BLE001 - un fallo de la ventana no debe colgar la sesión
             _intentar(web.destroy)

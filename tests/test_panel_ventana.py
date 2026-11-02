@@ -351,7 +351,23 @@ def test_en_el_panel_sin_cookies_del_aula_no_hay_acreditacion():
     webview = WebviewFalso(_galletas(ajena="evil.org"))
     leer = _login(webview)
     webview.web.navegar(f"{AULA}/my/")
+    assert webview.web.destruida == 0
+    webview.web.destroy()  # el docente cierra con la X
     assert leer() is None
+
+
+def test_si_el_aula_no_responde_la_ventana_sigue_abierta_y_se_puede_recargar():
+    # Con el aula caída, el motor enseña su página de error con la URL pedida (/my/) y sin
+    # cookies: la ventana no se cierra, para que el docente vea el error.
+    webview = WebviewFalso()
+    leer = _login(webview)
+    web = webview.web
+    web.navegar(f"{AULA}/my/")
+    assert web.destruida == 0
+    web.jars = _galletas(MoodleSession="aula.ejemplo.org")  # recarga con el aula ya en marcha
+    web.navegar(f"{AULA}/my/")
+    assert isinstance(leer(), publicar.Cookies)
+    assert web.destruida == 1
 
 
 def test_cerrar_la_ventana_sin_entrar_es_none():

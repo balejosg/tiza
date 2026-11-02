@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.38.1 — 2026-11-02
+
+### Corregido
+- **Si el aula no responde, la ventana de entrada ya no se cierra sola.** Antes se abría y se cerraba al instante, y tiza decía que la ventana «se cerró o pasó el tiempo». Ahora se queda abierta con el error del navegador, para que veas que no se llega al aula y puedas recargar cuando vuelva.
+
 ## 0.38.0 — 2026-10-31
 
 ### Añadido

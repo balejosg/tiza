@@ -154,7 +154,13 @@ def ejecutar_hijo(
             for jar in web.get_cookies()
             for nombre, morsel in jar.items()
         ]
-        cookies.extend(entrada.cookies_del_aula(galletas, servidor))
+        del_aula = entrada.cookies_del_aula(galletas, servidor)
+        # Sin cookies del aula no se ha entrado: si el aula no responde, el motor enseña su
+        # página de error con la URL pedida (``/my/``). La ventana sigue abierta para que el
+        # docente vea el error y pueda recargar.
+        if not del_aula:
+            return
+        cookies.extend(del_aula)
         # Sin clear_cookies(): en QtWebEngine (Linux) cuelga el proceso con SIGTRAP. No hace
         # falta: la ventana es privada (las cookies solo viven en memoria) y el proceso termina.
         entregar()
