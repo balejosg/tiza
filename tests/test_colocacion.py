@@ -267,3 +267,22 @@ def test_de_cmid_y_raiz_del_arbol() -> None:
     fila = notas.de_cmid(1)
     assert fila is not None and fila.eid == "ig1"
     assert notas.de_cmid(99) is None
+
+
+def test_no_toca_una_nota_que_esta_en_una_de_tiza() -> None:
+    estructura = curso((1, 2, 3))
+    notas = arbol(
+        cat("cg10", "Ev1"),
+        cat("cg90", "TZ_RA1", de_tiza=True),
+        nota(1, "cg10"),
+        nota(2, "cg10"),
+        nota(3, "cg90"),
+    )
+    assert colocar(estructura, notas, [3]) == ((), ())
+
+
+def test_va_tras_la_de_mayor_posicion_del_curso_aunque_la_pagina_las_tenga_al_reves() -> None:
+    estructura = curso((1, 2, 3))
+    notas = arbol(cat("cg10", "Ev1"), nota(2, "cg10"), nota(1, "cg10"), nota(3, RAIZ))
+    movimientos, _ = colocar(estructura, notas, [3])
+    assert [(m.categoria, m.despues_de) for m in movimientos] == [("cg10", "ig2")]

@@ -13,9 +13,10 @@ La regla, para cada actividad de ``cmids`` en el orden del curso (sección y lue
   Si no hay ninguna en todo el curso, ``SIN_PATRON``. La raíz cuenta como una categoría más.
 * **Cerradas.** Un destino bloqueado es ``CERRADA`` y no se sigue buscando; tampoco se saca una
   nota de una categoría bloqueada (``CERRADA`` con el nombre de la de origen).
-* **Posición.** Detrás de la última nota del destino cuya actividad va antes en el orden del
-  curso, o al principio (``despues_de=None``) si no hay ninguna.
+* **Posición.** Detrás de la nota del destino cuya actividad va más tarde entre las que van
+  antes en el orden del curso (aunque la página las tenga en otro orden), o al principio (``despues_de=None``) si no hay ninguna.
 * **Sin cambios.** Si la nota ya está en su categoría y en su sitio, no sale nada.
+* **De tiza.** Una nota que ya está en una categoría ``de_tiza`` no se toca: no da nada.
 * **Sin nota.** Una actividad sin fila en el árbol no da movimiento ni ``SinColocar``.
 
 Los movimientos se aplican en orden sobre un árbol simulado, para que el siguiente ``cmid``
@@ -118,6 +119,9 @@ def colocar(
         fila = actual.de_cmid(cmid)
         if fila is None:
             continue
+        origen = actual.fila(fila.padre) if fila.padre is not None else None
+        if origen is not None and origen.de_tiza:
+            continue  # lo que está en una categoría de tiza no se toca
         de_atras = [secciones[i].cmids for i in range(seccion_de[cmid], -1, -1)]
         categorias = _patron(actual, cmid, de_atras, pedidos - colocadas)
         if not categorias:
@@ -126,14 +130,12 @@ def colocar(
         if len(categorias) > 1:
             sin_colocar.append(SinColocar(cmid, AMBIGUA, None))
             continue
-        (destino,) = categorias
-        destino_fila = actual.fila(destino)
-        origen = actual.fila(fila.padre) if fila.padre is not None else None
+        ((destino, destino_fila),) = categorias.items()
         despues = _despues_de(filas, orden, cmid, destino)
         if fila.padre == destino and _anterior(filas, orden, fila) == despues:
             colocadas.add(cmid)
             continue
-        if destino_fila is not None and destino_fila.bloqueada:
+        if destino_fila.bloqueada:
             sin_colocar.append(SinColocar(cmid, CERRADA, destino_fila.nombre))
             continue
         if origen is not None and origen.bloqueada:
@@ -145,7 +147,7 @@ def colocar(
                 eid=fila.eid,
                 categoria=destino,
                 despues_de=despues,
-                nombre_categoria=destino_fila.nombre if destino_fila is not None else destino,
+                nombre_categoria=destino_fila.nombre,
                 desde=origen.nombre if origen is not None and origen.padre is not None else None,
             )
         )
@@ -156,10 +158,10 @@ def colocar(
 
 def _patron(
     arbol: ArbolNotas, cmid: int, secciones: Sequence[Sequence[int]], excluidos: set[int]
-) -> set[str]:
+) -> dict[str, FilaNota]:
     """Las categorías de las otras notas de la primera sección (hacia atrás) que tenga alguna."""
     for cmids_de_la_seccion in secciones:
-        categorias: set[str] = set()
+        categorias: dict[str, FilaNota] = {}
         for otro in cmids_de_la_seccion:
             if otro == cmid or otro in excluidos:
                 continue
@@ -167,10 +169,10 @@ def _patron(
             padre = arbol.fila(fila.padre) if fila is not None and fila.padre else None
             if padre is None or padre.de_tiza:
                 continue
-            categorias.add(padre.eid)
+            categorias[padre.eid] = padre
         if categorias:
             return categorias
-    return set()
+    return {}
 
 
 def _hijos_con_orden(
@@ -183,13 +185,16 @@ def _hijos_con_orden(
 def _despues_de(
     filas: Sequence[FilaNota], orden: dict[int, int], cmid: int, categoria: str
 ) -> str | None:
-    """La última nota de la categoría cuya actividad va antes que ``cmid`` en el curso."""
+    """La nota de la categoría cuya actividad va justo antes que ``cmid`` en el curso.
+
+    Es la de mayor posición en el orden del curso, estén como estén en la página.
+    """
     antes = [
-        f
+        (orden[f.cmid], f.eid)
         for f in _hijos_con_orden(filas, orden, categoria)
-        if f.cmid != cmid and f.cmid is not None and orden[f.cmid] < orden[cmid]
+        if f.cmid is not None and f.cmid != cmid and orden[f.cmid] < orden[cmid]
     ]
-    return antes[-1].eid if antes else None
+    return max(antes)[1] if antes else None
 
 
 def _anterior(filas: Sequence[FilaNota], orden: dict[int, int], fila: FilaNota) -> str | None:
