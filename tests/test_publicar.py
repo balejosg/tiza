@@ -4632,6 +4632,35 @@ def test_arbol_notas_sin_permiso():
     assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
 
 
+def test_arbol_notas_sin_filas_es_error_de_consulta():
+    moodle, _ = _moodle_calificador(
+        arbol='<html><body><form id="gradetreeform"></form></body></html>'
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.arbol_notas(2)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+
+
+def test_arbol_notas_sin_raiz_es_error_de_consulta():
+    pagina = (
+        '<html><body><form id="gradetreeform"><table><tr data-itemid="5" '
+        'data-parent-category="cg9"><td><div class="rowtitle">X</div></td></tr></table>'
+        "</form></body></html>"
+    )
+    moodle, _ = _moodle_calificador(arbol=pagina)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.arbol_notas(2)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+
+
+def test_arbol_notas_con_recalculo_que_no_acaba_es_error_de_consulta():
+    pagina = '<html><body><div class="progressbar_container"></div></body></html>'
+    moodle, _ = _moodle_calificador(arbol=pagina)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.arbol_notas(2)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+
+
 def test_borrar_nodo():
     moodle, sesion = _moodle_calificador()
     moodle.borrar_nodo(2, "cg5")

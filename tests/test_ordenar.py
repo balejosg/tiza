@@ -873,7 +873,7 @@ class TestOrdenarReordenaLasNotas:
         assert orden_en(moodle) == [[3, 2, 1, 4]]
         assert _notas_de(moodle, 1234) == ["ig3", "ig1", "ig4"]
         pasos = [(p["codigo"], p["detalle"]) for p in documento["pasos"]]
-        assert ("NOTAS_ORDENADAS", "1 notas") in pasos
+        assert ("NOTAS_ORDENADAS", "1 nota") in pasos
 
     def test_resumen_orden_solo_notas(self, tmp_path):
         carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
@@ -904,6 +904,57 @@ class TestOrdenarReordenaLasNotas:
         assert resumen.notas == 1
         assert _notas_de(moodle, 5678) == ["ig3", "ig1", "ig4"]
         assert documento["resultado"] == "ok"
+
+    def test_en_real_sin_poder_leer_el_calificador_no_mueve_notas(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        moodle = aula_de_la_sesion(*MODULOS)
+        moodle.arboles[5678] = _arbol_de_notas(1, 3, 4)
+        moodle.fallos["arbol_notas"] = ["CALIFICADOR_NO_LEIDO"]  # solo falla la lectura del resumen
+        documento = atender(
+            pedir(carpeta, "real", ["P1.md", "P2.md", "P3.md"]),
+            moodle,
+            CFG,
+            carpeta,
+            PresenciaFalsa(),
+        )
+        assert documento["resultado"] == "ok"
+        assert orden_en(moodle) == [[3, 2, 1, 4]]
+        assert not [x for x in moodle.llamadas if x[0] == "mover_nota"]
+        assert _notas_de(moodle, 5678) == ["ig1", "ig3", "ig4"]
+
+    def test_con_cero_notas_confirmadas_no_toca_las_notas(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        moodle = aula_de_la_sesion((3, "P1", "pagina"), (1, "P2", "pagina"), (4, "P3", "pagina"))
+        moodle.arboles[5678] = _arbol_de_notas(1, 3, 4)
+        documentos = [
+            contenido.cargar(carpeta / f"{n}.md", raiz=carpeta) for n in ("P1", "P2", "P3")
+        ]
+        documento = publicacion.ordenar_con(moodle, "real", 5678, documentos, notas_confirmadas=0)
+        assert documento["resultado"] == "ok"
+        assert not [x for x in moodle.llamadas if x[0] in ("mover_nota", "arbol_notas")]
+
+    def test_con_otro_numero_de_notas_que_el_confirmado_no_mueve_nada(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        moodle = aula_de_la_sesion((3, "P1", "pagina"), (1, "P2", "pagina"), (4, "P3", "pagina"))
+        moodle.arboles[5678] = _arbol_de_notas(1, 3, 4)
+        documentos = [
+            contenido.cargar(carpeta / f"{n}.md", raiz=carpeta) for n in ("P1", "P2", "P3")
+        ]
+        documento = publicacion.ordenar_con(moodle, "real", 5678, documentos, notas_confirmadas=2)
+        assert not [x for x in moodle.llamadas if x[0] == "mover_nota"]
+        sin = [p["detalle"] for p in documento["pasos"] if p["codigo"] == "NOTA_SIN_COLOCAR"]
+        assert sorted(sin) == [f"{n}.md: CAMBIADA" for n in ("P1", "P2", "P3")]
+        assert "NOTAS_ORDENADAS" not in [p["codigo"] for p in documento["pasos"]]
+
+    def test_con_el_numero_confirmado_mueve_las_notas(self, tmp_path):
+        carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")
+        moodle = aula_de_la_sesion((3, "P1", "pagina"), (1, "P2", "pagina"), (4, "P3", "pagina"))
+        moodle.arboles[5678] = _arbol_de_notas(1, 3, 4)
+        documentos = [
+            contenido.cargar(carpeta / f"{n}.md", raiz=carpeta) for n in ("P1", "P2", "P3")
+        ]
+        publicacion.ordenar_con(moodle, "real", 5678, documentos, notas_confirmadas=1)
+        assert _notas_de(moodle, 5678) == ["ig3", "ig1", "ig4"]
 
     def test_ordenar_sin_cambios_no_mueve_notas(self, tmp_path):
         carpeta = carpeta_con(tmp_path, "P1", "P2", "P3")

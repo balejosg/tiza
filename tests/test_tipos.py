@@ -306,6 +306,28 @@ def test_cada_tipo_declara_si_es_calificable():
     assert {t.nombre for t in tipos.TODOS if t.calificable} == {"tarea", "cuestionario", "h5p"}
 
 
+def test_tiene_nota_sigue_a_calificable_salvo_h5p_sin_nota(tmp_path):
+    for tipo in tipos.TODOS:
+        if tipo.nombre != "h5p":
+            assert tipo.tiene_nota(None) is tipo.calificable, tipo.nombre
+
+
+@pytest.mark.parametrize("tipo_h5p,esperado", [("tarjetas", False), ("rellenar_huecos", True)])
+def test_h5p_tiene_nota_salvo_las_tarjetas(tmp_path, tipo_h5p, esperado):
+    relleno = (
+        '  tarjetas:\n    - {anverso: "a", reverso: "b"}\n'
+        if tipo_h5p == "tarjetas"
+        else '  textos:\n    - "El agua hierve a [[100]] grados."\n'
+    )
+    ruta = tmp_path / "h.md"
+    ruta.write_text(
+        f"---\ntipo: h5p\nnombre: H\nseccion: 1\nactividad:\n  tipo: {tipo_h5p}\n{relleno}---\n\nx\n",
+        encoding="utf-8",
+    )
+    doc = contenido.cargar(ruta, raiz=tmp_path)
+    assert tipos.obtener("h5p").tiene_nota(doc) is esperado
+
+
 @pytest.mark.parametrize("nombre", sorted(EJEMPLOS))
 def test_evalua_solo_en_los_tipos_calificables(tmp_path, nombre):
     texto = EJEMPLOS[nombre].replace("seccion: 1\n", "seccion: 1\nevalua: {RA1: 40}\n", 1)

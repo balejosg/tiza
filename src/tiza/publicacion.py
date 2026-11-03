@@ -30,7 +30,7 @@ import re
 import sys
 import traceback
 from collections import Counter
-from collections.abc import Callable, Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
@@ -1228,7 +1228,7 @@ def publicar_con(
         if (
             not solo_fechas
             and resultado.cmid is not None
-            and tipos.obtener(doc.tipo).calificable
+            and tipos.obtener(doc.tipo).tiene_nota(doc)
             and doc.evalua is None
             and (resultado.accion == "creada" or id(doc) in cambian_de_seccion)
         ):
@@ -1823,7 +1823,7 @@ def _notas_previstas(
     """
     ordenados = ordenar_por_dependencias(documentos, base) or documentos
     candidatos = [
-        doc for doc in ordenados if tipos.obtener(doc.tipo).calificable and doc.evalua is None
+        doc for doc in ordenados if tipos.obtener(doc.tipo).tiene_nota(doc) and doc.evalua is None
     ]
     prevista = _con_secciones_nuevas(estructura, documentos)
     nuevas: list[tuple[int, int, str]] = []
@@ -2010,8 +2010,14 @@ def resumen_orden(
     )
 
 
-def _cmids_con_nota(grupos) -> dict[int, str]:
-    """Cmid y fichero de los documentos cuya nota sigue el orden del curso (sin ``evalua``)."""
+def _cmids_con_nota(
+    grupos: Iterable[tuple[Any, Iterable[tuple[Documento, Any]]]],
+) -> dict[int, str]:
+    """Cmid y fichero de los documentos cuya nota sigue el orden del curso.
+
+    Los que no llevan ``evalua`` (esa es del calificador de tiza); si no tienen elemento en el
+    calificador, la regla pura no los encuentra y no se mueve nada.
+    """
     return {
         actividad.cmid: doc.ruta.name
         for _, par in grupos
@@ -2027,8 +2033,14 @@ def ordenar_con(
     documentos: list[Documento],
     *,
     debug: bool = False,
+    notas_confirmadas: int | None = None,
 ) -> dict:
-    """Con el aula ya abierta: deja las actividades de ``documentos`` en ese orden y lo verifica."""
+    """Con el aula ya abierta: deja las actividades de ``documentos`` en ese orden y lo verifica.
+
+    ``notas_confirmadas`` (curso real): cuántas notas del calificador vio mover el docente en
+    el resumen. Con 0 no se toca el calificador; si salen otras, no se mueve ninguna
+    (``NOTA_SIN_COLOCAR`` con ``CAMBIADA``). ``None``: sin esa comprobación (curso de pruebas).
+    """
     borrador = informe.Borrador("ordenar", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
     try:
@@ -2048,7 +2060,7 @@ def ordenar_con(
     for fichero in ficheros:
         borrador.fichero(replace(fichero, curso=curso))
     borrador.paso("ORDENAR", detalle=f"{len(ficheros)} ficheros")
-    _ordenar_notas(aula, curso, estructura, documentos, borrador, debug)
+    _ordenar_notas(aula, curso, estructura, documentos, borrador, debug, notas_confirmadas)
     return borrador.documento()
 
 
@@ -2059,6 +2071,7 @@ def _ordenar_notas(
     documentos: list[Documento],
     borrador: informe.Borrador,
     debug: bool,
+    notas_confirmadas: int | None = None,
 ) -> None:
     """Reordena en el calificador las notas de lo ordenado; nunca hace fallar el orden.
 
@@ -2066,17 +2079,19 @@ def _ordenar_notas(
     leer o mover queda como ``NOTA_SIN_COLOCAR`` con su código, uno por documento.
     """
     cmids = _cmids_con_nota(estructura.resolver_orden(documentos, curso).grupos)
-    if not cmids:
+    if not cmids or notas_confirmadas == 0:
         return
     try:
-        movidas = publicar.ordenar_notas(aula, curso, aula.estructura(curso), list(cmids))
+        movidas = publicar.ordenar_notas(
+            aula, curso, aula.estructura(curso), list(cmids), notas_confirmadas
+        )
     except ErrorPublicacion as exc:
         depurar(exc, debug)
         for nombre in cmids.values():
             borrador.paso("NOTA_SIN_COLOCAR", detalle=f"{nombre}: {exc.codigo}")
         return
     if movidas:
-        borrador.paso("NOTAS_ORDENADAS", detalle=f"{movidas} notas")
+        borrador.paso("NOTAS_ORDENADAS", detalle=f"{movidas} {'nota' if movidas == 1 else 'notas'}")
 
 
 def ordenar_en_cursos(
@@ -2166,8 +2181,15 @@ class _TrabajoOrdenar(recorrido.TrabajoBase):
         ):
             return recorrido.Resultado.declinado()
         # Sin cambios no hay nada que confirmar: se informa de ``sin_cambios`` sin tocar el aula.
+        # Solo se mueven las notas que el docente vio: ninguna si no se pudieron contar.
+        vistas = resumen.notas if resumen is not None else 0
         documento = ordenar_con(
-            self._aula, self._entorno, turno.curso, self._documentos, debug=self._debug
+            self._aula,
+            self._entorno,
+            turno.curso,
+            self._documentos,
+            debug=self._debug,
+            notas_confirmadas=vistas,
         )
         return recorrido.Resultado.hecho(documento)
 

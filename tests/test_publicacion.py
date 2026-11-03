@@ -2773,6 +2773,26 @@ def test_publicar_en_pruebas_tambien_coloca_su_nota(tmp_path):
     assert "NOTA_COLOCADA" in _codigos_de_pasos(documento)
 
 
+def _h5p_tarjetas(carpeta: Path, fichero="p.md") -> None:
+    (carpeta / fichero).write_text(
+        "---\ntipo: h5p\nnombre: Tarjetas\nseccion: 2\nactividad:\n  tipo: tarjetas\n"
+        '  tarjetas:\n    - {anverso: "uno", reverso: "1"}\n---\n\nRepasa.\n',
+        encoding="utf-8",
+    )
+
+
+def test_h5p_sin_nota_no_promete_ni_coloca_nota(tmp_path):
+    carpeta = tmp_path.resolve()
+    _h5p_tarjetas(carpeta)
+    moodle = _aula_con_calificador()
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == []
+    [resumen] = presencia.resumenes
+    assert resumen.notas == ()
+    assert _escrituras_de_notas(moodle) == []
+    assert not {"NOTA_COLOCADA", "NOTA_SIN_COLOCAR"} & set(_codigos_de_pasos(documento))
+
+
 def test_publicar_movida_cambia_de_categoria(tmp_path):
     carpeta = tmp_path.resolve()
     _tarea(carpeta, nombre="Tarea 2.1b", seccion="2")

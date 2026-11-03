@@ -579,6 +579,12 @@ class TestNotas:
                 "confirmaste.",
             ),
             (
+                "NOTA_NO_COLOCADA",
+                None,
+                "No se colocó la nota de «T»: Moodle no la dejó donde tocaba al comprobarlo; "
+                "revísala en el calificador.",
+            ),
+            (
                 "CALIFICADOR_NO_PERMITIDO",
                 None,
                 "No se colocó la nota de «T»: no se pudo leer o cambiar el calificador "

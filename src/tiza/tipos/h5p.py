@@ -109,6 +109,10 @@ class H5P(Tipo):
         h5p, paquete = _validar_h5p(datos, ctx)
         return Extras(h5p=h5p, paquete=paquete)
 
+    def tiene_nota(self, doc) -> bool:
+        """Un paquete o una actividad que no sea de tarjetas califica; las tarjetas, no."""
+        return doc.paquete is not None or (doc.h5p is not None and doc.h5p.tipo != "tarjetas")
+
     def payload(self, doc, html, itemid, visible, *, itemid_paquete: int | None = None) -> dict:
         """Formulario de una actividad H5P.
 
@@ -118,9 +122,7 @@ class H5P(Tipo):
         """
         assert itemid_paquete is not None
         actividad = doc.h5p
-        califica = doc.paquete is not None or (
-            actividad is not None and actividad.tipo != "tarjetas"
-        )
+        califica = self.tiene_nota(doc)
         payload = {
             "_qf__mod_h5pactivity_mod_form": "1",
             "name": doc.nombre,

@@ -1575,6 +1575,8 @@ class Moodle:
         raíz, para leer su número de ID: ``TZ_`` marca esa categoría y todo lo que cuelga de ella.
         """
         pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
+        if _es_recalculo(pagina):
+            raise ErrorPublicacion("ERROR_CONSULTA")
         sopa = BeautifulSoup(pagina, "html.parser")
         if sopa.find("form", id="gradetreeform") is None:
             raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
@@ -1606,6 +1608,8 @@ class Moodle:
                 )
             )
         raiz = next((eid for eid, padre, _, _ in datos if padre is None), None)
+        if raiz is None:  # sin fila raíz no hay árbol que colocar: una lectura que no vale
+            raise ErrorPublicacion("ERROR_CONSULTA")
         de_tiza: set[str] = set()
         for eid, padre, _, _ in datos:
             if padre != raiz or not eid.startswith("cg"):
@@ -3105,15 +3109,23 @@ def con_orden_final(estructura: Estructura, finales: Mapping[int, list[int]]) ->
 
 
 def ordenar_notas(
-    moodle: AulaVirtual, curso: int, estructura: Estructura, cmids: Collection[int]
+    moodle: AulaVirtual,
+    curso: int,
+    estructura: Estructura,
+    cmids: Collection[int],
+    esperado: int | None = None,
 ) -> int:
     """Deja las notas de ``cmids`` en el orden del curso dentro de su categoría; cuántas movió.
 
     Lee el árbol, aplica :func:`tiza.colocacion.reordenar` y ejecuta los movimientos. Tras
     escribir relee y comprueba que cada nota sigue en su categoría y que ya no queda nada por
     reordenar (``NOTA_NO_COLOCADA`` si no). Los errores de lectura y de escritura salen tal cual.
+    Con ``esperado`` (cuántas notas vio mover el docente) no se escribe nada si son otras:
+    ``CAMBIADA``.
     """
     movimientos = colocacion.reordenar(estructura, moodle.arbol_notas(curso), cmids)
+    if esperado is not None and len(movimientos) != esperado:
+        raise ErrorPublicacion("CAMBIADA")
     if not movimientos:
         return 0
     for movimiento in movimientos:

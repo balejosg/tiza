@@ -123,6 +123,14 @@ class Tipo:
     # Al actualizar, el payload necesita algo del formulario de edición (``ContextoPublicacion.leido``).
     lee_formulario_al_actualizar: bool = False
 
+    def tiene_nota(self, doc: Any) -> bool:
+        """¿Esta actividad concreta tendrá elemento de calificación en el aula?
+
+        Por defecto, el del tipo (``calificable``); un tipo cuya nota depende del documento
+        lo sobrescribe (el H5P sin nota no tiene elemento en el calificador).
+        """
+        return self.calificable
+
     # --- Campos y validación ----------------------------------------------
 
     def validar(self, datos: dict[str, Any], ctx: Contexto) -> Extras:

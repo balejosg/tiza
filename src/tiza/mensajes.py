@@ -410,6 +410,7 @@ _MOTIVOS_DE_NOTA = {
     "AMBIGUA": "las actividades de su sección están en varias categorías",
     "SIN_PATRON": "no hay ninguna categoría que seguir",
     "CAMBIADA": "la categoría cambió en el aula desde que lo confirmaste",
+    "NOTA_NO_COLOCADA": "Moodle no la dejó donde tocaba al comprobarlo; revísala en el calificador",
 }
 
 
