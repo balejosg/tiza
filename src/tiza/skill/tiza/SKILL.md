@@ -230,7 +230,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
 5. **Lee el resultado**: la salida del comando y `.tiza/informe.json` (esquema cerrado: `resultado`, `pasos`, `ficheros`, `errores`). Si hay errores, corrige el fichero, vuelve a ejecutar `tiza comprobar` y repite la publicación en pruebas. Solo cuando todo esté `ok`.
 
-   Sobre las notas del calificador de Moodle: `NOTA_COLOCADA` (detalle: el fichero) significa que tiza puso la nota donde van las de su sección; `NOTA_SIN_COLOCAR` (detalle: «fichero: MOTIVO») significa que no la colocó y la dejó donde estaba: díselo al docente con el motivo (`AMBIGUA`, `SIN_PATRON`, `CERRADA`, `CAMBIADA`); no es un fallo. `NOTAS_ORDENADAS` (detalle: «N notas») lo da `tiza ordenar`. Con `evalua`, la nota la coloca `tiza calificador`, no estos pasos.
+   Sobre las notas del calificador de Moodle: `NOTA_COLOCADA` (detalle: el fichero) significa que tiza puso la nota donde van las de su sección; `NOTA_SIN_COLOCAR` (detalle: «fichero: MOTIVO») significa que no la colocó y la dejó donde estaba; la actividad se publica igual, la publicación nunca falla por esto. Si el motivo es uno de los de tiza (`AMBIGUA`, `SIN_PATRON`, `CERRADA`, `CAMBIADA`), explícaselo al docente con palabras llanas. Si es un código del aula (p. ej. `CALIFICADOR_NO_PERMITIDO`, `NOTA_NO_COLOCADA`, `ERROR_CONSULTA`), dile que la nota no se pudo colocar por ese problema del aula y que puede moverla a mano. `NOTAS_ORDENADAS` (detalle: «N notas») lo da `tiza ordenar`. Con `evalua`, la nota la coloca `tiza calificador`, no estos pasos.
 
 6. **Publica en real** tras el visto bueno del docente:
 

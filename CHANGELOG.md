@@ -9,7 +9,7 @@ se avisa aquí con **Cambia**.
 ### Añadido
 - **La nota de una actividad nueva va con las de su sección.** Si organizas el calificador a mano (por ejemplo, una categoría por evaluación), al publicar una tarea, un cuestionario o un H5P nuevo tiza mete su nota en la categoría donde están las demás de esa sección y en su sitio, detrás de la actividad que la precede en el curso. Si es la primera con nota de su sección, sigue a la sección anterior. Antes de publicar en el curso real, el resumen te dice a qué categoría irá.
 - **Al cambiar una actividad de sección, su nota cambia de categoría con la misma regla**, y **`tiza ordenar` reordena también las notas** para que sigan el orden del curso.
-- Si tiza no lo tiene claro (las notas de la sección están en varias categorías, no hay ninguna que seguir o la categoría está cerrada), deja la nota donde está y te lo dice. Nunca toca el calificador que monta `tiza calificador` ni una evaluación cerrada.
+- Si tiza no lo tiene claro (las notas de la sección están en varias categorías, no hay ninguna que seguir o la categoría está cerrada), deja la nota donde está y te lo dice. Nunca mueve notas de las categorías que monta `tiza calificador` ni de una evaluación cerrada, ni coloca notas en ellas.
 
 ## 0.38.1 — 2026-11-02
 
