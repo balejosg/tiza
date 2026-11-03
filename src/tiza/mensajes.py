@@ -512,6 +512,11 @@ def detalle_orden(resumen: ResumenOrden) -> DetalleOrden:
         "que debe completarse antes. El orden en pantalla no cambia las restricciones."
         for fichero, dependencia in resumen.dependencias
     ]
+    if resumen.notas:
+        accion = (
+            "se reordena 1 nota" if resumen.notas == 1 else f"se reordenan {resumen.notas} notas"
+        )
+        finales.append(f"En el calificador {accion} para seguir el orden del curso.")
     finales.append("Solo cambia el orden: el contenido, la visibilidad y los intentos no cambian.")
     return DetalleOrden(
         curso=describir_curso(resumen.curso, resumen.nombre_curso),

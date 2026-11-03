@@ -75,6 +75,8 @@ __all__ = [
     "es_disponibilidad_de_tiza",
     "Movimiento",
     "ordenar_documentos",
+    "ordenar_notas",
+    "con_orden_final",
     "plan_de_orden",
     "payload_disponibilidad",
     "payload_finalizacion",
@@ -3085,6 +3087,47 @@ def colocar_notas(
         if anterior != movimiento.despues_de:
             raise ErrorPublicacion("NOTA_NO_COLOCADA")
     return tuple(movimientos), tuple(sin_colocar)
+
+
+def con_orden_final(estructura: Estructura, finales: Mapping[int, list[int]]) -> Estructura:
+    """La estructura con las secciones de ``finales`` (id -> cmids) en ese orden. Pura."""
+    secciones = []
+    for seccion in estructura:
+        final = finales.get(seccion.id)
+        if final is None:
+            secciones.append(seccion)
+            continue
+        por_cmid = {actividad.cmid: actividad for actividad in seccion.actividades}
+        secciones.append(
+            dataclasses.replace(seccion, actividades=tuple(por_cmid[cmid] for cmid in final))
+        )
+    return dataclasses.replace(estructura, secciones=tuple(secciones))
+
+
+def ordenar_notas(
+    moodle: AulaVirtual, curso: int, estructura: Estructura, cmids: Collection[int]
+) -> int:
+    """Deja las notas de ``cmids`` en el orden del curso dentro de su categoría; cuántas movió.
+
+    Lee el árbol, aplica :func:`tiza.colocacion.reordenar` y ejecuta los movimientos. Tras
+    escribir relee y comprueba que cada nota sigue en su categoría y que ya no queda nada por
+    reordenar (``NOTA_NO_COLOCADA`` si no). Los errores de lectura y de escritura salen tal cual.
+    """
+    movimientos = colocacion.reordenar(estructura, moodle.arbol_notas(curso), cmids)
+    if not movimientos:
+        return 0
+    for movimiento in movimientos:
+        moodle.mover_nota(curso, movimiento.eid, movimiento.categoria, movimiento.despues_de)
+    releido = moodle.arbol_notas(curso)
+    for movimiento in movimientos:
+        fila = releido.fila(movimiento.eid)
+        if fila is None or fila.padre != movimiento.categoria:
+            raise ErrorPublicacion("NOTA_NO_COLOCADA")
+    # Cada ``despues_de`` se dio con lo que había delante al mover y los movimientos
+    # posteriores lo cambian: lo que se comprueba es que ya no queda nada por reordenar.
+    if colocacion.reordenar(estructura, releido, cmids):
+        raise ErrorPublicacion("NOTA_NO_COLOCADA")
+    return len(movimientos)
 
 
 def ordenar_documentos(

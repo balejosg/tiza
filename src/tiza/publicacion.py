@@ -578,6 +578,8 @@ class ResumenOrden:
     dependencias: tuple[tuple[str, str], ...] = ()
     posicion: int = 1
     total: int = 1
+    # Notas del calificador que se reordenarán para seguir el orden final del curso.
+    notas: int = 0
 
 
 @dataclass(frozen=True)
@@ -1939,8 +1941,12 @@ def resumen_orden(
     *,
     posicion: int = 1,
     total: int = 1,
+    arbol: colocacion.ArbolNotas | None = None,
 ) -> ResumenOrden | None:
     """Lo que cambiaría ``ordenar`` en este curso, o ``None`` si ya está en el orden pedido.
+
+    Con el ``arbol`` del calificador cuenta también las notas que se reordenarían sobre la
+    estructura final (las de los documentos sin ``evalua``); sin él, ninguna.
 
     Solo lectura. Las actividades que no son de tiza salen con su nombre del aula: es la pantalla
     del docente y necesita ver dónde queda cada cosa. ``ErrorPublicacion`` si algo no se resuelve
@@ -1951,20 +1957,32 @@ def resumen_orden(
     grupos = resolucion.grupos
     deseados = [(seccion.id, [actividad.cmid for _, actividad in par]) for seccion, par in grupos]
     cambiadas = {mov.seccion_id for mov in publicar.plan_de_orden(estructura, deseados)}
-    if not cambiadas:
+    finales: dict[int, list[int]] = {
+        seccion.id: publicar.orden_final(
+            list(seccion.cmids), [actividad.cmid for _, actividad in par]
+        )
+        for seccion, par in grupos
+        if seccion.id in cambiadas
+    }
+    notas = 0
+    if arbol is not None:
+        cmids_con_nota = _cmids_con_nota(grupos)
+        notas = len(
+            colocacion.reordenar(
+                publicar.con_orden_final(estructura, finales), arbol, list(cmids_con_nota)
+            )
+        )
+    if not cambiadas and not notas:
         return None
     pedidos = {
         _relativa(doc.ruta, base): actividad.cmid for _, par in grupos for doc, actividad in par
     }
     ficheros_de = {actividad.cmid: doc.ruta.name for _, par in grupos for doc, actividad in par}
-    finales: dict[int, list[int]] = {}
     vistas: list[SeccionOrden] = []
-    for seccion, par in grupos:
+    for seccion, _ in grupos:
         if seccion.id not in cambiadas:
             continue
-        actual = list(seccion.cmids)
-        final = publicar.orden_final(actual, [actividad.cmid for _, actividad in par])
-        finales[seccion.id] = final
+        final = finales[seccion.id]
         por_cmid = {actividad.cmid: actividad for actividad in seccion.actividades}
         vistas.append(
             SeccionOrden(
@@ -1988,7 +2006,18 @@ def resumen_orden(
         ),
         posicion=posicion,
         total=total,
+        notas=notas,
     )
+
+
+def _cmids_con_nota(grupos) -> dict[int, str]:
+    """Cmid y fichero de los documentos cuya nota sigue el orden del curso (sin ``evalua``)."""
+    return {
+        actividad.cmid: doc.ruta.name
+        for _, par in grupos
+        for doc, actividad in par
+        if doc.evalua is None
+    }
 
 
 def ordenar_con(
@@ -2019,7 +2048,35 @@ def ordenar_con(
     for fichero in ficheros:
         borrador.fichero(replace(fichero, curso=curso))
     borrador.paso("ORDENAR", detalle=f"{len(ficheros)} ficheros")
+    _ordenar_notas(aula, curso, estructura, documentos, borrador, debug)
     return borrador.documento()
+
+
+def _ordenar_notas(
+    aula: AulaVirtual,
+    curso: int,
+    estructura: Estructura,
+    documentos: list[Documento],
+    borrador: informe.Borrador,
+    debug: bool,
+) -> None:
+    """Reordena en el calificador las notas de lo ordenado; nunca hace fallar el orden.
+
+    Salvo los documentos con ``evalua`` (su nota es del calificador de tiza). Un error al
+    leer o mover queda como ``NOTA_SIN_COLOCAR`` con su código, uno por documento.
+    """
+    cmids = _cmids_con_nota(estructura.resolver_orden(documentos, curso).grupos)
+    if not cmids:
+        return
+    try:
+        movidas = publicar.ordenar_notas(aula, curso, aula.estructura(curso), list(cmids))
+    except ErrorPublicacion as exc:
+        depurar(exc, debug)
+        for nombre in cmids.values():
+            borrador.paso("NOTA_SIN_COLOCAR", detalle=f"{nombre}: {exc.codigo}")
+        return
+    if movidas:
+        borrador.paso("NOTAS_ORDENADAS", detalle=f"{movidas} notas")
 
 
 def ordenar_en_cursos(
@@ -2087,6 +2144,10 @@ class _TrabajoOrdenar(recorrido.TrabajoBase):
     def en_curso(self, turno: recorrido.Turno) -> recorrido.Resultado:
         try:
             estructura = self._aula.estructura(turno.curso)
+            try:
+                arbol = self._aula.arbol_notas(turno.curso)
+            except ErrorPublicacion:
+                arbol = None  # sin calificador legible no se cuentan notas; ordenar sigue
             resumen = resumen_orden(
                 turno.curso,
                 turno.nombre_curso,
@@ -2095,6 +2156,7 @@ class _TrabajoOrdenar(recorrido.TrabajoBase):
                 self._base,
                 posicion=turno.posicion,
                 total=turno.total,
+                arbol=arbol,
             )
         except ErrorPublicacion as exc:
             # Cada curso resuelve lo suyo antes de mover nada en él (ACTIVIDAD_AUSENTE…).

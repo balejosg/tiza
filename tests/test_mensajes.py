@@ -589,3 +589,18 @@ class TestNotas:
     def test_aviso_de_nota_sin_colocar(self, motivo, categoria, esperado):
         aviso = publicacion.Aviso.nota_sin_colocar("T", motivo, categoria)
         assert [linea.texto for linea in mensajes.lineas_de_aviso(aviso)] == [esperado]
+
+
+def test_detalle_orden_cuenta_notas():
+    def resumen(notas):
+        return publicacion.ResumenOrden(curso=5, nombre_curso=None, secciones=(), notas=notas)
+
+    assert not any("calificador" in f for f in mensajes.detalle_orden(resumen(0)).finales)
+    assert (
+        "En el calificador se reordena 1 nota para seguir el orden del curso."
+        in mensajes.detalle_orden(resumen(1)).finales
+    )
+    assert (
+        "En el calificador se reordenan 3 notas para seguir el orden del curso."
+        in mensajes.detalle_orden(resumen(3)).finales
+    )
