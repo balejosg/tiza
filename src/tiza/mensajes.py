@@ -24,6 +24,7 @@ from .publicacion import (
     CAMPO_RECORDATORIO,
     Aviso,
     CambioNombre,
+    CambioNota,
     CambioSeccion,
     DocumentoBreve,
     DocumentoResumen,
@@ -94,6 +95,7 @@ __all__ = [
     "lineas_de_aviso",
     "lineas_de_cursos",
     "lineas_de_error",
+    "lineas_de_notas",
     "nombre_llano",
     "pregunta_ampliacion",
     "rotulos",
@@ -309,6 +311,7 @@ def detalle_real(resumen: ResumenPublicacion) -> DetalleReal:
     ]
     finales += _lineas_de_movimientos(resumen.movimientos)
     finales += _lineas_de_nombres(resumen.nombres)
+    finales += lineas_de_notas(resumen.notas)
     finales.append(SOLO_FECHAS_TEXTO if solo else VISIBILIDAD[resumen.visible])
     aviso = None
     if resumen.aviso_calendario is not None:
@@ -389,7 +392,8 @@ def detalle_corto(resumen: ResumenSinPruebas) -> DetalleCorto:
             for nombre in resumen.secciones_nuevas
         )
         + tuple(_lineas_de_movimientos(resumen.movimientos))
-        + tuple(_lineas_de_nombres(resumen.nombres)),
+        + tuple(_lineas_de_nombres(resumen.nombres))
+        + tuple(lineas_de_notas(resumen.notas)),
     )
 
 
@@ -400,6 +404,49 @@ def _lineas_de_movimientos(movimientos: tuple[CambioSeccion, ...]) -> list[str]:
         f"a «{texto_seguro(cambio.destino)}» (no se duplica)."
         for cambio in movimientos
     ]
+
+
+_MOTIVOS_DE_NOTA = {
+    "AMBIGUA": "las actividades de su sección están en varias categorías",
+    "SIN_PATRON": "no hay ninguna categoría que seguir",
+    "CAMBIADA": "la categoría cambió en el aula desde que lo confirmaste",
+}
+
+
+def _motivo_de_nota(motivo: str, categoria: str | None) -> str:
+    """El motivo por el que una nota no se coloca, en lenguaje llano.
+
+    Los tres motivos de la regla, ``CERRADA`` (con el nombre de la categoría) y
+    ``CAMBIADA`` tienen su frase; cualquier otro es el código de un fallo del aula.
+    """
+    if motivo == "CERRADA":
+        return f"la categoría «{texto_seguro(categoria or '', 80)}» está cerrada"
+    if motivo in _MOTIVOS_DE_NOTA:
+        return _MOTIVOS_DE_NOTA[motivo]
+    return f"no se pudo leer o cambiar el calificador ({texto_seguro(motivo, 40)})"
+
+
+def lineas_de_notas(cambios: tuple[CambioNota, ...]) -> list[str]:
+    """Una línea por actividad: dónde irá su nota en el calificador, o por qué se queda."""
+    lineas: list[str] = []
+    for cambio in cambios:
+        fichero = texto_seguro(cambio.fichero)
+        if cambio.destino is None:
+            motivo = _motivo_de_nota(cambio.motivo or "", cambio.categoria)
+            lineas.append(f"«{fichero}»: su nota se queda donde está ({motivo}).")
+            continue
+        destino = texto_seguro(cambio.destino, 80)
+        if cambio.desde is not None and cambio.desde != cambio.destino:
+            desde = texto_seguro(cambio.desde, 80)
+            lineas.append(f"«{fichero}»: su nota pasa de «{desde}» a «{destino}».")
+            continue
+        despues = (
+            f"después de «{texto_seguro(cambio.despues_de, 80)}»"
+            if cambio.despues_de is not None
+            else "al principio"
+        )
+        lineas.append(f"«{fichero}»: su nota irá a la categoría «{destino}», {despues}.")
+    return lineas
 
 
 def _lineas_de_nombres(cambios: tuple[CambioNombre, ...]) -> list[str]:
@@ -838,6 +885,11 @@ def _actividad_en_evaluacion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, .
     )
 
 
+def _nota_sin_colocar(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    motivo = _motivo_de_nota(datos["motivo"], datos["categoria"])
+    return (Linea(f"No se colocó la nota de «{texto_seguro(datos['nombre'])}»: {motivo}."),)
+
+
 def _actividad_pendiente(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(f"Aún no está en el aula, no cuenta todavía: {texto_seguro(datos['ruta'], 200)}"),
@@ -1180,6 +1232,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "MAXIMO_ALCANZADO": _maximo_alcanzado,
     "NADA_QUE_CAMBIAR": _nada_que_cambiar,
     "NOMBRES_NO_DISPONIBLES": _nombres_no_disponibles,
+    "NOTA_SIN_COLOCAR": _nota_sin_colocar,
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
     "PANEL_ACTUALIZADO": _panel_actualizado,
     "PANEL_NO_ACTUALIZADO": _panel_no_actualizado,

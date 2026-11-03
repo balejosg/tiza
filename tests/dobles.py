@@ -793,6 +793,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "MAXIMO_ALCANZADO": publicacion.Aviso.maximo_alcanzado(8),
         "NADA_QUE_CAMBIAR": publicacion.Aviso.nada_que_cambiar(),
         "NOMBRES_NO_DISPONIBLES": publicacion.Aviso.nombres_no_disponibles(),
+        "NOTA_SIN_COLOCAR": publicacion.Aviso.nota_sin_colocar("T", "AMBIGUA", None),
         "ORDENANDO_EN_PRUEBAS": publicacion.Aviso.ordenando_en_pruebas(
             (publicacion.DocumentoBreve("t.md", "pagina", "T"),)
         ),

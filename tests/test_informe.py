@@ -706,3 +706,13 @@ def test_el_paso_de_cambio_del_aula_descartado_esta_registrado():
 
 def test_el_paso_de_base_no_guardada_esta_registrado():
     assert "BASE_NO_GUARDADA" in informe.PASOS
+
+
+@pytest.mark.parametrize("codigo", ["NOTA_COLOCADA", "NOTA_SIN_COLOCAR"])
+def test_los_pasos_de_las_notas_estan_registrados(codigo):
+    assert codigo in informe.PASOS
+    informe.validar(
+        informe.crear(
+            "publicar", "ok", [Paso(codigo, detalle="t.md: AMBIGUA")], [], [], "real", 5678
+        )
+    )

@@ -32,6 +32,7 @@ from dobles import (
 )
 from tiza import (
     calendario,
+    colocacion,
     config,
     contenido,
     estado,
@@ -2666,3 +2667,451 @@ def test_copiar_actividades_ruta_fuera_de_la_carpeta(tmp_path):
     fuera.write_text(PAGINA, encoding="utf-8")
     _m, presencia, documento, _c = _copiar_actividades(carpeta, ["../fuera.md"])
     assert documento["errores"] == ["RUTA_FUERA_DE_CARPETA"] and presencia.resumenes_copia == []
+
+
+# --- La nota sigue a su sección en el calificador (publicar la coloca) ---
+
+RAIZ = "cg1"
+
+
+def _fila(eid, padre, cmid, nombre, **extra):
+    return colocacion.FilaNota(eid, padre, cmid, nombre, **extra)
+
+
+def _aula_con_calificador(tarea_nueva=100, **extra_filas) -> MoodleFalso:
+    """Curso real 5678: UT2 con dos notas en «1.ª evaluación», UT4 con una en la 2.ª.
+
+    La nota de la actividad que se creará (cmid ``tarea_nueva``) ya cuelga de la raíz, como la
+    deja Moodle al crear la actividad.
+    """
+    moodle = MoodleFalso(
+        secciones_por_curso={
+            5678: [
+                {
+                    "numero": 2,
+                    "nombre": "UT2",
+                    "id": 20,
+                    "modulos": [
+                        {"cmid": 21, "nombre": "Tarea 2.1", "tipo": "tarea"},
+                        {"cmid": 22, "nombre": "Cuestionario 2.2", "tipo": "cuestionario"},
+                    ],
+                },
+                {"numero": 3, "nombre": "UT3", "id": 30, "modulos": []},
+                {
+                    "numero": 4,
+                    "nombre": "UT4",
+                    "id": 40,
+                    "modulos": [{"cmid": 41, "nombre": "Tarea 4.1", "tipo": "tarea"}],
+                },
+            ]
+        },
+    )
+    moodle.arboles[5678] = colocacion.ArbolNotas(
+        (
+            _fila(RAIZ, None, None, "Curso"),
+            _fila("cg10", RAIZ, None, "1.ª evaluación"),
+            _fila("ig21", "cg10", 21, "Tarea 2.1"),
+            _fila("ig22", "cg10", 22, "Cuestionario 2.2"),
+            _fila("cg20", RAIZ, None, "2.ª evaluación"),
+            _fila("ig41", "cg20", 41, "Tarea 4.1"),
+            _fila(f"ig{tarea_nueva}", RAIZ, tarea_nueva, "Tarea nueva"),
+            *extra_filas.get("filas", ()),
+        )
+    )
+    return moodle
+
+
+def _tarea(
+    carpeta: Path, nombre="Tarea 2.1b", seccion="2", fichero="p.md", entrega="2026-10-12", extra=""
+) -> None:
+    (carpeta / fichero).write_text(
+        f"---\ntipo: tarea\nnombre: {nombre}\nseccion: {seccion}\napertura: 2026-10-01\n"
+        f"entrega: {entrega}\n{extra}---\n\nResuelve.\n",
+        encoding="utf-8",
+    )
+
+
+def _escrituras_de_notas(moodle) -> list[tuple]:
+    return [e for e in moodle.escrituras if e[0] == "mover_nota"]
+
+
+def _codigos_de_pasos(documento) -> list[str]:
+    return [p["codigo"] for p in documento["pasos"]]
+
+
+def _padre_y_anterior(moodle, curso: int, eid: str) -> tuple[str | None, str | None]:
+    arbol = moodle.arboles[curso]
+    padre = arbol.fila(eid).padre
+    hermanos = [f.eid for f in arbol.filas if f.padre == padre]
+    indice = hermanos.index(eid)
+    return padre, hermanos[indice - 1] if indice else None
+
+
+def test_publicar_nueva_coloca_su_nota(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == [] and documento["resultado"] == "ok"
+    assert _escrituras_de_notas(moodle) == [("mover_nota", 5678, "ig100", "cg10", "ig22")]
+    assert _padre_y_anterior(moodle, 5678, "ig100") == ("cg10", "ig22")
+    assert {"codigo": "NOTA_COLOCADA", "resultado": "ok", "detalle": "p.md"} in documento["pasos"]
+    assert "NOTA_SIN_COLOCAR" not in _codigos_de_pasos(documento)
+    assert presencia.codigos() == []
+    informe.validar(documento)
+
+
+def test_publicar_en_pruebas_tambien_coloca_su_nota(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    moodle.arboles[1234] = moodle.arboles.pop(5678)
+    moodle.secciones_por_curso[1234] = moodle.secciones_por_curso.pop(5678)
+    documento, _ = _en(carpeta, moodle, "pruebas")
+    assert documento["errores"] == []
+    assert _escrituras_de_notas(moodle) == [("mover_nota", 1234, "ig100", "cg10", "ig22")]
+    assert "NOTA_COLOCADA" in _codigos_de_pasos(documento)
+
+
+def test_publicar_movida_cambia_de_categoria(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, nombre="Tarea 2.1b", seccion="2")
+    moodle = _aula_con_calificador()
+    _en(carpeta, moodle, "real")  # nace en UT2 y su nota se coloca en «1.ª evaluación»
+    moodle.escrituras.clear()
+    _tarea(carpeta, nombre="Tarea 2.1b", seccion="4")
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["ficheros"][0]["accion"] == "movida"
+    assert _escrituras_de_notas(moodle) == [("mover_nota", 5678, "ig100", "cg20", "ig41")]
+    assert _padre_y_anterior(moodle, 5678, "ig100") == ("cg20", "ig41")
+    assert {"codigo": "NOTA_COLOCADA", "resultado": "ok", "detalle": "p.md"} in documento["pasos"]
+    [resumen] = presencia.resumenes
+    assert resumen.notas == (
+        publicacion.CambioNota("p.md", "2.ª evaluación", "Tarea 4.1", "1.ª evaluación", None),
+    )
+
+
+def test_publicar_renombrada_y_movida_tambien_coloca(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, nombre="Tarea 2.1b", seccion="2")
+    moodle = _aula_con_calificador()
+    _en(carpeta, moodle, "real")
+    moodle.escrituras.clear()
+    _tarea(carpeta, nombre="Tarea 4.2", seccion="4")
+    documento, _ = _en(carpeta, moodle, "real")
+    assert documento["ficheros"][0]["accion"] == "renombrada"
+    assert _escrituras_de_notas(moodle) == [("mover_nota", 5678, "ig100", "cg20", "ig41")]
+    assert "NOTA_COLOCADA" in _codigos_de_pasos(documento)
+
+
+def test_publicar_ambigua_avisa_y_publica(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, nombre="Tarea 4.2", seccion="4")
+    # UT4 ya tiene una nota en «2.ª evaluación» y otra suelta en la raíz.
+    moodle = _aula_con_calificador(filas=(_fila("ig42", RAIZ, 42, "Tarea 4.1b"),))
+    moodle.secciones_por_curso[5678][2]["modulos"].append(
+        {"cmid": 42, "nombre": "Tarea 4.1b", "tipo": "tarea"}
+    )
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["resultado"] == "ok" and documento["errores"] == []
+    assert _escrituras_de_notas(moodle) == []
+    assert {
+        "codigo": "NOTA_SIN_COLOCAR",
+        "resultado": "ok",
+        "detalle": "p.md: AMBIGUA",
+    } in documento["pasos"]
+    assert presencia.avisos == [publicacion.Aviso.nota_sin_colocar("Tarea 4.2", "AMBIGUA", None)]
+    assert documento["ficheros"][0]["accion"] == "creada"
+
+
+def test_publicar_en_categoria_cerrada_avisa_con_su_nombre(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    arbol = moodle.arboles[5678]
+    moodle.arboles[5678] = colocacion.ArbolNotas(
+        tuple(
+            _fila(f.eid, f.padre, f.cmid, f.nombre, bloqueada=True) if f.eid == "cg10" else f
+            for f in arbol.filas
+        )
+    )
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert _escrituras_de_notas(moodle) == []
+    assert presencia.avisos == [
+        publicacion.Aviso.nota_sin_colocar("Tarea 2.1b", "CERRADA", "1.ª evaluación")
+    ]
+    [resumen] = presencia.resumenes
+    assert resumen.notas == (
+        publicacion.CambioNota("p.md", None, None, None, "CERRADA", "1.ª evaluación"),
+    )
+
+
+def test_publicar_con_evalua_no_coloca(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, extra="evalua: {RA1: 100}\n")
+    moodle = _aula_con_calificador()
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == []
+    assert _escrituras_de_notas(moodle) == []
+    assert presencia.resumenes[0].notas == ()
+    assert not {"NOTA_COLOCADA", "NOTA_SIN_COLOCAR"} & set(_codigos_de_pasos(documento))
+    assert presencia.codigos() == []
+
+
+def test_una_pagina_no_pide_el_calificador(tmp_path):
+    carpeta = tmp_path.resolve()
+    _pagina(carpeta, "Repaso", seccion="2")
+    moodle = _aula_con_calificador()
+    documento, _ = _en(carpeta, moodle, "real")
+    assert documento["errores"] == []
+    assert not [c for c in moodle.llamadas if c[0] in ("arbol_notas", "mover_nota")]
+
+
+def test_republicar_sin_cambios_no_toca_el_calificador(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    _en(carpeta, moodle, "real")
+    antes = len(moodle.llamadas)
+    moodle.escrituras.clear()
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["errores"] == []
+    assert not [c for c in moodle.llamadas[antes:] if c[0] in ("arbol_notas", "mover_nota")]
+    assert _escrituras_de_notas(moodle) == []
+    assert presencia.resumenes[0].notas == ()
+
+
+def test_solo_fechas_no_toca_el_calificador(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    _en(carpeta, moodle, "real")
+    antes = len(moodle.llamadas)
+    _tarea(carpeta, entrega="2026-10-14")
+    _en(carpeta, moodle, "real", solo_fechas=True)
+    assert not [c for c in moodle.llamadas[antes:] if c[0] in ("arbol_notas", "mover_nota")]
+
+
+def test_calificador_ilegible_no_rompe_la_publicacion(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    moodle.arboles[1234] = moodle.arboles.pop(5678)
+    moodle.secciones_por_curso[1234] = moodle.secciones_por_curso.pop(5678)
+    moodle.fallos["arbol_notas"] = ["CALIFICADOR_NO_PERMITIDO"]
+    documento, presencia = _en(carpeta, moodle, "pruebas")
+    assert documento["resultado"] == "ok" and documento["errores"] == []
+    assert documento["ficheros"][0]["accion"] == "creada"
+    assert {
+        "codigo": "NOTA_SIN_COLOCAR",
+        "resultado": "ok",
+        "detalle": "p.md: CALIFICADOR_NO_PERMITIDO",
+    } in documento["pasos"]
+    assert presencia.codigos() == ["NOTA_SIN_COLOCAR"]
+
+
+def test_calificador_ilegible_en_real_no_coloca_ni_rompe(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    # La primera lectura es la del resumen; la segunda, la de justo antes de escribir.
+    moodle.fallos["arbol_notas"] = ["CALIFICADOR_NO_PERMITIDO", "CALIFICADOR_NO_PERMITIDO"]
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["resultado"] == "ok"
+    assert presencia.resumenes[0].notas == ()
+    assert _escrituras_de_notas(moodle) == []
+    assert any(
+        p["codigo"] == "NOTA_SIN_COLOCAR" and p["detalle"] == "p.md: CALIFICADOR_NO_PERMITIDO"
+        for p in documento["pasos"]
+    )
+
+
+def test_calificador_que_falla_al_mover_no_rompe_la_publicacion(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    moodle.fallos["mover_nota"] = ["ERROR_CALIFICADOR"]
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert documento["resultado"] == "ok" and documento["errores"] == []
+    assert any(
+        p["codigo"] == "NOTA_SIN_COLOCAR" and p["detalle"] == "p.md: ERROR_CALIFICADOR"
+        for p in documento["pasos"]
+    )
+    assert presencia.codigos() == ["NOTA_SIN_COLOCAR"]
+
+
+def test_destino_cambiado_desde_el_resumen_no_coloca(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
+    presencia = PresenciaFalsa()
+    resultado = publicacion.publicar_con(
+        moodle,
+        "real",
+        5678,
+        [doc],
+        None,
+        carpeta,
+        presencia,
+        notas_confirmadas={doc.ruta.resolve(): "cg20"},  # el resumen decía otra categoría
+    )
+    documento = resultado.informe
+    assert documento["resultado"] == "ok"
+    assert _escrituras_de_notas(moodle) == []
+    assert {
+        "codigo": "NOTA_SIN_COLOCAR",
+        "resultado": "ok",
+        "detalle": "p.md: CAMBIADA",
+    } in documento["pasos"]
+    assert presencia.avisos == [publicacion.Aviso.nota_sin_colocar("Tarea 2.1b", "CAMBIADA", None)]
+
+
+def test_destino_igual_al_del_resumen_si_coloca(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
+    resultado = publicacion.publicar_con(
+        moodle,
+        "real",
+        5678,
+        [doc],
+        None,
+        carpeta,
+        PresenciaFalsa(),
+        notas_confirmadas={doc.ruta.resolve(): "cg10"},
+    )
+    assert _escrituras_de_notas(moodle) == [("mover_nota", 5678, "ig100", "cg10", "ig22")]
+    assert "NOTA_COLOCADA" in _codigos_de_pasos(resultado.informe)
+
+
+def test_nada_confirmado_no_coloca_lo_que_aparece_despues(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    doc = contenido.cargar(carpeta / "p.md", raiz=carpeta)
+    resultado = publicacion.publicar_con(
+        moodle, "real", 5678, [doc], None, carpeta, PresenciaFalsa(), notas_confirmadas={}
+    )
+    assert _escrituras_de_notas(moodle) == []
+    assert any(p["detalle"] == "p.md: CAMBIADA" for p in resultado.informe["pasos"])
+
+
+def test_resumen_real_lleva_las_notas(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    _, presencia = _en(carpeta, moodle, "real")
+    [resumen] = presencia.resumenes
+    assert resumen.notas == (
+        publicacion.CambioNota("p.md", "1.ª evaluación", "Cuestionario 2.2", None, None),
+    )
+    lineas = mensajes.detalle_real(resumen).finales
+    assert (
+        "«p.md»: su nota irá a la categoría «1.ª evaluación», después de «Cuestionario 2.2»."
+        in lineas
+    )
+
+
+def test_resumen_real_de_una_seccion_nueva_sigue_a_la_anterior(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, seccion="Repaso final")
+    moodle = _aula_con_calificador()
+    _, presencia = _en(carpeta, moodle, "real")
+    [resumen] = presencia.resumenes
+    assert [(c.destino, c.despues_de) for c in resumen.notas] == [("2.ª evaluación", "Tarea 4.1")]
+    assert _escrituras_de_notas(moodle) == [("mover_nota", 5678, "ig100", "cg20", "ig41")]
+
+
+def test_resumen_sin_pruebas_lleva_las_notas(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta)
+    moodle = _aula_con_calificador()
+    sin_pruebas = config.Config(
+        url="https://aula.ejemplo.org/centro", usuario="profe", cursos={}, reales=(5678,)
+    )
+    presencia = PresenciaFalsa()
+    publicacion.publicar_en_cursos(
+        moodle,
+        sin_pruebas,
+        [contenido.cargar(carpeta / "p.md", raiz=carpeta)],
+        carpeta,
+        presencia,
+        entorno="real",
+        visible=False,
+    )
+    [corto] = presencia.resumenes_cortos
+    assert corto.notas == (
+        publicacion.CambioNota("p.md", "1.ª evaluación", "Cuestionario 2.2", None, None),
+    )
+    assert any("su nota irá a la categoría" in l for l in mensajes.detalle_corto(corto).finales)
+    assert _escrituras_de_notas(moodle) == [("mover_nota", 5678, "ig100", "cg10", "ig22")]
+
+
+def test_dos_nuevas_en_la_misma_seccion_van_en_orden(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, nombre="Tarea A", fichero="a.md")
+    _tarea(carpeta, nombre="Tarea B", fichero="b.md")
+    moodle = _aula_con_calificador(
+        filas=(_fila("ig101", RAIZ, 101, "Tarea B"),),
+    )
+    documento, presencia = _en(carpeta, moodle, "real", ficheros=("a.md", "b.md"))
+    assert documento["errores"] == []
+    assert [(c.fichero, c.despues_de) for c in presencia.resumenes[0].notas] == [
+        ("a.md", "Cuestionario 2.2"),
+        ("b.md", "Tarea A"),
+    ]
+    assert _padre_y_anterior(moodle, 5678, "ig100") == ("cg10", "ig22")
+    assert _padre_y_anterior(moodle, 5678, "ig101") == ("cg10", "ig100")
+
+
+class _MoverSinEfecto(MoodleFalso):
+    def mover_nota(self, curso, eid, categoria, despues_de):
+        self._escribir_calificador("mover_nota", curso, eid, categoria, despues_de)
+
+
+def test_colocar_notas_comprueba_que_quedo_en_su_sitio():
+    moodle = _aula_con_calificador()
+    moodle.__class__ = _MoverSinEfecto  # el aula responde bien y no cambia nada
+    estructura = moodle.estructura(5678)
+    # La actividad 100 no está en la estructura: se añade para que tenga sección.
+    with pytest.raises(ErrorPublicacion) as exc:
+        publicar.colocar_notas(moodle, 5678, _con_la_100(estructura), [100])
+    assert exc.value.codigo == "NOTA_NO_COLOCADA"
+
+
+def _con_la_100(estructura):
+    from tiza.estructura import Actividad, Estructura, Seccion
+
+    return Estructura(
+        tuple(
+            Seccion(
+                s.numero,
+                s.nombre,
+                s.id,
+                (*s.actividades, Actividad(100, "Tarea nueva", "tarea"))
+                if s.numero == 2
+                else s.actividades,
+            )
+            for s in estructura
+        )
+    )
+
+
+def test_colocar_notas_devuelve_lo_aplicado():
+    moodle = _aula_con_calificador()
+    movimientos, sin = publicar.colocar_notas(
+        moodle, 5678, _con_la_100(moodle.estructura(5678)), [100]
+    )
+    assert [(m.cmid, m.categoria, m.despues_de) for m in movimientos] == [(100, "cg10", "ig22")]
+    assert sin == ()
+
+
+def test_colocar_notas_descarta_lo_que_no_es_lo_esperado():
+    moodle = _aula_con_calificador()
+    movimientos, sin = publicar.colocar_notas(
+        moodle, 5678, _con_la_100(moodle.estructura(5678)), [100], {100: "cg20"}
+    )
+    assert movimientos == () and _escrituras_de_notas(moodle) == []
+    assert sin == (colocacion.SinColocar(100, "CAMBIADA", None),)

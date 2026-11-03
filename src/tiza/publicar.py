@@ -20,7 +20,7 @@ import secrets
 import shutil
 import tempfile
 import time
-from collections.abc import Callable, Collection, Iterator, Sequence
+from collections.abc import Callable, Collection, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import unquote, urljoin, urlsplit
@@ -67,6 +67,7 @@ __all__ = [
     "Moodle",
     "autenticar",
     "asegurar_secciones",
+    "colocar_notas",
     "aula_deja_copiar",
     "autoprueba",
     "aplicar_itinerario",
@@ -3038,6 +3039,52 @@ def plan_de_orden(
             actual.insert(len(actual) if siguiente is None else actual.index(siguiente), cmid)
             movimientos.append(Movimiento(cmid, seccion_id, siguiente))
     return movimientos
+
+
+def colocar_notas(
+    moodle: AulaVirtual,
+    curso: int,
+    estructura: Estructura,
+    cmids: Sequence[int],
+    esperado: Mapping[int, str | None] | None = None,
+) -> tuple[tuple[colocacion.MovimientoNota, ...], tuple[colocacion.SinColocar, ...]]:
+    """Coloca en el calificador las notas de ``cmids`` según su sección y lo comprueba.
+
+    Lee el árbol del calificador, aplica la regla pura (:func:`tiza.colocacion.colocar`) y
+    ejecuta los movimientos en orden. Con ``esperado`` (de cada cmid, la categoría que el
+    docente vio en el resumen; ``None``: no se iba a colocar) no se mueve ninguna nota cuyo
+    destino sea otro: sale como ``SinColocar`` con motivo ``CAMBIADA``. Un cmid que no está en
+    ``esperado`` cuenta como «no se iba a colocar». Tras escribir relee el árbol y comprueba
+    que cada nota quedó en su categoría y justo detrás de su precedente
+    (``NOTA_NO_COLOCADA`` si no). Los errores de lectura y de escritura salen tal cual.
+    """
+    arbol = moodle.arbol_notas(curso)
+    movimientos, sin_colocar = colocacion.colocar(estructura, arbol, cmids)
+    if esperado is not None:
+        validos: list[colocacion.MovimientoNota] = []
+        cambiadas: list[colocacion.SinColocar] = []
+        for movimiento in movimientos:
+            if esperado.get(movimiento.cmid) == movimiento.categoria:
+                validos.append(movimiento)
+            else:
+                cambiadas.append(colocacion.SinColocar(movimiento.cmid, "CAMBIADA", None))
+        movimientos = tuple(validos)
+        sin_colocar = (*sin_colocar, *cambiadas)
+    if not movimientos:
+        return (), tuple(sin_colocar)
+    for movimiento in movimientos:
+        moodle.mover_nota(curso, movimiento.eid, movimiento.categoria, movimiento.despues_de)
+    releido = moodle.arbol_notas(curso)
+    for movimiento in movimientos:
+        fila = releido.fila(movimiento.eid)
+        if fila is None or fila.padre != movimiento.categoria:
+            raise ErrorPublicacion("NOTA_NO_COLOCADA")
+        hermanas = [f.eid for f in releido.filas if f.padre == movimiento.categoria]
+        indice = hermanas.index(movimiento.eid)
+        anterior = hermanas[indice - 1] if indice > 0 else None
+        if anterior != movimiento.despues_de:
+            raise ErrorPublicacion("NOTA_NO_COLOCADA")
+    return tuple(movimientos), tuple(sin_colocar)
 
 
 def ordenar_documentos(

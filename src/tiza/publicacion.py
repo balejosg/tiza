@@ -36,7 +36,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from . import calendario, contenido, estado, informe, publicar, recorrido, rutas, tipos
+from . import calendario, colocacion, contenido, estado, informe, publicar, recorrido, rutas, tipos
 from .calificacion import reconciliar as rc
 from .calificacion.deseado import Deseado
 from .calificacion.deseado import deseado as calcular_deseado
@@ -45,7 +45,7 @@ from .calificacion.esquema import Elemento, ErrorCalificacion, Esquema
 from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
 from .estado import ErrorEstado
-from .estructura import Estructura, aplica_origen
+from .estructura import Estructura, Seccion, aplica_origen
 from .publicar import AulaVirtual, CalificadorAula, ErrorPublicacion
 from .tipos import CAMPO_RECORDATORIO, FechaActividad
 from .vigilancia import Anotacion, EstadoDeCambios, Rechazo, Vigilancia
@@ -145,6 +145,7 @@ AVISOS = frozenset(
         "MAXIMO_ALCANZADO",
         "NADA_QUE_CAMBIAR",
         "NOMBRES_NO_DISPONIBLES",
+        "NOTA_SIN_COLOCAR",
         "ORDENANDO_EN_PRUEBAS",
         "PANEL_ACTUALIZADO",
         "PANEL_NO_ACTUALIZADO",
@@ -302,6 +303,13 @@ class Aviso:
     @classmethod
     def nada_que_cambiar(cls) -> Aviso:
         return cls("NADA_QUE_CAMBIAR")
+
+    @classmethod
+    def nota_sin_colocar(cls, nombre: str, motivo: str, categoria: str | None) -> Aviso:
+        """``nombre``: la actividad publicada cuya nota no se colocó; ``motivo``: ``AMBIGUA``,
+        ``SIN_PATRON``, ``CERRADA``, ``CAMBIADA`` o el código del fallo al leer o mover el
+        calificador; ``categoria``: el nombre de la categoría cerrada, solo con ``CERRADA``."""
+        return cls("NOTA_SIN_COLOCAR", {"nombre": nombre, "motivo": motivo, "categoria": categoria})
 
     @classmethod
     def panel_actualizado(cls, version: str) -> Aviso:
@@ -470,6 +478,26 @@ class ResumenPublicacion:
     movimientos: tuple[CambioSeccion, ...] = ()
     # Actividades que cambian de nombre al publicarse (se actualizan por su origen o su registro).
     nombres: tuple[CambioNombre, ...] = ()
+    # Dónde irá en el calificador la nota de lo que se crea o cambia de sección.
+    notas: tuple[CambioNota, ...] = ()
+
+
+@dataclass(frozen=True)
+class CambioNota:
+    """Dónde irá en el calificador la nota de una actividad al publicarla. La ve solo el docente.
+
+    Con ``destino``, la nota va a esa categoría tras la actividad ``despues_de`` (nada: al
+    principio); ``desde`` es la categoría de la que sale al cambiar de sección. Sin ``destino``
+    no se coloca y ``motivo`` dice por qué (``AMBIGUA``, ``SIN_PATRON`` o ``CERRADA``, con el
+    nombre de la categoría cerrada en ``categoria``).
+    """
+
+    fichero: str
+    destino: str | None
+    despues_de: str | None
+    desde: str | None
+    motivo: str | None
+    categoria: str | None = None
 
 
 @dataclass(frozen=True)
@@ -519,6 +547,7 @@ class ResumenSinPruebas:
     total: int = 1
     movimientos: tuple[CambioSeccion, ...] = ()
     nombres: tuple[CambioNombre, ...] = ()
+    notas: tuple[CambioNota, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1036,6 +1065,7 @@ def publicar_con(
     solo_fechas: bool = False,
     sobrescribir: frozenset[Path] = frozenset(),
     no_publicar: frozenset[Path] = frozenset(),
+    notas_confirmadas: Mapping[Path, str | None] | None = None,
 ) -> recorrido.Resultado:
     """Con el aula ya abierta: publica y verifica los documentos.
 
@@ -1050,6 +1080,13 @@ def publicar_con(
     ``CAMBIADA_EN_EL_AULA``, con el resto del lote). Tras publicar, la vigilancia anota la huella de
     la copia, la entrada del registro y la base; en pruebas no se compara el registro ni se guarda
     la base.
+
+    Las notas: tras el bucle, las actividades con nota que se crearon o cambiaron de sección y no
+    llevan ``evalua`` (esas las coloca ``tiza calificador``) pasan por ``publicar.colocar_notas``.
+    ``notas_confirmadas`` (ruta resuelta del documento -> eid de la categoría que vio el docente en
+    el resumen; ``None`` la categoría si no se iba a colocar) hace que no se mueva ninguna nota
+    cuyo destino sea otro; sin ellas (``None``, en pruebas) no se compara. Que la nota no se pueda
+    colocar nunca estropea la publicación: queda un paso ``NOTA_SIN_COLOCAR`` y un aviso.
     """
     borrador = informe.Borrador("publicar", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
@@ -1120,6 +1157,16 @@ def publicar_con(
             borrador.paso("CREAR_SECCION", detalle=nombre)
     cmids = dict(existentes)  # de cada fichero de la carpeta, su cmid en este curso
     motor: bool | None = None  # ¿dibuja el aula las fórmulas? Se mira una vez por curso
+    # Las que ya están en el aula y cambian de sección (no vale «movida»: renombrar y mover a la
+    # vez sale como «renombrada»); se calcula antes de que el bucle las mueva.
+    cambian_de_seccion = (
+        set()
+        if solo_fechas
+        else {
+            id(doc) for doc in documentos if estructura.desde_donde_se_mueve(doc, curso) is not None
+        }
+    )
+    con_nota: list[tuple[Documento, int]] = []
     for doc in documentos:
         vigilada = None
         try:
@@ -1176,6 +1223,14 @@ def publicar_con(
                 resultado.cmid,
             )
         borrador.fichero(replace(resultado, curso=curso))
+        if (
+            not solo_fechas
+            and resultado.cmid is not None
+            and tipos.obtener(doc.tipo).calificable
+            and doc.evalua is None
+            and (resultado.accion == "creada" or id(doc) in cambian_de_seccion)
+        ):
+            con_nota.append((doc, resultado.cmid))
         detalle = doc.ruta.name
         if not solo_fechas:
             extra = tipos.obtener(doc.tipo).detalle(doc)
@@ -1189,8 +1244,46 @@ def publicar_con(
                 motor = publicar.aula_dibuja_formulas(aula, curso)
             if not motor:
                 borrador.paso("FORMULAS_NO_DIBUJADAS", detalle=doc.ruta.name)
+    if con_nota:
+        _colocar_las_notas(aula, curso, con_nota, notas_confirmadas, borrador, presencia, debug)
     documento = borrador.documento()
     return recorrido.Resultado.hecho(documento, corta=_corta(documento, rechazos, no_publicar))
+
+
+def _colocar_las_notas(
+    aula: AulaVirtual,
+    curso: int,
+    con_nota: list[tuple[Documento, int]],
+    notas_confirmadas: Mapping[Path, str | None] | None,
+    borrador: informe.Borrador,
+    presencia: Presencia,
+    debug: bool,
+) -> None:
+    """Coloca la nota de cada actividad de ``con_nota`` (documento, cmid) y lo cuenta.
+
+    Relee la estructura ya con todo publicado. Un fallo del aula (también el de leer el
+    calificador) no corta nada: cada actividad queda con ``NOTA_SIN_COLOCAR`` y su código.
+    """
+    documentos = {cmid: doc for doc, cmid in con_nota}
+    esperado = (
+        None
+        if notas_confirmadas is None
+        else {cmid: notas_confirmadas.get(doc.ruta.resolve()) for doc, cmid in con_nota}
+    )
+    try:
+        movimientos, sin_colocar = publicar.colocar_notas(
+            aula, curso, aula.estructura(curso), list(documentos), esperado
+        )
+    except ErrorPublicacion as exc:
+        depurar(exc, debug)
+        movimientos = ()
+        sin_colocar = tuple(colocacion.SinColocar(cmid, exc.codigo, None) for cmid in documentos)
+    for movimiento in movimientos:
+        borrador.paso("NOTA_COLOCADA", detalle=documentos[movimiento.cmid].ruta.name)
+    for sin in sin_colocar:
+        doc = documentos[sin.cmid]
+        borrador.paso("NOTA_SIN_COLOCAR", detalle=f"{doc.ruta.name}: {sin.motivo}")
+        presencia.informar(Aviso.nota_sin_colocar(doc.nombre, sin.motivo, sin.categoria))
 
 
 # Fallos que paran solo a su fichero: la actividad no se toca y el resto del lote sigue.
@@ -1561,6 +1654,13 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
             self._documentos, estructura, self._base, self._solo_fechas, vigilancia
         )
         ids = {id(doc) for doc in a_publicar}
+        # Dónde irán sus notas en el calificador; lo que se enseña es lo que se confirma.
+        notas: tuple[CambioNota, ...] = ()
+        notas_confirmadas: dict[Path, str | None] | None = None
+        if a_publicar and not self._solo_fechas:
+            notas, notas_confirmadas = _notas_previstas(
+                self._aula, curso, estructura, a_publicar, self._base, debug=self._debug
+            )
         # Lo que el docente retocó a mano en el aula; se le pregunta tras su sí de siempre.
         cambiadas: tuple[Documento, ...] = ()
         if not a_publicar:
@@ -1603,6 +1703,7 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
                 total=turno.total,
                 movimientos=cambios_de_seccion(estructura, a_publicar, curso),
                 nombres=cambios_de_nombre(estructura, a_publicar, curso),
+                notas=notas,
             )
             confirmado = turno.preguntar(
                 lambda presencia: presencia.confirmar_real_sin_pruebas(corto)
@@ -1637,6 +1738,7 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
                 total=turno.total,
                 movimientos=cambios_de_seccion(estructura, a_publicar, curso),
                 nombres=cambios_de_nombre(estructura, a_publicar, curso),
+                notas=notas,
             )
             confirmado = turno.preguntar(lambda presencia: presencia.confirmar_real(resumen))
         if not confirmado:
@@ -1654,6 +1756,7 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
             solo_fechas=self._solo_fechas,
             sobrescribir=sobrescribir,
             no_publicar=no_publicar,
+            notas_confirmadas=notas_confirmadas,
         )
 
     def _preguntar_sobrescribir(
@@ -1680,6 +1783,103 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
         ):
             return rutas_cambiadas, frozenset()
         return frozenset(), rutas_cambiadas
+
+
+def _con_secciones_nuevas(estructura: Estructura, documentos: list[Documento]) -> Estructura:
+    """La estructura con, al final, las secciones por nombre que publicar va a crear.
+
+    Solo para prever: se numeran tras la última y llevan un id negativo que no es de ningún
+    aula. Así la nota de una actividad en una sección que aún no existe también se anuncia.
+    """
+    faltan = estructura.secciones_que_faltan(documentos)
+    ultimo = max((seccion.numero for seccion in estructura), default=0)
+    return Estructura(
+        (
+            *estructura.secciones,
+            *(
+                Seccion(numero=ultimo + indice, nombre=nombre, id=-indice)
+                for indice, nombre in enumerate(faltan, start=1)
+            ),
+        )
+    )
+
+
+def _notas_previstas(
+    aula: AulaVirtual,
+    curso: int,
+    estructura: Estructura,
+    documentos: list[Documento],
+    base: Path,
+    *,
+    debug: bool = False,
+) -> tuple[tuple[CambioNota, ...], dict[Path, str | None]]:
+    """Dónde irán las notas de lo que ``documentos`` crea o cambia de sección.
+
+    Devuelve lo que se enseña al docente y, por ruta resuelta del documento, el eid de la
+    categoría prevista (``None``: no se coloca), que ``publicar_con`` comprueba al escribir.
+    Si el calificador no se puede leer no se enseña nada (``publicar_con`` lo avisará).
+    """
+    ordenados = ordenar_por_dependencias(documentos, base) or documentos
+    candidatos = [
+        doc for doc in ordenados if tipos.obtener(doc.tipo).calificable and doc.evalua is None
+    ]
+    prevista = _con_secciones_nuevas(estructura, documentos)
+    nuevas: list[tuple[int, int, str]] = []
+    movidas: list[tuple[int, int]] = []
+    claves: dict[int, Documento] = {}  # clave simulada o cmid -> documento
+    for doc in candidatos:
+        seccion = prevista.buscar_seccion(doc.seccion)
+        if seccion is None:
+            continue
+        if estructura.desde_donde_se_mueve(doc, curso) is not None:
+            actividad = estructura.localizar(doc, curso).actividad
+            if actividad is not None:
+                movidas.append((actividad.cmid, seccion.id))
+                claves[actividad.cmid] = doc
+        elif estructura.ya_existe(doc, curso) is False:
+            clave = colocacion.NUEVA - len(nuevas)
+            nuevas.append((clave, seccion.id, doc.nombre))
+            claves[clave] = doc
+    if not claves:  # nada que crear ni mover de sección: el calificador no se toca
+        return (), {}
+    try:
+        arbol = aula.arbol_notas(curso)
+    except ErrorPublicacion as exc:
+        depurar(exc, debug)
+        return (), {}
+    movimientos, sin_colocar = colocacion.prever(prevista, arbol, nuevas, movidas)
+    nombres = {f"ig{clave}": nombre for clave, _, nombre in nuevas}
+
+    def nombre_de(eid: str) -> str:
+        fila = arbol.fila(eid)
+        return nombres.get(eid) or (fila.nombre if fila is not None else "")
+
+    por_clave: dict[int, CambioNota] = {}
+    confirmadas: dict[Path, str | None] = {}
+    for mov in movimientos:
+        doc = claves[mov.cmid]
+        por_clave[mov.cmid] = CambioNota(
+            fichero=doc.ruta.name,
+            destino=mov.nombre_categoria,
+            despues_de=nombre_de(mov.despues_de) if mov.despues_de is not None else None,
+            desde=mov.desde,
+            motivo=None,
+        )
+        confirmadas[doc.ruta.resolve()] = mov.categoria
+    for sin in sin_colocar:
+        doc = claves[sin.cmid]
+        por_clave[sin.cmid] = CambioNota(
+            fichero=doc.ruta.name,
+            destino=None,
+            despues_de=None,
+            desde=None,
+            motivo=sin.motivo,
+            categoria=sin.categoria,
+        )
+        confirmadas[doc.ruta.resolve()] = None
+    # En el orden de los documentos, no en el del cálculo.
+    cambios = tuple(por_clave[clave] for clave in claves if clave in por_clave)
+    return cambios, confirmadas
 
 
 def cambios_de_seccion(

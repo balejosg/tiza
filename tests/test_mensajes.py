@@ -497,3 +497,95 @@ def test_la_pregunta_de_sobrescribir_es_la_acordada_y_sanea_los_nombres():
     assert detalle.pregunta == "¿Sobrescribirlas y perder esos cambios?"
     assert (detalle.posicion, detalle.total) == (2, 3)
     assert "\x1b" not in detalle.curso
+
+
+class TestNotas:
+    def _cambios(self):
+        return (
+            publicacion.CambioNota("a.md", "1.ª evaluación", "Tarea 2.1", None, None),
+            publicacion.CambioNota("b.md", "1.ª evaluación", None, None, None),
+            publicacion.CambioNota("c.md", "2.ª evaluación", "Tarea 4.1", "1.ª evaluación", None),
+            publicacion.CambioNota("d.md", None, None, None, "AMBIGUA"),
+            publicacion.CambioNota("e.md", None, None, None, "SIN_PATRON"),
+            publicacion.CambioNota("f.md", None, None, None, "CERRADA", "1.ª evaluación"),
+        )
+
+    def test_lineas_de_notas(self):
+        assert mensajes.lineas_de_notas(self._cambios()) == [
+            "«a.md»: su nota irá a la categoría «1.ª evaluación», después de «Tarea 2.1».",
+            "«b.md»: su nota irá a la categoría «1.ª evaluación», al principio.",
+            "«c.md»: su nota pasa de «1.ª evaluación» a «2.ª evaluación».",
+            "«d.md»: su nota se queda donde está (las actividades de su sección están en "
+            "varias categorías).",
+            "«e.md»: su nota se queda donde está (no hay ninguna categoría que seguir).",
+            "«f.md»: su nota se queda donde está (la categoría «1.ª evaluación» está cerrada).",
+        ]
+
+    def test_pasar_a_la_misma_categoria_no_dice_de_x_a_x(self):
+        cambio = publicacion.CambioNota("a.md", "Ev1", "Tarea 1", "Ev1", None)
+        assert mensajes.lineas_de_notas((cambio,)) == [
+            "«a.md»: su nota irá a la categoría «Ev1», después de «Tarea 1»."
+        ]
+
+    def test_los_nombres_de_las_notas_se_sanean(self):
+        sucio = "Ev\x1b[2J\u202e1"
+        cambios = (
+            publicacion.CambioNota("a\x1b.md", sucio, sucio, None, None),
+            publicacion.CambioNota("b.md", sucio, None, sucio, None),
+            publicacion.CambioNota("c.md", None, None, None, "CERRADA", sucio),
+        )
+        texto = "\n".join(mensajes.lineas_de_notas(cambios))
+        assert "\x1b" not in texto and "\u202e" not in texto
+
+    def test_van_en_el_resumen_real_y_en_el_corto(self):
+        cambios = self._cambios()
+        real = mensajes.detalle_real(_resumen(notas=cambios))
+        assert real.finales[:-1] == tuple(
+            mensajes.lineas_de_notas(cambios)
+        )  # y luego la visibilidad
+        corto = mensajes.detalle_corto(
+            publicacion.ResumenSinPruebas(
+                curso=5678,
+                nombre_curso=None,
+                documentos=(publicacion.DocumentoBreve("a.md", "tarea", "A"),),
+                secciones_nuevas=(),
+                notas=cambios,
+            )
+        )
+        assert corto.finales == tuple(mensajes.lineas_de_notas(cambios))
+
+    def test_sin_notas_no_se_anade_nada(self):
+        assert mensajes.lineas_de_notas(()) == []
+
+    @pytest.mark.parametrize(
+        ("motivo", "categoria", "esperado"),
+        [
+            (
+                "AMBIGUA",
+                None,
+                "No se colocó la nota de «T»: las actividades de su sección están en varias "
+                "categorías.",
+            ),
+            (
+                "SIN_PATRON",
+                None,
+                "No se colocó la nota de «T»: no hay ninguna categoría que seguir.",
+            ),
+            ("CERRADA", "Ev1", "No se colocó la nota de «T»: la categoría «Ev1» está cerrada."),
+            (
+                "CAMBIADA",
+                None,
+                "No se colocó la nota de «T»: la categoría cambió en el aula desde que lo "
+                "confirmaste.",
+            ),
+            (
+                "CALIFICADOR_NO_PERMITIDO",
+                None,
+                "No se colocó la nota de «T»: no se pudo leer o cambiar el calificador "
+                "(CALIFICADOR_NO_PERMITIDO).",
+            ),
+        ],
+    )
+    def test_aviso_de_nota_sin_colocar(self, motivo, categoria, esperado):
+        aviso = publicacion.Aviso.nota_sin_colocar("T", motivo, categoria)
+        assert [linea.texto for linea in mensajes.lineas_de_aviso(aviso)] == [esperado]

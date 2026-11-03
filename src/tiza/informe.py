@@ -114,6 +114,8 @@ PASOS = (
             "LIMPIAR",
             "LOGIN",
             "MOVER_SECCION",
+            "NOTA_COLOCADA",
+            "NOTA_SIN_COLOCAR",
             "ORDENAR",
             "PREPARAR",
             "PUBLICAR",
