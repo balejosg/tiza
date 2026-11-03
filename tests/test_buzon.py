@@ -1099,8 +1099,9 @@ class TestSoloFechasEnLaPeticion:
             )
 
     def test_el_protocolo_sube_con_el_campo(self):
-        # 5: solo_fechas; 6: «copia»; 7: «calificador»; 8: «copia» y «estructura» con ficheros
-        assert buzon.VERSION_PROTOCOLO == 8
+        # 5: solo_fechas; 6: «copia»; 7: «calificador»; 8: «copia» y «estructura» con ficheros;
+        # 9: la nota sigue a su sección (pasos NOTA_COLOCADA, NOTA_SIN_COLOCAR y NOTAS_ORDENADAS)
+        assert buzon.VERSION_PROTOCOLO == 9
 
 
 class TestOtraSesion:

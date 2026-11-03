@@ -324,6 +324,21 @@ real lo enseña antes de aplicarlo.
 
 ## Ordenar y mover actividades
 
+Las notas del calificador siguen a su actividad. Si tienes el calificador organizado a mano
+(por ejemplo, una categoría por evaluación), al publicar una tarea, un cuestionario o un H5P
+nuevo, tiza mete su nota en la categoría donde están las demás notas de su sección, detrás de
+la actividad que la precede en el curso. Si es la primera con nota de su sección, sigue a la
+sección anterior. Al cambiar una actividad de sección, su nota cambia de categoría con la misma
+regla. Antes de publicar en el curso real, el resumen te dice a qué categoría irá cada nota. Si
+las notas de la sección están en varias categorías, no hay ninguna que seguir o la categoría
+está cerrada, tiza deja la nota donde está y te lo dice; no es un fallo. Las categorías que
+monta `tiza calificador` y las evaluaciones cerradas no se tocan. **Limitación:** la primera
+actividad con nota de una evaluación nueva, en su primera sección, sigue a la sección anterior,
+así que cae en la categoría de la evaluación anterior. El resumen lo muestra; muévela una vez a
+mano y las siguientes ya siguen a esa.
+
+`tiza ordenar` también reordena las notas dentro de sus categorías para que sigan el orden del curso.
+
 Lo nuevo se crea al final de su sección. `tiza ordenar <md>… --en pruebas|real` coloca las
 actividades de esos ficheros en ese orden: se reparten **los huecos que ya ocupaban**
 y lo que no nombras (foros, archivos subidos a mano) no se mueve. Con la sección

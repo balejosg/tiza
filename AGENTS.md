@@ -54,6 +54,10 @@ en español.
 
 ## Dónde tocar
 
+- `src/tiza/colocacion.py`: la regla pura de «la nota sigue a su sección» (`colocar`, `reordenar`,
+  `prever`) sobre `estructura.Estructura` y `ArbolNotas`; no importa `publicar`. `publicar.py` lee
+  el árbol (`Moodle.arbol_notas`), mueve (`Moodle.mover_nota`) y ejecuta y verifica
+  (`colocar_notas`, `ordenar_notas`).
 - `src/tiza/tipos/`: **un módulo por tipo de actividad** (página, etiqueta, tarea,
   cuestionario y H5P) con lo que sabe cada uno: campos del frontmatter, validación,
   fechas, finalización, payload, publicación, vista previa, nombre llano y
@@ -371,7 +375,7 @@ en español.
 - El README es la portada para docentes: corto y sin detalle técnico. Los
   comandos y opciones van en `docs/guia.md`, el formato en `docs/formato.md`
   y las medidas de seguridad en `docs/seguridad.md`.
-- La versión (`0.38.1`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
+- La versión (`0.39.0`) vive en `pyproject.toml`, `install.sh`, `install.ps1` y el
   README: actualízalos juntos. `tiza.__version__` la lee de los metadatos del
   paquete.
 - El Python con el que se instala tiza (`3.13`) vive en `install.sh`, `install.ps1` y
