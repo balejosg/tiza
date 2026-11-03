@@ -40,7 +40,7 @@ from py_moodle.module import MoodleModuleError
 from py_moodle.section import MoodleSectionError
 from py_moodle.session import MoodleSessionError
 
-from . import __version__, informe, tipos
+from . import __version__, colocacion, informe, tipos
 from .calificacion.formulas import (  # noqa: F401  (se reexportan: son de la API de ``publicar``)
     formula_copia,
     formula_indicador,
@@ -428,6 +428,10 @@ class AulaVirtual(Protocol):
     ) -> None: ...
 
     def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None: ...
+
+    def arbol_notas(self, curso: int) -> colocacion.ArbolNotas: ...
+
+    def mover_nota(self, curso: int, eid: str, categoria: str, despues_de: str | None) -> None: ...
 
     def borrar_nodo(self, curso: int, eid: str) -> None: ...
 
@@ -1541,17 +1545,91 @@ class Moodle:
 
     def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None:
         """Mueve un elemento manual al principio de una categoría (``first=1``; espiga 2)."""
-        _validar_eid(categoria_eid, "cg")
-        self._accion_del_calificador(
-            "grade/edit/tree/index.php",
-            {
-                "id": curso,
-                "action": "move",
-                "eid": f"ig{item_id}",
-                "moveafter": categoria_eid,
-                "first": 1,
-                "sesskey": self.sesskey,
-            },
+        self.mover_nota(curso, f"ig{item_id}", categoria_eid, None)
+
+    def mover_nota(self, curso: int, eid: str, categoria: str, despues_de: str | None) -> None:
+        """Mueve un elemento a una categoría, detrás de ``despues_de`` (``None``: al principio)."""
+        _validar_eid(eid)
+        _validar_eid(categoria, "cg")
+        if despues_de is not None:
+            _validar_eid(despues_de)
+        params: dict[str, Any] = {
+            "id": curso,
+            "action": "move",
+            "eid": eid,
+            "moveafter": despues_de or categoria,
+        }
+        if despues_de is None:
+            params["first"] = 1
+        params["sesskey"] = self.sesskey
+        self._accion_del_calificador("grade/edit/tree/index.php", params)
+
+    def arbol_notas(self, curso: int) -> colocacion.ArbolNotas:
+        """El árbol del calificador, ligero: orden, padre, cmid, candado y marca de tiza.
+
+        Una lectura de ``grade/edit/tree/index.php`` sin los totales; el candado se ve en la fila
+        de total de cada categoría. Solo se abre el formulario de las categorías hijas de la
+        raíz, para leer su número de ID: ``TZ_`` marca esa categoría y todo lo que cuelga de ella.
+        """
+        pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
+        sopa = BeautifulSoup(pagina, "html.parser")
+        if sopa.find("form", id="gradetreeform") is None:
+            raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+        candados = {
+            str(fila["data-aggregationforcategory"])
+            for fila in sopa.find_all("tr")
+            if "data-aggregationforcategory" in fila.attrs and fila.select_one(".fa-lock")
+        }
+        datos: list[tuple[str, str | None, int | None, str]] = []
+        for fila in sopa.find_all("tr"):
+            if "data-aggregationforcategory" in fila.attrs:
+                continue
+            if "data-category" in fila.attrs:
+                eid = str(fila["data-category"])
+            elif "data-itemid" in fila.attrs:
+                eid = f"ig{fila['data-itemid']}"
+            else:
+                continue
+            padre = fila.get("data-parent-category")
+            titulo = fila.find(class_="rowtitle")
+            enlace = fila.find("a", class_="gradeitemheader", href=_ENLACE_DE_ACTIVIDAD)
+            coincidencia = _ENLACE_DE_ACTIVIDAD.search(str(enlace["href"])) if enlace else None
+            datos.append(
+                (
+                    eid,
+                    str(padre) if padre else None,
+                    int(coincidencia.group(1)) if coincidencia else None,
+                    titulo.get_text(" ", strip=True) if titulo else "",
+                )
+            )
+        raiz = next((eid for eid, padre, _, _ in datos if padre is None), None)
+        de_tiza: set[str] = set()
+        for eid, padre, _, _ in datos:
+            if padre != raiz or not eid.startswith("cg"):
+                continue
+            formulario = BeautifulSoup(
+                self._pagina_del_calificador(
+                    "grade/edit/tree/category.php", {"courseid": curso, "id": int(eid[2:])}
+                ),
+                "html.parser",
+            )
+            if _valor_de_campo(formulario, "grade_item_idnumber").startswith("TZ_"):
+                de_tiza.add(eid)
+        for eid, padre, _, _ in datos:  # el orden de la página pone el padre antes que el hijo
+            if padre in de_tiza:
+                de_tiza.add(eid)
+        return colocacion.ArbolNotas(
+            tuple(
+                colocacion.FilaNota(
+                    eid=eid,
+                    padre=padre,
+                    cmid=cmid,
+                    nombre=nombre,
+                    bloqueada=eid in candados,
+                    de_tiza=eid in de_tiza,
+                )
+                for eid, padre, cmid, nombre in datos
+            )
         )
 
     def borrar_nodo(self, curso: int, eid: str) -> None:

@@ -4548,6 +4548,90 @@ def test_mover_manual_first():
     assert params["first"] == 1
 
 
+def test_arbol_notas_lee_orden_padre_y_cmid():
+    moodle, sesion = _moodle_calificador()
+    arbol = moodle.arbol_notas(2)
+    assert [f.eid for f in arbol.filas] == [
+        "cg1", "cg3", "ig165", "ig166", "ig171", "cg4", "ig167", "cg5", "ig168",
+        "ig169", "ig170", "ig172",
+    ]  # fmt: skip
+    assert arbol.raiz() == "cg1"
+    assert arbol.fila("cg1").padre is None
+    assert arbol.fila("cg3").padre == "cg1"
+    assert arbol.fila("ig166").padre == "cg3"
+    assert arbol.fila("ig172").padre == "cg1"
+    assert arbol.fila("ig171").cmid == 258
+    assert arbol.de_cmid(258).eid == "ig171"
+    assert arbol.fila("ig165").cmid is None
+    assert arbol.fila("ig165").nombre == "Espiga práctica 1"
+    assert not any(f.bloqueada or f.de_tiza for f in arbol.filas)
+    assert all("item.php" not in u for u in sesion.urls)
+
+
+def test_arbol_notas_ve_el_candado():
+    moodle, _ = _moodle_calificador(arbol=_fixture_calificador("setup-bloqueado.html"))
+    arbol = moodle.arbol_notas(2)
+    assert [f.eid for f in arbol.filas if f.bloqueada] == ["cg4"]
+
+
+def test_arbol_notas_marca_de_tiza():
+    html = _fixture_calificador("category.html").replace(
+        'name="grade_item_idnumber" type="text" value=""',
+        'name="grade_item_idnumber" type="text" value="TZ_TIZA"',
+    )
+    moodle, sesion = _moodle_calificador(categorias={4: html})
+    # cg4 (id 4) tiene TZ_; las demás hijas de la raíz usan el formulario sin número.
+    sesion.arbol = sesion.arbol.replace(
+        '<tr class="item cg1 cg4" data-itemid="167"',
+        '<tr class="category cg4" data-category="cg9" data-parent-category="cg4" data-itemid="190"'
+        ' id="grade-item-cg9"><td><div class="rowtitle">Hija</div></td></tr>\n'
+        '<tr class="item cg1 cg4" data-itemid="167"',
+    )
+    arbol = moodle.arbol_notas(2)
+    assert {f.eid for f in arbol.filas if f.de_tiza} == {"cg4", "cg9", "ig167"}
+    pedidos = [p["id"] for u, p in sesion.gets if u.endswith("category.php")]
+    assert sorted(pedidos) == [3, 4, 5]  # solo las hijas de la raíz
+
+
+def test_mover_nota_detras():
+    moodle, sesion = _moodle_calificador()
+    moodle.mover_nota(2, "ig167", "cg3", "ig166")
+    url, params = sesion.gets[-1]
+    assert url == "https://aula/grade/edit/tree/index.php"
+    assert params["action"] == "move"
+    assert params["eid"] == "ig167"
+    assert params["moveafter"] == "ig166"
+    assert "first" not in params
+    assert params["sesskey"] == "clave"
+
+
+def test_mover_nota_al_principio():
+    moodle, sesion = _moodle_calificador()
+    moodle.mover_nota(2, "ig167", "cg3", None)
+    _, params = sesion.gets[-1]
+    assert params["moveafter"] == "cg3"
+    assert params["first"] == 1
+
+
+@pytest.mark.parametrize(
+    "eid,categoria,despues",
+    [("x1", "cg3", None), ("ig1", "ig3", None), ("ig1", "cg3", "foo"), ("ig1", "cg3", "cg\u0663")],
+)
+def test_mover_nota_rechaza_eid_invalido(eid, categoria, despues):
+    moodle, sesion = _moodle_calificador()
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.mover_nota(2, eid, categoria, despues)
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert not sesion.gets
+
+
+def test_arbol_notas_sin_permiso():
+    moodle, _ = _moodle_calificador(arbol="<html><body>nada</body></html>")
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.arbol_notas(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+
+
 def test_borrar_nodo():
     moodle, sesion = _moodle_calificador()
     moodle.borrar_nodo(2, "cg5")
@@ -4828,3 +4912,25 @@ class TestPublicarPorRegistro:
         )
         assert (resultado.accion, resultado.cmid) == ("actualizada", 55)
         assert moodle.leer_modulo(55)["fechas"]["duedate"] == (2026, 10, 12, 23, 59)
+
+
+def test_el_doble_mueve_la_nota_en_su_arbol():
+    from tiza.colocacion import ArbolNotas, FilaNota
+
+    falso = MoodleFalso()
+    falso.arboles[2] = ArbolNotas(
+        (
+            FilaNota("cg1", None, None, "Curso"),
+            FilaNota("ig1", "cg1", 10, "A"),
+            FilaNota("cg3", "cg1", None, "Cat"),
+            FilaNota("ig2", "cg3", 11, "B"),
+        )
+    )
+    falso.mover_nota(2, "ig1", "cg3", "ig2")
+    assert [(f.eid, f.padre) for f in falso.arbol_notas(2).filas][-2:] == [
+        ("ig2", "cg3"),
+        ("ig1", "cg3"),
+    ]
+    falso.fallos["mover_nota"] = ["ESCRITURA_CALIFICADOR"]
+    with pytest.raises(ErrorPublicacion):
+        falso.mover_nota(2, "ig1", "cg3", None)

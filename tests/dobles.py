@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
@@ -10,7 +11,7 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from tiza import aislamiento, buzon, config, informe, publicacion, rutas
+from tiza import aislamiento, buzon, colocacion, config, informe, publicacion, rutas
 from tiza.estructura import Estructura
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
@@ -166,6 +167,8 @@ class MoodleFalso:
         self.escrituras: list[tuple] = []
         # Fallos simulados: método -> códigos de error; cada llamada gasta el primero.
         self.fallos: dict[str, list[str]] = {}
+        # Árbol de notas por curso (``colocacion.ArbolNotas``); sin configurar, solo la raíz.
+        self.arboles: dict[int, colocacion.ArbolNotas] = {}
         self._siguiente_eid = 1000
         self.cerradas = 0  # veces que se cerró la sesión del aula
         self.subidas: list[tuple[str, bytes]] = []
@@ -350,6 +353,27 @@ class MoodleFalso:
 
     def mover_manual(self, curso, item_id, categoria_eid):
         self._escribir_calificador("mover_manual", curso, item_id, categoria_eid)
+
+    def arbol_notas(self, curso):
+        self.llamadas.append(("arbol_notas", curso))
+        pendientes = self.fallos.get("arbol_notas")
+        if pendientes:
+            raise ErrorPublicacion(pendientes.pop(0))
+        return self.arboles.get(
+            curso, colocacion.ArbolNotas((colocacion.FilaNota("cg1", None, None, "Curso"),))
+        )
+
+    def mover_nota(self, curso, eid, categoria, despues_de):
+        self._escribir_calificador("mover_nota", curso, eid, categoria, despues_de)
+        arbol = self.arboles.get(curso)
+        fila = arbol.fila(eid) if arbol is not None else None
+        if arbol is None or fila is None:
+            return
+        resto = [f for f in arbol.filas if f.eid != eid]
+        ancla = despues_de if despues_de is not None else categoria
+        posicion = next((i for i, f in enumerate(resto) if f.eid == ancla), len(resto) - 1) + 1
+        resto.insert(posicion, dataclasses.replace(fila, padre=categoria))
+        self.arboles[curso] = colocacion.ArbolNotas(tuple(resto))
 
     def borrar_nodo(self, curso, eid):
         self._escribir_calificador("borrar_nodo", curso, eid)
