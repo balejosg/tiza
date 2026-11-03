@@ -26,14 +26,15 @@ actividades que ya no están en la estructura) no cuentan para decidir la posici
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, replace
 
-from .estructura import Estructura
+from .estructura import Actividad, Estructura, Seccion
 
 AMBIGUA = "AMBIGUA"
 SIN_PATRON = "SIN_PATRON"
 CERRADA = "CERRADA"
+NUEVA = -1  # base de las claves de las actividades aún no creadas: -1, -2, …
 
 
 @dataclass(frozen=True)
@@ -99,12 +100,7 @@ def colocar(
     estructura: Estructura, arbol: ArbolNotas, cmids: Sequence[int]
 ) -> tuple[tuple[MovimientoNota, ...], tuple[SinColocar, ...]]:
     """Los movimientos y los avisos para colocar las notas de ``cmids`` según su sección."""
-    orden: dict[int, int] = {}
-    seccion_de: dict[int, int] = {}
-    for indice, seccion in enumerate(estructura):
-        for cmid in seccion.cmids:
-            orden.setdefault(cmid, len(orden))
-            seccion_de.setdefault(cmid, indice)
+    orden, seccion_de = _orden_del_curso(estructura)
     secciones = tuple(estructura)
     pedidos = set(cmids)
     pendientes = sorted((c for c in pedidos if c in orden), key=lambda c: orden[c])
@@ -154,6 +150,116 @@ def colocar(
         filas = _mover(filas, fila, destino, despues)
         colocadas.add(cmid)
     return tuple(movimientos), tuple(sin_colocar)
+
+
+def _orden_del_curso(estructura: Estructura) -> tuple[dict[int, int], dict[int, int]]:
+    """La posición de cada cmid en el curso y el índice de su sección."""
+    orden: dict[int, int] = {}
+    seccion_de: dict[int, int] = {}
+    for indice, seccion in enumerate(estructura):
+        for cmid in seccion.cmids:
+            orden.setdefault(cmid, len(orden))
+            seccion_de.setdefault(cmid, indice)
+    return orden, seccion_de
+
+
+def _cmid(fila: FilaNota) -> int:
+    assert fila.cmid is not None  # solo se llama con filas de actividad
+    return fila.cmid
+
+
+def reordenar(
+    estructura: Estructura, arbol: ArbolNotas, cmids: Collection[int]
+) -> tuple[MovimientoNota, ...]:
+    """Los movimientos que dejan las notas, en las categorías de ``cmids``, en el orden del curso.
+
+    Solo se miran las categorías que contienen alguna nota de ``cmids`` y no son de tiza ni
+    están bloqueadas. En cada una, las notas de actividades se reparten los huecos que ya
+    ocupaban; lo demás (manuales, calculadas, subcategorías) no se mueve. Como
+    ``publicar.plan_de_orden``: de atrás hacia delante, y solo se mueve la nota que no está ya
+    justo delante de la que le sigue. ``despues_de`` es lo que queda delante tras mover.
+    """
+    orden, _ = _orden_del_curso(estructura)
+    pedidos = set(cmids)
+    movimientos: list[MovimientoNota] = []
+    for categoria in arbol.filas:
+        if categoria.de_tiza or categoria.bloqueada:
+            continue
+        hijos = [f for f in arbol.filas if f.padre == categoria.eid]
+        if not any(f.cmid in pedidos for f in hijos):
+            continue
+        de_actividad = [f for f in hijos if f.cmid in orden]
+        ordenadas = iter(sorted(de_actividad, key=lambda f: orden[_cmid(f)]))
+        final = [next(ordenadas) if f.cmid in orden else f for f in hijos]
+        actual = [f.eid for f in hijos]
+        for indice in range(len(final) - 1, -1, -1):
+            fila = final[indice]
+            if fila.cmid not in orden:
+                continue
+            siguiente = final[indice + 1].eid if indice + 1 < len(final) else None
+            posicion = actual.index(fila.eid)
+            delante = actual[posicion + 1] if posicion + 1 < len(actual) else None
+            if delante == siguiente:
+                continue
+            actual.pop(posicion)
+            actual.insert(len(actual) if siguiente is None else actual.index(siguiente), fila.eid)
+            nueva = actual.index(fila.eid)
+            movimientos.append(
+                MovimientoNota(
+                    cmid=_cmid(fila),
+                    eid=fila.eid,
+                    categoria=categoria.eid,
+                    despues_de=actual[nueva - 1] if nueva > 0 else None,
+                    nombre_categoria=categoria.nombre,
+                    desde=None,
+                )
+            )
+    return tuple(movimientos)
+
+
+def prever(
+    estructura: Estructura,
+    arbol: ArbolNotas,
+    nuevas: Sequence[tuple[int, int, str]],
+    movidas: Sequence[tuple[int, int]],
+) -> tuple[tuple[MovimientoNota, ...], tuple[SinColocar, ...]]:
+    """Lo que ``colocar`` haría tras publicar: ``nuevas`` y ``movidas`` al final de su sección.
+
+    ``nuevas``: (clave negativa, id de la sección, nombre); su cmid simulado es la clave y su
+    fila (eid ``ig<clave>``) cuelga de la raíz, como las crea Moodle. ``movidas``: (cmid, id de
+    la sección nueva); ``cm_move`` sin ``antes_de`` las deja al final.
+    """
+    destino_de = {cmid: seccion_id for cmid, seccion_id in movidas}
+    anadir: dict[int, list[Actividad]] = {}
+    for clave, seccion_id, nombre in nuevas:
+        anadir.setdefault(seccion_id, []).append(Actividad(clave, nombre, "tarea"))
+    movidas_por_cmid = {
+        a.cmid: a for seccion in estructura for a in seccion.actividades if a.cmid in destino_de
+    }
+    for cmid, seccion_id in movidas:
+        if cmid in movidas_por_cmid:
+            anadir.setdefault(seccion_id, []).append(movidas_por_cmid[cmid])
+    simulada = Estructura(
+        tuple(
+            Seccion(
+                numero=s.numero,
+                nombre=s.nombre,
+                id=s.id,
+                actividades=(
+                    *(a for a in s.actividades if a.cmid not in movidas_por_cmid),
+                    *anadir.get(s.id, ()),
+                ),
+            )
+            for s in estructura
+        )
+    )
+    raiz = arbol.raiz()
+    filas = (
+        *arbol.filas,
+        *(FilaNota(f"ig{clave}", raiz, clave, nombre) for clave, _, nombre in nuevas),
+    )
+    claves = [clave for clave, _, _ in nuevas]
+    return colocar(simulada, ArbolNotas(filas), [*claves, *movidas_por_cmid])
 
 
 def _patron(

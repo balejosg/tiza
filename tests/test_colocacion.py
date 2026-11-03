@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from tiza.colocacion import ArbolNotas, FilaNota, MovimientoNota, SinColocar, colocar
+from tiza.colocacion import (
+    ArbolNotas,
+    FilaNota,
+    MovimientoNota,
+    SinColocar,
+    colocar,
+    prever,
+    reordenar,
+)
 from tiza.estructura import Actividad, Estructura, Seccion
 
 RAIZ = "cg1"
@@ -286,3 +294,107 @@ def test_va_tras_la_de_mayor_posicion_del_curso_aunque_la_pagina_las_tenga_al_re
     notas = arbol(cat("cg10", "Ev1"), nota(2, "cg10"), nota(1, "cg10"), nota(3, RAIZ))
     movimientos, _ = colocar(estructura, notas, [3])
     assert [(m.categoria, m.despues_de) for m in movimientos] == [("cg10", "ig2")]
+
+
+def manual(eid: str, padre: str) -> FilaNota:
+    return FilaNota(eid, padre, None, f"M{eid}")
+
+
+def pares(movimientos: tuple[MovimientoNota, ...]) -> list[tuple[int, str | None]]:
+    return [(m.cmid, m.despues_de) for m in movimientos]
+
+
+def test_reordenar_sigue_el_curso() -> None:
+    estructura = curso((1, 2, 3))
+    notas = arbol(cat("cg10", "Ev1"), nota(3, "cg10"), nota(1, "cg10"), nota(2, "cg10"))
+    movimientos = reordenar(estructura, notas, [1])
+    assert pares(movimientos) == [(3, "ig2")]
+    assert movimientos[0].categoria == "cg10"
+    assert movimientos[0].nombre_categoria == "Ev1"
+    assert movimientos[0].eid == "ig3"
+
+
+def test_reordenar_con_la_primera_al_principio() -> None:
+    estructura = curso((1, 2, 3))
+    notas = arbol(cat("cg10", "Ev1"), nota(2, "cg10"), nota(3, "cg10"), nota(1, "cg10"))
+    movimientos = reordenar(estructura, notas, {1})
+    assert pares(movimientos) == [(3, "ig1"), (2, "ig1")]
+
+
+def test_reordenar_respeta_manuales() -> None:
+    estructura = curso((2, 1))
+    notas = arbol(cat("cg10", "Ev1"), nota(1, "cg10"), manual("ig90", "cg10"), nota(2, "cg10"))
+    movimientos = reordenar(estructura, notas, [1, 2])
+    assert pares(movimientos) == [(1, "ig2"), (2, None)]
+
+
+def test_reordenar_ya_en_orden_da_vacio() -> None:
+    estructura = curso((1, 2))
+    notas = arbol(cat("cg10", "Ev1"), nota(1, "cg10"), manual("ig90", "cg10"), nota(2, "cg10"))
+    assert reordenar(estructura, notas, [1, 2]) == ()
+
+
+def test_reordenar_solo_las_categorias_de_cmids() -> None:
+    estructura = curso((1, 2), (3, 4))
+    notas = arbol(
+        cat("cg10", "Ev1"), nota(2, "cg10"), nota(1, "cg10"),
+        cat("cg11", "Ev2"), nota(4, "cg11"), nota(3, "cg11"),
+    )  # fmt: skip
+    assert pares(reordenar(estructura, notas, [3])) == [(4, "ig3")]
+
+
+def test_reordenar_no_toca_cerradas_ni_de_tiza() -> None:
+    estructura = curso((1, 2))
+    notas = arbol(
+        cat("cg10", "Cerrada", bloqueada=True), nota(2, "cg10"), nota(1, "cg10"),
+        cat("cg11", "TZ_X", de_tiza=True), nota(4, "cg11"), nota(3, "cg11"),
+    )  # fmt: skip
+    assert reordenar(estructura, notas, [1, 2, 3, 4]) == ()
+
+
+def test_reordenar_la_raiz() -> None:
+    estructura = curso((1, 2))
+    notas = arbol(nota(2, RAIZ), nota(1, RAIZ))
+    movimientos = reordenar(estructura, notas, [1])
+    assert pares(movimientos) == [(2, "ig1")]
+    assert movimientos[0].categoria == RAIZ
+
+
+def test_prever_nueva_va_detras_de_la_ultima() -> None:
+    estructura = curso((1,), (2, 3))
+    notas = arbol(cat("cg10", "Ev1"), nota(1, "cg10"), cat("cg11", "Ev2"), nota(2, "cg11"))
+    notas = ArbolNotas((*notas.filas[:-1], nota(3, "cg11")))
+    movimientos, sin = prever(estructura, notas, [(-1, 102, "Nueva")], [])
+    assert sin == ()
+    assert movimientos == (
+        MovimientoNota(cmid=-1, eid="ig-1", categoria="cg11", despues_de="ig3",
+                       nombre_categoria="Ev2", desde=None),
+    )  # fmt: skip
+
+
+def test_prever_nueva_en_seccion_vacia_sigue_a_la_anterior() -> None:
+    estructura = curso((1,), ())
+    notas = arbol(cat("cg10", "Ev1"), nota(1, "cg10"))
+    movimientos, _ = prever(estructura, notas, [(-1, 102, "Nueva")], [])
+    assert [(m.cmid, m.categoria, m.despues_de) for m in movimientos] == [(-1, "cg10", "ig1")]
+
+
+def test_prever_movida_cambia_de_categoria() -> None:
+    estructura = curso((1, 3), (2,))
+    notas = arbol(
+        cat("cg10", "Ev1"), nota(1, "cg10"), nota(3, "cg10"),
+        cat("cg11", "Ev2"), nota(2, "cg11"),
+    )  # fmt: skip
+    movimientos, sin = prever(estructura, notas, [], [(3, 102)])
+    assert sin == ()
+    assert [(m.cmid, m.categoria, m.despues_de, m.desde) for m in movimientos] == [
+        (3, "cg11", "ig2", "Ev1")
+    ]
+
+
+def test_prever_nueva_sin_patron_da_aviso_y_no_modifica_la_estructura() -> None:
+    estructura = curso((1,))
+    movimientos, sin = prever(estructura, ArbolNotas(arbol().filas), [(-1, 101, "N")], [])
+    assert movimientos == ()
+    assert sin == (SinColocar(-1, "SIN_PATRON", None),)
+    assert estructura.secciones[0].cmids == (1,)
