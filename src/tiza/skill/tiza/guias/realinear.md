@@ -76,7 +76,10 @@ Pide copias **sin datos del alumnado**. Si la programación los trae, no los use
 
 - **Programación ↔ normativa vigente**: para cada norma citada, `tiza normativa norma "<cita>"`
   (¿derogada, corregida, sustituida?) y `tiza normativa ficha <codigo>` para cada elemento. Antes de
-  decir que hay un error, mira las correcciones de la norma. Las equivalencias entre el currículo
+  decir que hay un error, mira las correcciones de la norma. Si un código de la programación
+  antigua no existe, `tiza normativa comprobar <fichero>` lo marca (también el formato antiguo de
+  Primaria, p. ej. `MAT.3.1.C2`, con el nuevo sugerido). Si la materia no está en
+  `tiza normativa catalogo`, dilo y pide el PDF. Las equivalencias entre el currículo
   antiguo y el vigente son tu propuesta: dilo así.
 - **Programación ↔ aula**: unidades sin actividades, actividades sin unidad, orden de las secciones
   frente a la temporalización, instrumentos de evaluación sin actividad. Los nombres de `copia.json`

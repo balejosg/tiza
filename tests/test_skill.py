@@ -510,3 +510,31 @@ def test_el_ejemplo_de_preferencias_es_breve():
         if not linea.strip() or linea.startswith("#"):
             continue
         assert re.fullmatch(r"[^:]+: .+", linea), f"la línea no es «Tema: preferencia»: {linea}"
+
+
+ORDENES_DE_NORMATIVA = {
+    "catalogo",
+    "ficha",
+    "elemento",
+    "norma",
+    "buscar",
+    "programacion",
+    "comprobar",
+}
+
+
+def test_skill_sin_ordenes_inexistentes():
+    """Toda `tiza normativa <consulta>` que cita la skill o una guía existe en el paquete."""
+    ficheros = [SKILL, *sorted((SKILL.parent / "guias").glob("*.md"))]
+    citadas = set()
+    for fichero in ficheros:
+        texto = fichero.read_text(encoding="utf-8")
+        for consulta in re.findall(r"tiza normativa\s+([a-z_]+)", texto):
+            citadas.add((fichero.name, consulta))
+    inexistentes = {(f, c) for f, c in citadas if c not in ORDENES_DE_NORMATIVA}
+    assert not inexistentes
+    # La skill manda comprobar los códigos antes de publicar y nombra de dónde sale la normativa.
+    texto = SKILL.read_text(encoding="utf-8")
+    assert "tiza normativa comprobar" in texto
+    assert "https://github.com/balejosg/normativa-madrid" in texto
+    assert "NUMERACION_NO_OFICIAL" in texto

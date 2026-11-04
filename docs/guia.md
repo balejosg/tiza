@@ -13,7 +13,7 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 | `tiza-panel` | docente (Windows y Linux) | Abre el panel sin consola: hace lo mismo que `tiza empezar` con ventanas (ver [Panel sin consola](#panel-sin-consola-windows-y-linux)). Lo abre el docente desde el acceso «tiza»; el agente no puede lanzarlo |
 | `tiza instalar-skill` | docente | Instala la skill portable en los agentes |
 | `tiza actualizar` | docente | Instala la última versión publicada de `tiza` y reinstala la skill |
-| `tiza normativa <consulta>` | agente o docente | Offline: consulta la normativa que trae tiza y devuelve un JSON con código, texto literal y procedencia. Consultas: `catalogo`, `ficha <codigo>`, `elemento <codigo>`, `norma "<cita>"`, `buscar "<texto>" [--en <codigo>]` y `programacion eso\|bachillerato\|fp`; todas menos `norma` aceptan `--curso-academico AAAA-AA` (por defecto, el de hoy) |
+| `tiza normativa <consulta>` | agente o docente | Offline: consulta la normativa de Madrid del paquete `normativa-madrid` y devuelve un JSON con código, texto literal y procedencia. Consultas: `catalogo`, `ficha <codigo>`, `elemento <codigo>`, `norma "<cita>"`, `buscar "<texto>" [--en <codigo>]` `programacion eso\|bachillerato\|fp` y `comprobar <fichero>…` (dice qué códigos citados no existen); todas menos `norma` aceptan `--curso-academico AAAA-AA` (por defecto, el de hoy) |
 | `tiza leer <fichero>` | agente o docente | Offline: convierte un `.docx` o `.pdf` de la carpeta en `.tiza/lecturas/<ruta>.txt` (la ruta con `__` en vez de `/`: `1DAM/Prog.docx` queda en `1DAM__Prog.docx.txt`), con una marca por bloque (`[p12]`, `[t4.f2.c1]`; los encabezados y pies de un Word salen al final, `[e1.p1]`, `[pie1.p1]`; en PDF, `g<página>.<n>`), y da un resumen JSON. Avisos: `CAMBIOS_SIN_ACEPTAR`, `PDF_SIN_TABLAS`. Errores: `FICHERO_FUERA`, `FICHERO_TEMPORAL`, `FORMATO_NO_ADMITIDO`, `DOCUMENTO_PROTEGIDO`, `PDF_PROTEGIDO`, `PDF_SIN_TEXTO`, `DOCUMENTO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `DOCUMENTO_AUSENTE`, `NOMBRE_NO_VALIDO`, `LECTURA_NO_ESCRIBIBLE` |
 | `tiza documento <fuente.md> [--salida <x.docx>]` | agente o docente | Offline: convierte un `.md` en un Word sencillo (títulos 1-4, negrita, cursiva, listas de hasta 3 niveles, tablas, enlaces y `\pagebreak`); por defecto, el nombre del `.md` con `.docx`. Nunca sobrescribe. Errores: `MARKDOWN_NO_ADMITIDO` (HTML, imágenes, bloques de código, citas, frontmatter, títulos 5-6; dice la línea), `DOCUMENTO_EXISTE` (usa `--salida` con otro nombre), `DOCUMENTO_NO_ESCRIBIBLE`, `DOCUMENTO_AUSENTE`, `FICHERO_DEMASIADO_GRANDE`, `FICHERO_BLOQUEADO`, `FORMATO_NO_ADMITIDO` (no es `.md`/`.docx` o no está en UTF-8), `NOMBRE_NO_VALIDO`, `FICHERO_FUERA`, `FICHERO_TEMPORAL` |
 | `tiza esquema <svg> [--salida <x.png>] [--ancho 400..2000]` | agente o docente | Offline: valida un SVG de la carpeta (solo formas, trazos, texto y sus definiciones; sin imágenes, filtros, scripts ni referencias externas) y lo convierte en un PNG con fondo blanco y la fuente que trae tiza. Por defecto crea el `.png` junto al `.svg`, con 1200 px de ancho. Sustituye un PNG existente solo si lo hizo `tiza esquema` desde ese mismo SVG; si no, `ESQUEMA_EXISTE` (usa `--salida`). Errores: `ESQUEMA_NO_ADMITIDO` (con la línea; también medidas que falten o una proporción fuera de 1:4–4:1), `ESQUEMA_DEMASIADO_GRANDE` (SVG de más de 512 KB, más de 5000 elementos, ancho fuera de 400–2000 o PNG de más de 1 MB), `ESQUEMA_EXISTE`, `FICHERO_AUSENTE`, `FICHERO_FUERA`, `FICHERO_TEMPORAL`, `FORMATO_NO_ADMITIDO`, `FICHERO_BLOQUEADO`, `NOMBRE_NO_VALIDO` |
@@ -85,18 +85,31 @@ volver a abrirlo.
 
 ## Normativa
 
-`tiza normativa` trae la normativa de la Comunidad de Madrid del curso 2026-27:
-en ESO, Ciencias de la Computación (1.º y 2.º), Tecnología y Digitalización (2.º y
-3.º) y Digitalización (4.º); en Bachillerato, Ciencias de la Computación I y II; en
-FP, el título y los módulos de Desarrollo de Aplicaciones Multiplataforma (técnicos,
-transversales y los optativos del catálogo que caben en él, como `MAD.CMO.316`);
-los descriptores del perfil de salida; y lo que la normativa exige de la programación
-(`tiza normativa programacion eso|bachillerato|fp`). El texto es el literal del
+`tiza normativa` consulta la normativa de la Comunidad de Madrid del curso 2026-27. Los datos
+y su mantenimiento no están en tiza: los aporta el paquete [`normativa-madrid`](https://github.com/balejosg/normativa-madrid), y
+`tiza normativa <consulta>` es esa misma orden, con la misma salida. Cubre:
+
+- **Primaria completa**, por área y ciclo (C1: 1.º y 2.º; C2: 3.º y 4.º; C3: 5.º y 6.º); para
+  consultar un área hay que decir el curso o el ciclo (`tiza normativa ficha MAD.EP.MAT --curso 3`).
+- **ESO y Bachillerato, solo las materias que da `tiza normativa catalogo`**: en ESO, Ciencias
+  de la Computación (1.º y 2.º), Tecnología y Digitalización (2.º y 3.º) y Digitalización (4.º);
+  en Bachillerato, Ciencias de la Computación I y II. El resto no está.
+- **FP**, el título y los módulos de Desarrollo de Aplicaciones Multiplataforma (técnicos,
+  transversales y los optativos del catálogo que caben en él, como `MAD.CMO.316`).
+- Los descriptores del perfil de salida y lo que la normativa exige de la programación
+  (`tiza normativa programacion eso|bachillerato|fp`).
+
+Lo que no está no se completa: se te pide el PDF. El texto es el literal del
 boletín, con las correcciones de errores oficiales de su norma ya aplicadas
 (`tiza normativa norma "<cita>"` las lista), y cada elemento lleva su código y su
 procedencia; si una norma posterior lo corrige o lo renombra, la procedencia nombra esa
-corrección y `via` el texto original. Lo que no está responde
-`NORMATIVA_SIN_DATOS`; un curso sin datos, `CURSO_SIN_DATOS` (prueba `tiza actualizar`).
+corrección y `via` el texto original. En Madrid se habla de **contenidos** (no de «saberes
+básicos»), y los de Primaria no están numerados en el boletín: el elemento trae
+`codigo_oficial` vacío y la respuesta avisa con `NUMERACION_NO_OFICIAL`. Su código es estable
+pero no oficial: sirve para enlazar, y se cita el contenido por su texto y su bloque. Antes de
+publicar un documento que cite códigos, el agente lo pasa por `tiza normativa comprobar <fichero>`,
+que dice cuáles no existen. Una materia sin datos responde `NORMATIVA_SIN_DATOS`; un curso o
+una ficha sin datos, `CURSO_SIN_DATOS` (con el curso académico, prueba `tiza actualizar`).
 El agente no busca normativa en internet: si necesitas una norma que no está,
 déjale su PDF en la carpeta.
 

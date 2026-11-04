@@ -11,7 +11,7 @@ tiza monta lo que dice el esquema y nada más. **No inventes pesos, fórmulas ni
 - Los elementos (competencias específicas o resultados de aprendizaje), sus criterios y sus códigos: la programación del
   docente (`tiza leer`, y abre su `.txt`) y `tiza normativa` (`programacion`, `ficha <codigo>`).
   En ESO y Bachillerato son `competencia_especifica` y `criterio`; en FP, `resultado_aprendizaje`
-  y `criterio_fp`. No inventes códigos.
+  y `criterio_fp`. No inventes códigos. El aula muestra el `codigo_oficial` o el texto literal; el `codigo` estable (`NUMERACION_NO_OFICIAL` en Primaria) solo vale de `id`.
 - Los pesos y las reglas (la ponderación y el tope): la programación o la del departamento.
   Si no los trae, haz **una sola pregunta** al docente y espera.
 - Si las fuentes se contradicen, manda el docente: díselo y no elijas tú.

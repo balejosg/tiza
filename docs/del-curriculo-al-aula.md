@@ -6,9 +6,10 @@ caso saldrán de tus documentos.
 
 ## Qué hace cada pieza
 
-- **`tiza normativa`** trae la normativa de la Comunidad de Madrid del curso 2026-27 (mira
-  `tiza normativa catalogo`). El agente cita de ahí, con código, texto literal y procedencia.
-  No busca normativa en internet.
+- **`tiza normativa`** consulta la normativa de la Comunidad de Madrid del curso 2026-27, que aporta el paquete
+  [`normativa-madrid`](https://github.com/balejosg/normativa-madrid) (mira `tiza normativa catalogo`
+  para ver qué hay). El agente cita de ahí, con código, texto literal y procedencia, y comprueba con
+  `tiza normativa comprobar` que los códigos que cita existen. No busca normativa en internet.
 - **`tiza leer`** convierte tu programación (Word o PDF) en un texto que el agente puede
   leer sin errores. El Word se lee mejor que el PDF, sobre todo si tiene tablas.
 - **`tiza documento`** escribe la unidad como un Word sencillo, para que la revises o la

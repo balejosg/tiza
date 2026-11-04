@@ -39,9 +39,12 @@ La normativa, tu programación didáctica y tu aula virtual suelen ser tres mund
 aparte. Con el agente puedes conectarlos en una conversación.
 
 **La normativa ya viene con `tiza`.** Trae, sin conexión, la de la Comunidad de
-Madrid del curso 2026-27 para Ciencias de la Computación, Tecnología y
-Digitalización y Digitalización (ESO), Ciencias de la Computación I y II
-(Bachillerato) y el ciclo de Desarrollo de Aplicaciones Multiplataforma (FP). El
+Madrid del curso 2026-27 que aporta el paquete
+[`normativa-madrid`](https://github.com/balejosg/normativa-madrid): Primaria completa, las
+materias de ESO y Bachillerato que da `tiza normativa catalogo` (Ciencias de la Computación,
+Tecnología y Digitalización y Digitalización en ESO; Ciencias de la Computación I y II en
+Bachillerato) y el ciclo de Desarrollo de Aplicaciones Multiplataforma (FP). Lo que no está,
+se pide en PDF. El
 agente la consulta antes de citar nada: cada criterio o resultado de aprendizaje
 llega con su texto literal del boletín y de qué norma y artículo sale, y no la
 completa de memoria ni la busca en internet. Para esas materias no tienes que

@@ -95,8 +95,9 @@ que te tocan. Para leer la carpeta usa tus herramientas de ficheros, no comandos
 de shell como `Get-Content`. Si un comando aparece denegado, es el aislamiento
 funcionando: no le pidas al docente que lo relaje.
 
-`tiza normativa` (offline, solo lee datos del paquete) también es tuyo: úsalo
-antes de citar un elemento curricular, no completes de memoria lo que responda
+`tiza normativa` (offline, solo lee datos del paquete `normativa-madrid`) también es tuyo:
+úsalo antes de citar un elemento curricular, pasa por `tiza normativa comprobar <fichero>`
+lo que vayas a publicar si cita códigos, no completes de memoria lo que responda
 `NORMATIVA_SIN_DATOS` y no busques normativa en internet.
 
 `tiza leer`, `tiza documento`, `tiza esquema` y `tiza rellenar` (offline, solo dentro de la

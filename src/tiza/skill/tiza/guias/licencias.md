@@ -92,7 +92,7 @@ No inventes una atribución que no te hayan dado.
 
 ## 8. La ley
 
-- No cites artículos, leyes ni tratados de memoria. `tiza normativa` no trae la norma que
-  dice qué permite cada licencia.
+- No cites artículos, leyes ni tratados de memoria. `tiza normativa` (la normativa educativa de
+  Madrid) no trae la norma que dice qué permite cada licencia.
 - El aula cerrada ayuda, pero no lo permite todo.
 - Ante la duda, que pregunte en el centro o a la administración.

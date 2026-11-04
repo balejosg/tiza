@@ -122,4 +122,4 @@ No digas que la ley obliga a aplicar el DUA sin citarlo con `tiza normativa`. Bu
 `tiza normativa buscar "diseño universal"` (no «DUA»: la búsqueda va por trozos de palabra y
 saca «individual»). Si no sale para esa etapa, lo más cercano son las medidas de atención a la
 diversidad de `tiza normativa programacion …`, que no son lo mismo. Lo que no salga de la
-normativa es propuesta tuya: en la unidad y en la programación, su procedencia es «propuesta».
+normativa (o de una etapa que `tiza normativa catalogo` no trae) es propuesta tuya: en la unidad y en la programación, su procedencia es «propuesta».

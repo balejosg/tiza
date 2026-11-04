@@ -70,10 +70,10 @@ en español.
   hash (`hash_fechas`/`hash_contenido`/`hash_extra`) reproduce el formato de
   siempre: cambiarlo invalida `verificados.json`. El test de contrato es
   `tests/test_tipos.py`.
-- `src/tiza/normativa/`: la fuente de normativa (`tiza normativa`), offline: modelo,
-  datos con esquema cerrado en `datos/`, consultas y salida validada. Los datos se
-  generan con `herramientas/normativa/`, nunca a mano; `comprobar` debe dar 0 antes
-  de commitear datos.
+- `tiza normativa`: paso directo (`cli._normativa`) a la orden del paquete `normativa-madrid`
+  (https://github.com/balejosg/normativa-madrid). Los datos, su esquema, las herramientas de
+  extracción y los códigos de error viven allí, no en tiza: no copies datos ni código de
+  normativa aquí; se cambian en ese repositorio y se sube la versión fijada en `pyproject.toml`.
 - `src/tiza/lectura/`: `tiza leer`, offline: convierte un `.docx` o un `.pdf` de la carpeta
   en un texto con ids de bloque (`[p12]`, `[t4.f2.c1]`, `g<página>.<n>`), siempre igual, en
   `.tiza/lecturas/`. Un módulo por formato (`word.py`, `pdf.py`) sobre el modelo común
@@ -109,8 +109,6 @@ en español.
   descarga de la copia del aula está solo en `publicar.py` (`Moodle.hacer_copia`). Reconoce lo
   que publicó tiza (`PUBLICADA_POR_TIZA[_CAMBIADA]`, con `publicados.json`, sin duplicarlo en
   `aula/`) y acepta las copias de una sola actividad (`COPIA_DE_ACTIVIDAD_DESCONOCIDA`).
-- `herramientas/normativa/`: solo del mantenedor, fuera del paquete; con red y
-  `pdftotext`; la caché vive fuera del repo.
 - `src/tiza/estructura.py`: **la estructura del aula, tipada y pura**: `Actividad`, `Seccion` y
   `Estructura` inmutables, los constructores que validan la forma una sola vez
   (`ESTRUCTURA_DEL_AULA_INVALIDA`) y las operaciones que antes estaban repartidas: búsqueda de
@@ -383,9 +381,6 @@ en español.
   `[ventana]`) traigan wheels para la versión nueva en Windows, macOS y Linux.
 - `educaplay` es el único resultado legítimo al buscar restos del renombrado con
   `educa` antes de commitear en el público (el dominio de Educaplay): no lo «arregles».
-  La búsqueda excluye `src/tiza/normativa/datos/`, `herramientas/normativa/fuentes/`,
-  `herramientas/normativa/fuentes.toml` y `herramientas/normativa/requisitos.toml`
-  (texto literal de boletín: «Consejería de Educación», «calificación»).
 - Al cambiar algo visible para el docente, añade una línea a `CHANGELOG.md`.
 - Commits en `main`, estilo Conventional Commits en español (`feat:`, `fix:`,
   `docs:`, `test:`).

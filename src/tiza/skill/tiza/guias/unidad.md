@@ -37,7 +37,7 @@ notas: al docente le nombras la tabla por su título o encabezado y la fila, sin
 
 ## 4. Contrasta con la normativa
 
-Para cada elemento citado, `tiza normativa ficha …` y `elemento …`. Si la programación no
+Para cada elemento citado, `tiza normativa ficha …` y `elemento …` (en Primaria, la ficha pide `--curso N` o `--ciclo CN`). Lo que `tiza normativa catalogo` no lista no está: pide el PDF. Los contenidos de Primaria no tienen numeración oficial (`NUMERACION_NO_OFICIAL`): cítalos por su texto y su bloque. Antes de publicar la unidad, `tiza normativa comprobar <fichero>` sobre lo que cite códigos. Si la programación no
 coincide (norma derogada, criterio que no existe en ese curso, título antiguo), enseña las
 dos versiones y que decida el docente. Antes de decir que hay un error, mira
 `tiza normativa norma`: puede ser una corrección de errores.
