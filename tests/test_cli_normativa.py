@@ -58,7 +58,7 @@ def test_normativa_ayuda_es_la_del_paquete(capfd):
     assert "catalogo" in capfd.readouterr().out
 
 
-def test_tiza_no_trae_normativa(tmp_path):
+def test_tiza_no_trae_normativa():
     assert importlib.util.find_spec("tiza.normativa") is None
     assert not (RAIZ / "src" / "tiza" / "normativa").exists()
     assert not (RAIZ / "herramientas" / "normativa").exists()
@@ -74,3 +74,24 @@ def test_el_wheel_no_contiene_normativa(tmp_path):
     rueda = next(tmp_path.glob("tiza-*.whl"))
     nombres = zipfile.ZipFile(rueda).namelist()
     assert not [n for n in nombres if n.startswith("tiza/normativa/")]
+
+
+def test_normativa_ctrl_c_sale_con_130(monkeypatch, capsys):
+    def interrumpe(_argv):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(paquete, "main", interrumpe)
+    assert cli.main(["normativa", "catalogo"]) == 130
+    assert "cancelada" in capsys.readouterr().err
+
+
+def test_normativa_excepcion_inesperada_es_error_interno(monkeypatch, capsys):
+    def falla(_argv):
+        raise RuntimeError("secreto interno")
+
+    monkeypatch.setattr(paquete, "main", falla)
+    assert cli.main(["normativa", "catalogo"]) == 1
+    err = capsys.readouterr().err
+    assert "ERROR_INTERNO" in err
+    assert "Traceback" not in err
+    assert "secreto interno" not in err

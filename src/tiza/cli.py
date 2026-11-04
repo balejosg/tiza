@@ -299,11 +299,12 @@ def _visibilidad(args) -> bool | None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    if argv[:1] == ["normativa"]:
-        # argparse se come «--help» tras un REMAINDER: el paquete responde con su propia ayuda
-        return _normativa(argv[1:])
-    args = _parser().parse_args(argv)
+    args = None
     try:
+        if argv[:1] == ["normativa"]:
+            # argparse se come «--help» tras un REMAINDER: el paquete responde con su propia ayuda
+            return _normativa(argv[1:])
+        args = _parser().parse_args(argv)
         return _despachar(args)
     except KeyboardInterrupt:
         print("\nOperación cancelada.", file=sys.stderr)

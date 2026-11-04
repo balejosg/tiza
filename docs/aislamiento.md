@@ -260,7 +260,9 @@ su lugar escribe en `.claude/settings.json` de la carpeta de la asignatura un
   `publicar`, `ordenar`, `estructura`, `revisar` y `--help`), y solo puede escribir en la
   carpeta de la asignatura, salvo en `tiza.toml` y en `.claude/` (el agente no
   reescribe su propio perfil);
-- el agente no lee nada fuera de la carpeta (`blockReadsOutsideWorkingDirectories`).
+- el agente no lee nada fuera de la carpeta (`blockReadsOutsideWorkingDirectories`). La única
+  excepción es `tiza normativa comprobar <fichero>`, que lee el documento que se le indica,
+  esté donde esté, y devuelve solo los códigos de normativa que encuentra en él.
   Para leer la carpeta usa sus herramientas de ficheros: los comandos de solo
   lectura (`Get-ChildItem`, `Get-Content`, `Select-String`…) se deniegan, porque
   Claude Code los deja pasar en cualquier modo;

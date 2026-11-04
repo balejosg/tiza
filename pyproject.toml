@@ -24,7 +24,7 @@ dependencies = [
     "pypdf>=6,<7",
     "lxml>=5,<7",  # se importa directamente; ya llegaba con python-docx
     "resvg-py==0.5.0",
-    "normativa-madrid @ https://github.com/balejosg/normativa-madrid/releases/download/v0.1.0/normativa_madrid-0.1.0-py3-none-any.whl",
+    "normativa-madrid @ https://github.com/balejosg/normativa-madrid/releases/download/v0.1.0/normativa_madrid-0.1.0-py3-none-any.whl#sha256=09185b3b1920e8f85f3795f02c4525f06ba8e1aa299c72a3cf96d742854a4609",
 ]
 
 [project.scripts]

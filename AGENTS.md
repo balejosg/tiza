@@ -74,6 +74,13 @@ en español.
   (https://github.com/balejosg/normativa-madrid). Los datos, su esquema, las herramientas de
   extracción y los códigos de error viven allí, no en tiza: no copies datos ni código de
   normativa aquí; se cambian en ese repositorio y se sube la versión fijada en `pyproject.toml`.
+  Para subir de versión (solo en el público; luego se pasa a tiza-privado):
+  1. Cambia la URL del wheel en `pyproject.toml` con su `#sha256=` (el del wheel que sube el
+     workflow a la release, no uno construido en local).
+  2. Ejecuta `uv lock`.
+  3. Comprueba que la cobertura escrita en `README.md`, `docs/guia.md`, la skill y el
+     `CHANGELOG.md` coincide con `tiza normativa catalogo`.
+  4. Pasa el cambio a tiza-privado (cherry-pick adaptando los nombres).
 - `src/tiza/lectura/`: `tiza leer`, offline: convierte un `.docx` o un `.pdf` de la carpeta
   en un texto con ids de bloque (`[p12]`, `[t4.f2.c1]`, `g<página>.<n>`), siempre igual, en
   `.tiza/lecturas/`. Un módulo por formato (`word.py`, `pdf.py`) sobre el modelo común
