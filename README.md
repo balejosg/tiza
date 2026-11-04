@@ -67,7 +67,7 @@ plantilla de tu departamento, siempre sin datos del alumnado.
 
 - *«Prepárame la situación de aprendizaje del segundo trimestre.»* El agente te
   propone la secuencia de actividades e indica de qué competencias específicas,
-  criterios de evaluación y saberes básicos sale cada una, con su fuente. Antes
+  criterios de evaluación y contenidos sale cada una, con su fuente. Antes
   de escribir nada, te pregunta lo que le falta: sesiones, fechas o producto
   final. Si quieres la unidad en papel, te la deja también en un Word.
 - *«En la tarea final, pon los criterios que evalúa y cuatro niveles de

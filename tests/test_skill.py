@@ -525,11 +525,21 @@ ORDENES_DE_NORMATIVA = {
 
 def test_skill_sin_ordenes_inexistentes():
     """Toda `tiza normativa <consulta>` que cita la skill o una guía existe en el paquete."""
-    ficheros = [SKILL, *sorted((SKILL.parent / "guias").glob("*.md"))]
+    raiz = SKILL.parent.parent.parent.parent.parent
+    ficheros = [
+        SKILL,
+        *sorted((SKILL.parent / "guias").glob("*.md")),
+        *sorted((raiz / "docs").glob("*.md")),
+        raiz / "README.md",
+        raiz / "INSTALAR_CON_AGENTE.md",
+    ]
     citadas = set()
     for fichero in ficheros:
         texto = fichero.read_text(encoding="utf-8")
-        for consulta in re.findall(r"tiza normativa\s+([a-z_]+)", texto):
+        # Una orden es lo que va en código (tilde invertida) o al principio de línea; tolera
+        # saltos de línea entre `tiza`, `normativa` y la consulta, y no confunde la prosa.
+        patron = r"(?:^[ \t]*|`)tiza\s+normativa\s+([a-z_]+)"
+        for consulta in re.findall(patron, texto, re.MULTILINE):
             citadas.add((fichero.name, consulta))
     inexistentes = {(f, c) for f, c in citadas if c not in ORDENES_DE_NORMATIVA}
     assert not inexistentes
