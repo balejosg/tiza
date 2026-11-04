@@ -437,6 +437,14 @@ wheels = [
 ]
 
 [[package]]
+name = "normativa-madrid"
+version = "0.1.0"
+source = { url = "https://github.com/balejosg/normativa-madrid/releases/download/v0.1.0/normativa_madrid-0.1.0-py3-none-any.whl" }
+wheels = [
+    { url = "https://github.com/balejosg/normativa-madrid/releases/download/v0.1.0/normativa_madrid-0.1.0-py3-none-any.whl", hash = "sha256:09185b3b1920e8f85f3795f02c4525f06ba8e1aa299c72a3cf96d742854a4609" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://pypi.org/simple" }
@@ -973,13 +981,14 @@ wheels = [
 
 [[package]]
 name = "tiza"
-version = "0.39.0"
+version = "0.40.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "html5lib" },
     { name = "lxml" },
     { name = "markdown-it-py" },
+    { name = "normativa-madrid" },
     { name = "platformdirs" },
     { name = "pypdf" },
     { name = "python-docx" },
@@ -1006,6 +1015,7 @@ requires-dist = [
     { name = "html5lib", specifier = ">=1.1" },
     { name = "lxml", specifier = ">=5,<7" },
     { name = "markdown-it-py", specifier = ">=3.0" },
+    { name = "normativa-madrid", url = "https://github.com/balejosg/normativa-madrid/releases/download/v0.1.0/normativa_madrid-0.1.0-py3-none-any.whl" },
     { name = "platformdirs", specifier = ">=4.0" },
     { name = "pypdf", specifier = ">=6,<7" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },

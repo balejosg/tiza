@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## 0.40.0 — 2026-11-04
+
+### Cambia
+- **La normativa deja de ir dentro de tiza: la aporta el paquete `normativa-madrid`.** `tiza normativa …` sigue funcionando igual (mismos códigos y textos para ESO, Bachillerato y FP), pero ahora delega en ese paquete, que se instala con tiza (sin git y sin construir nada). El paquete trae además los datos de Primaria, el `codigo_oficial` y los `avisos` de cada elemento, la consulta `comprobar` (revisa los códigos citados en un documento), la vista `--formato md` y las opciones `--curso` y `--ciclo`. La opción `--curso-academico` se mantiene.
+- Se retiran de tiza los datos de normativa, sus herramientas de extracción y los códigos de error propios de la consulta (ahora los define el paquete).
+
 ## 0.39.0 — 2026-11-03
 
 ### Añadido

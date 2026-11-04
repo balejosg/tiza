@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tiza"
-version = "0.39.0"
+version = "0.40.0"
 license = "MIT"
 license-files = ["LICENSE"]
 description = "CLI y skill para publicar contenidos en tu aula virtual Moodle sin exponer datos del alumnado"
@@ -24,6 +24,7 @@ dependencies = [
     "pypdf>=6,<7",
     "lxml>=5,<7",  # se importa directamente; ya llegaba con python-docx
     "resvg-py==0.5.0",
+    "normativa-madrid @ https://github.com/balejosg/normativa-madrid/releases/download/v0.1.0/normativa_madrid-0.1.0-py3-none-any.whl",
 ]
 
 [project.scripts]
@@ -38,6 +39,9 @@ ventana = [
     "pywebview>=6.2,<7",
     "pywebview[pyside6]>=6.2,<7; sys_platform == 'linux'",
 ]  # ventana de entrada y panel; en Windows usa WebView2 y en Linux, Qt (PySide6, LGPL)
+
+[tool.hatch.metadata]
+allow-direct-references = true  # normativa-madrid se instala desde su wheel publicado
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tiza"]

@@ -273,47 +273,11 @@ def _parser() -> argparse.ArgumentParser:
 
     normativa = sub.add_parser(
         "normativa",
-        help="consulta la normativa por código en JSON (sin aula y en cualquier carpeta)",
+        add_help=False,
+        help="consulta la normativa de Madrid por código (es la orden del paquete normativa-madrid)",
     )
-    consultas = normativa.add_subparsers(dest="consulta", required=True, metavar="CONSULTA")
-    catalogo = consultas.add_parser(
-        "catalogo", help="materias y módulos del curso académico, con sus normas"
-    )
-    _anadir_curso(catalogo)
-    ficha = consultas.add_parser(
-        "ficha", help="todos los elementos de una materia o módulo, con su texto y su procedencia"
-    )
-    ficha.add_argument("codigo", help="código de la materia o módulo, p. ej. MAD.ESO.CCOMP.1")
-    _anadir_curso(ficha)
-    elemento = consultas.add_parser("elemento", help="un elemento por su código")
-    elemento.add_argument("codigo", help="código del elemento")
-    _anadir_curso(elemento)
-    norma = consultas.add_parser("norma", help="una norma por su cita, p. ej. «Decreto 27/2025»")
-    norma.add_argument("cita", help="la cita de la norma")
-    buscar = consultas.add_parser("buscar", help="busca un texto en los elementos del curso")
-    buscar.add_argument("texto", help="palabras que buscar (sin distinguir tildes ni mayúsculas)")
-    buscar.add_argument(
-        "--en",
-        dest="en",
-        metavar="CODIGO",
-        help="limita la búsqueda a una materia o módulo",
-    )
-    _anadir_curso(buscar)
-    programacion = consultas.add_parser(
-        "programacion", help="lo que la normativa exige de la programación de una etapa"
-    )
-    programacion.add_argument("etapa", help="eso, bachillerato o fp")
-    _anadir_curso(programacion)
+    normativa.add_argument("resto", nargs=argparse.REMAINDER)
     return parser
-
-
-def _anadir_curso(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--curso-academico",
-        dest="curso_academico",
-        metavar="AAAA-AA",
-        help="curso académico, p. ej. 2026-27 (por defecto, el de hoy)",
-    )
 
 
 def _minutos(valor: str) -> int:
@@ -334,6 +298,10 @@ def _visibilidad(args) -> bool | None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["normativa"]:
+        # argparse se come «--help» tras un REMAINDER: el paquete responde con su propia ayuda
+        return _normativa(argv[1:])
     args = _parser().parse_args(argv)
     try:
         return _despachar(args)
@@ -381,7 +349,7 @@ def _despachar(args) -> int:
     if args.comando == "empezar":
         return _empezar(args)
     if args.comando == "normativa":
-        return _normativa(args)
+        return _normativa(args.resto)
     if args.comando == "leer":
         return _leer(args)
     if args.comando == "documento":
@@ -464,28 +432,11 @@ def _imprimir_error(codigo: str, detalle: str = "") -> None:
 # --------------------------------------------------------------------------- #
 
 
-def _normativa(args) -> int:
-    """Una consulta de normativa: un único JSON en stdout y 0, o 2 si falla. Nunca toca .tiza/."""
-    from .normativa import ErrorNormativa, consulta, salida  # carga diferida: solo datos y textos
+def _normativa(argv: list[str]) -> int:
+    """Paso directo al paquete ``normativa-madrid``: mismo stdout y mismo código de salida."""
+    from normativa_madrid.cli import main as consultar
 
-    try:
-        try:
-            documento = _consulta_normativa(args, consulta).a_dict()
-            salida.validar(documento)
-            codigo = 0
-        except ErrorNormativa as error:
-            limpio = ErrorNormativa(
-                error.codigo,
-                _sin_control(error.detalle),
-                tuple(_sin_control(d) for d in error.disponibles),
-            )
-            documento = salida.error_a_dict(limpio)
-            codigo = 2
-    except salida.ErrorSalida:
-        documento = {"error": "SALIDA_INVALIDA", "detalle": "", "disponibles": []}
-        codigo = 2
-    _escribir_json(documento)
-    return codigo
+    return consultar(argv)
 
 
 def _error_json(codigo: str, detalle: str) -> dict:
@@ -585,20 +536,6 @@ def _importar(args) -> int:
         codigo = 2
     _escribir_json(resultado)
     return codigo
-
-
-def _consulta_normativa(args, consulta):
-    if args.consulta == "catalogo":
-        return consulta.catalogo(args.curso_academico)
-    if args.consulta == "ficha":
-        return consulta.ficha(args.codigo, args.curso_academico)
-    if args.consulta == "elemento":
-        return consulta.elemento(args.codigo, args.curso_academico)
-    if args.consulta == "norma":
-        return consulta.norma(args.cita)
-    if args.consulta == "buscar":
-        return consulta.buscar(args.texto, args.en, args.curso_academico)
-    return consulta.programacion(args.etapa, args.curso_academico)
 
 
 def _sin_control(texto: str) -> str:
