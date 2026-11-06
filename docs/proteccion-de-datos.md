@@ -30,6 +30,12 @@ servicio que no sea el aula configurada (y, para actualizarse, GitHub).
 | Log de actualización y del panel | `%LOCALAPPDATA%\tiza\tiza\actualizar.log` (Windows) o `~/.config/tiza/actualizar.log` y `panel.log` (Linux): versiones, órdenes de instalación, códigos de salida y los avisos que el panel no pudo enseñar. No guarda contraseñas ni cookies | El docente |
 | Datos del alumnado | **No se leen ni se necesitan** | Nadie: `tiza` no lee notas, entregas, listas de clase ni informes de finalización. La copia del curso se hace sin usuarios y, si trae alguno, tiza no la abre |
 
+Para saber si una tarea ya tiene notas, tiza **solo** mira si su formulario de ajustes de Moodle
+contiene el campo de reescalado (`rescalegrades`). No abre la tabla de calificación ni la lista de
+participantes, y no lee ninguna nota ni ningún nombre: el campo es un ajuste de la actividad, no
+un dato del alumnado. Una nota en borrador puede no mostrarlo, así que en una tarea que ya existe
+la decisión final la toma el docente al confirmar que ninguna de las tareas listadas tiene notas.
+
 ## Qué sale hacia el proveedor de IA
 
 Lo que el docente escribe al agente y lo que el agente lee o escribe en la

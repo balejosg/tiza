@@ -73,6 +73,10 @@ plantilla de tu departamento, siempre sin datos del alumnado.
 - *«En la tarea final, pon los criterios que evalúa y cuatro niveles de
   logro.»* Tu alumnado ve en el aula qué se le pide y cómo se valora, con el
   lenguaje del currículo traducido a su edad.
+- *«Pon en la tarea una rúbrica por criterios: reparte los 10 puntos entre los
+  criterios que trabaja según la programación.»* En ESO, `tiza` crea la rúbrica
+  nativa de Moodle con los pesos de tu programación; si la tarea ya está en el
+  aula, te pregunta antes de tocarla.
 - *«¿Qué criterios de mi programación del primer trimestre aún no tienen ninguna
   actividad en esta carpeta?»* El agente cruza tu programación con lo que ya ha
   preparado y te señala los huecos.

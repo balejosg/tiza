@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## No publicado
+
+### Añadido
+- **Rúbrica por criterios en tareas de ESO.** Una tarea con `rubrica: por_criterios` recibe en Moodle una rúbrica nativa con una fila por criterio de evaluación, repartiendo 10 puntos según los pesos fijos de `calificacion.yaml`. Los niveles se configuran con `niveles_rubrica`; `actividades_pesan_igual` hace que las actividades de un criterio pesen lo mismo. Una tarea que ya existe solo cambia de rúbrica si el docente confirma que ninguna de las tareas listadas tiene notas y el formulario de ajustes no muestra el campo de reescalado.
+
 ## 0.40.0 — 2026-11-04
 
 ### Cambia

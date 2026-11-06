@@ -36,6 +36,7 @@ seccion: 3
 apertura: 2026-10-01
 entrega: 2026-10-10
 limite: 2026-10-15
+rubrica: por_criterios    # opcional, solo ESO: rúbrica nativa a partir de «evalua»
 ---
 
 Resuelve los problemas.
@@ -294,6 +295,33 @@ final:
   curso la final puede salir topada. Un error del esquema da `ESQUEMA_INVALIDO`, con la ruta y la línea.
 - Lo que el esquema no expresa (redondeos, actitud, recuperaciones) se queda fuera: la
   guía del agente (`guias/calificador.md`) dice cómo tratarlo.
+
+## Calificador: rúbrica por criterios (solo ESO)
+
+Una tarea de ESO puede declarar `rubrica: por_criterios` en su cabecera. tiza construye con
+`evalua` y `calificacion.yaml` una rúbrica nativa de Moodle: una fila por criterio de evaluación,
+con los puntos repartidos según los pesos fijos de la programación didáctica. La rúbrica reparte
+10 puntos y Moodle la reescala a la nota máxima de la tarea.
+
+```yaml
+rubrica: por_criterios   # solo con etapa: eso en calificacion.yaml y con evalua
+```
+
+- Los pesos salen de `calificacion.yaml` (el del elemento y el del criterio). No se inventan ni
+  se ajustan por tarea. Un criterio con peso absoluto 0 no genera fila; si todos pesan 0,
+  `RUBRICA_SIN_PESOS`.
+- Los niveles salen de `niveles_rubrica` (por defecto, 5: 100, 75, 50, 25 y 0 %). Cada nivel se
+  redondea con el mayor resto para que su suma sea exacta (el 50 % de 10 son 5,00).
+- Una tarea **nueva** recibe la rúbrica al publicarse. Una que **ya existe** solo la recibe si el
+  docente confirma en su terminal que ninguna de las tareas listadas tiene notas; con «N», o si
+  el formulario de ajustes muestra el campo de reescalado, sale `RUBRICA_NO_ACTIVADA` y se publica
+  el resto sin tocar el método de calificación.
+- Los cuestionarios no tienen rúbrica en Moodle. Las rúbricas escritas a mano y sus indicaciones
+  son de `tiza-privado`: en el público, una ruta a un `.md` da `RUBRICA_NO_VALIDA`.
+- `etapa`: `primaria`, `eso`, `bachillerato` o `fp`; sin `etapa: eso`, la rúbrica por criterios da
+  `RUBRICA_SOLO_ESO`.
+- `actividades_pesan_igual: true` hace que todas las actividades de un criterio pesen lo mismo,
+  aunque sus números de `evalua` sean distintos; no tienen que sumar 100.
 
 ## Fórmulas
 
