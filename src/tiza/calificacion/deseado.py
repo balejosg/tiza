@@ -220,18 +220,22 @@ def _actividades(esquema: Esquema, documentos: list[Documento], carpeta: Path) -
         if documento.evalua is None:
             continue
         ruta = _ruta_relativa(documento.ruta, carpeta)
-        evaluacion = _validar(esquema, ruta, documento.evalua, documento.seccion)
-        resultado.append(_Actividad(ruta, documento.nombre, evaluacion, documento.evalua))
+        evalua = documento.evalua
+        if esquema.actividades_pesan_igual:
+            evalua = tuple((id_, 1.0) for id_, _ in evalua)
+        evaluacion = _validar(esquema, ruta, evalua, documento.seccion)
+        resultado.append(_Actividad(ruta, documento.nombre, evaluacion, evalua))
     for i, instrumento in enumerate(esquema.instrumentos):
-        evaluacion = _validar(
-            esquema, f"instrumentos[{i}]", instrumento.evalua, instrumento.seccion
-        )
+        evalua = instrumento.evalua
+        if esquema.actividades_pesan_igual:
+            evalua = tuple((id_, 1.0) for id_, _ in evalua)
+        evaluacion = _validar(esquema, f"instrumentos[{i}]", evalua, instrumento.seccion)
         resultado.append(
             _Actividad(
                 f"TZ_M_{instrumento.id}",
                 instrumento.nombre,
                 evaluacion,
-                instrumento.evalua,
+                evalua,
                 manual=True,
             )
         )
@@ -239,7 +243,9 @@ def _actividades(esquema: Esquema, documentos: list[Documento], carpeta: Path) -
 
 
 def _comprobar_pesos(esquema: Esquema, actividades: list[_Actividad]) -> None:
-    """Los pesos de lo que evalúa cada hoja suman 0 o 100."""
+    """Los pesos de lo que evalúa cada hoja suman 0 o 100 (salvo ``actividades_pesan_igual``)."""
+    if esquema.actividades_pesan_igual:
+        return
     for hoja, _ in _hojas(esquema):
         pesos = [(a.ruta, dict(a.evalua)[hoja]) for a in actividades if hoja in dict(a.evalua)]
         total = round(sum(p for _, p in pesos), 2)

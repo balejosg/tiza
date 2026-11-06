@@ -919,3 +919,54 @@ def test_final_con_todo_nulo_pesa_0_sin_fallar_en_las_dos_organizaciones() -> No
         d = deseado(con_criterios(organizacion, Tope(5.0, 4.0)), docs, False, CARPETA)
         assert {n.peso for n in hijos(d, "TZ_FINAL")} == {0.0}, organizacion
         assert hijos(d, "TZ_K_RA1") == []
+
+
+def test_pesan_igual_ignora_los_numeros_de_evalua() -> None:
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        EVALUACIONES,
+        Final("elementos"),
+        actividades_pesan_igual=True,
+    )
+    documentos = [
+        doc("a.md", 1, RA1=30),
+        doc("b.md", 1, RA1=70),
+    ]
+    d = deseado(esquema, documentos, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [50.0, 50.0]
+
+
+def test_pesan_igual_no_exige_que_sumen_100() -> None:
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        EVALUACIONES,
+        Final("elementos"),
+        actividades_pesan_igual=True,
+    )
+    documentos = [doc("a.md", 1, RA1=40), doc("b.md", 1, RA1=40)]
+    d = deseado(esquema, documentos, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [50.0, 50.0]
+
+    sin_opcion = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        EVALUACIONES,
+        Final("elementos"),
+    )
+    with pytest.raises(ErrorCalificacion) as exc:
+        deseado(sin_opcion, documentos, False, CARPETA)
+    assert exc.value.codigo == "PESOS_NO_SUMAN_100"
+
+
+def test_sin_la_opcion_el_arbol_no_cambia() -> None:
+    base = deseado(FP, completo(), False, CARPETA)
+    con_false = Esquema(
+        "elementos",
+        ELEMENTOS,
+        EVALUACIONES,
+        Final("elementos", Tope(5.0, 4.0)),
+        actividades_pesan_igual=False,
+    )
+    assert deseado(con_false, completo(), False, CARPETA) == base
