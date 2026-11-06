@@ -41,6 +41,7 @@ from ..publicacion import (
     ResumenCopia,
     ResumenOrden,
     ResumenPublicacion,
+    ResumenRubricas,
     ResumenSinPruebas,
     ResumenSobrescribir,
 )
@@ -862,6 +863,19 @@ class PresenciaPanel:
             lineas,
             detalle.pregunta,
             **mensajes.rotulos("confirmar_sobrescribir"),
+        )
+
+    def confirmar_rubricas(self, resumen: ResumenRubricas) -> bool:
+        detalle = mensajes.detalle_rubricas(resumen)
+        lineas = _lineas(
+            [mensajes.cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)],
+            detalle.lineas,
+        )
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            detalle.pregunta,
+            **mensajes.rotulos("confirmar_rubricas"),
         )
 
     # --- arranque ---

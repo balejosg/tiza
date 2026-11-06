@@ -30,6 +30,7 @@ from .publicacion import (
     ResumenCopia,
     ResumenOrden,
     ResumenPublicacion,
+    ResumenRubricas,
     ResumenSinPruebas,
     ResumenSobrescribir,
 )
@@ -421,6 +422,14 @@ class PresenciaTerminal:
 
     def confirmar_sobrescribir(self, resumen: ResumenSobrescribir) -> bool:
         detalle = mensajes.detalle_sobrescribir(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        print(detalle.encabezado)
+        for linea in detalle.lineas:
+            print(linea)
+        return confirmar(detalle.pregunta)
+
+    def confirmar_rubricas(self, resumen: ResumenRubricas) -> bool:
+        detalle = mensajes.detalle_rubricas(resumen)
         _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
         print(detalle.encabezado)
         for linea in detalle.lineas:

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import html
 from datetime import time
 
-from ..contenido import ErrorContenido, Fechas
+from ..contenido import ErrorContenido, Fechas, numero_texto
 from .base import (
     CAMPO_RECORDATORIO,
     Contexto,
@@ -14,12 +15,13 @@ from .base import (
     campo_visible,
     fechas_payload,
     formato_fecha,
+    verificar,
 )
 
 # Campos propios del frontmatter y campos de fecha del formulario de Moodle
 # (en español: «Permitir entregas desde», «Fecha de entrega», «Fecha límite» y
 # «Recordarme calificar en»).
-CAMPOS_TAREA = frozenset({"apertura", "entrega", "limite"})
+CAMPOS_TAREA = frozenset({"apertura", "entrega", "limite", "rubrica"})
 CAMPOS_FECHA = ("allowsubmissionsfromdate", "duedate", "cutoffdate", "gradingduedate")
 
 
@@ -72,7 +74,9 @@ class Tarea(Tipo):
             **fechas_payload(self, doc),
         }
 
-    def payload(self, doc, html, itemid, visible, *, itemid_paquete=None) -> dict:
+    def payload(
+        self, doc, html, itemid, visible, *, itemid_paquete=None, fijar_metodo: bool = True
+    ) -> dict:
         payload = {
             "_qf__mod_assign_mod_form": "1",
             "name": doc.nombre,
@@ -82,17 +86,27 @@ class Tarea(Tipo):
             "introattachments": str(itemid),
             "submitbutton": "Save and display",
         }
+        if fijar_metodo:
+            # Tiza activa el flujo de calificación al crear o republicar una tarea que
+            # aún no tiene notas; con la rúbrica, además, el método de calificación.
+            payload["markingworkflow"] = "1"
+            payload["markingallocation"] = "0"
+            if doc.rubrica is not None:
+                from ..publicar import METODO_SUBMISSIONS
+
+                payload[METODO_SUBMISSIONS] = "rubric"
         payload.update(fechas_payload(self, doc))
         payload.update(campo_visible(visible))
         return payload
 
-    def payload_de(self, p) -> dict[str, str]:
+    def payload_de(self, p, *, fijar_metodo: bool = True) -> dict[str, str]:
         """Al actualizar, el área de «Archivos adicionales» es la del formulario, con sus ficheros.
 
         Una nueva y vacía los borraría en Moodle. Si el formulario no trae esa área, la clave se
         quita: lo que no se envía se conserva. En una tarea nueva todo sigue igual.
+        ``fijar_metodo`` falso deja el flujo y el método de calificación como están.
         """
-        payload = super().payload_de(p)
+        payload = self.payload(p.doc, p.html, p.itemid, p.visible, fijar_metodo=fijar_metodo)
         if p.existente is not None:
             adjuntos = (p.leido or {}).get("adjuntos")
             if adjuntos is None:
@@ -100,6 +114,57 @@ class Tarea(Tipo):
             else:
                 payload["introattachments"] = str(adjuntos)
         return payload
+
+    def publicar(self, p) -> tuple[int, str, dict]:
+        """Crea o actualiza la tarea y decide si la rúbrica se toca.
+
+        Una tarea nueva recibe su rúbrica siempre. Una que ya existe solo si el docente
+        confirmó que ninguna de las tareas listadas tiene notas (``p.rubrica_confirmada``)
+        y ``actividad_tiene_notas`` no ve el campo de reescalado. Si no, ``RUBRICA_NO_ACTIVADA``
+        y se publica el resto sin cambiar el método de calificación.
+        """
+        existente = p.existente
+        con_notas = (
+            existente is not None
+            and p.doc.rubrica is not None
+            and p.moodle.actividad_tiene_notas(existente.cmid)
+        )
+        sin_confirmacion = (
+            p.doc.rubrica is not None and existente is not None and not p.rubrica_confirmada
+        )
+        if p.doc.rubrica is not None and existente is not None and (con_notas or sin_confirmacion):
+            from .. import informe  # diferido: informe importa el registro de tipos
+
+            detalle = (
+                "la tarea ya tiene notas"
+                if con_notas
+                else "no se confirmó que la tarea no tenga notas"
+            )
+            p.pasos.append(
+                informe.Paso("RUBRICA_NO_ACTIVADA", "ok", f"{p.doc.ruta.name}: {detalle}")
+            )
+            payload = self.payload_de(p, fijar_metodo=False)
+        else:
+            payload = self.payload_de(p)
+        if existente is not None:
+            cmid = existente.cmid
+            p.moodle.actualizar(cmid, payload)
+            accion = "actualizada"
+        else:
+            cmid = p.moodle.crear(p.curso_id, p.seccion.id, self.nombre, payload)
+            accion = "creada"
+        if p.doc.rubrica is not None and (
+            existente is None or (not con_notas and p.rubrica_confirmada)
+        ):
+            p.moodle.definir_rubrica(cmid, p.doc.rubrica)
+        from ..publicar import ErrorPublicacion
+
+        try:
+            info = verificar(p.moodle, self, p.doc, cmid)
+        except ErrorPublicacion as exc:
+            exc.cmid = cmid
+            raise
+        return cmid, accion, info
 
     def urls_pluginfile(self, base_url, contexto, instance, nombre) -> list[str]:
         # En una tarea, intro no lleva itemid e introattachment usa el 0.
@@ -125,3 +190,47 @@ class Tarea(Tipo):
         resumen.update(formato_fecha(doc.fechas.entrega).encode("utf-8"))
         if doc.fechas.limite is not None:
             resumen.update(formato_fecha(doc.fechas.limite).encode("utf-8"))
+
+    def hash_contenido(self, doc, resumen) -> None:
+        if doc.rubrica is not None:
+            resumen.update(b"\n--rubrica--\n")
+            resumen.update(doc.rubrica.hash().encode("utf-8"))
+
+    def extra_preview(self, doc) -> str:
+        return _rubrica_preview(doc)
+
+
+def _porcentaje(valor: float) -> str:
+    return numero_texto(valor).replace(".", ",")
+
+
+def _rubrica_preview(doc) -> str:
+    """La rúbrica en la vista previa: descripción y tabla de criterios y niveles."""
+    if doc.rubrica is None:
+        return ""
+    cargada = doc.rubrica
+    partes = [
+        "<hr>",
+        f"<h2>Rúbrica: {html.escape(cargada.nombre)}</h2>",
+        cargada.html,
+        "<table><thead><tr><th>Criterio</th><th>Niveles</th></tr></thead><tbody>",
+    ]
+    for criterio in cargada.criterios:
+        maximo = max((nivel.puntos for nivel in criterio.niveles), default=1) or 1
+        niveles = (
+            "<ul>"
+            + "".join(
+                f"<li><strong>{html.escape(nivel.id)}</strong> "
+                f"({numero_texto(nivel.puntos)} puntos, "
+                f"{_porcentaje(round(nivel.puntos / maximo * 100, 2))} %): "
+                f"{html.escape(nivel.descripcion)}</li>"
+                for nivel in criterio.niveles
+            )
+            + "</ul>"
+        )
+        partes.append(
+            f"<tr><td><strong>{html.escape(criterio.nombre)}</strong><br>"
+            f"{html.escape(criterio.descripcion)}</td><td>{niveles}</td></tr>"
+        )
+    partes.append("</tbody></table>")
+    return "\n".join(partes)

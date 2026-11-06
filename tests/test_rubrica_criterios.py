@@ -137,3 +137,189 @@ def test_rubrica_determinista_y_hash_sensible_a_los_pesos() -> None:
         Elemento("RA2", "Sistemas", 70.0),
     )
     assert rubrica_de_criterios(otro, ("RA1", "RA2"), "Problemas").hash() != primera.hash()
+
+
+# --- rubrica: por_criterios en una tarea ------------------------------------
+
+from dobles import MoodleFalso, aula_con_tarea, estructura_de  # noqa: E402
+from tiza import agente, contenido, publicar, tipos  # noqa: E402
+from tiza.contenido import ErrorContenido  # noqa: E402
+
+ESQUEMA_ESO = """\
+etapa: eso
+organizacion: elementos
+elementos:
+  - {id: RA1, nombre: Redes, peso: 100}
+final: {de: elementos}
+"""
+
+TAREA_CON_RUBRICA = """\
+---
+tipo: tarea
+nombre: Problemas
+seccion: 3
+apertura: 2026-10-01
+entrega: 2026-10-10
+evalua: {CE1: 100, CE2: 100}
+rubrica: por_criterios
+---
+
+Resuelve los problemas.
+"""
+
+
+def _carpeta(tmp_path, *, etapa: str = "etapa: eso\n", evalua: str = "{CE1: 100, CE2: 100}"):
+    (tmp_path / "calificacion.yaml").write_text(
+        ESQUEMA_ESO.replace("etapa: eso\n", etapa).replace(
+            "{id: RA1, nombre: Redes, peso: 100}",
+            "{id: RA1, nombre: Redes, peso: 100, criterios: "
+            "[{id: CE1, nombre: Criterio 1, peso: 50, codigo: CE1}, "
+            "{id: CE2, nombre: Criterio 2, peso: 50, codigo: CE2}]}",
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "tarea.md").write_text(
+        TAREA_CON_RUBRICA.replace("{CE1: 100, CE2: 100}", evalua), encoding="utf-8"
+    )
+    return tmp_path / "tarea.md"
+
+
+def test_por_criterios_con_eso_carga_la_rubrica(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta(tmp_path), raiz=tmp_path)
+    assert doc.rubrica is not None
+    assert [c.id for c in doc.rubrica.criterios] == ["ce1", "ce2"]
+    assert [c.niveles[0].puntos for c in doc.rubrica.criterios] == [5.0, 5.0]
+
+
+def test_por_criterios_sin_evalua(tmp_path) -> None:
+    ruta = _carpeta(tmp_path)
+    ruta.write_text(
+        TAREA_CON_RUBRICA.replace("evalua: {CE1: 100, CE2: 100}\n", ""), encoding="utf-8"
+    )
+    with pytest.raises(ErrorContenido) as exc:
+        contenido.cargar(ruta, raiz=tmp_path)
+    assert exc.value.codigo == "RUBRICA_SIN_EVALUA"
+
+
+def test_por_criterios_sin_calificacion_yaml(tmp_path) -> None:
+    ruta = _carpeta(tmp_path)
+    (tmp_path / "calificacion.yaml").unlink()
+    with pytest.raises(ErrorContenido) as exc:
+        contenido.cargar(ruta, raiz=tmp_path)
+    assert exc.value.codigo == "RUBRICA_SIN_ESQUEMA"
+
+
+def test_por_criterios_fuera_de_eso(tmp_path) -> None:
+    for etapa in ("", "etapa: bachillerato\n"):
+        carpeta = tmp_path / ("sin_etapa" if not etapa else "bachillerato")
+        carpeta.mkdir()
+        ruta = _carpeta(carpeta, etapa=etapa)
+        with pytest.raises(ErrorContenido) as exc:
+            contenido.cargar(ruta, raiz=carpeta)
+        assert exc.value.codigo == "RUBRICA_SOLO_ESO"
+
+
+def test_ruta_de_rubrica_en_el_publico_da_rubrica_no_valida(tmp_path) -> None:
+    ruta = _carpeta(tmp_path)
+    ruta.write_text(
+        TAREA_CON_RUBRICA.replace("rubrica: por_criterios", "rubrica: rubrica.md"),
+        encoding="utf-8",
+    )
+    with pytest.raises(ErrorContenido) as exc:
+        contenido.cargar(ruta, raiz=tmp_path)
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "tiza-privado" in exc.value.detalle
+
+
+def test_por_criterios_con_elemento_con_criterios(tmp_path) -> None:
+    ruta = _carpeta(tmp_path, evalua="{RA1: 100}")
+    with pytest.raises(ErrorContenido) as exc:
+        contenido.cargar(ruta, raiz=tmp_path)
+    assert exc.value.codigo == "ELEMENTO_CON_CRITERIOS"
+
+
+def test_publicar_tarea_nueva_define_la_rubrica(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta(tmp_path), raiz=tmp_path)
+    moodle = MoodleFalso()
+    publicar.publicar_documento(moodle, 1234, estructura_de(moodle.secciones), doc, visible=None)
+    assert any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert moodle.formularios[100][publicar.METODO_SUBMISSIONS] == "rubric"
+
+
+def test_publicar_tarea_existente_sin_confirmacion_no_define_la_rubrica(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta(tmp_path), raiz=tmp_path)
+    moodle = aula_con_tarea()
+    pasos = []
+    publicar.publicar_documento(
+        moodle,
+        1234,
+        estructura_de(moodle.secciones),
+        doc,
+        visible=None,
+        pasos=pasos,
+    )
+    assert any(paso.codigo == "RUBRICA_NO_ACTIVADA" for paso in pasos)
+    assert not any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert publicar.METODO_SUBMISSIONS not in moodle.formularios[55]
+
+
+def test_publicar_tarea_existente_confirmada_define_la_rubrica(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta(tmp_path), raiz=tmp_path)
+    moodle = aula_con_tarea()
+    pasos = []
+    publicar.publicar_documento(
+        moodle,
+        1234,
+        estructura_de(moodle.secciones),
+        doc,
+        visible=None,
+        rubrica_confirmada=True,
+        pasos=pasos,
+    )
+    assert not any(paso.codigo == "RUBRICA_NO_ACTIVADA" for paso in pasos)
+    assert any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert moodle.formularios[55][publicar.METODO_SUBMISSIONS] == "rubric"
+
+
+def test_publicar_tarea_con_notas_da_rubrica_no_activada(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta(tmp_path), raiz=tmp_path)
+    moodle = aula_con_tarea()
+    moodle.tareas_con_notas.add(55)
+    pasos = []
+    publicar.publicar_documento(
+        moodle,
+        1234,
+        estructura_de(moodle.secciones),
+        doc,
+        visible=None,
+        rubrica_confirmada=True,
+        pasos=pasos,
+    )
+    assert any(paso.codigo == "RUBRICA_NO_ACTIVADA" for paso in pasos)
+    assert not any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert publicar.METODO_SUBMISSIONS not in moodle.formularios[55]
+
+
+def test_vista_previa_muestra_porcentajes(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta(tmp_path), raiz=tmp_path)
+    vista = tipos.obtener("tarea").extra_preview(doc)
+    assert "Rúbrica" in vista
+    assert "50 %" in vista
+    assert "CE1 · Criterio 1" in vista
+
+
+def test_tarea_sin_rubrica_mantiene_su_hash(tmp_path) -> None:
+    (tmp_path / "tarea.md").write_text(
+        "---\ntipo: tarea\nnombre: Problemas\nseccion: 3\n"
+        "apertura: 2026-10-01\nentrega: 2026-10-10\n---\nResuelve los problemas.\n",
+        encoding="utf-8",
+    )
+    doc = contenido.cargar(tmp_path / "tarea.md")
+    assert doc.hash_cargado == "c354d075fa17e1bd5796e07fb8642f175bcbeb62485b58381b491d58b366af69"
+
+
+def test_comprobar_da_los_errores_offline(tmp_path) -> None:
+    ruta = _carpeta(tmp_path, evalua="{RA1: 100}")
+    resultado = agente.comprobar(tmp_path, [ruta.name])
+    assert resultado.ficheros[0].codigo == "ELEMENTO_CON_CRITERIOS"
+    assert "ELEMENTO_CON_CRITERIOS" in resultado.informe["errores"]

@@ -340,3 +340,9 @@ def test_evalua_solo_en_los_tipos_calificables(tmp_path, nombre):
             contenido.cargar(ruta, raiz=tmp_path)
         assert error.value.codigo == "EVALUA_NO_CALIFICABLE"
         assert tipos.obtener(nombre).llano in error.value.detalle
+
+
+def test_la_tarea_admite_rubrica_sin_invadir_los_campos_comunes():
+    tarea = tipos.obtener("tarea")
+    assert "rubrica" in tarea.campos
+    assert not {"tipo", "nombre", "seccion"} & set(tarea.campos)

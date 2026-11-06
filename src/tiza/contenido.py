@@ -34,6 +34,7 @@ from .filtro import CONTROL as _CONTROL
 
 if TYPE_CHECKING:  # el registro importa este módulo: el import va dentro de las funciones
     from . import tipos
+    from .rubrica import RubricaCargada
 
 __all__ = [
     "EXTENSIONES",
@@ -295,6 +296,8 @@ class Documento:
     origen: Origen | None = None  # None: el documento no viene de una importación
     # Pesos por id (RA1: 40) en el orden del YAML; None: no coloca la actividad en el calificador.
     evalua: tuple[tuple[str, float], ...] | None = None
+    # La rúbrica por criterios de una tarea (``rubrica: por_criterios``), ya construida.
+    rubrica: RubricaCargada | None = None
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
     sha256_fichero: str = (
         ""  # sha256 de los bytes del fichero tal como se leyó (no entra en el hash)
@@ -342,6 +345,8 @@ def cargar(
 
     datos, cuerpo = _separar_frontmatter(texto)
     doc = _validar(datos, cuerpo, ruta, zona, raiz)
+    if doc.tipo == "tarea" and "rubrica" in datos:
+        doc.rubrica = _rubrica_de_tarea(datos["rubrica"], ruta, raiz, doc)
     try:
         analisis = filtro.analizar(_a_html(ruta, cuerpo))
     except filtro.HtmlPeligroso as exc:
@@ -568,6 +573,51 @@ def _validar(
         origen=origen,
         evalua=evalua,
     )
+
+
+def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento) -> RubricaCargada:
+    """Construye la rúbrica por criterios de una tarea, con el esquema de la carpeta."""
+    if valor != "por_criterios":
+        detalle = "«rubrica» solo admite el valor «por_criterios»"
+        if isinstance(valor, str) and (
+            valor.strip().lower().endswith((".md", ".html", ".htm"))
+            or "/" in valor
+            or "\\" in valor
+        ):
+            detalle = (
+                "las rúbricas escritas a mano y sus indicaciones son de tiza-privado; "
+                "en el público usa «rubrica: por_criterios»"
+            )
+        raise ErrorContenido("RUBRICA_NO_VALIDA", detalle)
+    if doc.evalua is None:
+        raise ErrorContenido(
+            "RUBRICA_SIN_EVALUA",
+            f"{ruta.name}: «rubrica: por_criterios» necesita el campo «evalua»",
+        )
+    base = Path(raiz).resolve() if raiz is not None else ruta.parent.resolve()
+    esquema_path = base / "calificacion.yaml"
+    if not esquema_path.is_file():
+        raise ErrorContenido(
+            "RUBRICA_SIN_ESQUEMA",
+            f"{ruta.name}: falta calificacion.yaml en la carpeta de la asignatura",
+        )
+    from .calificacion.esquema import ErrorCalificacion, cargar_esquema
+    from .rubrica_criterios import rubrica_de_criterios
+
+    try:
+        esquema = cargar_esquema(esquema_path, base)
+    except ErrorCalificacion as exc:
+        raise ErrorContenido(exc.codigo, exc.detalle) from None
+    if esquema.etapa != "eso":
+        raise ErrorContenido(
+            "RUBRICA_SOLO_ESO",
+            f"{ruta.name}: la rúbrica por criterios solo vale en ESO "
+            "(pon «etapa: eso» en calificacion.yaml)",
+        )
+    try:
+        return rubrica_de_criterios(esquema, tuple(id_ for id_, _ in doc.evalua), doc.nombre)
+    except ErrorCalificacion as exc:
+        raise ErrorContenido(exc.codigo, f"{ruta.name}: {exc.detalle}") from None
 
 
 # --------------------------------------------------------------------------- #

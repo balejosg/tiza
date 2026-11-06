@@ -689,6 +689,21 @@ class ResumenSobrescribir:
 
 
 @dataclass(frozen=True)
+class ResumenRubricas:
+    """Las tareas que ya están en el aula y van a recibir una rúbrica por criterios.
+
+    Se pregunta después de la confirmación normal del curso. ``tareas`` son los nombres tal
+    como están en el fichero (``doc.nombre``), nunca texto del aula.
+    """
+
+    curso: int
+    nombre_curso: str | None
+    tareas: tuple[str, ...]
+    posicion: int = 1
+    total: int = 1
+
+
+@dataclass(frozen=True)
 class FicheroAislamiento:
     """Un fichero que el aislamiento escribiría y qué cambia en él (sin su contenido)."""
 
@@ -787,6 +802,11 @@ class Presencia(Protocol):
     def confirmar_sobrescribir(self, resumen: ResumenSobrescribir) -> bool:
         """¿Sobrescribir las actividades que retocaste a mano en el aula y perder esos cambios?
         Una respuesta por curso; sin respuesta, es no."""
+        ...
+
+    def confirmar_rubricas(self, resumen: ResumenRubricas) -> bool:
+        """¿Ninguna de estas tareas que ya existen tiene notas? Con «no», no se toca su
+        rúbrica. Una respuesta por curso; sin respuesta, es no."""
         ...
 
     def confirmar_sin_pruebas(self) -> bool:
@@ -1068,6 +1088,7 @@ def publicar_con(
     sobrescribir: frozenset[Path] = frozenset(),
     no_publicar: frozenset[Path] = frozenset(),
     notas_confirmadas: Mapping[Path, str | None] | None = None,
+    rubrica_confirmada: bool = False,
 ) -> recorrido.Resultado:
     """Con el aula ya abierta: publica y verifica los documentos.
 
@@ -1171,6 +1192,7 @@ def publicar_con(
     con_nota: list[tuple[Documento, int]] = []
     for doc in documentos:
         vigilada = None
+        pasos_del_tipo: list[informe.Paso] = []
         try:
             decidido = doc.ruta.resolve() in sobrescribir
             vigilada = vigilancia.actividad(estructura, doc, sobrescribe=decidido)
@@ -1184,6 +1206,7 @@ def publicar_con(
                     for fichero in (doc.restricciones.completar if doc.restricciones else ())
                     if fichero in cmids
                 }
+                pasos_del_tipo = []
                 resultado = publicar.publicar_documento(
                     aula,
                     curso,
@@ -1192,6 +1215,8 @@ def publicar_con(
                     visible=visible,
                     dependencias=dependencias,
                     vigilada=vigilada,
+                    rubrica_confirmada=rubrica_confirmada,
+                    pasos=pasos_del_tipo,
                 )
                 assert resultado.cmid is not None  # acaba de crearla o actualizarla
                 cmids[_relativa(doc.ruta, base)] = resultado.cmid
@@ -1239,6 +1264,8 @@ def publicar_con(
             if extra:
                 detalle = f"{detalle}: {extra}"
         borrador.paso(paso, detalle=detalle)
+        for del_tipo in pasos_del_tipo:
+            borrador.paso(del_tipo.codigo, del_tipo.resultado, del_tipo.detalle)
         if decidido:
             borrador.paso("CAMBIO_DEL_AULA_DESCARTADO", detalle=doc.ruta.name)
         if not solo_fechas and contenido.tiene_formulas(doc):
@@ -1745,6 +1772,7 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
             confirmado = turno.preguntar(lambda presencia: presencia.confirmar_real(resumen))
         if not confirmado:
             return recorrido.Resultado.declinado()
+        rubrica_confirmada = self._preguntar_rubricas(turno, estructura, a_publicar)
         sobrescribir, no_publicar = self._preguntar_sobrescribir(turno, cambiadas)
         return publicar_con(
             self._aula,
@@ -1759,6 +1787,38 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
             sobrescribir=sobrescribir,
             no_publicar=no_publicar,
             notas_confirmadas=notas_confirmadas,
+            rubrica_confirmada=rubrica_confirmada,
+        )
+
+    def _preguntar_rubricas(
+        self, turno: recorrido.Turno, estructura: Estructura, documentos: list[Documento]
+    ) -> bool:
+        """Pregunta por las tareas existentes que ganan rúbrica; sin tareas, no pregunta.
+
+        La respuesta es una sola para todo el lote: con «no», todas las tareas existentes
+        conservan su método y su rúbrica (``RUBRICA_NO_ACTIVADA``) y se publica el resto.
+        Las tareas nuevas no entran en la lista: su rúbrica no necesita confirmación.
+        """
+        if self._solo_fechas:
+            return False
+        tareas = tuple(
+            doc.nombre
+            for doc in documentos
+            if doc.tipo == "tarea"
+            and doc.rubrica is not None
+            and estructura.localizar(doc, turno.curso).modulo is not None
+        )
+        if not tareas:
+            return False
+        resumen = ResumenRubricas(
+            curso=turno.curso,
+            nombre_curso=turno.nombre_curso,
+            tareas=tareas,
+            posicion=turno.posicion,
+            total=turno.total,
+        )
+        return turno.preguntar(
+            lambda presencia: presencia.confirmar_rubricas(resumen), tras_no=True
         )
 
     def _preguntar_sobrescribir(

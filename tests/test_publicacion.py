@@ -3135,3 +3135,68 @@ def test_colocar_notas_descarta_lo_que_no_es_lo_esperado():
     )
     assert movimientos == () and _escrituras_de_notas(moodle) == []
     assert sin == (colocacion.SinColocar(100, "CAMBIADA", None),)
+
+
+# --- Rúbrica por criterios: confirmación de tareas existentes ----------------
+
+ESQUEMA_RUBRICA = """\
+etapa: eso
+organizacion: elementos
+elementos:
+  - {id: RA1, nombre: Redes, peso: 100, criterios: [
+      {id: CE1, nombre: Criterio 1, peso: 50, codigo: CE1},
+      {id: CE2, nombre: Criterio 2, peso: 50, codigo: CE2}]}
+final: {de: elementos}
+"""
+
+TAREA_RUBRICA = """\
+---
+tipo: tarea
+nombre: Problemas
+seccion: 3
+apertura: 2026-10-01
+entrega: 2026-10-10
+{evalua}---
+
+Resuelve los problemas.
+"""
+
+
+def _tarea_con_rubrica(carpeta: Path, *, rubrica: bool) -> None:
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RUBRICA, encoding="utf-8")
+    evalua = "evalua: {CE1: 100, CE2: 100}\nrubrica: por_criterios\n" if rubrica else ""
+    (carpeta / "t.md").write_text(TAREA_RUBRICA.replace("{evalua}", evalua), encoding="utf-8")
+
+
+def _publicar_tarea_existente(carpeta: Path, moodle, presencia) -> dict:
+    return _en(carpeta, moodle, "real", ficheros=("t.md",), presencia=presencia)[0]
+
+
+def test_la_rubrica_de_una_tarea_existente_se_pregunta_y_con_no_no_se_toca(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _tarea_con_rubrica(carpeta, rubrica=False)
+    primero = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa())
+    cmid = primero["ficheros"][0]["cmid"]
+    _tarea_con_rubrica(carpeta, rubrica=True)
+    presencia = PresenciaFalsa(rubricas=False)
+    documento = _publicar_tarea_existente(carpeta, moodle, presencia)
+    assert presencia.resumenes_rubricas == [
+        publicacion.ResumenRubricas(5678, None, ("Problemas",), 1, 1)
+    ]
+    assert "RUBRICA_NO_ACTIVADA" in [paso["codigo"] for paso in documento["pasos"]]
+    assert not any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert publicar.METODO_SUBMISSIONS not in moodle.formularios[cmid]
+
+
+def test_la_rubrica_de_una_tarea_existente_se_define_si_el_docente_confirma(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _tarea_con_rubrica(carpeta, rubrica=False)
+    primero = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa())
+    cmid = primero["ficheros"][0]["cmid"]
+    _tarea_con_rubrica(carpeta, rubrica=True)
+    documento = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa(rubricas=True))
+    assert "RUBRICA_NO_ACTIVADA" not in [paso["codigo"] for paso in documento["pasos"]]
+    assert any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert moodle.formularios[cmid][publicar.METODO_SUBMISSIONS] == "rubric"

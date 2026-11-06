@@ -17,7 +17,7 @@ import hashlib
 import json
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -104,7 +104,11 @@ class ContextoPublicacion:
     itemid: int  # borrador del texto
     visible: bool | None  # None: lo que ya exista conserva su visibilidad
     existente: Actividad | None  # el módulo que se actualizaría, si ya existe
+    pasos: list = field(default_factory=list)  # pasos del informe que añade el tipo
     leido: dict | None = None  # su formulario de edición, si ``publicar`` ya lo cargó
+    # El docente confirmó que ninguna de las tareas existentes que ganan rúbrica tiene notas.
+    # Solo lo usa una tarea que ya existe: una nueva recibe la rúbrica sin preguntar.
+    rubrica_confirmada: bool = False
 
 
 class Tipo:

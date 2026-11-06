@@ -33,6 +33,7 @@ from .publicacion import (
     ResumenCopia,
     ResumenOrden,
     ResumenPublicacion,
+    ResumenRubricas,
     ResumenSinPruebas,
     ResumenSobrescribir,
 )
@@ -67,6 +68,7 @@ __all__ = [
     "DetalleOrden",
     "DetalleReal",
     "DetalleSobrescribir",
+    "DetalleRubricas",
     "DocumentoCorto",
     "DocumentoReal",
     "EXCEPCIONES_TEXTO",
@@ -716,6 +718,33 @@ def detalle_sobrescribir(resumen: ResumenSobrescribir) -> DetalleSobrescribir:
     )
 
 
+@dataclass(frozen=True)
+class DetalleRubricas:
+    """La pregunta de real sobre las tareas existentes que ganan una rúbrica por criterios."""
+
+    curso: str
+    posicion: int
+    total: int
+    encabezado: str
+    lineas: tuple[str, ...]  # una por tarea, con su viñeta
+    pregunta: str
+
+
+def detalle_rubricas(resumen: ResumenRubricas) -> DetalleRubricas:
+    """Qué tareas ya existen y van a recibir la rúbrica, y si ninguna tiene notas.
+
+    Los nombres son los de los ficheros del docente, saneados como todo lo que se enseña.
+    """
+    return DetalleRubricas(
+        curso=describir_curso(resumen.curso, resumen.nombre_curso),
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado="Estas tareas ya existen en el aula y van a recibir la rúbrica por criterios:",
+        lineas=tuple(f"  · {texto_seguro(nombre)}" for nombre in resumen.tareas),
+        pregunta="¿Ninguna de estas tareas tiene notas?",
+    )
+
+
 SIN_CURSO_PRUEBAS_OPCION = "No tengo curso de pruebas (en real se publicará solo oculto)"
 PREGUNTA_DESTINO = "¿Continuar con este curso?"
 PREGUNTA_CURSOS = "¿Abrir la sesión con estos cursos?"
@@ -759,6 +788,11 @@ _ROTULOS: dict[str, tuple[str, str, str]] = {
         "Sobrescribir y perder sus cambios",
         "Conservar los cambios del aula",
         "peligro",
+    ),
+    "confirmar_rubricas": (
+        "Sí, ninguna tiene notas",
+        "No, alguna tiene notas",
+        "real",
     ),
     "confirmar_copia": ("Hacer la copia", "No hacerla", ""),
     "confirmar_cursos": ("Abrir la sesión", "Cancelar", ""),

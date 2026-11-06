@@ -2792,6 +2792,8 @@ def publicar_documento(
     visible: bool | None,
     dependencias: dict[str, int] | None = None,
     vigilada: ActividadVigilada | None = None,
+    rubrica_confirmada: bool = False,
+    pasos: list | None = None,
 ) -> informe.Fichero:
     """Crea o actualiza un documento y lo verifica releyendo el módulo.
 
@@ -2804,6 +2806,8 @@ def publicar_documento(
     haya cambiado de nombre o de sección). ``vigilada``: la actividad vigilada de este documento
     (``vigilancia.ActividadVigilada``); justo antes de escribir comprueba si el docente la retocó
     y, si es así, ``CAMBIADA_EN_EL_AULA`` y no se toca nada. Sin ella no se compara.
+    ``rubrica_confirmada``: el docente confirmó que las tareas existentes que ganan rúbrica no
+    tienen notas. ``pasos``: lista donde el tipo deja los pasos que añade al informe.
     """
     with tempfile.TemporaryDirectory(prefix="tiza-recursos-") as temporal:
         copia = _congelar_recursos(doc, Path(temporal))
@@ -2816,6 +2820,8 @@ def publicar_documento(
             original=doc,
             dependencias=dependencias or {},
             vigilada=vigilada,
+            rubrica_confirmada=rubrica_confirmada,
+            pasos=pasos,
         )
 
 
@@ -2844,6 +2850,8 @@ def _publicar_congelado(
     original: Documento,
     dependencias: dict[str, int],
     vigilada: ActividadVigilada | None = None,
+    rubrica_confirmada: bool = False,
+    pasos: list | None = None,
 ) -> informe.Fichero:
     seccion = estructura.buscar_seccion(doc.seccion)
     if seccion is None:
@@ -2907,7 +2915,9 @@ def _publicar_congelado(
             itemid=itemid,
             visible=visible,
             existente=existente,
+            pasos=pasos if pasos is not None else [],
             leido=leido,
+            rubrica_confirmada=rubrica_confirmada,
         )
     )
     aplicar_itinerario(moodle, doc, cmid, envio)
