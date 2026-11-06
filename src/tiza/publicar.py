@@ -713,7 +713,13 @@ class Moodle:
         except Exception:  # noqa: BLE001 - no poder saberlo cuenta como «tiene notas»
             return True
         sopa = BeautifulSoup(texto, "html.parser")
-        return any("rescalegrades" in str(campo.get("name") or "") for campo in sopa.find_all(True))
+        formulario = sopa.find("form", attrs={"action": re.compile(r"modedit\.php")})
+        if formulario is None:
+            # Una página de login con 200 (sesión caducada) no es el formulario de ajustes.
+            return True
+        return any(
+            "rescalegrades" in str(campo.get("name") or "") for campo in formulario.find_all(True)
+        )
 
     def _area_rubrica(self, cmid: int) -> int:
         contexto = self.leer_modulo(cmid).get("contexto")

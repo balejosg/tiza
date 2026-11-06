@@ -5077,6 +5077,12 @@ def test_actividad_tiene_notas_ilegible_es_verdadero(monkeypatch):
     assert _moodle_rubrica(sesion, monkeypatch).actividad_tiene_notas(5) is True
 
 
+def test_actividad_tiene_notas_sin_formulario_es_verdadero(monkeypatch):
+    # Una página de login con 200 no es el formulario de ajustes: ante la duda, tiene notas.
+    sesion = _SesionSinNotas([_RespuestaRubrica("<html><body>Entrar</body></html>")])
+    assert _moodle_rubrica(sesion, monkeypatch).actividad_tiene_notas(5) is True
+
+
 def test_no_se_pide_la_tabla_de_calificacion(monkeypatch):
     sesion = _SesionSinNotas(
         [
