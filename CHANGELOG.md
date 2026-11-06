@@ -8,6 +8,7 @@ se avisa aquí con **Cambia**.
 
 ### Añadido
 - **Rúbrica por criterios en tareas de ESO.** Una tarea con `rubrica: por_criterios` recibe en Moodle una rúbrica nativa con una fila por criterio de evaluación, repartiendo 10 puntos según los pesos fijos de `calificacion.yaml`. Los niveles se configuran con `niveles_rubrica`; `actividades_pesan_igual` hace que las actividades de un criterio pesen lo mismo. Una tarea que ya existe solo cambia de rúbrica si el docente confirma que ninguna de las tareas listadas tiene notas y el formulario de ajustes no muestra el campo de reescalado.
+- **Aviso de actividades de ESO sin criterios.** `tiza comprobar calificacion.yaml` avisa con `ACTIVIDAD_SIN_EVALUA` de cada tarea, cuestionario o H5P que aún no declara `evalua`, sin fallar. La guía de realineación explica cómo proponerlos al docente y cómo añadir la rúbrica solo a las tareas que elija.
 
 ## 0.40.0 — 2026-11-04
 

@@ -320,6 +320,8 @@ Si el docente pide revisar su programación antigua con la normativa vigente y c
 
 El campo `origen` de un `.md` lo escribe `tiza importar` y no se toca. Lo quitas solo si el docente lo pide expresamente para publicar esa actividad como nueva (`guias/realinear.md`, al publicar). Al publicar una actividad con `origen`, tiza compara su nombre, texto y fechas con la copia: `CAMBIADA_EN_EL_AULA` y `ORIGEN_SIN_HUELLA` no se publican (qué hacer: `guias/realinear.md`), y `HUELLA_NO_GUARDADA` avisa de que la próxima vez saltará `CAMBIADA_EN_EL_AULA`. No compara las preguntas ni los ajustes de un cuestionario ni un paquete H5P.
 
+Si además hay que asociar criterios de ESO a actividades que ya están en el aula, sigue §7 de la guía: `ACTIVIDAD_SIN_EVALUA` dice cuáles faltan, el docente confirma la tabla de CE y solo las tareas que él elija ganan `rubrica: por_criterios`.
+
 ## Unidad completa (un tema, una unidad, una situación de aprendizaje)
 
 Si el docente parte de su programación, o pide una unidad o una situación de aprendizaje a partir de ella, carga `guias/unidad.md` y síguela **antes de preguntar nada**.
