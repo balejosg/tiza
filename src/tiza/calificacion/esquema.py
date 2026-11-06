@@ -25,12 +25,15 @@ __all__ = [
     "Evaluacion",
     "Final",
     "Instrumento",
+    "NivelRubrica",
     "Tope",
     "cargar_esquema",
 ]
 
 EXTENSIONES_ESQUEMA = frozenset({".yaml"})
 TOLERANCIA_PESOS = 0.01
+ETAPAS = ("primaria", "eso", "bachillerato", "fp")
+MAX_NIVELES_RUBRICA = 10
 
 
 class ErrorCalificacion(Exception):
@@ -40,6 +43,24 @@ class ErrorCalificacion(Exception):
         super().__init__(codigo)
         self.codigo = codigo
         self.detalle = detalle
+
+
+@dataclass(frozen=True)
+class NivelRubrica:
+    """Un nivel de la rúbrica por criterios, con su porcentaje del total de la fila."""
+
+    id: str
+    nombre: str
+    porcentaje: float
+
+
+NIVELES_RUBRICA = (
+    NivelRubrica("destacado", "Destacado", 100.0),
+    NivelRubrica("avanzado", "Avanzado", 75.0),
+    NivelRubrica("adecuado", "Adecuado", 50.0),
+    NivelRubrica("inicial", "Inicial", 25.0),
+    NivelRubrica("no_iniciado", "No iniciado", 0.0),
+)
 
 
 @dataclass(frozen=True)
@@ -96,6 +117,9 @@ class Esquema:
     evaluaciones: tuple[Evaluacion, ...]
     final: Final
     instrumentos: tuple[Instrumento, ...] = ()
+    etapa: str | None = None
+    niveles_rubrica: tuple[NivelRubrica, ...] = NIVELES_RUBRICA
+    actividades_pesan_igual: bool = False
 
 
 class _Lector:
@@ -168,6 +192,52 @@ class _Lector:
                 ruta,
                 "debe empezar por una letra y tener solo letras, cifras o _ (16 como mucho)",
             )
+        return valor
+
+    def etapa(self, valor: Any) -> str | None:
+        if valor is None:
+            return None
+        if not isinstance(valor, str) or valor not in ETAPAS:
+            raise self.invalido("etapa", "debe ser primaria, eso, bachillerato o fp")
+        return valor
+
+    def niveles_rubrica(self, valor: Any) -> tuple[NivelRubrica, ...]:
+        if not isinstance(valor, list) or not 2 <= len(valor) <= MAX_NIVELES_RUBRICA:
+            raise self.invalido(
+                "niveles_rubrica", f"debe ser una lista de 2 a {MAX_NIVELES_RUBRICA} niveles"
+            )
+        resultado: list[NivelRubrica] = []
+        vistos: set[str] = set()
+        porcentajes: list[float] = []
+        for i, bruto in enumerate(valor):
+            ruta = f"niveles_rubrica[{i}]"
+            datos = self.mapa(
+                bruto,
+                ruta,
+                ("id", "nombre", "porcentaje"),
+                ("id", "nombre", "porcentaje"),
+            )
+            id_ = self.id_(datos["id"], f"{ruta}.id")
+            if id_ in vistos:
+                raise self.error("ID_REPETIDO", f"{ruta}.id", f"el id «{id_}» está repetido")
+            vistos.add(id_)
+            nombre = self.texto(datos["nombre"], f"{ruta}.nombre")
+            porcentaje = self.numero(datos["porcentaje"], f"{ruta}.porcentaje")
+            if not 0 <= porcentaje <= 100:
+                raise self.invalido(f"{ruta}.porcentaje", "debe estar entre 0 y 100")
+            if porcentaje in porcentajes:
+                raise self.invalido(f"{ruta}.porcentaje", "no puede repetirse")
+            porcentajes.append(porcentaje)
+            resultado.append(NivelRubrica(id_, nombre, porcentaje))
+        if 0 not in porcentajes:
+            raise self.invalido("niveles_rubrica", "debe incluir un nivel con el 0 %")
+        if 100 not in porcentajes:
+            raise self.invalido("niveles_rubrica", "debe incluir un nivel con el 100 %")
+        return tuple(resultado)
+
+    def booleano(self, valor: Any, ruta: str) -> bool:
+        if not isinstance(valor, bool):
+            raise self.invalido(ruta, "debe ser true o false")
         return valor
 
     def elementos(self, valor: Any) -> tuple[Elemento, ...]:
@@ -352,12 +422,32 @@ def cargar_esquema(ruta: Path, carpeta: Path) -> Esquema:
     datos = lector.mapa(
         datos,
         "",
-        ("organizacion", "elementos", "evaluaciones", "final", "instrumentos"),
+        (
+            "organizacion",
+            "elementos",
+            "evaluaciones",
+            "final",
+            "instrumentos",
+            "etapa",
+            "niveles_rubrica",
+            "actividades_pesan_igual",
+        ),
         ("organizacion", "final"),
     )
     organizacion = datos["organizacion"]
     if organizacion not in ("elementos", "evaluaciones"):
         raise lector.invalido("organizacion", "debe ser «elementos» o «evaluaciones»")
+    etapa = lector.etapa(datos.get("etapa"))
+    niveles_rubrica = (
+        lector.niveles_rubrica(datos["niveles_rubrica"])
+        if "niveles_rubrica" in datos
+        else NIVELES_RUBRICA
+    )
+    actividades_pesan_igual = (
+        lector.booleano(datos["actividades_pesan_igual"], "actividades_pesan_igual")
+        if "actividades_pesan_igual" in datos
+        else False
+    )
     final = lector.final(datos["final"])
     for necesaria in {organizacion, final.de}:
         if necesaria not in datos:
@@ -373,4 +463,13 @@ def cargar_esquema(ruta: Path, carpeta: Path) -> Esquema:
     else:
         lector.suman_100([e.peso for e in evaluaciones if e.peso is not None], "evaluaciones")
     instrumentos = lector.instrumentos(datos["instrumentos"]) if "instrumentos" in datos else ()
-    return Esquema(organizacion, elementos, evaluaciones, final, instrumentos)
+    return Esquema(
+        organizacion,
+        elementos,
+        evaluaciones,
+        final,
+        instrumentos,
+        etapa,
+        niveles_rubrica,
+        actividades_pesan_igual,
+    )

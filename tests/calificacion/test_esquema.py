@@ -393,3 +393,111 @@ def test_id_con_guion_bajo_demasiado_largo(tmp_path: Path) -> None:
     error = _codigo(tmp_path, FP.replace("id: RA2", "id: A_" + "b" * 15))  # 17 caracteres
     assert error.codigo == "ESQUEMA_INVALIDO"
     assert "elementos[1].id" in error.detalle
+
+
+# --- Rúbrica por criterios --------------------------------------------------
+
+
+def test_etapa_por_defecto_es_none(tmp_path: Path) -> None:
+    assert _cargar(tmp_path, ESO).etapa is None
+
+
+def test_etapa_eso_se_carga(tmp_path: Path) -> None:
+    esquema = _cargar(tmp_path, ESO.replace("organizacion:", "etapa: eso\norganizacion:"))
+    assert esquema.etapa == "eso"
+
+
+def test_etapa_desconocida_da_esquema_invalido_con_linea(tmp_path: Path) -> None:
+    error = _codigo(tmp_path, ESO.replace("organizacion:", "etapa: universidad\norganizacion:"))
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "etapa" in error.detalle
+    assert "línea 1" in error.detalle
+
+
+def test_niveles_por_defecto(tmp_path: Path) -> None:
+    niveles = _cargar(tmp_path, ESO).niveles_rubrica
+    assert [(n.id, n.nombre, n.porcentaje) for n in niveles] == [
+        ("destacado", "Destacado", 100.0),
+        ("avanzado", "Avanzado", 75.0),
+        ("adecuado", "Adecuado", 50.0),
+        ("inicial", "Inicial", 25.0),
+        ("no_iniciado", "No iniciado", 0.0),
+    ]
+
+
+def test_niveles_sin_cero_o_sin_cien_son_invalidos(tmp_path: Path) -> None:
+    sin_cero = ESO.replace(
+        "organizacion:",
+        "niveles_rubrica:\n"
+        "  - {id: alto, nombre: Alto, porcentaje: 100}\n"
+        "  - {id: medio, nombre: Medio, porcentaje: 50}\n"
+        "organizacion:",
+    )
+    error = _codigo(tmp_path, sin_cero)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "0" in error.detalle
+
+    sin_cien = ESO.replace(
+        "organizacion:",
+        "niveles_rubrica:\n"
+        "  - {id: medio, nombre: Medio, porcentaje: 50}\n"
+        "  - {id: bajo, nombre: Bajo, porcentaje: 0}\n"
+        "organizacion:",
+    )
+    error = _codigo(tmp_path, sin_cien)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "100" in error.detalle
+
+
+def test_niveles_repetidos_o_fuera_de_rango_son_invalidos(tmp_path: Path) -> None:
+    repetidos = ESO.replace(
+        "organizacion:",
+        "niveles_rubrica:\n"
+        "  - {id: alto, nombre: Alto, porcentaje: 100}\n"
+        "  - {id: otro, nombre: Otro, porcentaje: 100}\n"
+        "  - {id: bajo, nombre: Bajo, porcentaje: 0}\n"
+        "organizacion:",
+    )
+    assert _codigo(tmp_path, repetidos).codigo == "ESQUEMA_INVALIDO"
+
+    fuera = ESO.replace(
+        "organizacion:",
+        "niveles_rubrica:\n"
+        "  - {id: alto, nombre: Alto, porcentaje: 101}\n"
+        "  - {id: bajo, nombre: Bajo, porcentaje: 0}\n"
+        "organizacion:",
+    )
+    assert _codigo(tmp_path, fuera).codigo == "ESQUEMA_INVALIDO"
+
+    uno = ESO.replace(
+        "organizacion:",
+        "niveles_rubrica:\n  - {id: alto, nombre: Alto, porcentaje: 100}\norganizacion:",
+    )
+    assert _codigo(tmp_path, uno).codigo == "ESQUEMA_INVALIDO"
+
+    once = ESO.replace(
+        "organizacion:",
+        "niveles_rubrica:\n"
+        + "".join(
+            f"  - {{id: n{i}, nombre: Nivel {i}, porcentaje: {100 - i * 10}}}\n"
+            for i in range(1, 12)
+        )
+        + "organizacion:",
+    )
+    assert _codigo(tmp_path, once).codigo == "ESQUEMA_INVALIDO"
+
+
+def test_actividades_pesan_igual_por_defecto_false_y_debe_ser_booleano(tmp_path: Path) -> None:
+    assert _cargar(tmp_path, ESO).actividades_pesan_igual is False
+    assert (
+        _cargar(
+            tmp_path,
+            ESO.replace("organizacion:", "actividades_pesan_igual: true\norganizacion:"),
+        ).actividades_pesan_igual
+        is True
+    )
+    error = _codigo(
+        tmp_path, ESO.replace("organizacion:", "actividades_pesan_igual: 1\norganizacion:")
+    )
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "actividades_pesan_igual" in error.detalle
