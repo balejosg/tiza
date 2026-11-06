@@ -119,6 +119,7 @@ AVISOS = frozenset(
     {
         "ACTIVIDAD_EN_EVALUACION_CERRADA",
         "ACTIVIDAD_PENDIENTE",
+        "ACTIVIDAD_SIN_EVALUA",
         "AISLAMIENTO_GUARDADO",
         "AUTOPRUEBA_FALLIDA",
         "CALIFICANDO_EN_PRUEBAS",
@@ -192,6 +193,11 @@ class Aviso:
     def actividad_pendiente(cls, ruta: str) -> Aviso:
         """``ruta``: el fichero de la carpeta que aún no está en el aula (o no se califica)."""
         return cls("ACTIVIDAD_PENDIENTE", {"ruta": ruta})
+
+    @classmethod
+    def actividad_sin_evalua(cls, ruta: str) -> Aviso:
+        """``ruta``: actividad calificable de ESO que aún no declara criterios (``evalua``)."""
+        return cls("ACTIVIDAD_SIN_EVALUA", {"ruta": ruta})
 
     @classmethod
     def aislamiento_guardado(cls, ruta: Path, copia: str | None) -> Aviso:

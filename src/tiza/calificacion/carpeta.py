@@ -10,13 +10,18 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from tiza import contenido
+from tiza import contenido, tipos
 from tiza.calificacion.deseado import deseado
 from tiza.calificacion.esquema import ErrorCalificacion, Esquema, cargar_esquema
 from tiza.contenido import Documento, ErrorContenido
 from tiza.ficheros import FicheroNoSeguro, leer_bytes_acotado
 
-__all__ = ["MAX_FICHEROS", "cargar_calificacion", "documentos_de_la_carpeta"]
+__all__ = [
+    "MAX_FICHEROS",
+    "actividades_sin_evalua",
+    "cargar_calificacion",
+    "documentos_de_la_carpeta",
+]
 
 MAX_FICHEROS = 500  # ficheros .md y .html que se miran como mucho
 _EXTENSIONES = {".md", ".html", ".htm"}
@@ -75,3 +80,26 @@ def cargar_calificacion(esquema: Path, base: Path) -> tuple[Esquema, list[Docume
         datos, documentos, False, raiz
     )  # solo valida: si un calificador anterior cambia algo, no es un error
     return datos, documentos
+
+
+def actividades_sin_evalua(
+    esquema: Esquema, documentos: list[Documento], carpeta: Path
+) -> list[str]:
+    """Rutas relativas de las actividades calificables sin ``evalua``, solo en ESO.
+
+    Son las tareas, los cuestionarios y los H5P que aún no cuentan en el calificador. Las
+    páginas y las etiquetas no tienen nota y no salen. El resultado va ordenado.
+    """
+    if esquema.etapa != "eso":
+        return []
+    raiz = Path(carpeta).resolve()
+    rutas: list[str] = []
+    for documento in documentos:
+        if documento.evalua is not None or not tipos.obtener(documento.tipo).calificable:
+            continue
+        try:
+            relativa = documento.ruta.resolve().relative_to(raiz)
+        except (ValueError, OSError):
+            relativa = documento.ruta
+        rutas.append(relativa.as_posix())
+    return sorted(rutas)

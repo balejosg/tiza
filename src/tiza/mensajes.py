@@ -936,6 +936,15 @@ def _actividad_pendiente(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _actividad_sin_evalua(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "Esta actividad del aula no cuenta en el calificador hasta que tenga criterios "
+            f"(evalua): {texto_seguro(datos['ruta'], 200)}"
+        ),
+    )
+
+
 def _calificando_en_pruebas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(
@@ -1246,6 +1255,7 @@ def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ACTIVIDAD_EN_EVALUACION_CERRADA": _actividad_en_evaluacion_cerrada,
     "ACTIVIDAD_PENDIENTE": _actividad_pendiente,
+    "ACTIVIDAD_SIN_EVALUA": _actividad_sin_evalua,
     "AISLAMIENTO_GUARDADO": _aislamiento_guardado,
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
     "CALIFICANDO_EN_PRUEBAS": _calificando_en_pruebas,

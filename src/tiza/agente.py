@@ -19,7 +19,7 @@ from pathlib import Path
 
 from . import buzon, calendario, contenido, estado, informe, rutas
 from .calendario import ErrorCalendario
-from .calificacion.carpeta import cargar_calificacion
+from .calificacion.carpeta import actividades_sin_evalua, cargar_calificacion
 from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
 from .contenido import Documento, ErrorContenido, hash_documento
 from .escritura import ErrorEscritura
@@ -194,11 +194,13 @@ def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> Fi
     curso no cambia si hay errores: solo cambia lo que se coloca, no si algo es válido).
     """
     try:
-        cargar_calificacion(ruta, raiz)
+        esquema, documentos = cargar_calificacion(ruta, raiz)
     except ErrorCalificacion as exc:
         borrador.error(exc.codigo)
         borrador.fallo("COMPROBAR", f"{ruta.name}: {exc.codigo}")
         return FicheroComprobado(ruta.name, exc.codigo, exc.detalle)
+    for relativa in actividades_sin_evalua(esquema, documentos, raiz):
+        borrador.paso("ACTIVIDAD_SIN_EVALUA", detalle=relativa)
     borrador.paso("COMPROBAR", detalle=ruta.name)
     return FicheroComprobado(ruta.name)
 
