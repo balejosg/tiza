@@ -1356,3 +1356,57 @@ def test_el_calificador_no_adivina_si_el_registro_y_el_nombre_apuntan_a_activida
             estructura_de(secciones), documentos_de_la_carpeta(carpeta), CURSO, carpeta
         )
     assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
+
+
+def _con_origen(carpeta: Path, nombre: str, cmid: int, *, origen_curso: int = CURSO) -> None:
+    (carpeta / nombre).write_text(
+        f"---\ntipo: tarea\nnombre: Problemas\nseccion: 1\n"
+        f"apertura: 2026-10-01\nentrega: 2026-10-10\nevalua: {{RA1: 100}}\n"
+        f"origen: {{curso: {origen_curso}, cmid: {cmid}}}\n---\n\nTexto\n",
+        encoding="utf-8",
+    )
+
+
+def test_actividad_importada_con_origen_y_evalua_se_coloca(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    _con_origen(carpeta, "a.md", 11)
+    assert publicacion._cmids_de(
+        estructura_de(secciones_de()), documentos_de_la_carpeta(carpeta), CURSO, carpeta
+    ) == {"a.md": 11, "d.md": 12, "c.md": 13}
+
+
+def test_actividad_importada_renombrada_en_el_aula_se_sigue_colocando(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    _con_origen(carpeta, "a.md", 11)
+    secciones = secciones_de()
+    secciones[0]["modulos"][0]["nombre"] = "Nombre cambiado en el aula"
+    assert (
+        publicacion._cmids_de(
+            estructura_de(secciones), documentos_de_la_carpeta(carpeta), CURSO, carpeta
+        )["a.md"]
+        == 11
+    )
+
+
+def test_dos_ficheros_mismo_origen_dan_actividad_ambigua(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    _con_origen(carpeta, "a.md", 11)
+    _con_origen(carpeta, "b.md", 11)
+    with pytest.raises(ErrorPublicacion) as exc:
+        publicacion._cmids_de(
+            estructura_de(secciones_de()), documentos_de_la_carpeta(carpeta), CURSO, carpeta
+        )
+    assert exc.value.codigo == "ACTIVIDAD_AMBIGUA"
+
+
+def test_origen_que_ya_no_esta_en_el_aula_es_pendiente(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    _con_origen(carpeta, "a.md", 99)
+    secciones = secciones_de()
+    documentos = documentos_de_la_carpeta(carpeta)
+    assert publicacion._cmids_de(estructura_de(secciones), documentos, CURSO, carpeta) == {
+        "d.md": 12,
+        "c.md": 13,
+    }
+    doc = next(d for d in documentos if d.ruta.name == "a.md")
+    assert estructura_de(secciones).localizar(doc, CURSO).problema == "ORIGEN_NO_ENCONTRADO"
