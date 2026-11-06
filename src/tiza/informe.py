@@ -121,6 +121,7 @@ PASOS = (
             "PREPARAR",
             "PUBLICAR",
             "REGISTRO_NO_GUARDADO",
+            "RUBRICA_NO_ACTIVADA",
             "SECCION_DISTINTA_ENTRE_CURSOS",
             "SIN_SESION",
             "SOLO_FECHAS",

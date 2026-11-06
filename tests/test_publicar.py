@@ -17,7 +17,7 @@ from py_moodle.module import MoodleModuleError
 from py_moodle.session import MoodleSessionError
 
 from dobles import MoodleFalso, aula_con_tarea, estructura_de, fecha_en_formulario, tarea_en
-from tiza import config, contenido, estado, publicar, tipos
+from tiza import config, contenido, estado, publicar, rubrica, tipos
 from tiza.estructura import Actividad
 from tiza.publicar import ErrorPublicacion
 
@@ -4963,3 +4963,186 @@ def test_el_doble_mueve_la_nota_en_su_arbol():
     falso.fallos["mover_nota"] = ["ESCRITURA_CALIFICADOR"]
     with pytest.raises(ErrorPublicacion):
         falso.mover_nota(2, "ig1", "cg3", None)
+
+
+# --- Rúbricas en Moodle -----------------------------------------------------
+
+MEDIT_CON_NOTAS = """<form action="modedit.php" method="post">
+  <input name="name" value="Redacción">
+  <select name="grade[modgrade_rescalegrades]"><option value="no">No</option></select>
+</form>"""
+
+MEDIT_SIN_NOTAS = """<form action="modedit.php" method="post">
+  <input name="name" value="Redacción">
+  <input name="grade[modgrade_point]" value="10">
+</form>"""
+
+EDITOR_RUBRICA_VACIO = """<form action="edit.php" method="post">
+  <input type="hidden" name="_qf__gradingform_rubric_editrubric" value="1">
+  <input name="name" value="">
+</form>"""
+
+EDITOR_RUBRICA_LLENA = """<form action="edit.php" method="post">
+  <input type="hidden" name="_qf__gradingform_rubric_editrubric" value="1">
+  <input name="name" value="Rúbrica de prueba">
+  <textarea name="description_editor[text]">Descripción.</textarea>
+  <input type="checkbox" name="rubric[options][lockzeropoints]" checked>
+  <input name="rubric[options][showremarksstudent]">
+  <input name="rubric[criteria][71][sortorder]" value="1">
+  <input name="rubric[criteria][71][description]" value="Contenido: Ventajas e inconvenientes.">
+  <input name="rubric[criteria][71][levels][710][score]" value="0.00">
+  <input name="rubric[criteria][71][levels][710][definition]" value="Ninguna.">
+  <input name="rubric[criteria][71][levels][711][score]" value="4.00">
+  <input name="rubric[criteria][71][levels][711][definition]" value="Varias.">
+</form>"""
+
+
+class _RespuestaRubrica:
+    def __init__(self, text: str = "", status: int = 200) -> None:
+        self.text = text
+        self.status_code = status
+        self.url = "https://aula.example.org/mod/assign/view.php"
+        self.headers: dict[str, str] = {}
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise publicar.requests.HTTPError(f"{self.status_code}")
+
+
+class _SesionSinNotas:
+    """Sesión mínima que falla si alguien pide notas o nombres del alumnado."""
+
+    def __init__(self, respuestas) -> None:
+        self.respuestas = list(respuestas)
+        self.peticiones: list[tuple[str, str, dict]] = []
+
+    def _comprobar(self, url: str, kw: dict) -> None:
+        destino = url + "?" + "&".join(f"{k}={v}" for k, v in (kw.get("params") or {}).items())
+        assert "action=grading" not in destino, destino
+        assert "user/index.php" not in destino, destino
+        assert "user/view.php" not in destino, destino
+
+    def get(self, url, **kw):
+        self._comprobar(url, kw)
+        self.peticiones.append(("GET", url, kw))
+        return self._siguiente()
+
+    def post(self, url, **kw):
+        self._comprobar(url, kw)
+        self.peticiones.append(("POST", url, kw))
+        return self._siguiente()
+
+    def _siguiente(self):
+        respuesta = self.respuestas.pop(0)
+        if isinstance(respuesta, Exception):
+            raise respuesta
+        return respuesta
+
+
+def _moodle_rubrica(sesion, monkeypatch) -> publicar.Moodle:
+    monkeypatch.setattr(publicar.Moodle, "leer_modulo", lambda self, cmid: {"contexto": 555})
+    return publicar.Moodle("https://aula.example.org", sesion, "sesskey", pausa=0)
+
+
+def _cargada_de_prueba() -> rubrica.RubricaCargada:
+    return rubrica.RubricaCargada(
+        nombre="Rúbrica de prueba",
+        descripcion="Descripción.",
+        html="<p>Descripción.</p>\n",
+        criterios=(
+            rubrica.CriterioRubrica(
+                id="contenido",
+                nombre="Contenido",
+                descripcion="Ventajas e inconvenientes.",
+                niveles=(
+                    rubrica.Nivel(id="excelente", puntos=4.0, descripcion="Varias."),
+                    rubrica.Nivel(id="insuficiente", puntos=0.0, descripcion="Ninguna."),
+                ),
+            ),
+        ),
+    )
+
+
+def test_actividad_tiene_notas_por_rescalegrades(monkeypatch):
+    sesion = _SesionSinNotas(
+        [_RespuestaRubrica(MEDIT_CON_NOTAS), _RespuestaRubrica(MEDIT_SIN_NOTAS)]
+    )
+    moodle = _moodle_rubrica(sesion, monkeypatch)
+    assert moodle.actividad_tiene_notas(5) is True
+    assert moodle.actividad_tiene_notas(5) is False
+
+
+def test_actividad_tiene_notas_ilegible_es_verdadero(monkeypatch):
+    sesion = _SesionSinNotas([RuntimeError("sin respuesta")])
+    assert _moodle_rubrica(sesion, monkeypatch).actividad_tiene_notas(5) is True
+
+
+def test_no_se_pide_la_tabla_de_calificacion(monkeypatch):
+    sesion = _SesionSinNotas(
+        [
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_VACIO),
+            _RespuestaRubrica(MEDIT_SIN_NOTAS),
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_VACIO),
+            _RespuestaRubrica("", status=303),
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_LLENA),
+        ]
+    )
+    resultado = _moodle_rubrica(sesion, monkeypatch).definir_rubrica(5, _cargada_de_prueba())
+    assert resultado["accion"] == "definida"
+
+
+def test_definir_rubrica_nueva(monkeypatch):
+    sesion = _SesionSinNotas(
+        [
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_VACIO),
+            _RespuestaRubrica(MEDIT_SIN_NOTAS),
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_VACIO),
+            _RespuestaRubrica("", status=303),
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_LLENA),
+        ]
+    )
+    resultado = _moodle_rubrica(sesion, monkeypatch).definir_rubrica(5, _cargada_de_prueba())
+    assert resultado["accion"] == "definida"
+    assert resultado["pares"]["contenido"]["moodle"] == "71"
+    post = next(peticion for peticion in sesion.peticiones if peticion[0] == "POST")
+    datos = post[2]["data"]
+    assert datos["saverubric"]
+    assert datos["name"] == "Rúbrica de prueba"
+    assert datos["rubric[criteria][NEWID1][description]"] == (
+        "Contenido: Ventajas e inconvenientes."
+    )
+    assert {
+        datos[f"rubric[criteria][NEWID1][levels][NEWID1{posicion}][score]"] for posicion in (0, 1)
+    } == {"0", "4"}
+
+
+def test_definir_rubrica_ya_definida_no_reenvia(monkeypatch):
+    sesion = _SesionSinNotas(
+        [
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_LLENA),
+        ]
+    )
+    resultado = _moodle_rubrica(sesion, monkeypatch).definir_rubrica(5, _cargada_de_prueba())
+    assert resultado["accion"] == "ya_definida"
+    assert [peticion[0] for peticion in sesion.peticiones] == ["GET", "GET"]
+
+
+def test_definir_rubrica_con_notas_da_rubrica_en_uso(monkeypatch):
+    sesion = _SesionSinNotas(
+        [
+            _RespuestaRubrica('<a href="…areaid=77">Editar</a>'),
+            _RespuestaRubrica(EDITOR_RUBRICA_VACIO),
+            _RespuestaRubrica(MEDIT_CON_NOTAS),
+        ]
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_rubrica(sesion, monkeypatch).definir_rubrica(5, _cargada_de_prueba())
+    assert exc.value.codigo == "RUBRICA_EN_USO"
+    assert all(peticion[0] == "GET" for peticion in sesion.peticiones)

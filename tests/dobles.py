@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from tiza import aislamiento, buzon, colocacion, config, informe, publicacion, rutas
+from tiza import aislamiento, buzon, colocacion, config, informe, publicacion, publicar, rutas
 from tiza.estructura import Estructura
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
@@ -203,6 +203,9 @@ class MoodleFalso:
         self.borrar_copia_falla = False
         self.copia_falla: str | None = None  # código con el que falla ``hacer_copia``
         self.copia_falla_queda = False  # y, al fallar, la copia ya estaba en el aula
+        # Rúbricas: criterios leídos por cmid y tareas que ya tienen notas.
+        self.rubricas: dict[int, list[dict]] = {}
+        self.tareas_con_notas: set[int] = set()
 
     def _de(self, curso_id):
         return self.secciones_por_curso.get(curso_id, self.secciones)
@@ -300,6 +303,47 @@ class MoodleFalso:
                 "esperada": _fecha_del_formulario(formulario, "completionexpected"),
                 "disponibilidad": formulario.get("availabilityconditionsjson", ""),
             },
+        }
+
+    def actividad_tiene_notas(self, cmid):
+        self.llamadas.append(("actividad_tiene_notas", cmid))
+        return cmid in self.tareas_con_notas
+
+    def leer_rubrica(self, cmid):
+        self.llamadas.append(("leer_rubrica", cmid))
+        return {
+            "criterios": self.rubricas.get(cmid, []),
+            "lockzeropoints": True,
+            "showremarksstudent": False,
+        }
+
+    def definir_rubrica(self, cmid, rubrica):
+        self.llamadas.append(("definir_rubrica", cmid, rubrica.nombre))
+        leida = self.rubricas.get(cmid, [])
+        pares = publicar.emparejar_rubrica(leida, rubrica)
+        if pares is not None:
+            return {"accion": "ya_definida", "pares": pares}
+        if cmid in self.tareas_con_notas:
+            raise ErrorPublicacion("RUBRICA_EN_USO")
+        self.rubricas[cmid] = [
+            {
+                "id": str(700 + indice),
+                "orden": str(indice),
+                "descripcion": f"{criterio.nombre}: {criterio.descripcion}",
+                "niveles": [
+                    {
+                        "id": str(710 + indice * 10 + posicion),
+                        "puntos": nivel.puntos,
+                        "definicion": nivel.descripcion,
+                    }
+                    for posicion, nivel in enumerate(criterio.niveles)
+                ],
+            }
+            for indice, criterio in enumerate(rubrica.criterios, 1)
+        ]
+        return {
+            "accion": "definida",
+            "pares": publicar.emparejar_rubrica(self.rubricas[cmid], rubrica),
         }
 
     def imagenes_de_pregunta(self, cmid, pregunta_id):

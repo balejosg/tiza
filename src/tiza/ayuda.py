@@ -105,6 +105,8 @@ MENSAJES: dict[str, str] = {
     "RECURSO_EN_PREGUNTA": "Una pregunta solo admite imágenes locales PNG, JPEG, GIF o WebP (con texto alternativo); cualquier otro fichero o enlace a un fichero local no vale. Pon los documentos en la descripción.",
     "HTML_PELIGROSO": "El contenido lleva HTML que tiza no admite. Quita o cambia lo que diga el mensaje: scripts, comentarios, estilos o clases fuera de la lista, o iframes de webs que no están permitidas.",
     "RUBRICA_NO_VALIDA": "La rúbrica no es válida: revisa el detalle del error (ids, puntos, textos o forma de la rúbrica). En el público, el campo «rubrica» de una tarea solo admite el valor «por_criterios».",
+    "RUBRICA_EN_USO": "La tarea ya tiene notas puestas, así que tiza no cambia su rúbrica. La nota única de la tarea cuenta igual para todos sus criterios; para desglosarla habría que volver a corregirla. No se ha tocado la rúbrica.",
+    "RUBRICA_ILEGIBLE": "No se pudo leer o guardar la rúbrica de la tarea en el aula. Vuelve a intentarlo; si se repite, revisa la tarea en el curso de pruebas.",
     "RECURSO_AUSENTE": "Falta una imagen o un fichero enlazado desde el fichero. Cópialo a la carpeta o corrige la ruta.",
     "RECURSO_DUPLICADO": "Dos recursos distintos tienen el mismo nombre de fichero. Cambia el nombre de uno.",
     "ENLACE_A_DOCUMENTO": "El enlace apunta a otro documento de la carpeta y se subiría su fichero fuente. Quita el enlace: el aula ya lleva a la actividad siguiente; nómbrala sin enlazarla.",

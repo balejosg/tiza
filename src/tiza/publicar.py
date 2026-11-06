@@ -57,6 +57,7 @@ from .estructura import (
     Estructura,
     nombre_de_seccion,
 )
+from .rubrica import CriterioRubrica, RubricaCargada
 from .tipos.cuestionario import CAMPOS_FECHA as CAMPOS_FECHA_CUESTIONARIO
 from .tipos.tarea import CAMPOS_FECHA as CAMPOS_FECHA_TAREA
 
@@ -132,6 +133,25 @@ _BOTONES_QUE_NO_AVANZAN = frozenset({"cancel", "previous"})
 # Fechas del formulario de las actividades con fechas, para releerlas: los campos
 # de una tarea y los de un cuestionario (nombres del Moodle en español, arriba).
 _CAMPOS_FECHA_LEIDOS = CAMPOS_FECHA_TAREA + CAMPOS_FECHA_CUESTIONARIO
+
+# Rúbrica nativa de una tarea (medido en el Moodle de pruebas).
+METODO_SUBMISSIONS = "advancedgradingmethod_submissions"
+_QF_RUBRICA = re.compile(r"\A_qf__gradingform_rubric_editrubric")
+_CRITERIO_RUBRICA = re.compile(r"\Arubric\[criteria\]\[([^\]]+)\]\[(description|sortorder)\]\Z")
+_NIVEL_RUBRICA = re.compile(
+    r"\Arubric\[criteria\]\[([^\]]+)\]\[levels\]\[([^\]]+)\]\[(score|definition)\]\Z"
+)
+OPCIONES_RUBRICA = {
+    "rubric[options][sortlevelsasc]": "1",
+    "rubric[options][lockzeropoints]": "1",
+    "rubric[options][alwaysshowdefinition]": "1",
+    "rubric[options][showdescriptionteacher]": "1",
+    "rubric[options][showdescriptionstudent]": "1",
+    "rubric[options][showscoreteacher]": "1",
+    "rubric[options][showscorestudent]": "1",
+    "rubric[options][enableremarks]": "1",
+    "rubric[options][showremarksstudent]": "1",
+}
 
 # Detalle de CUESTIONARIO_CON_INTENTOS: es un texto de tiza, nunca de Moodle.
 DETALLE_INTENTOS = (
@@ -349,6 +369,12 @@ class AulaVirtual(Protocol):
     def actualizar(self, cmid: int, payload: dict) -> None: ...
 
     def leer_modulo(self, cmid: int) -> dict: ...
+
+    def actividad_tiene_notas(self, cmid: int) -> bool: ...
+
+    def leer_rubrica(self, cmid: int) -> dict: ...
+
+    def definir_rubrica(self, cmid: int, rubrica: RubricaCargada) -> dict: ...
 
     def imagenes_de_pregunta(self, cmid: int, pregunta_id: int) -> tuple[int, int]: ...
 
@@ -668,6 +694,106 @@ class Moodle:
                 "disponibilidad": _campo(formulario, "availabilityconditionsjson") or "",
             },
         }
+
+    def actividad_tiene_notas(self, cmid: int) -> bool:
+        """¿La tarea ya tiene notas en el calificador? Solo por ``rescalegrades`` en sus ajustes.
+
+        No abre la tabla de calificación ni la lista de participantes: no lee ninguna nota ni
+        ningún nombre. Moodle muestra ese campo cuando el elemento del calificador ya tiene
+        notas: una nota liberada, o una puesta sin flujo de trabajo. Una nota en borrador (con
+        ``markingworkflow`` activo) no lo muestra; por eso la confirmación del docente es la
+        regla principal y este campo es solo un freno. Si el formulario no se puede leer, se
+        trata como si tuviera notas (D14): ante la duda, no se cambia su método ni su rúbrica.
+        """
+        url = f"{self.base_url}/course/modedit.php?update={cmid}"
+        try:
+            respuesta = self.sesion.get(url, timeout=TIEMPO_ESPERA)
+            respuesta.raise_for_status()
+            texto = getattr(respuesta, "text", "") or ""
+        except Exception:  # noqa: BLE001 - no poder saberlo cuenta como «tiene notas»
+            return True
+        sopa = BeautifulSoup(texto, "html.parser")
+        return any("rescalegrades" in str(campo.get("name") or "") for campo in sopa.find_all(True))
+
+    def _area_rubrica(self, cmid: int) -> int:
+        contexto = self.leer_modulo(cmid).get("contexto")
+        if not isinstance(contexto, int):
+            raise ErrorPublicacion("RUBRICA_ILEGIBLE")
+        self._esperar()
+        respuesta = self._reducir(
+            "RUBRICA_ILEGIBLE",
+            self.sesion.get,
+            f"{self.base_url}/grade/grading/manage.php",
+            params={"contextid": contexto, "component": "mod_assign", "area": "submissions"},
+            timeout=TIEMPO_ESPERA,
+        )
+        self._reducir("RUBRICA_ILEGIBLE", respuesta.raise_for_status)
+        coincide = re.search(r"areaid=(\d+)", getattr(respuesta, "text", "") or "")
+        if coincide is None:
+            raise ErrorPublicacion("RUBRICA_ILEGIBLE")
+        return int(coincide.group(1))
+
+    def _formulario_rubrica(self, cmid: int):
+        """(respuesta, formulario) del editor de rúbricas de la tarea."""
+        area = self._area_rubrica(cmid)
+        self._esperar()
+        respuesta = self._reducir(
+            "RUBRICA_ILEGIBLE",
+            self.sesion.get,
+            f"{self.base_url}/grade/grading/form/rubric/edit.php",
+            params={"areaid": area},
+            timeout=TIEMPO_ESPERA,
+        )
+        self._reducir("RUBRICA_ILEGIBLE", respuesta.raise_for_status)
+        formulario = _formulario_en(getattr(respuesta, "text", "") or "", _QF_RUBRICA)
+        if formulario is None:
+            raise ErrorPublicacion("RUBRICA_ILEGIBLE")
+        return respuesta, formulario
+
+    def leer_rubrica(self, cmid: int) -> dict:
+        """La rúbrica nativa de la tarea, con los ids de Moodle y las opciones del editor."""
+        _respuesta, formulario = self._formulario_rubrica(cmid)
+        return {
+            "criterios": _definicion_rubrica(formulario),
+            "lockzeropoints": _casilla_marcada(formulario, "rubric[options][lockzeropoints]"),
+            "showremarksstudent": _casilla_marcada(
+                formulario, "rubric[options][showremarksstudent]"
+            ),
+        }
+
+    def definir_rubrica(self, cmid: int, rubrica: RubricaCargada) -> dict:
+        """Define (o confirma) la rúbrica nativa de una tarea.
+
+        Devuelve ``{"accion": "ya_definida"|"definida", "pares": …}``. Con notas puestas no
+        toca nada: ``RUBRICA_EN_USO``. La señal de notas es ``actividad_tiene_notas``: nunca
+        se abre la tabla de calificación ni la lista de participantes.
+        """
+        pares = emparejar_rubrica(self.leer_rubrica(cmid)["criterios"], rubrica)
+        if pares is not None:
+            return {"accion": "ya_definida", "pares": pares}
+        if self.actividad_tiene_notas(cmid):
+            raise ErrorPublicacion("RUBRICA_EN_USO")
+        respuesta, formulario = self._formulario_rubrica(cmid)
+        datos = _datos_rubrica(py_module._extract_modedit_form_data(formulario), rubrica)
+        destino = urljoin(
+            getattr(respuesta, "url", None) or f"{self.base_url}/grade/grading/form/rubric/",
+            formulario.get("action") or "edit.php",
+        )
+        self._esperar()
+        envio = self._reducir(
+            "RUBRICA_ILEGIBLE",
+            self.sesion.post,
+            destino,
+            data=datos,
+            timeout=TIEMPO_ESPERA,
+            allow_redirects=False,
+        )
+        if getattr(envio, "status_code", 0) not in (301, 302, 303):
+            raise ErrorPublicacion("RUBRICA_ILEGIBLE")
+        pares = emparejar_rubrica(self.leer_rubrica(cmid)["criterios"], rubrica)
+        if pares is None:
+            raise ErrorPublicacion("RUBRICA_ILEGIBLE")
+        return {"accion": "definida", "pares": pares}
 
     def imagenes_de_pregunta(self, cmid: int, pregunta_id: int) -> tuple[int, int]:
         """(imágenes que enseña la vista previa de la pregunta, las que se sirven con HTTP 200).
@@ -2196,6 +2322,110 @@ def _envio_de_copia(formulario: Any, nombre_fichero: str) -> list[tuple[str, str
 def _tiene_campo(contenedor: Any, nombre: str) -> bool:
     """¿El formulario lleva ese campo? (los nombres pueden repetirse)."""
     return bool(contenedor.find_all(attrs={"name": nombre}))
+
+
+def _formulario_en(html: str, marca: re.Pattern[str]):
+    """El formulario que lleva un campo con ese nombre, o ``None``."""
+    sopa = BeautifulSoup(html, "html.parser")
+    if not sopa.find(True, attrs={"name": marca}):
+        return None
+    return next((f for f in sopa.find_all("form") if f.find(True, attrs={"name": marca})), sopa)
+
+
+def _definicion_rubrica(formulario) -> list[dict]:
+    """Criterios y niveles del editor, con los ids de Moodle."""
+    criterios: dict[str, dict] = {}
+    for campo in formulario.find_all(["input", "textarea"]):
+        nombre = campo.get("name") or ""
+        if coincide := _CRITERIO_RUBRICA.match(nombre):
+            criterio = criterios.setdefault(coincide.group(1), {"niveles": {}})
+            if coincide.group(2) == "description":
+                criterio["descripcion"] = (
+                    campo.text if campo.name == "textarea" else campo.get("value")
+                )
+            else:
+                criterio["orden"] = campo.get("value")
+        elif coincide := _NIVEL_RUBRICA.match(nombre):
+            criterio = criterios.setdefault(coincide.group(1), {"niveles": {}})
+            nivel = criterio["niveles"].setdefault(coincide.group(2), {})
+            valor = campo.text if campo.name == "textarea" else campo.get("value")
+            nivel["puntos" if coincide.group(3) == "score" else "definicion"] = valor
+    salida = []
+    for ident, datos in criterios.items():
+        niveles = []
+        for nid, nivel in datos["niveles"].items():
+            try:
+                puntos = float(str(nivel.get("puntos", "")).replace(",", "."))
+            except ValueError:
+                puntos = None
+            niveles.append(
+                {"id": nid, "puntos": puntos, "definicion": nivel.get("definicion") or ""}
+            )
+        salida.append(
+            {
+                "id": ident,
+                "orden": datos.get("orden"),
+                "descripcion": datos.get("descripcion") or "",
+                "niveles": niveles,
+            }
+        )
+    return salida
+
+
+def _titulo_criterio(criterio: CriterioRubrica) -> str:
+    """Cómo se escribe un criterio en el editor de rúbricas de Moodle."""
+    return f"{criterio.nombre}: {criterio.descripcion}"
+
+
+def emparejar_rubrica(leida: list[dict], rubrica: RubricaCargada) -> dict[str, dict] | None:
+    """Nuestro id de criterio → {moodle, niveles (ids por puntos)}; ``None`` si no cuadra.
+
+    Los ids se emparejan por la descripción del criterio y por los puntos de sus
+    niveles, que es lo único que Moodle conserva.
+    """
+    pares: dict[str, dict] = {}
+    for criterio in rubrica.criterios:
+        esperado = _titulo_criterio(criterio)
+        candidato = next(
+            (c for c in leida if (c.get("descripcion") or "").strip() == esperado), None
+        )
+        if candidato is None:
+            return None
+        esperados = sorted(nivel.puntos for nivel in criterio.niveles)
+        niveles = sorted(
+            candidato.get("niveles") or [],
+            key=lambda nivel: (nivel.get("puntos") is None, nivel.get("puntos")),
+        )
+        if [nivel.get("puntos") for nivel in niveles] != esperados:
+            return None
+        pares[criterio.id] = {
+            "moodle": candidato.get("id"),
+            "niveles": [nivel.get("id") for nivel in niveles],
+        }
+    return pares
+
+
+def _datos_rubrica(base: dict, rubrica: RubricaCargada) -> dict:
+    """Datos del editor de rúbricas con nuestra rúbrica (fuera los criterios por defecto)."""
+    datos = {
+        clave: valor for clave, valor in base.items() if not clave.startswith("rubric[criteria]")
+    }
+    datos.update(OPCIONES_RUBRICA)
+    datos["name"] = rubrica.nombre
+    datos["description_editor[text]"] = rubrica.html
+    datos["description_editor[format]"] = "1"
+    for indice, criterio in enumerate(rubrica.criterios, 1):
+        prefijo = f"rubric[criteria][NEWID{indice}]"
+        datos[f"{prefijo}[sortorder]"] = str(indice)
+        datos[f"{prefijo}[description]"] = _titulo_criterio(criterio)
+        for numero, nivel in enumerate(criterio.niveles):
+            clave = f"{prefijo}[levels][NEWID{indice * 10 + numero}]"
+            datos[f"{clave}[score]"] = f"{nivel.puntos:g}"
+            datos[f"{clave}[definition]"] = nivel.descripcion
+    for boton in [k for k in datos if k.startswith("saverubric") or k in {"cancel", "editrubric"}]:
+        datos.pop(boton)
+    datos["saverubric"] = "Guardar rúbrica y dejarla lista"
+    return datos
 
 
 _HUECO = re.compile(r'id="slot-(\d+)"')
