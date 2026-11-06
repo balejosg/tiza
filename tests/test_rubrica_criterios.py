@@ -323,3 +323,68 @@ def test_comprobar_da_los_errores_offline(tmp_path) -> None:
     resultado = agente.comprobar(tmp_path, [ruta.name])
     assert resultado.ficheros[0].codigo == "ELEMENTO_CON_CRITERIOS"
     assert "ELEMENTO_CON_CRITERIOS" in resultado.informe["errores"]
+
+
+# --- Tarea importada del aula (retrofit) ------------------------------------
+
+
+def _carpeta_importada(tmp_path):
+    _carpeta(tmp_path)
+    ruta = tmp_path / "tarea.md"
+    texto = ruta.read_text(encoding="utf-8").replace(
+        "rubrica: por_criterios\n",
+        "rubrica: por_criterios\norigen: {curso: 1234, cmid: 55}\n",
+    )
+    ruta.write_text(texto, encoding="utf-8")
+    return ruta
+
+
+def test_importada_sin_notas_recibe_la_rubrica_al_publicar(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta_importada(tmp_path), raiz=tmp_path)
+    moodle = aula_con_tarea()
+    resultado = publicar.publicar_documento(
+        moodle,
+        1234,
+        estructura_de(moodle.secciones),
+        doc,
+        visible=None,
+        rubrica_confirmada=True,
+    )
+    assert resultado.cmid == 55
+    assert any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert moodle.formularios[55][publicar.METODO_SUBMISSIONS] == "rubric"
+
+
+def test_importada_con_notas_conserva_su_metodo(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta_importada(tmp_path), raiz=tmp_path)
+    moodle = aula_con_tarea()
+    moodle.tareas_con_notas.add(55)
+    pasos: list = []
+    publicar.publicar_documento(
+        moodle,
+        1234,
+        estructura_de(moodle.secciones),
+        doc,
+        visible=None,
+        rubrica_confirmada=True,
+        pasos=pasos,
+    )
+    assert [paso.codigo for paso in pasos] == ["RUBRICA_NO_ACTIVADA"]
+    assert not any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert publicar.METODO_SUBMISSIONS not in moodle.formularios[55]
+
+
+def test_importada_sin_cambios_salvo_la_rubrica_mantiene_la_descripcion(tmp_path) -> None:
+    doc = contenido.cargar(_carpeta_importada(tmp_path), raiz=tmp_path)
+    moodle = aula_con_tarea()
+    moodle.formularios[55]["introeditor[text]"] = doc.html
+    publicar.publicar_documento(
+        moodle,
+        1234,
+        estructura_de(moodle.secciones),
+        doc,
+        visible=None,
+        rubrica_confirmada=True,
+    )
+    actualizar = next(llamada for llamada in moodle.llamadas if llamada[0] == "actualizar")
+    assert actualizar[2]["introeditor[text]"] == doc.html
