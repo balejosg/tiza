@@ -57,6 +57,7 @@ __all__ = [
     "TextoH5P",
     "cargar",
     "describir_itinerario",
+    "evidencia_compartida",
     "hash_documento",
     "html_para_moodle",
     "html_para_preview",
@@ -793,6 +794,18 @@ def _formato_fecha(momento: datetime) -> str:
     # Formato del docente para el itinerario; los adapters formatean con
     # ``tipos.base.formato_fecha``, que produce exactamente el mismo texto.
     return momento.strftime("%Y-%m-%d %H:%M")
+
+
+def evidencia_compartida(doc: Documento) -> bool:
+    """Un cuestionario con dos o más criterios con peso: su nota total llega a todos sus
+    criterios (D1/D2).
+
+    Solo cuenta el peso mayor que 0: un criterio con peso 0 no recibe nada. No cambia el
+    hash, la publicación ni la validación: es un aviso para el agente antes de publicar.
+    """
+    if doc.tipo != "cuestionario" or doc.evalua is None:
+        return False
+    return sum(1 for _, peso in doc.evalua if peso > 0) >= 2
 
 
 def describir_itinerario(doc: Documento, nombres: dict[str, str] | None = None) -> list[str]:

@@ -1263,7 +1263,7 @@ def test_evidencia_compartida_avisa_y_el_docente_lo_lee(tmp_path):
     assert documento["resultado"] == "ok"
     assert pasos(documento, "EVIDENCIA_COMPARTIDA")[0]["detalle"] == "1"
     avisos = [a for r in presencia.resumenes_calificador for a in r.avisos]
-    assert publicacion.Aviso.evidencia_compartida("a") in avisos
+    assert publicacion.Aviso.evidencia_compartida("a", tipo="tarea") in avisos
     textos = [
         linea.texto
         for aviso in avisos

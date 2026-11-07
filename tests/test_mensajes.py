@@ -251,6 +251,24 @@ class TestAvisos:
         lineas = mensajes.lineas_de_aviso(publicacion.Aviso.cambiado_a_mano("Notas\x1b[2J\u202e"))
         assert "\x1b" not in lineas[0].texto and "\u202e" not in lineas[0].texto
 
+    def test_que_hacer_de_cuestionario_propone_partirlo(self):
+        lineas = mensajes.lineas_de_aviso(
+            publicacion.Aviso.evidencia_compartida("Prueba UD3", tipo="cuestionario")
+        )
+        assert [linea.texto for linea in lineas] == [
+            "«Prueba UD3» evalúa varios criterios y su nota total llega a todos. Para que cada "
+            "criterio reciba su propio nivel, publica un cuestionario por criterio en la misma "
+            "sección."
+        ]
+
+    def test_que_hacer_sin_tipo_conserva_el_texto_generico(self):
+        lineas = mensajes.lineas_de_aviso(publicacion.Aviso.evidencia_compartida("Prueba UD3"))
+        assert [linea.texto for linea in lineas] == [
+            "«Prueba UD3» evalúa varios criterios y su nota total llega a todos. Para que cada "
+            "criterio reciba su propio nivel, usa «evidencia: resultados» si es una tarea o "
+            "separa la actividad por criterio."
+        ]
+
     def test_cambiada_en_el_aula_dice_lo_acordado(self):
         lineas = mensajes.lineas_de_aviso(publicacion.Aviso.cambiada_en_el_aula("Tema\x1b\u202e 1"))
         assert [linea.texto for linea in lineas] == [

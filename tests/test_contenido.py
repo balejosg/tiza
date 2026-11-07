@@ -1154,6 +1154,40 @@ def test_fecha_sin_hora_usa_el_fin_del_dia_en_el_cierre(tmp_path):
     assert doc.cuestionario.cierre.hour == 23 and doc.cuestionario.cierre.minute == 59
 
 
+def test_cuestionario_con_dos_criterios_avisa_en_comprobar(tmp_path):
+    doc = cargar(
+        escribir(
+            tmp_path,
+            cuestionario(PREGUNTA_MULTIPLE, evalua="{CE1: 50, CE2: 50}"),
+            "cuestionario.md",
+        )
+    )
+    assert contenido.evidencia_compartida(doc) is True
+
+
+def test_cuestionario_con_un_criterio_no_avisa(tmp_path):
+    doc = cargar(
+        escribir(tmp_path, cuestionario(PREGUNTA_MULTIPLE, evalua="{CE1: 100}"), "cuestionario.md")
+    )
+    assert contenido.evidencia_compartida(doc) is False
+
+
+def test_criterio_con_peso_cero_no_cuenta(tmp_path):
+    doc = cargar(
+        escribir(
+            tmp_path,
+            cuestionario(PREGUNTA_MULTIPLE, evalua="{CE1: 0, CE2: 50}"),
+            "cuestionario.md",
+        )
+    )
+    assert contenido.evidencia_compartida(doc) is False
+
+
+def test_una_tarea_con_dos_criterios_no_avisa(tmp_path):
+    doc = cargar(escribir(tmp_path, tarea("Resuelve.", evalua="{CE1: 50, CE2: 50}"), "tarea.md"))
+    assert contenido.evidencia_compartida(doc) is False
+
+
 @pytest.mark.parametrize(
     ("cuerpo", "extra", "codigo", "detalle"),
     [

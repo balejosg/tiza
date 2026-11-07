@@ -1039,11 +1039,20 @@ def _evidencia_cambiada_con_notas(datos: Mapping[str, Any]) -> tuple[Linea, ...]
 
 
 def _evidencia_compartida(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    nombre = texto_seguro(datos["nombre"], 100)
+    if datos.get("tipo") == "cuestionario":
+        return (
+            Linea(
+                f"«{nombre}» evalúa varios criterios y su nota total llega a todos. Para que "
+                "cada criterio reciba su propio nivel, publica un cuestionario por criterio en "
+                "la misma sección."
+            ),
+        )
     return (
         Linea(
-            f"«{texto_seguro(datos['nombre'], 100)}» evalúa varios criterios y su nota total "
-            "llega a todos. Para que cada criterio reciba su propio nivel, usa "
-            "«evidencia: resultados» si es una tarea o separa la actividad por criterio."
+            f"«{nombre}» evalúa varios criterios y su nota total llega a todos. Para que cada "
+            "criterio reciba su propio nivel, usa «evidencia: resultados» si es una tarea o "
+            "separa la actividad por criterio."
         ),
     )
 

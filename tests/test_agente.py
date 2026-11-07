@@ -21,6 +21,9 @@ CUESTIONARIO = (
     "    respuesta: verdadero\n"
     "---\n\nDescripción.\n"
 )
+CUESTIONARIO_COMPARTIDO = CUESTIONARIO.replace(
+    "seccion: 3\n", "seccion: 3\nevalua: {CE1: 50, CE2: 50}\n"
+)
 CURSOS = {
     "pruebas": {"id": 1234, "secciones": [{"numero": 3, "nombre": "Tema 3", "id": 30}]},
 }
@@ -118,6 +121,30 @@ class TestComprobar:
         texto = fichero.vista_previa.read_text(encoding="utf-8")
         assert "Preguntas del cuestionario" in texto
         assert "Respuesta correcta: <strong>Verdadero</strong>" in texto
+
+    def test_un_cuestionario_con_dos_criterios_avisa_de_evidencia_compartida(self, tmp_path):
+        escribir(tmp_path, "q.md", CUESTIONARIO_COMPARTIDO)
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
+        resultado = agente.comprobar(tmp_path, ["q.md"])
+        assert resultado.informe["resultado"] == "ok"
+        informe.validar(resultado.informe)
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert fichero.vista_previa is not None
+        assert fichero.avisos == ("EVIDENCIA_COMPARTIDA",)
+        pasos = [p for p in resultado.informe["pasos"] if p["codigo"] == "EVIDENCIA_COMPARTIDA"]
+        assert pasos == [{"codigo": "EVIDENCIA_COMPARTIDA", "resultado": "ok", "detalle": "q.md"}]
+
+    def test_un_cuestionario_con_un_criterio_no_avisa_de_evidencia_compartida(self, tmp_path):
+        escribir(
+            tmp_path, "q.md", CUESTIONARIO.replace("preguntas:", "evalua: {CE1: 100}\npreguntas:")
+        )
+        estado.escribir_estructura(tmp_path / ".tiza", CURSOS)
+        resultado = agente.comprobar(tmp_path, ["q.md"])
+        [fichero] = resultado.ficheros
+        assert fichero.codigo is None
+        assert fichero.avisos == ()
+        assert not [p for p in resultado.informe["pasos"] if p["codigo"] == "EVIDENCIA_COMPARTIDA"]
 
     def test_seccion_ausente_lo_dice(self, tmp_path):
         escribir(tmp_path, "p.md", PAGINA.replace("seccion: 3", "seccion: 7"))

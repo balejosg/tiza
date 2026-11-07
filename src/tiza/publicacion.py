@@ -250,9 +250,16 @@ class Aviso:
         return cls("EVIDENCIA_CAMBIADA_CON_NOTAS", {"nombre": nombre})
 
     @classmethod
-    def evidencia_compartida(cls, nombre: str) -> Aviso:
-        """``nombre``: la actividad o casilla manual con dos o más criterios, sin evidencia (D9)."""
-        return cls("EVIDENCIA_COMPARTIDA", {"nombre": nombre})
+    def evidencia_compartida(cls, nombre: str, tipo: str | None = None) -> Aviso:
+        """``nombre``: la actividad o casilla manual con dos o más criterios, sin evidencia (D9).
+
+        ``tipo``: el de la actividad, cuando se conoce (un cuestionario recibe un «Qué hacer»
+        propio); ``None`` en las casillas manuales y en los avisos sin actividad.
+        """
+        datos: dict[str, Any] = {"nombre": nombre}
+        if tipo is not None:
+            datos["tipo"] = tipo
+        return cls("EVIDENCIA_COMPARTIDA", datos)
 
     @classmethod
     def resultado_con_notas_quitado(cls, nombre: str) -> Aviso:
@@ -2684,7 +2691,8 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
     if codigo == "CRITERIOS_SIN_PESO":
         return Aviso.criterios_sin_peso(clave)
     if codigo == "EVIDENCIA_COMPARTIDA":
-        return Aviso.evidencia_compartida(clave)
+        documento = next((d for d in plan.documentos if d.nombre == clave), None)
+        return Aviso.evidencia_compartida(clave, tipo=documento.tipo if documento else None)
     if codigo in ("RESULTADO_CON_NOTAS_QUITADO", "RESULTADO_RECREADO"):
         de_la_carpeta = next((n.nombre for n in plan.deseado.nodos if n.idnumber == clave), None)
         texto = de_la_carpeta or nombres.get(clave, clave)

@@ -68,7 +68,8 @@ class FicheroComprobado:
     detalle: str = ""  # explicación del error para quien corrige el fichero
     vista_previa: Path | None = None
     seccion_nueva: str | None = None  # sección por nombre que se creará (oculta) al publicar
-    avisos: tuple[str, ...] = ()  # FECHA_FESTIVA… según calendario.toml; nunca son errores
+    # FECHA_FESTIVA… (calendario.toml) o EVIDENCIA_COMPARTIDA; nunca errores
+    avisos: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -129,6 +130,9 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
                 avisos_doc.append(codigo)
                 detalle = f"{ruta.name}: {campo} {dia.isoformat()}"
                 borrador.paso(codigo, detalle=detalle)
+        if contenido.evidencia_compartida(doc):
+            avisos_doc.append("EVIDENCIA_COMPARTIDA")
+            borrador.paso("EVIDENCIA_COMPARTIDA", detalle=ruta.name)
         avisos = tuple(avisos_doc)
         if _con_dolar_simple(doc):
             borrador.paso("FORMULA_DOLAR_SIMPLE", detalle=ruta.name)
