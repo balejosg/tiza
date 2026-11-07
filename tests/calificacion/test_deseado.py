@@ -53,17 +53,30 @@ ESO_VACIO = Esquema(
 )
 
 
-def doc(ruta: str, seccion: int | str, **evalua: float) -> Documento:
+def doc(
+    ruta: str,
+    seccion: int | str,
+    *,
+    tipo: str = "pagina",
+    evidencia: str | None = None,
+    **evalua: float,
+) -> Documento:
     return Documento(
         ruta=CARPETA / ruta,
-        tipo="pagina",
+        tipo=tipo,
         nombre=Path(ruta).stem,
         seccion=seccion,
         cuerpo="",
         html="",
         recursos=[],
         evalua=tuple(evalua.items()),
+        evidencia=evidencia,
     )
+
+
+def tarea(ruta: str, seccion: int | str, **evalua: float) -> Documento:
+    """Una tarea con «evidencia: resultados»: el árbol pone resultados y calculados."""
+    return doc(ruta, seccion, tipo="tarea", evidencia="resultados", **evalua)
 
 
 def completo() -> list[Documento]:
@@ -509,9 +522,18 @@ def test_sin_criterios_ni_instrumentos_el_arbol_no_cambia() -> None:
         ),
     )
     assert [
-        (n.idnumber, n.clase, n.nombre, n.padre, n.peso, n.formula_de, n.visualizacion)
+        (
+            n.idnumber,
+            n.clase,
+            n.nombre,
+            n.padre,
+            n.peso,
+            n.formula_de,
+            n.visualizacion,
+            n.maximo,
+        )
         for n in d.nodos
-    ] == list(esperados)
+    ] == [(*esperado, None) for esperado in esperados]
     assert d.total_curso == "TZ_NOTA_FINAL"
     assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2"))
     assert d.cerradas == ()
@@ -970,3 +992,289 @@ def test_sin_la_opcion_el_arbol_no_cambia() -> None:
         actividades_pesan_igual=False,
     )
     assert deseado(con_false, completo(), False, CARPETA) == base
+
+
+# ---- evidencia por resultados: resultado del aula y calculado por criterio ----
+
+CRITERIOS_RESULTADOS = (
+    Criterio("CE2_2", "Mantiene", 50.0, None),
+    Criterio("CE3_1", "Instala", 50.0, None),
+)
+
+
+def esquema_resultados(organizacion: str = "elementos") -> Esquema:
+    elemento = Elemento("RA1", "Redes", 100.0, criterios=CRITERIOS_RESULTADOS)
+    if organizacion == "elementos":
+        evaluaciones = (Evaluacion("Primera", (1,)),)
+        final = Final("elementos")
+    else:
+        evaluaciones = (Evaluacion("Primera", (1,), 100.0),)
+        final = Final("evaluaciones")
+    return Esquema(organizacion, (elemento,), evaluaciones, final)
+
+
+def documentos_resultados() -> list[Documento]:
+    """La tarea «grúa» (50 y 100) y otra actividad que completa el 100 de CE2_2."""
+    return [
+        tarea("u1/grua.md", 1, CE2_2=50, CE3_1=100),
+        doc("u1/otra.md", 1, CE2_2=50),
+    ]
+
+
+def idnumber_resultado(ruta: str, criterio: str) -> str:
+    return f"TZ_O_{hashlib.sha256(f'{ruta}|{criterio}'.encode()).hexdigest()[:10]}"
+
+
+def ids_de_los_resultados(d: Deseado, ruta: str) -> set[str]:
+    """Los TZ_O_ y TZ_R_ de una actividad con resultados (los suyos, no los de otras)."""
+    o_ids = {id_ for r, _, id_ in d.resultados if r == ruta}
+    return {
+        n.idnumber
+        for n in d.nodos
+        if (n.clase == "resultado" and n.idnumber in o_ids)
+        or (n.clase == "resultado_calc" and n.formula_de in o_ids)
+    }
+
+
+def test_tarea_con_resultados_no_tiene_copias() -> None:
+    d = deseado(esquema_resultados(), documentos_resultados(), False, CARPETA)
+    assert not [n for n in d.nodos if n.clase == "copia" and n.formula_de == "u1/grua.md"]
+    assert nodo(d, "u1/grua.md").clase == "actividad"
+    assert nodo(d, "u1/grua.md").peso == 0.0
+    o_ids = {id_ for ruta, _, id_ in d.resultados if ruta == "u1/grua.md"}
+    calculados = [n for n in d.nodos if n.clase == "resultado_calc" and n.formula_de in o_ids]
+    assert len(calculados) == 4  # 2 criterios × 2 vistas
+    # CE2_2 pesa 50+50 y CE3_1 pesa 100: los calculados salen 50 y 100, como en evalua.
+    assert sorted(n.peso for n in calculados) == [50.0, 50.0, 100.0, 100.0]
+    assert all(n.maximo == 10.0 for n in calculados)
+    assert len([n for n in d.nodos if n.clase == "resultado"]) == 2
+
+
+def test_resultado_en_vista_real_con_peso_cero() -> None:
+    for organizacion, prefijo in (
+        ("elementos", "TZ_E_"),
+        ("evaluaciones", "TZ_V_1_"),
+    ):
+        d = deseado(esquema_resultados(organizacion), documentos_resultados(), False, CARPETA)
+        resultados = [n for n in d.nodos if n.clase == "resultado"]
+        assert len(resultados) == 2
+        assert {n.padre for n in resultados} == {
+            f"{prefijo}CE2_2",
+            f"{prefijo}CE3_1",
+        }, organizacion
+        assert all(n.peso == 0.0 for n in resultados)
+        assert {n.idnumber for n in resultados} == {
+            idnumber_resultado("u1/grua.md", "CE2_2"),
+            idnumber_resultado("u1/grua.md", "CE3_1"),
+        }
+        assert {n.nombre for n in resultados} == {
+            "Resultado CE2_2 · grua",
+            "Resultado CE3_1 · grua",
+        }
+        # El calculado de cada vista apunta al resultado del aula.
+        for resultado in resultados:
+            assert any(
+                n.clase == "resultado_calc" and n.formula_de == resultado.idnumber for n in d.nodos
+            ), resultado.idnumber
+
+
+def test_resultado_calc_lleva_la_huella_de_su_vista() -> None:
+    d = deseado(esquema_resultados(), documentos_resultados(), False, CARPETA)
+    calculados = [n for n in d.nodos if n.clase == "resultado_calc"]
+
+    def esperado(ruta: str, criterio: str, vista: str) -> str:
+        huella = hashlib.sha256(f"{ruta}|{criterio}|{vista}".encode()).hexdigest()[:10]
+        return f"TZ_R_{huella}"
+
+    assert {
+        n.idnumber for n in calculados if n.formula_de == idnumber_resultado("u1/grua.md", "CE2_2")
+    } == {
+        esperado("u1/grua.md", "CE2_2", "E"),
+        esperado("u1/grua.md", "CE2_2", "V"),
+    }
+    assert {
+        n.idnumber for n in calculados if n.formula_de == idnumber_resultado("u1/grua.md", "CE3_1")
+    } == {
+        esperado("u1/grua.md", "CE3_1", "E"),
+        esperado("u1/grua.md", "CE3_1", "V"),
+    }
+    assert d.resultados == (
+        ("u1/grua.md", "CE2_2", idnumber_resultado("u1/grua.md", "CE2_2")),
+        ("u1/grua.md", "CE3_1", idnumber_resultado("u1/grua.md", "CE3_1")),
+    )
+
+
+def test_resultado_calc_cuelga_de_su_criterio_en_cada_vista() -> None:
+    d = deseado(esquema_resultados(), documentos_resultados(), False, CARPETA)
+    for criterio, padres in {
+        "CE2_2": {"TZ_E_CE2_2", "TZ_V_1_CE2_2"},
+        "CE3_1": {"TZ_E_CE3_1", "TZ_V_1_CE3_1"},
+    }.items():
+        o_id = idnumber_resultado("u1/grua.md", criterio)
+        calculados = [n for n in d.nodos if n.clase == "resultado_calc" and n.formula_de == o_id]
+        assert {n.padre for n in calculados} == padres, criterio
+
+
+def test_dos_tareas_con_resultados_en_el_mismo_criterio() -> None:
+    esquema = Esquema(
+        "elementos",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                100.0,
+                criterios=(Criterio("CE1", "Uno", 100.0, None),),
+            ),
+        ),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+    )
+    primera = tarea("u1/primera.md", 1, CE1=25)
+    segunda = tarea("u1/segunda.md", 1, CE1=75)
+    d = deseado(esquema, [primera, segunda], False, CARPETA)
+    assert len(d.resultados) == 2
+    o_ids = [id_ for _, _, id_ in d.resultados]
+    assert len(set(o_ids)) == 2
+    assert {ruta for ruta, _, _ in d.resultados} == {"u1/primera.md", "u1/segunda.md"}
+    for ruta, esperado in (("u1/primera.md", 25.0), ("u1/segunda.md", 75.0)):
+        o_id = next(id_ for r, _, id_ in d.resultados if r == ruta)
+        calculados = [n for n in d.nodos if n.clase == "resultado_calc" and n.formula_de == o_id]
+        assert len(calculados) == 2
+        assert all(n.peso == esperado for n in calculados), ruta
+
+
+def test_elemento_sin_criterios_con_resultados() -> None:
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+    )
+    d = deseado(esquema, [tarea("u1/t.md", 1, RA1=100)], False, CARPETA)
+    resultados = [n for n in d.nodos if n.clase == "resultado"]
+    assert len(resultados) == 1
+    assert resultados[0].padre == "TZ_E_RA1"
+    assert len([n for n in d.nodos if n.clase == "resultado_calc"]) == 2
+    assert d.resultados == (("u1/t.md", "RA1", resultados[0].idnumber),)
+
+
+def test_criterio_con_peso_cero_tiene_resultado() -> None:
+    """Punto de revisión 5: un criterio que no cuenta sigue creando el resultado.
+
+    Es el caso alcanzable con ``calificacion.yaml``: el criterio pesa, pero todas sus
+    actividades tienen ``evalua: 0``; entonces la categoría no aporta y el calculado pesa 0,
+    igual que cualquier otra actividad del criterio. El resultado se crea igual.
+    """
+    esquema = Esquema(
+        "elementos",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                100.0,
+                criterios=(Criterio("CE1", "Uno", 100.0, None),),
+            ),
+        ),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+    )
+    d = deseado(esquema, [tarea("u1/t.md", 1, CE1=0)], False, CARPETA)
+    assert nodo(d, "TZ_E_CE1").peso == 0.0
+    resultados = [n for n in d.nodos if n.clase == "resultado"]
+    assert len(resultados) == 1
+    assert resultados[0].padre == "TZ_E_CE1"
+    assert resultados[0].peso == 0.0
+    calculados = [n for n in d.nodos if n.clase == "resultado_calc"]
+    assert len(calculados) == 2
+    assert all(n.peso == 0.0 for n in calculados)
+    assert d.resultados == (("u1/t.md", "CE1", resultados[0].idnumber),)
+
+
+def test_ids_estables() -> None:
+    antes = ids_de_los_resultados(
+        deseado(esquema_resultados(), documentos_resultados(), False, CARPETA),
+        "u1/grua.md",
+    )
+    assert len(antes) == 6  # 2 TZ_O_ y 4 TZ_R_
+    nueva = tarea("a0/nueva.md", 1, CE2_2=0, CE3_1=0)
+    despues = ids_de_los_resultados(
+        deseado(esquema_resultados(), [nueva] + documentos_resultados(), False, CARPETA),
+        "u1/grua.md",
+    )
+    assert despues == antes
+
+
+def test_sin_evidencia_el_arbol_no_cambia() -> None:
+    """Instantánea del árbol anterior a los resultados: sin «evidencia», es el mismo."""
+    esquema = Esquema(
+        "elementos",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                60.0,
+                criterios=(
+                    Criterio("CA1", "Criterio a", 70.0, None),
+                    Criterio("CA2", "Criterio b", 30.0, None),
+                ),
+            ),
+            Elemento("RA2", "Sistemas", 40.0),
+        ),
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))),
+        Final("elementos"),
+        (Instrumento("exposicion", "Exposición", 1, (("CA1", 0.0),)),),
+    )
+    documentos = [
+        doc("u1/a.md", 1, CA1=100),
+        doc("u1/b.md", 1, CA2=100),
+        doc("u2/c.md", 2, RA2=100),
+        doc("u1/t.md", 1, tipo="tarea", CA2=0),
+    ]
+    d = deseado(esquema, documentos, False, CARPETA)
+    esperados = (
+        ("TZ_TIZA", "contenedor", "Calificador de tiza", None, 100.0, None, "porcentaje"),
+        ("TZ_FINAL", "categoria", "Final", "TZ_TIZA", 100.0, None, "porcentaje"),
+        ("TZ_E_RA1", "categoria", "Redes", "TZ_FINAL", 60.0, None, "porcentaje"),
+        ("TZ_E_CA1", "categoria", "Criterio a", "TZ_E_RA1", 70.0, None, "porcentaje"),
+        ("u1/a.md", "actividad", "a", "TZ_E_CA1", 100.0, None, None),
+        ("TZ_M_exposicion", "manual", "Exposición", "TZ_E_CA1", 0.0, None, None),
+        ("TZ_E_CA2", "categoria", "Criterio b", "TZ_E_RA1", 30.0, None, "porcentaje"),
+        ("u1/b.md", "actividad", "b", "TZ_E_CA2", 100.0, None, None),
+        ("u1/t.md", "actividad", "t", "TZ_E_CA2", 0.0, None, None),
+        ("TZ_E_RA2", "categoria", "Sistemas", "TZ_FINAL", 40.0, None, "porcentaje"),
+        ("u2/c.md", "actividad", "c", "TZ_E_RA2", 100.0, None, None),
+        ("TZ_VISTA", "contenedor", "Vista por evaluaciones", "TZ_TIZA", 0.0, None, "porcentaje"),
+        ("TZ_V_1", "categoria", "Primera", "TZ_VISTA", 0.0, None, "porcentaje"),
+        ("TZ_V_1_RA1", "categoria", "Redes", "TZ_V_1", 100.0, None, "porcentaje"),
+        ("TZ_V_1_CA1", "categoria", "Criterio a", "TZ_V_1_RA1", 70.0, None, "porcentaje"),
+        ("TZ_C_ec63770aa9", "copia", "a (copia)", "TZ_V_1_CA1", 100.0, "u1/a.md", None),
+        (
+            "TZ_C_a44efb4d13",
+            "copia",
+            "Exposición (copia)",
+            "TZ_V_1_CA1",
+            0.0,
+            "TZ_M_exposicion",
+            None,
+        ),
+        ("TZ_V_1_CA2", "categoria", "Criterio b", "TZ_V_1_RA1", 30.0, None, "porcentaje"),
+        ("TZ_C_905723eda8", "copia", "b (copia)", "TZ_V_1_CA2", 100.0, "u1/b.md", None),
+        ("TZ_C_e7a629b0ba", "copia", "t (copia)", "TZ_V_1_CA2", 0.0, "u1/t.md", None),
+        ("TZ_V_2", "categoria", "Segunda", "TZ_VISTA", 0.0, None, "porcentaje"),
+        ("TZ_V_2_RA2", "categoria", "Sistemas", "TZ_V_2", 100.0, None, "porcentaje"),
+        ("TZ_C_65cde091fa", "copia", "c (copia)", "TZ_V_2_RA2", 100.0, "u2/c.md", None),
+    )
+    assert [
+        (
+            n.idnumber,
+            n.clase,
+            n.nombre,
+            n.padre,
+            n.peso,
+            n.formula_de,
+            n.visualizacion,
+            n.maximo,
+        )
+        for n in d.nodos
+    ] == [(*esperado, None) for esperado in esperados]
+    assert d.resultados == ()

@@ -8,6 +8,7 @@ todas las actividades que cuentan para repartir los pesos.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from tiza import contenido, tipos
@@ -27,21 +28,32 @@ MAX_FICHEROS = 500  # ficheros .md y .html que se miran como mucho
 _EXTENSIONES = {".md", ".html", ".htm"}
 
 
-def _menciona_evalua(ruta: Path) -> bool:
-    """Si un fichero que no carga habla de «evalua»: entonces no se puede ignorar sin más."""
+_CAMPOS_DE_CALIFICACION = re.compile(r"^(?:evalua|evidencia|rubrica)\s*:", re.MULTILINE)
+_FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|\Z)", re.DOTALL)
+
+
+def _menciona_calificacion(ruta: Path) -> bool:
+    """Si el frontmatter de un fichero que no carga lo hace del calificador.
+
+    ``evalua``, ``evidencia`` y ``rubrica`` cambian la nota o el calificador: si el fichero no
+    carga, no se puede ignorar sin más. Se mira solo la cabecera, no el cuerpo del documento.
+    """
     try:
-        return b"evalua" in leer_bytes_acotado(ruta, contenido.MAX_DOCUMENTO_BYTES)
-    except (OSError, FicheroNoSeguro):
+        texto = leer_bytes_acotado(ruta, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8-sig")
+    except (OSError, FicheroNoSeguro, UnicodeDecodeError):
         return False
+    coincidencia = _FRONTMATTER.match(texto)
+    return bool(coincidencia and _CAMPOS_DE_CALIFICACION.search(coincidencia.group(1)))
 
 
 def documentos_de_la_carpeta(base: Path) -> list[Documento]:
     """Los ficheros de tiza de la carpeta (y sus subcarpetas, salvo las ocultas), por ruta.
 
     Un fichero que no es de tiza (un ``README.md``, unos apuntes) se ignora. Uno que no carga pero
-    menciona ``evalua`` no se ignora: dejar fuera una actividad del cálculo cambiaría la nota
-    final sin avisar, así que el comando falla con el código de su error, antes de tocar el aula.
-    ``CARPETA_DEMASIADO_GRANDE`` si hay más de ``MAX_FICHEROS`` candidatos.
+    cuyo frontmatter menciona ``evalua``, ``evidencia`` o ``rubrica`` no se ignora: dejar fuera
+    una actividad del cálculo cambiaría la nota final sin avisar, así que el comando falla con el
+    código de su error, antes de tocar el aula. ``CARPETA_DEMASIADO_GRANDE`` si hay más de
+    ``MAX_FICHEROS`` candidatos.
     """
     raiz = Path(base).resolve()
     candidatos: list[Path] = []
@@ -61,7 +73,7 @@ def documentos_de_la_carpeta(base: Path) -> list[Documento]:
         try:
             documentos.append(contenido.cargar(ruta, raiz=raiz))
         except ErrorContenido as exc:
-            if _menciona_evalua(ruta):
+            if _menciona_calificacion(ruta):
                 nombre = ruta.relative_to(raiz).as_posix()
                 raise ErrorCalificacion(exc.codigo, f"{nombre}: {exc.detalle}") from None
     return documentos
@@ -76,6 +88,9 @@ def cargar_calificacion(esquema: Path, base: Path) -> tuple[Esquema, list[Docume
     raiz = Path(base).resolve()
     datos = cargar_esquema(Path(esquema), raiz)
     documentos = documentos_de_la_carpeta(raiz)
+    if any(documento.evidencia == "resultados" for documento in documentos):
+        # La escala de los resultados solo importa cuando alguna tarea los pide.
+        datos = cargar_esquema(Path(esquema), raiz, resultados=True)
     deseado(
         datos, documentos, False, raiz
     )  # solo valida: si un calificador anterior cambia algo, no es un error

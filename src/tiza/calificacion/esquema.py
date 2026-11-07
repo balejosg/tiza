@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ __all__ = [
     "NivelRubrica",
     "Tope",
     "cargar_esquema",
+    "comprobar_niveles_equidistantes",
 ]
 
 EXTENSIONES_ESQUEMA = frozenset({".yaml"})
@@ -402,10 +404,34 @@ class _Lector:
         return Final(de, Tope(umbral, maximo))
 
 
-def cargar_esquema(ruta: Path, carpeta: Path) -> Esquema:
+def comprobar_niveles_equidistantes(esquema: Esquema) -> None:
+    """Los porcentajes de ``niveles_rubrica`` deben estar igual de separados.
+
+    La escala de los resultados se reescala con una fórmula lineal, así que solo reproduce
+    porcentajes equidistantes. Los niveles por defecto (0, 25, 50, 75 y 100) lo son.
+    """
+    porcentajes = sorted(nivel.porcentaje for nivel in esquema.niveles_rubrica)
+    if len(porcentajes) < 2:
+        return
+    diferencias = [b - a for a, b in pairwise(porcentajes)]
+    # Un paso puede diferir en la última cifra decimal por el redondeo (33,33 y 33,34).
+    if any(
+        abs(diferencia - diferencias[0]) > TOLERANCIA_PESOS + 1e-9 for diferencia in diferencias
+    ):
+        texto = ", ".join(f"{porcentaje:g}" for porcentaje in porcentajes)
+        raise ErrorCalificacion(
+            "NIVELES_NO_EQUIDISTANTES",
+            "niveles_rubrica: los porcentajes deben estar igual de separados para usar "
+            f"resultados (por ejemplo 0, 25, 50, 75 y 100); ahora son {texto}",
+        )
+
+
+def cargar_esquema(ruta: Path, carpeta: Path, *, resultados: bool = False) -> Esquema:
     """Lee y valida un ``calificacion.yaml`` de la carpeta de la asignatura.
 
-    Lanza ``ErrorCalificacion`` con un código estable. No habla con el aula.
+    ``resultados`` exige además que los niveles de la rúbrica sean equidistantes (solo hace
+    falta cuando alguna tarea usa ``evidencia: resultados``). Lanza ``ErrorCalificacion`` con
+    un código estable. No habla con el aula.
     """
     try:
         origen = dentro_de_la_carpeta(Path(ruta), Path(carpeta), EXTENSIONES_ESQUEMA)
@@ -463,7 +489,7 @@ def cargar_esquema(ruta: Path, carpeta: Path) -> Esquema:
     else:
         lector.suman_100([e.peso for e in evaluaciones if e.peso is not None], "evaluaciones")
     instrumentos = lector.instrumentos(datos["instrumentos"]) if "instrumentos" in datos else ()
-    return Esquema(
+    esquema = Esquema(
         organizacion,
         elementos,
         evaluaciones,
@@ -473,3 +499,6 @@ def cargar_esquema(ruta: Path, carpeta: Path) -> Esquema:
         niveles_rubrica,
         actividades_pesan_igual,
     )
+    if resultados:
+        comprobar_niveles_equidistantes(esquema)
+    return esquema

@@ -21,7 +21,7 @@ from .base import (
 # Campos propios del frontmatter y campos de fecha del formulario de Moodle
 # (en español: «Permitir entregas desde», «Fecha de entrega», «Fecha límite» y
 # «Recordarme calificar en»).
-CAMPOS_TAREA = frozenset({"apertura", "entrega", "limite", "rubrica"})
+CAMPOS_TAREA = frozenset({"apertura", "entrega", "limite", "rubrica", "evidencia"})
 CAMPOS_FECHA = ("allowsubmissionsfromdate", "duedate", "cutoffdate", "gradingduedate")
 
 

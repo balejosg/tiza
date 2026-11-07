@@ -2521,6 +2521,149 @@ class TestEvalua:
         assert hash_documento(doc) == HASH_EJEMPLO_PAGINA_MD
 
 
+ESQUEMA_EVIDENCIA = """\
+etapa: eso
+organizacion: elementos
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 100
+    criterios:
+      - {id: CE1, nombre: Criterio 1, peso: 50, codigo: CE1}
+      - {id: CE2, nombre: Criterio 2, peso: 50, codigo: CE2}
+evaluaciones:
+  - {nombre: Primera, secciones: [3]}
+final: {de: elementos}
+"""
+
+ESQUEMA_EVIDENCIA_NO_EQUIDISTANTE = ESQUEMA_EVIDENCIA.replace(
+    "final: {de: elementos}\n",
+    "niveles_rubrica:\n"
+    "  - {id: destacado, nombre: Destacado, porcentaje: 100}\n"
+    "  - {id: alto, nombre: Alto, porcentaje: 80}\n"
+    "  - {id: medio, nombre: Medio, porcentaje: 50}\n"
+    "  - {id: nada, nombre: Nada, porcentaje: 0}\n"
+    "final: {de: elementos}\n",
+)
+
+# Hash de una tarea con «rubrica: por_criterios» sin evidencia: sigue siendo el valor anotado.
+HASH_TAREA_CON_RUBRICA = "d824f7050bbf17162761deb68defc2603656250675210003c32c66f2a980e835"
+
+TAREA_CON_RUBRICA_DE_PRUEBA = """\
+---
+tipo: tarea
+nombre: Problemas
+seccion: 3
+apertura: 2026-10-01
+entrega: 2026-10-10
+evalua: {CE1: 100, CE2: 100}
+rubrica: por_criterios
+---
+
+Resuelve los problemas.
+"""
+
+
+def _carpeta_evidencia(tmp_path, esquema: str = ESQUEMA_EVIDENCIA, texto: str | None = None):
+    (tmp_path / "calificacion.yaml").write_text(esquema, encoding="utf-8")
+    if texto is None:
+        texto = tarea(evidencia="resultados", evalua="{CE1: 100, CE2: 100}")
+    (tmp_path / "tarea.md").write_text(texto, encoding="utf-8")
+    return tmp_path / "tarea.md"
+
+
+class TestEvidencia:
+    """«evidencia: resultados» en una tarea: solo ESO, necesita evalua y una escala lineal."""
+
+    def test_evidencia_solo_admite_resultados(self, tmp_path):
+        ruta = _carpeta_evidencia(
+            tmp_path,
+            texto=tarea(evidencia="competencias", evalua="{CE1: 100, CE2: 100}"),
+        )
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "EVIDENCIA_INVALIDA"
+        assert "resultados" in exc.value.detalle
+
+    def test_evidencia_sin_evalua(self, tmp_path):
+        ruta = _carpeta_evidencia(tmp_path, texto=tarea(evidencia="resultados"))
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "EVIDENCIA_SIN_EVALUA"
+
+    def test_evidencia_sin_esquema(self, tmp_path):
+        ruta = escribir(
+            tmp_path,
+            tarea(evidencia="resultados", evalua="{CE1: 100}"),
+            "tarea.md",
+        )
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "EVIDENCIA_SIN_ESQUEMA"
+        from tiza import ayuda
+
+        assert ayuda.explicar("EVIDENCIA_SIN_ESQUEMA")
+
+    def test_evidencia_fuera_de_eso(self, tmp_path):
+        for etapa in ("", "etapa: bachillerato\n"):
+            carpeta = tmp_path / ("sin_etapa" if not etapa else "bachillerato")
+            carpeta.mkdir()
+            ruta = _carpeta_evidencia(
+                carpeta, esquema=ESQUEMA_EVIDENCIA.replace("etapa: eso\n", etapa)
+            )
+            with pytest.raises(ErrorContenido) as exc:
+                cargar(ruta, raiz=carpeta)
+            assert exc.value.codigo == "EVIDENCIA_SOLO_ESO"
+
+    def test_evidencia_en_pagina_no_calificable(self, tmp_path):
+        ruta = escribir(
+            tmp_path,
+            pagina(evidencia="resultados", evalua="{CE1: 100}"),
+        )
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "EVALUA_NO_CALIFICABLE"
+
+    def test_niveles_no_equidistantes_con_resultados(self, tmp_path):
+        ruta = _carpeta_evidencia(tmp_path, esquema=ESQUEMA_EVIDENCIA_NO_EQUIDISTANTE)
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "NIVELES_NO_EQUIDISTANTES"
+
+        # Sin ninguna tarea con resultados, el mismo esquema vale, también para el calificador:
+        # carpeta.py solo activa la comprobación cuando algún documento pide resultados.
+        ruta.write_text(tarea(evalua="{CE1: 100, CE2: 100}"), encoding="utf-8")
+        doc = cargar(ruta, raiz=tmp_path)
+        assert doc.evidencia is None
+
+        from tiza.calificacion.carpeta import cargar_calificacion
+        from tiza.calificacion.esquema import ErrorCalificacion, cargar_esquema
+
+        esquema, documentos = cargar_calificacion(tmp_path / "calificacion.yaml", tmp_path)
+        assert esquema.etapa == "eso"
+        assert [documento.evidencia for documento in documentos] == [None]
+
+        with pytest.raises(ErrorCalificacion) as info:
+            cargar_esquema(tmp_path / "calificacion.yaml", tmp_path, resultados=True)
+        assert info.value.codigo == "NIVELES_NO_EQUIDISTANTES"
+
+        ruta.write_text(
+            tarea(evidencia="resultados", evalua="{CE1: 100, CE2: 100}"), encoding="utf-8"
+        )
+        with pytest.raises(ErrorCalificacion) as info:
+            cargar_calificacion(tmp_path / "calificacion.yaml", tmp_path)
+        assert info.value.codigo == "NIVELES_NO_EQUIDISTANTES"
+
+    def test_hash_de_una_tarea_con_rubrica_no_cambia(self, tmp_path):
+        (tmp_path / "calificacion.yaml").write_text(ESQUEMA_EVIDENCIA, encoding="utf-8")
+        ruta = tmp_path / "tarea.md"
+        # Bytes con \n: en Windows, write_text con newline=None pondría \r\n y cambiaría el hash.
+        ruta.write_bytes(TAREA_CON_RUBRICA_DE_PRUEBA.encode("utf-8"))
+        doc = cargar(ruta, raiz=tmp_path)
+        assert doc.evidencia is None
+        assert doc.hash_cargado == HASH_TAREA_CON_RUBRICA
+
+
 class TestPublicadosDelDocumento:
     """``Documento.publicados``: lo que ``.tiza/publicados.json`` dice de este fichero, por curso."""
 

@@ -21,6 +21,12 @@ con criterios tiene un nivel más: ``TZ_E_<elem>`` contiene ``TZ_E_<crit>`` (y e
 es una actividad sin fichero en el aula: su pieza real es una casilla manual ``TZ_M_<id>`` (clase
 ``manual``) y en los demás sitios va una copia suya. Un esquema sin criterios ni instrumentos da el
 mismo árbol de siempre.
+
+Una tarea con ``evidencia: resultados`` cambia su parte: en lugar de copias, cada criterio lleva un
+elemento de resultado del aula (``TZ_O_<huella(ruta|criterio)>``, clase ``resultado``, peso 0, solo
+en la vista real) y un calculado por vista (``TZ_R_<huella(ruta|criterio|vista)>``, clase
+``resultado_calc``) con el peso de ``evalua``; la tarea real se queda con peso 0 en su primer
+criterio. ``Deseado.resultados`` da las tripletas ``(ruta, criterio, TZ_O_…)`` para colocarlos.
 """
 
 from __future__ import annotations
@@ -49,6 +55,8 @@ CLASES = (
     "contador",
     "indicador",
     "nota",
+    "resultado",
+    "resultado_calc",
 )
 RAIZ = "TZ_TIZA"
 FINAL = "TZ_FINAL"
@@ -66,10 +74,14 @@ class Nodo:
 
     ``peso`` es el peso sobrescrito en su padre (``None``: sin peso sobrescrito, los hijos de un
     ``contador``). ``formula_de`` es, en una ``copia`` y un ``indicador``, el ``idnumber`` (o la
-    ruta de la actividad) que reflejan; en una ``nota``, la pareja (total, contador). La clase
+    ruta de la actividad) que reflejan; en una ``nota``, la pareja (total, contador); en un
+    ``resultado_calc``, el ``idnumber`` del ``resultado`` del aula que reescala. La clase
     ``manual`` es la casilla de calificación manual de un instrumento (``TZ_M_<id>``, sin
-    ``formula_de``); sus copias llevan ``formula_de="TZ_M_<id>"``. Las categorías son
+    ``formula_de``); sus copias llevan ``formula_de="TZ_M_<id>"``. El ``resultado`` es el
+    elemento del aula (``TZ_O_…``, peso 0, sin ``formula_de``). Las categorías son
     ``TZ_E_<elem>``, ``TZ_E_<crit>``, ``TZ_V_<n>``, ``TZ_V_<n>_<elem>`` y ``TZ_V_<n>_<crit>``.
+    ``maximo`` es el máximo del calculado (10 en un ``resultado_calc``); ``None`` lo deja como
+    lo decide el aula.
     """
 
     idnumber: str
@@ -79,6 +91,7 @@ class Nodo:
     peso: float | None
     formula_de: str | tuple[str, str] | None = None
     visualizacion: str | None = None
+    maximo: float | None = None
 
 
 @dataclass(frozen=True)
@@ -90,7 +103,8 @@ class Deseado:
     (no se toca), ``"TZ_NOTA_FINAL"`` (calculado con esa nota) o ``"porcentaje"`` (solo la
     visualización). ``cerradas`` son los ``TZ_V_<n>`` de las evaluaciones cerradas;
     ``actividades`` empareja cada ruta con el ``idnumber`` de su padre real; ``avisos`` son
-    pares ``(codigo, id del elemento)``.
+    pares ``(codigo, id del elemento)``; ``resultados`` son las tripletas ``(ruta, id del
+    criterio, idnumber TZ_O_…)`` de las tareas con ``evidencia: resultados``.
     """
 
     nodos: tuple[Nodo, ...]
@@ -99,6 +113,7 @@ class Deseado:
     cerradas: tuple[str, ...]
     actividades: tuple[tuple[str, str], ...]
     avisos: tuple[tuple[str, str], ...] = ()
+    resultados: tuple[tuple[str, str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -108,6 +123,7 @@ class _Actividad:
     evaluacion: int  # índice (desde 0) de la evaluación en la que cae su sección
     evalua: tuple[tuple[str, float], ...]
     manual: bool = False  # un instrumento: su ruta es el idnumber ``TZ_M_<id>`` de la casilla
+    resultados: bool = False  # la tarea recoge la evidencia con resultados del aula
 
 
 def comprobar_sin_circulares(nodos: tuple[Nodo, ...]) -> None:
@@ -224,7 +240,15 @@ def _actividades(esquema: Esquema, documentos: list[Documento], carpeta: Path) -
         if esquema.actividades_pesan_igual:
             evalua = tuple((id_, 1.0) for id_, _ in evalua)
         evaluacion = _validar(esquema, ruta, evalua, documento.seccion)
-        resultado.append(_Actividad(ruta, documento.nombre, evaluacion, evalua))
+        resultado.append(
+            _Actividad(
+                ruta,
+                documento.nombre,
+                evaluacion,
+                evalua,
+                resultados=documento.evidencia == "resultados",
+            )
+        )
     for i, instrumento in enumerate(esquema.instrumentos):
         evalua = instrumento.evalua
         if esquema.actividades_pesan_igual:
@@ -301,6 +325,14 @@ class _Montaje:
             if not self._es_real(a, hoja, vista)
         }
 
+    def _resultado_id(self, ruta: str, hoja: str) -> str:
+        """``TZ_O_<huella>``: el elemento de resultado del aula de una tarea y un criterio."""
+        return f"TZ_O_{_huella(f'{ruta}|{hoja}')}"
+
+    def _calc_id(self, ruta: str, hoja: str, vista: str) -> str:
+        """``TZ_R_<huella>``: el calculado que reescala el resultado en una vista."""
+        return f"TZ_R_{_huella(f'{ruta}|{hoja}|{vista}')}"
+
     def _es_real(self, actividad: _Actividad, hoja: str, vista: str) -> bool:
         return hoja == actividad.evalua[0][0] and vista == self.vista_real
 
@@ -349,23 +381,45 @@ class _Montaje:
     def _hijos_actividad(
         self, padre: str, hoja: str, vista: str, actividades: list[_Actividad], cuenta: bool = True
     ) -> None:
-        """Las actividades (reales o copias) de un contenedor, con el peso renormalizado.
+        """Las actividades (reales, copias o resultados) de un contenedor, con su peso.
 
         ``cuenta`` es que el contenedor pesa algo para su elemento: si no, sus hijos no dan
-        indicador al contador.
+        indicador al contador. Una tarea con ``evidencia: resultados`` pone un
+        ``resultado_calc`` por vista (y un ``resultado`` en la vista real) en lugar de la copia;
+        la actividad real se queda con peso 0.
         """
         pesos = normalizar_pesos([dict(a.evalua)[hoja] for a in actividades])
         for a, peso in zip(actividades, pesos, strict=True):
-            if self._es_real(a, hoja, vista):
+            real = self._es_real(a, hoja, vista)
+            if real:
                 clase = "manual" if a.manual else "actividad"
-                hijo = Nodo(a.ruta, clase, a.nombre, padre, peso)
+                self._agregar(Nodo(a.ruta, clase, a.nombre, padre, 0.0 if a.resultados else peso))
+            if a.resultados:
+                resultado = self._resultado_id(a.ruta, hoja)
+                calculado = Nodo(
+                    self._calc_id(a.ruta, hoja, vista),
+                    "resultado_calc",
+                    f"{a.nombre} ({hoja})",
+                    padre,
+                    peso,
+                    resultado,
+                    maximo=10.0,
+                )
+                self._agregar(calculado)
+                if vista == self.vista_real:
+                    nombre = f"Resultado {hoja} · {a.nombre}"
+                    self._agregar(Nodo(resultado, "resultado", nombre, padre, 0.0))
+                referencia = calculado.idnumber
+            elif real:
+                referencia = a.ruta
             else:
                 idnumber = self.copias[(a.ruta, hoja, vista)]
-                hijo = Nodo(idnumber, "copia", f"{a.nombre} (copia)", padre, peso, a.ruta)
-            self._agregar(hijo)
+                copia = Nodo(idnumber, "copia", f"{a.nombre} (copia)", padre, peso, a.ruta)
+                self._agregar(copia)
+                referencia = copia.idnumber
             if vista == _VISTA_ELEMENTOS and peso > 0 and cuenta:
                 self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
-                    (hijo.idnumber, a.nombre)
+                    (referencia, a.nombre)
                 )
 
     def _vista_elementos(self, padre: str) -> None:
@@ -553,6 +607,12 @@ class _Montaje:
             tope=tope,
             cerradas=tuple(f"TZ_V_{n}" for n, e in enumerate(esquema.evaluaciones, 1) if e.cerrada),
             actividades=self._actividades_reales(),
+            resultados=tuple(
+                (a.ruta, hoja, self._resultado_id(a.ruta, hoja))
+                for a in self.actividades
+                if a.resultados
+                for hoja, _ in a.evalua
+            ),
             avisos=tuple(
                 ("CRITERIOS_SIN_PESO", e.id)
                 for e in esquema.elementos

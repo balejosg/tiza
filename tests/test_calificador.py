@@ -957,6 +957,36 @@ def test_un_fichero_con_evalua_que_no_carga_no_se_ignora(tmp_path):
     assert moodle.llamadas == []
 
 
+def test_un_fichero_con_evidencia_sin_evalua_no_se_ignora(tmp_path):
+    from tiza.calificacion.carpeta import cargar_calificacion
+    from tiza.calificacion.esquema import ErrorCalificacion
+
+    carpeta = carpeta_fp(tmp_path)
+    (carpeta / "evidencia.md").write_text(
+        "---\ntipo: tarea\nnombre: evidencia\nseccion: 1\n"
+        "apertura: 2026-10-01\nentrega: 2026-10-10\nevidencia: resultados\n---\n\nTexto\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ErrorCalificacion) as exc:
+        cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    assert exc.value.codigo == "EVIDENCIA_SIN_EVALUA"
+
+
+def test_un_fichero_con_rubrica_sin_evalua_no_se_ignora(tmp_path):
+    from tiza.calificacion.carpeta import cargar_calificacion
+    from tiza.calificacion.esquema import ErrorCalificacion
+
+    carpeta = carpeta_fp(tmp_path)
+    (carpeta / "rubrica.md").write_text(
+        "---\ntipo: tarea\nnombre: rubrica\nseccion: 1\n"
+        "apertura: 2026-10-01\nentrega: 2026-10-10\nrubrica: por_criterios\n---\n\nTexto\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ErrorCalificacion) as exc:
+        cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    assert exc.value.codigo == "RUBRICA_SIN_EVALUA"
+
+
 def test_la_carpeta_se_lee_sin_carpetas_ocultas_ni_ficheros_que_no_son_de_tiza(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     (carpeta / "README.md").write_text("# Notas del curso\n", encoding="utf-8")

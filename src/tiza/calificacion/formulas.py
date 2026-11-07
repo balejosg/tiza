@@ -13,6 +13,7 @@ __all__ = [
     "formula_indicador",
     "formula_moodle",
     "formula_nota",
+    "formula_resultado",
     "formula_tope",
     "texto_numero",
 ]
@@ -53,6 +54,18 @@ def formula_indicador(idnumber: str, maximo: float) -> str:
 def formula_copia(idnumber: str) -> str:
     """Una copia de una sola referencia."""
     return f"=[[{idnumber}]]"
+
+
+def formula_resultado(idnumber: str, niveles: int) -> str:
+    """Un resultado del aula (1..niveles) reescalado a 0-10, con la escala lineal.
+
+    La escala de ``idnumber`` debe estar ordenada de menor a mayor: el nivel 1 es el más bajo
+    y ``niveles`` el más alto. La escala del aula la crea la publicación así (Tarea 3); los
+    niveles de ``niveles_rubrica`` se ordenan antes de enviarlos.
+    """
+    if niveles < 2:
+        raise ValueError("formula_resultado necesita al menos 2 niveles")
+    return f"=([[{idnumber}]]-1)/{niveles - 1}*10"
 
 
 def formula_tope(umbral: float, maximo: float, notas: list[str]) -> str:

@@ -298,6 +298,8 @@ class Documento:
     evalua: tuple[tuple[str, float], ...] | None = None
     # La rúbrica por criterios de una tarea (``rubrica: por_criterios``), ya construida.
     rubrica: RubricaCargada | None = None
+    # Cómo se recoge la evidencia de cada criterio: None o «resultados» (solo en ESO).
+    evidencia: str | None = None
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
     sha256_fichero: str = (
         ""  # sha256 de los bytes del fichero tal como se leyó (no entra en el hash)
@@ -347,6 +349,8 @@ def cargar(
     doc = _validar(datos, cuerpo, ruta, zona, raiz)
     if doc.tipo == "tarea" and "rubrica" in datos:
         doc.rubrica = _rubrica_de_tarea(datos["rubrica"], ruta, raiz, doc)
+    if doc.evidencia is not None:
+        _evidencia_de_tarea(ruta, raiz)
     try:
         analisis = filtro.analizar(_a_html(ruta, cuerpo))
     except filtro.HtmlPeligroso as exc:
@@ -507,6 +511,10 @@ def _validar(
     permitidos = CAMPOS_COMUNES | adapter.campos
     for campo in datos:
         if campo not in permitidos:
+            # «evidencia» en una página es un error más profundo: el tipo no es calificable y
+            # «evalua» ya se rechaza con su código de siempre. Se deja pasar hasta esa comprobación.
+            if campo == "evidencia" and tipo == "pagina" and "evalua" in datos:
+                continue
             raise ErrorContenido("CAMPO_DESCONOCIDO", f"campo «{campo}» no permitido")
 
     nombre = datos["nombre"]
@@ -546,6 +554,21 @@ def _validar(
             f"«{adapter.llano}» no tiene nota en Moodle y no puede ir al calificador: quita "
             "«evalua» o usa una tarea, un cuestionario o un contenido H5P",
         )
+    if "evidencia" in datos and tipo != "tarea":
+        raise ErrorContenido("CAMPO_DESCONOCIDO", "campo «evidencia» no permitido")
+    evidencia = None
+    if tipo == "tarea" and "evidencia" in datos:
+        if datos["evidencia"] != "resultados":
+            raise ErrorContenido(
+                "EVIDENCIA_INVALIDA",
+                f"{ruta.name}: «evidencia» solo admite el valor «resultados»",
+            )
+        if evalua is None:
+            raise ErrorContenido(
+                "EVIDENCIA_SIN_EVALUA",
+                f"{ruta.name}: «evidencia: resultados» necesita el campo «evalua»",
+            )
+        evidencia = "resultados"
     ctx = tipos.Contexto(
         zona=zona,
         ruta=ruta,
@@ -572,6 +595,7 @@ def _validar(
         restricciones=restricciones,
         origen=origen,
         evalua=evalua,
+        evidencia=evidencia,
     )
 
 
@@ -616,6 +640,30 @@ def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento)
         )
     try:
         return rubrica_de_criterios(esquema, tuple(id_ for id_, _ in doc.evalua), doc.nombre)
+    except ErrorCalificacion as exc:
+        raise ErrorContenido(exc.codigo, f"{ruta.name}: {exc.detalle}") from None
+
+
+def _evidencia_de_tarea(ruta: Path, raiz: Path | None) -> None:
+    """``evidencia: resultados`` solo vale en ESO, con el esquema y una escala lineal."""
+    base = Path(raiz).resolve() if raiz is not None else ruta.parent.resolve()
+    esquema_path = base / "calificacion.yaml"
+    if not esquema_path.is_file():
+        raise ErrorContenido(
+            "EVIDENCIA_SIN_ESQUEMA",
+            f"{ruta.name}: «evidencia: resultados» necesita calificacion.yaml en la carpeta "
+            "de la asignatura",
+        )
+    from .calificacion.esquema import ErrorCalificacion, cargar_esquema
+
+    try:
+        esquema = cargar_esquema(esquema_path, base, resultados=True)
+        if esquema.etapa != "eso":
+            raise ErrorContenido(
+                "EVIDENCIA_SOLO_ESO",
+                f"{ruta.name}: los resultados por criterio solo valen en ESO "
+                "(pon «etapa: eso» en calificacion.yaml)",
+            )
     except ErrorCalificacion as exc:
         raise ErrorContenido(exc.codigo, f"{ruta.name}: {exc.detalle}") from None
 
