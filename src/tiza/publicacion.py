@@ -1983,10 +1983,13 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
 
         Una respuesta por curso, después de la confirmación normal. Solo entran las tareas con
         ``evidencia: resultados`` que existen en el aula, tienen notas y aún no marcan ninguno de
-        sus resultados; las que ya los marcan no se vuelven a preguntar. Sin resultados activos
-        no se pregunta: no se va a escribir nada de resultados.
+        sus resultados; las que ya los marcan no se vuelven a preguntar. Sin tareas con evidencia
+        no se consultan los resultados del aula; sin resultados activos no se pregunta: no se va
+        a escribir nada de resultados.
         """
         if self._solo_fechas:
+            return False
+        if not any(doc.evidencia == "resultados" for doc in documentos):
             return False
         tareas: list[str] = []
         try:
@@ -2917,7 +2920,10 @@ def calificador_con(
         resultados: dict[str, int]
         efectivas: frozenset[str]
         desactivados: bool
-        if not aula.resultados_activos(curso):
+        if not any(doc.evidencia == "resultados" for doc in documentos):
+            # Sin tareas con evidencia no se toca nada de resultados: ni se consulta el aula.
+            resultados, efectivas, desactivados = {}, frozenset(), False
+        elif not aula.resultados_activos(curso):
             resultados, efectivas, desactivados = {}, frozenset(), True
         elif not evidencia_confirmada:
             resultados = dict(plan.resultados)

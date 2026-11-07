@@ -23,6 +23,7 @@ from tiza import (
     informe,
     mensajes,
     publicacion,
+    recorrido,
     sesion_abierta,
 )
 from tiza.calificacion.carpeta import cargar_calificacion, documentos_de_la_carpeta
@@ -1755,6 +1756,54 @@ def test_calificador_con_resultados_desactivados_monta_el_resto(tmp_path):
         if llamada[0] in ("asegurar_escala", "asegurar_resultado")
     ]
     assert moodle.por_id("TZ_E_CE2_2")
+
+
+def calificar_sin_evidencia(carpeta: Path, moodle) -> dict:
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    return publicacion.calificador_con(
+        moodle, "pruebas", CURSO, esquema, documentos, carpeta / ".tiza"
+    )
+
+
+def test_calificador_sin_evidencia_no_consulta_resultados_desactivados(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(resultados_activos=False)
+    documento = calificar_sin_evidencia(carpeta, moodle)
+    assert documento["resultado"] == "ok", documento
+    assert "resultados_activos" not in {llamada[0] for llamada in moodle.llamadas}
+    assert "RESULTADOS_DESACTIVADOS" not in [paso["codigo"] for paso in documento["pasos"]]
+    assert "CALIFICADOR" in [paso["codigo"] for paso in documento["pasos"]]
+
+
+def test_calificador_sin_evidencia_tampoco_consulta_resultados_activos(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()  # el aula tiene los resultados activos
+    documento = calificar_sin_evidencia(carpeta, moodle)
+    assert documento["resultado"] == "ok", documento
+    assert "resultados_activos" not in {llamada[0] for llamada in moodle.llamadas}
+
+
+def test_preguntar_evidencia_sin_evidencia_no_consulta_resultados(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    _esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    trabajo = publicacion._TrabajoPublicar(
+        moodle,
+        CFG,
+        documentos,
+        carpeta,
+        PresenciaFalsa(),
+        visible=True,
+        solo_fechas=False,
+        verificados=None,
+        dir_vistas=None,
+        debug=False,
+    )
+    turno = recorrido.Turno(
+        curso=CURSO, posicion=1, total=1, nombre_curso=None, _presencia=PresenciaFalsa()
+    )
+    assert trabajo._preguntar_evidencia(turno, estructura_de(moodle), documentos) is False
+    assert "resultados_activos" not in {llamada[0] for llamada in moodle.llamadas}
 
 
 def test_calificador_con_si_asegura_resultados(tmp_path):
