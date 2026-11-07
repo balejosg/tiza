@@ -85,6 +85,10 @@ una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiz
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
   elemento da `ELEMENTO_CON_CRITERIOS`. Los pesos de lo que evalúa cada criterio suman 100; un
   criterio (o elemento) cuyas actividades pesan todas 0 no cuenta en la nota.
+- **Cuestionarios: uno por criterio.** Un cuestionario evalúa un solo criterio: así su nota llega entera a él. Si la prueba cubre varios, propón partirla en uno por criterio en la misma sección:
+  la prueba de la UD3 con CE2.2 y CE3.1 se publica como «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1), con al menos 3 preguntas cada uno. Propón el criterio de cada pregunta desde
+  el texto literal (`tiza normativa ficha`) y confírmalo con el docente en una tabla de preguntas antes de escribir el fichero. Las calificaciones por secciones de Moodle (Moodle ≥ 4.3) no crean
+  elementos en el calificador.
 - **Casillas manuales** (`instrumentos`): tiza crea la casilla (sobre 10) en su primer criterio y
   copias en los demás. La nota la pone el docente a mano; tiza nunca la toca ni cambia su
   máximo. Una nota va a todos sus criterios; quitarlo con notas lo deja con peso 0
@@ -107,8 +111,7 @@ niveles de una fila miden la misma dimensión y gradúan **calidad**, no cantida
 adjetivos vacíos («bien», «regular»); en positivo salvo «No iniciado». No inventes criterios:
 parte del texto oficial (`tiza normativa ficha`) y del enunciado de la tarea.
 
-Antes de escribir, enseña al docente **una sola tabla** (criterio con `codigo · nombre`, indicador,
-peso y una columna por nivel) y espera su confirmación; sin ella no escribas el fichero:
+Antes de escribir, enseña al docente **una sola tabla** (criterio con `codigo · nombre`, indicador, peso y una columna por nivel) y espera su confirmación; sin ella no escribas el fichero:
 
 | criterio | indicador | peso | Destacado | Avanzado | … | No iniciado |
 |---|---|---|---|---|---|---|
@@ -118,24 +121,21 @@ El fichero lleva `tipo: rubrica`, `nombre` y `filas`: cada una con `criterio` (h
 `indicador` (1–100), `peso` opcional (>0, ≤100, dos decimales) y `niveles` con **exactamente** los
 ids de `niveles_rubrica`. Máximo 20 filas en total y al menos una por criterio de `evalua` con
 peso > 0. Para varias filas de un criterio, este necesita `codigo`; sin él, usa una sola fila.
-Después hace falta el cuerpo: descripción para el alumnado, sin imágenes ni ficheros locales. No
-pases el fichero a `tiza comprobar` ni a `tiza publicar`: comprueba y publica la tarea, que lo enlaza con `rubrica:`.
+Después hace falta el cuerpo: descripción para el alumnado, sin imágenes ni ficheros locales. No pases el fichero a `tiza comprobar` ni a `tiza publicar`: comprueba y publica la tarea, que lo enlaza con `rubrica:`.
 
 - Solo ESO (`RUBRICA_SOLO_ESO`), con `evalua` (`RUBRICA_SIN_EVALUA`) y `calificacion.yaml` (`RUBRICA_SIN_ESQUEMA`);
   una fila fuera de `evalua` o que no es hoja da `FILA_FUERA_DE_EVALUA`; un criterio de `evalua` con peso >0 sin fila, `CRITERIO_SIN_FILA`.
   Un nivel que falta da `DESCRIPTOR_FALTA`; una clave con forma de id que no está en `niveles_rubrica`, `NIVEL_DESCONOCIDO`; una clave sin forma de id, `RUBRICA_NO_VALIDA` con la pista de la coma.
   Dos filas no repiten criterio e indicador; o todas llevan `peso` o ninguna (`PESOS_DE_FILA_INCOMPLETOS`); fuera de la carpeta, `RUBRICA_FUERA_DE_CARPETA`.
-  La forma de las filas es `RUBRICA_NO_VALIDA`; el frontmatter mal escrito, `FRONTMATTER_INVALIDO`; el HTML peligroso, `HTML_PELIGROSO`;
-  los ficheros, `FICHERO_AUSENTE`, `CODIFICACION_INVALIDA` o `FICHERO_DEMASIADO_GRANDE`.
+  La forma de las filas es `RUBRICA_NO_VALIDA`; el frontmatter mal escrito, `FRONTMATTER_INVALIDO`; el HTML peligroso, `HTML_PELIGROSO`; los ficheros, `FICHERO_AUSENTE`, `CODIFICACION_INVALIDA` o `FICHERO_DEMASIADO_GRANDE`.
 - El peso de la fila **solo reparte la nota visible de la tarea**: los 10 puntos (y los de cada
   nivel) que Moodle reescala; no sustituye al peso de `evalua` de cada criterio. Sin pesos, todas
   pesan igual. Sin `evidencia: resultados`, la nota total de la tarea llega a todos sus criterios
   según `evalua`; con evidencia, cada criterio recibe su nivel (en `tiza-privado`, `copiar-niveles`). Elige una: no combines `rubrica` con `evidencia`.
-- `EVIDENCIA_COMPARTIDA` avisa en `tiza calificador` (una vez por actividad o casilla manual) de
-  una que evalúa 2+ criterios con peso y no declara `evidencia`: su nota total llega a todos según `evalua`; el peso de las filas solo reparte esa nota de tarea.
+- `EVIDENCIA_COMPARTIDA` avisa en `tiza calificador` de una actividad o casilla manual (una vez por cada una) con 2+ criterios con peso y sin `evidencia`: su nota total llega a todos según
+  `evalua`, y el peso de las filas solo reparte esa nota de tarea. `tiza comprobar` avisa antes de publicar, sin red, solo en un cuestionario con 2+ criterios con peso, y propone partirlo en uno por criterio (§3).
 - La rúbrica es visible antes de la entrega (`alwaysshowdefinition` y `showdescriptionstudent`).
-  Una tarea que ya existe solo recibe la rúbrica si el docente confirma; si además tiene notas
-  (`rescalegrades`), no se activa aunque confirme (`RUBRICA_NO_ACTIVADA`, y se publica lo demás).
+  Una tarea que ya existe solo recibe la rúbrica si el docente confirma; si además tiene notas (`rescalegrades`), no se activa aunque confirme (`RUBRICA_NO_ACTIVADA`, y se publica lo demás).
 - Un fichero con `criterios` o `indicaciones` es de `tiza-privado`: en el público da
   `RUBRICA_NO_VALIDA`. Los cuestionarios no tienen rúbrica.
 - `por_criterios`: los pesos salen de `calificacion.yaml` y no se inventan; si todos son 0,
