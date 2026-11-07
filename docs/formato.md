@@ -37,7 +37,7 @@ apertura: 2026-10-01
 entrega: 2026-10-10
 limite: 2026-10-15
 evalua: {CE1_1: 100, CE2_1: 100}   # criterios de calificacion.yaml
-# rubrica: por_criterios   # alternativa solo ESO: rúbrica nativa a partir de «evalua»
+# rubrica: por_criterios   # o rubricas/tarea.md: rúbrica nativa (solo ESO, con evalua)
 evidencia: resultados      # solo ESO: un resultado por criterio (alternativa a la rúbrica)
 ---
 
@@ -298,12 +298,33 @@ final:
 - Lo que el esquema no expresa (redondeos, actitud, recuperaciones) se queda fuera: la
   guía del agente (`guias/calificador.md`) dice cómo tratarlo.
 
-## Calificador: rúbrica por criterios (solo ESO)
+## Calificador: rúbrica de la tarea (solo ESO)
 
-Una tarea de ESO puede declarar `rubrica: por_criterios` en su cabecera. tiza construye con
-`evalua` y `calificacion.yaml` una rúbrica nativa de Moodle: una fila por criterio de evaluación,
-con los puntos repartidos según los pesos fijos de la programación didáctica. La rúbrica reparte
-10 puntos y Moodle la reescala a la nota máxima de la tarea.
+Una tarea de ESO con `evalua` puede llevar `rubrica` de dos formas: `por_criterios`, con una fila
+genérica por criterio y los pesos de la programación, o la ruta de un fichero con `filas`, que
+concreta cada criterio para esa tarea. Las dos crean la rúbrica nativa de Moodle, reparten 10
+puntos que Moodle reescala a la nota máxima y solo valen en ESO.
+
+Reglas comunes:
+
+- Solo ESO (`RUBRICA_SOLO_ESO`), con `evalua` (`RUBRICA_SIN_EVALUA`) y `calificacion.yaml`
+  (`RUBRICA_SIN_ESQUEMA`).
+- La rúbrica se ve antes de la entrega (`alwaysshowdefinition=1` y `showdescriptionstudent=1`).
+  Una tarea **nueva** la recibe al publicarse; una que **ya existe** solo la recibe si el docente
+  confirma. Si además tiene notas (`rescalegrades`), no se activa aunque confirme: sale
+  `RUBRICA_NO_ACTIVADA` y se publica el resto sin tocar el método de calificación.
+- En el público valen `por_criterios` y un fichero con `filas`. Un fichero con `criterios`
+  (rúbrica libre) o `indicaciones` es de `tiza-privado`: da `RUBRICA_NO_VALIDA` con la pista de
+  usar `filas`.
+- Los cuestionarios no tienen rúbrica en Moodle.
+- El fichero de rúbrica no es una actividad: no lo pases a `tiza comprobar` ni a `tiza publicar`.
+  Comprueba y publica la tarea, que lo enlaza con `rubrica:`.
+
+### Con `rubrica: por_criterios`
+
+`rubrica: por_criterios` construye la rúbrica con `evalua` y `calificacion.yaml`: una fila por
+criterio de evaluación, con los puntos repartidos según los pesos fijos de la programación
+didáctica.
 
 ```yaml
 rubrica: por_criterios   # solo con etapa: eso en calificacion.yaml y con evalua
@@ -314,16 +335,84 @@ rubrica: por_criterios   # solo con etapa: eso en calificacion.yaml y con evalua
   `RUBRICA_SIN_PESOS`.
 - Los niveles salen de `niveles_rubrica` (por defecto, 5: 100, 75, 50, 25 y 0 %). Cada nivel se
   redondea con el mayor resto para que su suma sea exacta (el 50 % de 10 son 5,00).
-- Una tarea **nueva** recibe la rúbrica al publicarse. Una que **ya existe** solo la recibe si el
-  docente confirma en su terminal que ninguna de las tareas listadas tiene notas; con «N», o si
-  el formulario de ajustes muestra el campo de reescalado, sale `RUBRICA_NO_ACTIVADA` y se publica
-  el resto sin tocar el método de calificación.
-- Los cuestionarios no tienen rúbrica en Moodle. Las rúbricas escritas a mano y sus indicaciones
-  son de `tiza-privado`: en el público, una ruta a un `.md` da `RUBRICA_NO_VALIDA`.
-- `etapa`: `primaria`, `eso`, `bachillerato` o `fp`; sin `etapa: eso`, la rúbrica por criterios da
-  `RUBRICA_SOLO_ESO`.
 - `actividades_pesan_igual: true` hace que todas las actividades de un criterio pesen lo mismo,
   aunque sus números de `evalua` sean distintos; no tienen que sumar 100.
+
+### Con un fichero de filas
+
+`rubrica: rubricas/<tarea>.md` enlaza un fichero `tipo: rubrica` que concreta el criterio:
+recomendado 1–3 indicadores por criterio, un descriptor observable por nivel y pesos propios de la
+tarea. Máximo 20 filas en total y al menos una por cada criterio de `evalua` con peso > 0. Es el
+formato que conviene cuando el alumnado tiene que saber exactamente qué se le pide.
+
+```yaml
+---
+tipo: rubrica
+nombre: Rúbrica del montaje
+filas:
+  - criterio: CE1_1
+    indicador: Planifica las fases y los materiales
+    peso: 2
+    niveles:
+      destacado: Secuencia completa, con tiempos y materiales justificados.
+      avanzado: Secuencia completa; justifica solo los materiales.
+      adecuado: Secuencia con alguna fase desordenada o sin tiempos.
+      inicial: Enumera fases sueltas, sin orden ni materiales.
+      no_iniciado: No presenta planificación.
+  - criterio: CE1_1
+    indicador: Justifica la elección de materiales
+    peso: 1
+    niveles:
+      destacado: Justifica cada material por su función y su coste.
+      avanzado: Justifica cada material por su función.
+      adecuado: Justifica algunos materiales.
+      inicial: Nombra materiales sin justificarlos.
+      no_iniciado: No elige ni justifica materiales.
+  - criterio: CE1_2
+    indicador: Precisión del montaje
+    peso: 1
+    niveles:
+      destacado: Monta sin errores y comprueba el resultado.
+      avanzado: Monta con un error menor que corrige.
+      adecuado: Monta con algún error que no corrige.
+      inicial: Monta solo con ayuda.
+      no_iniciado: No monta.
+---
+
+Descripción de la rúbrica para el alumnado: qué se valora en el montaje y qué se espera en cada nivel.
+```
+
+- Campos: `tipo` (`rubrica`), `nombre` (hasta 255 caracteres) y `filas` (de 1 a 20). Después del
+  frontmatter hace falta el cuerpo: la descripción que lee el alumnado, sin imágenes ni ficheros
+  locales (`RUBRICA_NO_VALIDA`).
+- Cada fila: `criterio` (un criterio hoja de `calificacion.yaml` que esté en `evalua`),
+  `indicador` (1–100 caracteres), `peso` opcional (mayor que 0 y hasta 100, dos decimales como
+  mucho) y `niveles` con **exactamente** los ids de `niveles_rubrica`. Dos filas no pueden repetir
+  criterio e indicador.
+- **Para varias filas de un mismo criterio, el criterio necesita `codigo` en `calificacion.yaml`;
+  sin él, todas las filas se llamarían igual y Moodle no las emparejaría. Si un criterio no tiene
+  `codigo`, usa una sola fila.**
+- Pesos: si ninguna fila lleva `peso`, todas pesan igual; si unas sí y otras no,
+  `PESOS_DE_FILA_INCOMPLETOS`. El peso de la fila solo reparte la **nota visible de la tarea**: los
+  10 puntos se reparten entre las filas con el mayor resto, y los de cada nivel son los de la fila
+  por el porcentaje del nivel, también con el mayor resto. No sustituye al peso de `evalua` de cada
+  criterio: sin `evidencia`, la nota total de la tarea llega a todos sus criterios según `evalua`;
+  con evidencia, cada criterio recibe su propio nivel.
+- En Moodle, la primera fila de un criterio tiene el id del criterio en minúsculas (`ce1_1`) y
+  las siguientes `_2`, `_3`…; el título es «`codigo` · `indicador`» (o el id si no hay `codigo`).
+  **Moodle recibe el criterio como «título: nombre oficial»** y cada nivel se define «`Nombre del
+  nivel`: descriptor». El título y los puntos de los niveles permiten a tiza emparejar las filas
+  al volver a publicar.
+- Límites: el título de la fila (código e indicador) no pasa de 120 caracteres; cada descriptor,
+  de 1000 menos el prefijo «`Nombre del nivel`: ». Un peso de fila muy pequeño frente a los demás
+  puede dar `RUBRICA_NO_VALIDA` si sus niveles no reciben puntos distintos.
+- Validación: una fila con un criterio que no está en `evalua` o que no es hoja da
+  `FILA_FUERA_DE_EVALUA`; un criterio de `evalua` con peso mayor que 0 sin fila, `CRITERIO_SIN_FILA`;
+  un nivel que falta, `DESCRIPTOR_FALTA`. Una clave con forma de id que no está en `niveles_rubrica`
+  da `NIVEL_DESCONOCIDO`; una clave sin forma de id da `RUBRICA_NO_VALIDA` con la pista de la
+  coma. La forma de las filas es `RUBRICA_NO_VALIDA`; el frontmatter mal escrito, `FRONTMATTER_INVALIDO`; el HTML
+  peligroso, `HTML_PELIGROSO`; una ruta fuera de la carpeta, `RUBRICA_FUERA_DE_CARPETA`; y los
+  problemas de fichero, `FICHERO_AUSENTE`, `CODIFICACION_INVALIDA` o `FICHERO_DEMASIADO_GRANDE`.
 
 ## Calificador: evidencia por criterio (resultados, solo ESO)
 
@@ -332,11 +421,14 @@ total se reparta entre los criterios, cada criterio de `evalua` recibe **su prop
 docente marca en la pantalla de calificación de Moodle. Es útil cuando la tarea trabaja más de un
 criterio; con uno solo, la nota de la tarea ya es su nivel.
 
-En `tiza`, elige una: no combines `evidencia: resultados` con `rubrica: por_criterios`. La
-evidencia sustituye a la rúbrica en el flujo recomendado. Un fichero con las dos claves carga,
-pero el docente marcaría dos veces. Si usas `tiza-privado`, otra herramienta con su propia sesión,
-el flujo es la rúbrica por criterios con su corrector (`corregir`) y su orden `copiar-niveles`,
-que copia el nivel de cada fila al resultado de su criterio.
+En `tiza`, elige una: `por_criterios`, un fichero con `filas` o `evidencia: resultados`. No
+combines `rubrica` con `evidencia` en la misma tarea: el docente marcaría dos veces; el fichero
+carga, pero no es el flujo recomendado. La evidencia sustituye a la rúbrica para que cada criterio
+reciba su nivel. Si usas `tiza-privado`, su corrector (`corregir`) y su orden `copiar-niveles`
+copian el nivel de cada fila al resultado de su criterio. `EVIDENCIA_COMPARTIDA` avisa en
+`tiza calificador` de una actividad o casilla manual (una vez por cada una) que evalúa 2+ criterios
+con peso y no declara `evidencia`: su nota total llega a todos sus criterios según `evalua`; el peso
+de las filas solo reparte esa nota de tarea, no cambia lo que llega a cada criterio.
 
 ```yaml
 evidencia: resultados   # solo con etapa: eso en calificacion.yaml y con evalua
