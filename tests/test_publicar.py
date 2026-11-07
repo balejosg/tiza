@@ -5211,16 +5211,16 @@ def test_emparejar_filas_del_mismo_criterio():
             "id": "71",
             "descripcion": "3.1 · Seguridad del montaje: Montaje de la grúa",
             "niveles": [
-                {"id": "710", "puntos": 0.0},
-                {"id": "711", "puntos": 5.0},
+                {"id": "710", "puntos": 0.0, "definicion": "No iniciado: Nada."},
+                {"id": "711", "puntos": 5.0, "definicion": "Destacado: Bien."},
             ],
         },
         {
             "id": "70",
             "descripcion": "3.1 · Precisión del montaje: Montaje de la grúa",
             "niveles": [
-                {"id": "700", "puntos": 0.0},
-                {"id": "701", "puntos": 5.0},
+                {"id": "700", "puntos": 0.0, "definicion": "No iniciado: Nada."},
+                {"id": "701", "puntos": 5.0, "definicion": "Destacado: Bien."},
             ],
         },
     ]
@@ -5315,6 +5315,27 @@ def test_definir_rubrica_nueva(monkeypatch):
     assert {
         datos[f"rubric[criteria][NEWID1][levels][NEWID1{posicion}][score]"] for posicion in (0, 1)
     } == {"0", "4"}
+
+
+def test_definir_rubrica_actualiza_si_cambia_un_descriptor():
+    original = _cargada_de_prueba()
+    changed = dataclasses.replace(
+        original,
+        criterios=(
+            dataclasses.replace(
+                original.criterios[0],
+                niveles=(
+                    rubrica.Nivel(id="excelente", puntos=4.0, descripcion="Varias y claras."),
+                    original.criterios[0].niveles[1],
+                ),
+            ),
+        ),
+    )
+    moodle = MoodleFalso()
+    assert moodle.definir_rubrica(100, original)["accion"] == "definida"
+    assert moodle.definir_rubrica(100, original)["accion"] == "ya_definida"
+    assert moodle.definir_rubrica(100, changed)["accion"] == "definida"
+    assert moodle.rubricas[100][0]["niveles"][0]["definicion"] == "Varias y claras."
 
 
 def test_definir_rubrica_ya_definida_no_reenvia(monkeypatch):

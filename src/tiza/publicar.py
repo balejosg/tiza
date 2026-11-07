@@ -2825,8 +2825,8 @@ def _titulo_criterio(criterio: CriterioRubrica) -> str:
 def emparejar_rubrica(leida: list[dict], rubrica: RubricaCargada) -> dict[str, dict] | None:
     """Nuestro id de criterio → {moodle, niveles (ids por puntos)}; ``None`` si no cuadra.
 
-    Los ids se emparejan por la descripción del criterio y por los puntos de sus
-    niveles, que es lo único que Moodle conserva.
+    Los ids se emparejan por la descripción del criterio, los puntos de sus niveles y
+    sus definiciones: un descriptor cambiado obliga a volver a escribir la rúbrica.
     """
     pares: dict[str, dict] = {}
     for criterio in rubrica.criterios:
@@ -2836,12 +2836,12 @@ def emparejar_rubrica(leida: list[dict], rubrica: RubricaCargada) -> dict[str, d
         )
         if candidato is None:
             return None
-        esperados = sorted(nivel.puntos for nivel in criterio.niveles)
+        esperados = sorted((nivel.puntos, nivel.descripcion) for nivel in criterio.niveles)
         niveles = sorted(
             candidato.get("niveles") or [],
             key=lambda nivel: (nivel.get("puntos") is None, nivel.get("puntos")),
         )
-        if [nivel.get("puntos") for nivel in niveles] != esperados:
+        if [(nivel.get("puntos"), nivel.get("definicion")) for nivel in niveles] != esperados:
             return None
         pares[criterio.id] = {
             "moodle": candidato.get("id"),
