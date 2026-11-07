@@ -36,7 +36,9 @@ seccion: 3
 apertura: 2026-10-01
 entrega: 2026-10-10
 limite: 2026-10-15
-rubrica: por_criterios    # opcional, solo ESO: rúbrica nativa a partir de «evalua»
+evalua: {CE1_1: 100, CE2_1: 100}   # criterios de calificacion.yaml
+# rubrica: por_criterios   # alternativa solo ESO: rúbrica nativa a partir de «evalua»
+evidencia: resultados      # solo ESO: un resultado por criterio (alternativa a la rúbrica)
 ---
 
 Resuelve los problemas.
@@ -288,8 +290,8 @@ final:
   actividad nueva de sus secciones queda sin colocar (`ACTIVIDAD_EN_EVALUACION_CERRADA`). tiza no
   la reabre.
 - No se admite cambiar `organizacion` o `final.de` de un calificador ya montado (habría que
-  borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas: tiza solo trabaja con
-  notas numéricas.
+  borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas configuradas por el
+  docente: tiza solo usa la escala de logro que crea para la evidencia por criterio (ver más abajo).
 - Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Un
   elemento que todavía no tiene ninguna nota cuenta como 0 en ese cálculo, así que a mitad de
   curso la final puede salir topada. Un error del esquema da `ESQUEMA_INVALIDO`, con la ruta y la línea.
@@ -322,6 +324,49 @@ rubrica: por_criterios   # solo con etapa: eso en calificacion.yaml y con evalua
   `RUBRICA_SOLO_ESO`.
 - `actividades_pesan_igual: true` hace que todas las actividades de un criterio pesen lo mismo,
   aunque sus números de `evalua` sean distintos; no tienen que sumar 100.
+
+## Calificador: evidencia por criterio (resultados, solo ESO)
+
+Una tarea de ESO puede declarar `evidencia: resultados` en su cabecera. En lugar de que su nota
+total se reparta entre los criterios, cada criterio de `evalua` recibe **su propio nivel**, que el
+docente marca en la pantalla de calificación de Moodle. Es útil cuando la tarea trabaja más de un
+criterio; con uno solo, la nota de la tarea ya es su nivel.
+
+En `tiza`, elige una: no combines `evidencia: resultados` con `rubrica: por_criterios`. La
+evidencia sustituye a la rúbrica en el flujo recomendado. Un fichero con las dos claves carga,
+pero el docente marcaría dos veces. Si usas `tiza-privado`, otra herramienta con su propia sesión,
+el flujo es la rúbrica por criterios con su corrector (`corregir`) y su orden `copiar-niveles`,
+que copia el nivel de cada fila al resultado de su criterio.
+
+```yaml
+evidencia: resultados   # solo con etapa: eso en calificacion.yaml y con evalua
+```
+
+- Necesita `evalua` (`EVIDENCIA_SIN_EVALUA`) y `calificacion.yaml` en la carpeta de la asignatura
+  (`EVIDENCIA_SIN_ESQUEMA`). Solo vale en ESO (`EVIDENCIA_SOLO_ESO`). Los porcentajes de
+  `niveles_rubrica` deben estar igual de separados, como los de por defecto (0, 25, 50, 75 y 100);
+  si no, `NIVELES_NO_EQUIDISTANTES`.
+- tiza crea en el curso la escala «Escala de logro (tiza)» con los niveles de `niveles_rubrica`,
+  ordenados de menor a mayor, y un resultado por criterio con nombre corto `TZ_<criterio>`, nombre
+  completo «código · nombre» (o solo el nombre si el criterio no tiene `codigo`) y una descripción
+  con los niveles. En el calificador pone un calculado por tarea y criterio que reescala el nivel a
+  0–10 y lleva el peso de `evalua`; **la nota total de la tarea deja de contar para los criterios**.
+  Los descriptores de cada nivel van en el enunciado de la tarea, para que el alumnado sepa qué se
+  le pide.
+- Si la tarea ya tiene notas, `tiza publicar` pide confirmación antes de activar los resultados
+  (`EVIDENCIA_CAMBIADA_CON_NOTAS`): sus notas antiguas dejan de contar para los criterios. Con «N»,
+  la tarea se publica sin resultados. `tiza calificador` también pregunta por las tareas pendientes
+  con notas, aunque no emita ese paso.
+- Quitar `evidencia` no borra el resultado: al volver a montar el calificador se queda con peso 0.
+  En `tiza calificador`, `RESULTADO_CON_NOTAS_QUITADO` solo avisa si el resultado ya tenía niveles
+  puestos.
+- Si el sitio tiene los resultados desactivados, `RESULTADOS_DESACTIVADOS` en `tiza publicar` (no
+  se escribe nada de resultados y se publica el resto) o en `tiza calificador` (queda el paso
+  `RESULTADOS_DESACTIVADOS` y el calificador sigue). Si la escala ya está en uso con otros niveles,
+  `ESCALA_EN_USO`: no se toca la escala ni se escriben resultados. En `tiza publicar` detiene la
+  publicación; en `tiza calificador`, el paso `CALIFICADOR` falla con `ESCALA_EN_USO`.
+- tiza **no lee los niveles**: los marca el docente en Moodle. Una tarea sin `evidencia` se publica
+  y calcula su hash exactamente como siempre.
 
 ## Fórmulas
 

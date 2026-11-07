@@ -77,6 +77,9 @@ plantilla de tu departamento, siempre sin datos del alumnado.
   criterios que trabaja según la programación.»* En ESO, `tiza` crea la rúbrica
   nativa de Moodle con los pesos de tu programación; si la tarea ya está en el
   aula, te pregunta antes de tocarla.
+- *«Que cada criterio reciba su propio nivel en la tarea.»* En ESO, tiza crea
+  un resultado por criterio; tú marcas el nivel de cada uno en Moodle y la nota
+  total de la tarea deja de repartirse entre criterios.
 - *«¿Qué criterios de mi programación del primer trimestre aún no tienen ninguna
   actividad en esta carpeta?»* El agente cruza tu programación con lo que ya ha
   preparado y te señala los huecos.
