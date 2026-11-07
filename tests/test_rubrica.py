@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from tiza.contenido import ErrorContenido
@@ -39,11 +41,24 @@ def rubrica_de_prueba() -> RubricaCargada:
     )
 
 
-def test_hash_coincide_con_el_del_privado() -> None:
-    # Medido con RubricaCargada.hash de tiza-privado y los mismos datos.
+def test_hash_de_siempre() -> None:
+    # Medido con RubricaCargada.hash de tiza-privado y anotado en la Tarea 1 del
+    # plan de la rúbrica por criterios: no puede cambiar.
     assert rubrica_de_prueba().hash() == (
         "fc3e98b7cf3bc070e1835a259ccee0f4f51eccbfc5d2031bf49ee8b9b6f42b7a"
     )
+
+
+def test_criterio_no_entra_en_el_hash() -> None:
+    sin_criterio = rubrica_de_prueba()
+    con_criterio = RubricaCargada(
+        nombre=sin_criterio.nombre,
+        descripcion=sin_criterio.descripcion,
+        html=sin_criterio.html,
+        criterios=tuple(replace(criterio, criterio="CE1") for criterio in sin_criterio.criterios),
+    )
+    assert con_criterio.criterios[0].criterio == "CE1"
+    assert con_criterio.hash() == sin_criterio.hash()
 
 
 def test_limites() -> None:

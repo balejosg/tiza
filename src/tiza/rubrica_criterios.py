@@ -17,7 +17,7 @@ from .calificacion.esquema import Criterio, Elemento, ErrorCalificacion, Esquema
 from .contenido import numero_texto
 from .rubrica import CriterioRubrica, Nivel, RubricaCargada, validar_rubrica
 
-__all__ = ["reparto", "rubrica_de_criterios"]
+__all__ = ["mayor_resto", "reparto", "rubrica_de_criterios"]
 
 _NOMBRE_TAREA_MAX = 255
 
@@ -26,7 +26,7 @@ def _centimos(valor: float) -> int:
     return int(round(valor * 100))
 
 
-def _mayor_resto(exactos: list[float], total: float) -> list[float]:
+def mayor_resto(exactos: list[float], total: float) -> list[float]:
     """Reparte ``total`` en céntimos según ``exactos``, con el método del mayor resto.
 
     Los empates se resuelven a favor del último, como el ajuste final de
@@ -94,7 +94,7 @@ def reparto(
             "ningún criterio de la tarea tiene peso en calificacion.yaml",
         )
     suma = sum(peso for _, peso in pesos)
-    puntos = _mayor_resto([peso / suma * total for _, peso in pesos], total)
+    puntos = mayor_resto([peso / suma * total for _, peso in pesos], total)
     filas = tuple((id_, valor) for (id_, _), valor in zip(pesos, puntos, strict=True) if valor > 0)
     if not filas:
         raise ErrorCalificacion(
@@ -129,7 +129,7 @@ def rubrica_de_criterios(
     filas = reparto(esquema, criterios)
     total = 10.0
     puntos_por_nivel: list[list[float]] = [
-        _mayor_resto(
+        mayor_resto(
             [puntos * nivel.porcentaje / 100 for _, puntos in filas],
             total * nivel.porcentaje / 100,
         )

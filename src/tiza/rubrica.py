@@ -52,6 +52,7 @@ class CriterioRubrica:
     nombre: str  # cómo lo lee el alumnado: «Contenido»
     descripcion: str
     niveles: tuple[Nivel, ...]
+    criterio: str | None = None  # id del criterio del esquema; no entra en el hash
 
     @property
     def minimo(self) -> float:
