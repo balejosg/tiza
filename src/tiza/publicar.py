@@ -23,7 +23,7 @@ import time
 from collections.abc import Callable, Collection, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import parse_qs, unquote, urljoin, urlsplit
 
 import requests
 from bs4 import BeautifulSoup
@@ -466,6 +466,18 @@ class AulaVirtual(Protocol):
 
     def fijar_total_curso(self, curso: int, formula: str | None, decimal: str) -> None: ...
 
+    def resultados_activos(self, curso: int) -> bool: ...
+
+    def asegurar_escala(self, curso: int, nombre: str, niveles: tuple[str, ...]) -> int: ...
+
+    def asegurar_resultado(
+        self, curso: int, corto: str, nombre: str, descripcion: str, escala: int
+    ) -> int: ...
+
+    def fijar_idnumber_resultado(self, curso: int, item_id: int, idnumber: str) -> None: ...
+
+    def campos_resultado_tarea(self, cmid: int) -> dict[int, bool]: ...
+
     def borrar_copia(self, nombre: str, curso_id: int) -> None: ...
 
 
@@ -491,6 +503,10 @@ class Moodle:
         # relecturas con ``tocados`` dentro de una misma ejecución.
         self._arbol: dict[int, set[str]] = {}
         self._formularios: dict[int, dict[str, dict[str, Any]]] = {}
+        # Nombre corto de cada resultado del curso, leído de su formulario. Se llena al
+        # asegurar un resultado y se conserva mientras dure la sesión; al crear uno se
+        # invalida el curso, porque la lista de ``removeoutcomes[]`` trae ids nuevos.
+        self._corto_resultados: dict[int, dict[int, str]] = {}
 
     def _esperar(self) -> None:
         """Peticiones secuenciales con una pausa corta."""
@@ -1239,14 +1255,18 @@ class Moodle:
         )
         if 300 <= getattr(respuesta, "status_code", 200) < 400:
             # Justo después de escribir, Moodle puede redirigir a otra página del calificador
-            # (p. ej. el recálculo): se sigue una vez. Al login, o una segunda vez, es falta de permiso.
+            # (p. ej. el recálculo): se sigue una vez. Al login, a otra aula o a un informe de
+            # notas, falta de permiso (y al informe de notas ni siquiera se pide).
             destino = str((getattr(respuesta, "headers", None) or {}).get("Location", ""))
-            if not destino or "/login/" in destino:
+            if not destino:
                 raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
-            resuelta = urljoin(f"{self.base_url}/", destino)
-            propia, ajena = urlsplit(self.base_url), urlsplit(resuelta)
-            if (propia.scheme, propia.netloc) != (ajena.scheme, ajena.netloc):
+            if not _es_del_mismo_aula(self.base_url, destino):
                 raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")  # solo a su propia aula
+            if _redirige_al_login(self.base_url, destino):
+                raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+            if _es_informe_de_notas(self.base_url, destino):
+                raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+            resuelta = _resolver_destino(self.base_url, destino)
             self._esperar()
             respuesta = self._reducir(
                 "ERROR_CONSULTA",
@@ -1836,6 +1856,319 @@ class Moodle:
         self.fijar_formula(curso, item_id, formula, decimal)
         self._guardar("grade/edit/tree/category.php", parametros, {"grade_item_grademax": "10"})
 
+    # --- Resultados del curso y escala de logro (evidencia por criterio) -------
+
+    def resultados_activos(self, curso: int) -> bool:
+        """¿Están activos los resultados en este sitio? (D12).
+
+        ``grade/edit/outcome/index.php`` redirige al calificador cuando está desactivado:
+        se lee sin seguir la redirección y el 3xx es el no. Una redirección al login es una
+        sesión caducada, no una configuración del sitio.
+        """
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_CONSULTA",
+            self.sesion.get,
+            f"{self.base_url}/grade/edit/outcome/index.php",
+            params={"id": curso},
+            allow_redirects=False,
+            timeout=TIEMPO_ESPERA,
+        )
+        estado = getattr(respuesta, "status_code", 200)
+        if 300 <= estado < 400:
+            destino = (getattr(respuesta, "headers", None) or {}).get("Location", "")
+            if not destino:
+                raise ErrorPublicacion("ERROR_CONSULTA")
+            if not _es_del_mismo_aula(self.base_url, str(destino)):
+                raise ErrorPublicacion("DESTINO_NO_PERMITIDO")
+            if _redirige_al_login(self.base_url, str(destino)):
+                raise ErrorPublicacion("SESION_CADUCADA")
+            ruta = urlsplit(_resolver_destino(self.base_url, str(destino))).path
+            if _es_informe_de_notas(self.base_url, str(destino)) or "/grade/" in ruta:
+                return False  # el calificador: los resultados están desactivados (D12)
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
+        return True
+
+    def _exigir_resultados(self, curso: int) -> None:
+        """Sin resultados activos no se lee ni se escribe nada de resultados (D12)."""
+        if not self.resultados_activos(curso):
+            raise ErrorPublicacion("RESULTADOS_DESACTIVADOS")
+
+    def _escalas_con_nombre(self, curso: int, nombre: str) -> list[int]:
+        """Los ids de las escalas del curso que se llaman ``nombre`` (lista ``scaleid``)."""
+        pagina = self._pagina_del_calificador("grade/edit/outcome/edit.php", {"courseid": curso})
+        sopa = BeautifulSoup(pagina, "html.parser")
+        selector = sopa.find("select", attrs={"name": "scaleid"})
+        if selector is None:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        return [
+            int(str(opcion["value"]))
+            for opcion in selector.find_all("option")
+            if str(opcion.get("value", "")).isdigit() and opcion.get_text(" ", strip=True) == nombre
+        ]
+
+    def _niveles_de_escala(self, curso: int, escala: int) -> tuple[str, ...] | None:
+        """Los niveles que tiene ahora la escala, releídos de su formulario.
+
+        Si el formulario está congelado y no trae ``scale`` (Moodle puede hacerlo con
+        ``hardFreeze`` cuando la escala está en uso), se leen de la lista de escalas del
+        curso, que sí los muestra en ``div.scale_options``. Si tampoco están ahí, no se
+        sabe: ``None``.
+        """
+        pagina = self._pagina_del_calificador(
+            "grade/edit/scale/edit.php", {"courseid": curso, "id": escala}
+        )
+        formulario = _formulario_con_campo(pagina, "scale")
+        if formulario is not None:
+            texto = _campo(formulario, "scale")
+            if texto is not None and texto.strip():
+                return _niveles_de_texto(texto)
+        return self._niveles_de_escala_en_indice(curso, escala)
+
+    def _niveles_de_escala_en_indice(self, curso: int, escala: int) -> tuple[str, ...] | None:
+        """Los niveles de la escala en la lista del curso (``div.scale_options``).
+
+        Es la fuente que sigue disponible cuando el formulario de edición está congelado.
+        Solo se acepta la fila que tiene el enlace de **edición** (``edit.php``) con
+        ``courseid=<curso>`` e ``id=<escala>``: el enlace de borrar de otra escala también
+        puede llevar ``id=<curso>``. Si no hay enlace inequívoco o la fila no trae los
+        niveles, ``None``: nunca se adivinan.
+        """
+        pagina = self._pagina_del_calificador("grade/edit/scale/index.php", {"id": curso})
+        sopa = BeautifulSoup(pagina, "html.parser")
+        for fila in sopa.find_all("tr"):
+            for enlace in fila.find_all("a", href=True):
+                partes = urlsplit(str(enlace.get("href") or ""))
+                if partes.path.rsplit("/", 1)[-1] != "edit.php":
+                    continue
+                consulta = parse_qs(partes.query)
+                if str(curso) not in consulta.get("courseid", []):
+                    continue
+                if str(escala) not in consulta.get("id", []):
+                    continue
+                opciones = fila.find(class_="scale_options")
+                if opciones is None:
+                    return None
+                return _niveles_de_texto(opciones.get_text(" ", strip=True))
+        return None
+
+    def asegurar_escala(self, curso: int, nombre: str, niveles: tuple[str, ...]) -> int:
+        """Crea la escala de logro o reutiliza la del mismo nombre y niveles.
+
+        Si existe con otros niveles, se intenta actualizar. Moodle responde 303 también
+        cuando la escala está en uso y deja los niveles como estaban (S1b.5): por eso se
+        relee el formulario y, si no cambiaron, es ``ESCALA_EN_USO``. Nunca se detecta por
+        el texto de la respuesta.
+        """
+        self._exigir_resultados(curso)
+        deseados = tuple(niveles)
+        candidatas = self._escalas_con_nombre(curso, nombre)
+        ilegible = False
+        for escala in candidatas:
+            leidos = self._niveles_de_escala(curso, escala)
+            if leidos == deseados:
+                return escala
+            if leidos is None:
+                ilegible = True
+        if ilegible:
+            # No se pueden leer sus niveles en ninguna fuente disponible: no se toca ni se
+            # duplica. Lo más probable es que esté en uso y Moodle no deje cambiarla.
+            raise ErrorPublicacion("ESCALA_EN_USO")
+        if len(candidatas) > 1:
+            # Varias escalas con el mismo nombre y ninguna con estos niveles: no se elige
+            # una al azar.
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        if candidatas:
+            escala = candidatas[0]
+            self._guardar(
+                "grade/edit/scale/edit.php",
+                {"courseid": curso, "id": escala},
+                {"name": nombre, "scale": ",".join(deseados)},
+            )
+            leidos = self._niveles_de_escala(curso, escala)
+            if leidos is None:
+                # Moodle respondió que guardaba (303) pero no se pueden releer los niveles:
+                # la escala está en uso y no se aplicó el cambio (S1b.5).
+                raise ErrorPublicacion("ESCALA_EN_USO")
+            if leidos != deseados:
+                raise ErrorPublicacion("ESCALA_EN_USO")
+            return escala
+        self._guardar(
+            "grade/edit/scale/edit.php",
+            {"courseid": curso},
+            {"name": nombre, "scale": ",".join(deseados), "standard": "0"},
+        )
+        nuevas = self._escalas_con_nombre(curso, nombre)
+        if not nuevas:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        return nuevas[0]
+
+    def _ids_de_resultados(self, curso: int) -> set[int]:
+        """Los ids de los resultados usados en el curso (``removeoutcomes[]``).
+
+        Si la página no trae el selector, no es la página que tiza sabe leer: no se puede
+        deducir «no hay resultados» (sería crear un duplicado).
+        """
+        pagina = self._pagina_del_calificador("grade/edit/outcome/course.php", {"id": curso})
+        selector = BeautifulSoup(pagina, "html.parser").find(
+            "select", attrs={"name": "removeoutcomes[]"}
+        )
+        if selector is None:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        return {
+            int(str(opcion["value"]))
+            for opcion in selector.find_all("option")
+            if str(opcion.get("value", "")).isdigit()
+        }
+
+    def _corto_de_resultado(self, curso: int, resultado: int) -> str:
+        """El nombre corto del resultado, leído de su formulario y recordado por curso.
+
+        Un formulario sin ``shortname`` no es un resultado legible: se falla en vez de
+        cachear un vacío, que haría crear un duplicado.
+        """
+        vistos = self._corto_resultados.setdefault(curso, {})
+        if resultado in vistos:
+            return vistos[resultado]
+        pagina = self._pagina_del_calificador(
+            "grade/edit/outcome/edit.php", {"courseid": curso, "id": resultado}
+        )
+        formulario = _formulario_con_campo(pagina, "shortname")
+        if formulario is None:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        corto = (_campo(formulario, "shortname") or "").strip()
+        if not corto:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        vistos[resultado] = corto
+        return corto
+
+    def asegurar_resultado(
+        self,
+        curso: int,
+        corto: str,
+        nombre: str,
+        descripcion: str,
+        escala: int,
+    ) -> int:
+        """Crea o actualiza el resultado del curso con este nombre corto y devuelve su id.
+
+        El id sale siempre de la lista ``removeoutcomes[]`` de
+        ``grade/edit/outcome/course.php``, no de la redirección del guardado. Si hay más de
+        un resultado con el mismo nombre corto (no debería), no se elige uno al azar.
+        """
+        self._exigir_resultados(curso)
+        ids = self._ids_de_resultados(curso)
+        encontrados = [
+            resultado for resultado in ids if self._corto_de_resultado(curso, resultado) == corto
+        ]
+        if len(encontrados) > 1:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        cambios = {
+            "shortname": corto,
+            "fullname": nombre,
+            "scaleid": str(escala),
+            "description_editor[text]": descripcion,
+            "description_editor[format]": "1",
+        }
+        if encontrados:
+            resultado = encontrados[0]
+            self._guardar(
+                "grade/edit/outcome/edit.php",
+                {"courseid": curso, "id": resultado},
+                cambios,
+            )
+            self._corto_resultados.setdefault(curso, {})[resultado] = corto
+            return resultado
+        self._guardar(
+            "grade/edit/outcome/edit.php",
+            {"courseid": curso},
+            {**cambios, "standard": "0"},
+        )
+        despues = self._ids_de_resultados(curso)
+        nuevos = [resultado for resultado in despues if resultado not in ids]
+        if len(nuevos) != 1:
+            nuevos = [
+                resultado
+                for resultado in despues
+                if self._corto_de_resultado(curso, resultado) == corto
+            ]
+        if len(nuevos) != 1:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        resultado = nuevos[0]
+        # Se añade a la caché sin releer los formularios que ya se conocían.
+        self._corto_resultados.setdefault(curso, {})[resultado] = corto
+        return resultado
+
+    def fijar_idnumber_resultado(self, curso: int, item_id: int, idnumber: str) -> None:
+        """El número de ID de un elemento de resultado (``outcomeitem.php``, S1b.3)."""
+        self._guardar(
+            "grade/edit/tree/outcomeitem.php",
+            {"courseid": curso, "id": item_id},
+            {"idnumber": idnumber},
+        )
+        pagina = self._pagina_del_calificador(
+            "grade/edit/tree/outcomeitem.php", {"courseid": curso, "id": item_id}
+        )
+        formulario = _formulario_con_campo(pagina, "idnumber")
+        if formulario is None or (_campo(formulario, "idnumber") or "").strip() != idnumber:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+    def campos_resultado_tarea(self, cmid: int) -> dict[int, bool]:
+        """Qué resultados tiene marcados la tarea: ``outcome_<id>`` de ``course/modedit.php``.
+
+        Solo lee los ajustes de la actividad; nunca el formulario de calificación, donde el
+        índice del campo es interno (D5). Quitar un ``outcome_<id>`` no desvincula el
+        resultado en Moodle (S1b.2), así que esto solo se usa para leer.
+        """
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_CONSULTA",
+            self.sesion.get,
+            f"{self.base_url}/course/modedit.php",
+            params={"update": cmid},
+            allow_redirects=False,
+            timeout=TIEMPO_ESPERA,
+        )
+        estado = getattr(respuesta, "status_code", 200)
+        if 300 <= estado < 400:
+            destino = (getattr(respuesta, "headers", None) or {}).get("Location", "")
+            if not destino:
+                raise ErrorPublicacion("ERROR_CONSULTA")
+            if not _es_del_mismo_aula(self.base_url, str(destino)):
+                raise ErrorPublicacion("DESTINO_NO_PERMITIDO")
+            if _redirige_al_login(self.base_url, str(destino)):
+                raise ErrorPublicacion("SESION_CADUCADA")
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
+        sopa = BeautifulSoup(str(getattr(respuesta, "text", "") or ""), "html.parser")
+        formulario = sopa.find("form", id="modeditform")
+        if formulario is None:
+            formulario = next(
+                (
+                    candidato
+                    for candidato in sopa.find_all("form")
+                    if re.search(r"(?:^|/)modedit\.php", str(candidato.get("action") or ""))
+                ),
+                None,
+            )
+        if formulario is None:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        patron = re.compile(r"^outcome_([0-9]+)$")
+        marcados: dict[int, bool] = {}
+        for campo in formulario.find_all("input", attrs={"name": patron}):
+            coincidencia = patron.fullmatch(str(campo["name"]))
+            if coincidencia is None:
+                continue
+            resultado = int(coincidencia.group(1))
+            tipo = str(campo.get("type", "")).lower()
+            if tipo in ("checkbox", "radio"):
+                marcado = campo.has_attr("checked")
+            else:
+                marcado = str(campo.get("value", "")).strip() == "1"
+            marcados[resultado] = marcados.get(resultado, False) or marcado
+        return marcados
+
     def comprobar_h5p(self, cmid: int) -> bool:
         """¿Arrancó H5P? El embed trae H5PIntegration con contents (espiga)."""
         html = self._leer_embed_h5p(cmid)
@@ -2155,6 +2488,46 @@ class Moodle:
 def _formulario_de(html: str, accion: re.Pattern[str]) -> Any:
     """El formulario de la página cuya acción cumple ``accion``, o ``None``."""
     return BeautifulSoup(html, "html.parser").find("form", attrs={"action": accion})
+
+
+def _formulario_con_campo(html: str, nombre: str) -> Any:
+    """El primer formulario de la página que trae un campo llamado ``nombre``, o ``None``."""
+    for formulario in BeautifulSoup(html, "html.parser").find_all("form"):
+        if _campo_con_nombre(formulario, nombre) is not None:
+            return formulario
+    return None
+
+
+def _niveles_de_texto(texto: str) -> tuple[str, ...]:
+    """Los niveles de una escala de Moodle: texto separado por comas."""
+    if not texto.strip():
+        return ()
+    return tuple(nivel.strip() for nivel in texto.split(","))
+
+
+_INFORME_DE_NOTAS = re.compile(r"(?:^|/)grade/report(?:/|\.php)|(?:^|/)mod/[^/]+/report\.php")
+
+
+def _resolver_destino(base_url: str, destino: str) -> str:
+    """La URL absoluta de una redirección del aula."""
+    return urljoin(f"{base_url}/", destino)
+
+
+def _es_del_mismo_aula(base_url: str, destino: str) -> bool:
+    """¿La redirección se queda en el mismo servidor del aula?"""
+    propia = urlsplit(base_url)
+    ajena = urlsplit(_resolver_destino(base_url, destino))
+    return (propia.scheme, propia.netloc) == (ajena.scheme, ajena.netloc)
+
+
+def _redirige_al_login(base_url: str, destino: str) -> bool:
+    """¿La redirección lleva al login del aula?"""
+    return "/login/" in urlsplit(_resolver_destino(base_url, destino)).path
+
+
+def _es_informe_de_notas(base_url: str, destino: str) -> bool:
+    """¿La redirección lleva a un informe de notas, que tiza no lee nunca?"""
+    return bool(_INFORME_DE_NOTAS.search(urlsplit(_resolver_destino(base_url, destino)).path))
 
 
 _ENLACE_DE_ACTIVIDAD = re.compile(r"/mod/\w+/view\.php\?id=(\d+)")

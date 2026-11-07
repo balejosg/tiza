@@ -8,6 +8,7 @@ import types
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pytest
 import requests
@@ -5152,3 +5153,783 @@ def test_definir_rubrica_con_notas_da_rubrica_en_uso(monkeypatch):
         _moodle_rubrica(sesion, monkeypatch).definir_rubrica(5, _cargada_de_prueba())
     assert exc.value.codigo == "RUBRICA_EN_USO"
     assert all(peticion[0] == "GET" for peticion in sesion.peticiones)
+
+
+# --------------------------------------------------------------------------- #
+# Resultados del curso y escala de logro (evidencia por criterio)
+# --------------------------------------------------------------------------- #
+
+NIVELES = ("No iniciado", "Inicial", "Adecuado", "Avanzado", "Destacado")
+
+
+class _SesionResultados:
+    """Aula falsa de resultados: escala, resultados del curso y ajustes de la tarea.
+
+    Falla si alguien pide un informe de notas: ``action=grading``, ``action=grade``
+    o cualquier ``grade/report/``. Los resultados se identifican por su nombre corto,
+    que solo se ve al abrir el formulario de cada uno, no en la lista del curso.
+    """
+
+    def __init__(
+        self,
+        *,
+        activos=True,
+        escalas=None,
+        resultados=None,
+        resultados_de_tarea=None,
+        redireccion_index=None,
+        course_sin_removeoutcomes=False,
+        sin_shortname=False,
+        redireccion_outcome_edit=None,
+        redireccion_scale_edit=None,
+        redireccion_modedit=None,
+        ocultar_scale_tras_guardar=False,
+        sin_scale_en_edicion=False,
+        indice_sin_niveles=False,
+        borrado_ajeno_primero=False,
+        standard_en_formulario="0",
+        no_guarda_idnumber=False,
+        modedit_sin_formulario=False,
+        hidden_en_tarea=(),
+    ):
+        self.activos = activos
+        self.escalas = {
+            escala["id"]: {**escala, "niveles": tuple(escala["niveles"])}
+            for escala in (escalas or [])
+        }
+        self.resultados = {resultado["id"]: dict(resultado) for resultado in (resultados or [])}
+        self.resultados_de_tarea = {
+            cmid: dict(marcados) for cmid, marcados in (resultados_de_tarea or {}).items()
+        }
+        self.redireccion_index = redireccion_index
+        self.course_sin_removeoutcomes = course_sin_removeoutcomes
+        self.sin_shortname = sin_shortname
+        self.redireccion_outcome_edit = redireccion_outcome_edit
+        self.redireccion_scale_edit = redireccion_scale_edit
+        self.redireccion_modedit = redireccion_modedit
+        self.ocultar_scale_tras_guardar = ocultar_scale_tras_guardar
+        self.sin_scale_en_edicion = sin_scale_en_edicion
+        self.indice_sin_niveles = indice_sin_niveles
+        self.borrado_ajeno_primero = borrado_ajeno_primero
+        self.standard_en_formulario = standard_en_formulario
+        self.escalas_guardadas_sin_scale: set[int] = set()
+        self.no_guarda_idnumber = no_guarda_idnumber
+        self.modedit_sin_formulario = modedit_sin_formulario
+        self.hidden_en_tarea = set(hidden_en_tarea)
+        self.idnumbers: dict[int, str] = {}
+        self.gets: list[tuple[str, dict, bool]] = []
+        self.posts: list[tuple[str, list[tuple[str, str]]]] = []
+        self.prohibidas: list[str] = []
+        self._siguiente_escala = max(self.escalas, default=700) + 1
+        self._siguiente_resultado = max(self.resultados, default=40) + 1
+
+    def _comprobar(self, url: str, params=None, data=None) -> None:
+        consulta = url
+        if params:
+            consulta += "?" + urlencode(params)
+        if data:
+            consulta += " " + urlencode(data)
+        if (
+            "action=grading" in consulta
+            or re.search(r"(?:^|[?& ])action=grade(?:&| |$)", consulta)
+            or "grade/report/" in consulta
+        ):
+            self.prohibidas.append(consulta)
+            raise AssertionError(f"petición de notas: {consulta}")
+
+    def _opciones_escala(self, seleccionada=None) -> str:
+        return "".join(
+            f'<option value="{identificador}"'
+            f"{' selected' if identificador == seleccionada else ''}>"
+            f"{escala['nombre']}</option>"
+            for identificador, escala in self.escalas.items()
+        )
+
+    def _formulario_escala(self, escala, identificador: int, *, con_scale=True) -> str:
+        campo_scale = (
+            f'<textarea name="scale">{",".join(escala["niveles"])}</textarea>' if con_scale else ""
+        )
+        return (
+            "<html><body>"
+            '<form action="/grade/edit/scale/edit.php" method="post">'
+            f'<input type="hidden" name="id" value="{identificador}">'
+            '<input type="hidden" name="courseid" value="2">'
+            f'<input name="name" value="{escala["nombre"]}">'
+            f"{campo_scale}"
+            '<input type="hidden" name="standard" value="0">'
+            "</form></body></html>"
+        )
+
+    def _formulario_resultado(self, resultado, identificador: int) -> str:
+        campo_corto = (
+            "" if self.sin_shortname else f'<input name="shortname" value="{resultado["corto"]}">'
+        )
+        return (
+            "<html><body>"
+            '<form action="/grade/edit/outcome/edit.php" method="post">'
+            f'<input type="hidden" name="id" value="{identificador}">'
+            '<input type="hidden" name="courseid" value="2">'
+            f"{campo_corto}"
+            f'<input name="fullname" value="{resultado["nombre"]}">'
+            f'<select name="scaleid">{self._opciones_escala(resultado["escala"])}</select>'
+            f'<textarea name="description_editor[text]">{resultado["descripcion"]}</textarea>'
+            '<input type="hidden" name="description_editor[format]" value="1">'
+            f'<input type="hidden" name="standard" value="{self.standard_en_formulario}">'
+            "</form></body></html>"
+        )
+
+    def _redireccion(self, destino: str):
+        return _RespuestaHttp("", status=303, destino=destino)
+
+    def get(self, url, params=None, allow_redirects=True, timeout=None):
+        self._comprobar(url, params)
+        self.gets.append((url, dict(params or {}), allow_redirects))
+        if url.endswith("/grade/edit/outcome/index.php"):
+            if self.redireccion_index is not None:
+                return self._redireccion(self.redireccion_index)
+            if not self.activos:
+                return self._redireccion(
+                    "https://aula.example.org/grade/report/grader/index.php?id=2"
+                )
+            return _RespuestaHttp("<html><body>Resultados</body></html>")
+        if url.endswith("/grade/edit/outcome/course.php"):
+            if not self.activos:
+                return self._redireccion(
+                    "https://aula.example.org/grade/report/grader/index.php?id=2"
+                )
+            if self.course_sin_removeoutcomes:
+                return _RespuestaHttp("<html><body>Sin selector</body></html>")
+            opciones = "".join(
+                f'<option value="{identificador}">{resultado["nombre"]}</option>'
+                for identificador, resultado in self.resultados.items()
+            )
+            return _RespuestaHttp(
+                f'<html><body><select name="removeoutcomes[]">{opciones}</select></body></html>'
+            )
+        if url.endswith("/grade/edit/outcome/edit.php"):
+            if not self.activos:
+                return self._redireccion(
+                    "https://aula.example.org/grade/report/grader/index.php?id=2"
+                )
+            if self.redireccion_outcome_edit is not None:
+                return self._redireccion(self.redireccion_outcome_edit)
+            identificador = int((params or {}).get("id", 0) or 0)
+            resultado = self.resultados.get(identificador) or {
+                "corto": "",
+                "nombre": "",
+                "descripcion": "",
+                "escala": None,
+            }
+            return _RespuestaHttp(self._formulario_resultado(resultado, identificador))
+        if url.endswith("/grade/edit/scale/edit.php"):
+            if self.redireccion_scale_edit is not None:
+                return self._redireccion(self.redireccion_scale_edit)
+            identificador = int((params or {}).get("id", 0) or 0)
+            escala = self.escalas.get(identificador) or {
+                "nombre": "",
+                "niveles": (),
+                "en_uso": False,
+            }
+            con_scale = not self.sin_scale_en_edicion and not (
+                self.ocultar_scale_tras_guardar
+                and identificador in self.escalas_guardadas_sin_scale
+            )
+            return _RespuestaHttp(
+                self._formulario_escala(escala, identificador, con_scale=con_scale)
+            )
+        if url.endswith("/grade/edit/scale/index.php"):
+            curso_indice = int((params or {}).get("id", 0) or 0)
+            filas = []
+            if self.borrado_ajeno_primero:
+                filas.append(
+                    '<tr><td>Otra escala<div class="scale_options">Ajeno, Niveles</div></td>'
+                    "<td>"
+                    f'<a href="index.php?id={curso_indice}&scaleid=99&action=delete'
+                    '&sesskey=clave&deleteconfirmed=1">Borrar</a>'
+                    "</td></tr>"
+                )
+            for identificador, escala in self.escalas.items():
+                opciones = (
+                    ""
+                    if self.indice_sin_niveles
+                    else (f'<div class="scale_options">{", ".join(escala["niveles"])}</div>')
+                )
+                filas.append(
+                    f"<tr><td>{escala['nombre']}{opciones}</td>"
+                    "<td>"
+                    f'<a href="edit.php?courseid={curso_indice}&id={identificador}">Editar</a>'
+                    "</td></tr>"
+                )
+            return _RespuestaHttp(f"<html><body><table>{''.join(filas)}</table></body></html>")
+        if url.endswith("/course/modedit.php"):
+            if self.redireccion_modedit is not None:
+                return self._redireccion(self.redireccion_modedit)
+            if self.modedit_sin_formulario:
+                return _RespuestaHttp("<html><body>Sin formulario</body></html>")
+            cmid = int((params or {}).get("update", 0) or 0)
+            casillas = []
+            for resultado, marcado in self.resultados_de_tarea.get(cmid, {}).items():
+                if resultado in self.hidden_en_tarea:
+                    casillas.append(f'<input type="hidden" name="outcome_{resultado}" value="1">')
+                else:
+                    casillas.append(
+                        f'<input type="checkbox" name="outcome_{resultado}" value="1"'
+                        f"{' checked' if marcado else ''}>"
+                    )
+            return _RespuestaHttp(
+                '<html><body><form action="/course/modedit.php" method="post">'
+                f'<input name="name" value="Tarea">{"".join(casillas)}</form></body></html>'
+            )
+        if url.endswith("/grade/edit/tree/outcomeitem.php"):
+            identificador = int((params or {}).get("id", 0) or 0)
+            return _RespuestaHttp(
+                '<html><body><form action="/grade/edit/tree/outcomeitem.php" method="post">'
+                f'<input type="hidden" name="id" value="{identificador}">'
+                '<input type="hidden" name="courseid" value="2">'
+                f'<input name="idnumber" value="{self.idnumbers.get(identificador, "")}">'
+                "</form></body></html>"
+            )
+        raise AssertionError(f"petición inesperada: {url}")
+
+    def post(self, url, data=None, allow_redirects=True, timeout=None):
+        self._comprobar(url, data=data)
+        pares = list(data or [])
+        self.posts.append((url, pares))
+        datos = dict(pares)
+        if url.endswith("/grade/edit/scale/edit.php"):
+            identificador = int(datos.get("id", 0) or 0)
+            escala = self.escalas.get(identificador)
+            if escala is None:
+                identificador = self._siguiente_escala
+                self._siguiente_escala += 1
+                escala = {"nombre": "", "niveles": (), "en_uso": False}
+                self.escalas[identificador] = escala
+            if not escala["en_uso"]:
+                escala["nombre"] = datos.get("name", "")
+                escala["niveles"] = tuple(
+                    nivel.strip() for nivel in datos.get("scale", "").split(",")
+                )
+            if self.ocultar_scale_tras_guardar:
+                self.escalas_guardadas_sin_scale.add(identificador)
+            return self._redireccion("https://aula.example.org/grade/edit/scale/index.php?id=2")
+        if url.endswith("/grade/edit/outcome/edit.php"):
+            identificador = int(datos.get("id", 0) or 0)
+            escala = int(datos.get("scaleid", 0) or 0)
+            resultado = self.resultados.get(identificador)
+            if resultado is None:
+                identificador = self._siguiente_resultado
+                self._siguiente_resultado += 1
+                self.resultados[identificador] = {"escala": escala}
+                resultado = self.resultados[identificador]
+            resultado.update(
+                corto=datos.get("shortname", ""),
+                nombre=datos.get("fullname", ""),
+                descripcion=datos.get("description_editor[text]", ""),
+                escala=escala,
+            )
+            if escala in self.escalas:
+                self.escalas[escala]["en_uso"] = True
+            # El id de la redirección es un señuelo: el bueno sale de removeoutcomes[].
+            return self._redireccion("https://aula.example.org/grade/edit/outcome/edit.php?id=9999")
+        if url.endswith("/grade/edit/tree/outcomeitem.php"):
+            if not self.no_guarda_idnumber:
+                self.idnumbers[int(datos["id"])] = datos["idnumber"]
+            return self._redireccion("https://aula.example.org/grade/edit/tree/index.php?id=2")
+        raise AssertionError(f"petición inesperada: {url}")
+
+
+def _moodle_resultados(sesion) -> publicar.Moodle:
+    return publicar.Moodle("https://aula.example.org", sesion, "sesskey", pausa=0)
+
+
+def test_resultados_desactivados_por_redireccion():
+    sesion = _SesionResultados(activos=False)
+    assert _moodle_resultados(sesion).resultados_activos(2) is False
+    assert sesion.gets == [
+        ("https://aula.example.org/grade/edit/outcome/index.php", {"id": 2}, False)
+    ]
+
+
+def test_resultados_activos_sin_redireccion():
+    assert _moodle_resultados(_SesionResultados()).resultados_activos(2) is True
+
+
+def test_asegurar_escala_reutiliza_la_misma():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES, "en_uso": True}]
+    )
+    assert _moodle_resultados(sesion).asegurar_escala(2, "Escala de logro (tiza)", NIVELES) == 7
+    assert sesion.posts == []
+    assert sesion.escalas[7]["niveles"] == NIVELES
+
+
+def test_escala_con_otros_niveles_en_uso_da_escala_en_uso():
+    sesion = _SesionResultados(
+        escalas=[
+            {"id": 7, "nombre": "Escala de logro (tiza)", "niveles": ("Uno", "Dos"), "en_uso": True}
+        ]
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_escala(
+            2, "Escala de logro (tiza)", ("Uno", "Dos", "Tres")
+        )
+    assert exc.value.codigo == "ESCALA_EN_USO"
+    # Moodle responde 303 pero no cambia los niveles: la detección es estructural.
+    assert sesion.escalas[7]["niveles"] == ("Uno", "Dos")
+
+
+def test_escala_con_otros_niveles_sin_uso_se_actualiza():
+    sesion = _SesionResultados(
+        escalas=[
+            {
+                "id": 7,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": ("Uno", "Dos"),
+                "en_uso": False,
+            }
+        ]
+    )
+    assert (
+        _moodle_resultados(sesion).asegurar_escala(
+            2, "Escala de logro (tiza)", ("Uno", "Dos", "Tres")
+        )
+        == 7
+    )
+    assert sesion.escalas[7]["niveles"] == ("Uno", "Dos", "Tres")
+
+
+def test_asegurar_escala_crea_si_no_existe():
+    sesion = _SesionResultados()
+    identificador = _moodle_resultados(sesion).asegurar_escala(2, "Escala de logro (tiza)", NIVELES)
+    assert sesion.escalas[identificador]["nombre"] == "Escala de logro (tiza)"
+    assert sesion.escalas[identificador]["niveles"] == NIVELES
+
+
+def test_asegurar_resultado_crea_y_luego_reutiliza_por_nombre_corto():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES, "en_uso": False}]
+    )
+    moodle = _moodle_resultados(sesion)
+    primero = moodle.asegurar_resultado(
+        2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve", "Criterio de prueba", 7
+    )
+    assert sesion.resultados[primero]["corto"] == "TZ_CE2_2"
+    segundo = moodle.asegurar_resultado(
+        2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve mejor", "Descripción nueva", 7
+    )
+    assert segundo == primero
+    assert len(sesion.resultados) == 1
+    assert sesion.resultados[primero]["nombre"] == "CE2.2 · Plantea y resuelve mejor"
+    assert sesion.resultados[primero]["descripcion"] == "Descripción nueva"
+    assert sesion.resultados[primero]["escala"] == 7
+
+
+def test_id_del_resultado_sale_de_removeoutcomes():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES, "en_uso": False}]
+    )
+    identificador = _moodle_resultados(sesion).asegurar_resultado(
+        2, "TZ_CE3_1", "CE3.1 · Analiza", "Criterio de prueba", 7
+    )
+    assert identificador in sesion.resultados
+    assert identificador != 9999  # el id del Location es un señuelo
+
+
+def test_fijar_idnumber_resultado_usa_el_formulario_del_elemento():
+    sesion = _SesionResultados()
+    _moodle_resultados(sesion).fijar_idnumber_resultado(2, 101, "TZ_O_CE2_2")
+    assert sesion.idnumbers == {101: "TZ_O_CE2_2"}
+    assert (
+        "https://aula.example.org/grade/edit/tree/outcomeitem.php",
+        {"courseid": 2, "id": 101},
+        False,
+    ) in sesion.gets
+    assert any(
+        url.endswith("/grade/edit/tree/outcomeitem.php")
+        and dict(pares).get("idnumber") == "TZ_O_CE2_2"
+        for url, pares in sesion.posts
+    )
+
+
+def test_campos_resultado_tarea_lee_outcome_id():
+    sesion = _SesionResultados(resultados_de_tarea={55: {61: True, 62: False}})
+    assert _moodle_resultados(sesion).campos_resultado_tarea(55) == {61: True, 62: False}
+
+
+def test_no_se_pide_ningun_informe_de_notas():
+    sesion = _SesionResultados(
+        escalas=[
+            {"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES, "en_uso": False}
+        ],
+        resultados_de_tarea={55: {61: True}},
+    )
+    moodle = _moodle_resultados(sesion)
+    assert moodle.resultados_activos(2) is True
+    assert moodle.asegurar_escala(2, "Escala de logro (tiza)", NIVELES) == 7
+    identificador = moodle.asegurar_resultado(
+        2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve", "Criterio de prueba", 7
+    )
+    moodle.fijar_idnumber_resultado(2, 101, f"TZ_O_{identificador}")
+    assert moodle.campos_resultado_tarea(55) == {61: True}
+    assert sesion.prohibidas == []
+
+
+def test_resultados_desactivados_en_asegurar_escala_y_resultado():
+    sesion = _SesionResultados(activos=False)
+    moodle = _moodle_resultados(sesion)
+    for llamada in (
+        lambda: moodle.asegurar_escala(2, "Escala de logro (tiza)", NIVELES),
+        lambda: moodle.asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 7),
+    ):
+        with pytest.raises(ErrorPublicacion) as exc:
+            llamada()
+        assert exc.value.codigo == "RESULTADOS_DESACTIVADOS"
+    assert sesion.posts == []
+
+
+def test_resultados_activos_redireccion_al_login_da_sesion_caducada():
+    sesion = _SesionResultados(redireccion_index="https://aula.example.org/login/index.php")
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).resultados_activos(2)
+    assert exc.value.codigo == "SESION_CADUCADA"
+
+
+def test_resultados_activos_redireccion_externa_da_destino_no_permitido():
+    sesion = _SesionResultados(
+        redireccion_index="https://otro.example.org/grade/report/grader/index.php?id=2"
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).resultados_activos(2)
+    assert exc.value.codigo == "DESTINO_NO_PERMITIDO"
+
+
+def test_resultados_activos_redireccion_desconocida_da_error_consulta():
+    sesion = _SesionResultados(redireccion_index="https://aula.example.org/course/view.php?id=2")
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).resultados_activos(2)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+
+
+def test_campos_resultado_tarea_redireccion_al_login():
+    sesion = _SesionResultados(redireccion_modedit="https://aula.example.org/login/index.php")
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).campos_resultado_tarea(55)
+    assert exc.value.codigo == "SESION_CADUCADA"
+
+
+def test_campos_resultado_tarea_redireccion_externa():
+    sesion = _SesionResultados(
+        redireccion_modedit="https://otro.example.org/course/modedit.php?update=55"
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).campos_resultado_tarea(55)
+    assert exc.value.codigo == "DESTINO_NO_PERMITIDO"
+
+
+def test_course_sin_removeoutcomes_no_crea_resultado():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES}],
+        course_sin_removeoutcomes=True,
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 7)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+    assert sesion.resultados == {}
+    assert sesion.posts == []
+
+
+def test_formulario_sin_shortname_no_crea_resultado():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES}],
+        resultados=[
+            {
+                "id": 41,
+                "corto": "TZ_OTRO",
+                "nombre": "Otro",
+                "descripcion": "",
+                "escala": 7,
+            }
+        ],
+        sin_shortname=True,
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 7)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+    assert list(sesion.resultados) == [41]
+    assert sesion.posts == []
+
+
+def test_dos_resultados_con_el_mismo_shortname_fallan():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES}],
+        resultados=[
+            {
+                "id": 41,
+                "corto": "TZ_CE2_2",
+                "nombre": "CE2.2 · Uno",
+                "descripcion": "",
+                "escala": 7,
+            },
+            {
+                "id": 42,
+                "corto": "TZ_CE2_2",
+                "nombre": "CE2.2 · Dos",
+                "descripcion": "",
+                "escala": 7,
+            },
+        ],
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 7)
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert sesion.posts == []
+
+
+def test_asegurar_escala_no_duplica_en_la_segunda_llamada():
+    sesion = _SesionResultados()
+    moodle = _moodle_resultados(sesion)
+    primero = moodle.asegurar_escala(2, "Escala de logro (tiza)", NIVELES)
+    segundo = moodle.asegurar_escala(2, "Escala de logro (tiza)", NIVELES)
+    assert primero == segundo
+    assert len(sesion.escalas) == 1
+    assert (
+        len([post for post in sesion.posts if post[0].endswith("/grade/edit/scale/edit.php")]) == 1
+    )
+
+
+def test_escala_en_uso_sin_poder_releer_niveles_da_escala_en_uso():
+    sesion = _SesionResultados(
+        escalas=[
+            {
+                "id": 7,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": ("Uno", "Dos"),
+                "en_uso": True,
+            }
+        ],
+        ocultar_scale_tras_guardar=True,
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_escala(
+            2, "Escala de logro (tiza)", ("Uno", "Dos", "Tres")
+        )
+    assert exc.value.codigo == "ESCALA_EN_USO"
+    assert sesion.escalas[7]["niveles"] == ("Uno", "Dos")
+
+
+def test_varias_escalas_mismo_nombre_sin_coincidir_fallan():
+    sesion = _SesionResultados(
+        escalas=[
+            {
+                "id": 7,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": ("Uno",),
+                "en_uso": False,
+            },
+            {
+                "id": 8,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": ("Dos",),
+                "en_uso": False,
+            },
+        ]
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_escala(
+            2, "Escala de logro (tiza)", ("Uno", "Dos", "Tres")
+        )
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert sesion.posts == []
+
+
+def test_redireccion_a_informe_de_notas_no_se_sigue_en_scale_edit():
+    sesion = _SesionResultados(
+        escalas=[
+            {
+                "id": 7,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": ("Uno", "Dos"),
+                "en_uso": False,
+            }
+        ],
+        redireccion_scale_edit=("https://aula.example.org/grade/report/grader/index.php?id=2"),
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_escala(
+            2, "Escala de logro (tiza)", ("Uno", "Dos", "Tres")
+        )
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+    assert not any("grade/report/" in url for url, _params, _redir in sesion.gets)
+
+
+def test_redireccion_a_informe_de_notas_no_se_sigue_en_outcome_edit():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES}],
+        resultados=[
+            {
+                "id": 41,
+                "corto": "TZ_OTRO",
+                "nombre": "Otro",
+                "descripcion": "",
+                "escala": 7,
+            }
+        ],
+        redireccion_outcome_edit=("https://aula.example.org/grade/report/grader/index.php?id=2"),
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 7)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+    assert not any("grade/report/" in url for url, _params, _redir in sesion.gets)
+
+
+def test_fijar_idnumber_resultado_verifica_la_relectura():
+    sesion = _SesionResultados(no_guarda_idnumber=True)
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).fijar_idnumber_resultado(2, 101, "TZ_O_CE2_2")
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+
+
+def test_campos_resultado_tarea_acepta_campo_hidden():
+    sesion = _SesionResultados(
+        resultados_de_tarea={55: {61: True, 62: False}}, hidden_en_tarea={61}
+    )
+    assert _moodle_resultados(sesion).campos_resultado_tarea(55) == {61: True, 62: False}
+
+
+def test_campos_resultado_tarea_sin_formulario_da_error_consulta():
+    sesion = _SesionResultados(modedit_sin_formulario=True)
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).campos_resultado_tarea(55)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+
+
+def test_descripcion_del_resultado_va_en_el_editor():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES}]
+    )
+    moodle = _moodle_resultados(sesion)
+    identificador = moodle.asegurar_resultado(
+        2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve", "Descripción de creación", 7
+    )
+    assert sesion.resultados[identificador]["descripcion"] == "Descripción de creación"
+    datos = dict(sesion.posts[-1][1])
+    assert datos["description_editor[text]"] == "Descripción de creación"
+    assert datos["description_editor[format]"] == "1"
+    assert "description" not in datos
+    moodle.asegurar_resultado(
+        2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve", "Descripción de actualización", 7
+    )
+    assert sesion.resultados[identificador]["descripcion"] == "Descripción de actualización"
+    datos = dict(sesion.posts[-1][1])
+    assert datos["description_editor[text]"] == "Descripción de actualización"
+    assert datos["description_editor[format]"] == "1"
+    assert "description" not in datos
+
+
+def test_moodle_falso_de_resultados_respeta_las_garantias():
+    aula = MoodleFalso(resultados_activos=False)
+    with pytest.raises(ErrorPublicacion) as exc:
+        aula.asegurar_escala(2, "Escala de logro (tiza)", NIVELES)
+    assert exc.value.codigo == "RESULTADOS_DESACTIVADOS"
+    with pytest.raises(ErrorPublicacion) as exc:
+        aula.asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 1)
+    assert exc.value.codigo == "RESULTADOS_DESACTIVADOS"
+
+    aula = MoodleFalso()
+    with pytest.raises(ErrorPublicacion) as exc:
+        aula.asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 999)
+    assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    escala = aula.asegurar_escala(2, "Escala de logro (tiza)", NIVELES)
+    aula.asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", escala)
+    assert aula.escalas[2][0]["en_uso"] is True
+    assert aula.escrituras
+
+    aula.fallos["asegurar_escala"] = ["ESCALA_EN_USO"]
+    with pytest.raises(ErrorPublicacion) as exc:
+        aula.asegurar_escala(2, "Otra escala", ("Uno", "Dos"))
+    assert exc.value.codigo == "ESCALA_EN_USO"
+
+
+def test_escala_en_uso_se_reutiliza_si_el_formulario_no_trae_scale():
+    sesion = _SesionResultados(
+        escalas=[
+            {
+                "id": 7,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": NIVELES,
+                "en_uso": True,
+            }
+        ],
+        sin_scale_en_edicion=True,
+    )
+    assert _moodle_resultados(sesion).asegurar_escala(2, "Escala de logro (tiza)", NIVELES) == 7
+    assert sesion.posts == []
+
+
+def test_escala_sin_niveles_en_ninguna_fuente_no_duplica():
+    sesion = _SesionResultados(
+        escalas=[
+            {
+                "id": 7,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": NIVELES,
+                "en_uso": True,
+            }
+        ],
+        sin_scale_en_edicion=True,
+        indice_sin_niveles=True,
+    )
+    with pytest.raises(ErrorPublicacion) as exc:
+        _moodle_resultados(sesion).asegurar_escala(2, "Escala de logro (tiza)", NIVELES)
+    assert exc.value.codigo == "ESCALA_EN_USO"
+    assert sesion.posts == []
+    assert len(sesion.escalas) == 1
+
+
+def test_moodle_falso_separa_escalas_y_resultados_por_curso():
+    aula = MoodleFalso()
+    escala_1 = aula.asegurar_escala(1, "Escala de logro (tiza)", ("Uno", "Dos"))
+    aula.asegurar_resultado(1, "TZ_CE1_1", "CE1.1", "Criterio", escala_1)
+    escala_2 = aula.asegurar_escala(2, "Escala de logro (tiza)", ("Uno", "Dos"))
+    aula.asegurar_resultado(2, "TZ_CE2_1", "CE2.1", "Criterio", escala_2)
+    assert escala_1 != escala_2
+    assert [resultado["corto"] for resultado in aula.resultados[1]] == ["TZ_CE1_1"]
+    assert [resultado["corto"] for resultado in aula.resultados[2]] == ["TZ_CE2_1"]
+    assert aula.escalas[1][0]["en_uso"] is True
+    assert aula.escalas[2][0]["en_uso"] is True
+
+    aula.resultados_activos_por_curso[1] = False
+    with pytest.raises(ErrorPublicacion) as exc:
+        aula.asegurar_escala(1, "Otra escala", ("Uno",))
+    assert exc.value.codigo == "RESULTADOS_DESACTIVADOS"
+    assert aula.asegurar_escala(2, "Otra escala", ("Uno",)) > 0
+
+
+def test_escala_en_uso_no_lee_la_fila_de_borrado_ajena():
+    # curso == escala: el enlace de borrar de otra escala lleva id=<curso> y no debe confundir.
+    sesion = _SesionResultados(
+        escalas=[
+            {
+                "id": 36,
+                "nombre": "Escala de logro (tiza)",
+                "niveles": NIVELES,
+                "en_uso": True,
+            }
+        ],
+        sin_scale_en_edicion=True,
+        borrado_ajeno_primero=True,
+    )
+    assert _moodle_resultados(sesion).asegurar_escala(36, "Escala de logro (tiza)", NIVELES) == 36
+    assert sesion.posts == []
+
+
+def test_standard_solo_se_fuerza_al_crear_resultado():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES}],
+        standard_en_formulario="1",
+    )
+    moodle = _moodle_resultados(sesion)
+    moodle.asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio", 7)
+    assert dict(sesion.posts[-1][1])["standard"] == "0"
+    moodle.asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio actualizado", 7)
+    assert dict(sesion.posts[-1][1])["standard"] == "1"

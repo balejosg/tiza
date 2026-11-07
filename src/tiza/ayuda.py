@@ -116,6 +116,8 @@ MENSAJES: dict[str, str] = {
     "EVIDENCIA_SOLO_ESO": "La evidencia por resultados solo vale en ESO. Pon «etapa: eso» en calificacion.yaml o quita «evidencia: resultados» de la tarea.",
     "EVIDENCIA_SIN_ESQUEMA": "No hay calificacion.yaml en la carpeta de la asignatura y la evidencia por resultados necesita sus criterios y niveles. Créalo con la programación didáctica y vuelve a comprobar.",
     "NIVELES_NO_EQUIDISTANTES": "Con «evidencia: resultados», los porcentajes de «niveles_rubrica» deben estar igual de separados (por ejemplo 0, 25, 50, 75 y 100). Ajusta los niveles o quita la evidencia de la tarea.",
+    "RESULTADOS_DESACTIVADOS": "Los resultados de aprendizaje están desactivados en este sitio y tiza no puede crear los de los criterios. Pide a quien administra el aula que los active, o publica la tarea sin «evidencia: resultados»: el resto de la publicación sigue igual.",
+    "ESCALA_EN_USO": "La escala de logro ya se usa en resultados con niveles puestos y Moodle no deja cambiar sus niveles. No se ha tocado nada: vuelve a los niveles anteriores o pide a quien administra el aula que separe esos resultados antes de cambiar la escala.",
     "RECURSO_AUSENTE": "Falta una imagen o un fichero enlazado desde el fichero. Cópialo a la carpeta o corrige la ruta.",
     "RECURSO_DUPLICADO": "Dos recursos distintos tienen el mismo nombre de fichero. Cambia el nombre de uno.",
     "ENLACE_A_DOCUMENTO": "El enlace apunta a otro documento de la carpeta y se subiría su fichero fuente. Quita el enlace: el aula ya lleva a la actividad siguiente; nómbrala sin enlazarla.",

@@ -114,6 +114,30 @@ def enlace_simbolico(enlace: Path, destino: Path) -> None:
         pytest.skip("este sistema no permite crear enlaces simbólicos")
 
 
+def _escala_copiada(escala: dict) -> dict:
+    """Una escala del doble, sin compartir sus niveles con la semilla del test."""
+    return {
+        **escala,
+        "niveles": tuple(escala["niveles"]),
+        "en_uso": bool(escala.get("en_uso", False)),
+    }
+
+
+def _semilla_por_curso(valor, copia):
+    """Normaliza una semilla de escalas/resultados: lista para cualquier curso o dict por curso."""
+    if valor is None:
+        return None, {}
+    if isinstance(valor, dict):
+        return None, {int(curso): [copia(item) for item in lista] for curso, lista in valor.items()}
+    return [copia(item) for item in valor], {}
+
+
+def _todas_las_semillas(semilla, por_curso) -> list[dict]:
+    if semilla is not None:
+        return list(semilla)
+    return [item for lista in por_curso.values() for item in lista]
+
+
 class MoodleFalso:
     """Doble del adaptador del aula: registra llamadas y no toca la red."""
 
@@ -132,6 +156,10 @@ class MoodleFalso:
         imagenes_servidas=True,
         copia_permitida=True,
         copia=None,
+        resultados_activos=True,
+        escalas=None,
+        resultados=None,
+        resultados_de_tarea=None,
     ):
         self.base_url = "https://aula.example.org/centro"
         self.secciones = (
@@ -206,6 +234,45 @@ class MoodleFalso:
         # Rúbricas: criterios leídos por cmid y tareas que ya tienen notas.
         self.rubricas: dict[int, list[dict]] = {}
         self.tareas_con_notas: set[int] = set()
+        # Resultados del curso y escala de logro (evidencia por criterio). Cada escala es
+        # {id, nombre, niveles, en_uso}; cada resultado, {id, corto, nombre, descripcion, escala}.
+        # Se guardan por curso: dos cursos no comparten escalas, resultados ni niveles.
+        self._resultados_activos_por_defecto = resultados_activos
+        self.resultados_activos_por_curso: dict[int, bool] = {}
+        self._escalas_semilla, self._escalas_por_curso = _semilla_por_curso(
+            escalas, _escala_copiada
+        )
+        self._resultados_semilla, self._resultados_por_curso = _semilla_por_curso(resultados, dict)
+        self.escalas: dict[int, list[dict]] = {}
+        self.resultados: dict[int, list[dict]] = {}
+        self.resultados_de_tarea: dict[int, dict[int, bool]] = {
+            cmid: dict(marcados) for cmid, marcados in (resultados_de_tarea or {}).items()
+        }
+        self.idnumbers_resultado: dict[int, str] = {}
+        self._siguiente_escala = (
+            max(
+                (
+                    escala["id"]
+                    for escala in _todas_las_semillas(
+                        self._escalas_semilla, self._escalas_por_curso
+                    )
+                ),
+                default=700,
+            )
+            + 1
+        )
+        self._siguiente_resultado = (
+            max(
+                (
+                    resultado["id"]
+                    for resultado in _todas_las_semillas(
+                        self._resultados_semilla, self._resultados_por_curso
+                    )
+                ),
+                default=40,
+            )
+            + 1
+        )
 
     def _de(self, curso_id):
         return self.secciones_por_curso.get(curso_id, self.secciones)
@@ -364,6 +431,13 @@ class MoodleFalso:
         if pendientes:
             raise ErrorPublicacion(pendientes.pop(0))
 
+    def _escribir_sin_llamada(self, metodo, *args):
+        """Como ``_escribir_calificador`` para métodos que ya anotaron su llamada."""
+        self.escrituras.append((metodo, *args))
+        pendientes = self.fallos.get(metodo)
+        if pendientes:
+            raise ErrorPublicacion(pendientes.pop(0))
+
     def _nuevo_eid(self, prefijo):
         self._siguiente_eid += 1
         return f"{prefijo}{self._siguiente_eid}"
@@ -424,6 +498,107 @@ class MoodleFalso:
 
     def fijar_total_curso(self, curso, formula, decimal):
         self._escribir_calificador("fijar_total_curso", curso, formula, decimal)
+
+    def resultados_activos(self, curso):
+        self.llamadas.append(("resultados_activos", curso))
+        return self.resultados_activos_por_curso.get(curso, self._resultados_activos_por_defecto)
+
+    def _escalas_de(self, curso):
+        if curso not in self.escalas:
+            if self._escalas_semilla is not None:
+                self.escalas[curso] = [_escala_copiada(escala) for escala in self._escalas_semilla]
+            else:
+                self.escalas[curso] = [
+                    _escala_copiada(escala) for escala in self._escalas_por_curso.get(curso, [])
+                ]
+        return self.escalas[curso]
+
+    def _resultados_de(self, curso):
+        if curso not in self.resultados:
+            if self._resultados_semilla is not None:
+                self.resultados[curso] = [dict(resultado) for resultado in self._resultados_semilla]
+            else:
+                self.resultados[curso] = [
+                    dict(resultado) for resultado in self._resultados_por_curso.get(curso, [])
+                ]
+        return self.resultados[curso]
+
+    def asegurar_escala(self, curso, nombre, niveles):
+        self.llamadas.append(("asegurar_escala", curso, nombre, tuple(niveles)))
+        if not self.resultados_activos(curso):
+            raise ErrorPublicacion("RESULTADOS_DESACTIVADOS")
+        deseados = tuple(niveles)
+        escalas = self._escalas_de(curso)
+        resultados = self._resultados_de(curso)
+        # Una escala que ya usa un resultado está en uso, aunque se construyera sin la marca.
+        usadas = {resultado["escala"] for resultado in resultados}
+        for escala in escalas:
+            if escala["id"] in usadas:
+                escala["en_uso"] = True
+        mismas = [escala for escala in escalas if escala["nombre"] == nombre]
+        for escala in mismas:
+            if tuple(escala["niveles"]) == deseados:
+                return escala["id"]
+        if len(mismas) > 1:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        if mismas:
+            escala = mismas[0]
+            if escala.get("en_uso"):
+                raise ErrorPublicacion("ESCALA_EN_USO")
+            escala["niveles"] = deseados
+            self._escribir_sin_llamada("asegurar_escala", curso, escala["id"])
+            return escala["id"]
+        escala = {
+            "id": self._siguiente_escala,
+            "nombre": nombre,
+            "niveles": deseados,
+            "en_uso": False,
+        }
+        self._siguiente_escala += 1
+        escalas.append(escala)
+        self._escribir_sin_llamada("asegurar_escala", curso, escala["id"])
+        return escala["id"]
+
+    def _escala_de(self, curso, escala):
+        return next((e for e in self._escalas_de(curso) if e["id"] == escala), None)
+
+    def asegurar_resultado(self, curso, corto, nombre, descripcion, escala):
+        self.llamadas.append(("asegurar_resultado", curso, corto, nombre, descripcion, escala))
+        if not self.resultados_activos(curso):
+            raise ErrorPublicacion("RESULTADOS_DESACTIVADOS")
+        if self._escala_de(curso, escala) is None:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        resultados = self._resultados_de(curso)
+        encontrados = [r for r in resultados if r["corto"] == corto]
+        if len(encontrados) > 1:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        if encontrados:
+            resultado = encontrados[0]
+            resultado.update(nombre=nombre, descripcion=descripcion, escala=escala)
+            self._escribir_sin_llamada("asegurar_resultado", curso, resultado["id"])
+        else:
+            resultado = {
+                "id": self._siguiente_resultado,
+                "corto": corto,
+                "nombre": nombre,
+                "descripcion": descripcion,
+                "escala": escala,
+            }
+            self._siguiente_resultado += 1
+            resultados.append(resultado)
+            self._escribir_sin_llamada("asegurar_resultado", curso, resultado["id"])
+        usada = self._escala_de(curso, escala)
+        if usada is not None:
+            usada["en_uso"] = True
+        return resultado["id"]
+
+    def fijar_idnumber_resultado(self, curso, item_id, idnumber):
+        self._escribir_calificador("fijar_idnumber_resultado", curso, item_id, idnumber)
+        self.idnumbers_resultado[item_id] = idnumber
+
+    def campos_resultado_tarea(self, cmid):
+        self.llamadas.append(("campos_resultado_tarea", cmid))
+        return dict(self.resultados_de_tarea.get(cmid, {}))
 
     def motor_de_formulas(self, curso_id):
         self.llamadas.append(("motor_de_formulas", curso_id))
