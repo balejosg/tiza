@@ -110,6 +110,7 @@ PASOS = (
             "ESTRUCTURA",
             "EVALUACION_CERRADA_EN_EL_AULA",
             "EVIDENCIA_CAMBIADA_CON_NOTAS",
+            "EVIDENCIA_COMPARTIDA",
             "FORMULA_DOLAR_SIMPLE",
             "FORMULAS_NO_DIBUJADAS",
             "HUELLA_NO_GUARDADA",

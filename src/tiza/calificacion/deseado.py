@@ -111,9 +111,10 @@ class Deseado:
     (no se toca), ``"TZ_NOTA_FINAL"`` (calculado con esa nota) o ``"porcentaje"`` (solo la
     visualización). ``cerradas`` son los ``TZ_V_<n>`` de las evaluaciones cerradas;
     ``actividades`` empareja cada ruta con el ``idnumber`` de su padre real; ``avisos`` son
-    pares ``(codigo, id del elemento)``; ``resultados`` son las tripletas ``(ruta, id del
-    criterio, idnumber TZ_O_…)`` de las tareas con ``evidencia: resultados``. ``niveles`` es
-    cuántos niveles tiene la escala de logro (``niveles_rubrica``), para la fórmula del calculado.
+    pares ``(codigo, clave)``, con el id del elemento o, en ``EVIDENCIA_COMPARTIDA``, el nombre
+    de la actividad o casilla manual; ``resultados`` son las tripletas ``(ruta, id del criterio,
+    idnumber TZ_O_…)`` de las tareas con ``evidencia: resultados``. ``niveles`` es cuántos
+    niveles tiene la escala de logro (``niveles_rubrica``), para la fórmula del calculado.
     """
 
     nodos: tuple[Nodo, ...]
@@ -134,6 +135,8 @@ class _Actividad:
     evalua: tuple[tuple[str, float], ...]
     manual: bool = False  # un instrumento: su ruta es el idnumber ``TZ_M_<id>`` de la casilla
     resultados: bool = False  # la tarea recoge la evidencia con resultados del aula
+    # Lo que declaró el documento; None en una casilla manual.
+    evidencia_declarada: str | None = None
 
 
 def comprobar_sin_circulares(nodos: tuple[Nodo, ...]) -> None:
@@ -289,6 +292,7 @@ def _actividades(
                 evalua,
                 resultados=documento.evidencia == "resultados"
                 and (resultados is None or ruta in resultados),
+                evidencia_declarada=documento.evidencia,
             )
         )
     for i, instrumento in enumerate(esquema.instrumentos):
@@ -680,6 +684,11 @@ class _Montaje:
                 ("ELEMENTO_SIN_ACTIVIDADES", e.id)
                 for e in esquema.elementos
                 if e.id not in con_actividades
+            )
+            + tuple(
+                ("EVIDENCIA_COMPARTIDA", a.nombre)
+                for a in self.actividades
+                if a.evidencia_declarada is None and sum(1 for _, peso in a.evalua if peso > 0) >= 2
             ),
         )
 

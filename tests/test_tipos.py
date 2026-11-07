@@ -6,9 +6,12 @@ todos declaran, o si dos tipos se pisan un campo, se ve aquí y no en seis módu
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from tiza import contenido, tipos
+from tiza.rubrica import CriterioRubrica, Nivel, RubricaCargada
 from tiza.tipos import BANDERA_DE_MODO, CAMPO_RECORDATORIO
 
 # Un documento mínimo válido por tipo, para poder llamar a lo que depende del documento.
@@ -346,6 +349,147 @@ def test_la_tarea_admite_rubrica_sin_invadir_los_campos_comunes():
     tarea = tipos.obtener("tarea")
     assert "rubrica" in tarea.campos
     assert not {"tipo", "nombre", "seccion"} & set(tarea.campos)
+
+
+def test_vista_previa_tabla():
+    """La rúbrica se ve filas × niveles, con el peso de cada fila y los descriptores."""
+    niveles = (
+        Nivel("destacado", 3.33, "Destacado: Monta sin errores."),
+        Nivel("avanzado", 2.5, "Avanzado: Monta con ayuda."),
+        Nivel("adecuado", 1.67, "Adecuado: Monta lo básico."),
+        Nivel("inicial", 0.83, "Inicial: Empieza el montaje."),
+        Nivel("no_iniciado", 0.0, "No iniciado: No lo intenta."),
+    )
+    ultima = (Nivel("destacado", 3.34, niveles[0].descripcion), *niveles[1:])
+    rubrica = RubricaCargada(
+        nombre="Rúbrica de la grúa",
+        descripcion="Descripción.",
+        html="<p>Descripción.</p>\n",
+        criterios=(
+            CriterioRubrica(
+                id="ce3_1",
+                nombre="3.1 · Precisión del montaje",
+                descripcion="Montaje de la grúa",
+                niveles=niveles,
+                criterio="CE3_1",
+            ),
+            CriterioRubrica(
+                id="ce3_1_2",
+                nombre="3.1 · Seguridad del montaje",
+                descripcion="Montaje de la grúa",
+                niveles=niveles,
+                criterio="CE3_1",
+            ),
+            CriterioRubrica(
+                id="ce2_2",
+                nombre="2.2 · Mantiene la instalación",
+                descripcion="Mantenimiento",
+                niveles=ultima,
+                criterio="CE2_2",
+            ),
+        ),
+    )
+    doc = contenido.Documento(
+        ruta=Path("tarea.md"),
+        tipo="tarea",
+        nombre="La grúa",
+        seccion=3,
+        cuerpo="",
+        html="",
+        recursos=[],
+        rubrica=rubrica,
+    )
+    vista = tipos.obtener("tarea").extra_preview(doc)
+    assert vista.count("<tr>") == 4  # cabecera y tres filas
+    assert "<th>Criterio</th><th>Peso</th><th>destacado</th>" in vista
+    assert len(vista.split("</th>")) == 8  # 7 columnas (criterio, peso y 5 niveles)
+    assert "<ul>" not in vista  # ya no es una lista anidada por criterio
+    assert "<p>Descripción.</p>" in vista
+    for nombre in (
+        "3.1 · Precisión del montaje",
+        "3.1 · Seguridad del montaje",
+        "2.2 · Mantiene la instalación",
+    ):
+        assert nombre in vista
+    assert "Montaje de la grúa" in vista and "Mantenimiento" in vista
+    assert "Destacado: Monta sin errores." in vista
+    assert "<strong>3.33 puntos</strong>" in vista
+    assert "<td>33,3 %</td>" in vista
+    assert "<td>33,4 %</td>" in vista
+
+
+def _documento_con_rubrica(rubrica: RubricaCargada) -> contenido.Documento:
+    return contenido.Documento(
+        ruta=Path("tarea.md"),
+        tipo="tarea",
+        nombre="La grúa",
+        seccion=3,
+        cuerpo="",
+        html="",
+        recursos=[],
+        rubrica=rubrica,
+    )
+
+
+def test_vista_previa_union_de_niveles_y_celdas_vacias():
+    rubrica = RubricaCargada(
+        nombre="Rúbrica mixta",
+        descripcion="Descripción.",
+        html="<p>Descripción.</p>\n",
+        criterios=(
+            CriterioRubrica(
+                id="a",
+                nombre="Criterio A",
+                descripcion="Primero",
+                niveles=(
+                    Nivel("destacado", 5.0, "Destacado: A."),
+                    Nivel("iniciado", 0.0, "Iniciado: A."),
+                ),
+            ),
+            CriterioRubrica(
+                id="b",
+                nombre="Criterio B",
+                descripcion="Segundo",
+                niveles=(
+                    Nivel("excelente", 5.0, "Excelente: B."),
+                    Nivel("mejorable", 0.0, "Mejorable: B."),
+                ),
+            ),
+        ),
+    )
+    vista = tipos.obtener("tarea").extra_preview(_documento_con_rubrica(rubrica))
+    assert (
+        "<th>Criterio</th><th>Peso</th><th>destacado</th><th>iniciado</th>"
+        "<th>excelente</th><th>mejorable</th>"
+    ) in vista
+    assert vista.count("<td></td>") == 4  # dos columnas vacías en cada fila
+    assert "<strong>5 puntos</strong><br>Destacado: A." in vista
+    assert "<strong>5 puntos</strong><br>Excelente: B." in vista
+
+
+def test_vista_previa_escapa_criterio_descripcion_y_descriptor():
+    rubrica = RubricaCargada(
+        nombre="Rúbrica <script>alert(1)</script>",
+        descripcion="Descripción.",
+        html="<p>Descripción.</p>\n",
+        criterios=(
+            CriterioRubrica(
+                id="a",
+                nombre="<b>Criterio</b>",
+                descripcion="<script>alert(2)</script>",
+                niveles=(
+                    Nivel("destacado", 5.0, "Destacado: <b>Bien</b>"),
+                    Nivel("no_iniciado", 0.0, "No iniciado: <script>alert(3)</script>"),
+                ),
+            ),
+        ),
+    )
+    vista = tipos.obtener("tarea").extra_preview(_documento_con_rubrica(rubrica))
+    assert "&lt;b&gt;Criterio&lt;/b&gt;" in vista
+    assert "&lt;script&gt;alert(2)&lt;/script&gt;" in vista
+    assert "&lt;b&gt;Bien&lt;/b&gt;" in vista
+    assert "<script>" not in vista
+    assert "<b>Criterio</b>" not in vista
 
 
 ESQUEMA_ESO = """\

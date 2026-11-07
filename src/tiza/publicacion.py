@@ -148,6 +148,7 @@ AVISOS = frozenset(
         "ERROR_INTERNO",
         "ESTRUCTURA_NO_LEIDA",
         "EVIDENCIA_CAMBIADA_CON_NOTAS",
+        "EVIDENCIA_COMPARTIDA",
         "EVALUACION_CERRADA_EN_EL_AULA",
         "FALLO",
         "HUELLA_NO_GUARDADA",
@@ -247,6 +248,11 @@ class Aviso:
     def evidencia_cambiada_con_notas(cls, nombre: str) -> Aviso:
         """``nombre``: la tarea con notas que no gana resultados porque el docente dijo que no."""
         return cls("EVIDENCIA_CAMBIADA_CON_NOTAS", {"nombre": nombre})
+
+    @classmethod
+    def evidencia_compartida(cls, nombre: str) -> Aviso:
+        """``nombre``: la actividad o casilla manual con dos o más criterios, sin evidencia (D9)."""
+        return cls("EVIDENCIA_COMPARTIDA", {"nombre": nombre})
 
     @classmethod
     def resultado_con_notas_quitado(cls, nombre: str) -> Aviso:
@@ -2677,6 +2683,8 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
         return Aviso.elemento_sin_actividades(clave)
     if codigo == "CRITERIOS_SIN_PESO":
         return Aviso.criterios_sin_peso(clave)
+    if codigo == "EVIDENCIA_COMPARTIDA":
+        return Aviso.evidencia_compartida(clave)
     if codigo in ("RESULTADO_CON_NOTAS_QUITADO", "RESULTADO_RECREADO"):
         de_la_carpeta = next((n.nombre for n in plan.deseado.nodos if n.idnumber == clave), None)
         texto = de_la_carpeta or nombres.get(clave, clave)

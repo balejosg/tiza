@@ -1043,6 +1043,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ESTRUCTURA_NO_LEIDA": publicacion.Aviso.estructura_no_leida(),
         "EVALUACION_CERRADA_EN_EL_AULA": publicacion.Aviso.evaluacion_cerrada_en_el_aula("T"),
         "EVIDENCIA_CAMBIADA_CON_NOTAS": publicacion.Aviso.evidencia_cambiada_con_notas("T"),
+        "EVIDENCIA_COMPARTIDA": publicacion.Aviso.evidencia_compartida("T"),
         "FALLO": publicacion.Aviso.fallo("LOGIN_FALLIDO", ""),
         "HUELLA_NO_GUARDADA": publicacion.Aviso.huella_no_guardada("T"),
         "INFORME_NO_ESCRITO": publicacion.Aviso.informe_no_escrito(),

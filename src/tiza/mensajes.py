@@ -1038,6 +1038,16 @@ def _evidencia_cambiada_con_notas(datos: Mapping[str, Any]) -> tuple[Linea, ...]
     )
 
 
+def _evidencia_compartida(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'], 100)}» evalúa varios criterios y su nota total "
+            "llega a todos. Para que cada criterio reciba su propio nivel, usa "
+            "«evidencia: resultados» si es una tarea o separa la actividad por criterio."
+        ),
+    )
+
+
 def _resultados_desactivados(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(
@@ -1357,6 +1367,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ESTRUCTURA_NO_LEIDA": _estructura_no_leida,
     "EVALUACION_CERRADA_EN_EL_AULA": _evaluacion_cerrada_en_el_aula,
     "EVIDENCIA_CAMBIADA_CON_NOTAS": _evidencia_cambiada_con_notas,
+    "EVIDENCIA_COMPARTIDA": _evidencia_compartida,
     "FALLO": _fallo,
     "HUELLA_NO_GUARDADA": _huella_no_guardada,
     "INFORME_NO_ESCRITO": _informe_no_escrito,

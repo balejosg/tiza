@@ -5064,6 +5064,194 @@ def _cargada_de_prueba() -> rubrica.RubricaCargada:
     )
 
 
+ESQUEMA_RUBRICA_FILAS = """\
+etapa: eso
+organizacion: elementos
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 100
+    criterios:
+      - {id: CE3_1, nombre: Montaje de la grúa, peso: 50, codigo: "3.1"}
+      - {id: CE2_2, nombre: Mantenimiento, peso: 50, codigo: "2.2"}
+evaluaciones:
+  - {nombre: 1.ª evaluación, secciones: [3]}
+final: {de: elementos}
+"""
+
+TAREA_CON_RUBRICA_FILAS = """\
+---
+tipo: tarea
+nombre: La grúa
+seccion: 3
+apertura: 2026-10-01
+entrega: 2026-10-10
+evalua: {CE3_1: 100, CE2_2: 100}
+rubrica: rubricas/grua.md
+---
+
+Monta la grúa.
+"""
+
+_FILAS_DE_LA_GRUA = """\
+  - criterio: CE3_1
+    indicador: Precisión del montaje
+    niveles:
+      destacado: Monta sin errores.
+      avanzado: Monta con ayuda.
+      adecuado: Monta lo básico.
+      inicial: Empieza el montaje.
+      no_iniciado: No lo intenta.
+  - criterio: CE3_1
+    indicador: Seguridad del montaje
+    niveles:
+      destacado: Respeta todas las normas.
+      avanzado: Respeta casi todas.
+      adecuado: Respeta las básicas.
+      inicial: Necesita que se lo recuerden.
+      no_iniciado: No las respeta.
+  - criterio: CE2_2
+    indicador: Mantiene la instalación
+    niveles:
+      destacado: Mantiene sin errores.
+      avanzado: Mantiene con ayuda.
+      adecuado: Mantiene lo básico.
+      inicial: Empieza el mantenimiento.
+      no_iniciado: No lo intenta.
+"""
+
+
+def _carpeta_rubrica_filas(tmp_path):
+    (tmp_path / "calificacion.yaml").write_text(ESQUEMA_RUBRICA_FILAS, encoding="utf-8")
+    (tmp_path / "rubricas").mkdir()
+    (tmp_path / "rubricas" / "grua.md").write_text(
+        "---\ntipo: rubrica\nnombre: Rúbrica de la grúa\nfilas:\n"
+        f"{_FILAS_DE_LA_GRUA}---\nDescripción de la rúbrica.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tarea.md").write_text(TAREA_CON_RUBRICA_FILAS, encoding="utf-8")
+    return tmp_path / "tarea.md"
+
+
+def _aula_con_la_tarea_publicada():
+    moodle = MoodleFalso()
+    moodle.secciones[0]["modulos"] = [{"cmid": 55, "nombre": "La grúa", "tipo": "tarea"}]
+    moodle.formularios[55] = {
+        "name": "La grúa",
+        "visible": "1",
+        "introeditor[text]": "<p>Monta la grúa.</p>",
+        **fecha_en_formulario("allowsubmissionsfromdate", (2026, 10, 1, 0, 0)),
+        **fecha_en_formulario("duedate", (2026, 10, 10, 23, 59)),
+    }
+    return moodle
+
+
+def test_publicar_rubrica_por_filas(tmp_path):
+    doc = contenido.cargar(_carpeta_rubrica_filas(tmp_path), raiz=tmp_path)
+    moodle = MoodleFalso()
+    publicar.publicar_documento(moodle, 1234, estructura_de(moodle.secciones), doc, visible=None)
+    leida = moodle.rubricas[100]
+    assert [criterio["descripcion"] for criterio in leida] == [
+        "3.1 · Precisión del montaje: Montaje de la grúa",
+        "3.1 · Seguridad del montaje: Montaje de la grúa",
+        "2.2 · Mantiene la instalación: Mantenimiento",
+    ]
+    assert [max(nivel["puntos"] for nivel in criterio["niveles"]) for criterio in leida] == [
+        3.33,
+        3.33,
+        3.34,
+    ]
+    assert [nivel["definicion"] for nivel in leida[0]["niveles"]] == [
+        "Destacado: Monta sin errores.",
+        "Avanzado: Monta con ayuda.",
+        "Adecuado: Monta lo básico.",
+        "Inicial: Empieza el montaje.",
+        "No iniciado: No lo intenta.",
+    ]
+    assert leida[1]["niveles"][0]["definicion"] == "Destacado: Respeta todas las normas."
+    assert leida[2]["niveles"][0]["definicion"] == "Destacado: Mantiene sin errores."
+
+
+def test_opciones_visibles_antes_de_entregar():
+    assert publicar.OPCIONES_RUBRICA["rubric[options][alwaysshowdefinition]"] == "1"
+    assert publicar.OPCIONES_RUBRICA["rubric[options][showdescriptionstudent]"] == "1"
+    datos = publicar._datos_rubrica({}, _cargada_de_prueba())
+    assert datos["rubric[options][alwaysshowdefinition]"] == "1"
+    assert datos["rubric[options][showdescriptionstudent]"] == "1"
+
+
+def test_emparejar_filas_del_mismo_criterio():
+    niveles = (
+        rubrica.Nivel(id="destacado", puntos=5.0, descripcion="Destacado: Bien."),
+        rubrica.Nivel(id="no_iniciado", puntos=0.0, descripcion="No iniciado: Nada."),
+    )
+    cargada = rubrica.RubricaCargada(
+        nombre="Rúbrica de la grúa",
+        descripcion="Descripción.",
+        html="<p>Descripción.</p>\n",
+        criterios=(
+            rubrica.CriterioRubrica(
+                id="ce3_1",
+                nombre="3.1 · Precisión del montaje",
+                descripcion="Montaje de la grúa",
+                niveles=niveles,
+                criterio="CE3_1",
+            ),
+            rubrica.CriterioRubrica(
+                id="ce3_1_2",
+                nombre="3.1 · Seguridad del montaje",
+                descripcion="Montaje de la grúa",
+                niveles=niveles,
+                criterio="CE3_1",
+            ),
+        ),
+    )
+    leida = [
+        {
+            "id": "71",
+            "descripcion": "3.1 · Seguridad del montaje: Montaje de la grúa",
+            "niveles": [
+                {"id": "710", "puntos": 0.0},
+                {"id": "711", "puntos": 5.0},
+            ],
+        },
+        {
+            "id": "70",
+            "descripcion": "3.1 · Precisión del montaje: Montaje de la grúa",
+            "niveles": [
+                {"id": "700", "puntos": 0.0},
+                {"id": "701", "puntos": 5.0},
+            ],
+        },
+    ]
+    pares = publicar.emparejar_rubrica(leida, cargada)
+    assert pares is not None
+    assert set(pares) == {"ce3_1", "ce3_1_2"}
+    assert pares["ce3_1"]["moodle"] == "70"
+    assert pares["ce3_1_2"]["moodle"] == "71"
+    assert pares["ce3_1"]["niveles"] == ["700", "701"]
+    assert pares["ce3_1_2"]["niveles"] == ["710", "711"]
+
+
+@pytest.mark.parametrize("confirmada", [False, True])
+def test_tarea_con_notas_sigue_el_freno(tmp_path, confirmada):
+    doc = contenido.cargar(_carpeta_rubrica_filas(tmp_path), raiz=tmp_path)
+    moodle = _aula_con_la_tarea_publicada()
+    moodle.tareas_con_notas.add(55)
+    pasos = []
+    publicar.publicar_documento(
+        moodle,
+        1234,
+        estructura_de(moodle.secciones),
+        doc,
+        visible=None,
+        rubrica_confirmada=confirmada,
+        pasos=pasos,
+    )
+    assert [paso.codigo for paso in pasos] == ["RUBRICA_NO_ACTIVADA"]
+    assert not any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+
+
 def test_actividad_tiene_notas_por_rescalegrades(monkeypatch):
     sesion = _SesionSinNotas(
         [_RespuestaRubrica(MEDIT_CON_NOTAS), _RespuestaRubrica(MEDIT_SIN_NOTAS)]

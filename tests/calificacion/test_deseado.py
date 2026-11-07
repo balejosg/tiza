@@ -329,7 +329,8 @@ def test_elemento_sin_actividades_es_aviso() -> None:
     )
     assert nodo(d, "TZ_E_RA2")
     d = deseado(FP, completo(), False, CARPETA)
-    assert d.avisos == ()
+    # «examen» evalúa RA1 y RA2 sin evidencia por criterio: su nota total llega a los dos.
+    assert d.avisos == (("EVIDENCIA_COMPARTIDA", "examen"),)
 
 
 def test_documentos_sin_evalua_no_cuentan() -> None:
@@ -542,7 +543,7 @@ def test_sin_criterios_ni_instrumentos_el_arbol_no_cambia() -> None:
         ("u1/b.md", "TZ_E_RA1"),
         ("u2/c.md", "TZ_E_RA2"),
     )
-    assert d.avisos == ()
+    assert d.avisos == (("EVIDENCIA_COMPARTIDA", "b"),)
 
 
 # ---- criterios e instrumentos ----
@@ -824,7 +825,7 @@ def test_criterios_e_instrumentos_sin_referencias_circulares() -> None:
                 continue
             fuentes = n.formula_de if isinstance(n.formula_de, tuple) else (n.formula_de,)
             assert not set(fuentes) & _antepasados(d, n.idnumber), n.idnumber
-        assert d.avisos == ()
+        assert d.avisos == (("EVIDENCIA_COMPARTIDA", "Exposición"),)
 
 
 # ---- hojas cuyas actividades pesan todas 0 ----
@@ -1202,6 +1203,88 @@ def test_ids_estables() -> None:
         "u1/grua.md",
     )
     assert despues == antes
+
+
+def test_evidencia_compartida() -> None:
+    """Una actividad con dos criterios y sin ``evidencia`` avisa de que su nota llega a todos."""
+    otra = doc("u1/otra.md", 1, CE2_2=50)
+    compartida = doc("u1/grua.md", 1, tipo="tarea", CE2_2=50, CE3_1=100)
+    d = deseado(esquema_resultados(), [compartida, otra], False, CARPETA)
+    assert d.avisos == (("EVIDENCIA_COMPARTIDA", "grua"),)
+
+    con_evidencia = deseado(
+        esquema_resultados(),
+        [tarea("u1/grua.md", 1, CE2_2=50, CE3_1=100), otra],
+        False,
+        CARPETA,
+    )
+    assert not [aviso for aviso in con_evidencia.avisos if aviso[0] == "EVIDENCIA_COMPARTIDA"]
+
+    una_sola = deseado(
+        esquema_resultados(),
+        [doc("u1/sola.md", 1, tipo="tarea", CE3_1=100)],
+        False,
+        CARPETA,
+    )
+    assert not [aviso for aviso in una_sola.avisos if aviso[0] == "EVIDENCIA_COMPARTIDA"]
+
+    instrumento = Instrumento("exposicion", "Exposición", 1, (("CE2_2", 50.0), ("CE3_1", 100.0)))
+    con_instrumento = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0, criterios=CRITERIOS_RESULTADOS),),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+        (instrumento,),
+    )
+    manual = deseado(con_instrumento, [otra], False, CARPETA)
+    assert manual.avisos == (("EVIDENCIA_COMPARTIDA", "Exposición"),)
+
+
+def test_evidencia_declarada_que_no_esta_efectiva_no_avisa() -> None:
+    """La tarea declaró ``evidencia``: aunque sus resultados no estén efectivos, no avisa."""
+    d = deseado(
+        esquema_resultados(),
+        documentos_resultados(),
+        False,
+        CARPETA,
+        resultados=(),
+    )
+    assert not [aviso for aviso in d.avisos if aviso[0] == "EVIDENCIA_COMPARTIDA"]
+
+
+def test_evidencia_compartida_ignora_los_criterios_con_peso_cero() -> None:
+    tercero = Criterio("CE4_1", "Prueba", 50.0, "4.1")
+    esquema = Esquema(
+        "elementos",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                100.0,
+                criterios=(*CRITERIOS_RESULTADOS, tercero),
+            ),
+        ),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+    )
+    d = deseado(
+        esquema,
+        [doc("u1/tres.md", 1, tipo="tarea", CE2_2=100, CE3_1=100, CE4_1=0)],
+        False,
+        CARPETA,
+    )
+    assert d.avisos == (("EVIDENCIA_COMPARTIDA", "tres"),)
+
+
+def test_evidencia_compartida_una_vez_por_actividad() -> None:
+    docs = [
+        doc("u1/uno.md", 1, tipo="tarea", CE2_2=50, CE3_1=50),
+        doc("u1/dos.md", 1, tipo="tarea", CE2_2=50, CE3_1=50),
+    ]
+    d = deseado(esquema_resultados(), docs, False, CARPETA)
+    avisos = [aviso for aviso in d.avisos if aviso[0] == "EVIDENCIA_COMPARTIDA"]
+    assert len(avisos) == 2
+    assert {nombre for _, nombre in avisos} == {"uno", "dos"}
 
 
 def test_sin_evidencia_el_arbol_no_cambia() -> None:

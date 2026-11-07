@@ -1249,6 +1249,34 @@ def test_criterio_sin_peso_avisa_y_el_docente_lo_lee(tmp_path):
     assert textos == ["Los criterios de CE1 no llevan peso: tiza los pesa igual."]
 
 
+ACTIVIDADES_COMPARTIDAS = (
+    ("a", 1, 11, {"CE1_1": 100, "CE1_2": 100}),
+    ("c", 2, 13, {"CE2": 100}),
+)
+
+
+def test_evidencia_compartida_avisa_y_el_docente_lo_lee(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CRITERIOS, ACTIVIDADES_COMPARTIDAS)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_COMPARTIDAS))
+    presencia = PresenciaFalsa(real=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok"
+    assert pasos(documento, "EVIDENCIA_COMPARTIDA")[0]["detalle"] == "1"
+    avisos = [a for r in presencia.resumenes_calificador for a in r.avisos]
+    assert publicacion.Aviso.evidencia_compartida("a") in avisos
+    textos = [
+        linea.texto
+        for aviso in avisos
+        if aviso.codigo == "EVIDENCIA_COMPARTIDA"
+        for linea in mensajes.lineas_de_aviso(aviso)
+    ]
+    assert textos == [
+        "«a» evalúa varios criterios y su nota total llega a todos. Para que cada criterio "
+        "reciba su propio nivel, usa «evidencia: resultados» si es una tarea o separa la "
+        "actividad por criterio."
+    ]
+
+
 def test_evalua_que_nombra_un_elemento_con_criterios_es_error(tmp_path):
     actividades = (("a", 1, 11, {"CE1": 100}), *ACTIVIDADES_CRITERIOS[1:])
     carpeta = carpeta_fp(tmp_path, ESQUEMA_CRITERIOS, actividades)

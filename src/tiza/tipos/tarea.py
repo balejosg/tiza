@@ -231,32 +231,40 @@ def _porcentaje(valor: float) -> str:
 
 
 def _rubrica_preview(doc) -> str:
-    """La rúbrica en la vista previa: descripción y tabla de criterios y niveles."""
+    """La rúbrica en la vista previa: descripción y tabla de filas por niveles."""
     if doc.rubrica is None:
         return ""
     cargada = doc.rubrica
+    total = sum(criterio.maximo for criterio in cargada.criterios)
+    ids_niveles: list[str] = []
+    for criterio in cargada.criterios:
+        for nivel in criterio.niveles:
+            if nivel.id not in ids_niveles:
+                ids_niveles.append(nivel.id)
     partes = [
         "<hr>",
         f"<h2>Rúbrica: {html.escape(cargada.nombre)}</h2>",
         cargada.html,
-        "<table><thead><tr><th>Criterio</th><th>Niveles</th></tr></thead><tbody>",
+        "<table><thead><tr><th>Criterio</th><th>Peso</th>"
+        + "".join(f"<th>{html.escape(nivel)}</th>" for nivel in ids_niveles)
+        + "</tr></thead><tbody>",
     ]
     for criterio in cargada.criterios:
-        maximo = max((nivel.puntos for nivel in criterio.niveles), default=1) or 1
-        niveles = (
-            "<ul>"
-            + "".join(
-                f"<li><strong>{html.escape(nivel.id)}</strong> "
-                f"({numero_texto(nivel.puntos)} puntos, "
-                f"{_porcentaje(round(nivel.puntos / maximo * 100, 2))} %): "
-                f"{html.escape(nivel.descripcion)}</li>"
-                for nivel in criterio.niveles
+        por_nivel = {nivel.id: nivel for nivel in criterio.niveles}
+        celdas: list[str] = []
+        for id_ in ids_niveles:
+            nivel = por_nivel.get(id_)
+            if nivel is None:
+                celdas.append("<td></td>")
+                continue
+            celdas.append(
+                f"<td><strong>{numero_texto(nivel.puntos)} puntos</strong><br>"
+                f"{html.escape(nivel.descripcion)}</td>"
             )
-            + "</ul>"
-        )
+        peso = _porcentaje(round(criterio.maximo / total * 100, 2))
         partes.append(
             f"<tr><td><strong>{html.escape(criterio.nombre)}</strong><br>"
-            f"{html.escape(criterio.descripcion)}</td><td>{niveles}</td></tr>"
+            f"{html.escape(criterio.descripcion)}</td><td>{peso} %</td>" + "".join(celdas) + "</tr>"
         )
     partes.append("</tbody></table>")
     return "\n".join(partes)

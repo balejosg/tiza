@@ -527,6 +527,7 @@ class TestCalificador:
             "ELEMENTO_CON_NOTAS_QUITADO",
             "ELEMENTO_SIN_ACTIVIDADES",
             "CRITERIOS_SIN_PESO",
+            "EVIDENCIA_COMPARTIDA",
             "EVALUACION_CERRADA_EN_EL_AULA",
             "TOTAL_AJENO_BLOQUEADO",
         ],
