@@ -31,6 +31,7 @@ from .publicacion import (
     ResumenAislamiento,
     ResumenCalificador,
     ResumenCopia,
+    ResumenEvidencia,
     ResumenOrden,
     ResumenPublicacion,
     ResumenRubricas,
@@ -65,6 +66,7 @@ __all__ = [
     "DetalleCalificador",
     "DetalleCopia",
     "DetalleCorto",
+    "DetalleEvidencia",
     "DetalleOrden",
     "DetalleReal",
     "DetalleSobrescribir",
@@ -745,6 +747,39 @@ def detalle_rubricas(resumen: ResumenRubricas) -> DetalleRubricas:
     )
 
 
+@dataclass(frozen=True)
+class DetalleEvidencia:
+    """La pregunta de real sobre las tareas con notas que ganan resultados (D11)."""
+
+    curso: str
+    posicion: int
+    total: int
+    encabezado: str
+    lineas: tuple[str, ...]  # una por tarea, con su viñeta
+    pregunta: str
+
+
+def detalle_evidencia(resumen: ResumenEvidencia) -> DetalleEvidencia:
+    """Qué tareas con notas pasan a recoger la evidencia en los resultados de cada criterio.
+
+    Los nombres son los de los ficheros del docente, saneados como todo lo que se enseña.
+    """
+    return DetalleEvidencia(
+        curso=describir_curso(resumen.curso, resumen.nombre_curso),
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado=(
+            "Estas tareas ya tienen notas y ahora recogen la evidencia por criterios "
+            "con los resultados de Moodle:"
+        ),
+        lineas=tuple(f"  · {texto_seguro(nombre)}" for nombre in resumen.tareas),
+        pregunta=(
+            "Sus notas antiguas dejarán de contar para los criterios. "
+            "¿Activar los resultados de sus criterios?"
+        ),
+    )
+
+
 SIN_CURSO_PRUEBAS_OPCION = "No tengo curso de pruebas (en real se publicará solo oculto)"
 PREGUNTA_DESTINO = "¿Continuar con este curso?"
 PREGUNTA_CURSOS = "¿Abrir la sesión con estos cursos?"
@@ -792,6 +827,11 @@ _ROTULOS: dict[str, tuple[str, str, str]] = {
     "confirmar_rubricas": (
         "Sí, ninguna tiene notas",
         "No, alguna tiene notas",
+        "real",
+    ),
+    "confirmar_evidencia": (
+        "Sí, activar los resultados",
+        "No, publicar sin resultados",
         "real",
     ),
     "confirmar_copia": ("Hacer la copia", "No hacerla", ""),
@@ -965,6 +1005,46 @@ def _elemento_con_notas_quitado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
         Linea(
             "Ya no está en el esquema pero tiene notas: se queda en el aula con peso 0: "
             f"{texto_seguro(datos['nombre'])}"
+        ),
+    )
+
+
+def _resultado_con_notas_quitado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "La tarea ya no recoge la evidencia por resultados, pero este resultado tiene "
+            "niveles puestos: se queda con peso 0 y no se borra: "
+            f"{texto_seguro(datos['nombre'])}"
+        ),
+    )
+
+
+def _resultado_recreado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "Se había borrado en el aula el resultado de un criterio y tiza lo vuelve a crear "
+            "(sus niveles viejos se perdieron con el borrado): "
+            f"{texto_seguro(datos['nombre'])}"
+        ),
+    )
+
+
+def _evidencia_cambiada_con_notas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'])}» ya tenía notas: se publica sin activar los "
+            "resultados de sus criterios. Si quieres activarlos, vuelve a publicarla y di que sí."
+        ),
+    )
+
+
+def _resultados_desactivados(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'])}» se publica sin resultados: este sitio tiene los "
+            "resultados desactivados. Pide a quien administra el aula que los active y vuelve a "
+            "publicarla para activarlos.",
+            error=True,
         ),
     )
 
@@ -1276,6 +1356,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ERROR_INTERNO": _error_interno,
     "ESTRUCTURA_NO_LEIDA": _estructura_no_leida,
     "EVALUACION_CERRADA_EN_EL_AULA": _evaluacion_cerrada_en_el_aula,
+    "EVIDENCIA_CAMBIADA_CON_NOTAS": _evidencia_cambiada_con_notas,
     "FALLO": _fallo,
     "HUELLA_NO_GUARDADA": _huella_no_guardada,
     "INFORME_NO_ESCRITO": _informe_no_escrito,
@@ -1293,6 +1374,9 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "REGISTRO_NO_GUARDADO": _registro_no_guardado,
     "REINICIA_EL_AGENTE": _reinicia_el_agente,
     "RESULTADO": _resultado,
+    "RESULTADO_CON_NOTAS_QUITADO": _resultado_con_notas_quitado,
+    "RESULTADO_RECREADO": _resultado_recreado,
+    "RESULTADOS_DESACTIVADOS": _resultados_desactivados,
     "SESION_ABIERTA": _sesion_abierta,
     "SESION_ANTERIOR_CERRADA": _sesion_anterior_cerrada,
     "SESION_CERRADA": _sesion_cerrada,

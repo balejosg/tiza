@@ -160,6 +160,20 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
             )
         elif t == "mover_manual":
             cambiar(op, padre_eid=padre_de(op))
+        elif t == "marcar_resultado":
+            siguiente[0] += 1
+            eid = f"ig{siguiente[0]}"
+            nodos[eid] = nodo_aula(
+                eid,
+                "",
+                "actividad",
+                None,
+                nombre=op.nombre or "",
+                cmid=op.cmid,
+                maximo=None,
+            )
+        elif t == "fijar_idnumber_resultado":
+            cambiar(op, idnumber=op.idnumber)
         elif t == "fijar_peso":
             cambiar(op, peso=op.peso, sobrescrito=True)
         elif t == "fijar_maximo":
@@ -681,6 +695,8 @@ def test_orden_dos_fases() -> None:
         "crear_calculado": 1,
         "colocar": 1,
         "mover_manual": 1,
+        "marcar_resultado": 1,
+        "fijar_idnumber_resultado": 1,
         "fijar_peso": 2,
         "fijar_maximo": 2,
         "fijar_formula": 3,
@@ -1385,4 +1401,183 @@ def test_criterios_anidados_con_casilla_y_tope_convergen() -> None:
     huellas = huellas_de(aula, CMIDS)
     assert pasada2(d, aula, huellas, CMIDS) == ()
     otra = reconciliar(d, aula, huellas, CMIDS)
+    assert otra.operaciones == () and otra.avisos == ()
+
+
+# ---- resultados del aula: reconocer, colocar y no borrar (Tarea 4) ----
+
+CMIDS_RESULTADOS = {"u1/grua.md": 11}
+
+
+def esquema_resultados() -> Esquema:
+    return Esquema(
+        "elementos",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                100.0,
+                criterios=(
+                    Criterio("CE2_2", "Mantiene", 50.0, "2.2"),
+                    Criterio("CE3_1", "Instala", 50.0, "3.1"),
+                ),
+            ),
+        ),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+    )
+
+
+def tarea_resultados(*, evidencia: str | None = "resultados") -> Documento:
+    return Documento(
+        ruta=CARPETA / "u1/grua.md",
+        tipo="tarea",
+        nombre="Grúa",
+        seccion=1,
+        cuerpo="",
+        html="",
+        recursos=[],
+        evalua=(("CE2_2", 100.0), ("CE3_1", 100.0)),
+        evidencia=evidencia,
+    )
+
+
+def aula_con_resultados(*, existen: bool = True) -> CalificadorAula:
+    base = [curso(), actividad(11, padre="cg1", idnumber="", nombre="Grúa")]
+    if existen:
+        base += [
+            nodo_aula(
+                "ig201",
+                "",
+                "actividad",
+                "cg1",
+                nombre="2.2 · Mantiene",
+                cmid=11,
+                maximo=None,
+            ),
+            nodo_aula(
+                "ig202",
+                "",
+                "actividad",
+                "cg1",
+                nombre="3.1 · Instala",
+                cmid=11,
+                maximo=None,
+            ),
+        ]
+    return aula_con(*base)
+
+
+def aplicar_todo(d: Deseado, aula: CalificadorAula, resultados) -> tuple[CalificadorAula, object]:
+    """Primera pasada, la segunda (repetida hasta que no haya ajustes) y el aula final."""
+    rec = reconciliar(d, aula, {}, CMIDS_RESULTADOS, resultados=resultados)
+    aula = aplicar(aula, rec.operaciones)
+    for _ in range(6):
+        ajustes = pasada2(
+            d,
+            aula,
+            {},
+            CMIDS_RESULTADOS,
+            a_mano=rec.a_mano,
+            por_cerrar=rec.por_cerrar,
+            resultados=resultados,
+        )
+        if not ajustes:
+            break
+        aula = aplicar(aula, ajustes)
+    return aula, rec
+
+
+def test_reconciliar_reconoce_resultado_por_cmid_y_nombre() -> None:
+    d = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    rec = reconciliar(
+        d,
+        aula_con_resultados(),
+        {},
+        CMIDS_RESULTADOS,
+        resultados={"CE2_2": 41, "CE3_1": 42},
+    )
+    assert not [o for o in rec.operaciones if o.tipo == "marcar_resultado"]
+    assert {o.idnumber for o in rec.operaciones if o.tipo == "fijar_idnumber_resultado"} == {
+        id_ for _, _, id_ in d.resultados
+    }
+    assert {o.padre for o in rec.operaciones if o.tipo == "mover_manual"} == {
+        "TZ_E_CE2_2",
+        "TZ_E_CE3_1",
+    }
+    aula, _ = aplicar_todo(d, aula_con_resultados(), {"CE2_2": 41, "CE3_1": 42})
+    for criterio, id_ in (("CE2_2", d.resultados[0][2]), ("CE3_1", d.resultados[1][2])):
+        resultado = por_id(aula, id_)
+        assert resultado.padre_eid == por_id(aula, f"TZ_E_{criterio}").eid
+        assert resultado.peso in (None, 0.0)
+        calculados = [n for n in aula.nodos if n.clase == "calculado" and id_ in (n.formula or "")]
+        assert calculados
+        assert all(n.formula == f"=([[{id_}]]-1)/4*10" for n in calculados)
+
+
+def test_calculo_de_resultado_lleva_la_formula_de_los_niveles() -> None:
+    d = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    rec = reconciliar(
+        d,
+        aula_con_resultados(),
+        {},
+        CMIDS_RESULTADOS,
+        resultados={"CE2_2": 41, "CE3_1": 42},
+    )
+    formulas = {o.formula for o in rec.operaciones if o.tipo == "fijar_formula" and o.formula}
+    assert all(formula.startswith("=([[TZ_O_") for formula in formulas)
+    assert all(formula.endswith("/4*10") for formula in formulas)
+
+
+def test_resultado_borrado_a_mano_se_recrea() -> None:
+    d = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    aula = aula_con_resultados(existen=False)
+    rec = reconciliar(
+        d,
+        aula,
+        {},
+        CMIDS_RESULTADOS,
+        resultados={"CE2_2": 41, "CE3_1": 42},
+    )
+    marcar = [o for o in rec.operaciones if o.tipo == "marcar_resultado"]
+    assert {(o.cmid, o.resultado) for o in marcar} == {(11, 41), (11, 42)}
+    assert any(codigo == "RESULTADO_RECREADO" for codigo, _ in rec.avisos)
+    aula_final, _ = aplicar_todo(d, aula, {"CE2_2": 41, "CE3_1": 42})
+    for _, _, id_ in d.resultados:
+        assert por_id(aula_final, id_).padre_eid in {
+            por_id(aula_final, "TZ_E_CE2_2").eid,
+            por_id(aula_final, "TZ_E_CE3_1").eid,
+        }
+
+
+def test_quitar_evidencia_con_niveles_deja_peso_cero() -> None:
+    con = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    aula, _ = aplicar_todo(con, aula_con_resultados(), {"CE2_2": 41, "CE3_1": 42})
+    resultados = [n for n in aula.nodos if n.idnumber.startswith(("TZ_O_", "TZ_R_"))]
+    assert resultados
+    for n in resultados:
+        aula = con_nodo(aula, n.eid, tiene_notas=n.idnumber.startswith("TZ_O_"))
+    huellas = huellas_de(aula, CMIDS_RESULTADOS)
+    sin = deseado(esquema_resultados(), [tarea_resultados(evidencia=None)], False, CARPETA)
+    rec = reconciliar(sin, aula, huellas, CMIDS_RESULTADOS, resultados={})
+    assert not [
+        o
+        for o in rec.operaciones
+        if o.tipo == "borrar" and o.idnumber.startswith(("TZ_O_", "TZ_R_"))
+    ]
+    assert [codigo for codigo, _ in rec.avisos].count("RESULTADO_CON_NOTAS_QUITADO") == 2
+    final = aplicar(aula, rec.operaciones)
+    for n in final.nodos:
+        if n.idnumber.startswith("TZ_R_"):
+            assert n.peso == 0.0, n.idnumber
+        elif n.idnumber.startswith("TZ_O_"):
+            assert n.peso in (None, 0.0), n.idnumber
+
+
+def test_montaje_de_resultados_idempotente() -> None:
+    d = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    resultados = {"CE2_2": 41, "CE3_1": 42}
+    aula, _ = aplicar_todo(d, aula_con_resultados(), resultados)
+    huellas = huellas_de(aula, CMIDS_RESULTADOS)
+    otra = reconciliar(d, aula, huellas, CMIDS_RESULTADOS, resultados=resultados)
     assert otra.operaciones == () and otra.avisos == ()

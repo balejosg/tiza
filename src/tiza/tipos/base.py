@@ -109,6 +109,9 @@ class ContextoPublicacion:
     # El docente confirmó que ninguna de las tareas existentes que ganan rúbrica tiene notas.
     # Solo lo usa una tarea que ya existe: una nueva recibe la rúbrica sin preguntar.
     rubrica_confirmada: bool = False
+    # Resultados del curso que ya tienen id en Moodle, por id de criterio (``evalua``). Solo lo
+    # usa una tarea con ``evidencia: resultados``: su payload marca ``outcome_<id>``.
+    resultados: dict[str, int] = field(default_factory=dict)
 
 
 class Tipo:

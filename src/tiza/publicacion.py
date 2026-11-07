@@ -38,10 +38,15 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from . import calendario, colocacion, contenido, estado, informe, publicar, recorrido, rutas, tipos
 from .calificacion import reconciliar as rc
-from .calificacion.deseado import Deseado
+from .calificacion.deseado import Deseado, nombre_de_hoja
 from .calificacion.deseado import deseado as calcular_deseado
 from .calificacion.ejecutar import TIPOS_DE_BLOQUEO, Ejecucion
-from .calificacion.esquema import Elemento, ErrorCalificacion, Esquema
+from .calificacion.esquema import (
+    Elemento,
+    ErrorCalificacion,
+    Esquema,
+    cargar_esquema,
+)
 from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
 from .estado import ErrorEstado
@@ -74,6 +79,7 @@ __all__ = [
     "ResumenAislamiento",
     "ResumenCalificador",
     "ResumenCopia",
+    "ResumenEvidencia",
     "ResumenOrden",
     "ResumenPublicacion",
     "ResumenSinPruebas",
@@ -108,6 +114,8 @@ __all__ = [
 AVISO_DEBUG = "AVISO: salida de depuración; no la compartas."
 CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
 CUPO_COPIAS_ACTIVIDAD = 20  # copias de una sola actividad por sesión (cada actividad gasta 1)
+# D9: la escala de logro que comparten todos los resultados de los criterios.
+ESCALA_LOGRO = "Escala de logro (tiza)"
 # Moodle reescala los pesos de los hermanos al guardar uno: fijarlos converge, pero no de golpe.
 # Tope de repasos de la segunda pasada del calificador (cada uno suele dividir el error por 4).
 MAX_PASADAS_DE_AJUSTE = 8
@@ -139,6 +147,7 @@ AVISOS = frozenset(
         "ELEMENTO_SIN_ACTIVIDADES",
         "ERROR_INTERNO",
         "ESTRUCTURA_NO_LEIDA",
+        "EVIDENCIA_CAMBIADA_CON_NOTAS",
         "EVALUACION_CERRADA_EN_EL_AULA",
         "FALLO",
         "HUELLA_NO_GUARDADA",
@@ -157,6 +166,9 @@ AVISOS = frozenset(
         "REGISTRO_NO_GUARDADO",
         "REINICIA_EL_AGENTE",
         "RESULTADO",
+        "RESULTADO_CON_NOTAS_QUITADO",
+        "RESULTADO_RECREADO",
+        "RESULTADOS_DESACTIVADOS",
         "SANDBOX_NO_PERMITIDO",
         "SANDBOX_PERMITIDO",
         "SESION_ABIERTA",
@@ -230,6 +242,26 @@ class Aviso:
     def elemento_sin_actividades(cls, elemento: str) -> Aviso:
         """``elemento``: el id del esquema (RA1…) al que no llega ninguna actividad."""
         return cls("ELEMENTO_SIN_ACTIVIDADES", {"elemento": elemento})
+
+    @classmethod
+    def evidencia_cambiada_con_notas(cls, nombre: str) -> Aviso:
+        """``nombre``: la tarea con notas que no gana resultados porque el docente dijo que no."""
+        return cls("EVIDENCIA_CAMBIADA_CON_NOTAS", {"nombre": nombre})
+
+    @classmethod
+    def resultado_con_notas_quitado(cls, nombre: str) -> Aviso:
+        """``nombre``: el resultado que deja de contar y se queda con peso 0 (D11)."""
+        return cls("RESULTADO_CON_NOTAS_QUITADO", {"nombre": nombre})
+
+    @classmethod
+    def resultado_recreado(cls, nombre: str) -> Aviso:
+        """``nombre``: el resultado que el docente borró en el aula y tiza vuelve a crear."""
+        return cls("RESULTADO_RECREADO", {"nombre": nombre})
+
+    @classmethod
+    def resultados_desactivados(cls, nombre: str) -> Aviso:
+        """``nombre``: la tarea que se publica sin resultados porque el sitio los tiene apagados."""
+        return cls("RESULTADOS_DESACTIVADOS", {"nombre": nombre})
 
     @classmethod
     def evaluacion_cerrada_en_el_aula(cls, nombre: str) -> Aviso:
@@ -650,8 +682,13 @@ class ResumenCalificador:
 class PlanCalificador:
     """Lo que ``tiza calificador`` va a hacer en un curso: se calcula antes de confirmar.
 
-    Es lo que se enseña y lo que se ejecuta: no se vuelve a calcular entre la confirmación y la
-    ejecución, para no hacer algo distinto de lo que vio el docente.
+    Es lo que se enseña y lo que se ejecuta. ``preparar_calificador`` solo activa los resultados
+    ya efectivos (todos sus elementos marcados); los pendientes se enseñan como tareas normales.
+    Tras la confirmación, ``calificador_con`` asegura las definiciones y recalcula el árbol con
+    las tareas que pasan a resultados (o las deja normales si el docente dice que no o los
+    resultados están desactivados). ``resultados`` (criterio -> id en Moodle) se completa en
+    ``calificador_con``; ``preparar_calificador`` no escribe y deja solo los que ya existían.
+    ``resultados_pendientes`` avisa de que falta alguna definición o marca y hay que preguntar.
     """
 
     curso: int
@@ -662,6 +699,9 @@ class PlanCalificador:
     huellas: dict[str, str]
     documentos: tuple[Documento, ...]  # los que cuentan (los que llevan «evalua»)
     base: Path
+    resultados: dict[str, int] = field(default_factory=dict)
+    documentos_con_resultados: frozenset[str] = frozenset()
+    resultados_pendientes: bool = False
 
 
 @dataclass(frozen=True)
@@ -700,6 +740,21 @@ class ResumenRubricas:
 
     Se pregunta después de la confirmación normal del curso. ``tareas`` son los nombres tal
     como están en el fichero (``doc.nombre``), nunca texto del aula.
+    """
+
+    curso: int
+    nombre_curso: str | None
+    tareas: tuple[str, ...]
+    posicion: int = 1
+    total: int = 1
+
+
+@dataclass(frozen=True)
+class ResumenEvidencia:
+    """Las tareas con notas que pasan a recoger la evidencia con resultados (D11).
+
+    Se pregunta después de la confirmación normal del curso y antes de publicar. ``tareas`` son
+    los nombres tal como están en el fichero (``doc.nombre``), nunca texto del aula.
     """
 
     curso: int
@@ -813,6 +868,11 @@ class Presencia(Protocol):
     def confirmar_rubricas(self, resumen: ResumenRubricas) -> bool:
         """¿Ninguna de estas tareas que ya existen tiene notas? Con «no», no se toca su
         rúbrica. Una respuesta por curso; sin respuesta, es no."""
+        ...
+
+    def confirmar_evidencia(self, resumen: ResumenEvidencia) -> bool:
+        """¿Estas tareas con notas ganan los resultados de sus criterios? Con «no», se publican
+        sin resultados. Una respuesta por curso; sin respuesta, es no."""
         ...
 
     def confirmar_sin_pruebas(self) -> bool:
@@ -1080,6 +1140,56 @@ def resumen_solo_fechas(
     )
 
 
+def niveles_de_escala(esquema: Esquema) -> tuple[str, ...]:
+    """Los nombres de ``niveles_rubrica`` de menor a mayor porcentaje (D8)."""
+    return tuple(
+        nivel.nombre for nivel in sorted(esquema.niveles_rubrica, key=lambda n: n.porcentaje)
+    )
+
+
+def descripcion_de_resultado(esquema: Esquema, criterio: str) -> str:
+    """La descripción de un resultado: el nombre del criterio y la lista de niveles (D9)."""
+    niveles = ", ".join(
+        f"{nivel.nombre} ({nivel.porcentaje:g} %)"
+        for nivel in sorted(esquema.niveles_rubrica, key=lambda n: n.porcentaje)
+    )
+    return f"{nombre_de_hoja(esquema, criterio)}\n\nNiveles: {niveles}"
+
+
+def _cargar_esquema_de_evidencia(base: Path) -> Esquema:
+    """El ``calificacion.yaml`` de la carpeta, con la comprobación de D8.
+
+    Solo se llama cuando algún documento lleva ``evidencia: resultados``. Si el fichero falta o
+    no vale, se propaga ``ErrorCalificacion`` con su código (nunca texto de Moodle).
+    """
+    return cargar_esquema(base / "calificacion.yaml", base, resultados=True)
+
+
+def _resultados_propios(aula: AulaVirtual, curso: int, doc: Documento) -> set[int]:
+    """Ids de Moodle de los resultados de los criterios de ``doc.evalua`` que ya existen."""
+    if doc.evalua is None:
+        return set()
+    return {
+        resultado
+        for criterio, _ in doc.evalua
+        if (resultado := aula.resultado_por_corto(curso, f"TZ_{criterio}")) is not None
+    }
+
+
+def _tarea_con_notas_sin_resultados(
+    aula: AulaVirtual, curso: int, doc: Documento, cmid: int | None
+) -> bool:
+    """¿La tarea existe, tiene notas y aún no marca ninguno de sus resultados propios?
+
+    Es la única regla de D11: ``resultados_de_la_tarea`` y las dos preguntas la usan. Un
+    resultado ajeno marcado no cuenta; una definición ausente tampoco.
+    """
+    if cmid is None or not aula.actividad_tiene_notas(cmid):
+        return False
+    marcados = aula.campos_resultado_tarea(cmid)
+    return not any(marcados.get(resultado) for resultado in _resultados_propios(aula, curso, doc))
+
+
 def publicar_con(
     aula: AulaVirtual,
     entorno: str,
@@ -1095,6 +1205,7 @@ def publicar_con(
     no_publicar: frozenset[Path] = frozenset(),
     notas_confirmadas: Mapping[Path, str | None] | None = None,
     rubrica_confirmada: bool = False,
+    evidencia_confirmada: bool = False,
 ) -> recorrido.Resultado:
     """Con el aula ya abierta: publica y verifica los documentos.
 
@@ -1116,11 +1227,26 @@ def publicar_con(
     el resumen; ``None`` la categoría si no se iba a colocar) hace que no se mueva ninguna nota
     cuyo destino sea otro; sin ellas (``None``, en pruebas) no se compara. Que la nota no se pueda
     colocar nunca estropea la publicación: queda un paso ``NOTA_SIN_COLOCAR`` y un aviso.
+
+    Con ``evidencia: resultados`` se asegura antes la escala de logro y los resultados de los
+    criterios (D8, D9) y la tarea marca sus ``outcome_<id>``. Si el sitio tiene los resultados
+    desactivados, se publica sin ellos (``RESULTADOS_DESACTIVADOS``). Si la tarea ya tiene notas y
+    aún no marca ninguno, hace falta ``evidencia_confirmada`` (D11); sin él se publica sin
+    resultados y queda ``EVIDENCIA_CAMBIADA_CON_NOTAS``.
     """
     borrador = informe.Borrador("publicar", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
     base = Path(carpeta).resolve()
     paso = "SOLO_FECHAS" if solo_fechas else "PUBLICAR"
+    esquema_evidencia: Esquema | None = None
+    if not solo_fechas and any(doc.evidencia == "resultados" for doc in documentos):
+        try:
+            esquema_evidencia = _cargar_esquema_de_evidencia(base)
+        except (ErrorCalificacion, OSError) as exc:
+            codigo = getattr(exc, "codigo", "CALIFICACION_INVALIDA")
+            borrador.fallo(paso, "calificacion.yaml")
+            borrador.error(codigo)
+            return recorrido.Resultado.hecho(borrador.documento("error"), corta=True)
     if not solo_fechas:
         ordenados = ordenar_por_dependencias(documentos, base)
         if ordenados is None:
@@ -1196,6 +1322,50 @@ def publicar_con(
         }
     )
     con_nota: list[tuple[Documento, int]] = []
+    escala_logro: int | None = None
+    resultados_desactivados = False
+
+    def resultados_de_la_tarea(doc: Documento, cmid: int | None) -> dict[str, int]:
+        """Asegura la escala y los resultados de una tarea con evidencia (D8, D9, D11, D12).
+
+        Sin resultados activos no se escribe nada y se sigue con la publicación. Si la tarea ya
+        existe, tiene notas y aún no marca ningún resultado, se pide el sí que llega en
+        ``evidencia_confirmada``; con un no, se publica sin resultados y queda el paso.
+        """
+        nonlocal escala_logro, resultados_desactivados
+        if esquema_evidencia is None or doc.evidencia != "resultados" or doc.evalua is None:
+            return {}
+        if resultados_desactivados:
+            borrador.paso("RESULTADOS_DESACTIVADOS", detalle=doc.ruta.name)
+            presencia.informar(Aviso.resultados_desactivados(doc.nombre))
+            return {}
+        if not aula.resultados_activos(curso):
+            resultados_desactivados = True
+            borrador.paso("RESULTADOS_DESACTIVADOS", detalle=doc.ruta.name)
+            presencia.informar(Aviso.resultados_desactivados(doc.nombre))
+            return {}
+        # D11: antes de crear nada, si la tarea ya tiene notas y aún no marca ningún resultado
+        # propio, el «no» del docente la deja como estaba. Solo se avisa en el «no».
+        if _tarea_con_notas_sin_resultados(aula, curso, doc, cmid):
+            if not evidencia_confirmada:
+                borrador.paso("EVIDENCIA_CAMBIADA_CON_NOTAS", detalle=doc.ruta.name)
+                presencia.informar(Aviso.evidencia_cambiada_con_notas(doc.nombre))
+                return {}
+        if escala_logro is None:
+            escala_logro = aula.asegurar_escala(
+                curso, ESCALA_LOGRO, niveles_de_escala(esquema_evidencia)
+            )
+        resultados: dict[str, int] = {}
+        for criterio, _ in doc.evalua:
+            resultados[criterio] = aula.asegurar_resultado(
+                curso,
+                f"TZ_{criterio}",
+                nombre_de_hoja(esquema_evidencia, criterio),
+                descripcion_de_resultado(esquema_evidencia, criterio),
+                escala_logro,
+            )
+        return resultados
+
     for doc in documentos:
         vigilada = None
         pasos_del_tipo: list[informe.Paso] = []
@@ -1213,6 +1383,13 @@ def publicar_con(
                     if fichero in cmids
                 }
                 pasos_del_tipo = []
+                localizada = estructura.localizar(doc, curso).modulo
+                cmid_existente = (
+                    vigilada.cmid
+                    if vigilada is not None
+                    else (localizada.cmid if localizada is not None else None)
+                )
+                resultados = resultados_de_la_tarea(doc, cmid_existente)
                 resultado = publicar.publicar_documento(
                     aula,
                     curso,
@@ -1222,6 +1399,7 @@ def publicar_con(
                     dependencias=dependencias,
                     vigilada=vigilada,
                     rubrica_confirmada=rubrica_confirmada,
+                    resultados=resultados,
                     pasos=pasos_del_tipo,
                 )
                 assert resultado.cmid is not None  # acaba de crearla o actualizarla
@@ -1779,6 +1957,7 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
         if not confirmado:
             return recorrido.Resultado.declinado()
         rubrica_confirmada = self._preguntar_rubricas(turno, estructura, a_publicar)
+        evidencia_confirmada = self._preguntar_evidencia(turno, estructura, a_publicar)
         sobrescribir, no_publicar = self._preguntar_sobrescribir(turno, cambiadas)
         return publicar_con(
             self._aula,
@@ -1794,6 +1973,47 @@ class _TrabajoPublicar(recorrido.TrabajoBase):
             no_publicar=no_publicar,
             notas_confirmadas=notas_confirmadas,
             rubrica_confirmada=rubrica_confirmada,
+            evidencia_confirmada=evidencia_confirmada,
+        )
+
+    def _preguntar_evidencia(
+        self, turno: recorrido.Turno, estructura: Estructura, documentos: list[Documento]
+    ) -> bool:
+        """Pregunta por las tareas que ya tienen notas y ganan resultados (D11).
+
+        Una respuesta por curso, después de la confirmación normal. Solo entran las tareas con
+        ``evidencia: resultados`` que existen en el aula, tienen notas y aún no marcan ninguno de
+        sus resultados; las que ya los marcan no se vuelven a preguntar. Sin resultados activos
+        no se pregunta: no se va a escribir nada de resultados.
+        """
+        if self._solo_fechas:
+            return False
+        tareas: list[str] = []
+        try:
+            if not self._aula.resultados_activos(turno.curso):
+                return False
+            for doc in documentos:
+                if doc.evidencia != "resultados" or doc.evalua is None:
+                    continue
+                modulo = estructura.localizar(doc, turno.curso).modulo
+                if modulo is None:
+                    continue
+                if _tarea_con_notas_sin_resultados(self._aula, turno.curso, doc, modulo.cmid):
+                    tareas.append(doc.nombre)
+        except ErrorPublicacion as exc:
+            depurar(exc, self._debug)
+            return False
+        if not tareas:
+            return False
+        resumen = ResumenEvidencia(
+            curso=turno.curso,
+            nombre_curso=turno.nombre_curso,
+            tareas=tuple(tareas),
+            posicion=turno.posicion,
+            total=turno.total,
+        )
+        return turno.preguntar(
+            lambda presencia: presencia.confirmar_evidencia(resumen), tras_no=True
         )
 
     def _preguntar_rubricas(
@@ -2278,9 +2498,10 @@ def _cmids_de(
 ) -> dict[str, int]:
     """El cmid de cada actividad que ya está en el aula, por ruta; las que faltan no salen.
 
-    Se encuentran como en ``ordenar`` (``origen`` en su curso, o sección, tipo y nombre).
-    ``ACTIVIDAD_AMBIGUA`` si dos ficheros apuntan a la misma actividad o una se repite: colocar
-    la equivocada cambiaría una nota sin que nadie lo viera.
+    Se encuentran como en ``ordenar`` (``origen`` en su curso, o sección, tipo y nombre), también
+    si la actividad está en otra sección con la sección del documento cambiada. ``ACTIVIDAD_AMBIGUA``
+    si dos ficheros apuntan a la misma actividad o una se repite: colocar la equivocada cambiaría
+    una nota sin que nadie lo viera.
     """
     cmids: dict[str, int] = {}
     vistos: set[int] = set()
@@ -2292,7 +2513,7 @@ def _cmids_de(
         # ACTIVIDAD_AMBIGUA (o cualquier otro problema futuro): el registro y el nombre
         # apuntan a actividades distintas.
         publicar._convertir((loc.problema, doc.ruta.name) if loc.problema is not None else None)
-        modulo = loc.actividad
+        modulo = loc.modulo
         if modulo is None:
             continue
         cmid = modulo.cmid
@@ -2301,6 +2522,95 @@ def _cmids_de(
         vistos.add(cmid)
         cmids[ruta] = cmid
     return cmids
+
+
+def _resultados_para_calificador(
+    aula: AulaVirtual,
+    curso: int,
+    esquema: Esquema,
+    documentos: list[Documento],
+    base: Path,
+    sin_resultados: Collection[str] = (),
+) -> tuple[dict[str, int], bool]:
+    """La escala y los resultados del curso para las tareas con evidencia (D8, D9, D12).
+
+    Solo asegura las tareas que **no** están en ``sin_resultados`` (las que el docente declinó
+    en D11). Devuelve ``(criterio -> id del resultado, resultados_desactivados)``. Se llama
+    **después** de que el docente confirme el calificador: ``preparar_calificador`` no escribe
+    nada. Sin resultados activos no se escribe nada y el segundo valor es verdadero para que el
+    informe lo cuente (``RESULTADOS_DESACTIVADOS``); el calificador sigue montando el resto.
+    """
+    if not any(doc.evidencia == "resultados" for doc in documentos):
+        return {}, False
+    if not aula.resultados_activos(curso):
+        return {}, True
+    escala: int | None = None
+    resultados: dict[str, int] = {}
+    for doc in documentos:
+        if doc.evidencia != "resultados" or doc.evalua is None:
+            continue
+        if _ruta_de(doc, base) in sin_resultados:
+            continue
+        if escala is None:
+            escala = aula.asegurar_escala(curso, ESCALA_LOGRO, niveles_de_escala(esquema))
+        for criterio, _ in doc.evalua:
+            if criterio in resultados:
+                continue
+            resultados[criterio] = aula.asegurar_resultado(
+                curso,
+                f"TZ_{criterio}",
+                nombre_de_hoja(esquema, criterio),
+                descripcion_de_resultado(esquema, criterio),
+                escala,
+            )
+    return resultados, False
+
+
+def _resultados_existentes(
+    aula: AulaVirtual,
+    curso: int,
+    documentos: list[Documento],
+    cmids: dict[str, int],
+    base: Path,
+) -> tuple[dict[str, int], frozenset[str], bool]:
+    """(criterio -> id, rutas con resultados efectivos, hay algo pendiente). Solo lee.
+
+    Una tarea tiene resultados efectivos si está en el aula y marca **todos** sus resultados
+    propios, con sus definiciones ya existentes. Si los resultados están desactivados no se lee
+    nada y no se marca nada como pendiente: ``calificador_con`` dejará ``RESULTADOS_DESACTIVADOS``.
+    """
+    con_evidencia = [
+        doc for doc in documentos if doc.evidencia == "resultados" and doc.evalua is not None
+    ]
+    if not con_evidencia:
+        return {}, frozenset(), False
+    if not aula.resultados_activos(curso):
+        return {}, frozenset(), False
+    resultados: dict[str, int] = {}
+    vistos: set[str] = set()
+    efectivas: set[str] = set()
+    pendientes = False
+    for doc in con_evidencia:
+        evalua = doc.evalua
+        if evalua is None:
+            continue
+        propios: list[int] = []
+        for criterio, _ in evalua:
+            if criterio not in vistos:
+                vistos.add(criterio)
+                encontrado = aula.resultado_por_corto(curso, f"TZ_{criterio}")
+                if encontrado is not None:
+                    resultados[criterio] = encontrado
+            if criterio in resultados:
+                propios.append(resultados[criterio])
+        ruta = _ruta_de(doc, base)
+        cmid = cmids.get(ruta)
+        marcados = aula.campos_resultado_tarea(cmid) if cmid is not None else {}
+        if cmid is not None and propios and all(marcados.get(id_) for id_ in propios):
+            efectivas.add(ruta)
+        else:
+            pendientes = True
+    return resultados, frozenset(efectivas), pendientes
 
 
 def preparar_calificador(
@@ -2312,6 +2622,12 @@ def preparar_calificador(
 ) -> PlanCalificador:
     """Lee el curso y calcula qué hay que hacer en su calificador. No escribe nada en el aula.
 
+    Con tareas de ``evidencia: resultados`` lee (sin crear) el id de cada resultado
+    ``TZ_<criterio>`` y lo pasa a la reconciliación: si la definición existe pero su elemento del
+    calificador se borró, el plan ya incluye ``marcar_resultado`` y el docente lo confirma. Si
+    falta alguna definición, ``resultados_pendientes`` hace que se pregunte igualmente; la
+    asegura ``calificador_con`` después del «sí».
+
     ``ErrorPublicacion`` si el aula no deja leer, ``ErrorCalificacion`` si las actividades no
     cuadran con el esquema y ``ErrorEstado`` si ``.tiza/calificador.json`` no vale.
     """
@@ -2321,16 +2637,20 @@ def preparar_calificador(
     cmids = _cmids_de(aula.estructura(curso), contados, curso, base)
     actual = aula.calificador(curso)
     anterior = rc.hay_anterior(actual)
-    deseado = calcular_deseado(esquema, documentos, anterior, base)
+    resultados, efectivas, pendientes = _resultados_existentes(aula, curso, documentos, cmids, base)
+    deseado = calcular_deseado(esquema, documentos, anterior, base, resultados=efectivas)
     return PlanCalificador(
         curso=curso,
         aula_antes=actual,
         deseado=deseado,
-        reconciliacion=rc.reconciliar(deseado, actual, huellas, cmids),
+        reconciliacion=rc.reconciliar(deseado, actual, huellas, cmids, resultados=resultados),
         cmids=cmids,
         huellas=huellas,
         documentos=tuple(contados),
         base=base,
+        resultados=resultados,
+        documentos_con_resultados=efectivas,
+        resultados_pendientes=pendientes,
     )
 
 
@@ -2354,6 +2674,12 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
         return Aviso.elemento_sin_actividades(clave)
     if codigo == "CRITERIOS_SIN_PESO":
         return Aviso.criterios_sin_peso(clave)
+    if codigo in ("RESULTADO_CON_NOTAS_QUITADO", "RESULTADO_RECREADO"):
+        de_la_carpeta = next((n.nombre for n in plan.deseado.nodos if n.idnumber == clave), None)
+        texto = de_la_carpeta or nombres.get(clave, clave)
+        if codigo == "RESULTADO_CON_NOTAS_QUITADO":
+            return Aviso.resultado_con_notas_quitado(texto)
+        return Aviso.resultado_recreado(texto)
     return None  # TOTAL_AJENO_BLOQUEADO ya sale en «se bloquean los totales de…»
 
 
@@ -2533,6 +2859,7 @@ def _ajustar(
             plan.cmids,
             a_mano=rec.a_mano,
             por_cerrar=cierres,
+            resultados=plan.resultados,
         )
 
     def ejecutar(leida: CalificadorAula, ajustes: tuple[rc.Operacion, ...]) -> CalificadorAula:
@@ -2559,6 +2886,9 @@ def calificador_con(
     dir_tiza: Path,
     *,
     plan: PlanCalificador | None = None,
+    presencia: Presencia | None = None,
+    evidencia_confirmada: bool = False,
+    sin_resultados: Collection[str] = (),
     debug: bool = False,
 ) -> dict:
     """Con el aula ya abierta: monta el calificador de ``curso`` y devuelve el informe.
@@ -2570,17 +2900,71 @@ def calificador_con(
     estable, el bloqueo de las evaluaciones cerradas → guardar las huellas. Las relecturas abren solo los formularios de lo que se tocó. Si falla un ``bloquear_ajeno`` no se ejecuta nada más en el curso
     (``BLOQUEO_FALLIDO``). Cualquier otro fallo para en seco, y se guardan las huellas de lo ya
     hecho para que repetir el comando converja sin tomarlo por cambios a mano.
+
+    ``preparar_calificador`` no escribe. Por defecto **no se activan** resultados nuevos
+    (``evidencia_confirmada=False``): las tareas pendientes se montan como normales. Con el sí
+    explícito se aseguran la escala y los resultados de las tareas que no estén en
+    ``sin_resultados`` (las declinadas en D11) y se recalcula el árbol con esas rutas. Si el sitio
+    tiene los resultados desactivados, no se escribe nada de resultados, el árbol es normal y
+    queda ``RESULTADOS_DESACTIVADOS`` (D12).
     """
     borrador = informe.Borrador("calificador", entorno=entorno, curso=curso)
     borrador.paso("LOGIN")
     dir_tiza = Path(dir_tiza)
     try:
         plan = plan or preparar_calificador(aula, curso, esquema, documentos, dir_tiza)
+        declinadas = frozenset(sin_resultados)
+        resultados: dict[str, int]
+        efectivas: frozenset[str]
+        desactivados: bool
+        if not aula.resultados_activos(curso):
+            resultados, efectivas, desactivados = {}, frozenset(), True
+        elif not evidencia_confirmada:
+            resultados = dict(plan.resultados)
+            efectivas = plan.documentos_con_resultados - declinadas
+            desactivados = False
+        else:
+            resultados, desactivados = _resultados_para_calificador(
+                aula, curso, esquema, documentos, plan.base, declinadas
+            )
+            efectivas = (
+                frozenset(
+                    ruta
+                    for doc in documentos
+                    if doc.evidencia == "resultados"
+                    and doc.evalua is not None
+                    and (ruta := _ruta_de(doc, plan.base)) not in declinadas
+                )
+                if not desactivados
+                else frozenset()
+            )
+        deseado = calcular_deseado(
+            esquema, documentos, plan.reconciliacion.anterior, plan.base, resultados=efectivas
+        )
+        plan = replace(
+            plan,
+            deseado=deseado,
+            reconciliacion=rc.reconciliar(
+                deseado,
+                plan.aula_antes,
+                plan.huellas,
+                plan.cmids,
+                resultados=resultados,
+            ),
+            resultados=resultados,
+            documentos_con_resultados=efectivas,
+        )
     except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
         borrador.fallo("CALIFICADOR", exc.codigo)
         borrador.error(exc.codigo)
         depurar(exc, debug)
         return borrador.documento("error")
+    if desactivados:
+        borrador.paso("RESULTADOS_DESACTIVADOS")
+        if presencia is not None:
+            for doc in documentos:
+                if doc.evidencia == "resultados":
+                    presencia.informar(Aviso.resultados_desactivados(doc.nombre))
     rec = plan.reconciliacion
     primera = Ejecucion(aula, curso, plan.aula_antes.decimal)
     segundas: list[Ejecucion] = []
@@ -2686,6 +3070,7 @@ def calificador_en_cursos(
             documentos,
             base,
             nombre_esquema,
+            presencia,
             debug=debug,
         ),
         cfg,
@@ -2712,6 +3097,7 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
         documentos: list[Documento],
         base: Path,
         nombre_esquema: str,
+        presencia: Presencia,
         *,
         debug: bool,
     ) -> None:
@@ -2721,6 +3107,7 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
         self._documentos = documentos
         self._dir_tiza = Path(base) / rutas.CARPETA_TRABAJO
         self._nombre_esquema = nombre_esquema
+        self._presencia = presencia
         self._debug = debug
 
     def aviso_en_pruebas(self) -> Aviso:
@@ -2734,6 +3121,8 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
             self._esquema,
             self._documentos,
             self._dir_tiza,
+            presencia=self._presencia,
+            evidencia_confirmada=True,
             debug=self._debug,
         )
 
@@ -2745,7 +3134,7 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
         except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
             # Cada curso se lee entero antes de escribir nada en él (y antes de preguntar).
             return recorrido.Resultado.fallo(exc.codigo)
-        if plan.reconciliacion.hay_trabajo:
+        if plan.reconciliacion.hay_trabajo or plan.resultados_pendientes:
             resumen = resumen_calificador(
                 plan,
                 self._esquema,
@@ -2755,6 +3144,7 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
             )
             if not turno.preguntar(lambda presencia: presencia.confirmar_calificador(resumen)):
                 return recorrido.Resultado.declinado()
+        evidencia_declinada = self._preguntar_evidencia(plan, turno)
         # Sin operaciones no hay nada que confirmar: se informa de que no había nada que hacer.
         documento = calificador_con(
             self._aula,
@@ -2764,9 +3154,54 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
             self._documentos,
             self._dir_tiza,
             plan=plan,
+            presencia=self._presencia,
+            evidencia_confirmada=True,
+            sin_resultados=evidencia_declinada,
             debug=self._debug,
         )
         return recorrido.Resultado.hecho(documento)
+
+    def _preguntar_evidencia(self, plan: PlanCalificador, turno: recorrido.Turno) -> frozenset[str]:
+        """D11 en el calificador: pregunta solo por tareas pendientes que ya tienen notas.
+
+        Devuelve las rutas que el docente declinó. Si no hay tareas pendientes con notas, no se
+        pregunta y se devuelve vacío (las pendientes sin notas se pueden activar: no hay riesgo).
+        """
+        if not plan.resultados_pendientes:
+            return frozenset()
+        try:
+            estructura = self._aula.estructura(turno.curso)
+        except ErrorPublicacion:
+            # Sin la estructura no se puede saber cuáles tienen notas: no se activa ninguna.
+            return frozenset(
+                _ruta_de(doc, plan.base)
+                for doc in self._documentos
+                if doc.evidencia == "resultados"
+            )
+        pendientes: list[tuple[str, str]] = []
+        for doc in self._documentos:
+            if doc.evidencia != "resultados" or doc.evalua is None:
+                continue
+            ruta = _ruta_de(doc, plan.base)
+            if ruta in plan.documentos_con_resultados:
+                continue
+            modulo = estructura.localizar(doc, turno.curso).modulo
+            if modulo is not None and _tarea_con_notas_sin_resultados(
+                self._aula, turno.curso, doc, modulo.cmid
+            ):
+                pendientes.append((ruta, doc.nombre))
+        if not pendientes:
+            return frozenset()
+        resumen = ResumenEvidencia(
+            curso=turno.curso,
+            nombre_curso=turno.nombre_curso,
+            tareas=tuple(nombre for _, nombre in pendientes),
+            posicion=turno.posicion,
+            total=turno.total,
+        )
+        if turno.preguntar(lambda presencia: presencia.confirmar_evidencia(resumen), tras_no=True):
+            return frozenset()
+        return frozenset(ruta for ruta, _ in pendientes)
 
 
 def _curso_de_copia(cfg: Config, nombre: str) -> tuple[str, int]:

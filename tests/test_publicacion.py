@@ -1366,7 +1366,7 @@ def _pagina(carpeta: Path, nombre: str, fichero="p.md", seccion="3", extra="") -
     )
 
 
-def _aula_dos_cursos() -> MoodleFalso:
+def _aula_dos_cursos(**kw) -> MoodleFalso:
     """Pruebas (1234) y el real 5678 con secciones propias, para que no se mezclen."""
     return MoodleFalso(
         secciones=[
@@ -1379,6 +1379,7 @@ def _aula_dos_cursos() -> MoodleFalso:
                 {"numero": 4, "nombre": "Tema 4", "id": 40, "modulos": []},
             ]
         },
+        **kw,
     )
 
 
@@ -3200,3 +3201,184 @@ def test_la_rubrica_de_una_tarea_existente_se_define_si_el_docente_confirma(tmp_
     assert "RUBRICA_NO_ACTIVADA" not in [paso["codigo"] for paso in documento["pasos"]]
     assert any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
     assert moodle.formularios[cmid][publicar.METODO_SUBMISSIONS] == "rubric"
+
+
+# --- Evidencia por resultados: tareas con notas y resultados desactivados -----
+
+TAREA_EVIDENCIA = """\
+---
+tipo: tarea
+nombre: Problemas
+seccion: 3
+apertura: 2026-10-01
+entrega: 2026-10-10
+{evidencia}---
+
+Resuelve los problemas.
+"""
+
+
+def _tarea_con_evidencia(carpeta: Path) -> None:
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RUBRICA, encoding="utf-8")
+    evalua = "evalua: {CE1: 100, CE2: 100}\n"
+    evidencia = f"{evalua}evidencia: resultados\n"
+    (carpeta / "t.md").write_text(
+        TAREA_EVIDENCIA.replace("{evidencia}", evidencia), encoding="utf-8"
+    )
+
+
+def test_tarea_con_notas_que_gana_resultados_pide_confirmacion(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RUBRICA, encoding="utf-8")
+    (carpeta / "t.md").write_text(
+        TAREA_EVIDENCIA.replace("{evidencia}", "evalua: {CE1: 100, CE2: 100}\n"),
+        encoding="utf-8",
+    )
+    primero = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa())
+    cmid = primero["ficheros"][0]["cmid"]
+    moodle.tareas_con_notas.add(cmid)
+    _tarea_con_evidencia(carpeta)
+    presencia = PresenciaFalsa(evidencia=False)
+    antes = len(moodle.llamadas)
+    documento = _publicar_tarea_existente(carpeta, moodle, presencia)
+    assert presencia.resumenes_evidencia == [
+        publicacion.ResumenEvidencia(5678, None, ("Problemas",), 1, 1)
+    ]
+    assert "EVIDENCIA_CAMBIADA_CON_NOTAS" in [paso["codigo"] for paso in documento["pasos"]]
+    assert not [clave for clave in moodle.formularios[cmid] if clave.startswith("outcome_")]
+    assert not [
+        llamada
+        for llamada in moodle.llamadas[antes:]
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado")
+    ]
+
+    confirmada = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa(evidencia=True))
+    assert "EVIDENCIA_CAMBIADA_CON_NOTAS" not in [paso["codigo"] for paso in confirmada["pasos"]]
+    marcados = sorted(clave for clave in moodle.formularios[cmid] if clave.startswith("outcome_"))
+    assert marcados == ["outcome_41", "outcome_42"]
+
+
+def test_resultados_desactivados_no_escribe_resultados(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    moodle.resultados_activos_por_curso[5678] = False
+    _tarea_con_evidencia(carpeta)
+    documento = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa())
+    assert documento["resultado"] == "ok", documento
+    assert "RESULTADOS_DESACTIVADOS" in [paso["codigo"] for paso in documento["pasos"]]
+    assert not [llamada for llamada in moodle.llamadas if llamada[0] == "asegurar_escala"]
+    cmid = documento["ficheros"][0]["cmid"]
+    assert not [clave for clave in moodle.formularios[cmid] if clave.startswith("outcome_")]
+
+
+def test_resultado_ajeno_marcado_no_evita_la_confirmacion(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos(
+        resultados=[
+            {
+                "id": 41,
+                "corto": "TZ_CE1",
+                "nombre": "CE1 · Criterio 1",
+                "descripcion": "Criterio de prueba",
+                "escala": 7,
+            },
+            {
+                "id": 42,
+                "corto": "TZ_CE2",
+                "nombre": "CE2 · Criterio 2",
+                "descripcion": "Criterio de prueba",
+                "escala": 7,
+            },
+        ]
+    )
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RUBRICA, encoding="utf-8")
+    (carpeta / "t.md").write_text(
+        TAREA_EVIDENCIA.replace("{evidencia}", "evalua: {CE1: 100, CE2: 100}\n"),
+        encoding="utf-8",
+    )
+    primero = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa())
+    cmid = primero["ficheros"][0]["cmid"]
+    moodle.tareas_con_notas.add(cmid)
+    moodle.resultados_de_tarea[cmid] = {999: True}  # un resultado ajeno marcado
+    _tarea_con_evidencia(carpeta)
+    antes = len(moodle.llamadas)
+    presencia = PresenciaFalsa(evidencia=False)
+    documento = _publicar_tarea_existente(carpeta, moodle, presencia)
+    assert presencia.resumenes_evidencia == [
+        publicacion.ResumenEvidencia(5678, None, ("Problemas",), 1, 1)
+    ]
+    assert "EVIDENCIA_CAMBIADA_CON_NOTAS" in [paso["codigo"] for paso in documento["pasos"]]
+    assert not [
+        llamada
+        for llamada in moodle.llamadas[antes:]
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado")
+    ]
+    assert not [clave for clave in moodle.formularios[cmid] if clave.startswith("outcome_")]
+
+
+def test_tarea_con_notas_en_otra_seccion_se_pregunta(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RUBRICA, encoding="utf-8")
+    (carpeta / "t.md").write_text(
+        TAREA_EVIDENCIA.replace("{evidencia}", "evalua: {CE1: 100, CE2: 100}\n"),
+        encoding="utf-8",
+    )
+    primero = _publicar_tarea_existente(carpeta, moodle, PresenciaFalsa())
+    cmid = primero["ficheros"][0]["cmid"]
+    moodle.tareas_con_notas.add(cmid)
+    (carpeta / "t.md").write_text(
+        TAREA_EVIDENCIA.replace("seccion: 3", "seccion: 4").replace(
+            "{evidencia}", "evalua: {CE1: 100, CE2: 100}\nevidencia: resultados\n"
+        ),
+        encoding="utf-8",
+    )
+    antes = len(moodle.llamadas)
+    presencia = PresenciaFalsa(evidencia=False)
+    documento = _publicar_tarea_existente(carpeta, moodle, presencia)
+    assert presencia.resumenes_evidencia == [
+        publicacion.ResumenEvidencia(5678, None, ("Problemas",), 1, 1)
+    ]
+    assert "EVIDENCIA_CAMBIADA_CON_NOTAS" in [paso["codigo"] for paso in documento["pasos"]]
+    assert not [
+        llamada
+        for llamada in moodle.llamadas[antes:]
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado")
+    ]
+    assert not [clave for clave in moodle.formularios[cmid] if clave.startswith("outcome_")]
+
+
+def test_tarea_con_notas_en_otra_seccion_sin_registro_se_pregunta(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    seccion = next(s for s in moodle.secciones_por_curso[5678] if s["numero"] == 3)
+    seccion["modulos"].append({"cmid": 55, "nombre": "Problemas", "tipo": "tarea"})
+    moodle.formularios[55] = {
+        "name": "Problemas",
+        "visible": "1",
+        "introeditor[text]": "<p>Resuelve los problemas.</p>",
+        **fecha_en_formulario("allowsubmissionsfromdate", (2026, 10, 1, 0, 0)),
+        **fecha_en_formulario("duedate", (2026, 10, 10, 23, 59)),
+    }
+    moodle.tareas_con_notas.add(55)
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RUBRICA, encoding="utf-8")
+    (carpeta / "t.md").write_text(
+        TAREA_EVIDENCIA.replace("seccion: 3", "seccion: 4").replace(
+            "{evidencia}", "evalua: {CE1: 100, CE2: 100}\nevidencia: resultados\n"
+        ),
+        encoding="utf-8",
+    )
+    antes = len(moodle.llamadas)
+    presencia = PresenciaFalsa(evidencia=False)
+    documento = _publicar_tarea_existente(carpeta, moodle, presencia)
+    assert presencia.resumenes_evidencia == [
+        publicacion.ResumenEvidencia(5678, None, ("Problemas",), 1, 1)
+    ]
+    assert "EVIDENCIA_CAMBIADA_CON_NOTAS" in [paso["codigo"] for paso in documento["pasos"]]
+    assert not [
+        llamada
+        for llamada in moodle.llamadas[antes:]
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado")
+    ]
+    assert not [clave for clave in moodle.formularios[55] if clave.startswith("outcome_")]

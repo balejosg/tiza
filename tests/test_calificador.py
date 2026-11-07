@@ -14,8 +14,18 @@ from pathlib import Path
 import pytest
 
 from dobles import MoodleFalso, PresenciaFalsa, dejar_peticion, estructura_de, peticion
-from tiza import agente, buzon, config, estado, informe, mensajes, publicacion, sesion_abierta
-from tiza.calificacion.carpeta import documentos_de_la_carpeta
+from tiza import (
+    agente,
+    buzon,
+    config,
+    contenido,
+    estado,
+    informe,
+    mensajes,
+    publicacion,
+    sesion_abierta,
+)
+from tiza.calificacion.carpeta import cargar_calificacion, documentos_de_la_carpeta
 from tiza.publicar import CalificadorAula, ErrorPublicacion, NodoAula
 
 URL = "https://aula.ejemplo.org/centro"
@@ -220,6 +230,29 @@ class AulaViva(MoodleFalso):
     def mover_manual(self, curso, item_id, categoria_eid):
         super().mover_manual(curso, item_id, categoria_eid)
         self._cambiar(None, item_id, padre_eid=categoria_eid)
+
+    def marcar_resultado_tarea(self, cmid, resultado_id):
+        super().marcar_resultado_tarea(cmid, resultado_id)
+        resultado = next(
+            r
+            for resultados in self.resultados.values()
+            for r in resultados
+            if r["id"] == resultado_id
+        )
+        eid = self._nuevo_eid("ig")
+        self.nodos[eid] = nodo(
+            eid,
+            "",
+            "actividad",
+            CURSO_EID,
+            nombre=resultado["nombre"],
+            cmid=cmid,
+            maximo=None,
+        )
+
+    def fijar_idnumber_resultado(self, curso, item_id, idnumber):
+        super().fijar_idnumber_resultado(curso, item_id, idnumber)
+        self._cambiar(None, item_id, idnumber=idnumber)
 
     def borrar_nodo(self, curso, eid):
         super().borrar_nodo(curso, eid)
@@ -1440,3 +1473,544 @@ def test_origen_que_ya_no_esta_en_el_aula_es_pendiente(tmp_path):
     }
     doc = next(d for d in documentos if d.ruta.name == "a.md")
     assert estructura_de(secciones).localizar(doc, CURSO).problema == "ORIGEN_NO_ENCONTRADO"
+
+
+def test_cmids_de_ve_una_tarea_en_otra_seccion(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    secciones = secciones_de()
+    for seccion in secciones:
+        seccion["modulos"] = [m for m in seccion["modulos"] if m["cmid"] != 11]
+    secciones[1]["modulos"].append({"cmid": 11, "nombre": "a", "tipo": "tarea"})
+    assert (
+        publicacion._cmids_de(
+            estructura_de(secciones), documentos_de_la_carpeta(carpeta), CURSO, carpeta
+        )["a.md"]
+        == 11
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Evidencia por resultados (Tarea 4)
+# --------------------------------------------------------------------------- #
+
+ESQUEMA_RESULTADOS = """\
+organizacion: elementos
+etapa: eso
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 100
+    codigo: RA1
+    criterios:
+      - {id: CE2_2, nombre: Mantiene, peso: 50, codigo: "2.2"}
+      - {id: CE3_1, nombre: Instala, peso: 50, codigo: "3.1"}
+evaluaciones:
+  - {nombre: 1.ª evaluación, secciones: [1]}
+final: {de: elementos}
+"""
+
+TAREA_RESULTADOS = """\
+---
+tipo: tarea
+nombre: grua
+seccion: 1
+apertura: 2026-10-01
+entrega: 2026-10-10
+evalua: {CE2_2: 100, CE3_1: 100}
+evidencia: resultados
+---
+
+Texto.
+"""
+
+
+def carpeta_resultados(tmp_path: Path) -> Path:
+    carpeta = tmp_path / "resultados"
+    carpeta.mkdir()
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RESULTADOS, encoding="utf-8")
+    (carpeta / "grua.md").write_text(TAREA_RESULTADOS, encoding="utf-8")
+    return carpeta.resolve()
+
+
+def secciones_resultados() -> list[dict]:
+    return [
+        {
+            "numero": 1,
+            "nombre": "Tema 1",
+            "id": 10,
+            "modulos": [{"cmid": 11, "nombre": "grua", "tipo": "tarea"}],
+        }
+    ]
+
+
+def calificar_resultados(carpeta: Path, moodle, **opciones) -> dict:
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    return publicacion.calificador_con(
+        moodle,
+        "pruebas",
+        CURSO,
+        esquema,
+        documentos,
+        carpeta / ".tiza",
+        evidencia_confirmada=True,
+        **opciones,
+    )
+
+
+def resultados_del_aula(moodle) -> list[NodoAula]:
+    return [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_O_")]
+
+
+def test_preparar_calificador_ve_resultado_borrado_y_no_escribe(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    montado = calificar_resultados(carpeta, moodle)
+    assert montado["resultado"] == "ok", montado
+    borrado = next(
+        n
+        for n in moodle.nodos.values()
+        if n.idnumber.startswith("TZ_O_") and n.nombre == "2.2 · Mantiene"
+    )
+    del moodle.nodos[borrado.eid]
+    moodle.escrituras.clear()
+
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    plan = publicacion.preparar_calificador(moodle, CURSO, esquema, documentos, carpeta / ".tiza")
+    assert set(plan.resultados) == {"CE2_2", "CE3_1"}
+    assert plan.resultados_pendientes is False
+    assert plan.reconciliacion.hay_trabajo is True
+    tipos = [op.tipo for op in plan.reconciliacion.operaciones]
+    assert "marcar_resultado" in tipos
+    assert any(codigo == "RESULTADO_RECREADO" for codigo, _ in plan.reconciliacion.avisos)
+    assert moodle.escrituras == []
+
+    presencia = PresenciaFalsa(real=False)
+    antes = len(moodle.llamadas)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "abortado"
+    assert presencia.resumenes_calificador
+    assert moodle.escrituras == []
+    assert not [
+        llamada
+        for llamada in moodle.llamadas[antes:]
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado", "marcar_resultado_tarea")
+    ]
+
+
+def test_definicion_de_resultado_ausente_se_pregunta_y_con_si_se_monta(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+        resultados_activos=False,
+    )
+    primero = calificar_resultados(carpeta, moodle)
+    assert primero["resultado"] == "ok", primero
+    moodle.resultados_activos_por_curso[CURSO] = True
+    moodle.resultados_activos_por_curso[5678] = True
+    moodle.escrituras.clear()
+
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    plan = publicacion.preparar_calificador(moodle, CURSO, esquema, documentos, carpeta / ".tiza")
+    assert plan.resultados_pendientes is True
+    assert plan.reconciliacion.hay_trabajo is False
+    assert moodle.escrituras == []
+
+    presencia = PresenciaFalsa(real=False)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "abortado"
+    assert presencia.resumenes_calificador
+    assert moodle.escrituras == []
+    assert not [
+        llamada
+        for llamada in moodle.llamadas
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado")
+    ]
+
+    montado = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert montado["resultado"] == "ok", montado
+    metodos = {llamada[0] for llamada in moodle.llamadas}
+    assert "asegurar_escala" in metodos and "asegurar_resultado" in metodos
+    assert len(resultados_del_aula(moodle)) == 2
+
+
+def test_calificador_coloca_resultado_y_calculado(tmp_path):
+    moodle = AulaViva(
+        extra=[
+            nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0),
+            nodo(
+                "ig201",
+                "",
+                "actividad",
+                CURSO_EID,
+                cmid=11,
+                nombre="2.2 · Mantiene",
+                maximo=None,
+            ),
+            nodo(
+                "ig202",
+                "",
+                "actividad",
+                CURSO_EID,
+                cmid=11,
+                nombre="3.1 · Instala",
+                maximo=None,
+            ),
+        ],
+        secciones=secciones_resultados(),
+    )
+    documento = calificar_resultados(carpeta_resultados(tmp_path), moodle)
+    assert documento["resultado"] == "ok", documento
+    resultados = resultados_del_aula(moodle)
+    assert len(resultados) == 2
+    por_criterio = {resultado.padre_eid: resultado for resultado in resultados}
+    assert set(por_criterio) == {
+        moodle.por_id("TZ_E_CE2_2").eid,
+        moodle.por_id("TZ_E_CE3_1").eid,
+    }
+    for resultado in resultados:
+        assert resultado.cmid == 11
+        assert resultado.peso in (None, 0.0)
+    calculados = [
+        n
+        for n in moodle.nodos.values()
+        if n.clase == "calculado" and n.idnumber.startswith("TZ_R_")
+    ]
+    assert len(calculados) == 4  # 2 criterios × 2 vistas
+    for calculado in calculados:
+        fuente = next(
+            resultado.idnumber
+            for resultado in resultados
+            if f"[[{resultado.idnumber}]]" in (calculado.formula or "")
+        )
+        assert calculado.formula == f"=([[{fuente}]]-1)/4*10"
+
+
+def test_resultado_borrado_a_mano_se_recrea(tmp_path):
+    moodle = AulaViva(
+        extra=[
+            nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0),
+        ],
+        secciones=secciones_resultados(),
+    )
+    documento = calificar_resultados(carpeta_resultados(tmp_path), moodle)
+    assert documento["resultado"] == "ok", documento
+    assert "RESULTADO_RECREADO" in [paso["codigo"] for paso in documento["pasos"]]
+    resultados = resultados_del_aula(moodle)
+    assert len(resultados) == 2
+    assert {resultado.padre_eid for resultado in resultados} == {
+        moodle.por_id("TZ_E_CE2_2").eid,
+        moodle.por_id("TZ_E_CE3_1").eid,
+    }
+
+
+def test_montaje_idempotente(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[
+            nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0),
+        ],
+        secciones=secciones_resultados(),
+    )
+    primero = calificar_resultados(carpeta, moodle)
+    assert primero["resultado"] == "ok", primero
+    escrituras = list(moodle.escrituras)
+    segundo = calificar_resultados(carpeta, moodle)
+    assert segundo["resultado"] == "ok", segundo
+    assert pasos(segundo, "CALIFICADOR")[0]["detalle"] == "sin cambios"
+    assert moodle.escrituras == escrituras
+
+
+def test_calificador_con_no_no_asegura_resultados(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=False))
+    assert documento["resultado"] == "abortado"
+    assert not [
+        llamada
+        for llamada in moodle.llamadas
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado")
+    ]
+
+
+def test_calificador_con_resultados_desactivados_monta_el_resto(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+        resultados_activos=False,
+    )
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert documento["resultado"] == "ok", documento
+    assert "RESULTADOS_DESACTIVADOS" in [paso["codigo"] for paso in documento["pasos"]]
+    assert not [
+        llamada
+        for llamada in moodle.llamadas
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado")
+    ]
+    assert moodle.por_id("TZ_E_CE2_2")
+
+
+def test_calificador_con_si_asegura_resultados(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert documento["resultado"] == "ok", documento
+    metodos = {llamada[0] for llamada in moodle.llamadas}
+    assert "asegurar_escala" in metodos and "asegurar_resultado" in metodos
+    assert len(resultados_del_aula(moodle)) == 2
+
+
+def test_calificador_d11_con_no_deja_arbol_normal(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    moodle.tareas_con_notas.add(11)
+    presencia = PresenciaFalsa(real=True, evidencia=False)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert presencia.resumenes_evidencia == [
+        publicacion.ResumenEvidencia(5678, None, ("grua",), 1, 1)
+    ]
+    assert not [
+        llamada
+        for llamada in moodle.llamadas
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado", "marcar_resultado_tarea")
+    ]
+    real = next(
+        n
+        for n in moodle.nodos.values()
+        if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
+    )
+    assert real.peso is not None and real.peso > 0
+    assert [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
+
+
+def test_calificador_d11_con_si_marca_resultados(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    moodle.tareas_con_notas.add(11)
+    presencia = PresenciaFalsa(real=True, evidencia=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert presencia.resumenes_evidencia == [
+        publicacion.ResumenEvidencia(5678, None, ("grua",), 1, 1)
+    ]
+    assert len(resultados_del_aula(moodle)) == 2
+    real = next(
+        n
+        for n in moodle.nodos.values()
+        if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
+    )
+    assert real.peso == 0.0
+    assert not [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
+
+
+def test_calificador_resultados_desactivados_deja_arbol_normal(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+        resultados_activos=False,
+    )
+    presencia = PresenciaFalsa(real=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert "RESULTADOS_DESACTIVADOS" in [paso["codigo"] for paso in documento["pasos"]]
+    assert any(aviso.codigo == "RESULTADOS_DESACTIVADOS" for aviso in presencia.avisos)
+    assert not [
+        llamada
+        for llamada in moodle.llamadas
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado", "marcar_resultado_tarea")
+    ]
+    assert not [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_R_")]
+    real = next(
+        n
+        for n in moodle.nodos.values()
+        if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
+    )
+    assert real.peso is not None and real.peso > 0
+    assert [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
+
+
+def test_calificador_por_defecto_no_activa_resultados(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    documento = publicacion.calificador_con(
+        moodle, "pruebas", CURSO, esquema, documentos, carpeta / ".tiza"
+    )
+    assert documento["resultado"] == "ok", documento
+    assert not [
+        llamada
+        for llamada in moodle.llamadas
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado", "marcar_resultado_tarea")
+    ]
+    assert not resultados_del_aula(moodle)
+
+
+def test_calificador_niega_solo_la_tarea_con_notas(tmp_path):
+    carpeta = tmp_path / "mixta"
+    carpeta.mkdir()
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RESULTADOS, encoding="utf-8")
+    (carpeta / "grua.md").write_text(
+        TAREA_RESULTADOS.replace("evalua: {CE2_2: 100, CE3_1: 100}", "evalua: {CE2_2: 100}"),
+        encoding="utf-8",
+    )
+    (carpeta / "nueva.md").write_text(
+        TAREA_RESULTADOS.replace("nombre: grua", "nombre: nueva").replace(
+            "evalua: {CE2_2: 100, CE3_1: 100}", "evalua: {CE3_1: 100}"
+        ),
+        encoding="utf-8",
+    )
+    carpeta = carpeta.resolve()
+    moodle = AulaViva(
+        extra=[
+            nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0),
+            nodo("ig12", "", "actividad", CURSO_EID, cmid=12, nombre="nueva", maximo=10.0),
+        ],
+        secciones=[
+            {
+                "numero": 1,
+                "nombre": "Tema 1",
+                "id": 10,
+                "modulos": [
+                    {"cmid": 11, "nombre": "grua", "tipo": "tarea"},
+                    {"cmid": 12, "nombre": "nueva", "tipo": "tarea"},
+                ],
+            }
+        ],
+    )
+    moodle.tareas_con_notas.add(11)
+    presencia = PresenciaFalsa(real=True, evidencia=False)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert presencia.resumenes_evidencia == [
+        publicacion.ResumenEvidencia(5678, None, ("grua",), 1, 1)
+    ]
+    cortos = {r["corto"] for r in moodle.resultados.get(5678, [])}
+    assert "TZ_CE3_1" in cortos and "TZ_CE2_2" not in cortos
+    resultados = resultados_del_aula(moodle)
+    assert len(resultados) == 1 and resultados[0].cmid == 12
+    real_grua = next(
+        n
+        for n in moodle.nodos.values()
+        if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
+    )
+    real_nueva = next(
+        n
+        for n in moodle.nodos.values()
+        if n.cmid == 12 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
+    )
+    assert real_grua.peso is not None and real_grua.peso > 0
+    assert real_nueva.peso == 0.0
+    assert any(n.idnumber.startswith("TZ_C_") for n in moodle.nodos.values())
+    assert not any(n.idnumber.startswith("TZ_O_") and n.cmid == 11 for n in moodle.nodos.values())
+
+
+def test_calificador_sin_estructura_no_activa_resultados(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    moodle.tareas_con_notas.add(11)
+    original = moodle.estructura
+    llamadas = {"n": 0}
+
+    def estructura(curso):
+        llamadas["n"] += 1
+        if llamadas["n"] >= 2:
+            raise ErrorPublicacion("ERROR_ESTRUCTURA")
+        return original(curso)
+
+    moodle.estructura = estructura
+    presencia = PresenciaFalsa(real=True, evidencia=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert not presencia.resumenes_evidencia
+    assert not [
+        llamada
+        for llamada in moodle.llamadas
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado", "marcar_resultado_tarea")
+    ]
+    assert not resultados_del_aula(moodle)
+    real = next(
+        n
+        for n in moodle.nodos.values()
+        if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
+    )
+    assert real.peso is not None and real.peso > 0
+
+
+def test_publicar_con_no_y_calificador_no_marca_resultados(tmp_path):
+    carpeta = carpeta_resultados(tmp_path)
+    normal = carpeta / "grua_normal.md"
+    normal.write_text(TAREA_RESULTADOS.replace("evidencia: resultados\n", ""), encoding="utf-8")
+    moodle = AulaViva(secciones=secciones_resultados(), extra=[])
+    creado = publicacion.publicar_con(
+        moodle,
+        "pruebas",
+        CURSO,
+        [contenido.cargar(normal, raiz=carpeta)],
+        False,
+        carpeta,
+        PresenciaFalsa(),
+    )
+    assert creado.informe is not None and creado.informe["resultado"] == "ok"
+    cmid = creado.informe["ficheros"][0]["cmid"]
+    moodle.nodos[f"ig{cmid}"] = nodo(
+        f"ig{cmid}", "", "actividad", CURSO_EID, cmid=cmid, nombre="grua", maximo=10.0
+    )
+    moodle.tareas_con_notas.add(cmid)
+    normal.unlink()
+
+    publicado = publicacion.publicar_con(
+        moodle,
+        "pruebas",
+        CURSO,
+        [contenido.cargar(carpeta / "grua.md", raiz=carpeta)],
+        False,
+        carpeta,
+        PresenciaFalsa(evidencia=False),
+    )
+    assert publicado.informe is not None and publicado.informe["resultado"] == "ok"
+    assert "EVIDENCIA_CAMBIADA_CON_NOTAS" in [paso["codigo"] for paso in publicado.informe["pasos"]]
+    antes = len(moodle.llamadas)
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    documento = publicacion.calificador_con(
+        moodle,
+        "pruebas",
+        CURSO,
+        esquema,
+        documentos,
+        carpeta / ".tiza",
+        evidencia_confirmada=False,
+    )
+    assert documento["resultado"] == "ok", documento
+    assert not [
+        llamada
+        for llamada in moodle.llamadas[antes:]
+        if llamada[0] in ("asegurar_escala", "asegurar_resultado", "marcar_resultado_tarea")
+    ]
+    assert not [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_O_")]
+    real = next(n for n in moodle.nodos.values() if n.cmid == cmid and n.clase == "actividad")
+    assert real.peso is not None and real.peso > 0
+    assert [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]

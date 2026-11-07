@@ -346,3 +346,78 @@ def test_la_tarea_admite_rubrica_sin_invadir_los_campos_comunes():
     tarea = tipos.obtener("tarea")
     assert "rubrica" in tarea.campos
     assert not {"tipo", "nombre", "seccion"} & set(tarea.campos)
+
+
+ESQUEMA_ESO = """\
+organizacion: elementos
+etapa: eso
+elementos:
+  - id: CE2
+    nombre: Competencia 2
+    peso: 50
+    codigo: "2"
+    criterios:
+      - {id: CE2_2, nombre: Mantiene, peso: 100, codigo: "2.2"}
+  - id: CE3
+    nombre: Competencia 3
+    peso: 50
+    codigo: "3"
+    criterios:
+      - {id: CE3_1, nombre: Instala, peso: 100, codigo: "3.1"}
+evaluaciones:
+  - {nombre: 1.ª evaluación, secciones: [1]}
+final: {de: elementos}
+"""
+
+
+def _tarea_con_evidencia(tmp_path, *, evidencia: str = "evidencia: resultados\n"):
+    (tmp_path / "calificacion.yaml").write_text(ESQUEMA_ESO, encoding="utf-8")
+    ruta = tmp_path / "grua.md"
+    ruta.write_text(
+        "---\ntipo: tarea\nnombre: Grúa\nseccion: 1\n"
+        "apertura: 2026-10-01\nentrega: 2026-10-10\n"
+        "evalua: {CE2_2: 50, CE3_1: 100}\n"
+        f"{evidencia}---\n\nTexto\n",
+        encoding="utf-8",
+    )
+    return contenido.cargar(ruta, raiz=tmp_path)
+
+
+def test_publicar_tarea_con_evidencia_marca_sus_resultados(tmp_path):
+    doc = _tarea_con_evidencia(tmp_path)
+    payload = tipos.obtener("tarea").payload(
+        doc,
+        "<p>Texto</p>",
+        7,
+        None,
+        resultados={"CE2_2": 41, "CE3_1": 42, "CE9": 99},
+    )
+    assert payload["outcome_41"] == "1"
+    assert payload["outcome_42"] == "1"
+    assert "outcome_99" not in payload
+    assert sorted(clave for clave in payload if clave.startswith("outcome_")) == [
+        "outcome_41",
+        "outcome_42",
+    ]
+
+
+def test_tarea_sin_evidencia_no_lleva_outcome(tmp_path):
+    doc = _tarea_con_evidencia(tmp_path, evidencia="")
+    payload = tipos.obtener("tarea").payload(
+        doc, "<p>Texto</p>", 7, None, resultados={"CE2_2": 41, "CE3_1": 42}
+    )
+    assert not [clave for clave in payload if clave.startswith("outcome_")]
+
+
+def test_tarea_sin_evidencia_mantiene_su_hash(cargar):
+    """Valor anotado de la versión anterior: sin «evidencia» el hash no cambia."""
+    assert (
+        contenido.hash_documento(cargar("tarea"))
+        == "a0a3cbe3d37d32c5f63655be8faffb8623bacd402627ca108c0dd1f7c8db0210"
+    )
+
+
+def test_tarea_con_evidencia_cambia_el_hash(tmp_path):
+    sin = _tarea_con_evidencia(tmp_path, evidencia="")
+    con = _tarea_con_evidencia(tmp_path)
+    assert contenido.hash_documento(con) != contenido.hash_documento(sin)

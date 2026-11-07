@@ -997,8 +997,8 @@ def test_sin_la_opcion_el_arbol_no_cambia() -> None:
 # ---- evidencia por resultados: resultado del aula y calculado por criterio ----
 
 CRITERIOS_RESULTADOS = (
-    Criterio("CE2_2", "Mantiene", 50.0, None),
-    Criterio("CE3_1", "Instala", 50.0, None),
+    Criterio("CE2_2", "Mantiene", 50.0, "2.2"),
+    Criterio("CE3_1", "Instala", 50.0, "3.1"),
 )
 
 
@@ -1068,8 +1068,8 @@ def test_resultado_en_vista_real_con_peso_cero() -> None:
             idnumber_resultado("u1/grua.md", "CE3_1"),
         }
         assert {n.nombre for n in resultados} == {
-            "Resultado CE2_2 · grua",
-            "Resultado CE3_1 · grua",
+            "2.2 · Mantiene",
+            "3.1 · Instala",
         }
         # El calculado de cada vista apunta al resultado del aula.
         for resultado in resultados:

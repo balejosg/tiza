@@ -32,6 +32,7 @@ criterio. ``Deseado.resultados`` da las tripletas ``(ruta, criterio, TZ_O_…)``
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -44,7 +45,14 @@ from tiza.calificacion.esquema import (
 )
 from tiza.contenido import Documento
 
-__all__ = ["Deseado", "Nodo", "comprobar_sin_circulares", "deseado", "normalizar_pesos"]
+__all__ = [
+    "Deseado",
+    "Nodo",
+    "comprobar_sin_circulares",
+    "deseado",
+    "nombre_de_hoja",
+    "normalizar_pesos",
+]
 
 CLASES = (
     "contenedor",
@@ -104,7 +112,8 @@ class Deseado:
     visualización). ``cerradas`` son los ``TZ_V_<n>`` de las evaluaciones cerradas;
     ``actividades`` empareja cada ruta con el ``idnumber`` de su padre real; ``avisos`` son
     pares ``(codigo, id del elemento)``; ``resultados`` son las tripletas ``(ruta, id del
-    criterio, idnumber TZ_O_…)`` de las tareas con ``evidencia: resultados``.
+    criterio, idnumber TZ_O_…)`` de las tareas con ``evidencia: resultados``. ``niveles`` es
+    cuántos niveles tiene la escala de logro (``niveles_rubrica``), para la fórmula del calculado.
     """
 
     nodos: tuple[Nodo, ...]
@@ -114,6 +123,7 @@ class Deseado:
     actividades: tuple[tuple[str, str], ...]
     avisos: tuple[tuple[str, str], ...] = ()
     resultados: tuple[tuple[str, str, str], ...] = ()
+    niveles: int = 5
 
 
 @dataclass(frozen=True)
@@ -189,6 +199,30 @@ def _hojas(esquema: Esquema) -> list[tuple[str, str]]:
     return [(hoja, elemento.id) for elemento in esquema.elementos for hoja in _hojas_de(elemento)]
 
 
+def _texto_de_hoja(elemento: Elemento, criterio: Criterio | None) -> str:
+    """«código · nombre» de una hoja (D9); sin código, solo su nombre."""
+    nombre = elemento.nombre if criterio is None else criterio.nombre
+    codigo = elemento.codigo if criterio is None else criterio.codigo
+    return f"{codigo} · {nombre}" if codigo else nombre
+
+
+def nombre_de_hoja(esquema: Esquema, id_: str) -> str:
+    """El nombre completo que lleva el resultado de una hoja del esquema (D9).
+
+    Es el mismo texto que la rúbrica por criterios pone en su fila, para que la publicación
+    cree el resultado con él y la reconciliación lo reconozca en el aula. Si el id no está en
+    el esquema, se devuelve tal cual (solo puede pasar con un esquema incoherente).
+    """
+    for elemento in esquema.elementos:
+        if elemento.criterios:
+            for criterio in elemento.criterios:
+                if criterio.id == id_:
+                    return _texto_de_hoja(elemento, criterio)
+        elif elemento.id == id_:
+            return _texto_de_hoja(elemento, None)
+    return id_
+
+
 def _validar(
     esquema: Esquema,
     ruta: str,
@@ -226,10 +260,17 @@ def _validar(
     return evaluacion
 
 
-def _actividades(esquema: Esquema, documentos: list[Documento], carpeta: Path) -> list[_Actividad]:
+def _actividades(
+    esquema: Esquema,
+    documentos: list[Documento],
+    carpeta: Path,
+    resultados: Collection[str] | None = None,
+) -> list[_Actividad]:
     """Las actividades que cuentan, validadas una a una.
 
-    Primero las de fichero, ordenadas por ruta, y luego los instrumentos, en el orden del esquema.
+    ``resultados`` son las rutas cuyos resultados están efectivos; ``None`` los da por efectivos
+    a todas las tareas con ``evidencia`` (el comportamiento de siempre). Una tarea fuera de la
+    colección se trata como una tarea normal: actividad real y copias.
     """
     resultado: list[_Actividad] = []
     for documento in sorted(documentos, key=lambda d: _ruta_relativa(d.ruta, carpeta)):
@@ -246,7 +287,8 @@ def _actividades(esquema: Esquema, documentos: list[Documento], carpeta: Path) -
                 documento.nombre,
                 evaluacion,
                 evalua,
-                resultados=documento.evidencia == "resultados",
+                resultados=documento.evidencia == "resultados"
+                and (resultados is None or ruta in resultados),
             )
         )
     for i, instrumento in enumerate(esquema.instrumentos):
@@ -282,14 +324,21 @@ def _comprobar_pesos(esquema: Esquema, actividades: list[_Actividad]) -> None:
 
 
 def deseado(
-    esquema: Esquema, documentos: list[Documento], anterior: bool, carpeta: Path
+    esquema: Esquema,
+    documentos: list[Documento],
+    anterior: bool,
+    carpeta: Path,
+    *,
+    resultados: Collection[str] | None = None,
 ) -> Deseado:
     """Calcula el calificador deseado. Lanza ``ErrorCalificacion`` si las actividades no cuadran.
 
     Solo cuentan los documentos con ``evalua``. ``anterior`` es que el curso ya tenía un
     calificador ajeno: entonces ``TZ_TIZA`` pesa 0 en el total del curso y este no se toca.
+    ``resultados`` limita las tareas con ``evidencia`` que se montan con resultados: las rutas que
+    no estén se tratan como tareas normales, con actividad real y copias.
     """
-    actividades = _actividades(esquema, documentos, carpeta)
+    actividades = _actividades(esquema, documentos, carpeta, resultados)
     _comprobar_pesos(esquema, actividades)
     return _Montaje(esquema, actividades, anterior).montar()
 
@@ -304,6 +353,7 @@ class _Montaje:
             _VISTA_ELEMENTOS if esquema.organizacion == "elementos" else _VISTA_EVALUACIONES
         )
         self.elemento_de_hoja = dict(_hojas(esquema))
+        self.nombre_de_hoja = {hoja: nombre_de_hoja(esquema, hoja) for hoja, _ in _hojas(esquema)}
         self.nodos: list[Nodo] = []
         self.copias = self._numerar_copias()
         # elemento -> hijos de sus hojas (en TZ_E_...) que cuentan (peso > 0), en orden: los
@@ -396,6 +446,16 @@ class _Montaje:
                 self._agregar(Nodo(a.ruta, clase, a.nombre, padre, 0.0 if a.resultados else peso))
             if a.resultados:
                 resultado = self._resultado_id(a.ruta, hoja)
+                if vista == self.vista_real:
+                    self._agregar(
+                        Nodo(
+                            resultado,
+                            "resultado",
+                            self.nombre_de_hoja[hoja],
+                            padre,
+                            0.0,
+                        )
+                    )
                 calculado = Nodo(
                     self._calc_id(a.ruta, hoja, vista),
                     "resultado_calc",
@@ -406,9 +466,6 @@ class _Montaje:
                     maximo=10.0,
                 )
                 self._agregar(calculado)
-                if vista == self.vista_real:
-                    nombre = f"Resultado {hoja} · {a.nombre}"
-                    self._agregar(Nodo(resultado, "resultado", nombre, padre, 0.0))
                 referencia = calculado.idnumber
             elif real:
                 referencia = a.ruta
@@ -613,6 +670,7 @@ class _Montaje:
                 if a.resultados
                 for hoja, _ in a.evalua
             ),
+            niveles=len(esquema.niveles_rubrica),
             avisos=tuple(
                 ("CRITERIOS_SIN_PESO", e.id)
                 for e in esquema.elementos

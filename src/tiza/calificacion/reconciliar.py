@@ -32,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -42,6 +43,7 @@ from tiza.calificacion.formulas import (
     formula_copia,
     formula_indicador,
     formula_nota,
+    formula_resultado,
     formula_tope,
 )
 
@@ -69,6 +71,8 @@ TIPOS = (
     "crear_calculado",
     "colocar",
     "mover_manual",
+    "marcar_resultado",
+    "fijar_idnumber_resultado",
     "fijar_peso",
     "fijar_maximo",
     "fijar_formula",
@@ -82,10 +86,14 @@ AVISOS = (
     "CAMBIADO_A_MANO",
     "EVALUACION_CERRADA_EN_EL_AULA",
     "ELEMENTO_CON_NOTAS_QUITADO",
+    "RESULTADO_CON_NOTAS_QUITADO",
+    "RESULTADO_RECREADO",
     "TOTAL_AJENO_BLOQUEADO",
 )
 CURSO = "TZ_CURSO"  # la clave de la huella del total del curso en ``calificador.json``
 _PREFIJO = "TZ_"
+_PREFIJO_RESULTADO = "TZ_O_"
+_PREFIJO_CALCULADO_RESULTADO = "TZ_R_"
 _EVALUACION = re.compile(r"TZ_V_[0-9]+")
 _CLASES_CATEGORIA = ("contenedor", "categoria", "contador")
 _MAXIMO_NOTA = 10.0
@@ -108,6 +116,10 @@ class Operacion:
       de la categoría, ``idnumber`` (el que lleva la actividad: ``TZ_A<cmid>`` o el suyo) y
       ``poner_idnumber`` (``True``: el aula no tenía ninguno y hay que escribirlo).
     * ``mover_manual``: ``eid``/``item_id`` del elemento y ``padre``/``padre_eid`` de destino.
+    * ``marcar_resultado``: ``cmid`` de la tarea y ``resultado`` (id del resultado de Moodle);
+      Moodle vuelve a crear su elemento de resultado. La segunda pasada lo coloca y le pone su
+      número de ID.
+    * ``fijar_idnumber_resultado``: ``item_id`` del elemento de resultado y ``idnumber``.
     * ``fijar_peso``: ``eid`` (o ``idnumber`` si es nuevo) y ``peso``.
     * ``fijar_maximo``: ``item_id`` (o ``idnumber``) y ``maximo``.
     * ``fijar_formula``: ``item_id`` (o ``idnumber``) y ``formula`` en la notación interna
@@ -132,6 +144,7 @@ class Operacion:
     cmid: int | None = None
     ruta: str | None = None
     formula: str | None = None
+    resultado: int | None = None
     poner_idnumber: bool = False
 
 
@@ -172,12 +185,16 @@ class _Indice:
         self.por_eid = {n.eid: n for n in aula.nodos}
         self.por_id: dict[str, NodoAula] = {}
         self.por_cmid: dict[int, NodoAula] = {}
+        # Un cmid puede tener varios elementos: la actividad real y cada elemento de resultado
+        # que Moodle crea al marcarla (también sale como ``actividad`` y con el mismo cmid).
+        self.por_cmid_todos: dict[int, list[NodoAula]] = {}
         self.hijos: dict[str, list[NodoAula]] = {}
         self.curso: NodoAula | None = None
         for n in aula.nodos:
             if n.idnumber:
                 self.por_id.setdefault(n.idnumber, n)
             if n.clase == "actividad" and n.cmid is not None:
+                self.por_cmid_todos.setdefault(n.cmid, []).append(n)
                 self.por_cmid.setdefault(n.cmid, n)
             if n.clase == "curso" and self.curso is None:
                 self.curso = n
@@ -308,6 +325,7 @@ class _Plan:
         a_mano: frozenset[str] | None,
         solo_ajustes: bool,
         por_cerrar: frozenset[str] | None = None,
+        resultados: Mapping[str, int] | None = None,
     ) -> None:
         self.d = deseado
         self.aula = aula
@@ -316,6 +334,17 @@ class _Plan:
         self.idx = _Indice(aula)
         self.dnodos = {n.idnumber: n for n in deseado.nodos}
         self.rutas = {ruta for ruta, _ in deseado.actividades}
+        # (ruta, criterio) -> TZ_O_… y su vuelta; y criterio -> id del resultado en Moodle.
+        self.resultados_de = {
+            (ruta, criterio): idnumber for ruta, criterio, idnumber in deseado.resultados
+        }
+        self.resultado_de_id = {
+            idnumber: (ruta, criterio) for ruta, criterio, idnumber in deseado.resultados
+        }
+        self.resultados_moodle = dict(resultados or {})
+        self.nombres_resultado = frozenset(
+            self.dnodos[id_].nombre for _, _, id_ in deseado.resultados if id_ in self.dnodos
+        )
         self.huellas = huellas
         if a_mano is None:
             actuales = huellas_de(aula, cmids)
@@ -342,6 +371,7 @@ class _Plan:
         self.avisos: dict[tuple[str, str], None] = {}
         self.ajeno: list[Operacion] = []
         self.alta: list[Operacion] = []
+        self.reparacion: list[Operacion] = []
         self.peso: list[Operacion] = []
         self.maximo: list[Operacion] = []
         self.formula: list[Operacion] = []
@@ -357,7 +387,25 @@ class _Plan:
 
     def _actividad_aula(self, ruta: str) -> NodoAula | None:
         cmid = self.cmids.get(ruta)
-        return self.idx.por_cmid.get(cmid) if cmid is not None else None
+        if cmid is None:
+            return None
+        candidatos = self.idx.por_cmid_todos.get(cmid, [])
+        if not candidatos:
+            return None
+        if len(candidatos) == 1:
+            return candidatos[0]
+        # Varios elementos con el cmid: la actividad real y los resultados que Moodle crea al
+        # marcarla. Se descartan los que llevan el nombre de un resultado; si aun así hay
+        # ambigüedad, no se elige uno al azar.
+        sin_resultados = [n for n in candidatos if n.nombre not in self.nombres_resultado]
+        if len(sin_resultados) == 1:
+            return sin_resultados[0]
+        deseado = self.dnodos.get(ruta)
+        if deseado is not None:
+            exactos = [n for n in sin_resultados if n.nombre == deseado.nombre]
+            if len(exactos) == 1:
+                return exactos[0]
+        return None
 
     def _id_efectivo(self, ruta: str) -> str:
         """El número de ID con el que se referencia una actividad en las fórmulas."""
@@ -368,11 +416,35 @@ class _Plan:
     def _referencia(self, fuente: str) -> str:
         return self._id_efectivo(fuente) if fuente in self.rutas else fuente
 
+    def _resultado_aula(self, nodo: Nodo) -> NodoAula | None:
+        """El elemento de resultado del aula de un nodo ``resultado``, si ya existe.
+
+        Primero por su número de ID (``TZ_O_…``); si aún no lo tiene, por el cmid de la tarea y
+        el nombre completo del criterio (D9), que es lo único que Moodle guarda al crearlo.
+        """
+        existente = self.idx.por_id.get(nodo.idnumber)
+        if existente is not None:
+            return existente
+        datos = self.resultado_de_id.get(nodo.idnumber)
+        if datos is None:
+            return None
+        ruta, _criterio = datos
+        cmid = self.cmids.get(ruta)
+        if cmid is None:
+            return None
+        return next(
+            (n for n in self.idx.por_cmid_todos.get(cmid, []) if n.nombre == nodo.nombre),
+            None,
+        )
+
     def _omitidos(self) -> set[str]:
         """Las actividades que no se colocan y todo lo que cuelga de ellas.
 
         Son las pendientes (sin cmid o sin elemento en el aula) y las nuevas en una evaluación
-        cerrada: sin número de ID ni sitio, nada puede referenciarlas.
+        cerrada: sin número de ID ni sitio, nada puede referenciarlas. Un resultado del aula que
+        no está y que no se puede recrear (tarea pendiente o resultados desactivados) se omite con
+        su calculado: es lo más seguro, porque una fórmula a un número de ID que no existe dejaría
+        el calificador a medias.
         """
         pendientes = {r for r in sorted(self.rutas) if self._actividad_aula(r) is None}
         self.en_cerrada = self._nuevas_en_cerrada(pendientes)
@@ -383,6 +455,21 @@ class _Plan:
         omitidos = set(pendientes)
         for n in self.d.nodos:
             if n.clase == "copia" and n.formula_de in pendientes:
+                omitidos.add(n.idnumber)
+        for n in self.d.nodos:
+            if n.clase == "resultado":
+                datos = self.resultado_de_id.get(n.idnumber)
+                if datos is None:
+                    continue
+                ruta, criterio = datos
+                if (
+                    self.cmids.get(ruta) is None
+                    or ruta in pendientes
+                    or (self._resultado_aula(n) is None and criterio not in self.resultados_moodle)
+                ):
+                    omitidos.add(n.idnumber)
+        for n in self.d.nodos:
+            if n.clase == "resultado_calc" and n.formula_de in omitidos:
                 omitidos.add(n.idnumber)
         for n in self.d.nodos:
             if n.clase == "indicador" and n.formula_de in omitidos:
@@ -483,6 +570,8 @@ class _Plan:
 
     def _maximo(self, nodo: Nodo) -> float:
         """El máximo que debe tener un calculado."""
+        if nodo.clase == "resultado_calc":
+            return nodo.maximo if nodo.maximo is not None else _MAXIMO_NOTA
         if nodo.clase in ("nota", "manual"):
             return _MAXIMO_NOTA
         if nodo.clase == "indicador":
@@ -509,6 +598,9 @@ class _Plan:
         if nodo.clase == "copia":
             assert isinstance(fuente, str)
             return formula_copia(self._referencia(fuente))
+        if nodo.clase == "resultado_calc":
+            assert isinstance(fuente, str)
+            return formula_resultado(fuente, self.d.niveles)
         if nodo.clase == "indicador":
             assert isinstance(fuente, str)
             return formula_indicador(self._referencia(fuente), self._maximo(nodo))
@@ -605,7 +697,70 @@ class _Plan:
             )
             self._aviso("TOTAL_AJENO_BLOQUEADO", actual.eid)
 
+    def _resultado(self, nodo: Nodo) -> None:
+        """Un elemento de resultado del aula: se le pone el número de ID y su sitio (peso 0).
+
+        No se crea por el alta normal del calificador: lo crea Moodle al marcar la tarea. Si el
+        docente lo borró a mano, ``marcar_resultado`` lo vuelve a crear y la segunda pasada lo
+        coloca y le pone el número de ID (``RESULTADO_RECREADO``).
+        """
+        existente = self._resultado_aula(nodo)
+        padre = self.idx.por_id.get(nodo.padre) if nodo.padre else self.idx.curso
+        if existente is None:
+            if self.solo_ajustes:
+                return
+            datos = self.resultado_de_id.get(nodo.idnumber)
+            if datos is None:
+                return
+            ruta, criterio = datos
+            cmid = self.cmids.get(ruta)
+            resultado = self.resultados_moodle.get(criterio)
+            if cmid is None or resultado is None:
+                return
+            self.alta.append(
+                Operacion(
+                    "marcar_resultado",
+                    cmid=cmid,
+                    resultado=resultado,
+                    nombre=nodo.nombre,
+                )
+            )
+            self._aviso("RESULTADO_RECREADO", nodo.idnumber)
+            return
+        if self._cerrado_aula(existente):
+            return
+        con_id = bool(existente.idnumber)
+        if con_id and nodo.idnumber in self.a_mano:
+            self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
+            return
+        if padre is None or existente.padre_eid != padre.eid:
+            self.reparacion.append(
+                Operacion(
+                    "mover_manual",
+                    idnumber=nodo.idnumber,
+                    eid=existente.eid,
+                    item_id=existente.item_id,
+                    padre=nodo.padre,
+                    padre_eid=padre.eid if padre else None,
+                )
+            )
+            self._salen.add(existente.eid)
+        if not con_id:
+            self.reparacion.append(
+                Operacion(
+                    "fijar_idnumber_resultado",
+                    idnumber=nodo.idnumber,
+                    eid=existente.eid,
+                    item_id=existente.item_id,
+                )
+            )
+        # Sin ``aggregateoutcomes`` el resultado del aula ya pesa 0 (D6); no se le sobrescribe
+        # un peso: el formulario del elemento de resultado no es el del elemento normal.
+
     def _otro(self, nodo: Nodo) -> None:
+        if nodo.clase == "resultado":
+            self._resultado(nodo)
+            return
         existente = self.idx.por_id.get(nodo.idnumber)
         calculado = nodo.clase not in _CLASES_CATEGORIA
         padre = self.idx.por_id.get(nodo.padre) if nodo.padre else self.idx.curso
@@ -717,6 +872,8 @@ class _Plan:
         for n in self.aula.nodos:
             if n.clase != "actividad" or n.cmid in con_cmid:
                 continue
+            if n.idnumber.startswith(_PREFIJO_RESULTADO):
+                continue  # un resultado del aula no es la actividad: ya pesa 0 (D6)
             padre = self.idx.padre(n)
             if padre is None or not padre.idnumber.startswith(_PREFIJO) or self._cerrado_aula(n):
                 continue
@@ -786,6 +943,9 @@ class _Plan:
 
         Se borran si no tienen notas (solo en la primera pasada); los que se quedan (con notas
         o con algo dentro que se queda) pasan a pesar 0, como una actividad que deja de contar.
+        Los resultados del aula (``TZ_O_``) y sus calculados (``TZ_R_``) nunca se borran: al
+        quitar ``evidencia`` se quedan con peso 0 y, si el resultado tiene niveles, se avisa
+        (D11). Borrarlos perdería esos niveles y no hace falta para que dejen de contar.
         """
         candidatos = [
             n
@@ -794,6 +954,7 @@ class _Plan:
             and n.clase not in ("actividad", "curso")
             and n.idnumber not in self.dnodos
             and not self._cerrado_aula(n)
+            and not n.idnumber.startswith((_PREFIJO_RESULTADO, _PREFIJO_CALCULADO_RESULTADO))
         ]
         # lo que cuelga de un contador es calculado y no guarda nada del docente: se borra siempre
         con_notas = {n.eid for n in candidatos if n.tiene_notas and not self._de_contador(n)}
@@ -802,6 +963,16 @@ class _Plan:
                 h.eid in con_notas for h in self.idx.hijos.get(n.eid, [])
             ):
                 self._aviso("ELEMENTO_CON_NOTAS_QUITADO", n.idnumber)
+        resultados_que_quedan = [
+            n
+            for n in self.aula.nodos
+            if n.idnumber.startswith((_PREFIJO_RESULTADO, _PREFIJO_CALCULADO_RESULTADO))
+            and n.idnumber not in self.dnodos
+            and not self._cerrado_aula(n)
+        ]
+        for n in resultados_que_quedan:
+            if n.idnumber.startswith(_PREFIJO_RESULTADO) and n.tiene_notas:
+                self._aviso("RESULTADO_CON_NOTAS_QUITADO", n.idnumber)
         borrados: set[str] = set()
         for n in sorted(candidatos, key=self._profundidad, reverse=True):
             if n.eid in con_notas:
@@ -832,16 +1003,29 @@ class _Plan:
                         "fijar_peso", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id, peso=0.0
                     )
                 )
+        for n in resultados_que_quedan:
+            if n.idnumber in self.a_mano:
+                self._aviso("CAMBIADO_A_MANO", n.idnumber)
+                continue
+            if n.idnumber.startswith(_PREFIJO_RESULTADO):
+                continue  # sin ``aggregateoutcomes`` ya pesa 0 (D6)
+            if not _peso_correcto(n, 0.0):
+                self.peso.append(
+                    Operacion(
+                        "fijar_peso", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id, peso=0.0
+                    )
+                )
 
     # -- el resultado ------------------------------------------------------
 
     def ajustes(self) -> tuple[Operacion, ...]:
-        return tuple(self.peso + self.maximo + self.formula + self.cierre)
+        return tuple(self.reparacion + self.peso + self.maximo + self.formula + self.cierre)
 
     def todo(self) -> tuple[Operacion, ...]:
         return tuple(
             self.ajeno
             + self.alta
+            + self.reparacion
             + self.peso
             + self.maximo
             + self.formula
@@ -855,6 +1039,7 @@ def reconciliar(
     aula: CalificadorAula,
     huellas: dict[str, str],
     cmids: dict[str, int],
+    resultados: Mapping[str, int] | None = None,
 ) -> Reconciliacion:
     """La primera pasada: qué operaciones llevan el aula a lo deseado sin pisar notas ni a mano.
 
@@ -864,7 +1049,7 @@ def reconciliar(
     ``fijar_peso`` y ``fijar_maximo``; ``fijar_formula`` y ``fijar_total_curso``; y al final
     ``bloquear_cerrada`` y ``borrar`` (los hijos antes que sus padres).
     """
-    plan = _Plan(deseado, aula, huellas, cmids, None, False)
+    plan = _Plan(deseado, aula, huellas, cmids, None, False, resultados=resultados)
     plan.planificar()
     return Reconciliacion(
         operaciones=plan.todo(),
@@ -883,15 +1068,18 @@ def pasada2(
     cmids: dict[str, int],
     a_mano: frozenset[str] | None = None,
     por_cerrar: frozenset[str] = frozenset(),
+    resultados: Mapping[str, int] | None = None,
 ) -> tuple[Operacion, ...]:
     """La segunda pasada, sobre el aula releída tras ejecutar la primera.
 
-    Solo ``fijar_peso``, ``fijar_maximo``, ``fijar_formula`` y ``fijar_total_curso`` que sigan
+    Solo ``mover_manual`` y ``fijar_idnumber_resultado`` de un resultado recreado,
+    ``fijar_peso``, ``fijar_maximo``, ``fijar_formula`` y ``fijar_total_curso`` que sigan
     haciendo falta, y al final el ``bloquear_cerrada`` de las evaluaciones ``cerrada: true`` aún
     sin bloquear. Pásale ``a_mano=reconciliacion.a_mano`` (sin él, lo que la
     primera pasada cambió en el aula se compara con las huellas de antes y parece cosa del
-    docente) y ``por_cerrar=reconciliacion.por_cerrar``.
+    docente), ``por_cerrar=reconciliacion.por_cerrar`` y ``resultados`` (criterio -> id del
+    resultado en Moodle) cuando la publicación los haya asegurado.
     """
-    plan = _Plan(deseado, aula, huellas, cmids, a_mano, True, por_cerrar)
+    plan = _Plan(deseado, aula, huellas, cmids, a_mano, True, por_cerrar, resultados=resultados)
     plan.planificar()
     return plan.ajustes()

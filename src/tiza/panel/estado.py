@@ -39,6 +39,7 @@ from ..publicacion import (
     ResumenAislamiento,
     ResumenCalificador,
     ResumenCopia,
+    ResumenEvidencia,
     ResumenOrden,
     ResumenPublicacion,
     ResumenRubricas,
@@ -876,6 +877,19 @@ class PresenciaPanel:
             lineas,
             detalle.pregunta,
             **mensajes.rotulos("confirmar_rubricas"),
+        )
+
+    def confirmar_evidencia(self, resumen: ResumenEvidencia) -> bool:
+        detalle = mensajes.detalle_evidencia(resumen)
+        lineas = _lineas(
+            [mensajes.cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)],
+            detalle.lineas,
+        )
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            detalle.pregunta,
+            **mensajes.rotulos("confirmar_evidencia"),
         )
 
     # --- arranque ---

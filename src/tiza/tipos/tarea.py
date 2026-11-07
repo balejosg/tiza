@@ -75,7 +75,15 @@ class Tarea(Tipo):
         }
 
     def payload(
-        self, doc, html, itemid, visible, *, itemid_paquete=None, fijar_metodo: bool = True
+        self,
+        doc,
+        html,
+        itemid,
+        visible,
+        *,
+        itemid_paquete=None,
+        fijar_metodo: bool = True,
+        resultados: dict[str, int] | None = None,
     ) -> dict:
         payload = {
             "_qf__mod_assign_mod_form": "1",
@@ -95,6 +103,13 @@ class Tarea(Tipo):
                 from ..publicar import METODO_SUBMISSIONS
 
                 payload[METODO_SUBMISSIONS] = "rubric"
+        # ``evidencia: resultados``: la tarea marca los resultados de sus criterios. Solo los
+        # que tiza creó y tiene con id en Moodle; sin ellos, no se envía ningún ``outcome_``.
+        if doc.evidencia == "resultados":
+            for criterio, _ in doc.evalua or ():
+                resultado = (resultados or {}).get(criterio)
+                if resultado is not None:
+                    payload[f"outcome_{resultado}"] = "1"
         payload.update(fechas_payload(self, doc))
         payload.update(campo_visible(visible))
         return payload
@@ -106,7 +121,14 @@ class Tarea(Tipo):
         quita: lo que no se envía se conserva. En una tarea nueva todo sigue igual.
         ``fijar_metodo`` falso deja el flujo y el método de calificación como están.
         """
-        payload = self.payload(p.doc, p.html, p.itemid, p.visible, fijar_metodo=fijar_metodo)
+        payload = self.payload(
+            p.doc,
+            p.html,
+            p.itemid,
+            p.visible,
+            fijar_metodo=fijar_metodo,
+            resultados=p.resultados,
+        )
         if p.existente is not None:
             adjuntos = (p.leido or {}).get("adjuntos")
             if adjuntos is None:
@@ -195,6 +217,10 @@ class Tarea(Tipo):
         if doc.rubrica is not None:
             resumen.update(b"\n--rubrica--\n")
             resumen.update(doc.rubrica.hash().encode("utf-8"))
+        # Solo cambia el hash de una tarea con ``evidencia``: las demás conservan el de siempre.
+        if doc.evidencia is not None:
+            resumen.update(b"\n--evidencia--\n")
+            resumen.update(doc.evidencia.encode("utf-8"))
 
     def extra_preview(self, doc) -> str:
         return _rubrica_preview(doc)

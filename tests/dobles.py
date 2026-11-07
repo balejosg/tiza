@@ -562,6 +562,13 @@ class MoodleFalso:
     def _escala_de(self, curso, escala):
         return next((e for e in self._escalas_de(curso) if e["id"] == escala), None)
 
+    def resultado_por_corto(self, curso, corto):
+        self.llamadas.append(("resultado_por_corto", curso, corto))
+        if not self.resultados_activos(curso):
+            return None
+        encontrados = [r["id"] for r in self._resultados_de(curso) if r["corto"] == corto]
+        return encontrados[0] if len(encontrados) == 1 else None
+
     def asegurar_resultado(self, curso, corto, nombre, descripcion, escala):
         self.llamadas.append(("asegurar_resultado", curso, corto, nombre, descripcion, escala))
         if not self.resultados_activos(curso):
@@ -574,6 +581,12 @@ class MoodleFalso:
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
         if encontrados:
             resultado = encontrados[0]
+            if (
+                resultado["nombre"] == nombre
+                and resultado["descripcion"] == descripcion
+                and resultado["escala"] == escala
+            ):
+                return resultado["id"]
             resultado.update(nombre=nombre, descripcion=descripcion, escala=escala)
             self._escribir_sin_llamada("asegurar_resultado", curso, resultado["id"])
         else:
@@ -599,6 +612,10 @@ class MoodleFalso:
     def campos_resultado_tarea(self, cmid):
         self.llamadas.append(("campos_resultado_tarea", cmid))
         return dict(self.resultados_de_tarea.get(cmid, {}))
+
+    def marcar_resultado_tarea(self, cmid, resultado_id):
+        self._escribir_calificador("marcar_resultado_tarea", cmid, resultado_id)
+        self.resultados_de_tarea.setdefault(cmid, {})[resultado_id] = True
 
     def motor_de_formulas(self, curso_id):
         self.llamadas.append(("motor_de_formulas", curso_id))
@@ -814,6 +831,7 @@ class PresenciaFalsa:
         copia: bool = True,
         sobrescribir: bool | tuple[bool, ...] = False,  # una respuesta por curso con cambios
         rubricas: bool | tuple[bool, ...] = False,  # «ninguna tiene notas» por curso
+        evidencia: bool | tuple[bool, ...] = False,  # «activar los resultados» por curso
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
         cerrar_anterior: bool = False,
@@ -836,6 +854,7 @@ class PresenciaFalsa:
         self._copia = copia
         self._sobrescribir = list(sobrescribir) if isinstance(sobrescribir, tuple) else sobrescribir
         self._rubricas = list(rubricas) if isinstance(rubricas, tuple) else rubricas
+        self._evidencia = list(evidencia) if isinstance(evidencia, tuple) else evidencia
         self._sin_pruebas = sin_pruebas
         self._ampliar = list(ampliar)
         self._cerrar_anterior = cerrar_anterior
@@ -849,6 +868,7 @@ class PresenciaFalsa:
         self.resumenes_copia: list = []
         self.resumenes_sobrescribir: list = []
         self.resumenes_rubricas: list = []
+        self.resumenes_evidencia: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
         self._configuracion = configuracion
@@ -920,6 +940,12 @@ class PresenciaFalsa:
         if isinstance(self._rubricas, list):
             return self._rubricas.pop(0) if self._rubricas else False
         return self._rubricas
+
+    def confirmar_evidencia(self, resumen):
+        self.resumenes_evidencia.append(resumen)
+        if isinstance(self._evidencia, list):
+            return self._evidencia.pop(0) if self._evidencia else False
+        return self._evidencia
 
     def confirmar_sin_pruebas(self):
         self.sin_pruebas_pedidas += 1
@@ -1016,6 +1042,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ERROR_INTERNO": publicacion.Aviso.error_interno("RuntimeError"),
         "ESTRUCTURA_NO_LEIDA": publicacion.Aviso.estructura_no_leida(),
         "EVALUACION_CERRADA_EN_EL_AULA": publicacion.Aviso.evaluacion_cerrada_en_el_aula("T"),
+        "EVIDENCIA_CAMBIADA_CON_NOTAS": publicacion.Aviso.evidencia_cambiada_con_notas("T"),
         "FALLO": publicacion.Aviso.fallo("LOGIN_FALLIDO", ""),
         "HUELLA_NO_GUARDADA": publicacion.Aviso.huella_no_guardada("T"),
         "INFORME_NO_ESCRITO": publicacion.Aviso.informe_no_escrito(),
@@ -1037,6 +1064,9 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "RESULTADO": publicacion.Aviso.resultado(
             informe.crear("publicar", "ok", [], [], [], "pruebas", 1234)
         ),
+        "RESULTADO_CON_NOTAS_QUITADO": publicacion.Aviso.resultado_con_notas_quitado("T"),
+        "RESULTADO_RECREADO": publicacion.Aviso.resultado_recreado("T"),
+        "RESULTADOS_DESACTIVADOS": publicacion.Aviso.resultados_desactivados("T"),
         "SESION_ABIERTA": publicacion.Aviso.sesion_abierta(
             datetime(2026, 10, 3, 10, 0, tzinfo=UTC)
         ),

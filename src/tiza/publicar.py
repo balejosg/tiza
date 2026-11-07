@@ -474,9 +474,13 @@ class AulaVirtual(Protocol):
         self, curso: int, corto: str, nombre: str, descripcion: str, escala: int
     ) -> int: ...
 
+    def resultado_por_corto(self, curso: int, corto: str) -> int | None: ...
+
     def fijar_idnumber_resultado(self, curso: int, item_id: int, idnumber: str) -> None: ...
 
     def campos_resultado_tarea(self, cmid: int) -> dict[int, bool]: ...
+
+    def marcar_resultado_tarea(self, cmid: int, resultado_id: int) -> None: ...
 
     def borrar_copia(self, nombre: str, curso_id: int) -> None: ...
 
@@ -2043,6 +2047,41 @@ class Moodle:
         vistos[resultado] = corto
         return corto
 
+    def resultado_por_corto(self, curso: int, corto: str) -> int | None:
+        """El id del resultado del curso con ese nombre corto, o ``None`` si no existe.
+
+        Solo lee: la lista ``removeoutcomes[]`` y el formulario de cada resultado. Con los
+        resultados desactivados devuelve ``None`` (no hay definiciones que leer).
+        """
+        if not self.resultados_activos(curso):
+            return None
+        encontrados = [
+            resultado
+            for resultado in self._ids_de_resultados(curso)
+            if self._corto_de_resultado(curso, resultado) == corto
+        ]
+        if len(encontrados) != 1:
+            return None
+        return encontrados[0]
+
+    def _resultado_igual(self, curso: int, resultado: int, cambios: dict[str, str]) -> bool:
+        """¿El resultado ya tiene exactamente estos campos? (sin escribir nada)."""
+        pagina = self._pagina_del_calificador(
+            "grade/edit/outcome/edit.php", {"courseid": curso, "id": resultado}
+        )
+        formulario = _formulario_con_campo(pagina, "shortname")
+        if formulario is None:
+            return False
+        escala_leida = _campo(formulario, "scaleid")
+        for nombre, valor in cambios.items():
+            if nombre == "scaleid" and escala_leida is None:
+                # Un resultado en uso tiene el formulario congelado y no enseña la escala:
+                # no se puede comparar ni cambiar; los demás campos sí se comprueban.
+                continue
+            if (_campo(formulario, nombre) or "").strip() != str(valor).strip():
+                return False
+        return True
+
     def asegurar_resultado(
         self,
         curso: int,
@@ -2054,8 +2093,10 @@ class Moodle:
         """Crea o actualiza el resultado del curso con este nombre corto y devuelve su id.
 
         El id sale siempre de la lista ``removeoutcomes[]`` de
-        ``grade/edit/outcome/course.php``, no de la redirección del guardado. Si hay más de
-        un resultado con el mismo nombre corto (no debería), no se elige uno al azar.
+        ``grade/edit/outcome/course.php``, no de la redirección del guardado. Si ya existe con
+        el mismo nombre corto, nombre completo, escala y descripción, no se envía nada (el
+        montaje es idempotente). Si hay más de un resultado con el mismo nombre corto (no
+        debería), no se elige uno al azar.
         """
         self._exigir_resultados(curso)
         ids = self._ids_de_resultados(curso)
@@ -2069,15 +2110,20 @@ class Moodle:
             "fullname": nombre,
             "scaleid": str(escala),
             "description_editor[text]": descripcion,
-            "description_editor[format]": "1",
+            "description_editor[format]": "0",
         }
         if encontrados:
             resultado = encontrados[0]
+            if self._resultado_igual(curso, resultado, cambios):
+                self._corto_resultados.setdefault(curso, {})[resultado] = corto
+                return resultado
             self._guardar(
                 "grade/edit/outcome/edit.php",
                 {"courseid": curso, "id": resultado},
                 cambios,
             )
+            if not self._resultado_igual(curso, resultado, cambios):
+                raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
             self._corto_resultados.setdefault(curso, {})[resultado] = corto
             return resultado
         self._guardar(
@@ -2096,6 +2142,8 @@ class Moodle:
         if len(nuevos) != 1:
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
         resultado = nuevos[0]
+        if not self._resultado_igual(curso, resultado, cambios):
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
         # Se añade a la caché sin releer los formularios que ya se conocían.
         self._corto_resultados.setdefault(curso, {})[resultado] = corto
         return resultado
@@ -2168,6 +2216,24 @@ class Moodle:
                 marcado = str(campo.get("value", "")).strip() == "1"
             marcados[resultado] = marcados.get(resultado, False) or marcado
         return marcados
+
+    def marcar_resultado_tarea(self, cmid: int, resultado_id: int) -> None:
+        """Marca un resultado en los ajustes de la tarea: ``outcome_<id>=1`` (S1b.1).
+
+        Moodle conserva las notas al actualizar el módulo y crea el elemento de resultado vacío;
+        el número de ID y el sitio en el calificador los pone la reconciliación después. Actualizar
+        con el resto del formulario reenviado es lo que midió la espiga: el campo que no se envía
+        se conserva.
+        """
+        self.actualizar(
+            cmid,
+            {
+                f"outcome_{resultado_id}": "1",
+                "submitbutton": "Save and display",
+            },
+        )
+        if not self.campos_resultado_tarea(cmid).get(resultado_id):
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
 
     def comprobar_h5p(self, cmid: int) -> bool:
         """¿Arrancó H5P? El embed trae H5PIntegration con contents (espiga)."""
@@ -3172,6 +3238,7 @@ def publicar_documento(
     dependencias: dict[str, int] | None = None,
     vigilada: ActividadVigilada | None = None,
     rubrica_confirmada: bool = False,
+    resultados: dict[str, int] | None = None,
     pasos: list | None = None,
 ) -> informe.Fichero:
     """Crea o actualiza un documento y lo verifica releyendo el módulo.
@@ -3200,6 +3267,7 @@ def publicar_documento(
             dependencias=dependencias or {},
             vigilada=vigilada,
             rubrica_confirmada=rubrica_confirmada,
+            resultados=resultados,
             pasos=pasos,
         )
 
@@ -3230,6 +3298,7 @@ def _publicar_congelado(
     dependencias: dict[str, int],
     vigilada: ActividadVigilada | None = None,
     rubrica_confirmada: bool = False,
+    resultados: dict[str, int] | None = None,
     pasos: list | None = None,
 ) -> informe.Fichero:
     seccion = estructura.buscar_seccion(doc.seccion)
@@ -3297,6 +3366,7 @@ def _publicar_congelado(
             pasos=pasos if pasos is not None else [],
             leido=leido,
             rubrica_confirmada=rubrica_confirmada,
+            resultados=dict(resultados or {}),
         )
     )
     aplicar_itinerario(moodle, doc, cmid, envio)

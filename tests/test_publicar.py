@@ -5273,7 +5273,7 @@ class _SesionResultados:
             f'<input name="fullname" value="{resultado["nombre"]}">'
             f'<select name="scaleid">{self._opciones_escala(resultado["escala"])}</select>'
             f'<textarea name="description_editor[text]">{resultado["descripcion"]}</textarea>'
-            '<input type="hidden" name="description_editor[format]" value="1">'
+            '<input type="hidden" name="description_editor[format]" value="0">'
             f'<input type="hidden" name="standard" value="{self.standard_en_formulario}">'
             "</form></body></html>"
         )
@@ -5442,6 +5442,47 @@ def _moodle_resultados(sesion) -> publicar.Moodle:
     return publicar.Moodle("https://aula.example.org", sesion, "sesskey", pausa=0)
 
 
+class _SesionModedit:
+    """Sesión mínima para una actualización de módulo: formulario y POST anotado."""
+
+    def __init__(self) -> None:
+        self.gets: list[str] = []
+        self.posts: list[tuple[str, dict]] = []
+        self.marcados: set[int] = set()
+
+    def get(self, url, params=None, allow_redirects=True, timeout=None):
+        self.gets.append(url)
+        casillas = "".join(
+            f'<input type="checkbox" name="outcome_{resultado}" value="1" checked>'
+            for resultado in sorted(self.marcados)
+        )
+        return _RespuestaHttp(
+            '<html><body><form action="https://aula.example.org/course/modedit.php" '
+            'method="post"><input name="name" value="Tarea">'
+            f'<input type="hidden" name="course" value="2">{casillas}</form></body></html>'
+        )
+
+    def post(self, url, data=None, allow_redirects=False, timeout=None):
+        datos = dict(data or [])
+        self.posts.append((url, datos))
+        for nombre, valor in datos.items():
+            if nombre.startswith("outcome_") and str(valor) == "1":
+                self.marcados.add(int(nombre.removeprefix("outcome_")))
+        return _RespuestaHttp("", status=303)
+
+
+def test_marcar_resultado_tarea_actualiza_modedit_con_outcome():
+    sesion = _SesionModedit()
+    moodle = publicar.Moodle("https://aula.example.org", sesion, "sesskey", pausa=0)
+    moodle.marcar_resultado_tarea(55, 61)
+    assert sesion.gets[0] == "https://aula.example.org/course/modedit.php?update=55"
+    assert sesion.marcados == {61}
+    [(url, datos)] = sesion.posts
+    assert url == "https://aula.example.org/course/modedit.php"
+    assert datos["outcome_61"] == "1"
+    assert all("grade/report/" not in url and "action=grading" not in url for url in sesion.gets)
+
+
 def test_resultados_desactivados_por_redireccion():
     sesion = _SesionResultados(activos=False)
     assert _moodle_resultados(sesion).resultados_activos(2) is False
@@ -5522,6 +5563,54 @@ def test_asegurar_resultado_crea_y_luego_reutiliza_por_nombre_corto():
     assert sesion.resultados[primero]["nombre"] == "CE2.2 · Plantea y resuelve mejor"
     assert sesion.resultados[primero]["descripcion"] == "Descripción nueva"
     assert sesion.resultados[primero]["escala"] == 7
+
+
+def test_resultado_por_corto_ambiguo_devuelve_none():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES, "en_uso": True}],
+        resultados=[
+            {
+                "id": 50,
+                "corto": "TZ_CE2_2",
+                "nombre": "CE2.2 · Uno",
+                "descripcion": "Criterio de prueba",
+                "escala": 7,
+            },
+            {
+                "id": 51,
+                "corto": "TZ_CE2_2",
+                "nombre": "CE2.2 · Dos",
+                "descripcion": "Criterio de prueba",
+                "escala": 7,
+            },
+        ],
+    )
+    assert _moodle_resultados(sesion).resultado_por_corto(2, "TZ_CE2_2") is None
+
+
+def test_asegurar_resultado_no_escribe_si_ya_esta_igual():
+    sesion = _SesionResultados(
+        escalas=[{"id": 7, "nombre": "Escala de logro (tiza)", "niveles": NIVELES, "en_uso": True}],
+        resultados=[
+            {
+                "id": 50,
+                "corto": "TZ_CE2_2",
+                "nombre": "CE2.2 · Plantea y resuelve",
+                "descripcion": "Criterio de prueba",
+                "escala": 7,
+            }
+        ],
+    )
+    moodle = _moodle_resultados(sesion)
+    assert (
+        moodle.asegurar_resultado(
+            2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve", "Criterio de prueba", 7
+        )
+        == 50
+    )
+    assert sesion.posts == []
+    assert moodle.asegurar_resultado(2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve", "Otra", 7) == 50
+    assert sesion.posts
 
 
 def test_id_del_resultado_sale_de_removeoutcomes():
@@ -5814,7 +5903,7 @@ def test_descripcion_del_resultado_va_en_el_editor():
     assert sesion.resultados[identificador]["descripcion"] == "Descripción de creación"
     datos = dict(sesion.posts[-1][1])
     assert datos["description_editor[text]"] == "Descripción de creación"
-    assert datos["description_editor[format]"] == "1"
+    assert datos["description_editor[format]"] == "0"
     assert "description" not in datos
     moodle.asegurar_resultado(
         2, "TZ_CE2_2", "CE2.2 · Plantea y resuelve", "Descripción de actualización", 7
@@ -5822,7 +5911,7 @@ def test_descripcion_del_resultado_va_en_el_editor():
     assert sesion.resultados[identificador]["descripcion"] == "Descripción de actualización"
     datos = dict(sesion.posts[-1][1])
     assert datos["description_editor[text]"] == "Descripción de actualización"
-    assert datos["description_editor[format]"] == "1"
+    assert datos["description_editor[format]"] == "0"
     assert "description" not in datos
 
 

@@ -28,6 +28,7 @@ from .publicacion import (
     ResumenAislamiento,
     ResumenCalificador,
     ResumenCopia,
+    ResumenEvidencia,
     ResumenOrden,
     ResumenPublicacion,
     ResumenRubricas,
@@ -430,6 +431,14 @@ class PresenciaTerminal:
 
     def confirmar_rubricas(self, resumen: ResumenRubricas) -> bool:
         detalle = mensajes.detalle_rubricas(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        print(detalle.encabezado)
+        for linea in detalle.lineas:
+            print(linea)
+        return confirmar(detalle.pregunta)
+
+    def confirmar_evidencia(self, resumen: ResumenEvidencia) -> bool:
+        detalle = mensajes.detalle_evidencia(resumen)
         _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
         print(detalle.encabezado)
         for linea in detalle.lineas:

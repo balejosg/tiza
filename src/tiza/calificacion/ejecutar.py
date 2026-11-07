@@ -159,6 +159,15 @@ class Ejecucion:
                 raise ErrorPublicacion("ESCRITURA_CALIFICADOR", "la categoría de destino no existe")
             self.tocados.add(f"ig{self._item(op)}")
             aula.mover_manual(curso, self._item(op), padre)
+        elif tipo == "marcar_resultado":
+            assert op.cmid is not None and op.resultado is not None
+            self._releida = None  # aparece un elemento nuevo en el árbol
+            aula.marcar_resultado_tarea(op.cmid, op.resultado)
+        elif tipo == "fijar_idnumber_resultado":
+            assert op.idnumber is not None
+            item = self._item(op)
+            self.tocados.add(f"ig{item}")
+            aula.fijar_idnumber_resultado(curso, item, op.idnumber)
         elif tipo == "fijar_peso":
             assert op.peso is not None
             self.tocados.add(self._eid(op))
