@@ -296,7 +296,7 @@ class Documento:
     origen: Origen | None = None  # None: el documento no viene de una importación
     # Pesos por id (RA1: 40) en el orden del YAML; None: no coloca la actividad en el calificador.
     evalua: tuple[tuple[str, float], ...] | None = None
-    # La rúbrica por criterios de una tarea (``rubrica: por_criterios``), ya construida.
+    # La rúbrica de una tarea (por criterios o desde un fichero de filas), ya construida.
     rubrica: RubricaCargada | None = None
     # Cómo se recoge la evidencia de cada criterio: None o «resultados» (solo en ESO).
     evidencia: str | None = None
@@ -600,23 +600,17 @@ def _validar(
 
 
 def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento) -> RubricaCargada:
-    """Construye la rúbrica por criterios de una tarea, con el esquema de la carpeta."""
-    if valor != "por_criterios":
-        detalle = "«rubrica» solo admite el valor «por_criterios»"
-        if isinstance(valor, str) and (
-            valor.strip().lower().endswith((".md", ".html", ".htm"))
-            or "/" in valor
-            or "\\" in valor
-        ):
-            detalle = (
-                "las rúbricas escritas a mano y sus indicaciones son de tiza-privado; "
-                "en el público usa «rubrica: por_criterios»"
-            )
-        raise ErrorContenido("RUBRICA_NO_VALIDA", detalle)
+    """Construye la rúbrica de una tarea: por criterios o desde un fichero de filas."""
+    if not isinstance(valor, str) or not valor.strip():
+        raise ErrorContenido(
+            "RUBRICA_NO_VALIDA",
+            "«rubrica» debe ser «por_criterios» o la ruta de un fichero de rúbrica",
+        )
+    valor = valor.strip()
     if doc.evalua is None:
         raise ErrorContenido(
             "RUBRICA_SIN_EVALUA",
-            f"{ruta.name}: «rubrica: por_criterios» necesita el campo «evalua»",
+            f"{ruta.name}: «rubrica» necesita el campo «evalua»",
         )
     base = Path(raiz).resolve() if raiz is not None else ruta.parent.resolve()
     esquema_path = base / "calificacion.yaml"
@@ -626,7 +620,6 @@ def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento)
             f"{ruta.name}: falta calificacion.yaml en la carpeta de la asignatura",
         )
     from .calificacion.esquema import ErrorCalificacion, cargar_esquema
-    from .rubrica_criterios import rubrica_de_criterios
 
     try:
         esquema = cargar_esquema(esquema_path, base)
@@ -635,13 +628,19 @@ def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento)
     if esquema.etapa != "eso":
         raise ErrorContenido(
             "RUBRICA_SOLO_ESO",
-            f"{ruta.name}: la rúbrica por criterios solo vale en ESO "
+            f"{ruta.name}: la rúbrica de una tarea solo vale en ESO "
             "(pon «etapa: eso» en calificacion.yaml)",
         )
-    try:
-        return rubrica_de_criterios(esquema, tuple(id_ for id_, _ in doc.evalua), doc.nombre)
-    except ErrorCalificacion as exc:
-        raise ErrorContenido(exc.codigo, f"{ruta.name}: {exc.detalle}") from None
+    if valor == "por_criterios":
+        from .rubrica_criterios import rubrica_de_criterios
+
+        try:
+            return rubrica_de_criterios(esquema, tuple(id_ for id_, _ in doc.evalua), doc.nombre)
+        except ErrorCalificacion as exc:
+            raise ErrorContenido(exc.codigo, f"{ruta.name}: {exc.detalle}") from None
+    from .rubrica_tarea import cargar_rubrica_de_tarea
+
+    return cargar_rubrica_de_tarea(base / valor, raiz, esquema, doc.evalua)
 
 
 def _evidencia_de_tarea(ruta: Path, raiz: Path | None) -> None:

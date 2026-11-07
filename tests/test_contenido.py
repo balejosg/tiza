@@ -2654,7 +2654,7 @@ class TestEvidencia:
             cargar_calificacion(tmp_path / "calificacion.yaml", tmp_path)
         assert info.value.codigo == "NIVELES_NO_EQUIDISTANTES"
 
-    def test_hash_de_una_tarea_con_rubrica_no_cambia(self, tmp_path):
+    def test_por_criterios_igual_que_antes(self, tmp_path):
         (tmp_path / "calificacion.yaml").write_text(ESQUEMA_EVIDENCIA, encoding="utf-8")
         ruta = tmp_path / "tarea.md"
         # Bytes con \n: en Windows, write_text con newline=None pondría \r\n y cambiaría el hash.
@@ -2662,6 +2662,138 @@ class TestEvidencia:
         doc = cargar(ruta, raiz=tmp_path)
         assert doc.evidencia is None
         assert doc.hash_cargado == HASH_TAREA_CON_RUBRICA
+
+
+ESQUEMA_RUBRICA_FILAS = """\
+etapa: eso
+organizacion: elementos
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 100
+    criterios:
+      - {id: CE1, nombre: Criterio 1, peso: 33.34, codigo: CE1}
+      - {id: CE2, nombre: Criterio 2, peso: 33.33, codigo: CE2}
+      - {id: CE3, nombre: Criterio 3, peso: 33.33, codigo: CE3}
+final: {de: elementos}
+"""
+
+_NIVELES_RUBRICA = ("destacado", "avanzado", "adecuado", "inicial", "no_iniciado")
+
+_TAREA_CON_RUBRICA_FILAS = """\
+---
+tipo: tarea
+nombre: La grúa
+seccion: 3
+apertura: 2026-10-01
+entrega: 2026-10-10
+evalua: {CE1: 100, CE2: 100, CE3: 100}
+rubrica: rubricas/grua.md
+---
+
+Monta la grúa.
+"""
+
+
+def _filas_rubrica(*filas: tuple[str, str, float]) -> str:
+    niveles = "".join(f"      {nivel}: Descriptor {nivel}.\n" for nivel in _NIVELES_RUBRICA)
+    return "".join(
+        f"  - criterio: {criterio}\n    indicador: {indicador}\n    peso: {peso}\n"
+        f"    niveles:\n{niveles}"
+        for criterio, indicador, peso in filas
+    )
+
+
+_FILAS_DE_PRUEBA = _filas_rubrica(
+    ("CE1", "Planifica las fases y los materiales", 1),
+    ("CE2", "Precisión del montaje", 2),
+    ("CE3", "Seguridad del montaje", 1),
+)
+
+
+def _texto_rubrica(
+    filas: str,
+    *,
+    campos_extra: str = "",
+    cuerpo: str = "Descripción de la rúbrica para el alumnado.\n",
+) -> str:
+    return (
+        f"---\ntipo: rubrica\nnombre: Rúbrica de la grúa\n{campos_extra}filas:\n"
+        f"{filas}---\n{cuerpo}"
+    )
+
+
+def _carpeta_rubrica(
+    carpeta,
+    *,
+    esquema: str = ESQUEMA_RUBRICA_FILAS,
+    rubrica_texto: str | None = None,
+    tarea_texto: str | None = None,
+    escribir_rubrica: bool = True,
+):
+    (carpeta / "calificacion.yaml").write_text(esquema, encoding="utf-8")
+    if escribir_rubrica:
+        (carpeta / "rubricas").mkdir()
+        (carpeta / "rubricas" / "grua.md").write_text(
+            rubrica_texto if rubrica_texto is not None else _texto_rubrica(_FILAS_DE_PRUEBA),
+            encoding="utf-8",
+        )
+    (carpeta / "tarea.md").write_text(tarea_texto or _TAREA_CON_RUBRICA_FILAS, encoding="utf-8")
+    return carpeta / "tarea.md"
+
+
+class TestRubricaDeTareaPorFilas:
+    """``rubrica: ruta/al/fichero.md``: el fichero de filas enlazado desde la tarea."""
+
+    def test_tarea_enlaza_rubrica_por_filas(self, tmp_path):
+        doc = cargar(_carpeta_rubrica(tmp_path), raiz=tmp_path)
+        assert doc.rubrica is not None
+        assert len(doc.rubrica.criterios) == 3
+        assert [c.criterio for c in doc.rubrica.criterios] == ["CE1", "CE2", "CE3"]
+        assert [c.niveles[0].puntos for c in doc.rubrica.criterios] == [2.5, 5.0, 2.5]
+
+    def test_fuera_de_eso(self, tmp_path):
+        for etapa in ("", "etapa: bachillerato\n"):
+            carpeta = tmp_path / ("sin_etapa" if not etapa else "bachillerato")
+            carpeta.mkdir()
+            ruta = _carpeta_rubrica(
+                carpeta,
+                esquema=ESQUEMA_RUBRICA_FILAS.replace("etapa: eso\n", etapa),
+            )
+            with pytest.raises(ErrorContenido) as exc:
+                cargar(ruta, raiz=carpeta)
+            assert exc.value.codigo == "RUBRICA_SOLO_ESO"
+
+    def test_rubrica_sin_evalua(self, tmp_path):
+        tarea_texto = _TAREA_CON_RUBRICA_FILAS.replace(
+            "evalua: {CE1: 100, CE2: 100, CE3: 100}\n", ""
+        )
+        ruta = _carpeta_rubrica(tmp_path, tarea_texto=tarea_texto)
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "RUBRICA_SIN_EVALUA"
+
+    def test_rubrica_sin_esquema(self, tmp_path):
+        ruta = _carpeta_rubrica(tmp_path)
+        (tmp_path / "calificacion.yaml").unlink()
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "RUBRICA_SIN_ESQUEMA"
+
+    def test_rubrica_fuera_de_carpeta(self, tmp_path):
+        fuera = tmp_path / "fuera"
+        fuera.mkdir()
+        (fuera / "grua.md").write_text(_texto_rubrica(_FILAS_DE_PRUEBA), encoding="utf-8")
+        carpeta = tmp_path / "asig"
+        carpeta.mkdir()
+        ruta = _carpeta_rubrica(
+            carpeta,
+            tarea_texto=_TAREA_CON_RUBRICA_FILAS.replace("rubricas/grua.md", "../fuera/grua.md"),
+            escribir_rubrica=False,
+        )
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=carpeta)
+        assert exc.value.codigo == "RUBRICA_FUERA_DE_CARPETA"
 
 
 class TestPublicadosDelDocumento:

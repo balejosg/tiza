@@ -219,7 +219,7 @@ def test_por_criterios_fuera_de_eso(tmp_path) -> None:
         assert exc.value.codigo == "RUBRICA_SOLO_ESO"
 
 
-def test_ruta_de_rubrica_en_el_publico_da_rubrica_no_valida(tmp_path) -> None:
+def test_ruta_de_rubrica_que_no_existe(tmp_path) -> None:
     ruta = _carpeta(tmp_path)
     ruta.write_text(
         TAREA_CON_RUBRICA.replace("rubrica: por_criterios", "rubrica: rubrica.md"),
@@ -227,8 +227,7 @@ def test_ruta_de_rubrica_en_el_publico_da_rubrica_no_valida(tmp_path) -> None:
     )
     with pytest.raises(ErrorContenido) as exc:
         contenido.cargar(ruta, raiz=tmp_path)
-    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
-    assert "tiza-privado" in exc.value.detalle
+    assert exc.value.codigo == "FICHERO_AUSENTE"
 
 
 def test_por_criterios_con_elemento_con_criterios(tmp_path) -> None:

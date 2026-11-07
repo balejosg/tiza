@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from dobles import enlace_simbolico
 from tiza.calificacion.esquema import (
     Criterio,
     Elemento,
@@ -12,7 +15,8 @@ from tiza.calificacion.esquema import (
     Final,
     NivelRubrica,
 )
-from tiza.rubrica_tarea import FilaRubrica, rubrica_de_filas
+from tiza.contenido import MAX_DOCUMENTO_BYTES, ErrorContenido
+from tiza.rubrica_tarea import FilaRubrica, cargar_rubrica_de_tarea, rubrica_de_filas
 
 NIVELES = ("destacado", "avanzado", "adecuado", "inicial", "no_iniciado")
 
@@ -310,3 +314,419 @@ def test_rubrica_determinista() -> None:
     primera = rubrica(esquema, filas)
     segunda = rubrica(esquema, filas)
     assert primera.hash() == segunda.hash()
+
+
+# --- carga del fichero de rúbrica -------------------------------------------
+
+
+def texto_rubrica(
+    filas: str,
+    *,
+    nombre: str = "Rúbrica de la grúa",
+    cuerpo: str = "Descripción de la rúbrica para el alumnado.\n",
+    extra: str = "",
+) -> str:
+    return f"---\ntipo: rubrica\nnombre: {nombre}\n{extra}filas:\n{filas}---\n{cuerpo}"
+
+
+def fila_yaml(
+    criterio: str = "CE1",
+    indicador: str = "Indicador",
+    *,
+    peso: float | None = None,
+    niveles: dict[str, str] | None = None,
+) -> str:
+    lineas = [f"  - criterio: {criterio}", f"    indicador: {indicador}"]
+    if peso is not None:
+        lineas.append(f"    peso: {peso}")
+    lineas.append("    niveles:")
+    for nivel, texto in (niveles or descriptores()).items():
+        lineas.append(f"      {nivel}: {texto}")
+    return "\n".join(lineas) + "\n"
+
+
+def escribir_rubrica(tmp_path, texto: str) -> Path:
+    ruta = tmp_path / "rubricas" / "grua.md"
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    ruta.write_text(texto, encoding="utf-8")
+    return ruta
+
+
+def cargar_desde(
+    tmp_path,
+    texto: str,
+    *,
+    evalua: tuple[tuple[str, float], ...] = (("CE1", 100.0),),
+):
+    return cargar_rubrica_de_tarea(
+        escribir_rubrica(tmp_path, texto),
+        tmp_path,
+        esquema_con(criterio("CE1", "1.1"), criterio("CE2", "1.2")),
+        evalua,
+    )
+
+
+def test_carga_fichero_de_filas(tmp_path) -> None:
+    cargada = cargar_desde(
+        tmp_path,
+        texto_rubrica(fila_yaml(peso=1) + fila_yaml("CE2", "Otro indicador", peso=2)),
+        evalua=(("CE1", 100.0), ("CE2", 100.0)),
+    )
+    assert len(cargada.criterios) == 2
+    assert [c.criterio for c in cargada.criterios] == ["CE1", "CE2"]
+    assert [c.niveles[0].puntos for c in cargada.criterios] == [3.33, 6.67]
+    assert cargada.nombre == "Rúbrica de la grúa"
+    assert cargada.descripcion == "Descripción de la rúbrica para el alumnado.\n"
+    assert "<p>Descripción de la rúbrica para el alumnado.</p>" in cargada.html
+
+
+def test_fichero_libre_en_el_publico(tmp_path) -> None:
+    texto = (
+        "---\ntipo: rubrica\nnombre: Rúbrica\n"
+        "criterios:\n  - {id: contenido, nombre: Contenido, descripcion: Algo, niveles: []}\n"
+        "---\n\nDescripción.\n"
+    )
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto)
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "tiza-privado" in exc.value.detalle
+
+
+def test_indicaciones_en_el_publico(tmp_path) -> None:
+    texto = texto_rubrica(
+        fila_yaml(),
+        extra="indicaciones:\n  - Penaliza menos la ortografía.\n",
+    )
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto)
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "tiza-privado" in exc.value.detalle
+
+
+def test_fila_fuera_de_evalua(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila_yaml("CE2", "Otro indicador")))
+    assert exc.value.codigo == "FILA_FUERA_DE_EVALUA"
+    assert "CE2" in exc.value.detalle
+
+
+def test_criterio_sin_fila(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(
+            tmp_path,
+            texto_rubrica(fila_yaml("CE1")),
+            evalua=(("CE1", 100.0), ("CE2", 100.0)),
+        )
+    assert exc.value.codigo == "CRITERIO_SIN_FILA"
+    assert "CE2" in exc.value.detalle
+
+
+@pytest.mark.parametrize(
+    ("cambio", "codigo", "nivel"),
+    [
+        ("falta", "DESCRIPTOR_FALTA", "avanzado"),
+        ("sobra", "NIVEL_DESCONOCIDO", "otro"),
+        ("sobra", "NIVEL_DESCONOCIDO", "Nivel6"),
+    ],
+)
+def test_descriptor_falta_y_nivel_desconocido(tmp_path, cambio, codigo, nivel) -> None:
+    niveles = descriptores()
+    if cambio == "falta":
+        del niveles[nivel]
+    else:
+        niveles[nivel] = "No existe."
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila_yaml(niveles=niveles)))
+    assert exc.value.codigo == codigo
+    assert "grua.md" in exc.value.detalle
+    assert nivel in exc.value.detalle
+
+
+def test_coma_sin_comillas(tmp_path) -> None:
+    filas = (
+        "  - {criterio: CE1, indicador: Hace A, "
+        "niveles: {destacado: Secuencia completa, con tiempos, avanzado: Dos, "
+        "adecuado: Tres, inicial: Cuatro, no_iniciado: Cinco}}\n"
+    )
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(filas))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "comillas" in exc.value.detalle
+    assert "grua.md" in exc.value.detalle
+
+
+def test_criterio_que_no_es_hoja(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(
+            tmp_path,
+            texto_rubrica(fila_yaml("RA1")),
+            evalua=(("RA1", 100.0),),
+        )
+    assert exc.value.codigo == "FILA_FUERA_DE_EVALUA"
+    assert "RA1" in exc.value.detalle
+
+
+def test_cuerpo_vacio(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila_yaml(), cuerpo=""))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "alumnado" in exc.value.detalle
+
+
+def test_rubrica_fuera_de_carpeta(tmp_path) -> None:
+    fuera = tmp_path / "fuera" / "grua.md"
+    fuera.parent.mkdir()
+    fuera.write_text(texto_rubrica(fila_yaml()), encoding="utf-8")
+    dentro = tmp_path / "asig"
+    dentro.mkdir()
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_rubrica_de_tarea(
+            fuera,
+            dentro,
+            esquema_con(criterio("CE1", "1.1")),
+            (("CE1", 100.0),),
+        )
+    assert exc.value.codigo == "RUBRICA_FUERA_DE_CARPETA"
+
+
+def test_fichero_ausente(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_rubrica_de_tarea(
+            tmp_path / "no_existe.md",
+            tmp_path,
+            esquema_con(criterio("CE1", "1.1")),
+            (("CE1", 100.0),),
+        )
+    assert exc.value.codigo == "FICHERO_AUSENTE"
+
+
+def test_fichero_demasiado_grande(tmp_path) -> None:
+    ruta = tmp_path / "grande.md"
+    ruta.write_bytes(b"x" * (MAX_DOCUMENTO_BYTES + 1))
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_rubrica_de_tarea(
+            ruta,
+            tmp_path,
+            esquema_con(criterio("CE1", "1.1")),
+            (("CE1", 100.0),),
+        )
+    assert exc.value.codigo == "FICHERO_DEMASIADO_GRANDE"
+
+
+def test_codificacion_invalida(tmp_path) -> None:
+    ruta = tmp_path / "mal.md"
+    ruta.write_bytes(b"---\ntipo: rubrica\n---\n\xff")
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_rubrica_de_tarea(
+            ruta,
+            tmp_path,
+            esquema_con(criterio("CE1", "1.1")),
+            (("CE1", 100.0),),
+        )
+    assert exc.value.codigo == "CODIFICACION_INVALIDA"
+
+
+def test_enlace_a_rubrica_fuera_de_carpeta(tmp_path) -> None:
+    fuera = tmp_path / "fuera"
+    fuera.mkdir()
+    destino = fuera / "grua.md"
+    destino.write_text(texto_rubrica(fila_yaml()), encoding="utf-8")
+    dentro = tmp_path / "asig"
+    enlace = dentro / "rubricas" / "grua.md"
+    enlace.parent.mkdir(parents=True)
+    enlace_simbolico(enlace, destino)
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_rubrica_de_tarea(
+            enlace,
+            dentro,
+            esquema_con(criterio("CE1", "1.1")),
+            (("CE1", 100.0),),
+        )
+    assert exc.value.codigo == "RUBRICA_FUERA_DE_CARPETA"
+
+
+def test_enlace_circular_da_fichero_ausente(tmp_path) -> None:
+    enlace = tmp_path / "rubricas" / "grua.md"
+    enlace.parent.mkdir()
+    enlace_simbolico(enlace, enlace)
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_rubrica_de_tarea(
+            enlace,
+            tmp_path,
+            esquema_con(criterio("CE1", "1.1")),
+            (("CE1", 100.0),),
+        )
+    assert exc.value.codigo == "FICHERO_AUSENTE"
+
+
+def test_sin_raiz_carga(tmp_path) -> None:
+    ruta = escribir_rubrica(tmp_path, texto_rubrica(fila_yaml()))
+    cargada = cargar_rubrica_de_tarea(
+        ruta,
+        None,
+        esquema_con(criterio("CE1", "1.1")),
+        (("CE1", 100.0),),
+    )
+    assert len(cargada.criterios) == 1
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "---\nnombre: Rúbrica\nfilas:\n" + fila_yaml() + "---\n\nDescripción.\n",
+        texto_rubrica(fila_yaml()).replace("tipo: rubrica", "tipo: pagina"),
+    ],
+)
+def test_tipo_de_fichero_invalido(tmp_path, texto) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto)
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "grua.md" in exc.value.detalle
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "---\ntipo: rubrica\nnombre: Rúbrica\n---\n\nDescripción.\n",
+        "---\ntipo: rubrica\nnombre: Rúbrica\nfilas: []\n---\n\nDescripción.\n",
+        "---\ntipo: rubrica\nnombre: Rúbrica\nfilas: 3\n---\n\nDescripción.\n",
+    ],
+)
+def test_filas_invalidas(tmp_path, texto) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto)
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "filas" in exc.value.detalle
+
+
+def test_fila_no_es_un_mapa(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica("  - solo texto\n"))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "fila 1" in exc.value.detalle
+
+
+@pytest.mark.parametrize(
+    ("fila", "campo", "coma"),
+    [
+        (
+            fila_yaml().replace("    indicador:", "    color: rojo\n    indicador:"),
+            "color",
+            False,
+        ),
+        (
+            "  - {criterio: CE1, indicador: Hace A, luego B, "
+            "niveles: {destacado: Uno, avanzado: Dos, adecuado: Tres, "
+            "inicial: Cuatro, no_iniciado: Cinco}}\n",
+            "luego B",
+            True,
+        ),
+    ],
+)
+def test_campo_de_fila_no_permitido(tmp_path, fila, campo, coma) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert campo in exc.value.detalle
+    assert ("comillas" in exc.value.detalle) is coma
+
+
+@pytest.mark.parametrize("nombre", [None, '""', '"' + "x" * 256 + '"'])
+def test_nombre_invalido(tmp_path, nombre) -> None:
+    if nombre is None:
+        texto = "---\ntipo: rubrica\nfilas:\n" + fila_yaml() + "---\n\nDescripción.\n"
+    else:
+        texto = (
+            "---\ntipo: rubrica\nnombre: "
+            + nombre
+            + "\nfilas:\n"
+            + fila_yaml()
+            + "---\n\nDescripción.\n"
+        )
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto)
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "grua.md" in exc.value.detalle
+    assert "nombre" in exc.value.detalle
+
+
+@pytest.mark.parametrize(
+    "fila",
+    [
+        fila_yaml().replace("criterio: CE1\n    ", ""),
+        fila_yaml().replace("criterio: CE1", 'criterio: ""'),
+        fila_yaml().replace("criterio: CE1", "criterio: 3"),
+    ],
+)
+def test_criterio_invalido(tmp_path, fila) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "grua.md" in exc.value.detalle
+    assert "criterio" in exc.value.detalle
+
+
+@pytest.mark.parametrize(
+    "fila",
+    [
+        "  - criterio: CE1\n    indicador: Indicador\n",
+        "  - criterio: CE1\n    indicador: Indicador\n    niveles: [destacado]\n",
+    ],
+)
+def test_niveles_invalidos(tmp_path, fila) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "niveles" in exc.value.detalle
+
+
+def test_descriptor_no_es_texto(tmp_path) -> None:
+    niveles = descriptores()
+    niveles["destacado"] = 3
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila_yaml(niveles=niveles)))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "destacado" in exc.value.detalle
+
+
+@pytest.mark.parametrize(
+    "fila",
+    [
+        fila_yaml().replace("    indicador: Indicador\n", ""),
+        fila_yaml().replace("indicador: Indicador", 'indicador: ""'),
+        fila_yaml().replace("indicador: Indicador", "indicador: " + "x" * 101),
+    ],
+)
+def test_indicador_invalido(tmp_path, fila) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "indicador" in exc.value.detalle
+
+
+@pytest.mark.parametrize("peso", ["x", "0", "101"])
+def test_peso_de_fila_invalido(tmp_path, peso) -> None:
+    fila = fila_yaml().replace("    niveles:", f"    peso: {peso}\n    niveles:")
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(tmp_path, texto_rubrica(fila))
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "peso" in exc.value.detalle
+
+
+def test_descripcion_con_imagen_local(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(
+            tmp_path,
+            texto_rubrica(fila_yaml(), cuerpo="![foto](foto.png)\n"),
+        )
+    assert exc.value.codigo == "RUBRICA_NO_VALIDA"
+    assert "imágenes" in exc.value.detalle
+
+
+def test_descripcion_con_html_peligroso(tmp_path) -> None:
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_desde(
+            tmp_path,
+            texto_rubrica(fila_yaml(), cuerpo="<script>alert(1)</script>\n"),
+        )
+    assert exc.value.codigo == "HTML_PELIGROSO"
