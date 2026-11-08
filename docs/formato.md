@@ -321,9 +321,10 @@ final:
 - No se admite cambiar `organizacion` o `final.de` de un calificador ya montado (habría que
   borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas configuradas por el
   docente: tiza solo usa la escala de logro que crea para la evidencia por criterio (ver más abajo).
-- Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Un
-  elemento que todavía no tiene ninguna nota cuenta como 0 en ese cálculo, así que a mitad de
-  curso la final puede salir topada. Un error del esquema da `ESQUEMA_INVALIDO`, con la ruta y la línea.
+- Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Solo
+  cuentan los elementos cuya evaluación ya está cerrada: antes de cerrar la primera, la final
+  no topa; después, un elemento sin notas cuenta como 0. Un error del esquema da
+  `ESQUEMA_INVALIDO`, con la ruta y la línea.
 - Lo que el esquema no expresa (redondeos, actitud) se queda fuera: la guía del agente
   (`guias/calificador.md`) dice cómo tratarlo. El juicio del docente se aplica sobrescribiendo
   a mano el total de la categoría en Moodle; tiza no escribe notas ni lo deshace.

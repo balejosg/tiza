@@ -7,6 +7,7 @@ se avisa aquí con **Cambia**.
 ## No publicado
 
 ### Cambia
+- **El tope de la final solo cuenta las evaluaciones cerradas.** Un elemento entra en la regla cuando cierra la evaluación de su primera evidencia; antes no cuenta, y un elemento sin evidencias no entra nunca (lo avisa el mapa de cobertura). Así, en octubre el tope no castiga lo que aún no se ha trabajado y, tras cerrar, un elemento sin notas sí topa. `tiza comprobar calificacion.yaml` y el informe del calificador enseñan qué elementos cuentan y cuáles entrarán al cerrar.
 - **Con tope, valen todas las reglas y las recuperaciones.** `final.tope` deja de limitar las hojas a `media` y `progresiva`: también funcionan `mediana` y `mas_alta`, y una actividad puede declarar `recupera`. El tope cuenta cada subcategoría de regla o de recuperación como un elemento más (máximo 100), no la suma de lo que tiene dentro, así que la nota no se dispara.
 
 ## 0.41.0 — 2026-11-08

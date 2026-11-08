@@ -13,6 +13,7 @@ from tiza.calificacion.deseado import (
     Nodo,
     comprobar_sin_circulares,
     deseado,
+    detalle_tope,
     reparto_por_hoja,
 )
 from tiza.calificacion.esquema import (
@@ -259,7 +260,8 @@ def test_tope_monta_contador() -> None:
     assert all(c.clase == "copia" and c.peso is None for c in copias)
     final = nodo(d, "TZ_NOTA_FINAL")
     assert final.formula_de == ("TZ_FINAL", "TZ_K_TIZA") and final.padre == "TZ_NOTAS"
-    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2", "TZ_NOTA_E_RA3"))
+    assert d.tope == (5.0, 4.0, ())
+    assert d.tope_pendientes == (("RA1", 1), ("RA2", 1), ("RA3", 1))
     # los idnumber son únicos
     ids = [n.idnumber for n in d.nodos]
     assert len(ids) == len(set(ids))
@@ -543,7 +545,9 @@ def test_sin_criterios_ni_instrumentos_el_arbol_no_cambia() -> None:
         for n in d.nodos
     ] == [(*esperado, None) for esperado in esperados]
     assert d.total_curso == "TZ_NOTA_FINAL"
-    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2"))
+    # Ninguna evaluación está cerrada: el tope aún no tiene elementos activos.
+    assert d.tope == (5.0, 4.0, ())
+    assert d.tope_pendientes == (("RA1", 1), ("RA2", 1))
     assert d.cerradas == ()
     assert d.actividades == (
         ("u1/a.md", "TZ_E_RA1"),
@@ -807,7 +811,8 @@ def test_con_tope_los_indicadores_cubren_los_hijos_de_los_criterios() -> None:
     assert [i.formula_de for i in hijos(d, "TZ_K_RA2")] == [hijos(d, "TZ_E_RA2")[0].idnumber]
     for i in indicadores:
         assert re.fullmatch(r"TZ_I_[0-9a-f]{10}", i.idnumber)
-    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2"))
+    assert d.tope == (5.0, 4.0, ())
+    assert d.tope_pendientes == (("RA1", 1), ("RA2", 2))
     ids = [n.idnumber for n in d.nodos]
     assert len(ids) == len(set(ids))
 
@@ -1749,6 +1754,122 @@ def test_sin_reglas_el_arbol_con_tope_no_cambia() -> None:
         assert [i.formula_de for i in hijos(d, f"TZ_K_{elemento}")] == [
             n.idnumber for n in hijos(d, f"TZ_E_{elemento}") if n.peso
         ]
+
+
+# ---- el tope cuenta solo las evaluaciones cerradas ----
+
+
+EVALUACIONES_CERRADAS = (
+    Evaluacion("Primera", (1,), cerrada=True),
+    Evaluacion("Segunda", (2,)),
+    Evaluacion("Tercera", (3,)),
+)
+
+
+def esquema_con_tope(cerrada: bool = True) -> Esquema:
+    evaluaciones = (
+        (Evaluacion("Primera", (1,), cerrada=True), *EVALUACIONES_CERRADAS[1:])
+        if cerrada
+        else (Evaluacion("Primera", (1,)), *EVALUACIONES_CERRADAS[1:])
+    )
+    return Esquema("elementos", ELEMENTOS, evaluaciones, Final("elementos", Tope(5.0, 4.0)))
+
+
+def test_tope_sin_cerradas_no_lleva_min() -> None:
+    d = deseado(
+        esquema_con_tope(cerrada=False),
+        [
+            doc("u1/a.md", 1, RA1=100),
+            doc("u2/b.md", 2, RA2=100),
+            doc("u3/c.md", 3, RA3=100),
+        ],
+        False,
+        CARPETA,
+    )
+    assert d.tope == (5.0, 4.0, ())
+    assert d.tope_activos == ()
+    assert d.tope_pendientes == (("RA1", 1), ("RA2", 2), ("RA3", 3))
+
+
+def test_tope_cuenta_los_de_la_evaluacion_cerrada() -> None:
+    d = deseado(
+        esquema_con_tope(),
+        [
+            doc("u1/a.md", 1, RA1=100),
+            doc("u2/b.md", 2, RA2=100),
+            doc("u3/c.md", 3, RA3=100),
+        ],
+        False,
+        CARPETA,
+    )
+    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1",))
+    assert d.tope_activos == (("RA1", 1),)
+    assert d.tope_pendientes == (("RA2", 2), ("RA3", 3))
+
+
+def test_elemento_sin_evidencias_no_entra() -> None:
+    d = deseado(
+        esquema_con_tope(),
+        [doc("u1/a.md", 1, RA1=100), doc("u3/c.md", 3, RA3=100)],
+        False,
+        CARPETA,
+    )
+    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1",))
+    assert "RA2" not in dict(d.tope_activos)
+    assert "RA2" not in dict(d.tope_pendientes)
+
+
+def test_recuperacion_no_adelanta_la_entrada() -> None:
+    # RA1 tiene su primera evidencia normal en la 1.ª (abierta); su recuperación está en la 2.ª,
+    # que sí está cerrada, pero una recuperación no adelanta la entrada al tope.
+    esquema = Esquema(
+        "elementos",
+        ELEMENTOS,
+        (
+            Evaluacion("Primera", (1,)),
+            Evaluacion("Segunda", (2,), cerrada=True),
+            Evaluacion("Tercera", (3,)),
+        ),
+        Final("elementos", Tope(5.0, 4.0)),
+    )
+    d = deseado(
+        esquema,
+        [
+            doc("u1/a.md", 1, RA1=100),
+            doc("u2/recu.md", 2, recupera=(1,), RA1=100),
+            doc("u2/b.md", 2, RA2=100),
+            doc("u3/c.md", 3, RA3=100),
+        ],
+        False,
+        CARPETA,
+    )
+    assert d.tope == (5.0, 4.0, ("TZ_NOTA_E_RA2",))
+    assert d.tope_pendientes == (("RA1", 1), ("RA3", 3))
+
+
+def test_cerrar_una_evaluacion_cambia_la_formula() -> None:
+    docs = [doc("u1/a.md", 1, RA1=100), doc("u2/b.md", 2, RA2=100)]
+    abierta = deseado(esquema_con_tope(cerrada=False), docs, False, CARPETA)
+    cerrada = deseado(esquema_con_tope(), docs, False, CARPETA)
+    assert abierta.tope == (5.0, 4.0, ())
+    assert cerrada.tope == (5.0, 4.0, ("TZ_NOTA_E_RA1",))
+    assert abierta.tope_pendientes[0] == ("RA1", 1)
+
+
+def test_detalle_del_tope_activos_y_pendientes() -> None:
+    docs = [
+        doc("u1/a.md", 1, RA1=100),
+        doc("u2/b.md", 2, RA2=100),
+        doc("u3/c.md", 3, RA3=100),
+    ]
+    cerrado = deseado(esquema_con_tope(), docs, False, CARPETA)
+    assert detalle_tope(cerrado) == (
+        "cuenta RA1 (1.ª cerrada); RA2 entrará al cerrar la 2.ª; RA3 entrará al cerrar la 3.ª"
+    )
+    abierto = deseado(esquema_con_tope(cerrada=False), docs, False, CARPETA)
+    assert detalle_tope(abierto) == (
+        "sin efecto todavía: ninguna evaluación cerrada (RA1, RA2 y RA3 entrarán al cerrar la suya)"
+    )
 
 
 def test_recuperacion_con_mediana() -> None:

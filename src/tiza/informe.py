@@ -144,6 +144,7 @@ PASOS = (
             "SOLO_FECHAS",
             "TOTAL_AJENO_BLOQUEADO",
             "TOTALES_VISIBLES",
+            "TOPE",
             "VERIFICAR_CATEGORIA",
             "VERIFICAR_FECHAS",
         }

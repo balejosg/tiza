@@ -214,9 +214,9 @@ solo criterio no aporta: la nota de la tarea ya es su nivel.
   por evaluaciones, la misma cadena dentro de cada evaluación.
 - **Qué ve el alumnado**: las actividades, las casillas manuales y los niveles por criterio, pero no las notas calculadas que monta tiza (copias, indicadores, notas sobre 10 y la final): las crea ocultas y las vuelve a ocultar en cada pasada (`CALCULADOS_OCULTADOS`, u `OCULTAR_FALLIDO` si el aula no deja). El ajuste del curso debe estar en «Ocultar totales si contienen ítems ocultos»; si no, avisa con `TOTALES_VISIBLES` (Calificaciones → Configuración del calificador → Informe del usuario) y no lo cambia.
 - Solo si la final tiene tope, tiza monta «Notas (sobre 10)» con la nota de cada elemento y la
-  final. Un elemento sin notas cuenta como 0: a mitad de curso la final puede salir topada aunque
-  el alumnado vaya bien; díselo. Con tope, el total lleva fórmula y Moodle deja desmarcado «solo
-  calificaciones no vacías»; si el docente la quita, que lo vuelva a marcar.
+  final. El tope cuenta los elementos cuya evaluación ya está cerrada: antes no topa y, después,
+  un elemento sin notas cuenta como 0. Con tope, el total lleva fórmula y Moodle deja desmarcado
+  «solo calificaciones no vacías»; si el docente la quita, que lo vuelva a marcar.
 
 ## Juicio del docente
 

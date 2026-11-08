@@ -287,6 +287,41 @@ class TestCobertura:
         }
 
 
+ESQUEMA_TOPE = """\
+organizacion: elementos
+elementos:
+  - {id: RA1, nombre: Redes, peso: 40}
+  - {id: RA2, nombre: Sistemas, peso: 30}
+  - {id: RA3, nombre: Seguridad, peso: 30}
+evaluaciones:
+  - {nombre: Primera, secciones: [1], cerrada: true}
+  - {nombre: Segunda, secciones: [2]}
+  - {nombre: Tercera, secciones: [3]}
+final: {de: elementos, tope: {si_alguno_menor_que: 5, maximo: 4}}
+"""
+
+
+def test_paso_tope_en_comprobar(tmp_path):
+    (tmp_path / "calificacion.yaml").write_text(ESQUEMA_TOPE, encoding="utf-8", newline="\n")
+    for seccion, criterio in ((1, "RA1"), (2, "RA2")):
+        (tmp_path / f"u{seccion}.md").write_text(
+            "---\n"
+            "tipo: tarea\n"
+            f"nombre: Unidad {seccion}\n"
+            f"seccion: {seccion}\n"
+            "apertura: 2026-10-01\n"
+            "entrega: 2026-10-10\n"
+            f"evalua: {{{criterio}: 100}}\n"
+            "---\n\nContenido.\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+    resultado = agente.comprobar(tmp_path, ["calificacion.yaml"])
+    pasos = {p["codigo"]: p for p in resultado.informe["pasos"]}
+    assert pasos["TOPE"]["resultado"] == "ok"
+    assert pasos["TOPE"]["detalle"] == ("cuenta RA1 (1.ª cerrada); RA2 entrará al cerrar la 2.ª")
+
+
 def test_importar_el_lado_del_agente_no_carga_python_moodle():
     codigo = (
         "import sys\n"

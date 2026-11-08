@@ -682,8 +682,8 @@ def test_resumen_con_tope_dice_la_regla_y_su_limite():
     [regla] = [x for x in lineas if x.startswith("Regla de la final")]
     assert "por debajo de 5, la final no pasa de 4,5" in regla
     assert (
-        "Mientras un RA no tenga ninguna nota, cuenta como 0 en esa regla: "
-        "la final puede salir topada a mitad de curso"
+        "Solo cuentan los elementos cuya evaluación ya está cerrada: "
+        "mientras no cierres la primera, la final no topa"
     ) in regla
     assert not any(
         x.startswith("Regla de la final") for x in mensajes.detalle_calificador(_resumen()).lineas

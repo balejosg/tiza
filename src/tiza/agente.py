@@ -22,7 +22,7 @@ from .calendario import ErrorCalendario
 from .calificacion.carpeta import actividades_sin_evalua, cargar_calificacion
 from .calificacion.cobertura import avisos as avisos_de_cobertura
 from .calificacion.cobertura import cobertura as mapa_de_cobertura
-from .calificacion.deseado import reparto_por_hoja
+from .calificacion.deseado import deseado, detalle_tope, reparto_por_hoja
 from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
 from .contenido import Documento, ErrorContenido, hash_documento
 from .escritura import ErrorEscritura
@@ -227,6 +227,8 @@ def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> Fi
         if esquema.final.de == "evaluaciones":
             detalle += " (en la final, cada evaluación normaliza por separado)"
         borrador.paso("REPARTO", detalle=f"{hoja}: {detalle}")
+    if esquema.final.tope is not None:
+        borrador.paso("TOPE", detalle=detalle_tope(deseado(esquema, documentos, False, raiz)))
     for codigo, detalle in avisos_de_cobertura(mapa, esquema):
         borrador.paso(codigo, detalle=detalle)
     try:

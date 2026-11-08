@@ -599,8 +599,8 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
         umbral, maximo = resumen.tope
         lineas.append(
             f"Regla de la final: si algún elemento queda por debajo de {_numero(umbral)}, la final "
-            f"no pasa de {_numero(maximo)}. Mientras un RA no tenga ninguna nota, cuenta como 0 "
-            "en esa regla: la final puede salir topada a mitad de curso"
+            f"no pasa de {_numero(maximo)}. Solo cuentan los elementos cuya evaluación ya está "
+            "cerrada: mientras no cierres la primera, la final no topa"
         )
     for cerrada in resumen.cerradas:
         estado = (

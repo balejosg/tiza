@@ -72,9 +72,12 @@ def formula_tope(umbral: float, maximo: float, notas: list[str]) -> str:
     """La final con tope: ``min(nota, máximo + 1000*floor(min(notas)/umbral))``.
 
     Si alguna nota baja del umbral, ``floor`` da 0 y la final no pasa de ``maximo``; si no,
-    el término enorme anula el tope. Un elemento sin ninguna nota cuenta como 0 aquí.
-    Notación interna (separador «,»): pasa por ``formula_moodle``.
+    el término enorme anula el tope. Sin notas activas (ninguna evaluación cerrada todavía) no
+    hay ``min``: la final es la nota normal. Notación interna (separador «,»): pasa por
+    ``formula_moodle``.
     """
+    if not notas:
+        return formula_nota("TZ_FINAL", "TZ_K_TIZA")
     minimo = ",".join(f"[[{n}]]" for n in notas)
     return (
         f"=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10,"

@@ -511,7 +511,7 @@ def test_sin_cambios_no_hace_nada(esquema) -> None:
 
 
 def test_montaje_completo_con_tope() -> None:
-    d, aula = montar(FP_TOPE)
+    d, aula = montar(FP_TOPE_CERRADA)
     nodos = {n.idnumber: n for n in aula.nodos}
     assert d.total_curso == "TZ_NOTA_FINAL"
     assert nodos["TZ_NOTA_FINAL"].formula.startswith("=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10,")
@@ -527,6 +527,24 @@ def test_montaje_completo_con_tope() -> None:
     # las actividades sin número de ID reciben TZ_A<cmid>, que usan las fórmulas
     assert por_id(aula, "TZ_A11").cmid == 11
     assert any("[[TZ_A11]]" in (n.formula or "") for n in aula.nodos)
+
+
+def test_cerrar_una_evaluacion_cambia_la_formula() -> None:
+    def esquema(cerrada: bool) -> Esquema:
+        return Esquema(
+            "elementos",
+            (Elemento("RA1", "Redes", 100.0),),
+            (Evaluacion("Primera", (1,), cerrada=cerrada), Evaluacion("Segunda", (2,))),
+            Final("elementos", Tope(5.0, 4.0)),
+        )
+
+    documentos = [doc("a.md", 1, RA1=100), doc("c.md", 2, RA1=100)]
+    _, abierta = montar(esquema(False), documentos)
+    _, cerrada = montar(esquema(True), documentos)
+    assert por_id(abierta, "TZ_NOTA_FINAL").formula == "=[[TZ_FINAL]]/[[TZ_K_TIZA]]*10"
+    assert por_id(cerrada, "TZ_NOTA_FINAL").formula.startswith(
+        "=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10,4+1000*floor(min([[TZ_NOTA_E_RA1]])/5))"
+    )
 
 
 def test_indicador_de_subcategoria_mas_alta_vale_100() -> None:

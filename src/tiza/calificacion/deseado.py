@@ -51,6 +51,7 @@ __all__ = [
     "Nodo",
     "comprobar_sin_circulares",
     "deseado",
+    "detalle_tope",
     "evidencias_por_hoja",
     "nombre_de_hoja",
     "normalizar_pesos",
@@ -117,7 +118,8 @@ class Deseado:
     """El calificador deseado.
 
     ``nodos`` va en orden de creación (los padres antes que los hijos). ``tope`` es ``None`` o
-    ``(umbral, maximo, idnumbers de las notas de los elementos)``. ``total_curso`` es ``None``
+    ``(umbral, maximo, idnumbers de las notas de los elementos activos)``; un elemento está
+    activo cuando se cerró la evaluación de su primera evidencia. ``total_curso`` es ``None``
     (no se toca), ``"TZ_NOTA_FINAL"`` (calculado con esa nota) o ``"porcentaje"`` (solo la
     visualización). ``cerradas`` son los ``TZ_V_<n>`` de las evaluaciones cerradas;
     ``actividades`` empareja cada ruta con el ``idnumber`` de su padre real; ``avisos`` son
@@ -125,6 +127,9 @@ class Deseado:
     de la actividad o casilla manual; ``resultados`` son las tripletas ``(ruta, id del criterio,
     idnumber TZ_O_…)`` de las tareas con ``evidencia: resultados``. ``niveles`` es cuántos
     niveles tiene la escala de logro (``niveles_rubrica``), para la fórmula del calculado.
+    ``tope_activos`` y ``tope_pendientes`` emparejan cada elemento con el número (1-based) de la
+    evaluación en la que entra en el tope; los pendientes aún no cuentan y los elementos sin
+    evidencias no están en ninguna de las dos listas.
     """
 
     nodos: tuple[Nodo, ...]
@@ -135,6 +140,8 @@ class Deseado:
     avisos: tuple[tuple[str, str], ...] = ()
     resultados: tuple[tuple[str, str, str], ...] = ()
     niveles: int = 5
+    tope_activos: tuple[tuple[str, int], ...] = ()
+    tope_pendientes: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -412,6 +419,45 @@ def deseado(
     actividades = _actividades(esquema, documentos, carpeta, resultados)
     _validar_reglas(esquema, actividades)
     return _Montaje(esquema, actividades, anterior).montar()
+
+
+def _enumerar(ids: list[str]) -> str:
+    if len(ids) == 1:
+        return ids[0]
+    return f"{', '.join(ids[:-1])} y {ids[-1]}"
+
+
+def _ordinal(numero: int) -> str:
+    return f"{numero}.ª"
+
+
+def detalle_tope(deseado: Deseado) -> str:
+    """El paso ``TOPE``: qué elementos cuentan ya y cuáles entrarán al cerrar su evaluación."""
+    activos: dict[int, list[str]] = {}
+    pendientes: dict[int, list[str]] = {}
+    for elemento, evaluacion in deseado.tope_activos:
+        activos.setdefault(evaluacion, []).append(elemento)
+    for elemento, evaluacion in deseado.tope_pendientes:
+        pendientes.setdefault(evaluacion, []).append(elemento)
+    if not activos:
+        texto = "sin efecto todavía: ninguna evaluación cerrada"
+        if pendientes:
+            todos = [elemento for ids in pendientes.values() for elemento in ids]
+            verbo = "entrará" if len(todos) == 1 else "entrarán"
+            texto += f" ({_enumerar(todos)} {verbo} al cerrar la suya)"
+        return texto
+    partes = [
+        f"{_enumerar(ids)} ({_ordinal(evaluacion)} cerrada)"
+        for evaluacion, ids in sorted(activos.items())
+    ]
+    texto = "cuenta " + "; ".join(partes)
+    if pendientes:
+        cola = []
+        for evaluacion, ids in sorted(pendientes.items()):
+            verbo = "entrará" if len(ids) == 1 else "entrarán"
+            cola.append(f"{_enumerar(ids)} {verbo} al cerrar la {_ordinal(evaluacion)}")
+        texto += "; " + "; ".join(cola)
+    return texto
 
 
 def reparto_por_hoja(
@@ -1011,9 +1057,45 @@ class _Montaje:
             Nodo(NOTA_FINAL, "nota", "Nota final (sobre 10)", NOTAS, 0.0, (FINAL, K_TIZA))
         )
 
+    def _primera_evaluacion(self, elemento: Elemento) -> int | None:
+        """La evaluación (índice desde 0) de la primera evidencia normal del elemento.
+
+        Las recuperaciones no cuentan: no son evidencias de la evaluación de su sección y no
+        adelantan la entrada del elemento en el tope. Una actividad que solo pesa 0 en sus hojas
+        tampoco: no aporta al elemento y su nota quedaría vacía. ``None`` si no tiene evidencias.
+        """
+        hojas = set(_hojas_de(elemento))
+        for actividad in self.actividades:
+            if actividad.recupera:
+                continue
+            pesos = dict(actividad.evalua)
+            if any(pesos.get(hoja, 0) > 0 for hoja in hojas):
+                return actividad.evaluacion
+        return None
+
+    def _tope_de_elementos(
+        self,
+    ) -> tuple[tuple[tuple[str, int], ...], tuple[tuple[str, int], ...]]:
+        """Los elementos activos y pendientes del tope, con su evaluación (1-based)."""
+        if self.tope is None:
+            return (), ()
+        activos: list[tuple[str, int]] = []
+        pendientes: list[tuple[str, int]] = []
+        for elemento in self.esquema.elementos:
+            evaluacion = self._primera_evaluacion(elemento)
+            if evaluacion is None:
+                continue
+            pareja = (elemento.id, evaluacion + 1)
+            if self.esquema.evaluaciones[evaluacion].cerrada:
+                activos.append(pareja)
+            else:
+                pendientes.append(pareja)
+        return tuple(activos), tuple(pendientes)
+
     def montar(self) -> Deseado:
         esquema = self.esquema
         por_elementos = esquema.final.de == "elementos"
+        activos, pendientes = self._tope_de_elementos()
         raiz = 0.0 if self.anterior else 100.0
         self._agregar(
             Nodo(RAIZ, "contenedor", "Calificador de tiza", None, raiz, None, "porcentaje")
@@ -1037,7 +1119,7 @@ class _Montaje:
             tope = (
                 self.tope.si_alguno_menor_que,
                 self.tope.maximo,
-                tuple(f"TZ_NOTA_E_{e.id}" for e in esquema.elementos),
+                tuple(f"TZ_NOTA_E_{id_}" for id_, _ in activos),
             )
         total_curso = None if self.anterior else (NOTA_FINAL if self.tope else "porcentaje")
         con_actividades = {self.elemento_de_hoja[h] for a in self.actividades for h, _ in a.evalua}
@@ -1055,6 +1137,8 @@ class _Montaje:
                 for hoja, _ in a.evalua
             ),
             niveles=len(esquema.niveles_rubrica),
+            tope_activos=activos,
+            tope_pendientes=pendientes,
             avisos=tuple(
                 ("CRITERIOS_SIN_PESO", e.id)
                 for e in esquema.elementos

@@ -38,7 +38,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from . import calendario, colocacion, contenido, estado, informe, publicar, recorrido, rutas, tipos
 from .calificacion import reconciliar as rc
-from .calificacion.deseado import Deseado, nombre_de_hoja
+from .calificacion.deseado import Deseado, detalle_tope, nombre_de_hoja
 from .calificacion.deseado import deseado as calcular_deseado
 from .calificacion.ejecutar import TIPOS_DE_BLOQUEO, Ejecucion
 from .calificacion.esquema import (
@@ -3038,6 +3038,8 @@ def calificador_con(
             for doc in documentos:
                 if doc.evidencia == "resultados":
                     presencia.informar(Aviso.resultados_desactivados(doc.nombre))
+    if esquema.final.tope is not None:
+        borrador.paso("TOPE", detalle=detalle_tope(plan.deseado))
     rec = plan.reconciliacion
     primera = Ejecucion(aula, curso, plan.aula_antes.decimal)
     segundas: list[Ejecucion] = []
