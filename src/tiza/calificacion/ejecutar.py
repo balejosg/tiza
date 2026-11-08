@@ -134,7 +134,13 @@ class Ejecucion:
         elif tipo == "crear_categoria":
             assert op.idnumber is not None and op.nombre is not None
             self.eids[op.idnumber] = aula.crear_categoria(
-                curso, op.nombre, op.idnumber, self._padre(op), op.peso, op.visualizacion
+                curso,
+                op.nombre,
+                op.idnumber,
+                self._padre(op),
+                op.peso,
+                op.visualizacion,
+                op.agregacion if op.agregacion is not None else 13,
             )
         elif tipo == "crear_calculado":
             assert op.idnumber is not None and op.nombre is not None and op.maximo is not None
@@ -172,6 +178,10 @@ class Ejecucion:
             assert op.peso is not None
             self.tocados.add(self._eid(op))
             aula.fijar_peso(curso, self._eid(op), op.peso)
+        elif tipo == "fijar_agregacion":
+            assert op.agregacion is not None
+            self.tocados.add(self._eid(op))
+            aula.fijar_agregacion(curso, self._eid(op), op.agregacion)
         elif tipo == "fijar_maximo":
             assert op.maximo is not None
             self.tocados.add(f"ig{self._item(op)}")

@@ -19,7 +19,9 @@ Qué respeta, por este orden:
   se toca (ni su peso ni su fórmula); sus hijos sí se gestionan;
 * las notas: un nodo de tiza que ya no está en el esquema pero tiene notas se queda, y una
   actividad real que deja de contar nunca se borra (es del docente): se queda con peso 0 (D2);
-* los totales ajenos con notas se bloquean antes de sacar de ellos una actividad.
+* los totales ajenos con notas se bloquean antes de sacar de ellos una actividad;
+* una categoría con una regla de agregación distinta de la Natural se cambia en el aula y se
+  avisa con ``REGLA_CAMBIADA``; sus hijos no llevan peso sobrescrito (D15).
 
 El montaje va en dos pasadas (Moodle reescala pesos al añadir dentro y una fórmula entre
 categorías recién creadas puede fallar la primera vez): ``reconciliar`` da la primera y, tras
@@ -73,6 +75,7 @@ TIPOS = (
     "mover_manual",
     "marcar_resultado",
     "fijar_idnumber_resultado",
+    "fijar_agregacion",
     "fijar_peso",
     "fijar_maximo",
     "fijar_formula",
@@ -86,6 +89,7 @@ AVISOS = (
     "CAMBIADO_A_MANO",
     "EVALUACION_CERRADA_EN_EL_AULA",
     "ELEMENTO_CON_NOTAS_QUITADO",
+    "REGLA_CAMBIADA",
     "RESULTADO_CON_NOTAS_QUITADO",
     "RESULTADO_RECREADO",
     "TOTAL_AJENO_BLOQUEADO",
@@ -120,6 +124,7 @@ class Operacion:
       Moodle vuelve a crear su elemento de resultado. La segunda pasada lo coloca y le pone su
       número de ID.
     * ``fijar_idnumber_resultado``: ``item_id`` del elemento de resultado y ``idnumber``.
+    * ``fijar_agregacion``: ``eid`` (o ``idnumber`` si es nuevo) y ``agregacion`` de Moodle.
     * ``fijar_peso``: ``eid`` (o ``idnumber`` si es nuevo) y ``peso``.
     * ``fijar_maximo``: ``item_id`` (o ``idnumber``) y ``maximo``.
     * ``fijar_formula``: ``item_id`` (o ``idnumber``) y ``formula`` en la notación interna
@@ -145,6 +150,7 @@ class Operacion:
     ruta: str | None = None
     formula: str | None = None
     resultado: int | None = None
+    agregacion: int | None = None
     poner_idnumber: bool = False
 
 
@@ -372,6 +378,7 @@ class _Plan:
         self.ajeno: list[Operacion] = []
         self.alta: list[Operacion] = []
         self.reparacion: list[Operacion] = []
+        self.agregacion: list[Operacion] = []
         self.peso: list[Operacion] = []
         self.maximo: list[Operacion] = []
         self.formula: list[Operacion] = []
@@ -515,6 +522,16 @@ class _Plan:
 
     def _peso(self, nodo: Nodo) -> float | None:
         return self.pesos.get(nodo.idnumber, nodo.peso)
+
+    def _padre_sin_peso(self, padre: str | None) -> bool:
+        """Un hijo de una categoría que no es Natural no lleva peso sobrescrito (D15)."""
+        if padre is None:
+            return False
+        deseado = self.dnodos.get(padre)
+        if deseado is not None:
+            return deseado.clase == "categoria" and deseado.agregacion != 13
+        aula = self.idx.por_id.get(padre)
+        return aula is not None and aula.agregacion not in (None, 13)
 
     def _nuevas_en_cerrada(self, pendientes: set[str]) -> set[str]:
         """Las actividades del aula aún sin colocar cuyo sitio (real o copia) cae en una cerrada."""
@@ -670,7 +687,7 @@ class _Plan:
             colocada = True
         elif not en_su_sitio:
             return  # en la segunda pasada no se ajusta lo que no está donde debe
-        peso = self._peso(nodo)
+        peso = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
         if peso is not None and (colocada or not _peso_correcto(act, peso)):
             self.peso.append(
                 Operacion("fijar_peso", idnumber=clave, eid=act.eid, item_id=act.item_id, peso=peso)
@@ -774,6 +791,21 @@ class _Plan:
         if nodo.idnumber in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
             return
+        if (
+            nodo.clase == "categoria"
+            and existente.agregacion is not None
+            and existente.agregacion != nodo.agregacion
+        ):
+            self._aviso("REGLA_CAMBIADA", nodo.idnumber)
+            self.agregacion.append(
+                Operacion(
+                    "fijar_agregacion",
+                    idnumber=nodo.idnumber,
+                    eid=existente.eid,
+                    item_id=existente.item_id,
+                    agregacion=nodo.agregacion,
+                )
+            )
         movido = False
         if padre is None or existente.padre_eid != padre.eid:
             if self.solo_ajustes:
@@ -794,7 +826,7 @@ class _Plan:
             else:  # tiza no sabe mover categorías: se respeta donde estén y se avisa
                 self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
                 return
-        peso = self._peso(nodo)
+        peso = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
         if peso is not None and (movido or not _peso_correcto(existente, peso)):
             self.peso.append(
                 Operacion(
@@ -854,6 +886,7 @@ class _Plan:
                     padre_eid=padre.eid if padre else None,
                     peso=peso,
                     visualizacion=nodo.visualizacion,
+                    agregacion=nodo.agregacion,
                 )
             )
         # Moodle reescala los pesos al añadir dentro: se fijan al final, con todo creado
@@ -876,6 +909,8 @@ class _Plan:
                 continue  # un resultado del aula no es la actividad: ya pesa 0 (D6)
             padre = self.idx.padre(n)
             if padre is None or not padre.idnumber.startswith(_PREFIJO) or self._cerrado_aula(n):
+                continue
+            if self._padre_sin_peso(padre.idnumber or None):
                 continue
             clave = n.idnumber or f"{_PREFIJO}A{n.cmid}"
             if clave in self.a_mano:
@@ -997,6 +1032,8 @@ class _Plan:
             padre = self.idx.padre(n)
             if padre is not None and padre.idnumber.startswith(f"{_PREFIJO}K_"):
                 continue  # los hijos de un contador no llevan peso sobrescrito
+            if self._padre_sin_peso(padre.idnumber if padre else None):
+                continue
             if not _peso_correcto(n, 0.0):
                 self.peso.append(
                     Operacion(
@@ -1009,6 +1046,9 @@ class _Plan:
                 continue
             if n.idnumber.startswith(_PREFIJO_RESULTADO):
                 continue  # sin ``aggregateoutcomes`` ya pesa 0 (D6)
+            padre = self.idx.padre(n)
+            if self._padre_sin_peso(padre.idnumber if padre else None):
+                continue
             if not _peso_correcto(n, 0.0):
                 self.peso.append(
                     Operacion(
@@ -1019,13 +1059,16 @@ class _Plan:
     # -- el resultado ------------------------------------------------------
 
     def ajustes(self) -> tuple[Operacion, ...]:
-        return tuple(self.reparacion + self.peso + self.maximo + self.formula + self.cierre)
+        return tuple(
+            self.reparacion + self.agregacion + self.peso + self.maximo + self.formula + self.cierre
+        )
 
     def todo(self) -> tuple[Operacion, ...]:
         return tuple(
             self.ajeno
             + self.alta
             + self.reparacion
+            + self.agregacion
             + self.peso
             + self.maximo
             + self.formula

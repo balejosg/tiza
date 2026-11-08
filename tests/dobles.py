@@ -442,9 +442,18 @@ class MoodleFalso:
         self._siguiente_eid += 1
         return f"{prefijo}{self._siguiente_eid}"
 
-    def crear_categoria(self, curso, nombre, idnumber, padre_eid, peso, visualizacion):
+    def crear_categoria(
+        self, curso, nombre, idnumber, padre_eid, peso, visualizacion, agregacion=13
+    ):
         self._escribir_calificador(
-            "crear_categoria", curso, nombre, idnumber, padre_eid, peso, visualizacion
+            "crear_categoria",
+            curso,
+            nombre,
+            idnumber,
+            padre_eid,
+            peso,
+            visualizacion,
+            agregacion,
         )
         return self._nuevo_eid("cg")
 
@@ -459,6 +468,9 @@ class MoodleFalso:
 
     def fijar_peso(self, curso, eid, peso):
         self._escribir_calificador("fijar_peso", curso, eid, peso)
+
+    def fijar_agregacion(self, curso, eid, agregacion):
+        self._escribir_calificador("fijar_agregacion", curso, eid, agregacion)
 
     def fijar_formula(self, curso, item_id, formula, decimal):
         self._escribir_calificador("fijar_formula", curso, item_id, formula, decimal)
@@ -1063,6 +1075,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "PUBLICANDO_EN_PRUEBAS": publicacion.Aviso.publicando_en_pruebas((doc,)),
         "QUEDAN_MINUTOS": publicacion.Aviso.quedan_minutos(5),
         "REGISTRO_NO_GUARDADO": publicacion.Aviso.registro_no_guardado("T"),
+        "REGLA_CAMBIADA": publicacion.Aviso.regla_cambiada("CE3_1"),
         "REINICIA_EL_AGENTE": publicacion.Aviso.reinicia_el_agente(),
         "RESULTADO": publicacion.Aviso.resultado(
             informe.crear("publicar", "ok", [], [], [], "pruebas", 1234)

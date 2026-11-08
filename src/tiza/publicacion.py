@@ -167,6 +167,7 @@ AVISOS = frozenset(
         "QUEDAN_MINUTOS",
         "RECUPERACION_EN_CERRADA",
         "REGISTRO_NO_GUARDADO",
+        "REGLA_CAMBIADA",
         "REINICIA_EL_AGENTE",
         "RESULTADO",
         "RESULTADO_CON_NOTAS_QUITADO",
@@ -246,6 +247,11 @@ class Aviso:
     def recuperacion_en_cerrada(cls, nombre: str) -> Aviso:
         """``nombre``: la evaluación cerrada en la que la recuperación no se coloca."""
         return cls("RECUPERACION_EN_CERRADA", {"nombre": nombre})
+
+    @classmethod
+    def regla_cambiada(cls, hoja: str) -> Aviso:
+        """``hoja``: el criterio o elemento cuya regla de agregación cambia en el aula."""
+        return cls("REGLA_CAMBIADA", {"hoja": hoja})
 
     @classmethod
     def elemento_con_notas_quitado(cls, nombre: str) -> Aviso:
@@ -2707,6 +2713,8 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
     if codigo == "RECUPERACION_EN_CERRADA":
         de_la_carpeta = next((n.nombre for n in plan.deseado.nodos if n.idnumber == clave), None)
         return Aviso.recuperacion_en_cerrada(de_la_carpeta or nombres.get(clave, clave))
+    if codigo == "REGLA_CAMBIADA":
+        return Aviso.regla_cambiada(clave)
     if codigo == "EVIDENCIA_COMPARTIDA":
         documento = next((d for d in plan.documentos if d.nombre == clave), None)
         return Aviso.evidencia_compartida(clave, tipo=documento.tipo if documento else None)

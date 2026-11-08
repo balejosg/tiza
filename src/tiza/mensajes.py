@@ -1099,6 +1099,15 @@ def _recuperacion_en_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _regla_cambiada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"Ha cambiado la regla de «{texto_seguro(datos['hoja'], 40)}»; se aplica en las "
+            "evaluaciones abiertas y en la final."
+        ),
+    )
+
+
 def _evaluacion_cerrada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(f"Ya está bloqueada en el aula y tiza no la toca: {texto_seguro(datos['nombre'])}"),
@@ -1412,6 +1421,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "QUEDAN_MINUTOS": _quedan_minutos,
     "RECUPERACION_EN_CERRADA": _recuperacion_en_cerrada,
     "REGISTRO_NO_GUARDADO": _registro_no_guardado,
+    "REGLA_CAMBIADA": _regla_cambiada,
     "REINICIA_EL_AGENTE": _reinicia_el_agente,
     "RESULTADO": _resultado,
     "RESULTADO_CON_NOTAS_QUITADO": _resultado_con_notas_quitado,

@@ -125,7 +125,7 @@ class AulaViva(MoodleFalso):
         **kw,
     ):
         super().__init__(secciones=kw.pop("secciones", secciones_de()), **kw)
-        base = [nodo(CURSO_EID, "", "curso", None, nombre="Curso")]
+        base = [nodo(CURSO_EID, "", "curso", None, nombre="Curso", agregacion=13)]
         self.nodos: dict[str, NodoAula] = {
             n.eid: n for n in [*base, *(nodos_de_actividades() if extra is None else extra)]
         }
@@ -173,7 +173,9 @@ class AulaViva(MoodleFalso):
             for h in hijos:
                 self.nodos[h.eid] = dataclasses.replace(h, peso=round(h.peso * 100 / total, 3))
 
-    def _crear(self, eid, idnumber, clase, nombre, padre_eid, peso, maximo=None) -> str:
+    def _crear(
+        self, eid, idnumber, clase, nombre, padre_eid, peso, maximo=None, agregacion=None
+    ) -> str:
         self.nodos[eid] = nodo(
             eid,
             idnumber,
@@ -183,14 +185,21 @@ class AulaViva(MoodleFalso):
             peso=peso,
             sobrescrito=peso is not None,
             maximo=maximo,
+            agregacion=agregacion,
         )
         return eid
 
     # -- escritura --------------------------------------------------------
 
-    def crear_categoria(self, curso, nombre, idnumber, padre_eid, peso, visualizacion):
-        eid = super().crear_categoria(curso, nombre, idnumber, padre_eid, peso, visualizacion)
-        return self._crear(eid, idnumber, "categoria", nombre, padre_eid, peso)
+    def crear_categoria(
+        self, curso, nombre, idnumber, padre_eid, peso, visualizacion, agregacion=13
+    ):
+        eid = super().crear_categoria(
+            curso, nombre, idnumber, padre_eid, peso, visualizacion, agregacion
+        )
+        return self._crear(
+            eid, idnumber, "categoria", nombre, padre_eid, peso, agregacion=agregacion
+        )
 
     def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo):
         eid = super().crear_calculado(curso, nombre, idnumber, padre_eid, peso, maximo)
@@ -208,6 +217,10 @@ class AulaViva(MoodleFalso):
         if self.perturbar and self.nodos[eid].idnumber == "TZ_E_RA2":
             self.perturbar = False  # una sola vez: Moodle reescala a RA1 al guardar RA2
             self._cambiar(self.por_id("TZ_E_RA1").eid, None, peso=1.0)
+
+    def fijar_agregacion(self, curso, eid, agregacion):
+        super().fijar_agregacion(curso, eid, agregacion)
+        self._cambiar(eid, None, agregacion=agregacion)
 
     def fijar_formula(self, curso, item_id, formula, decimal):
         super().fijar_formula(curso, item_id, formula, decimal)
@@ -2158,3 +2171,35 @@ def test_publicar_con_no_y_calificador_no_marca_resultados(tmp_path):
     real = next(n for n in moodle.nodos.values() if n.cmid == cmid and n.clase == "actividad")
     assert real.peso is not None and real.peso > 0
     assert [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
+
+
+ESQUEMA_MAS_ALTA = ESQUEMA_CRITERIOS.replace(
+    "{id: CE1_2, nombre: Documenta}", "{id: CE1_2, nombre: Documenta, regla: mas_alta}"
+)
+ESQUEMA_MEDIANA = ESQUEMA_MAS_ALTA.replace("regla: mas_alta", "regla: mediana")
+
+
+def test_el_calificador_monta_una_regla_mas_alta(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_MAS_ALTA, ACTIVIDADES_CRITERIOS)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CRITERIOS))
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    ag = moodle.por_id("TZ_AG_E_CE1_2")
+    assert (ag.clase, ag.agregacion) == ("categoria", 6)
+    assert moodle.por_id("TZ_AG_V_1_CE1_2").agregacion == 6
+    hijos = [n for n in moodle.nodos.values() if n.padre_eid == ag.eid]
+    assert hijos
+    assert all(not n.sobrescrito for n in hijos)
+
+
+def test_cambiar_la_regla_en_el_aula_avisa_y_la_cambia(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_MAS_ALTA, ACTIVIDADES_CRITERIOS)
+    moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CRITERIOS))
+    atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.por_id("TZ_AG_E_CE1_2").agregacion == 6
+    carpeta_fp(tmp_path, ESQUEMA_MEDIANA, ACTIVIDADES_CRITERIOS)
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert moodle.por_id("TZ_AG_E_CE1_2").agregacion == 2
+    assert moodle.por_id("TZ_AG_V_1_CE1_2").agregacion == 2
+    assert int(pasos(documento, "REGLA_CAMBIADA")[0]["detalle"]) >= 1

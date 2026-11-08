@@ -249,6 +249,11 @@ class TestAvisos:
                 "cuenta en la final.",
             ),
             (
+                publicacion.Aviso.regla_cambiada("CE3_1"),
+                "Ha cambiado la regla de «CE3_1»; se aplica en las evaluaciones abiertas y en "
+                "la final.",
+            ),
+            (
                 publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
                 "El agente pide montar el calificador en pruebas con «calificacion.yaml».",
             ),

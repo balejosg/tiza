@@ -531,6 +531,7 @@ class TestCalificador:
             "EVALUACION_CERRADA_EN_EL_AULA",
             "PESOS_SIN_EFECTO",
             "RECUPERACION_EN_CERRADA",
+            "REGLA_CAMBIADA",
             "TOTAL_AJENO_BLOQUEADO",
         ],
     )

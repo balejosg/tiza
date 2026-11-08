@@ -328,6 +328,7 @@ class NodoAula:
     formula: str | None
     maximo: float | None
     cmid: int | None
+    agregacion: int | None = None  # 13 Natural, 2 Mediana, 6 Calificación más alta
 
 
 @dataclasses.dataclass(frozen=True)
@@ -432,6 +433,7 @@ class AulaVirtual(Protocol):
         padre_eid: str | None,
         peso: float | None,
         visualizacion: str | None,
+        agregacion: int = 13,
     ) -> str: ...
 
     def crear_calculado(
@@ -447,6 +449,8 @@ class AulaVirtual(Protocol):
     def fijar_maximo(self, curso: int, item_id: int, maximo: float) -> None: ...
 
     def fijar_peso(self, curso: int, eid: str, peso: float) -> None: ...
+
+    def fijar_agregacion(self, curso: int, eid: str, agregacion: int) -> None: ...
 
     def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str) -> None: ...
 
@@ -1332,6 +1336,7 @@ class Moodle:
             eid = str(fila["data-category"]) if es_categoria else f"ig{fila['data-itemid']}"
             item_id = int(str(fila["data-itemid"]))
             padre = fila.get("data-parent-category")
+            agregacion = _numero(fila.get("data-aggregation")) if es_categoria else None
             titulo = fila.find(class_="rowtitle")
             enlace = fila.find("a", class_="gradeitemheader", href=_ENLACE_DE_ACTIVIDAD)
             coincidencia = _ENLACE_DE_ACTIVIDAD.search(str(enlace["href"])) if enlace else None
@@ -1343,6 +1348,7 @@ class Moodle:
                     padre_eid=str(padre) if padre else None,
                     maximo=_numero(fila.get("data-grademax")),
                     cmid=int(coincidencia.group(1)) if coincidencia else None,
+                    agregacion=int(agregacion) if agregacion is not None else None,
                 )
                 parciales.append(anterior)
                 continue
@@ -1377,6 +1383,7 @@ class Moodle:
                     "formula": formula or None,
                     "maximo": _numero(fila.get("data-grademax")),
                     "cmid": int(coincidencia.group(1)) if coincidencia else None,
+                    "agregacion": int(agregacion) if agregacion is not None else None,
                 }
             )
         self._arbol[curso_id] = {p["eid"] for p in parciales}
@@ -1412,6 +1419,7 @@ class Moodle:
                     formula=p["formula"],
                     maximo=p["maximo"],
                     cmid=p["cmid"],
+                    agregacion=p["agregacion"],
                 )
             )
         decimal = _decimal_visto(parciales)
@@ -1547,16 +1555,18 @@ class Moodle:
         padre_eid: str | None,
         peso: float | None,
         visualizacion: str | None,
+        agregacion: int = 13,
     ) -> str:
-        """Crea una categoría Natural «solo lo calificado» y devuelve su ``eid`` (``cg<id>``).
+        """Crea una categoría «solo lo calificado» y devuelve su ``eid`` (``cg<id>``).
 
+        ``agregacion`` es la de Moodle (13 Natural, 2 Mediana, 6 Calificación más alta).
         ``peso`` no nulo la pesa en su padre; con ``None`` (hijos de un contador) no se
         sobrescribe el peso. ``visualizacion == "porcentaje"`` muestra el total en porcentaje.
         """
         cambios = {
             "fullname": nombre,
             "grade_item_idnumber": idnumber,
-            "aggregation": "13",
+            "aggregation": str(agregacion),
             "aggregateonlygraded": "1",
         }
         if padre_eid is not None:
@@ -1637,6 +1647,15 @@ class Moodle:
                 {"courseid": curso, "id": numero},
                 {"weightoverride": "1", "aggregationcoef2": _texto_numero(peso)},
             )
+
+    def fijar_agregacion(self, curso: int, eid: str, agregacion: int) -> None:
+        """Cambia la agregación de una categoría (D13); no pide confirmación aunque tenga notas."""
+        _validar_eid(eid, "cg")
+        self._guardar(
+            "grade/edit/tree/category.php",
+            {"courseid": curso, "id": int(eid[2:])},
+            {"aggregation": str(agregacion), "aggregateonlygraded": "1"},
+        )
 
     def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str) -> None:
         """Fija la fórmula de un elemento calculado.

@@ -126,6 +126,7 @@ PASOS = (
             "PUBLICAR",
             "RECUPERACION_EN_CERRADA",
             "REGISTRO_NO_GUARDADO",
+            "REGLA_CAMBIADA",
             "REPARTO",
             "RESULTADO_CON_NOTAS_QUITADO",
             "RESULTADO_RECREADO",

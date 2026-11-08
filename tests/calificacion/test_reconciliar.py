@@ -148,6 +148,7 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
                 peso=op.peso,
                 sobrescrito=op.peso is not None,
                 maximo=op.maximo,
+                agregacion=op.agregacion if categoria else None,
             )
         elif t == "colocar":
             n = buscar(op)
@@ -176,6 +177,8 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
             cambiar(op, idnumber=op.idnumber)
         elif t == "fijar_peso":
             cambiar(op, peso=op.peso, sobrescrito=True)
+        elif t == "fijar_agregacion":
+            cambiar(op, agregacion=op.agregacion)
         elif t == "fijar_maximo":
             cambiar(op, maximo=op.maximo)
         elif t in ("fijar_formula", "fijar_total_curso"):
@@ -697,6 +700,7 @@ def test_orden_dos_fases() -> None:
         "mover_manual": 1,
         "marcar_resultado": 1,
         "fijar_idnumber_resultado": 1,
+        "fijar_agregacion": 2,
         "fijar_peso": 2,
         "fijar_maximo": 2,
         "fijar_formula": 3,
@@ -1581,3 +1585,99 @@ def test_montaje_de_resultados_idempotente() -> None:
     huellas = huellas_de(aula, CMIDS_RESULTADOS)
     otra = reconciliar(d, aula, huellas, CMIDS_RESULTADOS, resultados=resultados)
     assert otra.operaciones == () and otra.avisos == ()
+
+
+def esquema_mas_alta(cerrada: bool = False) -> Esquema:
+    criterios = (Criterio("CE1", "Criterio", 100.0, regla="mas_alta"),)
+    evaluaciones = (
+        Evaluacion("Primera", (1,), cerrada=cerrada),
+        Evaluacion("Segunda", (2,)),
+    )
+    return Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0, criterios=criterios),),
+        evaluaciones,
+        Final("elementos"),
+    )
+
+
+def documentos_mas_alta() -> list[Documento]:
+    return [doc("a.md", 1, CE1=100), doc("c.md", 2, CE1=100)]
+
+
+def montar_reglas(
+    esquema: Esquema,
+    documentos: list[Documento],
+    cmids: dict[str, int],
+    aula: CalificadorAula | None = None,
+) -> tuple[Deseado, CalificadorAula]:
+    d = deseado(esquema, documentos, False, CARPETA)
+    aula = aula or aula_inicial(cmids)
+    rec = reconciliar(d, aula, {}, cmids)
+    aula = aplicar(aula, rec.operaciones)
+    for _ in range(6):
+        ajustes = pasada2(d, aula, {}, cmids, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+        if not ajustes:
+            break
+        aula = aplicar(aula, ajustes)
+    return d, aula
+
+
+def test_cambiar_regla_fija_agregacion_y_avisa() -> None:
+    cmids = {"a.md": 11, "c.md": 13}
+    d, aula = montar_reglas(esquema_mas_alta(), documentos_mas_alta(), cmids)
+    ag = next(n for n in aula.nodos if n.idnumber == "TZ_AG_E_CE1")
+    assert ag.agregacion == 6
+    aula = con_nodo(aula, ag.eid, agregacion=13)
+    huellas = huellas_de(aula, cmids)
+    rec = reconciliar(d, aula, huellas, cmids)
+    assert [
+        (o.idnumber, o.agregacion) for o in rec.operaciones if o.tipo == "fijar_agregacion"
+    ] == [("TZ_AG_E_CE1", 6)]
+    assert ("REGLA_CAMBIADA", "TZ_AG_E_CE1") in rec.avisos
+    # La operación se ejecuta en la pasada de ajustes y deja el aula como debe.
+    assert [
+        (o.idnumber, o.agregacion)
+        for o in pasada2(d, aula, huellas, cmids, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar)
+        if o.tipo == "fijar_agregacion"
+    ] == [("TZ_AG_E_CE1", 6)]
+
+
+def test_hijos_de_mas_alta_sin_peso() -> None:
+    cmids = {"a.md": 11, "c.md": 13}
+    d, aula = montar_reglas(esquema_mas_alta(), documentos_mas_alta(), cmids)
+    ag = next(n for n in aula.nodos if n.idnumber == "TZ_AG_E_CE1")
+    hijos = [n for n in aula.nodos if n.padre_eid == ag.eid]
+    assert hijos
+    for hijo in hijos:
+        aula = con_nodo(aula, hijo.eid, peso=50.0, sobrescrito=True)
+    rec = reconciliar(d, aula, huellas_de(aula, cmids), cmids)
+    ids = {h.idnumber for h in hijos}
+    assert not [o for o in rec.operaciones if o.tipo == "fijar_peso" and o.idnumber in ids]
+
+
+def test_nada_dentro_de_una_cerrada() -> None:
+    cmids = {"a.md": 11, "c.md": 13}
+    d, aula = montar_reglas(esquema_mas_alta(cerrada=True), documentos_mas_alta(), cmids)
+    ag = next(n for n in aula.nodos if n.idnumber == "TZ_AG_V_1_CE1")
+    assert ag.agregacion == 6
+    aula = con_nodo(aula, ag.eid, agregacion=13)
+    rec = reconciliar(d, aula, huellas_de(aula, cmids), cmids)
+    dentro = {
+        n.idnumber
+        for n in aula.nodos
+        if n.idnumber == "TZ_V_1" or n.idnumber.startswith("TZ_AG_V_1_")
+    }
+    assert not [
+        o
+        for o in rec.operaciones
+        if o.idnumber in dentro or o.padre in dentro or (o.eid and o.eid == ag.eid)
+    ]
+    assert not [o for o in rec.operaciones if o.tipo == "fijar_agregacion"]
+
+
+def test_montaje_idempotente_con_reglas() -> None:
+    cmids = {"a.md": 11, "c.md": 13}
+    d, aula = montar_reglas(esquema_mas_alta(), documentos_mas_alta(), cmids)
+    rec = reconciliar(d, aula, huellas_de(aula, cmids), cmids)
+    assert rec.operaciones == () and rec.avisos == ()

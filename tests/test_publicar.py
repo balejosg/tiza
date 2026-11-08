@@ -6231,3 +6231,35 @@ def test_standard_solo_se_fuerza_al_crear_resultado():
     assert dict(sesion.posts[-1][1])["standard"] == "0"
     moodle.asegurar_resultado(2, "TZ_CE2_2", "CE2.2", "Criterio actualizado", 7)
     assert dict(sesion.posts[-1][1])["standard"] == "1"
+
+
+def test_crear_categoria_con_mediana():
+    moodle, sesion = _moodle_calificador()
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    moodle.crear_categoria(2, "RA1", "TZ_E_RA1", "cg1", 40, "porcentaje", agregacion=2)
+    campos = _campos(sesion)[1]
+    assert campos["aggregation"] == "2"
+    assert campos["aggregateonlygraded"] == "1"
+
+
+def test_leer_agregacion_del_aula():
+    cal, _ = _calificador()
+    assert _nodo(cal, "cg3").agregacion == 13
+    assert _nodo(cal, "cg1").agregacion == 13
+    assert _nodo(cal, "ig165").agregacion is None
+    arbol = _fixture_calificador("setup-lleno.html").replace(
+        'data-category="cg3" data-parent-category="cg1" data-aggregation="13"',
+        'data-category="cg3" data-parent-category="cg1" data-aggregation="2"',
+    )
+    cal, _ = _calificador(arbol=arbol)
+    assert _nodo(cal, "cg3").agregacion == 2
+    assert _nodo(cal, "cg4").agregacion == 13
+
+
+def test_fijar_agregacion_envia():
+    moodle, sesion = _moodle_calificador()
+    moodle.fijar_agregacion(2, "cg3", 2)
+    url, campos = _campos(sesion)
+    assert url == "https://aula/grade/edit/tree/category.php"
+    assert campos["aggregation"] == "2"
+    assert campos["aggregateonlygraded"] == "1"
