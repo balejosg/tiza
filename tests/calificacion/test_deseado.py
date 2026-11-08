@@ -1677,7 +1677,7 @@ def test_recupera_lista() -> None:
         assert copia_de(d, "u3/recu.md", f"TZ_RM_V_{n}_CE3_1").formula_de == "u3/recu.md"
 
 
-def test_recuperacion_con_mas_alta_es_una_evidencia() -> None:
+def test_mas_alta_con_recupera_separa_el_grupo() -> None:
     esquema = esquema_con_criterio(
         "mas_alta", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
     )
@@ -1687,15 +1687,33 @@ def test_recuperacion_con_mas_alta_es_una_evidencia() -> None:
         doc("u2/recu.md", 2, recupera=(1,), CE3_1=50),
     ]
     d = deseado(esquema, docs, False, CARPETA)
+    # La más alta contiene el grupo de recuperación y lo que no recupera.
+    assert [(n.idnumber, n.peso) for n in hijos(d, "TZ_AG_E_CE3_1")] == [
+        ("TZ_RM_E_1_CE3_1", 100.0),
+        ("u2/b.md", None),
+    ]
+    rm = nodo(d, "TZ_RM_E_1_CE3_1")
+    assert (rm.agregacion, rm.peso) == (6, 100.0)
+    rp = nodo(d, "TZ_RP_E_1_CE3_1")
+    assert (rp.padre, rp.agregacion) == ("TZ_RM_E_1_CE3_1", 6)
+    assert [n.idnumber for n in hijos(d, rp.idnumber)] == ["u1/a.md"]
+    assert [n.idnumber for n in hijos(d, rm.idnumber)] == ["TZ_RP_E_1_CE3_1", "u2/recu.md"]
+    # En la vista por evaluaciones, la recuperación también sustituye.
+    assert copia_de(d, "u1/a.md", "TZ_RP_V_1_CE3_1")
+    assert copia_de(d, "u2/recu.md", "TZ_RM_V_1_CE3_1")
+    comprobar_sin_circulares(d.nodos)
+
+
+def test_mas_alta_sin_recupera_no_cambia() -> None:
+    esquema = esquema_con_criterio(
+        "mas_alta", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+    )
+    docs = [doc("u1/a.md", 1, CE3_1=50), doc("u2/b.md", 2, CE3_1=50)]
+    d = deseado(esquema, docs, False, CARPETA)
     assert not [n for n in d.nodos if n.idnumber.startswith(("TZ_RM_", "TZ_RP_"))]
-    assert {n.idnumber for n in hijos(d, "TZ_AG_E_CE3_1")} == {
-        "u1/a.md",
-        "u2/b.md",
-        "u2/recu.md",
-    }
-    assert nodo(d, "u2/recu.md").padre == "TZ_AG_E_CE3_1"
+    assert {n.idnumber for n in hijos(d, "TZ_AG_E_CE3_1")} == {"u1/a.md", "u2/b.md"}
+    assert nodo(d, "u1/a.md").padre == "TZ_AG_E_CE3_1"
     assert copia_de(d, "u1/a.md", "TZ_AG_V_1_CE3_1")
-    assert copia_de(d, "u2/recu.md", "TZ_AG_V_1_CE3_1")
 
 
 def test_indicador_de_subcategoria_mas_alta_vale_100() -> None:

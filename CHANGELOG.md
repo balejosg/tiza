@@ -6,6 +6,9 @@ se avisa aquí con **Cambia**.
 
 ## No publicado
 
+### Añadido
+- **La recuperación de una hoja «más alta» se ve como un grupo propio.** En el calificador, la subcategoría «más alta» contiene «Recuperación · …» con las evidencias de la evaluación recuperada y la actividad que recupera, igual que con la media. La nota de la hoja no cambia: sigue siendo la más alta entre la evidencia y su recuperación. Al volver a montar un curso anterior, las evidencias se mueven a su grupo sin tocar las evaluaciones cerradas.
+
 ### Cambia
 - **El tope de la final solo cuenta las evaluaciones cerradas.** Un elemento entra en la regla cuando cierra la evaluación de su primera evidencia; antes no cuenta, y un elemento sin evidencias no entra nunca (lo avisa el mapa de cobertura). Así, en octubre el tope no castiga lo que aún no se ha trabajado y, tras cerrar, un elemento sin notas sí topa. `tiza comprobar calificacion.yaml` y el informe del calificador enseñan qué elementos cuentan y cuáles entrarán al cerrar.
 - **Con tope, valen todas las reglas y las recuperaciones.** `final.tope` deja de limitar las hojas a `media` y `progresiva`: también funcionan `mediana` y `mas_alta`, y una actividad puede declarar `recupera`. El tope cuenta cada subcategoría de regla o de recuperación como un elemento más (máximo 100), no la suma de lo que tiene dentro, así que la nota no se dispara.

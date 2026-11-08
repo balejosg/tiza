@@ -745,6 +745,15 @@ class _Montaje:
             if hoja in dict(a.evalua) and a.recupera and evaluacion in a.recupera
         ]
 
+    def _grupos_de_recuperacion(self, hoja: str, evaluacion: int | None) -> list[int]:
+        """Las evaluaciones recuperadas que llevan grupo en esta vista (1-based)."""
+        recuperadas = self._recuperadas(hoja)
+        if evaluacion is None:
+            return recuperadas
+        if evaluacion + 1 in recuperadas and not self.esquema.evaluaciones[evaluacion].cerrada:
+            return [evaluacion + 1]
+        return []
+
     def _contenido_hoja(
         self,
         padre: str,
@@ -769,22 +778,27 @@ class _Montaje:
         regla: str,
         cuenta: bool,
     ) -> None:
-        """Mediana o más alta: la subcategoría con lo que cuenta; fuera, lo que pesa 0."""
-        dentro: list[_Actividad] = []
-        for a in self.actividades:
-            if hoja not in dict(a.evalua):
-                continue
-            if a.recupera:
-                if evaluacion is None or (
-                    evaluacion + 1 in a.recupera
-                    and not self.esquema.evaluaciones[evaluacion].cerrada
-                ):
-                    dentro.append(a)
-            elif evaluacion is not None and a.evaluacion != evaluacion:
-                continue
-            elif dict(a.evalua)[hoja] > 0:
-                dentro.append(a)
+        """Mediana o más alta: la subcategoría con lo que cuenta; fuera, lo que pesa 0.
+
+        Con ``mas_alta`` y recuperación, la recuperación tiene su propio grupo dentro de la
+        subcategoría (``TZ_RM_*`` con ``TZ_RP_*`` dentro, ambos de tipo «más alta»), como en
+        ``media``; sin recuperación, la subcategoría es la de siempre.
+        """
+        normales = [
+            a
+            for a in self.actividades
+            if hoja in dict(a.evalua)
+            and not a.recupera
+            and (evaluacion is None or a.evaluacion == evaluacion)
+        ]
+        grupos = self._grupos_de_recuperacion(hoja, evaluacion) if regla == "mas_alta" else []
+        en_grupo: dict[int, int] = {}
+        for r in grupos:
+            for i, a in enumerate(normales):
+                if a.evaluacion == r - 1 and dict(a.evalua)[hoja] > 0:
+                    en_grupo[i] = r
         sufijo = "E" if evaluacion is None else f"V_{evaluacion + 1}"
+        sufijo_grupo = "E" if evaluacion is None else "V"
         agregacion = AGREGACION_MEDIANA if regla == "mediana" else AGREGACION_MAS_ALTA
         nombre_regla = "Mediana" if regla == "mediana" else "Calificación más alta"
         ag_id = f"TZ_AG_{sufijo}_{hoja}"
@@ -800,22 +814,55 @@ class _Montaje:
                 agregacion=agregacion,
             )
         )
-        for a in dentro:
-            grupo = None if evaluacion is None else evaluacion + 1
-            self._evidencia(ag_id, hoja, vista, a, None, grupo=grupo)
+        for r in grupos:
+            indices = [i for i, a in enumerate(normales) if en_grupo.get(i) == r]
+            rm_id = f"TZ_RM_{sufijo_grupo}_{r}_{hoja}"
+            rp_id = f"TZ_RP_{sufijo_grupo}_{r}_{hoja}"
+            nombre_eval = self.esquema.evaluaciones[r - 1].nombre
+            self._agregar(
+                Nodo(
+                    rm_id,
+                    "categoria",
+                    f"Recuperación · {self.nombre_de_hoja[hoja]} ({nombre_eval})",
+                    ag_id,
+                    100.0,
+                    None,
+                    "porcentaje",
+                    agregacion=AGREGACION_MAS_ALTA,
+                )
+            )
+            self._agregar(
+                Nodo(
+                    rp_id,
+                    "categoria",
+                    f"Evidencias · {self.nombre_de_hoja[hoja]} ({nombre_eval})",
+                    rm_id,
+                    None,
+                    None,
+                    "porcentaje",
+                    agregacion=AGREGACION_MAS_ALTA,
+                )
+            )
+            for i in indices:
+                self._evidencia(rp_id, hoja, vista, normales[i], None, grupo=r)
+            for a in self._recuperadoras(hoja, r):
+                self._evidencia(rm_id, hoja, vista, a, None, grupo=r)
+        hay = bool(grupos) or any(
+            dict(a.evalua)[hoja] > 0 for i, a in enumerate(normales) if i not in en_grupo
+        )
         # Con tope, el contador cuenta la subcategoría entera (máximo 100), no sus evidencias:
         # una regla no Natural no suma los máximos de dentro.
-        if vista == _VISTA_ELEMENTOS and cuenta and dentro:
+        if vista == _VISTA_ELEMENTOS and cuenta and hay:
             self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
                 (ag_id, f"{self.nombre_de_hoja[hoja]} ({nombre_regla})")
             )
-        # Lo de peso 0 se queda fuera de la regla, como hoy.
-        for a in self.actividades:
-            if hoja not in dict(a.evalua) or a.recupera:
+        # Fuera de las recuperaciones: lo que no va en ningún TZ_RM.
+        for i, a in enumerate(normales):
+            if i in en_grupo:
                 continue
-            if evaluacion is not None and a.evaluacion != evaluacion:
-                continue
-            if dict(a.evalua)[hoja] == 0:
+            if dict(a.evalua)[hoja] > 0:
+                self._evidencia(ag_id, hoja, vista, a, None)
+            else:
                 self._pieza_completa(padre, hoja, vista, a, 0.0)
         # La tarea real con resultados y su elemento del aula, fuera de la regla.
         for a in self.actividades:
@@ -845,16 +892,7 @@ class _Montaje:
         ]
         base = [self._peso_base(a, hoja, vista, regla) for a in normales]
         pesos = normalizar_pesos(base)
-        recuperadas = self._recuperadas(hoja)
-        if evaluacion is None:
-            grupos = recuperadas
-        else:
-            grupos = (
-                [evaluacion + 1]
-                if evaluacion + 1 in recuperadas
-                and not self.esquema.evaluaciones[evaluacion].cerrada
-                else []
-            )
+        grupos = self._grupos_de_recuperacion(hoja, evaluacion)
         en_grupo: dict[int, int] = {}
         for r in grupos:
             for i, a in enumerate(normales):

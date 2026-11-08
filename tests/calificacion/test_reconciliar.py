@@ -1774,6 +1774,72 @@ def test_montaje_idempotente_con_reglas() -> None:
     assert rec.operaciones == () and rec.avisos == ()
 
 
+def esquema_mas_alta_recupera(cerrada: bool = False) -> Esquema:
+    criterios = (Criterio("CE1", "Criterio", 100.0, regla="mas_alta"),)
+    evaluaciones = (
+        Evaluacion("Primera", (1,), cerrada=cerrada),
+        Evaluacion("Segunda", (2,)),
+    )
+    return Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0, criterios=criterios),),
+        evaluaciones,
+        Final("elementos"),
+    )
+
+
+def documentos_mas_alta_recupera() -> list[Documento]:
+    return [doc("a.md", 1, CE1=100), doc("c.md", 2, CE1=100, recupera=(1,))]
+
+
+def test_migracion_mueve_y_converge() -> None:
+    cmids = {"a.md": 11, "c.md": 13}
+    d, aula = montar_reglas(esquema_mas_alta_recupera(), documentos_mas_alta_recupera(), cmids)
+    # El árbol anterior tenía la evidencia directa en la más alta; ahora va dentro del grupo.
+    ag = por_id(aula, "TZ_AG_E_CE1")
+    ag_v1 = por_id(aula, "TZ_AG_V_1_CE1")
+    real = next(n for n in aula.nodos if n.clase == "actividad" and n.cmid == 11)
+    copia = next(
+        n
+        for n in aula.nodos
+        if n.clase == "calculado"
+        and n.idnumber.startswith("TZ_C_")
+        and "TZ_A11" in (n.formula or "")
+    )
+    aula = con_nodo(aula, real.eid, padre_eid=ag.eid)
+    aula = con_nodo(aula, copia.eid, padre_eid=ag_v1.eid)
+    huellas = huellas_de(aula, cmids)
+    rec = reconciliar(d, aula, huellas, cmids)
+    assert [
+        (o.tipo, o.cmid, o.padre) for o in rec.operaciones if o.tipo == "colocar" and o.cmid == 11
+    ] == [("colocar", 11, "TZ_RP_E_1_CE1")]
+    assert [
+        (o.tipo, o.eid, o.padre)
+        for o in rec.operaciones
+        if o.tipo == "mover_manual" and o.eid == copia.eid
+    ] == [("mover_manual", copia.eid, "TZ_RP_V_1_CE1")]
+    final = aplicar(aula, rec.operaciones)
+    assert por_id(final, "TZ_RP_E_1_CE1").eid == next(
+        n.padre_eid for n in final.nodos if n.eid == real.eid
+    )
+    otra = reconciliar(d, final, huellas_de(final, cmids), cmids)
+    assert otra.operaciones == () and otra.avisos == ()
+
+
+def test_cerrada_no_se_toca() -> None:
+    cmids = {"a.md": 11, "c.md": 13}
+    _, aula = montar_reglas(esquema_mas_alta_recupera(), documentos_mas_alta_recupera(), cmids)
+    v1 = por_id(aula, "TZ_V_1")
+    aula = con_nodo(aula, v1.eid, bloqueado=True)
+    d = deseado(
+        esquema_mas_alta_recupera(cerrada=True), documentos_mas_alta_recupera(), False, CARPETA
+    )
+    assert not [n for n in d.nodos if n.idnumber.startswith(("TZ_RM_V_1_", "TZ_RP_V_1_"))]
+    rec = reconciliar(d, aula, huellas_de(aula, cmids), cmids)
+    dentro, ids = subarbol(aula, "TZ_V_1")
+    assert not [o for o in rec.operaciones if toca(o, dentro, ids)]
+
+
 # --------------------------------------------------------------------------- #
 # R1: el alumnado no ve los calculados
 # --------------------------------------------------------------------------- #
