@@ -313,6 +313,7 @@ def test_tarea_sin_rubrica_mantiene_su_hash(tmp_path) -> None:
         "---\ntipo: tarea\nnombre: Problemas\nseccion: 3\n"
         "apertura: 2026-10-01\nentrega: 2026-10-10\n---\nResuelve los problemas.\n",
         encoding="utf-8",
+        newline="\n",  # el hash, igual en Windows
     )
     doc = contenido.cargar(tmp_path / "tarea.md")
     assert doc.hash_cargado == "c354d075fa17e1bd5796e07fb8642f175bcbeb62485b58381b491d58b366af69"

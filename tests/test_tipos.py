@@ -38,7 +38,9 @@ EJEMPLOS = {
 def cargar(tmp_path):
     def _cargar(nombre: str) -> contenido.Documento:
         ruta = tmp_path / f"{nombre}.md"
-        ruta.write_text(EJEMPLOS[nombre], encoding="utf-8")
+        ruta.write_text(
+            EJEMPLOS[nombre], encoding="utf-8", newline="\n"
+        )  # el hash, igual en Windows
         return contenido.cargar(ruta, raiz=tmp_path)
 
     return _cargar

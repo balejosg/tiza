@@ -348,7 +348,7 @@ def fila_yaml(
 def escribir_rubrica(tmp_path, texto: str) -> Path:
     ruta = tmp_path / "rubricas" / "grua.md"
     ruta.parent.mkdir(parents=True, exist_ok=True)
-    ruta.write_text(texto, encoding="utf-8")
+    ruta.write_text(texto, encoding="utf-8", newline="\n")  # igual en Windows
     return ruta
 
 
