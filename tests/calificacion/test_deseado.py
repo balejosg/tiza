@@ -1432,3 +1432,475 @@ def test_sin_evidencia_el_arbol_no_cambia() -> None:
         for n in d.nodos
     ] == [(*esperado, None) for esperado in esperados]
     assert d.resultados == ()
+
+
+# ---- reglas por hoja y recuperaciones ----
+
+
+def esquema_con_criterio(
+    regla: str | None,
+    evaluaciones: tuple[Evaluacion, ...],
+    *,
+    organizacion: str = "elementos",
+    tope: Tope | None = None,
+    agregacion: Agregacion | None = None,
+) -> Esquema:
+    """Un elemento con un solo criterio hoja, para aislar las reglas y la recuperación."""
+    criterio = Criterio("CE3_1", "Instala", 100.0, "3.1", regla)
+    elemento = Elemento("RA1", "Redes", 100.0, criterios=(criterio,))
+    return Esquema(
+        organizacion,
+        (elemento,),
+        evaluaciones,
+        Final("elementos", tope),
+        agregacion=agregacion or Agregacion(),
+    )
+
+
+def ids_con_prefijo(d: Deseado, prefijos: tuple[str, ...]) -> set[str]:
+    return {n.idnumber for n in d.nodos if n.idnumber.startswith(prefijos)}
+
+
+def test_sin_reglas_el_arbol_no_cambia() -> None:
+    """Proyección exacta del árbol de siempre, con agregacion=13 en todos los nodos."""
+    esquema = esquema_con_criterio(None, (Evaluacion("Primera", (1,)),))
+    d = deseado(esquema, [doc("u1/a.md", 1, CE3_1=100)], False, CARPETA)
+    assert [
+        (n.idnumber, n.clase, n.padre, n.peso, n.formula_de, n.agregacion) for n in d.nodos
+    ] == [
+        ("TZ_TIZA", "contenedor", None, 100.0, None, 13),
+        ("TZ_FINAL", "categoria", "TZ_TIZA", 100.0, None, 13),
+        ("TZ_E_RA1", "categoria", "TZ_FINAL", 100.0, None, 13),
+        ("TZ_E_CE3_1", "categoria", "TZ_E_RA1", 100.0, None, 13),
+        ("u1/a.md", "actividad", "TZ_E_CE3_1", 100.0, None, 13),
+        ("TZ_VISTA", "contenedor", "TZ_TIZA", 0.0, None, 13),
+        ("TZ_V_1", "categoria", "TZ_VISTA", 0.0, None, 13),
+        ("TZ_V_1_RA1", "categoria", "TZ_V_1", 100.0, None, 13),
+        ("TZ_V_1_CE3_1", "categoria", "TZ_V_1_RA1", 100.0, None, 13),
+        ("TZ_C_ceaf46a83b", "copia", "TZ_V_1_CE3_1", 100.0, "u1/a.md", 13),
+    ]
+
+
+def test_mediana_va_en_subcategoria() -> None:
+    esquema = esquema_con_criterio(
+        "mediana", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+    )
+    docs = [doc("u1/a.md", 1, CE3_1=40), doc("u2/b.md", 2, CE3_1=60)]
+    d = deseado(esquema, docs, False, CARPETA)
+    hoja = nodo(d, "TZ_E_CE3_1")
+    assert (hoja.agregacion, hoja.peso) == (13, 100.0)
+    ag = nodo(d, "TZ_AG_E_CE3_1")
+    assert (ag.padre, ag.agregacion, ag.peso, ag.visualizacion) == (
+        "TZ_E_CE3_1",
+        2,
+        100.0,
+        "porcentaje",
+    )
+    dentro = hijos(d, "TZ_AG_E_CE3_1")
+    assert {n.idnumber for n in dentro} == {"u1/a.md", "u2/b.md"}
+    assert all(n.peso is None for n in dentro)
+    for n in (1, 2):
+        agv = nodo(d, f"TZ_AG_V_{n}_CE3_1")
+        assert (agv.agregacion, agv.peso) == (2, 100.0)
+        assert all(x.peso is None for x in hijos(d, agv.idnumber))
+
+
+def test_tarea_real_con_resultados_fuera_de_la_regla() -> None:
+    criterios = (
+        Criterio("CE2_2", "Mantiene", 50.0),
+        Criterio("CE3_1", "Instala", 50.0, regla="mas_alta"),
+    )
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0, criterios=criterios),),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+    )
+    docs = [tarea("u1/grua.md", 1, CE3_1=100, CE2_2=50), doc("u1/otra.md", 1, CE2_2=50)]
+    d = deseado(esquema, docs, False, CARPETA)
+    ag = nodo(d, "TZ_AG_E_CE3_1")
+    assert ag.agregacion == 6
+    dentro = {n.idnumber for n in hijos(d, ag.idnumber)}
+    assert "u1/grua.md" not in dentro
+    real = nodo(d, "u1/grua.md")
+    assert (real.padre, real.peso, real.clase) == ("TZ_E_CE3_1", 0.0, "actividad")
+    resultado = nodo(d, idnumber_resultado("u1/grua.md", "CE3_1"))
+    assert (resultado.padre, resultado.peso, resultado.clase) == (
+        "TZ_E_CE3_1",
+        0.0,
+        "resultado",
+    )
+    calculados = [n for n in hijos(d, ag.idnumber) if n.clase == "resultado_calc"]
+    assert len(calculados) == 1
+    assert (calculados[0].peso, calculados[0].formula_de) == (None, resultado.idnumber)
+
+
+def test_pesos_sin_efecto() -> None:
+    evaluaciones = (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+
+    def avisos(regla: str, pesos: tuple[float, float], agregacion: Agregacion | None = None):
+        d = deseado(
+            esquema_con_criterio(regla, evaluaciones, agregacion=agregacion),
+            [
+                doc("u1/a.md", 1, CE3_1=pesos[0]),
+                doc("u2/b.md", 2, CE3_1=pesos[1]),
+            ],
+            False,
+            CARPETA,
+        )
+        return [aviso for aviso in d.avisos if aviso[0] == "PESOS_SIN_EFECTO"]
+
+    assert avisos("mas_alta", (40, 60)) == [("PESOS_SIN_EFECTO", "CE3_1")]
+    assert avisos("mas_alta", (50, 50)) == []
+    assert avisos("mediana", (40, 60)) == [("PESOS_SIN_EFECTO", "CE3_1")]
+    # La progresiva sí usa los pesos: no avisa.
+    progresiva = Agregacion("progresiva", (1.0, 2.0))
+    assert avisos("progresiva", (40, 60), progresiva) == []
+
+
+def test_progresiva_multiplica_por_el_factor() -> None:
+    esquema = esquema_con_criterio(
+        "progresiva",
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)), Evaluacion("Tercera", (3,))),
+        agregacion=Agregacion("progresiva", (1.0, 2.0, 3.0)),
+    )
+    docs = [doc("u1/a.md", 1, CE3_1=50), doc("u3/c.md", 3, CE3_1=50)]
+    d = deseado(esquema, docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_CE3_1")] == [25.0, 75.0]
+    assert [n.peso for n in hijos(d, "TZ_V_1_CE3_1")] == [100.0]
+    assert [n.peso for n in hijos(d, "TZ_V_2_CE3_1")] == []
+    assert [n.peso for n in hijos(d, "TZ_V_3_CE3_1")] == [100.0]
+
+
+def test_actividad_sin_evaluacion_con_progresiva() -> None:
+    esquema = esquema_con_criterio(
+        "progresiva",
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))),
+        agregacion=Agregacion("progresiva", (1.0, 2.0)),
+    )
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(esquema, [doc("u9/a.md", 9, CE3_1=100)], False, CARPETA)
+    assert info.value.codigo == "ACTIVIDAD_SIN_EVALUACION"
+    assert "u9/a.md" in info.value.detalle
+
+
+def test_recuperacion_en_la_vista_por_elementos() -> None:
+    esquema = esquema_con_criterio(None, (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))))
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    rm = nodo(d, "TZ_RM_E_1_CE3_1")
+    assert (rm.padre, rm.agregacion, rm.peso) == ("TZ_E_CE3_1", 6, 50.0)
+    rp = nodo(d, "TZ_RP_E_1_CE3_1")
+    assert (rp.padre, rp.agregacion, rp.peso) == ("TZ_RM_E_1_CE3_1", 13, None)
+    assert (nodo(d, "u1/a.md").padre, nodo(d, "u1/a.md").peso) == (
+        "TZ_RP_E_1_CE3_1",
+        100.0,
+    )
+    assert (nodo(d, "u2/recu.md").padre, nodo(d, "u2/recu.md").peso) == (
+        "TZ_RM_E_1_CE3_1",
+        None,
+    )
+    assert (nodo(d, "u2/b.md").padre, nodo(d, "u2/b.md").peso) == ("TZ_E_CE3_1", 50.0)
+    assert sum(n.peso or 0 for n in hijos(d, "TZ_E_CE3_1")) == pytest.approx(100.0)
+    # En la vista por evaluaciones, la recuperación también sustituye.
+    assert nodo(d, "TZ_RM_V_1_CE3_1").peso == 100.0
+    assert copia_de(d, "u1/a.md", "TZ_RP_V_1_CE3_1").peso == 100.0
+    comprobar_sin_circulares(d.nodos)
+
+
+def test_recuperacion_de_una_evaluacion_cerrada() -> None:
+    esquema = esquema_con_criterio(
+        None,
+        (Evaluacion("Primera", (1,), cerrada=True), Evaluacion("Segunda", (2,))),
+    )
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    # En la vista por elementos sí: la nota de la evaluación cerrada no se toca en el aula.
+    assert nodo(d, "TZ_RM_E_1_CE3_1")
+    # En la vista por evaluaciones no se añade nada a la evaluación cerrada.
+    assert not [n for n in d.nodos if n.idnumber == "TZ_RM_V_1_CE3_1"]
+    assert ("RECUPERACION_EN_CERRADA", "TZ_V_1") in d.avisos
+    assert len([a for a in d.avisos if a[0] == "RECUPERACION_EN_CERRADA"]) == 1
+    # La actividad no queda omitida: su pieza real está en la vista por elementos.
+    assert "u2/recu.md" in dict(d.actividades)
+    assert not [n for n in d.nodos if n.formula_de == "u2/recu.md" and n.padre == "TZ_V_1_CE3_1"]
+    assert copia_de(d, "u1/a.md", "TZ_V_1_CE3_1").peso == 100.0
+
+
+def test_recuperacion_no_es_evidencia_de_su_seccion() -> None:
+    esquema = esquema_con_criterio(None, (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))))
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    propias = hijos(d, "TZ_V_2_CE3_1")
+    assert not [n for n in propias if n.idnumber == "u2/recu.md" or n.formula_de == "u2/recu.md"]
+    fuera = hijos(d, "TZ_E_CE3_1")
+    assert not [n for n in fuera if n.idnumber == "u2/recu.md" or n.formula_de == "u2/recu.md"]
+    # Solo aparece dentro de la recuperación de la evaluación 1.
+    assert nodo(d, "TZ_RM_E_1_CE3_1")
+    assert copia_de(d, "u2/recu.md", "TZ_RM_V_1_CE3_1")
+
+
+def test_recupera_lista() -> None:
+    esquema = esquema_con_criterio(
+        None,
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)), Evaluacion("Tercera", (3,))),
+    )
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc("u3/d.md", 3, CE3_1=50),
+        doc("u3/recu.md", 3, recupera=(1, 2), CE3_1=100),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    real = nodo(d, "u3/recu.md")
+    assert (real.clase, real.padre) == ("actividad", "TZ_RM_E_1_CE3_1")
+    copia = copia_de(d, "u3/recu.md", "TZ_RM_E_2_CE3_1")
+    assert copia.formula_de == "u3/recu.md"
+    for n in (1, 2):
+        assert copia_de(d, "u3/recu.md", f"TZ_RM_V_{n}_CE3_1").formula_de == "u3/recu.md"
+
+
+def test_recuperacion_con_mas_alta_es_una_evidencia() -> None:
+    esquema = esquema_con_criterio(
+        "mas_alta", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+    )
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc("u2/recu.md", 2, recupera=(1,), CE3_1=50),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    assert not [n for n in d.nodos if n.idnumber.startswith(("TZ_RM_", "TZ_RP_"))]
+    assert {n.idnumber for n in hijos(d, "TZ_AG_E_CE3_1")} == {
+        "u1/a.md",
+        "u2/b.md",
+        "u2/recu.md",
+    }
+    assert nodo(d, "u2/recu.md").padre == "TZ_AG_E_CE3_1"
+    assert copia_de(d, "u1/a.md", "TZ_AG_V_1_CE3_1")
+    assert copia_de(d, "u2/recu.md", "TZ_AG_V_1_CE3_1")
+
+
+def test_recuperacion_con_mediana() -> None:
+    esquema = esquema_con_criterio(
+        "mediana", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+    )
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+    ]
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(esquema, docs, False, CARPETA)
+    assert info.value.codigo == "RECUPERACION_CON_MEDIANA"
+    assert "u2/recu.md" in info.value.detalle and "CE3_1" in info.value.detalle
+
+
+def test_recupera_sin_evidencias() -> None:
+    esquema = esquema_con_criterio(None, (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))))
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(
+            esquema,
+            [doc("u2/recu.md", 2, recupera=(1,), CE3_1=100)],
+            False,
+            CARPETA,
+        )
+    assert info.value.codigo == "RECUPERA_SIN_EVIDENCIAS"
+    assert "u2/recu.md" in info.value.detalle
+    assert "CE3_1" in info.value.detalle and "1" in info.value.detalle
+
+
+def test_recuperacion_solo_final_de_elementos() -> None:
+    esquema = Esquema(
+        "evaluaciones",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                100.0,
+                criterios=(Criterio("CE3_1", "Instala", 100.0),),
+            ),
+        ),
+        (Evaluacion("Primera", (1,), 50.0), Evaluacion("Segunda", (2,), 50.0)),
+        Final("evaluaciones"),
+    )
+    docs = [
+        doc("u1/a.md", 1, CE3_1=100),
+        doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+    ]
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(esquema, docs, False, CARPETA)
+    assert info.value.codigo == "RECUPERACION_SOLO_FINAL_DE_ELEMENTOS"
+    assert "u2/recu.md" in info.value.detalle
+
+
+def test_regla_con_tope() -> None:
+    evaluaciones = (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(
+            esquema_con_criterio("mediana", evaluaciones, tope=Tope(5.0, 4.0)),
+            [doc("u1/a.md", 1, CE3_1=100)],
+            False,
+            CARPETA,
+        )
+    assert info.value.codigo == "REGLA_CON_TOPE"
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(
+            esquema_con_criterio(None, evaluaciones, tope=Tope(5.0, 4.0)),
+            [
+                doc("u1/a.md", 1, CE3_1=100),
+                doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+            ],
+            False,
+            CARPETA,
+        )
+    assert info.value.codigo == "REGLA_CON_TOPE"
+    # La progresiva sí vale con tope.
+    d = deseado(
+        esquema_con_criterio(
+            "progresiva",
+            evaluaciones,
+            tope=Tope(5.0, 4.0),
+            agregacion=Agregacion("progresiva", (1.0, 2.0)),
+        ),
+        [doc("u1/a.md", 1, CE3_1=100)],
+        False,
+        CARPETA,
+    )
+    assert nodo(d, "TZ_NOTAS")
+
+
+def test_recuperacion_con_resultados() -> None:
+    esquema = esquema_con_criterio(None, (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))))
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc(
+            "u2/recu.md",
+            2,
+            tipo="tarea",
+            evidencia="resultados",
+            recupera=(1,),
+            CE3_1=100,
+        ),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    real = nodo(d, "u2/recu.md")
+    assert (real.padre, real.peso) == ("TZ_E_CE3_1", 0.0)
+    resultado = nodo(d, idnumber_resultado("u2/recu.md", "CE3_1"))
+    assert (resultado.padre, resultado.peso) == ("TZ_E_CE3_1", 0.0)
+    rm = hijos(d, "TZ_RM_E_1_CE3_1")
+    assert not [n for n in rm if n.idnumber == "u2/recu.md"]
+    calculados = [n for n in rm if n.clase == "resultado_calc"]
+    assert len(calculados) == 1
+    assert calculados[0].formula_de == resultado.idnumber
+    assert calculados[0].peso is None
+
+
+def test_ids_de_las_reglas_y_recuperaciones_estables() -> None:
+    criterios = (
+        Criterio("CE1", "Uno", 50.0),
+        Criterio("CE2", "Dos", 50.0, regla="mas_alta"),
+    )
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0, criterios=criterios),),
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))),
+        Final("elementos"),
+    )
+    docs = [
+        doc("u1/a.md", 1, CE1=50, CE2=100),
+        doc("u2/b.md", 2, CE1=50, CE2=100),
+        doc("u2/recu.md", 2, recupera=(1,), CE1=100),
+    ]
+    antes = ids_con_prefijo(deseado(esquema, docs, False, CARPETA), ("TZ_AG_", "TZ_RM_", "TZ_RP_"))
+    assert antes == {
+        "TZ_AG_E_CE2",
+        "TZ_AG_V_1_CE2",
+        "TZ_AG_V_2_CE2",
+        "TZ_RM_E_1_CE1",
+        "TZ_RP_E_1_CE1",
+        "TZ_RM_V_1_CE1",
+        "TZ_RP_V_1_CE1",
+    }
+    despues = ids_con_prefijo(
+        deseado(esquema, docs + [doc("u1/nueva.md", 1, CE1=0, CE2=0)], False, CARPETA),
+        ("TZ_AG_", "TZ_RM_", "TZ_RP_"),
+    )
+    assert despues == antes
+
+
+def test_comprobar_sin_circulares_en_las_reglas_y_recuperaciones() -> None:
+    casos = [
+        (
+            esquema_con_criterio(
+                "mediana", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+            ),
+            [doc("u1/a.md", 1, CE3_1=40), doc("u2/b.md", 2, CE3_1=60)],
+        ),
+        (
+            esquema_con_criterio(None, (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))),
+            [
+                doc("u1/a.md", 1, CE3_1=50),
+                doc("u2/b.md", 2, CE3_1=50),
+                doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+            ],
+        ),
+        (
+            esquema_con_criterio(
+                "mas_alta", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
+            ),
+            [
+                doc("u1/a.md", 1, CE3_1=50),
+                doc("u2/recu.md", 2, recupera=(1,), CE3_1=50),
+            ],
+        ),
+    ]
+    for esquema, docs in casos:
+        comprobar_sin_circulares(deseado(esquema, docs, False, CARPETA).nodos)
+
+
+def test_recuperacion_con_resultados_en_varias_evaluaciones() -> None:
+    esquema = esquema_con_criterio(
+        None,
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)), Evaluacion("Tercera", (3,))),
+    )
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc("u3/d.md", 3, CE3_1=50),
+        doc(
+            "u3/recu.md",
+            3,
+            tipo="tarea",
+            evidencia="resultados",
+            recupera=(1, 2),
+            CE3_1=100,
+        ),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    resultado = idnumber_resultado("u3/recu.md", "CE3_1")
+    calculados = [n for n in d.nodos if n.clase == "resultado_calc" and n.formula_de == resultado]
+    # Uno por vista y por evaluación recuperada: ni se repite un id ni se copia un calculado.
+    assert len(calculados) == 4
+    assert len({n.idnumber for n in calculados}) == 4
+    assert all(n.maximo == 10.0 for n in calculados)
+    assert {n.padre for n in calculados} == {
+        "TZ_RM_E_1_CE3_1",
+        "TZ_RM_E_2_CE3_1",
+        "TZ_RM_V_1_CE3_1",
+        "TZ_RM_V_2_CE3_1",
+    }
+    ids = [n.idnumber for n in d.nodos]
+    assert len(ids) == len(set(ids))

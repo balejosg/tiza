@@ -35,6 +35,7 @@ import hashlib
 from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NoReturn
 
 from tiza.calificacion.esquema import (
     Criterio,
@@ -74,6 +75,10 @@ K_TIZA = "TZ_K_TIZA"
 NOTA_FINAL = "TZ_NOTA_FINAL"
 _VISTA_ELEMENTOS = "E"
 _VISTA_EVALUACIONES = "V"
+# Las agregaciones de Moodle que usa tiza (D1): Natural, Mediana y Calificación más alta.
+AGREGACION_NATURAL = 13
+AGREGACION_MEDIANA = 2
+AGREGACION_MAS_ALTA = 6
 
 
 @dataclass(frozen=True)
@@ -89,7 +94,9 @@ class Nodo:
     elemento del aula (``TZ_O_…``, peso 0, sin ``formula_de``). Las categorías son
     ``TZ_E_<elem>``, ``TZ_E_<crit>``, ``TZ_V_<n>``, ``TZ_V_<n>_<elem>`` y ``TZ_V_<n>_<crit>``.
     ``maximo`` es el máximo del calculado (10 en un ``resultado_calc``); ``None`` lo deja como
-    lo decide el aula.
+    lo decide el aula. ``agregacion`` es la de Moodle (13 Natural, 2 Mediana y 6 Calificación
+    más alta): solo las subcategorías de una regla nativa o de una recuperación se apartan del
+    valor de siempre.
     """
 
     idnumber: str
@@ -100,6 +107,7 @@ class Nodo:
     formula_de: str | tuple[str, str] | None = None
     visualizacion: str | None = None
     maximo: float | None = None
+    agregacion: int = AGREGACION_NATURAL
 
 
 @dataclass(frozen=True)
@@ -233,8 +241,13 @@ def _validar(
     ruta: str,
     evalua: tuple[tuple[str, float], ...],
     seccion: int | str,
-) -> int:
-    """Comprueba el ``evalua`` y la sección de una actividad o instrumento; da su evaluación."""
+) -> int | None:
+    """Comprueba el ``evalua`` y la sección de una actividad o instrumento; da su evaluación.
+
+    Devuelve ``None`` si la sección no cae en ninguna evaluación: quien llama decide el código
+    (``ACTIVIDAD_SIN_EVALUACION`` si alguna hoja es progresiva y ``SECCION_SIN_EVALUACION`` si
+    no).
+    """
     hojas = {hoja for hoja, _ in _hojas(esquema)}
     con_criterios = {e.id for e in esquema.elementos if e.criterios}
     for id_, _ in evalua:
@@ -249,7 +262,7 @@ def _validar(
                 f"{ruta}: evalua nombra «{id_}», que no está entre los elementos ni los "
                 "criterios de calificacion.yaml",
             )
-    evaluacion = next(
+    return next(
         (
             i
             for i, ev in enumerate(esquema.evaluaciones)
@@ -257,12 +270,6 @@ def _validar(
         ),
         None,
     )
-    if evaluacion is None:
-        raise ErrorCalificacion(
-            "SECCION_SIN_EVALUACION",
-            f"{ruta}: la sección «{seccion}» no está en ninguna evaluación de calificacion.yaml",
-        )
-    return evaluacion
 
 
 def _validar_recupera(esquema: Esquema, ruta: str, recupera: tuple[int, ...]) -> None:
@@ -272,6 +279,71 @@ def _validar_recupera(esquema: Esquema, ruta: str, recupera: tuple[int, ...]) ->
             raise ErrorCalificacion(
                 "RECUPERA_INVALIDO", f"{ruta}: recupera {n} y no hay evaluación {n}"
             )
+
+
+def _sin_evaluacion(
+    esquema: Esquema,
+    ruta: str,
+    evalua: tuple[tuple[str, float], ...],
+    seccion: int | str,
+) -> NoReturn:
+    """La sección no cae en ninguna evaluación: el código depende de la regla de la hoja."""
+    progresiva = next((hoja for hoja, _ in evalua if esquema.regla_de(hoja) == "progresiva"), None)
+    if progresiva is not None:
+        raise ErrorCalificacion(
+            "ACTIVIDAD_SIN_EVALUACION",
+            f"{ruta}: la sección «{seccion}» no está en ninguna evaluación y «{progresiva}» "
+            "usa la regla progresiva, que necesita el factor de su evaluación",
+        )
+    raise ErrorCalificacion(
+        "SECCION_SIN_EVALUACION",
+        f"{ruta}: la sección «{seccion}» no está en ninguna evaluación de calificacion.yaml",
+    )
+
+
+def _validar_reglas(esquema: Esquema, actividades: list[_Actividad]) -> None:
+    """Las reglas nativas y las recuperaciones que no caben con el resto del esquema (D8/D10)."""
+    con_recupera = [a for a in actividades if a.recupera]
+    if con_recupera and esquema.final.de != "elementos":
+        raise ErrorCalificacion(
+            "RECUPERACION_SOLO_FINAL_DE_ELEMENTOS",
+            f"{con_recupera[0].ruta}: recupera solo vale cuando la final es de elementos",
+        )
+    if esquema.final.tope is not None:
+        for hoja, _ in _hojas(esquema):
+            regla = esquema.regla_de(hoja)
+            if regla not in ("media", "progresiva"):
+                raise ErrorCalificacion(
+                    "REGLA_CON_TOPE",
+                    f"«{hoja}» usa la regla «{regla}» y la final tiene tope: con tope solo "
+                    "valen media y progresiva",
+                )
+        if con_recupera:
+            raise ErrorCalificacion(
+                "REGLA_CON_TOPE",
+                f"{con_recupera[0].ruta}: recupera no vale si la final tiene tope",
+            )
+    for a in con_recupera:
+        for hoja, _ in a.evalua:
+            if esquema.regla_de(hoja) == "mediana":
+                raise ErrorCalificacion(
+                    "RECUPERACION_CON_MEDIANA",
+                    f"{a.ruta}: «{hoja}» usa la regla mediana y no admite recuperación",
+                )
+            for n in a.recupera:
+                if not any(
+                    b is not a
+                    and not b.recupera
+                    and hoja in dict(b.evalua)
+                    and dict(b.evalua)[hoja] > 0
+                    and b.evaluacion == n - 1
+                    for b in actividades
+                ):
+                    raise ErrorCalificacion(
+                        "RECUPERA_SIN_EVIDENCIAS",
+                        f"{a.ruta}: «{hoja}» no tiene evidencias normales en la evaluación "
+                        f"{n}, que recupera",
+                    )
 
 
 def _actividades(
@@ -295,6 +367,8 @@ def _actividades(
         if esquema.actividades_pesan_igual:
             evalua = tuple((id_, 1.0) for id_, _ in evalua)
         evaluacion = _validar(esquema, ruta, evalua, documento.seccion)
+        if evaluacion is None:
+            _sin_evaluacion(esquema, ruta, evalua, documento.seccion)
         recupera = documento.recupera or ()
         _validar_recupera(esquema, ruta, recupera)
         resultado.append(
@@ -315,6 +389,8 @@ def _actividades(
             evalua = tuple((id_, 1.0) for id_, _ in evalua)
         ruta = f"instrumentos[{i}]"
         evaluacion = _validar(esquema, ruta, evalua, instrumento.seccion)
+        if evaluacion is None:
+            _sin_evaluacion(esquema, ruta, evalua, instrumento.seccion)
         recupera = instrumento.recupera or ()
         _validar_recupera(esquema, ruta, recupera)
         resultado.append(
@@ -346,6 +422,7 @@ def deseado(
     no estén se tratan como tareas normales, con actividad real y copias.
     """
     actividades = _actividades(esquema, documentos, carpeta, resultados)
+    _validar_reglas(esquema, actividades)
     return _Montaje(esquema, actividades, anterior).montar()
 
 
@@ -416,9 +493,15 @@ class _Montaje:
         """``TZ_O_<huella>``: el elemento de resultado del aula de una tarea y un criterio."""
         return f"TZ_O_{_huella(f'{ruta}|{hoja}')}"
 
-    def _calc_id(self, ruta: str, hoja: str, vista: str) -> str:
-        """``TZ_R_<huella>``: el calculado que reescala el resultado en una vista."""
-        return f"TZ_R_{_huella(f'{ruta}|{hoja}|{vista}')}"
+    def _calc_id(self, ruta: str, hoja: str, vista: str, grupo: int | None = None) -> str:
+        """``TZ_R_<huella>``: el calculado que reescala el resultado en una vista.
+
+        Una recuperación de una tarea con resultados puede aparecer en varias evaluaciones:
+        cada grupo lleva su propio calculado del criterio, no una copia del calculado.
+        """
+        if grupo is None:
+            return f"TZ_R_{_huella(f'{ruta}|{hoja}|{vista}')}"
+        return f"TZ_R_{_huella(f'{ruta}|{hoja}|{vista}|recupera|{grupo}')}"
 
     def _es_real(self, actividad: _Actividad, hoja: str, vista: str) -> bool:
         return hoja == actividad.evalua[0][0] and vista == self.vista_real
@@ -438,10 +521,21 @@ class _Montaje:
         """Tiene actividades (en la evaluación, si se da) pero ninguna pesa > 0 en su ``evalua``.
 
         Moodle daría por completa una categoría así (máximo 0): no aporta a su padre, como la
-        que no tiene actividades, y sus hermanos se renormalizan sin ella.
+        que no tiene actividades, y sus hermanos se renormalizan sin ella. Una recuperación no
+        es evidencia de la evaluación de su sección: su peso no la saca de ``nula``.
         """
-        pesos = [dict(a.evalua)[h] for h in hojas for a in self._de_hoja(h, evaluacion)]
-        return bool(pesos) and not any(p > 0 for p in pesos)
+        hay = False
+        pesos: list[float] = []
+        for h in hojas:
+            regla = self.esquema.regla_de(h)
+            for a in self._de_hoja(h, evaluacion):
+                hay = True
+                if not a.recupera:
+                    pesos.append(dict(a.evalua)[h])
+                elif regla == "mas_alta" and (evaluacion is None or evaluacion + 1 in a.recupera):
+                    # En «más alta» la recuperación es una evidencia más, con su valor.
+                    pesos.append(1.0)
+        return hay and not any(p > 0 for p in pesos)
 
     def _pesos_de_elementos(
         self, elementos: list[Elemento], evaluacion: int | None = None
@@ -465,56 +559,295 @@ class _Montaje:
             ]
         )
 
-    def _hijos_actividad(
-        self, padre: str, hoja: str, vista: str, actividades: list[_Actividad], cuenta: bool = True
-    ) -> None:
-        """Las actividades (reales, copias o resultados) de un contenedor, con su peso.
+    def _pieza_real(
+        self, actividad: _Actividad, hoja: str, vista: str, grupo: int | None = None
+    ) -> bool:
+        """La pieza real de una recuperación vive siempre en la vista por elementos (D9)."""
+        if actividad.recupera:
+            return (
+                hoja == actividad.evalua[0][0]
+                and vista == _VISTA_ELEMENTOS
+                and (grupo is None or grupo == min(actividad.recupera))
+            )
+        return self._es_real(actividad, hoja, vista)
 
-        ``cuenta`` es que el contenedor pesa algo para su elemento: si no, sus hijos no dan
-        indicador al contador. Una tarea con ``evidencia: resultados`` pone un
-        ``resultado_calc`` por vista (y un ``resultado`` en la vista real) en lugar de la copia;
-        la actividad real se queda con peso 0.
-        """
-        pesos = normalizar_pesos([dict(a.evalua)[hoja] for a in actividades])
-        for a, peso in zip(actividades, pesos, strict=True):
-            real = self._es_real(a, hoja, vista)
-            if real:
-                clase = "manual" if a.manual else "actividad"
-                self._agregar(Nodo(a.ruta, clase, a.nombre, padre, 0.0 if a.resultados else peso))
-            if a.resultados:
-                resultado = self._resultado_id(a.ruta, hoja)
-                if vista == self.vista_real:
-                    self._agregar(
-                        Nodo(
-                            resultado,
-                            "resultado",
-                            self.nombre_de_hoja[hoja],
-                            padre,
-                            0.0,
-                        )
-                    )
-                calculado = Nodo(
-                    self._calc_id(a.ruta, hoja, vista),
+    def _copia_id(self, actividad: _Actividad, hoja: str, vista: str, grupo: int | None) -> str:
+        if actividad.recupera:
+            # Una recuperación puede repetirse en varias evaluaciones: cada copia necesita su id.
+            return f"TZ_C_{_huella(f'{actividad.ruta}|{hoja}|{vista}|recupera|{grupo or 0}')}"
+        return self.copias[(actividad.ruta, hoja, vista)]
+
+    def _evidencia(
+        self,
+        padre: str,
+        hoja: str,
+        vista: str,
+        actividad: _Actividad,
+        peso: float | None,
+        grupo: int | None = None,
+    ) -> str:
+        """La evidencia de una actividad en un contenedor (calculado, actividad real o copia)."""
+        if actividad.resultados:
+            calculado = self._calc_id(
+                actividad.ruta, hoja, vista, grupo if actividad.recupera else None
+            )
+            self._agregar(
+                Nodo(
+                    calculado,
                     "resultado_calc",
-                    f"{a.nombre} ({hoja})",
+                    f"{actividad.nombre} ({hoja})",
                     padre,
                     peso,
-                    resultado,
+                    self._resultado_id(actividad.ruta, hoja),
                     maximo=10.0,
                 )
-                self._agregar(calculado)
-                referencia = calculado.idnumber
-            elif real:
-                referencia = a.ruta
-            else:
-                idnumber = self.copias[(a.ruta, hoja, vista)]
-                copia = Nodo(idnumber, "copia", f"{a.nombre} (copia)", padre, peso, a.ruta)
-                self._agregar(copia)
-                referencia = copia.idnumber
+            )
+            return calculado
+        if self._pieza_real(actividad, hoja, vista, grupo):
+            clase = "manual" if actividad.manual else "actividad"
+            self._agregar(Nodo(actividad.ruta, clase, actividad.nombre, padre, peso))
+            return actividad.ruta
+        idnumber = self._copia_id(actividad, hoja, vista, grupo)
+        self._agregar(
+            Nodo(idnumber, "copia", f"{actividad.nombre} (copia)", padre, peso, actividad.ruta)
+        )
+        return idnumber
+
+    def _pieza_completa(
+        self, padre: str, hoja: str, vista: str, actividad: _Actividad, peso: float
+    ) -> str:
+        """La actividad entera en el contenedor: real, resultado del aula y calculado o copia."""
+        if actividad.resultados:
+            if self._pieza_real(actividad, hoja, vista):
+                clase = "manual" if actividad.manual else "actividad"
+                self._agregar(Nodo(actividad.ruta, clase, actividad.nombre, padre, 0.0))
+            if vista == self.vista_real:
+                self._agregar(
+                    Nodo(
+                        self._resultado_id(actividad.ruta, hoja),
+                        "resultado",
+                        self.nombre_de_hoja[hoja],
+                        padre,
+                        0.0,
+                    )
+                )
+        return self._evidencia(padre, hoja, vista, actividad, peso)
+
+    def _base_resultados(self, padre: str, hoja: str, vista: str, actividad: _Actividad) -> None:
+        """Lo que no es evidencia de una tarea con resultados: su actividad real y su resultado.
+
+        Lo que va dentro de una regla o de una recuperación es el calculado del criterio; la
+        tarea real y el elemento de resultado del aula se quedan fuera, con peso 0 (D10/D9).
+        """
+        if self._pieza_real(actividad, hoja, vista):
+            clase = "manual" if actividad.manual else "actividad"
+            self._agregar(Nodo(actividad.ruta, clase, actividad.nombre, padre, 0.0))
+        if vista == self.vista_real:
+            self._agregar(
+                Nodo(
+                    self._resultado_id(actividad.ruta, hoja),
+                    "resultado",
+                    self.nombre_de_hoja[hoja],
+                    padre,
+                    0.0,
+                )
+            )
+
+    def _peso_base(self, actividad: _Actividad, hoja: str, vista: str, regla: str) -> float:
+        """El peso de ``evalua``, con el factor de su evaluación si la hoja es progresiva."""
+        peso = dict(actividad.evalua)[hoja]
+        if regla == "progresiva" and vista == _VISTA_ELEMENTOS:
+            return peso * self.esquema.agregacion.factores[actividad.evaluacion]
+        return peso
+
+    def _recuperadas(self, hoja: str) -> list[int]:
+        """Las evaluaciones (1-based) que alguna actividad recupera en esta hoja."""
+        return sorted({n for a in self.actividades if hoja in dict(a.evalua) for n in a.recupera})
+
+    def _recuperadoras(self, hoja: str, evaluacion: int) -> list[_Actividad]:
+        """Las actividades que recuperan esa evaluación (1-based) en esta hoja."""
+        return [
+            a
+            for a in self.actividades
+            if hoja in dict(a.evalua) and a.recupera and evaluacion in a.recupera
+        ]
+
+    def _contenido_hoja(
+        self,
+        padre: str,
+        hoja: str,
+        vista: str,
+        evaluacion: int | None,
+        cuenta: bool = True,
+    ) -> None:
+        """Lo que cuelga de la categoría de una hoja, según su regla y sus recuperaciones."""
+        regla = self.esquema.regla_de(hoja)
+        if regla in ("mediana", "mas_alta"):
+            self._contenido_regla(padre, hoja, vista, evaluacion, regla, cuenta)
+        else:
+            self._contenido_media(padre, hoja, vista, evaluacion, regla, cuenta)
+
+    def _contenido_regla(
+        self,
+        padre: str,
+        hoja: str,
+        vista: str,
+        evaluacion: int | None,
+        regla: str,
+        cuenta: bool,
+    ) -> None:
+        """Mediana o más alta: la subcategoría con lo que cuenta; fuera, lo que pesa 0."""
+        dentro: list[_Actividad] = []
+        for a in self.actividades:
+            if hoja not in dict(a.evalua):
+                continue
+            if a.recupera:
+                if evaluacion is None or (
+                    evaluacion + 1 in a.recupera
+                    and not self.esquema.evaluaciones[evaluacion].cerrada
+                ):
+                    dentro.append(a)
+            elif evaluacion is not None and a.evaluacion != evaluacion:
+                continue
+            elif dict(a.evalua)[hoja] > 0:
+                dentro.append(a)
+        sufijo = "E" if evaluacion is None else f"V_{evaluacion + 1}"
+        agregacion = AGREGACION_MEDIANA if regla == "mediana" else AGREGACION_MAS_ALTA
+        nombre_regla = "Mediana" if regla == "mediana" else "Calificación más alta"
+        ag_id = f"TZ_AG_{sufijo}_{hoja}"
+        self._agregar(
+            Nodo(
+                ag_id,
+                "categoria",
+                f"{self.nombre_de_hoja[hoja]} ({nombre_regla})",
+                padre,
+                100.0,
+                None,
+                "porcentaje",
+                agregacion=agregacion,
+            )
+        )
+        for a in dentro:
+            grupo = None if evaluacion is None else evaluacion + 1
+            referencia = self._evidencia(ag_id, hoja, vista, a, None, grupo=grupo)
+            if vista == _VISTA_ELEMENTOS and cuenta:
+                self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
+                    (referencia, a.nombre)
+                )
+        # Lo de peso 0 se queda fuera de la regla, como hoy.
+        for a in self.actividades:
+            if hoja not in dict(a.evalua) or a.recupera:
+                continue
+            if evaluacion is not None and a.evaluacion != evaluacion:
+                continue
+            if dict(a.evalua)[hoja] == 0:
+                self._pieza_completa(padre, hoja, vista, a, 0.0)
+        # La tarea real con resultados y su elemento del aula, fuera de la regla.
+        for a in self.actividades:
+            if not a.resultados or hoja not in dict(a.evalua):
+                continue
+            if evaluacion is not None and a.evaluacion != evaluacion:
+                continue
+            if a.recupera or dict(a.evalua)[hoja] > 0:
+                self._base_resultados(padre, hoja, vista, a)
+
+    def _contenido_media(
+        self,
+        padre: str,
+        hoja: str,
+        vista: str,
+        evaluacion: int | None,
+        regla: str,
+        cuenta: bool,
+    ) -> None:
+        """Media o progresiva: los pesos de ``evalua``, con la recuperación si la hay (D9)."""
+        normales = [
+            a
+            for a in self.actividades
+            if hoja in dict(a.evalua)
+            and not a.recupera
+            and (evaluacion is None or a.evaluacion == evaluacion)
+        ]
+        base = [self._peso_base(a, hoja, vista, regla) for a in normales]
+        pesos = normalizar_pesos(base)
+        recuperadas = self._recuperadas(hoja)
+        if evaluacion is None:
+            grupos = recuperadas
+        else:
+            grupos = (
+                [evaluacion + 1]
+                if evaluacion + 1 in recuperadas
+                and not self.esquema.evaluaciones[evaluacion].cerrada
+                else []
+            )
+        en_grupo: dict[int, int] = {}
+        for r in grupos:
+            for i, a in enumerate(normales):
+                if a.evaluacion == r - 1 and dict(a.evalua)[hoja] > 0:
+                    en_grupo[i] = r
+        for r in grupos:
+            indices = [i for i, a in enumerate(normales) if en_grupo.get(i) == r]
+            evidencias = [normales[i] for i in indices]
+            pesos_grupo = normalizar_pesos([base[i] for i in indices])
+            peso_rm = 100.0 if evaluacion is not None else round(sum(pesos[i] for i in indices), 2)
+            sufijo = "E" if evaluacion is None else "V"
+            rm_id = f"TZ_RM_{sufijo}_{r}_{hoja}"
+            rp_id = f"TZ_RP_{sufijo}_{r}_{hoja}"
+            nombre_eval = self.esquema.evaluaciones[r - 1].nombre
+            self._agregar(
+                Nodo(
+                    rm_id,
+                    "categoria",
+                    f"Recuperación · {self.nombre_de_hoja[hoja]} ({nombre_eval})",
+                    padre,
+                    peso_rm,
+                    None,
+                    "porcentaje",
+                    agregacion=AGREGACION_MAS_ALTA,
+                )
+            )
+            self._agregar(
+                Nodo(
+                    rp_id,
+                    "categoria",
+                    f"Evidencias · {self.nombre_de_hoja[hoja]} ({nombre_eval})",
+                    rm_id,
+                    None,
+                    None,
+                    "porcentaje",
+                    agregacion=AGREGACION_NATURAL,
+                )
+            )
+            for a, p in zip(evidencias, pesos_grupo, strict=True):
+                referencia = self._evidencia(rp_id, hoja, vista, a, p, grupo=r)
+                if vista == _VISTA_ELEMENTOS and cuenta:
+                    self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
+                        (referencia, a.nombre)
+                    )
+            for a in self._recuperadoras(hoja, r):
+                referencia = self._evidencia(rm_id, hoja, vista, a, None, grupo=r)
+                if vista == _VISTA_ELEMENTOS and cuenta:
+                    self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
+                        (referencia, a.nombre)
+                    )
+        # Fuera de las recuperaciones: lo que no va en ningún TZ_RM.
+        for i, (a, peso) in enumerate(zip(normales, pesos, strict=True)):
+            if i in en_grupo:
+                if a.resultados:
+                    self._base_resultados(padre, hoja, vista, a)
+                continue
+            referencia = self._pieza_completa(padre, hoja, vista, a, peso)
             if vista == _VISTA_ELEMENTOS and peso > 0 and cuenta:
                 self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
                     (referencia, a.nombre)
                 )
+        # La parte real de una recuperación con resultados, fuera de su TZ_RM.
+        for a in self.actividades:
+            if not a.resultados or not a.recupera or hoja not in dict(a.evalua):
+                continue
+            if evaluacion is not None and a.evaluacion != evaluacion:
+                continue
+            self._base_resultados(padre, hoja, vista, a)
 
     def _vista_elementos(self, padre: str) -> None:
         pesos = self._pesos_de_elementos(list(self.esquema.elementos))
@@ -524,9 +857,7 @@ class _Montaje:
                 Nodo(idnumber, "categoria", elemento.nombre, padre, peso, None, "porcentaje")
             )
             if not elemento.criterios:
-                self._hijos_actividad(
-                    idnumber, elemento.id, _VISTA_ELEMENTOS, self._de_hoja(elemento.id)
-                )
+                self._contenido_hoja(idnumber, elemento.id, _VISTA_ELEMENTOS, None)
                 continue
             criterios = list(elemento.criterios)
             for criterio, peso_criterio in zip(
@@ -544,11 +875,11 @@ class _Montaje:
                         "porcentaje",
                     )
                 )
-                self._hijos_actividad(
+                self._contenido_hoja(
                     interior,
                     criterio.id,
                     _VISTA_ELEMENTOS,
-                    self._de_hoja(criterio.id),
+                    None,
                     cuenta=peso_criterio > 0,
                 )
 
@@ -592,12 +923,7 @@ class _Montaje:
                     )
                 )
                 if not elemento.criterios:
-                    self._hijos_actividad(
-                        interior,
-                        elemento.id,
-                        _VISTA_EVALUACIONES,
-                        self._de_hoja(elemento.id, n - 1),
-                    )
+                    self._contenido_hoja(interior, elemento.id, _VISTA_EVALUACIONES, n - 1)
                     continue
                 con_algo = [c for c in elemento.criterios if self._de_hoja(c.id, n - 1)]
                 for criterio, peso_criterio in zip(
@@ -615,12 +941,7 @@ class _Montaje:
                             "porcentaje",
                         )
                     )
-                    self._hijos_actividad(
-                        dentro,
-                        criterio.id,
-                        _VISTA_EVALUACIONES,
-                        self._de_hoja(criterio.id, n - 1),
-                    )
+                    self._contenido_hoja(dentro, criterio.id, _VISTA_EVALUACIONES, n - 1)
 
     def _notas(self) -> None:
         self._agregar(Nodo(NOTAS, "contenedor", "Notas (sobre 10)", RAIZ, 0.0, None, "porcentaje"))
@@ -722,8 +1043,30 @@ class _Montaje:
                 ("EVIDENCIA_COMPARTIDA", a.nombre)
                 for a in self.actividades
                 if a.evidencia_declarada is None and sum(1 for _, peso in a.evalua if peso > 0) >= 2
+            )
+            + tuple(
+                ("PESOS_SIN_EFECTO", hoja)
+                for hoja, _ in _hojas(esquema)
+                if self._pesos_sin_efecto(hoja)
+            )
+            + tuple(
+                ("RECUPERACION_EN_CERRADA", f"TZ_V_{n}")
+                for n, evaluacion in enumerate(esquema.evaluaciones, 1)
+                if evaluacion.cerrada and self._recuperada_en(n)
             ),
         )
+
+    def _pesos_sin_efecto(self, hoja: str) -> bool:
+        """La regla ignora los pesos de ``evalua`` y no son todos iguales (D6)."""
+        if self.esquema.regla_de(hoja) not in ("mediana", "mas_alta"):
+            return False
+        pesos = [dict(a.evalua)[hoja] for a in self.actividades if hoja in dict(a.evalua)]
+        positivos = [peso for peso in pesos if peso > 0]
+        return bool(positivos) and len(set(positivos)) > 1
+
+    def _recuperada_en(self, evaluacion: int) -> bool:
+        """Alguna actividad recupera esa evaluación (1-based)."""
+        return any(evaluacion in a.recupera for a in self.actividades)
 
     def _actividades_reales(self) -> tuple[tuple[str, str], ...]:
         reales = {n.idnumber: n.padre for n in self.nodos if n.clase == "actividad"}

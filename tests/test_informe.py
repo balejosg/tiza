@@ -529,6 +529,8 @@ class TestCalificador:
             "CRITERIOS_SIN_PESO",
             "EVIDENCIA_COMPARTIDA",
             "EVALUACION_CERRADA_EN_EL_AULA",
+            "PESOS_SIN_EFECTO",
+            "RECUPERACION_EN_CERRADA",
             "TOTAL_AJENO_BLOQUEADO",
         ],
     )

@@ -239,6 +239,16 @@ class TestAvisos:
                 "Los criterios de RA1 no llevan peso: tiza los pesa igual.",
             ),
             (
+                publicacion.Aviso.pesos_sin_efecto("CE3_1"),
+                "Los pesos de “evalua” de CE3_1 no cuentan con esta regla: todas las "
+                "evidencias valen lo mismo.",
+            ),
+            (
+                publicacion.Aviso.recuperacion_en_cerrada("Primera"),
+                "La evaluación “Primera” ya está cerrada: su nota no cambia; la recuperación "
+                "cuenta en la final.",
+            ),
+            (
                 publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
                 "El agente pide montar el calificador en pruebas con «calificacion.yaml».",
             ),

@@ -1081,6 +1081,24 @@ def _elemento_sin_actividades(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (Linea(f"Ninguna actividad cuenta para {texto_seguro(datos['elemento'], 40)} todavía."),)
 
 
+def _pesos_sin_efecto(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"Los pesos de “evalua” de {texto_seguro(datos['hoja'], 40)} no cuentan con esta "
+            "regla: todas las evidencias valen lo mismo."
+        ),
+    )
+
+
+def _recuperacion_en_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"La evaluación “{texto_seguro(datos['nombre'], 100)}” ya está cerrada: su nota no "
+            "cambia; la recuperación cuenta en la final."
+        ),
+    )
+
+
 def _evaluacion_cerrada_en_el_aula(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(f"Ya está bloqueada en el aula y tiza no la toca: {texto_seguro(datos['nombre'])}"),
@@ -1387,10 +1405,12 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
     "PANEL_ACTUALIZADO": _panel_actualizado,
     "PANEL_NO_ACTUALIZADO": _panel_no_actualizado,
+    "PESOS_SIN_EFECTO": _pesos_sin_efecto,
     "PETICION_RETIRADA": _peticion_retirada,
     "PRIMERA_VEZ": _primera_vez,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,
     "QUEDAN_MINUTOS": _quedan_minutos,
+    "RECUPERACION_EN_CERRADA": _recuperacion_en_cerrada,
     "REGISTRO_NO_GUARDADO": _registro_no_guardado,
     "REINICIA_EL_AGENTE": _reinicia_el_agente,
     "RESULTADO": _resultado,

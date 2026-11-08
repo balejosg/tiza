@@ -160,10 +160,12 @@ AVISOS = frozenset(
         "ORDENANDO_EN_PRUEBAS",
         "PANEL_ACTUALIZADO",
         "PANEL_NO_ACTUALIZADO",
+        "PESOS_SIN_EFECTO",
         "PETICION_RETIRADA",
         "PRIMERA_VEZ",
         "PUBLICANDO_EN_PRUEBAS",
         "QUEDAN_MINUTOS",
+        "RECUPERACION_EN_CERRADA",
         "REGISTRO_NO_GUARDADO",
         "REINICIA_EL_AGENTE",
         "RESULTADO",
@@ -234,6 +236,16 @@ class Aviso:
     def criterios_sin_peso(cls, elemento: str) -> Aviso:
         """``elemento``: el id del esquema cuyos criterios no llevan peso."""
         return cls("CRITERIOS_SIN_PESO", {"elemento": elemento})
+
+    @classmethod
+    def pesos_sin_efecto(cls, hoja: str) -> Aviso:
+        """``hoja``: el criterio cuya regla (mediana o más alta) ignora los pesos de ``evalua``."""
+        return cls("PESOS_SIN_EFECTO", {"hoja": hoja})
+
+    @classmethod
+    def recuperacion_en_cerrada(cls, nombre: str) -> Aviso:
+        """``nombre``: la evaluación cerrada en la que la recuperación no se coloca."""
+        return cls("RECUPERACION_EN_CERRADA", {"nombre": nombre})
 
     @classmethod
     def elemento_con_notas_quitado(cls, nombre: str) -> Aviso:
@@ -2690,6 +2702,11 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
         return Aviso.elemento_sin_actividades(clave)
     if codigo == "CRITERIOS_SIN_PESO":
         return Aviso.criterios_sin_peso(clave)
+    if codigo == "PESOS_SIN_EFECTO":
+        return Aviso.pesos_sin_efecto(clave)
+    if codigo == "RECUPERACION_EN_CERRADA":
+        de_la_carpeta = next((n.nombre for n in plan.deseado.nodos if n.idnumber == clave), None)
+        return Aviso.recuperacion_en_cerrada(de_la_carpeta or nombres.get(clave, clave))
     if codigo == "EVIDENCIA_COMPARTIDA":
         documento = next((d for d in plan.documentos if d.nombre == clave), None)
         return Aviso.evidencia_compartida(clave, tipo=documento.tipo if documento else None)
