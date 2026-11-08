@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## No publicado
+## 0.43.0 — 2026-11-08
 
 ### Añadido
 - **Descriptores en los resultados.** Una tarea con `evidencia: resultados` y un fichero de rúbrica con `filas` crea un resultado del curso por fila, con su propia escala «Nivel: descriptor» ordenada de menor a mayor. El docente marca un nivel por fila en un desplegable que muestra el descriptor entero y el alumnado lo ve en su informe. Cada criterio con varias filas lleva una subcategoría Natural «solo no vacías» con un calculado por fila, pesado con el peso de la fila, y la media es continua, sin redondear al nivel. Un criterio con una sola fila tiene un resultado, sin subcategoría. Los calculados nuevos nacen ocultos al alumnado.
