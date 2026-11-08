@@ -4,6 +4,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## No publicado
+
+### Añadido
+- **Descriptores en los resultados.** Una tarea con `evidencia: resultados` y un fichero de rúbrica con `filas` crea un resultado del curso por fila, con su propia escala «Nivel: descriptor» ordenada de menor a mayor. El docente marca un nivel por fila en un desplegable que muestra el descriptor entero y el alumnado lo ve en su informe. Cada criterio con varias filas lleva una subcategoría Natural «solo no vacías» con un calculado por fila, pesado con el peso de la fila, y la media es continua, sin redondear al nivel. Un criterio con una sola fila tiene un resultado, sin subcategoría. Los calculados nuevos nacen ocultos al alumnado.
+
+### Cambia
+- **La combinación de rúbrica de filas y `evidencia: resultados` ya no crea la rúbrica nativa de Moodle.** Las filas pasan a ser resultados con descriptores, así que no se marca dos veces. En esa combinación los descriptores no pueden llevar comas (la escala de Moodle separa sus niveles con comas): `DESCRIPTOR_CON_COMA` avisa con el fichero, la fila, el nivel y la línea. Fija los descriptores antes de publicar: si la escala ya existe con otros niveles, `DESCRIPTOR_PUBLICADO` no la toca y monta lo demás; para cambiarla, renombra el `indicador` de la fila, que crea una fila nueva. Sin fichero de filas, `evidencia: resultados` sigue igual: escala común y un resultado por criterio.
+
 ## 0.42.0 — 2026-11-08
 
 ### Añadido

@@ -37,8 +37,8 @@ apertura: 2026-10-01
 entrega: 2026-10-10
 limite: 2026-10-15
 evalua: {CE1_1: 100, CE2_1: 100}   # criterios de calificacion.yaml
-# rubrica: por_criterios   # o rubricas/tarea.md: rúbrica nativa (con evalua)
-evidencia: resultados      # un resultado por criterio (alternativa a la rúbrica)
+# rubrica: por_criterios   # o rubricas/tarea.md (con evidencia: resultados, descriptores)
+evidencia: resultados      # un resultado por criterio, o por fila con rúbrica de filas
 ---
 
 Resuelve los problemas.
@@ -389,7 +389,10 @@ elementos:
 Una tarea con `evalua` puede llevar `rubrica` de dos formas: `por_criterios`, con una fila
 genérica por criterio y los pesos de la programación, o la ruta de un fichero con `filas`, que
 concreta cada criterio para esa tarea. Las dos crean la rúbrica nativa de Moodle, reparten 10
-puntos que Moodle reescala a la nota máxima y valen en cualquier etapa.
+puntos que Moodle reescala a la nota máxima y valen en cualquier etapa. La excepción es la
+combinación de un fichero de `filas` con `evidencia: resultados`: entonces no se crea la rúbrica
+nativa, sino un resultado del aula por fila con sus descriptores (mira «Calificador: evidencia
+por criterio»).
 
 Reglas comunes:
 
@@ -496,7 +499,9 @@ Descripción de la rúbrica para el alumnado: qué se valora en el montaje y qu�
   `FILA_FUERA_DE_EVALUA`; un criterio de `evalua` con peso mayor que 0 sin fila, `CRITERIO_SIN_FILA`;
   un nivel que falta, `DESCRIPTOR_FALTA`. Una clave con forma de id que no está en `niveles_rubrica`
   da `NIVEL_DESCONOCIDO`; una clave sin forma de id da `RUBRICA_NO_VALIDA` con la pista de la
-  coma. La forma de las filas es `RUBRICA_NO_VALIDA`; el frontmatter mal escrito, `FRONTMATTER_INVALIDO`; el HTML
+  coma. Con `evidencia: resultados` los descriptores no pueden llevar comas
+  (`DESCRIPTOR_CON_COMA`, con la línea); la rúbrica nativa (sin evidencia o con «por_criterios») sí las admite. La forma de las filas es
+  `RUBRICA_NO_VALIDA`; el frontmatter mal escrito, `FRONTMATTER_INVALIDO`; el HTML
   peligroso, `HTML_PELIGROSO`; una ruta fuera de la carpeta, `RUBRICA_FUERA_DE_CARPETA`; y los
   problemas de fichero, `FICHERO_AUSENTE`, `CODIFICACION_INVALIDA` o `FICHERO_DEMASIADO_GRANDE`.
 
@@ -507,16 +512,42 @@ total se reparta entre los criterios, cada criterio de `evalua` recibe **su prop
 docente marca en la pantalla de calificación de Moodle. Es útil cuando la tarea trabaja más de un
 criterio; con uno solo, la nota de la tarea ya es su nivel.
 
-En `tiza`, elige una: `por_criterios`, un fichero con `filas` o `evidencia: resultados`. No
-combines `rubrica` con `evidencia` en la misma tarea: el docente marcaría dos veces; el fichero
-carga, pero no es el flujo recomendado. La evidencia sustituye a la rúbrica para que cada criterio
-reciba su nivel. Si usas `tiza-privado`, su corrector (`corregir`) y su orden `copiar-niveles`
-copian el nivel de cada fila al resultado de su criterio. `tiza calificador` avisa con
-`EVIDENCIA_COMPARTIDA` de una actividad o casilla manual (una vez por cada una) que evalúa 2+
-criterios con peso y no declara `evidencia`: su nota total llega a todos sus criterios según
-`evalua`; el peso de las filas solo reparte esa nota de tarea, no cambia lo que llega a cada
-criterio. `tiza comprobar` avisa antes de publicar, sin red, solo en un cuestionario con 2+
-criterios con peso; el aviso propone publicar uno por criterio.
+En `tiza` puedes usar `evidencia: resultados` sola o con un fichero `rubrica: rubricas/<tarea>.md`.
+La combinación es la que pone los descriptores en los desplegables del docente y en el informe del
+alumnado:
+
+- **Sola**, como siempre: tiza crea la escala «Escala de logro (tiza)» con los niveles de
+  `niveles_rubrica` y un resultado por criterio. El docente marca un nivel por criterio y no hay
+  rúbrica nativa.
+- **Con un fichero de `filas`**: cada fila es un resultado del curso con **su propia escala**
+  «Nivel: descriptor», ordenada de menor a mayor. En la tarea hay un desplegable por fila y cada
+  opción muestra el descriptor entero. **No se crea la rúbrica nativa de Moodle**: no se marca dos
+  veces.
+  - En el calificador, un criterio con varias filas lleva una subcategoría Natural «solo no
+    vacías» con un calculado por fila, pesados con el peso de la fila; esa subcategoría es la
+    evidencia del criterio con el peso de `evalua`. Si solo se marca una fila, la vacía no cuenta
+    y la subcategoría vale lo de la fila marcada. Un criterio con una sola fila tiene un resultado,
+    sin subcategoría.
+  - El valor es **continuo**, sin redondear al nivel: la nota del criterio es la media ponderada de
+    los niveles de sus filas. Para la programación: «La calificación de cada criterio es la media
+    ponderada de sus filas, calculada con el nivel alcanzado en cada una (0–10), sin redondear al
+    nivel».
+- **Sin comas en los descriptores** de esa combinación: la escala de Moodle separa sus niveles con
+  comas. Un descriptor con coma da `DESCRIPTOR_CON_COMA` con el fichero, la fila, el nivel y la
+  línea. La rúbrica nativa (sin `evidencia` o con `por_criterios`) sí admite comas.
+- **Fija los descriptores antes de publicar.** Moodle no deja cambiar la escala de un resultado ya
+  usado y tiza no puede saber si tiene niveles puestos. Si la escala existe con otros niveles, avisa
+  `DESCRIPTOR_PUBLICADO`, no la toca y monta lo demás. Para cambiar un descriptor, renombra el
+  `indicador` de la fila: crea una fila nueva, con su resultado y su escala; la fila anterior deja
+  de contar y se queda con peso 0.
+- Si usas `tiza-privado`, su corrector (`corregir`) y su orden `copiar-niveles` copian el nivel de
+  cada fila al resultado de su criterio; con la combinación de descriptores, usa los resultados
+  como fuente y no dupliques la rúbrica nativa. `tiza calificador` avisa con `EVIDENCIA_COMPARTIDA`
+  de una actividad o casilla manual (una vez por cada una) que evalúa 2+ criterios con peso y no
+  declara `evidencia`: su nota total llega a todos sus criterios según `evalua`; el peso de las
+  filas solo reparte esa nota de tarea, no cambia lo que llega a cada criterio. `tiza comprobar`
+  avisa antes de publicar, sin red, solo en un cuestionario con 2+ criterios con peso; el aviso
+  propone publicar uno por criterio.
 
 ```yaml
 evidencia: resultados   # con evalua y calificacion.yaml
@@ -526,13 +557,17 @@ evidencia: resultados   # con evalua y calificacion.yaml
   (`EVIDENCIA_SIN_ESQUEMA`). Los porcentajes de
   `niveles_rubrica` deben estar igual de separados, como los de por defecto (0, 25, 50, 75 y 100);
   si no, `NIVELES_NO_EQUIDISTANTES`.
-- tiza crea en el curso la escala «Escala de logro (tiza)» con los niveles de `niveles_rubrica`,
-  ordenados de menor a mayor, y un resultado por criterio con nombre corto `TZ_<criterio>`, nombre
-  completo «código · nombre» (o solo el nombre si el criterio no tiene `codigo`) y una descripción
-  con los niveles. En el calificador pone un calculado por tarea y criterio que reescala el nivel a
-  0–10 y lleva el peso de `evalua`; **la nota total de la tarea deja de contar para los criterios**.
-  Los descriptores de cada nivel van en el enunciado de la tarea, para que el alumnado sepa qué se
-  le pide.
+- **Sin fichero de filas**, tiza crea en el curso la escala «Escala de logro (tiza)» con los
+  niveles de `niveles_rubrica`, ordenados de menor a mayor, y un resultado por criterio con nombre
+  corto `TZ_<criterio>`, nombre completo «código · nombre» (o solo el nombre si el criterio no tiene
+  `codigo`) y una descripción con los niveles. En el calificador pone un calculado por tarea y
+  criterio que reescala el nivel a 0–10 y lleva el peso de `evalua`; **la nota total de la tarea
+  deja de contar para los criterios**. Los descriptores de cada nivel van en el enunciado de la
+  tarea, para que el alumnado sepa qué se le pide.
+- **Con fichero de filas**, crea una escala y un resultado por fila (nombre corto estable
+  `TZ_<criterio>_<huella>` y nombre completo «código · indicador»), con la escala «Nivel:
+  descriptor». El resultado y su escala se reutilizan al volver a publicar; la definición de las
+  filas entra en el hash de la tarea, así que un cambio de descriptor o de indicador se publica.
 - Si la tarea ya tiene notas, `tiza publicar` pide confirmación antes de activar los resultados
   (`EVIDENCIA_CAMBIADA_CON_NOTAS`): sus notas antiguas dejan de contar para los criterios. Con «N»,
   la tarea se publica sin resultados. `tiza calificador` también pregunta por las tareas pendientes
@@ -542,11 +577,14 @@ evidencia: resultados   # con evalua y calificacion.yaml
   puestos.
 - Si el sitio tiene los resultados desactivados, `RESULTADOS_DESACTIVADOS` en `tiza publicar` (no
   se escribe nada de resultados y se publica el resto) o en `tiza calificador` (queda el paso
-  `RESULTADOS_DESACTIVADOS` y el calificador sigue). Si la escala ya está en uso con otros niveles,
-  `ESCALA_EN_USO`: no se toca la escala ni se escriben resultados. En `tiza publicar` detiene la
-  publicación; en `tiza calificador`, el paso `CALIFICADOR` falla con `ESCALA_EN_USO`.
+  `RESULTADOS_DESACTIVADOS` y el calificador sigue). Sin filas, si la escala común ya está en uso
+  con otros niveles, `ESCALA_EN_USO`: no se toca la escala ni se escriben resultados. En `tiza
+  publicar` detiene la publicación; en `tiza calificador`, el paso `CALIFICADOR` falla con
+  `ESCALA_EN_USO`. Con filas, la escala es de cada fila y el aviso es `DESCRIPTOR_PUBLICADO`: se
+  deja como está y se sigue con lo demás.
 - tiza **no lee los niveles**: los marca el docente en Moodle. Una tarea sin `evidencia` se publica
-  y calcula su hash exactamente como siempre.
+  y calcula su hash exactamente como siempre; con `evidencia` y filas, el hash incluye la definición
+  de las filas, y solo en ese caso cambia.
 
 ## Fórmulas
 
