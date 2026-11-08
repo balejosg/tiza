@@ -85,10 +85,10 @@ una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiz
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
   elemento da `ELEMENTO_CON_CRITERIOS`. Los pesos de lo que evalúa cada criterio suman 100; un
   criterio (o elemento) cuyas actividades pesan todas 0 no cuenta en la nota.
-- **Cuestionarios: uno por criterio.** Un cuestionario evalúa un solo criterio: así su nota llega entera a él. Si la prueba cubre varios, propón partirla en uno por criterio en la misma sección:
-  la prueba de la UD3 con CE2.2 y CE3.1 se publica como «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1), con al menos 3 preguntas cada uno. Propón el criterio de cada pregunta desde
-  el texto literal (`tiza normativa ficha`) y confírmalo con el docente en una tabla de preguntas antes de escribir el fichero. Las calificaciones por secciones de Moodle (Moodle ≥ 4.3) no crean
-  elementos en el calificador.
+- **Cuestionarios: uno por criterio.** Lo recomendable es que un cuestionario evalúe un solo criterio: así su nota llega entera a él. Si la prueba cubre varios, propón partirla en uno por criterio en la misma sección:
+  la prueba de la UD3 con CE2.2 y CE3.1 se publica como «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1), con al menos 3 preguntas cada uno (recomendado). Propón el criterio de cada pregunta a partir
+  del texto literal (`tiza normativa ficha`) y confírmalo con el docente en una tabla de preguntas antes de escribir el fichero. Las calificaciones del cuestionario no crean elementos en el calificador: no
+  reparten la nota entre criterios.
 - **Casillas manuales** (`instrumentos`): tiza crea la casilla (sobre 10) en su primer criterio y
   copias en los demás. La nota la pone el docente a mano; tiza nunca la toca ni cambia su
   máximo. Una nota va a todos sus criterios; quitarlo con notas lo deja con peso 0

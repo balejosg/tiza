@@ -1044,7 +1044,7 @@ def _evidencia_compartida(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
         return (
             Linea(
                 f"«{nombre}» evalúa varios criterios y su nota total llega a todos. Para que "
-                "cada criterio reciba su propio nivel, publica un cuestionario por criterio en "
+                "cada criterio reciba su propia nota, publica un cuestionario por criterio en "
                 "la misma sección."
             ),
         )

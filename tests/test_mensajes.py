@@ -257,7 +257,7 @@ class TestAvisos:
         )
         assert [linea.texto for linea in lineas] == [
             "«Prueba UD3» evalúa varios criterios y su nota total llega a todos. Para que cada "
-            "criterio reciba su propio nivel, publica un cuestionario por criterio en la misma "
+            "criterio reciba su propia nota, publica un cuestionario por criterio en la misma "
             "sección."
         ]
 

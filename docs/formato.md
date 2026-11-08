@@ -260,18 +260,19 @@ evalua: {RA1: 40, RA3: 25}   # id: peso de 0 a 100, con hasta 2 decimales
 
 ### Cuestionarios: uno por criterio
 
-Un cuestionario declara un solo criterio en `evalua`, por ejemplo `evalua: {CE2_2: 100}`; si es la
-única evidencia de ese criterio, su nota total llega entera a él. Si una prueba cubre varios, se
-parte en un cuestionario por criterio en la misma sección: la prueba de la UD3 con CE2.2 y CE3.1
-se publica como dos cuestionarios, «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1).
-Recomendado al menos 3 preguntas en cada uno para que su nota sea fiable. El agente propone el
-criterio de cada pregunta a partir del texto literal del criterio (`tiza normativa ficha`) y el
-docente confirma la tabla de preguntas antes de escribir el fichero.
+Para que cada criterio reciba su propia nota, lo recomendable es que un cuestionario declare un
+solo criterio en `evalua`, por ejemplo `evalua: {CE2_2: 100}`; si es la única actividad que evalúa
+ese criterio, su nota total llega entera a él. Si una prueba cubre varios, se parte en un
+cuestionario por criterio en la misma sección: la prueba de la UD3 con CE2.2 y CE3.1 se publica
+como dos cuestionarios, «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1). Recomendado
+al menos 3 preguntas en cada uno para que su nota sea fiable. El agente propone el criterio de cada
+pregunta a partir del texto literal del criterio (`tiza normativa ficha`) y el docente confirma la
+tabla de preguntas antes de escribir el fichero.
 
 Un cuestionario con 2+ criterios con peso sigue siendo válido y se publica igual, pero
 `tiza comprobar` avisa con `EVIDENCIA_COMPARTIDA` sin impedir la publicación y `tiza calificador`
-también. Las calificaciones por secciones de Moodle (Moodle ≥ 4.3) no crean elementos en el
-calificador: no reparten la nota entre criterios.
+también. Las calificaciones del cuestionario no crean elementos en el calificador: no reparten la
+nota entre criterios.
 
 ## Calificador: `calificacion.yaml`
 
@@ -445,7 +446,7 @@ copian el nivel de cada fila al resultado de su criterio. `tiza calificador` avi
 criterios con peso y no declara `evidencia`: su nota total llega a todos sus criterios según
 `evalua`; el peso de las filas solo reparte esa nota de tarea, no cambia lo que llega a cada
 criterio. `tiza comprobar` avisa antes de publicar, sin red, solo en un cuestionario con 2+
-criterios con peso; en un cuestionario, el aviso propone publicar uno por criterio.
+criterios con peso; el aviso propone publicar uno por criterio.
 
 ```yaml
 evidencia: resultados   # solo con etapa: eso en calificacion.yaml y con evalua
