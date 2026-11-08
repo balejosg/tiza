@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## No publicado
+## 0.42.0 — 2026-11-08
 
 ### Añadido
 - **La recuperación de una hoja «más alta» se ve como un grupo propio.** En el calificador, la subcategoría «más alta» contiene «Recuperación · …» con las evidencias de la evaluación recuperada y la actividad que recupera, igual que con la media. La nota de la hoja no cambia: sigue siendo la más alta entre la evidencia y su recuperación. Al volver a montar un curso anterior, las evidencias se mueven a su grupo sin tocar las evaluaciones cerradas.
