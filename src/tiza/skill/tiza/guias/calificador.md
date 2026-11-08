@@ -58,20 +58,16 @@ instrumentos:
 
 - `organizacion`: `elementos` (FP) o `evaluaciones` (ESO y Bachillerato, con sus elementos dentro).
 - `elementos`: `id` (letra inicial y luego letras, cifras o `_`, 16 como mucho), `nombre`, `peso`
-  (0–100, todos suman 100) y `codigo` opcional; `criterios` (opcional) es una lista de
-  `{id, nombre, peso?, codigo?}` con pesos en todos o en ninguno, sumando 100 (sin pesos pesan
-  igual y sale `CRITERIOS_SIN_PESO`); ids únicos y `codigo` legible.
+  (0–100, todos suman 100) y `codigo` opcional; `criterios` (opcional) es una lista de `{id, nombre, peso?, codigo?}` con pesos en todos o en ninguno, sumando 100 (sin pesos pesan igual y sale `CRITERIOS_SIN_PESO`); ids únicos y `codigo` legible.
 - `instrumentos` (opcional): casillas manuales, `{id, nombre, seccion, evalua}` (ver §3).
-- `etapa` (`primaria`, `eso`, `bachillerato` o `fp`), `niveles_rubrica` (2–10 niveles
-  `{id, nombre, porcentaje}`, con 0 y 100; por defecto 100/75/50/25/0) y `actividades_pesan_igual`
-  (todas las actividades de un criterio pesan igual); la rúbrica solo vale con `etapa: eso`.
-- `evaluaciones`: `nombre`, `secciones` (números o nombres) y `cerrada`; con la final por
-  evaluaciones, cada una lleva `peso` (suman 100).
+- `etapa` (`primaria`, `eso`, `bachillerato` o `fp`), `niveles_rubrica` (2–10 niveles `{id, nombre, porcentaje}`, con 0 y 100; por defecto 100/75/50/25/0) y `actividades_pesan_igual` (todas las actividades de un criterio pesan igual); la rúbrica solo vale con `etapa: eso`.
+- `evaluaciones`: `nombre`, `secciones` (números o nombres) y `cerrada`; con la final por evaluaciones, cada una lleva `peso` (suman 100).
 - `final`: `de` (`elementos` o `evaluaciones`) y `tope` (solo con `de: elementos`):
   `si_alguno_menor_que` (>0 y hasta 10) y `maximo` (0–10, sin llegar).
+- `agregacion` (opcional): `regla` (`media`, `mediana`, `mas_alta` o `progresiva`) y `factores` (uno por evaluación, solo con progresiva). Cada elemento sin criterios o cada criterio puede llevar su propia `regla`; sin `agregacion`, todo es `media`. Con `final.tope` solo valen `media` y `progresiva`, sin recuperaciones (`REGLA_CON_TOPE`).
+- En ESO, recomienda `final: {de: elementos}` (acumula por criterio); la UD o situación de aprendizaje es una unidad de planificación, no de calificación. Propón la regla según la programación: `media` por defecto, `progresiva` si lo último pesa más, `mas_alta` para criterios que se demuestran una vez y `mediana` con muchas evidencias y alguna atípica. La decide el departamento y tú no la cambias.
 
-Lo que el esquema no expresa (redondeos, la actitud, las recuperaciones, otros pesos dentro de
-una evaluación) **se lo dices al docente y no lo fuerzas**.
+Lo que el esquema no expresa (redondeos, la actitud, otros pesos dentro de una evaluación) **se lo dices al docente y no lo fuerzas**.
 
 ## 3. Las actividades: `evalua`
 
@@ -83,8 +79,8 @@ y la tarea real queda con peso 0 (§5). Una actividad sin `evalua` no entra en e
 una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiza comprobar`).
 
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
-  elemento da `ELEMENTO_CON_CRITERIOS`. Los pesos de lo que evalúa cada criterio suman 100; un
-  criterio (o elemento) cuyas actividades pesan todas 0 no cuenta en la nota.
+  elemento da `ELEMENTO_CON_CRITERIOS`. Los pesos son **relativos** y se normalizan por hoja: no
+  hace falta que sumen 100; un criterio (o elemento) cuyas actividades pesan todas 0 no cuenta.
 - **Cuestionarios: uno por criterio.** Lo recomendable es que un cuestionario evalúe un solo criterio: así su nota llega entera a él. Si la prueba cubre varios, propón partirla en uno por criterio en la misma sección:
   la prueba de la UD3 con CE2.2 y CE3.1 se publica como «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1), con al menos 3 preguntas cada uno (recomendado). Propón el criterio de cada pregunta a partir
   del texto literal (`tiza normativa ficha`) y confírmalo con el docente en una tabla de preguntas antes de escribir el fichero. Las calificaciones del cuestionario no crean elementos en el calificador: no
@@ -97,6 +93,7 @@ una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiz
   Necesita `evalua`, `calificacion.yaml` con `etapa: eso` y niveles equidistantes; tiza crea una
   escala de logro y un resultado por criterio, y el docente marca un nivel por criterio en
   Moodle (ver §5).
+- **`recupera`**: `recupera: 1` o `recupera: [1, 3]` en una tarea, cuestionario o H5P. Recupera los criterios de su `evalua` y su nota sustituye a la de esa evaluación si es mayor. Necesita `final: {de: elementos}`; cada criterio recuperado debe tener evidencias normales en esa evaluación y no puede ser `mediana` (`RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`). En una evaluación cerrada no cambia su nota: `RECUPERACION_EN_CERRADA` y la recuperación cuenta en la final. Declara solo las que recoja la programación (art. 45.5).
 
 ## 4. Rúbrica de la tarea (solo ESO)
 
@@ -173,6 +170,10 @@ criterio no aporta: la nota de la tarea ya es su nivel.
   el alumnado vaya bien; díselo. Con tope, el total lleva fórmula y Moodle deja desmarcado «solo
   calificaciones no vacías»; si el docente la quita, que lo vuelva a marcar.
 
+## Juicio del docente
+
+El total de cualquier categoría se puede sobrescribir a mano en el informe del calificador de Moodle; la media calculada queda a la vista. tiza no lo deshace ni escribe notas. Si la programación lo exige, el docente lo justifica (art. 46.4) y lo deja escrito en el aula.
+
 ## 7. Si el aula ya tiene un calificador
 
 - Lo que tiza monta va a «Calificador de tiza», con peso 0 en el total si había otro: el total
@@ -202,19 +203,14 @@ y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen 
 
 ## 10. Lo que tiza no hace
 
-- **No lee ni escribe notas** del alumnado: solo sabe si un elemento tiene notas. No pidas ni
-  muestres notas de nadie y no desbloquees nada.
+- **No lee ni escribe notas** del alumnado: solo sabe si un elemento tiene notas. No pidas ni muestres notas de nadie y no desbloquees nada.
 - No usa los descriptores de las competencias de Moodle, pero **sí** sus «resultados»
   (*outcomes*) para la evidencia por criterio. No usa las «competencias» de Moodle.
-- **No admitido**: cambiar `organizacion` o `final.de` de un calificador ya montado, ni
-  configurar escalas propias (tiza crea la escala de logro de §5).
+- **No admitido**: cambiar `organizacion` o `final.de` de un calificador ya montado, ni configurar escalas propias (tiza crea la escala de logro de §5).
 - Con más de 500 ficheros `.md` o `.html`, `CARPETA_DEMASIADO_GRANDE`: saca los que no sean del curso.
-- Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no
-  adivines cuál es: el docente borra o renombra una.
+- Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no adivines cuál es: el docente borra o renombra una.
 - `ESQUEMA_INVALIDO`, `PESOS_NO_SUMAN_100`, `ID_REPETIDO`, `SECCION_REPETIDA`, `TOPE_SIN_ELEMENTOS`
-  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal
-  escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera.
+  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera; `PROGRESIVA_SIN_FACTORES`, `RECUPERA_INVALIDO`, `RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`, `RECUPERACION_SOLO_FINAL_DE_ELEMENTOS`, `ACTIVIDAD_SIN_EVALUACION` y `REGLA_CON_TOPE` completan el diagnóstico.
 - `ELEMENTO_CON_CRITERIOS`: un `evalua` nombra un elemento con criterios; usa sus criterios.
   `CRITERIOS_SIN_PESO` es un aviso: tiza los pesa igual, y se lo dices al docente.
-- Si `.tiza/calificador.json` da `CALIFICADOR_INVALIDO`, no lo edites ni lo borres: pide al
-  docente que lo revise; si se borra, tiza deja de saber qué cambió el docente a mano.
+- Si `.tiza/calificador.json` da `CALIFICADOR_INVALIDO`, no lo edites ni lo borres: pide al docente que lo revise; si se borra, tiza deja de saber qué cambió el docente a mano.

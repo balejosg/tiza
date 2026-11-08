@@ -82,6 +82,11 @@ plantilla de tu departamento, siempre sin datos del alumnado.
 - *«Que cada criterio reciba su propio nivel en la tarea.»* En ESO, tiza crea
   un resultado por criterio; tú marcas el nivel de cada uno en Moodle y la nota
   total de la tarea deja de repartirse entre criterios.
+- *«Que la nota de un criterio no sea siempre la media.»* tiza puede usar la
+  mediana, la más alta o una media que dé más peso a lo último, y una
+  recuperación que sustituye a la evidencia anterior si mejora. La regla y las
+  recuperaciones salen de tu programación; tú siempre puedes sobrescribir el
+  total de un criterio en Moodle.
 - *«¿Qué criterios de mi programación del primer trimestre aún no tienen ninguna
   actividad en esta carpeta?»* El agente cruza tu programación con lo que ya ha
   preparado y te señala los huecos.

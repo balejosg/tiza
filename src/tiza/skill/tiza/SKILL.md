@@ -309,7 +309,8 @@ Si el docente pide montar el calificador del aula, o cambiar cómo se calcula su
 - **No inventes pesos, fórmulas ni topes**: tiza solo monta lo que dice el esquema. Los pesos y reglas salen de la programación; si faltan, pregúntalos en una sola pregunta.
 - **Nunca** pidas ni muestres notas del alumnado: tiza no las lee ni las escribe.
 - Los totales salen en porcentaje; solo con tope hay notas sobre 10. Con un tope, un resultado sin ninguna nota cuenta como 0, así que a mitad de curso la final puede salir topada: díselo al docente.
-- Lo que no se puede expresar (redondeos, actitud, recuperaciones) se lo dices al docente y no lo fuerzas.
+- **Reglas y recuperaciones**: cada hoja puede usar `media`, `mediana`, `mas_alta` o `progresiva` (`agregacion` y `regla`), y una actividad puede declarar `recupera: 1` o una lista de evaluaciones para que su nota sustituya a la anterior si mejora. La regla y las recuperaciones salen de la programación; no las cambies por tu cuenta. Los pesos de `evalua` son relativos y se normalizan.
+- Lo que no se puede expresar (redondeos, actitud, otros pesos dentro de una evaluación) se lo dices al docente y no lo fuerzas.
 - Cerrar una evaluación es `cerrada: true` y volver a montar; tiza no la reabre.
 
 ## Programación del docente (plantilla de departamento)

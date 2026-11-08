@@ -240,17 +240,23 @@ restricciones:
 ## Calificador: `evalua`
 
 Las tareas, los cuestionarios y los contenidos H5P pueden declarar con qué resultados
-de aprendizaje o criterios se evalúan y con qué peso, para colocarlos en el calificador del curso.
-Una página o un área de texto y medios no tienen nota en Moodle: con `evalua` dan
+de aprendizaje o criterios se evalúan y con qué peso relativo, para colocarlos en el calificador
+del curso. Una página o un área de texto y medios no tienen nota en Moodle: con `evalua` dan
 error (`EVALUA_NO_CALIFICABLE`), también en `tiza comprobar`.
 
 ```yaml
-evalua: {RA1: 40, RA3: 25}   # id: peso de 0 a 100, con hasta 2 decimales
+evalua: {RA1: 40, RA3: 25}   # id: peso relativo de 0 a 100, con hasta 2 decimales
 ```
 
 - Los ids empiezan por letra, siguen con letras, cifras o `_`, y tienen hasta 16 caracteres.
-  Un peso de 0 deja la actividad sin peso, pero se queda en el calificador. Si todo lo que
-  evalúa un criterio (un elemento o una evaluación) pesa 0, ese criterio no cuenta: sus hermanos se reparten el 100.
+  Los pesos son **relativos** y no tienen que sumar 100: tiza los normaliza por hoja. Un peso de
+  0 deja la actividad sin peso, pero se queda en el calificador. Si todo lo que evalúa un criterio
+  (un elemento o una evaluación) pesa 0, ese criterio no cuenta: sus hermanos se reparten el 100.
+- `recupera` (opcional) declara que la actividad recupera una o varias evaluaciones:
+  `recupera: 1` o `recupera: [1, 3]`. Recupera los criterios de su `evalua`; su nota sustituye a
+  la de esas evidencias si es mayor. Necesita `evalua` y `final: {de: elementos}`; cada criterio
+  recuperado debe tener evidencias normales en esa evaluación y no puede usar la regla `mediana`.
+  No cambia el hash de la actividad.
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
   elemento da `ELEMENTO_CON_CRITERIOS`.
 - Un id repetido o un mapa vacío dan error (`EVALUA_INVALIDO`). Que el id exista
@@ -298,7 +304,14 @@ final:
   no repiten `id`. `codigo` es el código legible (`1.1`, `RA1.a`).
 - `instrumentos` (opcional): casillas manuales para lo que no está en el aula (examen en papel,
   observación), `{id, nombre, seccion, evalua}`. tiza crea la casilla (sobre 10) en su primer
-  criterio y copias en los demás; la nota la pone el docente a mano y tiza nunca la toca.
+  criterio y copias en los demás; la nota la pone el docente a mano y tiza nunca la toca. También
+  admite `recupera`.
+- `agregacion` (opcional): cómo se combinan las evidencias de cada hoja. `regla` es `media`
+  (por defecto), `mediana`, `mas_alta` o `progresiva`; con `progresiva` hacen falta
+  `factores: [1, 2, 3]`, uno por evaluación y mayores que 0. Cada elemento sin criterios o cada
+  criterio puede llevar su propia `regla`. La regla se puede cambiar a mitad de curso; las evaluaciones cerradas
+  no se tocan y el informe lo avisa con `REGLA_CAMBIADA`. Con `final.tope` solo valen `media` y
+  `progresiva`, y no se admite `recupera` (`REGLA_CON_TOPE`).
 - Una sección solo puede estar en una evaluación (`SECCION_REPETIDA`). Una actividad con `evalua`
   en una sección que no es de ninguna evaluación da `SECCION_SIN_EVALUACION`.
 - `cerrada: true` bloquea la evaluación en el aula al terminar de montar (si no estaba completa,
@@ -311,8 +324,54 @@ final:
 - Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Un
   elemento que todavía no tiene ninguna nota cuenta como 0 en ese cálculo, así que a mitad de
   curso la final puede salir topada. Un error del esquema da `ESQUEMA_INVALIDO`, con la ruta y la línea.
-- Lo que el esquema no expresa (redondeos, actitud, recuperaciones) se queda fuera: la
-  guía del agente (`guias/calificador.md`) dice cómo tratarlo.
+- Lo que el esquema no expresa (redondeos, actitud) se queda fuera: la guía del agente
+  (`guias/calificador.md`) dice cómo tratarlo. El juicio del docente se aplica sobrescribiendo
+  a mano el total de la categoría en Moodle; tiza no escribe notas ni lo deshace.
+
+## Calificador: reglas de agregación y recuperación
+
+Por defecto, la nota de cada hoja (un criterio o un elemento sin criterios) es la media ponderada
+de sus evidencias con los pesos de `evalua`. El esquema puede pedir otra regla:
+
+| `regla` | Qué hace |
+|---|---|
+| `media` | Media ponderada; es la de siempre y la que se usa si no se dice otra. |
+| `mediana` | Mediana de las evidencias; los pesos de `evalua` no cuentan. |
+| `mas_alta` | La mejor evidencia; los pesos no cuentan. |
+| `progresiva` | Media ponderada con el peso de cada evaluación multiplicado por su factor. |
+
+```yaml
+agregacion:
+  regla: media
+  factores: [1, 2, 3]   # solo con progresiva; uno por evaluación
+elementos:
+  - id: CE3
+    nombre: "Competencia 3"
+    peso: 100
+    criterios:
+      - {id: CE3_1, nombre: "Construye", regla: mas_alta}
+```
+
+- La regla general es `agregacion.regla`; un elemento sin criterios o un criterio puede
+  sobrescribirla con `regla`. Un valor desconocido da `ESQUEMA_INVALIDO` con su ruta.
+- Con `progresiva`, `factores` tiene un número mayor que 0 por evaluación; si falta o no cuadra,
+  `PROGRESIVA_SIN_FACTORES` o `ESQUEMA_INVALIDO`.
+- En `mediana` y `mas_alta`, los pesos de `evalua` no cuentan; si no son todos iguales,
+  `PESOS_SIN_EFECTO` lo avisa. La tarea real con resultados y las actividades de peso 0 quedan
+  fuera de la regla.
+- Una actividad con `recupera` sustituye la nota de las evidencias de la evaluación recuperada
+  cuando es mayor. En la vista por elementos la recuperación cuenta siempre; en la vista por
+  evaluaciones solo si la evaluación no está cerrada. Si está cerrada, `RECUPERACION_EN_CERRADA`
+  avisa de que su nota no cambia y la recuperación cuenta en la final.
+- Una actividad de recuperación no es evidencia de su propia sección ni de su propia evaluación.
+  Cada criterio recuperado necesita evidencias normales en esa evaluación
+  (`RECUPERA_SIN_EVIDENCIAS`) y no puede usar `mediana` (`RECUPERACION_CON_MEDIANA`). Con
+  `final: {de: evaluaciones}` no se admite `recupera`
+  (`RECUPERACION_SOLO_FINAL_DE_ELEMENTOS`).
+- Cambiar `regla` no pide confirmación: es una decisión de la programación. tiza cambia la
+  agregación de la categoría y avisa con `REGLA_CAMBIADA`; una evaluación cerrada no se toca.
+  Para el juicio del docente, sobrescribe a mano el total de la categoría en el informe del
+  calificador: tiza no lo deshace y la media calculada queda a la vista.
 
 ## Calificador: rúbrica de la tarea (solo ESO)
 
