@@ -108,7 +108,7 @@ Los avisos del informe no impiden montar el calificador:
 - `HOJA_SIN_EVIDENCIAS`: ese criterio no tiene ninguna actividad ni casilla manual. Propón una
   actividad en la evaluación que toque o pregunta si el departamento lo evalúa con otro
   instrumento. Si la programación lo sitúa más adelante, dilo: es normal que en octubre aún no
-  tenga evidencias y no hay que inventarlas (D-F1-4).
+  tenga evidencias y no hay que inventarlas.
 - `HOJA_CON_UNA_EVIDENCIA`: solo una. Puede ser suficiente, pero díselo al docente y valora si
   conviene otra evidencia para que la nota no dependa de una sola entrega.
 - `MEDIANA_CON_POCAS_EVIDENCIAS`: la regla `mediana` con dos evidencias; con dos, la mediana es
@@ -117,7 +117,7 @@ Los avisos del informe no impiden montar el calificador:
   evaluación, así que el factor de la evaluación no distingue nada. Propón repartirlas o cambiar
   la regla.
 
-El `instrumento` es un valor cerrado que deduce tiza (D-F1-6), no un campo nuevo:
+El `instrumento` es un valor cerrado que deduce tiza, no un campo nuevo:
 
 | valor | qué es |
 |---|---|
@@ -130,7 +130,7 @@ El `instrumento` es un valor cerrado que deduce tiza (D-F1-6), no un campo nuevo
 | `casilla_manual` | `instrumentos` de `calificacion.yaml` |
 
 La marca `recupera: [n…]` dice qué evaluaciones recupera esa evidencia; una recuperación no cuenta
-como evidencia para los avisos. Para la revisión de una familia (E2), prepara una tabla
+como evidencia para los avisos. Para la revisión de una familia, prepara una tabla
 criterio → instrumento → actividad → evaluación → peso → regla con los datos del mapa, sin nombres
 ni notas del alumnado, y conviértela con `tiza documento trazabilidad.md`; el ejemplo
 `ejemplos/trazabilidad.md` muestra el formato. Si el centro pide la
