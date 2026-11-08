@@ -1,7 +1,7 @@
 """Mapa de cobertura del calificador: qué evalúa cada hoja, con qué y con qué regla.
 
-Es puro y offline: reutiliza las actividades que ya valida :mod:`tiza.calificacion.deseado`
-(sin repetir la validación) y el reparto de pesos que ve ``tiza comprobar``. El mapa incluye
+Es puro y offline: parte de :func:`tiza.calificacion.deseado.evidencias_por_hoja`, que valida
+las actividades como ``deseado`` y da el mismo reparto de pesos que ve ``tiza comprobar``. El mapa incluye
 **todas** las hojas del esquema, también las que no tienen ninguna evidencia, para que el agente
 pueda enseñar los huecos antes de montar nada.
 
@@ -14,13 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from tiza.calificacion.deseado import (
-    _Actividad,
-    _actividades,
-    _hojas,
-    _ruta_relativa,
-    reparto_por_hoja,
-)
+from tiza.calificacion.deseado import EvidenciaDeHoja, evidencias_por_hoja
 from tiza.calificacion.esquema import Criterio, Elemento, Esquema
 from tiza.contenido import Documento
 from tiza.estado import texto_guardado
@@ -116,31 +110,23 @@ class Cobertura:
 def cobertura(esquema: Esquema, documentos: list[Documento], carpeta: Path) -> Cobertura:
     """El mapa de cobertura del esquema con las actividades de la carpeta.
 
-    Reutiliza la validación de :func:`tiza.calificacion.deseado.deseado`: si una actividad no
-    cuadra con el esquema, lanza el mismo ``ErrorCalificacion``. Las evidencias van en el orden
-    estable de ``deseado._actividades`` (ruta relativa) y los pesos, en el de ``reparto_por_hoja``.
+    Sale de :func:`tiza.calificacion.deseado.evidencias_por_hoja`: si una actividad no cuadra con
+    el esquema, lanza el mismo ``ErrorCalificacion`` que ``deseado``. Las evidencias van en orden
+    estable (ruta relativa) y con los mismos pesos que ``reparto_por_hoja``.
     """
-    raiz = Path(carpeta)
-    actividades = _actividades(esquema, documentos, raiz)
-    por_ruta = {_ruta_relativa(documento.ruta, raiz): documento for documento in documentos}
-    reparto = dict(reparto_por_hoja(esquema, documentos, raiz))
     hojas: list[HojaCobertura] = []
-    for id_hoja, id_elemento in _hojas(esquema):
+    for id_hoja, id_elemento, de_hoja in evidencias_por_hoja(esquema, documentos, Path(carpeta)):
         elemento, criterio = _datos_de_hoja(esquema, id_hoja)
-        de_hoja = [actividad for actividad in actividades if id_hoja in dict(actividad.evalua)]
-        pesos = reparto.get(id_hoja, ())
-        if len(pesos) != len(de_hoja):  # defensa: reparto y actividades salen del mismo cálculo
-            raise AssertionError(f"el reparto de {id_hoja} no coincide con sus actividades")
         evidencias = tuple(
             Evidencia(
-                ruta=_ruta_de_actividad(esquema, actividad),
-                nombre=texto_guardado(actividad.nombre),
-                instrumento=_instrumento(actividad, por_ruta),
-                evaluacion=actividad.evaluacion + 1,
-                peso=peso,
-                recupera=actividad.recupera,
+                ruta=_ruta_de_evidencia(esquema, evidencia),
+                nombre=texto_guardado(evidencia.nombre),
+                instrumento=_instrumento(evidencia),
+                evaluacion=evidencia.evaluacion + 1,
+                peso=evidencia.peso,
+                recupera=evidencia.recupera,
             )
-            for actividad, (_, peso) in zip(de_hoja, pesos, strict=True)
+            for evidencia in de_hoja
         )
         hojas.append(
             HojaCobertura(
@@ -176,7 +162,7 @@ def avisos(cobertura: Cobertura, esquema: Esquema) -> tuple[tuple[str, str], ...
         elif len(evidencias) == 1:
             salida.append(("HOJA_CON_UNA_EVIDENCIA", f"{hoja.id}: {evidencias[0].nombre}"))
         regla = esquema.regla_de(hoja.id)
-        if regla == "mediana" and len(evidencias) < 3:
+        if regla == "mediana" and 0 < len(evidencias) < 3:  # sin ninguna ya avisa el hueco
             salida.append(
                 ("MEDIANA_CON_POCAS_EVIDENCIAS", f"{hoja.id}: {len(evidencias)} evidencias")
             )
@@ -203,23 +189,23 @@ def _datos_de_hoja(esquema: Esquema, id_hoja: str) -> tuple[Elemento, Criterio |
     raise AssertionError(f"«{id_hoja}» no es una hoja del esquema")
 
 
-def _ruta_de_actividad(esquema: Esquema, actividad: _Actividad) -> str:
+def _ruta_de_evidencia(esquema: Esquema, evidencia: EvidenciaDeHoja) -> str:
     """La ruta del documento o ``instrumentos[<n>]`` en una casilla manual."""
-    if not actividad.manual:
-        return actividad.ruta
+    if not evidencia.manual:
+        return evidencia.ruta
     prefijo = "TZ_M_"
-    id_ = actividad.ruta.removeprefix(prefijo)
+    id_ = evidencia.ruta.removeprefix(prefijo)
     for indice, instrumento in enumerate(esquema.instrumentos):
         if instrumento.id == id_:
             return f"instrumentos[{indice}]"
-    return actividad.ruta
+    return evidencia.ruta
 
 
-def _instrumento(actividad: _Actividad, por_ruta: dict[str, Documento]) -> str:
+def _instrumento(evidencia: EvidenciaDeHoja) -> str:
     """El instrumento deducido (D-F1-6): lo que ya declara la actividad, sin campo nuevo."""
-    if actividad.manual:
+    if evidencia.manual:
         return "casilla_manual"
-    documento = por_ruta.get(actividad.ruta)
+    documento = evidencia.documento
     if documento is None:
         return "tarea"
     if documento.tipo == "cuestionario":

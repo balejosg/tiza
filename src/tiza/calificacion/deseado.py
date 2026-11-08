@@ -47,9 +47,11 @@ from tiza.contenido import Documento
 
 __all__ = [
     "Deseado",
+    "EvidenciaDeHoja",
     "Nodo",
     "comprobar_sin_circulares",
     "deseado",
+    "evidencias_por_hoja",
     "nombre_de_hoja",
     "normalizar_pesos",
     "reparto_por_hoja",
@@ -435,26 +437,65 @@ def reparto_por_hoja(
     Con la regla ``progresiva`` el peso se multiplica por el factor de la evaluación de la
     actividad antes de normalizar; con ``media`` no. Solo salen las hojas con actividades.
     """
+    return tuple(
+        (hoja, tuple((e.nombre, e.peso) for e in evidencias))
+        for hoja, _, evidencias in evidencias_por_hoja(esquema, documentos, carpeta)
+        if evidencias
+    )
+
+
+@dataclass(frozen=True)
+class EvidenciaDeHoja:
+    """Una actividad (o casilla manual) que evalúa una hoja, tal como la valida ``deseado``.
+
+    ``ruta`` es la ruta relativa del documento (POSIX) o ``TZ_M_<id>`` en una casilla manual, y
+    ``documento`` es ``None`` en una casilla. ``evaluacion`` es el índice desde 0. ``peso`` es el
+    porcentaje normalizado en la hoja (con ``progresiva``, multiplicado antes por el factor).
+    """
+
+    ruta: str
+    nombre: str
+    evaluacion: int
+    manual: bool
+    recupera: tuple[int, ...]
+    peso: float
+    documento: Documento | None
+
+
+def evidencias_por_hoja(
+    esquema: Esquema, documentos: list[Documento], carpeta: Path
+) -> tuple[tuple[str, str, tuple[EvidenciaDeHoja, ...]], ...]:
+    """Todas las hojas del esquema en orden, también las vacías: ``(hoja, elemento, evidencias)``.
+
+    Valida las actividades igual que :func:`deseado` (lanza el mismo ``ErrorCalificacion``). Es
+    la base de :func:`reparto_por_hoja` y del mapa de cobertura (``calificacion.cobertura``).
+    """
     actividades = _actividades(esquema, documentos, carpeta)
-    reparto: list[tuple[str, tuple[tuple[str, float], ...]]] = []
-    for hoja, _ in _hojas(esquema):
+    por_ruta = {_ruta_relativa(d.ruta, carpeta): d for d in documentos}
+    salida: list[tuple[str, str, tuple[EvidenciaDeHoja, ...]]] = []
+    for hoja, elemento in _hojas(esquema):
         de_hoja = [a for a in actividades if hoja in dict(a.evalua)]
-        if not de_hoja:
-            continue
         pesos = [dict(a.evalua)[hoja] for a in de_hoja]
         if esquema.regla_de(hoja) == "progresiva":
             pesos = [
                 peso * esquema.agregacion.factores[a.evaluacion]
                 for peso, a in zip(pesos, de_hoja, strict=True)
             ]
-        normalizados = normalizar_pesos(pesos)
-        reparto.append(
-            (
-                hoja,
-                tuple((a.nombre, peso) for a, peso in zip(de_hoja, normalizados, strict=True)),
+        normalizados = normalizar_pesos(pesos) if de_hoja else []
+        evidencias = tuple(
+            EvidenciaDeHoja(
+                ruta=a.ruta,
+                nombre=a.nombre,
+                evaluacion=a.evaluacion,
+                manual=a.manual,
+                recupera=a.recupera,
+                peso=peso,
+                documento=None if a.manual else por_ruta.get(a.ruta),
             )
+            for a, peso in zip(de_hoja, normalizados, strict=True)
         )
-    return tuple(reparto)
+        salida.append((hoja, elemento, evidencias))
+    return tuple(salida)
 
 
 class _Montaje:

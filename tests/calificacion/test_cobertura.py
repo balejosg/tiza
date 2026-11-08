@@ -194,6 +194,13 @@ def test_aviso_mediana_con_dos() -> None:
     )
 
 
+def test_mediana_sin_evidencias_solo_avisa_del_hueco() -> None:
+    esquema = esquema_de_hojas("mediana")
+    avisos = codigos(mapa(esquema, []), esquema)
+    assert [c for c, _ in avisos if c.startswith("MEDIANA")] == []
+    assert ("HOJA_SIN_EVIDENCIAS", "RA1") in avisos
+
+
 def test_aviso_progresiva_en_una_evaluacion() -> None:
     esquema = Esquema(
         "elementos",

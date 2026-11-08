@@ -12,12 +12,12 @@ recuperaciones.
   comprobar el esquema antes de escribir.
 - De la programación (`tiza leer` y `tiza normativa`), para las competencias específicas o los
   resultados de aprendizaje, los criterios y los contenidos.
-- De la normativa: la Orden 1712/2023, art. 45.5 (ESO), y el Decreto 65/2022, art. 19.2, piden
-  informar al inicio de la actividad lectiva de las competencias específicas, los criterios de
-  evaluación y calificación, los contenidos y los procedimientos de recuperación y apoyo. En
-  Bachillerato y FP, busca la norma equivalente con `tiza normativa` (`norma`, `programacion`,
-  `ficha`); no cites un artículo de memoria. Comprueba siempre la cita con `tiza normativa
-  norma "<cita>"` y, si el dato no está en el paquete, pide el PDF al docente.
+- De la normativa. En ESO, la obligación de informar al inicio de la actividad lectiva (competencias
+  específicas, criterios de evaluación y calificación, contenidos y procedimientos de recuperación
+  y apoyo) se atribuye a la Orden 1712/2023, art. 45.5, y al Decreto 65/2022, art. 19.2, pero esos
+  artículos **no están en `tiza normativa`**: no los cites sin ver su texto (pide al docente el PDF
+  o la programación que los recoja). En Bachillerato y FP, busca la norma equivalente con `tiza
+  normativa` (`norma`, `programacion`, `ficha`). No cites nunca un artículo de memoria.
 
 ## 2. Qué lleva la página
 
@@ -29,7 +29,7 @@ recuperaciones.
 3. **Cómo se recupera**: qué actividades recuperan qué evaluación y con qué regla; si una
    recuperación solo cuenta en la final o no cambia una evaluación cerrada, se dice.
 4. **Dónde verá su nivel**: en las actividades, en las casillas manuales y en los resultados por
-   criterio. **No prometas totales ni notas calculadas**: tiza las crea ocultas al alumnado (R1).
+   criterio. **No prometas totales ni notas calculadas**: tiza las crea ocultas al alumnado.
    Si el centro enseña un total, lo decide el docente en el aula, no esta página.
 5. **Apoyo**: los procedimientos de apoyo previstos en la programación, sin datos de ningún
    alumno.
