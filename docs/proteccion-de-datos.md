@@ -36,7 +36,7 @@ participantes, y no lee ninguna nota ni ningún nombre: el campo es un ajuste de
 un dato del alumnado. Una nota en borrador puede no mostrarlo, así que en una tarea que ya existe
 la decisión final la toma el docente al confirmar que ninguna de las tareas listadas tiene notas.
 
-Una tarea de ESO con `evidencia: resultados` hace que tiza cree en el curso una escala de logro y
+Una tarea con `evidencia: resultados` hace que tiza cree en el curso una escala de logro y
 un resultado por criterio, pero **tampoco lee sus niveles**: los pone el docente en Moodle. Si usas
 `tiza-privado`, otra herramienta con su propia sesión, su corrector lee esos niveles para
 copiarlos de la rúbrica, y al agente le llegan únicamente recuentos. La promesa no cambia: `tiza`

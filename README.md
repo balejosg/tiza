@@ -73,13 +73,13 @@ plantilla de tu departamento, siempre sin datos del alumnado.
 - *«En la tarea final, pon los criterios que evalúa y cuatro niveles de
   logro.»* Tu alumnado ve en el aula qué se le pide y cómo se valora, con el
   lenguaje del currículo traducido a su edad.
-- *«Pon en la tarea una rúbrica: que se vea cómo se valora cada criterio.»* En
-  ESO, `tiza` crea la rúbrica nativa de Moodle. Puede repartir los 10 puntos entre
+- *«Pon en la tarea una rúbrica: que se vea cómo se valora cada criterio.»* `tiza`
+  crea la rúbrica nativa de Moodle en cualquier etapa. Puede repartir los 10 puntos entre
   las filas de la rúbrica con los pesos de tu programación o, si le das los
   indicadores y los descriptores de cada nivel, usar pesos propios que solo reparten
   la nota visible de la tarea y no sustituyen al peso de cada criterio. La rúbrica se ve
   antes de la entrega; si la tarea ya está en el aula, te pregunta antes de tocarla.
-- *«Que cada criterio reciba su propio nivel en la tarea.»* En ESO, tiza crea
+- *«Que cada criterio reciba su propio nivel en la tarea.»* tiza crea
   un resultado por criterio; tú marcas el nivel de cada uno en Moodle y la nota
   total de la tarea deja de repartirse entre criterios.
 - *«Que la nota de un criterio no sea siempre la media.»* tiza puede usar la

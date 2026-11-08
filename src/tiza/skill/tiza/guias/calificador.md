@@ -38,7 +38,7 @@ final:
   tope: {si_alguno_menor_que: 5, maximo: 4}
 ```
 
-Con criterios e instrumentos (ESO), esto es lo que cambia sobre el ejemplo de arriba:
+Con criterios e instrumentos (por ejemplo, ESO), esto es lo que cambia sobre el ejemplo de arriba:
 
 ```yaml
 elementos:
@@ -60,12 +60,12 @@ instrumentos:
 - `elementos`: `id` (letra inicial y luego letras, cifras o `_`, 16 como mucho), `nombre`, `peso`
   (0–100, todos suman 100) y `codigo` opcional; `criterios` (opcional) es una lista de `{id, nombre, peso?, codigo?}` con pesos en todos o en ninguno, sumando 100 (sin pesos pesan igual y sale `CRITERIOS_SIN_PESO`); ids únicos y `codigo` legible.
 - `instrumentos` (opcional): casillas manuales, `{id, nombre, seccion, evalua}` (ver §3).
-- `etapa` (`primaria`, `eso`, `bachillerato` o `fp`), `niveles_rubrica` (2–10 niveles `{id, nombre, porcentaje}`, con 0 y 100; por defecto 100/75/50/25/0) y `actividades_pesan_igual` (todas las actividades de un criterio pesan igual); la rúbrica solo vale con `etapa: eso`.
+- `etapa` (`primaria`, `eso`, `bachillerato` o `fp`), `niveles_rubrica` (2–10 niveles `{id, nombre, porcentaje}`, con 0 y 100; por defecto 100/75/50/25/0) y `actividades_pesan_igual` (todas las actividades de un criterio pesan igual).
 - `evaluaciones`: `nombre`, `secciones` (números o nombres) y `cerrada`; con la final por evaluaciones, cada una lleva `peso` (suman 100).
 - `final`: `de` (`elementos` o `evaluaciones`) y `tope` (solo con `de: elementos`):
   `si_alguno_menor_que` (>0 y hasta 10) y `maximo` (0–10, sin llegar).
 - `agregacion` (opcional): `regla` (`media`, `mediana`, `mas_alta` o `progresiva`) y `factores` (uno por evaluación, solo con progresiva). Cada elemento sin criterios o cada criterio puede llevar su propia `regla`; sin `agregacion`, todo es `media`. Con `final.tope` solo valen `media` y `progresiva`, sin recuperaciones (`REGLA_CON_TOPE`).
-- En ESO, recomienda `final: {de: elementos}` (acumula por criterio); la UD o situación de aprendizaje es una unidad de planificación, no de calificación. Propón la regla según la programación: `media` por defecto, `progresiva` si lo último pesa más, `mas_alta` para criterios que se demuestran una vez y `mediana` con muchas evidencias y alguna atípica. La decide el departamento y tú no la cambias.
+- Con criterios, recomienda `final: {de: elementos}` (acumula por criterio); la UD o situación de aprendizaje es una unidad de planificación, no de calificación. Propón la regla según la programación: `media` por defecto, `progresiva` si lo último pesa más, `mas_alta` para criterios que se demuestran una vez y `mediana` con muchas evidencias y alguna atípica. La decide el departamento y tú no la cambias.
 
 Lo que el esquema no expresa (redondeos, la actitud, otros pesos dentro de una evaluación) **se lo dices al docente y no lo fuerzas**.
 
@@ -75,7 +75,7 @@ Cada tarea, cuestionario o contenido H5P declara en su cabecera con qué resulta
 con qué peso: `evalua: {RA1: 40, RA3: 25}` (de 0 a 100). Sin `evidencia: resultados`, la
 actividad real queda en el primer elemento de `evalua` (en el orden del YAML) y en los demás
 aparece una copia que refleja su nota. Con evidencia, va un calculado del resultado por criterio
-y la tarea real queda con peso 0 (§5). Una actividad sin `evalua` no entra en el calificador, y
+y la tarea real queda con peso 0 (§6). Una actividad sin `evalua` no entra en el calificador, y
 una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiza comprobar`).
 
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
@@ -89,15 +89,62 @@ una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiz
   copias en los demás. La nota la pone el docente a mano; tiza nunca la toca ni cambia su
   máximo. Una nota va a todos sus criterios; quitarlo con notas lo deja con peso 0
   (`ELEMENTO_CON_NOTAS_QUITADO`).
-- **`evidencia: resultados`** (solo ESO): la tarea marca los resultados de sus criterios.
-  Necesita `evalua`, `calificacion.yaml` con `etapa: eso` y niveles equidistantes; tiza crea una
+- **`evidencia: resultados`**: la tarea marca los resultados de sus criterios.
+  Necesita `evalua` y `calificacion.yaml` con niveles equidistantes; tiza crea una
   escala de logro y un resultado por criterio, y el docente marca un nivel por criterio en
-  Moodle (ver §5).
+  Moodle (ver §6).
 - **`recupera`**: `recupera: 1` o `recupera: [1, 3]` en una tarea, cuestionario o H5P. Recupera los criterios de su `evalua` y su nota sustituye a la de esa evaluación si es mayor. Necesita `final: {de: elementos}`; cada criterio recuperado debe tener evidencias normales en esa evaluación y no puede ser `mediana` (`RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`). En una evaluación cerrada no cambia su nota: `RECUPERACION_EN_CERRADA` y la recuperación cuenta en la final. Declara solo las que recoja la programación (art. 45.5).
 
-## 4. Rúbrica de la tarea (solo ESO)
+## 4. Mapa de cobertura
 
-Una tarea de ESO con `evalua` puede llevar `rubrica` de dos formas. `rubrica: por_criterios` crea
+`tiza comprobar calificacion.yaml` deja en `.tiza/cobertura.json` qué evalúa cada criterio o
+elemento sin criterios: el instrumento, la actividad, la evaluación, el peso normalizado y la
+regla. Es la fuente de la tabla de trazabilidad y de la página informativa; no la inventes de
+memoria. Incluye `generado`: si el docente edita actividades o el esquema, vuelve a comprobar
+antes de usarlo (tiza no vigila si el mapa se queda viejo).
+
+Los avisos del informe no impiden montar el calificador:
+
+- `HOJA_SIN_EVIDENCIAS`: ese criterio no tiene ninguna actividad ni casilla manual. Propón una
+  actividad en la evaluación que toque o pregunta si el departamento lo evalúa con otro
+  instrumento. Si la programación lo sitúa más adelante, dilo: es normal que en octubre aún no
+  tenga evidencias y no hay que inventarlas (D-F1-4).
+- `HOJA_CON_UNA_EVIDENCIA`: solo una. Puede ser suficiente, pero díselo al docente y valora si
+  conviene otra evidencia para que la nota no dependa de una sola entrega.
+- `MEDIANA_CON_POCAS_EVIDENCIAS`: la regla `mediana` con dos evidencias; con dos, la mediana es
+  la media. Con menos de tres, propón cambiar la regla o añadir evidencias.
+- `PROGRESIVA_EN_UNA_EVALUACION`: la regla `progresiva` tiene todas sus evidencias en la misma
+  evaluación, así que el factor de la evaluación no distingue nada. Propón repartirlas o cambiar
+  la regla.
+
+El `instrumento` es un valor cerrado que deduce tiza (D-F1-6), no un campo nuevo:
+
+| valor | qué es |
+|---|---|
+| `tarea_rubrica_criterios` | tarea con `rubrica: por_criterios` |
+| `tarea_rubrica_filas` | tarea con una rúbrica de `filas` |
+| `tarea_resultados` | tarea con `evidencia: resultados` |
+| `tarea` | tarea sin rúbrica ni resultados |
+| `cuestionario` | cuestionario |
+| `h5p` | contenido H5P |
+| `casilla_manual` | `instrumentos` de `calificacion.yaml` |
+
+La marca `recupera: [n…]` dice qué evaluaciones recupera esa evidencia; una recuperación no cuenta
+como evidencia para los avisos. Para la revisión de una familia (E2), prepara una tabla
+criterio → instrumento → actividad → evaluación → peso → regla con los datos del mapa, sin nombres
+ni notas del alumnado, y conviértela con `tiza documento trazabilidad.md`; el ejemplo
+`ejemplos/trazabilidad.md` muestra el formato. Si el centro pide la
+mitad individual (la nota de un alumno), que la aporte el docente desde el aula: tiza no la tiene.
+
+En Bachillerato y FP el mapa funciona igual: la rúbrica y la evidencia por resultados no dependen
+de `etapa`. Los textos hablan de «criterio» y de «resultado de aprendizaje», no de «competencia»;
+para los RA y CE, parte de `tiza normativa ficha`. Para la página de inicio de curso, sigue
+`guias/informar-al-alumnado.md`.
+
+## 5. Rúbrica de la tarea
+
+Una tarea con `evalua` puede llevar `rubrica` de dos formas, en cualquier etapa (ESO,
+Bachillerato, FP o Primaria). `rubrica: por_criterios` crea
 una fila genérica por criterio, con los pesos de `calificacion.yaml` y los niveles de
 `niveles_rubrica`; basta para una tarea sencilla. `rubrica: rubricas/<tarea>.md` concreta el
 criterio para esa tarea: recomendado 1–3 indicadores por criterio, un descriptor observable por
@@ -120,7 +167,7 @@ ids de `niveles_rubrica`. Máximo 20 filas en total y al menos una por criterio 
 peso > 0. Para varias filas de un criterio, este necesita `codigo`; sin él, usa una sola fila.
 Después hace falta el cuerpo: descripción para el alumnado, sin imágenes ni ficheros locales. No pases el fichero a `tiza comprobar` ni a `tiza publicar`: comprueba y publica la tarea, que lo enlaza con `rubrica:`.
 
-- Solo ESO (`RUBRICA_SOLO_ESO`), con `evalua` (`RUBRICA_SIN_EVALUA`) y `calificacion.yaml` (`RUBRICA_SIN_ESQUEMA`);
+- Con `evalua` (`RUBRICA_SIN_EVALUA`) y `calificacion.yaml` (`RUBRICA_SIN_ESQUEMA`);
   una fila fuera de `evalua` o que no es hoja da `FILA_FUERA_DE_EVALUA`; un criterio de `evalua` con peso >0 sin fila, `CRITERIO_SIN_FILA`.
   Un nivel que falta da `DESCRIPTOR_FALTA`; una clave con forma de id que no está en `niveles_rubrica`, `NIVEL_DESCONOCIDO`; una clave sin forma de id, `RUBRICA_NO_VALIDA` con la pista de la coma.
   Dos filas no repiten criterio e indicador; o todas llevan `peso` o ninguna (`PESOS_DE_FILA_INCOMPLETOS`); fuera de la carpeta, `RUBRICA_FUERA_DE_CARPETA`.
@@ -139,11 +186,11 @@ Después hace falta el cuerpo: descripción para el alumnado, sin imágenes ni f
   `RUBRICA_SIN_PESOS`. `actividades_pesan_igual` iguala las actividades de un criterio. Una tarea
   con notas sin rúbrica cuenta igual para todos sus criterios y no se desglosa sin corregir otra vez.
 
-## 5. Evidencia por criterio (resultados, solo ESO)
+## 6. Evidencia por criterio (resultados)
 
-En una tarea de ESO con **más de un criterio** en `evalua`, propón `evidencia: resultados`: el
-docente marca un nivel por criterio en Moodle en vez de repartir la nota total. Con un solo
-criterio no aporta: la nota de la tarea ya es su nivel.
+En una tarea con **más de un criterio** en `evalua`, propón `evidencia: resultados`, en cualquier
+etapa: el docente marca un nivel por criterio en Moodle en vez de repartir la nota total. Con un
+solo criterio no aporta: la nota de la tarea ya es su nivel.
 
 - tiza crea la escala «Escala de logro (tiza)» con los niveles de `niveles_rubrica` (de menor a
   mayor y equidistantes; si no, `NIVELES_NO_EQUIDISTANTES`) y un resultado `TZ_<criterio>` por
@@ -160,7 +207,7 @@ criterio no aporta: la nota de la tarea ya es su nivel.
 - Con `tiza-privado`, su corrector (`corregir`) rellena los resultados al guardar y su orden
   `copiar-niveles` copia el nivel de cada fila al resultado de su criterio; al agente solo le llegan recuentos.
 
-## 6. Cómo se ve la nota
+## 7. Cómo se ve la nota
 
 - Todos los totales se ven en **porcentaje** (p. ej. «RA1: 40 %»). La nota sale en cadena
   instrumento → criterio → competencia → final, con la nota visible en cada nivel; en la vista
@@ -175,7 +222,7 @@ criterio no aporta: la nota de la tarea ya es su nivel.
 
 El total de cualquier categoría se puede sobrescribir a mano en el informe del calificador de Moodle; la media calculada queda a la vista. tiza no lo deshace ni escribe notas. Si la programación lo exige, el docente lo justifica (art. 46.4) y lo deja escrito en el aula.
 
-## 7. Si el aula ya tiene un calificador
+## 8. Si el aula ya tiene un calificador
 
 - Lo que tiza monta va a «Calificador de tiza», con peso 0 en el total si había otro: el total
   del curso sigue siendo el del docente. Las actividades que pasan a tiza dejan de sumar en él.
@@ -184,14 +231,14 @@ El total de cualquier categoría se puede sobrescribir a mano en el informe del 
 - Un elemento que ya no está en el esquema pero tiene notas se queda con peso 0
   (`ELEMENTO_CON_NOTAS_QUITADO`); no se borra nada con notas.
 
-## 8. Cerrar una evaluación
+## 9. Cerrar una evaluación
 
 Cerrar una evaluación es poner `cerrada: true` y volver a montar: tiza la completa y la bloquea.
 Dentro de una evaluación bloqueada no se crea, cambia, mueve ni borra nada; una actividad nueva
 sale como `ACTIVIDAD_EN_EVALUACION_CERRADA` y `EVALUACION_CERRADA_EN_EL_AULA` avisa de que ya
 estaba bloqueada. **tiza no puede reabrirla**: si falla a medias, repite el comando.
 
-## 9. Cómo se monta
+## 10. Cómo se monta
 
 1. `tiza comprobar calificacion.yaml` (offline) hasta que salga 0; también comprueba `evalua`.
 2. Las actividades tienen que estar publicadas; una que falta sale como `ACTIVIDAD_PENDIENTE`.
@@ -202,12 +249,12 @@ Lánzalo en segundo plano (hasta una hora): si te corta, la sesión acaba lo emp
 se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente` o `sin_colocar`,
 y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las notas calculadas que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de las que el aula no dejó ocultar (no corta el montaje) y `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos.
 
-## 10. Lo que tiza no hace
+## 11. Lo que tiza no hace
 
 - **No lee ni escribe notas** del alumnado: solo sabe si un elemento tiene notas. No pidas ni muestres notas de nadie y no desbloquees nada.
 - No usa los descriptores de las competencias de Moodle, pero **sí** sus «resultados»
   (*outcomes*) para la evidencia por criterio. No usa las «competencias» de Moodle.
-- **No admitido**: cambiar `organizacion` o `final.de` de un calificador ya montado, ni configurar escalas propias (tiza crea la escala de logro de §5).
+- **No admitido**: cambiar `organizacion` o `final.de` de un calificador ya montado, ni configurar escalas propias (tiza crea la escala de logro de §6).
 - Con más de 500 ficheros `.md` o `.html`, `CARPETA_DEMASIADO_GRANDE`: saca los que no sean del curso.
 - Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no adivines cuál es: el docente borra o renombra una.
 - `ESQUEMA_INVALIDO`, `PESOS_NO_SUMAN_100`, `ID_REPETIDO`, `SECCION_REPETIDA`, `TOPE_SIN_ELEMENTOS`

@@ -310,6 +310,8 @@ Si el docente pide montar el calificador del aula, o cambiar cómo se calcula su
 - **Nunca** pidas ni muestres notas del alumnado: tiza no las lee ni las escribe.
 - Los totales salen en porcentaje; solo con tope hay notas sobre 10. Con un tope, un resultado sin ninguna nota cuenta como 0, así que a mitad de curso la final puede salir topada: díselo al docente.
 - **Reglas y recuperaciones**: cada hoja puede usar `media`, `mediana`, `mas_alta` o `progresiva` (`agregacion` y `regla`), y una actividad puede declarar `recupera: 1` o una lista de evaluaciones para que su nota sustituya a la anterior si mejora. La regla y las recuperaciones salen de la programación; no las cambies por tu cuenta. Los pesos de `evalua` son relativos y se normalizan.
+- **Mapa de cobertura**: `tiza comprobar calificacion.yaml` deja `.tiza/cobertura.json` con qué evalúa cada criterio, con qué instrumento, en qué evaluación, con qué peso y con qué regla, y avisa de los huecos (`HOJA_SIN_EVIDENCIAS`, `HOJA_CON_UNA_EVIDENCIA`, `MEDIANA_CON_POCAS_EVIDENCIAS`, `PROGRESIVA_EN_UNA_EVALUACION`). Léelo antes de proponer actividades y úsalo para la tabla de trazabilidad; los avisos no impiden montar. La rúbrica y la evidencia por resultados valen en cualquier etapa, también FP y Bachillerato.
+- **Informar al alumnado**: si pide una página de inicio de curso con los criterios, la calificación y la recuperación, carga `guias/informar-al-alumnado.md` y constrúyela con el mapa; no prometas totales que el alumnado no ve.
 - Lo que no se puede expresar (redondeos, actitud, otros pesos dentro de una evaluación) se lo dices al docente y no lo fuerzas.
 - Cerrar una evaluación es `cerrada: true` y volver a montar; tiza no la reabre.
 
@@ -323,7 +325,7 @@ Si el docente pide revisar su programación antigua con la normativa vigente y c
 
 El campo `origen` de un `.md` lo escribe `tiza importar` y no se toca. Lo quitas solo si el docente lo pide expresamente para publicar esa actividad como nueva (`guias/realinear.md`, al publicar). Al publicar una actividad con `origen`, tiza compara su nombre, texto y fechas con la copia: `CAMBIADA_EN_EL_AULA` y `ORIGEN_SIN_HUELLA` no se publican (qué hacer: `guias/realinear.md`), y `HUELLA_NO_GUARDADA` avisa de que la próxima vez saltará `CAMBIADA_EN_EL_AULA`. No compara las preguntas ni los ajustes de un cuestionario ni un paquete H5P.
 
-Si además hay que asociar criterios de ESO a actividades que ya están en el aula, sigue §7 de la guía: `ACTIVIDAD_SIN_EVALUA` dice cuáles faltan, el docente confirma la tabla de CE y solo las tareas que él elija ganan `rubrica: por_criterios`.
+Si además hay que asociar criterios a actividades que ya están en el aula, sigue §7 de la guía: `ACTIVIDAD_SIN_EVALUA` dice cuáles faltan, el docente confirma la tabla de criterios y solo las tareas que él elija ganan `rubrica: por_criterios`. Vale en cualquier etapa; en FP, los criterios son los de cada resultado de aprendizaje.
 
 ## Unidad completa (un tema, una unidad, una situación de aprendizaje)
 

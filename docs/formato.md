@@ -37,8 +37,8 @@ apertura: 2026-10-01
 entrega: 2026-10-10
 limite: 2026-10-15
 evalua: {CE1_1: 100, CE2_1: 100}   # criterios de calificacion.yaml
-# rubrica: por_criterios   # o rubricas/tarea.md: rúbrica nativa (solo ESO, con evalua)
-evidencia: resultados      # solo ESO: un resultado por criterio (alternativa a la rúbrica)
+# rubrica: por_criterios   # o rubricas/tarea.md: rúbrica nativa (con evalua)
+evidencia: resultados      # un resultado por criterio (alternativa a la rúbrica)
 ---
 
 Resuelve los problemas.
@@ -328,6 +328,16 @@ final:
   (`guias/calificador.md`) dice cómo tratarlo. El juicio del docente se aplica sobrescribiendo
   a mano el total de la categoría en Moodle; tiza no escribe notas ni lo deshace.
 
+`tiza comprobar calificacion.yaml` deja, además, `.tiza/cobertura.json` (versión 1): una entrada
+por criterio o elemento sin criterios, también los vacíos, con el instrumento deducido
+(`tarea_rubrica_criterios`, `tarea_rubrica_filas`, `tarea_resultados`, `tarea`, `cuestionario`,
+`h5p` o `casilla_manual`), la actividad, la evaluación, el peso normalizado, la regla y
+`recupera`. Los nombres vienen de los ficheros del docente y se sanean al escribirlos. El mapa
+lleva `generado`; si el esquema es inválido, se borra el anterior para que no parezca bueno, y
+tiza no vigila si se queda viejo. Los avisos del informe (`HOJA_SIN_EVIDENCIAS`,
+`HOJA_CON_UNA_EVIDENCIA`, `MEDIANA_CON_POCAS_EVIDENCIAS`, `PROGRESIVA_EN_UNA_EVALUACION`) no
+impiden montar el calificador.
+
 ## Calificador: reglas de agregación y recuperación
 
 Por defecto, la nota de cada hoja (un criterio o un elemento sin criterios) es la media ponderada
@@ -373,16 +383,16 @@ elementos:
   Para el juicio del docente, sobrescribe a mano el total de la categoría en el informe del
   calificador: tiza no lo deshace y la media calculada queda a la vista.
 
-## Calificador: rúbrica de la tarea (solo ESO)
+## Calificador: rúbrica de la tarea
 
-Una tarea de ESO con `evalua` puede llevar `rubrica` de dos formas: `por_criterios`, con una fila
+Una tarea con `evalua` puede llevar `rubrica` de dos formas: `por_criterios`, con una fila
 genérica por criterio y los pesos de la programación, o la ruta de un fichero con `filas`, que
 concreta cada criterio para esa tarea. Las dos crean la rúbrica nativa de Moodle, reparten 10
-puntos que Moodle reescala a la nota máxima y solo valen en ESO.
+puntos que Moodle reescala a la nota máxima y valen en cualquier etapa.
 
 Reglas comunes:
 
-- Solo ESO (`RUBRICA_SOLO_ESO`), con `evalua` (`RUBRICA_SIN_EVALUA`) y `calificacion.yaml`
+- Con `evalua` (`RUBRICA_SIN_EVALUA`) y `calificacion.yaml`
   (`RUBRICA_SIN_ESQUEMA`).
 - La rúbrica se ve antes de la entrega (`alwaysshowdefinition=1` y `showdescriptionstudent=1`).
   Una tarea **nueva** la recibe al publicarse; una que **ya existe** solo la recibe si el docente
@@ -402,7 +412,7 @@ criterio de evaluación, con los puntos repartidos según los pesos fijos de la 
 didáctica.
 
 ```yaml
-rubrica: por_criterios   # solo con etapa: eso en calificacion.yaml y con evalua
+rubrica: por_criterios   # con evalua y calificacion.yaml
 ```
 
 - Los pesos salen de `calificacion.yaml` (el del elemento y el del criterio). No se inventan ni
@@ -489,9 +499,9 @@ Descripción de la rúbrica para el alumnado: qué se valora en el montaje y qu�
   peligroso, `HTML_PELIGROSO`; una ruta fuera de la carpeta, `RUBRICA_FUERA_DE_CARPETA`; y los
   problemas de fichero, `FICHERO_AUSENTE`, `CODIFICACION_INVALIDA` o `FICHERO_DEMASIADO_GRANDE`.
 
-## Calificador: evidencia por criterio (resultados, solo ESO)
+## Calificador: evidencia por criterio (resultados)
 
-Una tarea de ESO puede declarar `evidencia: resultados` en su cabecera. En lugar de que su nota
+Una tarea puede declarar `evidencia: resultados` en su cabecera. En lugar de que su nota
 total se reparta entre los criterios, cada criterio de `evalua` recibe **su propio nivel**, que el
 docente marca en la pantalla de calificación de Moodle. Es útil cuando la tarea trabaja más de un
 criterio; con uno solo, la nota de la tarea ya es su nivel.
@@ -508,11 +518,11 @@ criterio. `tiza comprobar` avisa antes de publicar, sin red, solo en un cuestion
 criterios con peso; el aviso propone publicar uno por criterio.
 
 ```yaml
-evidencia: resultados   # solo con etapa: eso en calificacion.yaml y con evalua
+evidencia: resultados   # con evalua y calificacion.yaml
 ```
 
 - Necesita `evalua` (`EVIDENCIA_SIN_EVALUA`) y `calificacion.yaml` en la carpeta de la asignatura
-  (`EVIDENCIA_SIN_ESQUEMA`). Solo vale en ESO (`EVIDENCIA_SOLO_ESO`). Los porcentajes de
+  (`EVIDENCIA_SIN_ESQUEMA`). Los porcentajes de
   `niveles_rubrica` deben estar igual de separados, como los de por defecto (0, 25, 50, 75 y 100);
   si no, `NIVELES_NO_EQUIDISTANTES`.
 - tiza crea en el curso la escala «Escala de logro (tiza)» con los niveles de `niveles_rubrica`,

@@ -143,22 +143,22 @@ contestar, y todas juntas. No apliques nada hasta que responda.
 - **`ORIGEN_DUPLICADO`**: dos ficheros vienen de la misma actividad y no se ha publicado ninguno.
   Pregúntale cuál queda. Al otro, solo con su sí, le quitas `origen:` para publicarlo como nuevo.
 
-## 7. Asociar criterios a las actividades del aula (solo ESO)
+## 7. Asociar criterios a las actividades del aula
 
-1. **Requisito**: `calificacion.yaml` con `etapa: eso` y los pesos sacados de la programación
+1. **Requisito**: `calificacion.yaml` y los pesos sacados de la programación
    didáctica (`tiza leer`). Si la PD no trae pesos, haz **una sola pregunta** al docente y espera.
 2. **Trae las actividades**: `tiza copia real` y `tiza importar`, como en §1 y §2.
 3. **Mira qué falta**: `tiza comprobar calificacion.yaml` avisa con `ACTIVIDAD_SIN_EVALUA` de cada
    tarea, cuestionario o H5P que aún no cuenta en el calificador. Las páginas y etiquetas no salen.
-4. **Propón, no inventes**: para cada actividad, propón sus CE a partir del enunciado importado y de
-   `tiza normativa ficha <codigo>`. Preséntale al docente **una sola tabla** (actividad, CE
-   propuestos, motivo en una línea) y espera su confirmación. No inventes CE ni pesos.
-5. **Escribe `evalua`** con 100 en cada CE confirmado, o usa `actividades_pesan_igual: true` en el
+4. **Propón, no inventes**: para cada actividad, propón sus criterios a partir del enunciado importado y de
+   `tiza normativa ficha <codigo>`. Preséntale al docente **una sola tabla** (actividad, criterios
+   propuestos, motivo en una línea) y espera su confirmación. No inventes criterios ni pesos.
+5. **Escribe `evalua`** con 100 en cada criterio confirmado, o usa `actividades_pesan_igual: true` en el
    esquema si todas las actividades de un criterio deben pesar igual. No toques `origen`.
 6. **Rúbrica, solo si el docente la quiere**: en las tareas que elija, añade
    `rubrica: por_criterios`. Si la tarea ya existe, tiza te preguntará si ninguna de las tareas
    listadas tiene notas; con «N» no cambia su rúbrica (`RUBRICA_NO_ACTIVADA`) y publica el resto.
-   Si ya tiene notas, explícale que su nota única cuenta igual para todos sus CE y que no se puede
+   Si ya tiene notas, explícale que su nota única cuenta igual para todos sus criterios y que no se puede
    desglosar sin volver a corregir.
 7. **Comprueba y publica**: `tiza comprobar`, publica en pruebas lo que tenga rúbrica nueva y monta
    `tiza calificador` en pruebas y luego en real, con la confirmación del docente.

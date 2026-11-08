@@ -221,7 +221,7 @@ def test_ejemplo_con_criterios_carga_con_pesos_y_casilla_manual():
 def test_guia_calificador_existe_se_cita_y_nombra_sus_codigos():
     assert GUIA_CALIFICADOR.is_file()
     texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
-    assert len(texto.splitlines()) <= 220
+    assert len(texto.splitlines()) <= 280
     assert "guias/calificador.md" in SKILL.read_text(encoding="utf-8")
     for codigo in CODIGOS_CALIFICADOR:
         assert codigo in texto, f"la guía del calificador no nombra {codigo}"
