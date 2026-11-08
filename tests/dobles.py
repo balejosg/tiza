@@ -195,6 +195,8 @@ class MoodleFalso:
         self.escrituras: list[tuple] = []
         # Fallos simulados: método -> códigos de error; cada llamada gasta el primero.
         self.fallos: dict[str, list[str]] = {}
+        # Ajuste «Ocultar totales si contienen ítems ocultos» por curso (-1: por defecto del sitio).
+        self.ajustes_totales: dict[int, int | None] = {}
         # Árbol de notas por curso (``colocacion.ArbolNotas``); sin configurar, solo la raíz.
         self.arboles: dict[int, colocacion.ArbolNotas] = {}
         self._siguiente_eid = 1000
@@ -457,9 +459,9 @@ class MoodleFalso:
         )
         return self._nuevo_eid("cg")
 
-    def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo):
+    def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo, oculto=False):
         self._escribir_calificador(
-            "crear_calculado", curso, nombre, idnumber, padre_eid, peso, maximo
+            "crear_calculado", curso, nombre, idnumber, padre_eid, peso, maximo, oculto
         )
         return self._nuevo_eid("ig")
 
@@ -477,6 +479,13 @@ class MoodleFalso:
 
     def bloquear_total(self, curso, item_id):
         self._escribir_calificador("bloquear_total", curso, item_id)
+
+    def ocultar(self, curso, item_id):
+        self._escribir_calificador("ocultar", curso, item_id)
+
+    def ajuste_totales(self, curso):
+        self.llamadas.append(("ajuste_totales", curso))
+        return self.ajustes_totales.get(curso, -1)
 
     def colocar_actividad(self, curso, cmid, categoria_id, idnumber):
         self._escribir_calificador("colocar_actividad", curso, cmid, categoria_id, idnumber)
@@ -1034,6 +1043,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         ),
         "ACTIVIDAD_PENDIENTE": publicacion.Aviso.actividad_pendiente("t.md"),
         "ACTIVIDAD_SIN_EVALUA": publicacion.Aviso.actividad_sin_evalua("t.md"),
+        "CALCULADOS_OCULTADOS": publicacion.Aviso.calculados_ocultados(3),
         "CALIFICANDO_EN_PRUEBAS": publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
         "CAMBIADA_EN_EL_AULA": publicacion.Aviso.cambiada_en_el_aula("T"),
         "CAMBIADA_DESDE_LA_PUBLICACION": publicacion.Aviso.cambiada_desde_la_publicacion("T"),
@@ -1063,6 +1073,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "NADA_QUE_CAMBIAR": publicacion.Aviso.nada_que_cambiar(),
         "NOMBRES_NO_DISPONIBLES": publicacion.Aviso.nombres_no_disponibles(),
         "NOTA_SIN_COLOCAR": publicacion.Aviso.nota_sin_colocar("T", "AMBIGUA", None),
+        "OCULTAR_FALLIDO": publicacion.Aviso.ocultar_fallido(2),
         "ORDENANDO_EN_PRUEBAS": publicacion.Aviso.ordenando_en_pruebas(
             (publicacion.DocumentoBreve("t.md", "pagina", "T"),)
         ),
@@ -1093,6 +1104,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         ),
         "SIGUE_LA_VERSION_ACTUAL": publicacion.Aviso.sigue_la_version_actual(),
         "TIZA_ACTUALIZADA": publicacion.Aviso.tiza_actualizada(False),
+        "TOTALES_VISIBLES": publicacion.Aviso.totales_visibles(),
         "SANDBOX_PERMITIDO": publicacion.Aviso.sandbox_permitido(),
         "SANDBOX_NO_PERMITIDO": publicacion.Aviso.sandbox_no_permitido(126),
     }

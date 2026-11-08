@@ -145,7 +145,7 @@ class Ejecucion:
         elif tipo == "crear_calculado":
             assert op.idnumber is not None and op.nombre is not None and op.maximo is not None
             self.eids[op.idnumber] = aula.crear_calculado(
-                curso, op.nombre, op.idnumber, self._padre(op), op.peso, op.maximo
+                curso, op.nombre, op.idnumber, self._padre(op), op.peso, op.maximo, op.oculto
             )
         elif tipo == "colocar":
             assert op.cmid is not None
@@ -192,6 +192,10 @@ class Ejecucion:
             aula.fijar_formula(curso, self._item(op), op.formula, self.decimal)
         elif tipo == "fijar_total_curso":  # la raíz se relee siempre
             aula.fijar_total_curso(curso, op.formula, self.decimal)
+        elif tipo == "ocultar":
+            assert op.item_id is not None
+            self.tocados.add(f"ig{op.item_id}")
+            aula.ocultar(curso, op.item_id)
         elif tipo == "borrar":
             assert op.eid is not None
             self.tocados.add(op.eid)

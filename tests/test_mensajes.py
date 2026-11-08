@@ -257,6 +257,24 @@ class TestAvisos:
                 publicacion.Aviso.calificando_en_pruebas("calificacion.yaml"),
                 "El agente pide montar el calificador en pruebas con «calificacion.yaml».",
             ),
+            (
+                publicacion.Aviso.calculados_ocultados(1),
+                "Se han ocultado al alumnado 1 nota calculada por tiza. Las actividades, las "
+                "casillas manuales y los niveles por criterio siguen a la vista.",
+            ),
+            (
+                publicacion.Aviso.ocultar_fallido(2),
+                "No se han podido ocultar 2 notas calculadas por tiza: el alumnado las sigue "
+                "viendo. Vuelve a montar el calificador; si se repite, revisa el calificador "
+                "del aula a mano.",
+            ),
+            (
+                publicacion.Aviso.totales_visibles(),
+                "El ajuste del calificador deja ver al alumnado los totales que contienen "
+                "ítems ocultos. Para que no los vea, elige «Ocultar los totales si contienen "
+                "ítems ocultos» en Calificaciones → Configuración del calificador → Informe "
+                "del usuario.",
+            ),
         ],
     )
     def test_los_avisos_del_calificador_dicen_lo_acordado(self, aviso, esperado):

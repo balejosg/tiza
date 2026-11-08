@@ -83,6 +83,9 @@ def nodo_aula(eid: str, idnumber: str, clase: str, padre: str | None, **kw) -> N
         formula=None,
         maximo=None,
         cmid=None,
+        # Lo que ya montó tiza está oculto al alumnado (R1); los tests que prueban el
+        # desocultado pasan ``oculto=False``.
+        oculto=clase == "calculado",
     )
     base.update(kw)
     return NodoAula(**base)  # type: ignore[arg-type]
@@ -149,6 +152,7 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
                 sobrescrito=op.peso is not None,
                 maximo=op.maximo,
                 agregacion=op.agregacion if categoria else None,
+                oculto=op.oculto,
             )
         elif t == "colocar":
             n = buscar(op)
@@ -185,6 +189,8 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
             cambiar(op, formula=op.formula)
         elif t in ("bloquear_ajeno", "bloquear_cerrada"):
             cambiar(op, bloqueado=True)
+        elif t == "ocultar":
+            cambiar(op, oculto=True)
         elif t == "borrar":
             del nodos[buscar(op).eid]
         for _ in range(6):  # el máximo de una categoría Natural es la suma de sus hijos
@@ -705,8 +711,9 @@ def test_orden_dos_fases() -> None:
         "fijar_maximo": 2,
         "fijar_formula": 3,
         "fijar_total_curso": 3,
-        "bloquear_cerrada": 4,
-        "borrar": 4,
+        "ocultar": 4,
+        "bloquear_cerrada": 5,
+        "borrar": 5,
     }
     assert set(rc.TIPOS) == set(fases)
     assert [fases[x] for x in t] == sorted(fases[x] for x in t)
@@ -1166,7 +1173,7 @@ def test_casilla_cambiada_a_mano_no_se_toca() -> None:
     huellas = huellas_de(aula, CMIDS_M)
     manual = por_id(aula, "TZ_M_exp")
     # el docente le puso una fórmula: pasa a ser un calculado y la huella cambia
-    cambiada = con_nodo(aula, manual.eid, clase="calculado", formula="=1+1", peso=7.0)
+    cambiada = con_nodo(aula, manual.eid, clase="calculado", formula="=1+1", peso=7.0, oculto=True)
     rec = reconciliar(d, cambiada, huellas, CMIDS_M)
     assert ("CAMBIADO_A_MANO", "TZ_M_exp") in rec.avisos
     assert [o for o in rec.operaciones if o.eid == manual.eid] == []
@@ -1681,3 +1688,140 @@ def test_montaje_idempotente_con_reglas() -> None:
     d, aula = montar_reglas(esquema_mas_alta(), documentos_mas_alta(), cmids)
     rec = reconciliar(d, aula, huellas_de(aula, cmids), cmids)
     assert rec.operaciones == () and rec.avisos == ()
+
+
+# --------------------------------------------------------------------------- #
+# R1: el alumnado no ve los calculados
+# --------------------------------------------------------------------------- #
+
+
+def calculados(aula: CalificadorAula) -> list[NodoAula]:
+    return [n for n in aula.nodos if n.clase == "calculado"]
+
+
+def test_crear_calculado_nace_oculto() -> None:
+    d, aula = montar(FP_TOPE)
+    resultados = {"CE2_2": 41, "CE3_1": 42}
+    con_resultados = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    clases = {n.clase for n in (*d.nodos, *con_resultados.nodos) if n.clase in rc.CLASES_OCULTAS}
+    assert set(rc.CLASES_OCULTAS) <= clases  # copia, indicador, nota y resultado_calc
+    for n in d.nodos:
+        if n.clase in rc.CLASES_OCULTAS:
+            assert por_id(aula, n.idnumber).oculto is True, n.idnumber
+    aula_resultados, _ = aplicar_todo(con_resultados, aula_con_resultados(), resultados)
+    for n in con_resultados.nodos:
+        if n.clase in rc.CLASES_OCULTAS:
+            assert por_id(aula_resultados, n.idnumber).oculto is True, n.idnumber
+    # la decisión viaja en la operación: Moodle la recibe en el alta
+    rec = reconciliar(
+        con_resultados, aula_con_resultados(), {}, CMIDS_RESULTADOS, resultados=resultados
+    )
+    altas = [o for o in rec.operaciones if o.tipo == "crear_calculado"]
+    assert altas and all(o.oculto for o in altas)
+
+
+def test_actividad_manual_y_resultado_no_se_ocultan() -> None:
+    _, aula = montar(FP_M)
+    assert por_id(aula, "TZ_M_exp").oculto is False
+    assert all(n.oculto is False for n in aula.nodos if n.clase in ("actividad", "manual"))
+    # los elementos de resultado del aula también se quedan visibles
+    d = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    con_resultados, _ = aplicar_todo(d, aula_con_resultados(), {"CE2_2": 41, "CE3_1": 42})
+    for _, _, id_ in d.resultados:
+        assert por_id(con_resultados, id_).oculto is False
+
+
+def test_calculado_visible_se_oculta_y_avisa_una_vez() -> None:
+    d, aula = montar(FP_TOPE)
+    huellas = huellas_de(aula, CMIDS)
+    visible = calculados(aula)[0]
+    aula = con_nodo(aula, visible.eid, oculto=False)
+    rec = reconciliar(d, aula, huellas, CMIDS)
+    assert [(o.tipo, o.idnumber) for o in rec.operaciones if o.tipo == "ocultar"] == [
+        ("ocultar", visible.idnumber)
+    ]
+    assert [clave for codigo, clave in rec.avisos if codigo == "CALCULADOS_OCULTADOS"] == ["1"]
+    final = aplicar(aula, rec.operaciones)
+    otra = reconciliar(d, final, huellas_de(final, CMIDS), CMIDS)
+    assert otra.operaciones == () and otra.avisos == ()
+
+
+def test_calculado_visible_en_evaluacion_cerrada_se_oculta() -> None:
+    aula, huellas = montaje_cerrado()
+    eids, _ = subarbol(aula, "TZ_V_1")
+    dentro = next(n for n in calculados(aula) if n.eid in eids)
+    aula = con_nodo(aula, dentro.eid, oculto=False)
+    rec = reconciliar(deseado(FP_CERRADA, docs(), False, CARPETA), aula, huellas, CMIDS)
+    assert [o.idnumber for o in rec.operaciones if o.tipo == "ocultar"] == [dentro.idnumber]
+
+
+def test_sobrante_conservado_visible_se_oculta() -> None:
+    # Un TZ_R_ sin evidencia no se borra: se queda con peso 0, pero deja de verse.
+    d = deseado(esquema_resultados(), [tarea_resultados()], False, CARPETA)
+    resultados = {"CE2_2": 41, "CE3_1": 42}
+    aula, _ = aplicar_todo(d, aula_con_resultados(), resultados)
+    resto = next(n for n in calculados(aula) if n.idnumber.startswith("TZ_R_"))
+    aula = con_nodo(aula, resto.eid, oculto=False)
+    sin = deseado(esquema_resultados(), [tarea_resultados(evidencia=None)], False, CARPETA)
+    rec = reconciliar(
+        sin, aula, huellas_de(aula, CMIDS_RESULTADOS), CMIDS_RESULTADOS, resultados={}
+    )
+    assert [o.idnumber for o in rec.operaciones if o.tipo == "ocultar"] == [resto.idnumber]
+    # Y una copia con notas que sobra también se conserva: se oculta igual.
+    _, montada = montar(FP)
+    huellas = huellas_de(montada, CMIDS)
+    copia = por_id(montada, copias_de(deseado(FP, docs(), False, CARPETA), "d.md")[0].idnumber)
+    con_notas = con_nodo(montada, copia.eid, tiene_notas=True, oculto=False)
+    solo = [doc("a.md", 1, RA1=100), doc("c.md", 2, RA2=100)]
+    rec = reconciliar(deseado(FP, solo, False, CARPETA), con_notas, huellas, CMIDS)
+    assert copia.idnumber in {o.idnumber for o in rec.operaciones if o.tipo == "ocultar"}
+
+
+def test_lo_que_se_borra_no_se_oculta() -> None:
+    _, aula = montar(FP)
+    copia = por_id(aula, copias_de(deseado(FP, docs(), False, CARPETA), "d.md")[0].idnumber)
+    aula = con_nodo(aula, copia.eid, oculto=False)
+    solo = [doc("a.md", 1, RA1=100), doc("c.md", 2, RA2=100)]
+    rec = reconciliar(deseado(FP, solo, False, CARPETA), aula, huellas_de(aula, CMIDS), CMIDS)
+    borrados = {o.eid for o in rec.operaciones if o.tipo == "borrar"}
+    assert copia.eid in borrados
+    assert copia.idnumber not in {o.idnumber for o in rec.operaciones if o.tipo == "ocultar"}
+
+
+def test_pasada2_no_emite_ocultar() -> None:
+    d, aula = montar(FP)
+    visible = calculados(aula)[0]
+    aula = con_nodo(aula, visible.eid, oculto=False)
+    assert pasada2(d, aula, huellas_de(aula, CMIDS), CMIDS) == ()
+
+
+def test_ocultar_va_antes_del_cierre_en_todo() -> None:
+    d = deseado(FP, docs(), False, CARPETA)
+    plan = rc._Plan(d, aula_inicial(), {}, CMIDS, None, False)
+    plan.ocultar = [Operacion("ocultar", idnumber="TZ_X", eid="ig999", item_id=999)]
+    plan.cierre = [Operacion("bloquear_cerrada", idnumber="TZ_V_1", item_id=1)]
+    orden = tipos(plan.todo())
+    assert orden.index("ocultar") < orden.index("bloquear_cerrada")
+
+
+def test_calculado_oculto_no_genera_operacion() -> None:
+    d, aula = montar(FP_TOPE)
+    rec = reconciliar(d, aula, huellas_de(aula, CMIDS), CMIDS)
+    assert "ocultar" not in tipos(rec.operaciones)
+
+
+def test_huella_no_depende_de_oculto() -> None:
+    _, aula = montar(FP_TOPE)
+    visibles = CalificadorAula(
+        nodos=tuple(dataclasses.replace(n, oculto=False) for n in aula.nodos),
+        decimal=aula.decimal,
+    )
+    assert huellas_de(visibles, CMIDS) == huellas_de(aula, CMIDS)
+
+
+def test_nunca_se_oculta_una_categoria() -> None:
+    d, aula = montar(FP)
+    categoria = next(n for n in aula.nodos if n.clase == "categoria")
+    aula = con_nodo(aula, categoria.eid, oculto=False)
+    rec = reconciliar(d, aula, huellas_de(aula, CMIDS), CMIDS)
+    assert not [o for o in rec.operaciones if o.tipo == "ocultar"]

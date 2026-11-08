@@ -122,6 +122,8 @@ class AulaViva(MoodleFalso):
         *,
         perturbar: bool = False,
         reescalar: bool = False,
+        ignorar_ocultar: bool = False,
+        ignorar_alta_oculta: bool = False,
         **kw,
     ):
         super().__init__(secciones=kw.pop("secciones", secciones_de()), **kw)
@@ -134,6 +136,9 @@ class AulaViva(MoodleFalso):
         # Moodle (agregación Natural): si los pesos propios de los hijos de una categoría suman
         # más de 100, los reescala para que sumen 100 cada vez que cambia uno
         self.reescalar = reescalar
+        # Para probar la verificación: el aula acepta la orden pero no oculta, o crea visible.
+        self.ignorar_ocultar = ignorar_ocultar
+        self.ignorar_alta_oculta = ignorar_alta_oculta
         self.relecturas: list[set[str] | None] = []  # los ``tocados`` de cada lectura
 
     # -- lectura ----------------------------------------------------------
@@ -174,7 +179,16 @@ class AulaViva(MoodleFalso):
                 self.nodos[h.eid] = dataclasses.replace(h, peso=round(h.peso * 100 / total, 3))
 
     def _crear(
-        self, eid, idnumber, clase, nombre, padre_eid, peso, maximo=None, agregacion=None
+        self,
+        eid,
+        idnumber,
+        clase,
+        nombre,
+        padre_eid,
+        peso,
+        maximo=None,
+        agregacion=None,
+        oculto=False,
     ) -> str:
         self.nodos[eid] = nodo(
             eid,
@@ -186,6 +200,7 @@ class AulaViva(MoodleFalso):
             sobrescrito=peso is not None,
             maximo=maximo,
             agregacion=agregacion,
+            oculto=oculto,
         )
         return eid
 
@@ -201,10 +216,19 @@ class AulaViva(MoodleFalso):
             eid, idnumber, "categoria", nombre, padre_eid, peso, agregacion=agregacion
         )
 
-    def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo):
-        eid = super().crear_calculado(curso, nombre, idnumber, padre_eid, peso, maximo)
+    def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo, oculto=False):
+        eid = super().crear_calculado(curso, nombre, idnumber, padre_eid, peso, maximo, oculto)
         clase = "manual" if idnumber.startswith("TZ_M_") else "calculado"  # sin fórmula: manual
-        return self._crear(eid, idnumber, clase, nombre, padre_eid, peso, maximo)
+        return self._crear(
+            eid,
+            idnumber,
+            clase,
+            nombre,
+            padre_eid,
+            peso,
+            maximo,
+            oculto=oculto and not self.ignorar_alta_oculta,
+        )
 
     def fijar_maximo(self, curso, item_id, maximo):
         super().fijar_maximo(curso, item_id, maximo)
@@ -229,6 +253,14 @@ class AulaViva(MoodleFalso):
     def bloquear_total(self, curso, item_id):
         super().bloquear_total(curso, item_id)
         self._cambiar(None, item_id, bloqueado=True)
+
+    def ocultar(self, curso, item_id):
+        super().ocultar(curso, item_id)
+        if not self.ignorar_ocultar:
+            self._cambiar(None, item_id, oculto=True)
+
+    def ajuste_totales(self, curso):
+        return self.ajustes_totales.get(curso, -1)
 
     def colocar_actividad(self, curso, cmid, categoria_id, idnumber):
         super().colocar_actividad(curso, cmid, categoria_id, idnumber)
@@ -2203,3 +2235,99 @@ def test_cambiar_la_regla_en_el_aula_avisa_y_la_cambia(tmp_path):
     assert moodle.por_id("TZ_AG_E_CE1_2").agregacion == 2
     assert moodle.por_id("TZ_AG_V_1_CE1_2").agregacion == 2
     assert int(pasos(documento, "REGLA_CAMBIADA")[0]["detalle"]) >= 1
+
+
+# --------------------------------------------------------------------------- #
+# R1: el alumnado no ve los calculados
+# --------------------------------------------------------------------------- #
+
+
+def un_calculado_visible(moodle: AulaViva) -> NodoAula:
+    calculado = next(n for n in moodle.nodos.values() if n.clase == "calculado")
+    moodle.nodos[calculado.eid] = dataclasses.replace(calculado, oculto=False)
+    return calculado
+
+
+def test_ocultar_marca_tocado(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    calculado = un_calculado_visible(moodle)
+    moodle.relecturas.clear()
+    presencia = PresenciaFalsa()
+    documento = atender(pedir(carpeta), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert moodle.por_id(calculado.idnumber).oculto is True
+    assert any(f"ig{calculado.item_id}" in (tocados or set()) for tocados in moodle.relecturas)
+    assert pasos(documento, "CALCULADOS_OCULTADOS")[0]["detalle"] == "1"
+    assert "CALCULADOS_OCULTADOS" in presencia.codigos()
+
+
+def test_ocultar_sin_efecto_avisa_ocultar_fallido_sin_reintentar(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    un_calculado_visible(moodle)
+    moodle.ignorar_ocultar = True
+    moodle.escrituras.clear()
+    presencia = PresenciaFalsa()
+    documento = atender(pedir(carpeta), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert moodle.metodos().count("ocultar") == 1  # ni las 8 pasadas ni otra vuelta
+    assert [p["detalle"] for p in pasos(documento, "OCULTAR_FALLIDO")] == ["1"]
+    assert pasos(documento, "CALCULADOS_OCULTADOS")[0]["detalle"] == "1"
+    assert "OCULTAR_FALLIDO" in presencia.codigos()
+
+
+def test_alta_que_no_queda_oculta_avisa_ocultar_fallido(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(ignorar_alta_oculta=True)
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    creados = len([e for e in moodle.escrituras if e[0] == "crear_calculado"])
+    assert creados == 5  # las copias del esquema (ninguna casilla manual)
+    assert "ocultar" not in moodle.metodos()  # eran altas: no se reintenta ocultándolas
+    assert [p["detalle"] for p in pasos(documento, "OCULTAR_FALLIDO")] == [str(creados)]
+    assert not pasos(documento, "CALCULADOS_OCULTADOS")
+
+
+def test_el_resumen_dice_cuantos_calculados_ocultara(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    un_calculado_visible(moodle)
+    presencia = PresenciaFalsa(real=True)
+    documento = atender(
+        pedir(carpeta, "real"), moodle, carpeta, presencia, cfg=CFG, nombres={5678: "Mates"}
+    )
+    assert documento["resultado"] == "ok", documento
+    [resumen] = presencia.resumenes_calificador
+    assert resumen.ocultadas == 1
+    assert "Ocultaré a tu alumnado 1 nota calculada" in mensajes.detalle_calificador(resumen).lineas
+
+
+def test_el_resumen_avisa_si_el_curso_muestra_los_totales(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    moodle.ajustes_totales[5678] = 1  # «mostrar incluyendo los ítems ocultos»
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia, cfg=CFG, nombres={5678: "Mates"})
+    [resumen] = presencia.resumenes_calificador
+    assert "TOTALES_VISIBLES" in [aviso.codigo for aviso in resumen.avisos]
+    lineas = mensajes.detalle_calificador(resumen).lineas
+    assert any("«Ocultar los totales si contienen ítems ocultos»" in linea for linea in lineas)
+
+
+def test_totales_visibles_deja_paso_en_pruebas_y_no_avisa_con_ocultar(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    moodle.ajustes_totales[CURSO] = 2  # «mostrar excluyendo los ítems ocultos»
+    presencia = PresenciaFalsa()
+    documento = atender(pedir(carpeta), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert pasos(documento, "TOTALES_VISIBLES")
+    assert "TOTALES_VISIBLES" in presencia.codigos()
+    # Con el ajuste por defecto (o ilegible) no se avisa.
+    moodle.ajustes_totales[CURSO] = -1
+    otro = atender(pedir(carpeta), moodle, carpeta)
+    assert not pasos(otro, "TOTALES_VISIBLES")

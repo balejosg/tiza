@@ -91,6 +91,7 @@ PASOS = (
             "BORRAR_COPIA",
             "BORRAR_SECCION",
             "CALENDARIO",
+            "CALCULADOS_OCULTADOS",
             "CALIFICADOR",
             "CALIFICADOR_BLOQUEAR",
             "CALIFICADOR_COLOCAR",
@@ -120,6 +121,7 @@ PASOS = (
             "NOTAS_ORDENADAS",
             "NOTA_COLOCADA",
             "NOTA_SIN_COLOCAR",
+            "OCULTAR_FALLIDO",
             "ORDENAR",
             "PESOS_SIN_EFECTO",
             "PREPARAR",
@@ -136,6 +138,7 @@ PASOS = (
             "SIN_SESION",
             "SOLO_FECHAS",
             "TOTAL_AJENO_BLOQUEADO",
+            "TOTALES_VISIBLES",
             "VERIFICAR_CATEGORIA",
             "VERIFICAR_FECHAS",
         }

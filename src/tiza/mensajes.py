@@ -621,6 +621,12 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
             "Se crean casillas de calificación manual, que rellenas tú en el aula: "
             f"{_lista(resumen.casillas)}"
         )
+    if resumen.ocultadas:
+        cuantas = resumen.ocultadas
+        lineas.append(
+            f"Ocultaré a tu alumnado {cuantas} "
+            f"{'nota calculada' if cuantas == 1 else 'notas calculadas'}"
+        )
     if resumen.ids_nuevos:
         lineas.append(f"Se añade número de ID a: {_lista(resumen.ids_nuevos)}")
     if resumen.quita:
@@ -968,6 +974,40 @@ def _actividad_en_evaluacion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, .
 def _nota_sin_colocar(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     motivo = _motivo_de_nota(datos["motivo"], datos["categoria"])
     return (Linea(f"No se colocó la nota de «{texto_seguro(datos['nombre'])}»: {motivo}."),)
+
+
+def _calculados_ocultados(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    cuantos = datos["cuantos"]
+    sustantivo = "nota calculada" if cuantos == 1 else "notas calculadas"
+    return (
+        Linea(
+            f"Se han ocultado al alumnado {cuantos} {sustantivo} por tiza. "
+            "Las actividades, las casillas manuales y los niveles por criterio siguen a la vista."
+        ),
+    )
+
+
+def _ocultar_fallido(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    cuantos = datos["cuantos"]
+    sustantivo = "nota calculada" if cuantos == 1 else "notas calculadas"
+    return (
+        Linea(
+            f"No se han podido ocultar {cuantos} {sustantivo} por tiza: el alumnado las sigue "
+            "viendo. Vuelve a montar el calificador; si se repite, revisa el calificador del "
+            "aula a mano.",
+            error=True,
+        ),
+    )
+
+
+def _totales_visibles(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "El ajuste del calificador deja ver al alumnado los totales que contienen ítems "
+            "ocultos. Para que no los vea, elige «Ocultar los totales si contienen ítems "
+            "ocultos» en Calificaciones → Configuración del calificador → Informe del usuario."
+        ),
+    )
 
 
 def _actividad_pendiente(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
@@ -1384,6 +1424,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ACTIVIDAD_SIN_EVALUA": _actividad_sin_evalua,
     "AISLAMIENTO_GUARDADO": _aislamiento_guardado,
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
+    "CALCULADOS_OCULTADOS": _calculados_ocultados,
     "CALIFICANDO_EN_PRUEBAS": _calificando_en_pruebas,
     "CAMBIADA_DESDE_LA_PUBLICACION": _cambiada_desde_la_publicacion,
     "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
@@ -1411,6 +1452,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "NADA_QUE_CAMBIAR": _nada_que_cambiar,
     "NOMBRES_NO_DISPONIBLES": _nombres_no_disponibles,
     "NOTA_SIN_COLOCAR": _nota_sin_colocar,
+    "OCULTAR_FALLIDO": _ocultar_fallido,
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
     "PANEL_ACTUALIZADO": _panel_actualizado,
     "PANEL_NO_ACTUALIZADO": _panel_no_actualizado,
@@ -1433,6 +1475,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "SIGUE_FALTANDO": _sigue_faltando,
     "SIGUE_LA_VERSION_ACTUAL": _sigue_la_version_actual,
     "TIZA_ACTUALIZADA": _tiza_actualizada,
+    "TOTALES_VISIBLES": _totales_visibles,
     "SANDBOX_PERMITIDO": _sandbox_permitido,
     "SANDBOX_NO_PERMITIDO": _sandbox_no_permitido,
 }

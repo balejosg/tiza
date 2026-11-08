@@ -521,6 +521,7 @@ class TestCalificador:
             "CALIFICADOR",
             "CALIFICADOR_BLOQUEAR",
             "CALIFICADOR_COLOCAR",
+            "CALCULADOS_OCULTADOS",
             "ACTIVIDAD_PENDIENTE",
             "ACTIVIDAD_EN_EVALUACION_CERRADA",
             "CAMBIADO_A_MANO",
@@ -533,6 +534,8 @@ class TestCalificador:
             "RECUPERACION_EN_CERRADA",
             "REGLA_CAMBIADA",
             "TOTAL_AJENO_BLOQUEADO",
+            "OCULTAR_FALLIDO",
+            "TOTALES_VISIBLES",
         ],
     )
     def test_los_pasos_del_calificador_estan_registrados(self, codigo):

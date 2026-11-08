@@ -165,6 +165,7 @@ criterio no aporta: la nota de la tarea ya es su nivel.
 - Todos los totales se ven en **porcentaje** (p. ej. «RA1: 40 %»). La nota sale en cadena
   instrumento → criterio → competencia → final, con la nota visible en cada nivel; en la vista
   por evaluaciones, la misma cadena dentro de cada evaluación.
+- **Qué ve el alumnado**: las actividades, las casillas manuales y los niveles por criterio, pero no las notas calculadas que monta tiza (copias, indicadores, notas sobre 10 y la final): las crea ocultas y las vuelve a ocultar en cada pasada (`CALCULADOS_OCULTADOS`, u `OCULTAR_FALLIDO` si el aula no deja). El ajuste del curso debe estar en «Ocultar totales si contienen ítems ocultos»; si no, avisa con `TOTALES_VISIBLES` (Calificaciones → Configuración del calificador → Informe del usuario) y no lo cambia.
 - Solo si la final tiene tope, tiza monta «Notas (sobre 10)» con la nota de cada elemento y la
   final. Un elemento sin notas cuenta como 0: a mitad de curso la final puede salir topada aunque
   el alumnado vaya bien; díselo. Con tope, el total lleva fórmula y Moodle deja desmarcado «solo
@@ -199,7 +200,7 @@ estaba bloqueada. **tiza no puede reabrirla**: si falla a medias, repite el coma
 
 Lánzalo en segundo plano (hasta una hora): si te corta, la sesión acaba lo empezado y lo hecho no
 se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente` o `sin_colocar`,
-y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; sin sesión, `SIN_SESION`: pide `tiza empezar`.
+y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las notas calculadas que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de las que el aula no dejó ocultar (no corta el montaje) y `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos.
 
 ## 10. Lo que tiza no hace
 

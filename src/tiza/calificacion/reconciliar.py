@@ -54,6 +54,7 @@ if TYPE_CHECKING:  # solo para los tipos: importar ``publicar`` cargaría python
 
 __all__ = [
     "AVISOS",
+    "CLASES_OCULTAS",
     "CURSO",
     "Operacion",
     "Reconciliacion",
@@ -61,6 +62,7 @@ __all__ = [
     "hay_anterior",
     "huella_de_nodo",
     "huellas_de",
+    "es_calculado_de_tiza",
     "pasada2",
     "reconciliar",
 ]
@@ -80,12 +82,14 @@ TIPOS = (
     "fijar_maximo",
     "fijar_formula",
     "fijar_total_curso",
+    "ocultar",
     "bloquear_cerrada",
     "borrar",
 )
 AVISOS = (
     "ACTIVIDAD_EN_EVALUACION_CERRADA",
     "ACTIVIDAD_PENDIENTE",
+    "CALCULADOS_OCULTADOS",
     "CAMBIADO_A_MANO",
     "EVALUACION_CERRADA_EN_EL_AULA",
     "ELEMENTO_CON_NOTAS_QUITADO",
@@ -95,6 +99,9 @@ AVISOS = (
     "TOTAL_AJENO_BLOQUEADO",
 )
 CURSO = "TZ_CURSO"  # la clave de la huella del total del curso en ``calificador.json``
+# R1-D1: las clases calculadas que crea tiza y que el alumnado no ve. No se ocultan las
+# actividades, las casillas manuales (el instrumento) ni los elementos de resultado.
+CLASES_OCULTAS = ("copia", "indicador", "nota", "resultado_calc")
 _PREFIJO = "TZ_"
 _PREFIJO_RESULTADO = "TZ_O_"
 _PREFIJO_CALCULADO_RESULTADO = "TZ_R_"
@@ -115,7 +122,7 @@ class Operacion:
 
     * ``crear_categoria``: ``idnumber``, ``nombre``, ``padre`` (idnumber) y ``padre_eid`` (si el
       padre ya existe; el curso para ``TZ_TIZA``), ``peso``, ``visualizacion``.
-    * ``crear_calculado``: ídem con ``maximo`` y sin visualización.
+    * ``crear_calculado``: ídem con ``maximo``, sin visualización y con ``oculto`` (R1).
     * ``colocar``: ``cmid``, ``ruta``, ``eid``/``item_id`` de la actividad, ``padre``/``padre_eid``
       de la categoría, ``idnumber`` (el que lleva la actividad: ``TZ_A<cmid>`` o el suyo) y
       ``poner_idnumber`` (``True``: el aula no tenía ninguno y hay que escribirlo).
@@ -133,6 +140,8 @@ class Operacion:
       visualización en porcentaje y vaciar la fórmula que hubiera, la del tope quitado).
     * ``bloquear_ajeno`` y ``bloquear_cerrada``: solo ``item_id`` del total
       (nunca un ``eid``: bloquear un ``cg<id>`` bloquea en cascada) e ``idnumber``.
+    * ``ocultar``: ``eid``, ``item_id`` e ``idnumber`` de un calculado de tiza que el alumnado
+      sigue viendo (R1). No toca categorías, actividades ni casillas manuales.
     * ``borrar``: ``eid`` e ``idnumber``.
     """
 
@@ -152,6 +161,7 @@ class Operacion:
     resultado: int | None = None
     agregacion: int | None = None
     poner_idnumber: bool = False
+    oculto: bool = False  # ``crear_calculado``: el alta ya lo oculta al alumnado (R1)
 
 
 @dataclass(frozen=True)
@@ -312,6 +322,15 @@ def _cerca(a: float | None, b: float | None) -> bool:
     return a is not None and b is not None and abs(a - b) <= TOLERANCIA_PESOS
 
 
+def es_calculado_de_tiza(nodo: NodoAula) -> bool:
+    """¿Es un calculado que crea tiza? La clase del aula ``calculado`` y prefijo ``TZ_``.
+
+    Las casillas manuales, las actividades y los elementos de resultado no lo son. Tampoco lo
+    son los calculados del docente (sin ``TZ_``): tiza no los oculta ni los toca.
+    """
+    return nodo.clase == "calculado" and nodo.idnumber.startswith(_PREFIJO)
+
+
 def _peso_correcto(nodo: NodoAula, deseado: float) -> bool:
     return nodo.sobrescrito and _cerca(nodo.peso, deseado)
 
@@ -382,6 +401,7 @@ class _Plan:
         self.peso: list[Operacion] = []
         self.maximo: list[Operacion] = []
         self.formula: list[Operacion] = []
+        self.ocultar: list[Operacion] = []
         self.cierre: list[Operacion] = []
         self.borrar: list[Operacion] = []
         self._ajenas_bloqueadas: set[str] = set()
@@ -648,6 +668,7 @@ class _Plan:
         self._dejan_de_contar()
         self._total_del_curso()
         self._sobrantes()
+        self._ocultar_calculados()
         self._cierres()
 
     def _actividad(self, nodo: Nodo) -> None:
@@ -874,6 +895,7 @@ class _Plan:
                     padre_eid=padre.eid if padre else None,
                     peso=peso,
                     maximo=self._maximo(nodo),
+                    oculto=nodo.clase in CLASES_OCULTAS,
                 )
             )
         else:
@@ -945,6 +967,28 @@ class _Plan:
                     formula=esperada,
                 )
             )
+
+    def _ocultar_calculados(self) -> None:
+        """R1: deja ocultos al alumnado los calculados de tiza que sigan visibles.
+
+        Va sobre los nodos del aula, no del deseado: incluye lo que cuelga de una evaluación
+        cerrada (``planificar`` salta ``_cerrado_deseado``) y los sobrantes que se conservan
+        (``TZ_R_`` y copias con notas). Excluye lo que esta misma pasada va a borrar y nunca
+        toca categorías, actividades ni casillas manuales. Solo la primera pasada: las 8 pasadas
+        de ``_ajustar`` no repiten un ocultado que falló (``OCULTAR_FALLIDO`` lo comprueba
+        ``calificador_con`` sobre el aula final).
+        """
+        if self.solo_ajustes:
+            return
+        borrados = {op.eid for op in self.borrar}
+        for n in self.aula.nodos:
+            if not es_calculado_de_tiza(n) or n.oculto or n.eid in borrados:
+                continue
+            self.ocultar.append(
+                Operacion("ocultar", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id)
+            )
+        if self.ocultar:
+            self._aviso("CALCULADOS_OCULTADOS", str(len(self.ocultar)))
 
     def _cierres(self) -> None:
         """Bloquea, al final de la segunda pasada, las cerradas del esquema aún sin bloquear.
@@ -1072,6 +1116,7 @@ class _Plan:
             + self.peso
             + self.maximo
             + self.formula
+            + self.ocultar
             + self.cierre
             + self.borrar
         )

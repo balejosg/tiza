@@ -130,6 +130,7 @@ AVISOS = frozenset(
         "ACTIVIDAD_SIN_EVALUA",
         "AISLAMIENTO_GUARDADO",
         "AUTOPRUEBA_FALLIDA",
+        "CALCULADOS_OCULTADOS",
         "CALIFICANDO_EN_PRUEBAS",
         "CAMBIADA_DESDE_LA_PUBLICACION",
         "CAMBIADA_EN_EL_AULA",
@@ -157,6 +158,7 @@ AVISOS = frozenset(
         "NADA_QUE_CAMBIAR",
         "NOMBRES_NO_DISPONIBLES",
         "NOTA_SIN_COLOCAR",
+        "OCULTAR_FALLIDO",
         "ORDENANDO_EN_PRUEBAS",
         "PANEL_ACTUALIZADO",
         "PANEL_NO_ACTUALIZADO",
@@ -181,6 +183,7 @@ AVISOS = frozenset(
         "SIGUE_FALTANDO",
         "SIGUE_LA_VERSION_ACTUAL",
         "TIZA_ACTUALIZADA",
+        "TOTALES_VISIBLES",
     }
 )
 
@@ -227,6 +230,11 @@ class Aviso:
     @classmethod
     def calificando_en_pruebas(cls, esquema: str) -> Aviso:
         return cls("CALIFICANDO_EN_PRUEBAS", {"esquema": esquema})
+
+    @classmethod
+    def calculados_ocultados(cls, cuantos: int) -> Aviso:
+        """``cuantos``: calculados de tiza que esta pasada ha vuelto a ocultar al alumnado (R1)."""
+        return cls("CALCULADOS_OCULTADOS", {"cuantos": cuantos})
 
     @classmethod
     def cambiado_a_mano(cls, nombre: str) -> Aviso:
@@ -379,6 +387,16 @@ class Aviso:
         ``SIN_PATRON``, ``CERRADA``, ``CAMBIADA`` o el código del fallo al leer o mover el
         calificador; ``categoria``: el nombre de la categoría cerrada, solo con ``CERRADA``."""
         return cls("NOTA_SIN_COLOCAR", {"nombre": nombre, "motivo": motivo, "categoria": categoria})
+
+    @classmethod
+    def ocultar_fallido(cls, cuantos: int) -> Aviso:
+        """``cuantos``: calculados de tiza que siguen visibles para el alumnado (R1)."""
+        return cls("OCULTAR_FALLIDO", {"cuantos": cuantos})
+
+    @classmethod
+    def totales_visibles(cls) -> Aviso:
+        """El curso muestra al alumnado los totales que contienen ítems ocultos (R1-D4)."""
+        return cls("TOTALES_VISIBLES")
 
     @classmethod
     def panel_actualizado(cls, version: str) -> Aviso:
@@ -689,6 +707,7 @@ class ResumenCalificador:
     calificador anterior); ``tope``: ``(umbral, máximo)`` de la regla de la final, si la hay;
     ``quita``: nombres (del aula) de lo de tiza que se borra, que no tiene notas.
     ``casillas``: nombres (del esquema) de las casillas manuales de instrumentos que se crean.
+    ``ocultadas``: calculados de tiza que se ocultarán al alumnado en esta pasada (R1).
     """
 
     curso: int
@@ -707,6 +726,7 @@ class ResumenCalificador:
     tope: tuple[float, float] | None = None
     quita: tuple[str, ...] = ()
     casillas: tuple[str, ...] = ()
+    ocultadas: int = 0
 
 
 @dataclass(frozen=True)
@@ -733,6 +753,8 @@ class PlanCalificador:
     resultados: dict[str, int] = field(default_factory=dict)
     documentos_con_resultados: frozenset[str] = frozenset()
     resultados_pendientes: bool = False
+    # «Ocultar totales si contienen ítems ocultos» del curso: -1, 0, 1, 2 o None (ilegible).
+    ajuste_totales: int | None = None
 
 
 @dataclass(frozen=True)
@@ -2685,6 +2707,7 @@ def preparar_calificador(
         resultados=resultados,
         documentos_con_resultados=efectivas,
         resultados_pendientes=pendientes,
+        ajuste_totales=aula.ajuste_totales(curso),
     )
 
 
@@ -2724,7 +2747,7 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
         if codigo == "RESULTADO_CON_NOTAS_QUITADO":
             return Aviso.resultado_con_notas_quitado(texto)
         return Aviso.resultado_recreado(texto)
-    return None  # TOTAL_AJENO_BLOQUEADO ya sale en «se bloquean los totales de…»
+    return None  # TOTAL_AJENO_BLOQUEADO ya sale en «se bloquean los totales de…»; CALCULADOS_OCULTADOS, en su recuento
 
 
 def _actividades_de_hojas(
@@ -2785,6 +2808,8 @@ def resumen_calificador(
         for codigo, clave in (*plan.reconciliacion.avisos, *plan.deseado.avisos)
         if (aviso := _aviso_de(codigo, clave, plan)) is not None
     ]
+    if plan.ajuste_totales in (1, 2):
+        avisos.append(Aviso.totales_visibles())
 
     def nombre_de(op: rc.Operacion) -> str:
         return nombres.get(op.ruta or "", op.ruta or "")
@@ -2833,6 +2858,7 @@ def resumen_calificador(
             for op in operaciones
             if op.tipo == "borrar"
         ),
+        ocultadas=sum(1 for op in operaciones if op.tipo == "ocultar"),
     )
 
 
@@ -3051,9 +3077,25 @@ def calificador_con(
     colocadas = {op.ruta for op in hechas_todas if op.tipo == "colocar"}
     if colocadas:
         borrador.paso("CALIFICADOR_COLOCAR", detalle=str(len(colocadas)))
+    if plan.ajuste_totales in (1, 2):
+        borrador.paso("TOTALES_VISIBLES")
+        if presencia is not None:
+            presencia.informar(Aviso.totales_visibles())
+    ocultados = sum(1 for op in hechas_todas if op.tipo == "ocultar")
     avisos = [*rec.avisos, *plan.deseado.avisos]
     for codigo, cuantos in Counter(codigo for codigo, _ in avisos).items():
+        if codigo == "CALCULADOS_OCULTADOS":  # un solo aviso, con el número de calculados
+            cuantos = ocultados
+            if presencia is not None and ocultados:
+                presencia.informar(Aviso.calculados_ocultados(ocultados))
         borrador.paso(codigo, detalle=str(cuantos))
+    # R1: privacidad. Lo que sigue visible en el aula final (un ocultado que no surtió efecto o
+    # un alta que Moodle no guardó oculta) se avisa sin cortar el curso y sin reintentar.
+    visibles = [n for n in final.nodos if rc.es_calculado_de_tiza(n) and not n.oculto]
+    if visibles:
+        borrador.fallo("OCULTAR_FALLIDO", str(len(visibles)))
+        if presencia is not None:
+            presencia.informar(Aviso.ocultar_fallido(len(visibles)))
     pendientes = {clave for codigo, clave in rec.avisos if codigo == "ACTIVIDAD_PENDIENTE"}
     for doc in plan.documentos:
         ruta = _ruta_de(doc, plan.base)

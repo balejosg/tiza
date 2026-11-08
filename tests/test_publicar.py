@@ -3860,7 +3860,9 @@ def _fixture_calificador(nombre: str) -> str:
     return (FIXTURES_CALIFICADOR / nombre).read_text(encoding="utf-8")
 
 
-def _formulario_item(*, locked=False, rescale=False, peso="0,0", sobrescrito=False, idnumber=""):
+def _formulario_item(
+    *, locked=False, rescale=False, peso="0,0", sobrescrito=False, idnumber="", oculto=False
+):
     html = _fixture_calificador("item.html")
     html = html.replace(
         'name="idnumber" type="text" value=""', f'name="idnumber" type="text" value="{idnumber}"'
@@ -3878,6 +3880,12 @@ def _formulario_item(*, locked=False, rescale=False, peso="0,0", sobrescrito=Fal
         html = html.replace(
             'id="id_weightoverride" name="weightoverride" type="checkbox"',
             'id="id_weightoverride" name="weightoverride" type="checkbox" checked=""',
+        )
+    if oculto:
+        html = html.replace(
+            "</form>",
+            '<input class="form-check-input" id="id_hidden" name="hidden" type="checkbox" '
+            'value="1" checked=""></form>',
         )
     if rescale:
         html = html.replace(
@@ -3903,13 +3911,20 @@ class _SesionCalificador:
     """Aula falsa del calificador: devuelve la página del árbol y los formularios por elemento."""
 
     def __init__(
-        self, arbol=None, items=None, categorias=None, calculos=None, respuesta_arbol=None
+        self,
+        arbol=None,
+        items=None,
+        categorias=None,
+        calculos=None,
+        respuesta_arbol=None,
+        settings=None,
     ):
         self.arbol = _fixture_calificador("setup-lleno.html") if arbol is None else arbol
         self.items = items or {}
         self.categorias = categorias or {}
         self.calculos = calculos or {}
         self.respuesta_arbol = respuesta_arbol
+        self.settings = settings
         self.urls: list[str] = []
         # Escritura: cada GET (url, params) y cada POST (url, campos); respuestas de POST en cola.
         self.gets: list[tuple[str, dict]] = []
@@ -3934,6 +3949,10 @@ class _SesionCalificador:
             return _RespuestaHttp("", status=303, destino="https://aula/grade/edit/tree/index.php")
         if url.endswith("/grade/edit/tree/index.php"):
             return self.respuesta_arbol or _RespuestaHttp(self.arbol)
+        if url.endswith("/grade/edit/settings/index.php"):
+            if self.settings is None:
+                raise AssertionError(f"petición inesperada: {url}")
+            return _RespuestaHttp(self.settings)
         ident = int(params.get("id", 0))
         if url.endswith("/grade/edit/tree/item.php"):
             return _RespuestaHttp(self.items.get(ident) or _formulario_item())
@@ -4010,6 +4029,19 @@ def test_calificador_flags():
     assert _nodo(cal, "cg3").tiene_notas is True
     assert _nodo(cal, "cg4").tiene_notas is False
     assert _nodo(cal, "cg1").tiene_notas is True
+
+
+def test_calificador_lee_oculto_del_formulario():
+    categoria = _fixture_calificador("category.html").replace(
+        "</form>", '<input name="hidden" type="checkbox" value="1" checked=""></form>'
+    )
+    cal, _ = _calificador(
+        items={165: _formulario_item(oculto=True), 166: _formulario_item()},
+        categorias={3: categoria},
+    )
+    assert _nodo(cal, "ig165").oculto is True
+    assert _nodo(cal, "ig166").oculto is False
+    assert _nodo(cal, "cg3").oculto is False  # tiza nunca oculta categorías
 
 
 def test_calificador_bloqueo_de_categoria():
@@ -4348,6 +4380,17 @@ def test_crear_calculado_envia():
     assert campos["weightoverride"] == "1"
     assert campos["aggregationcoef2"] == "25"
     assert "calculation" not in campos
+    assert "hidden" not in campos
+
+
+def test_crear_calculado_oculto_envia_hidden():
+    moodle, sesion = _moodle_calificador()
+    nueva = '<tr class="item cg1" data-itemid="901" data-parent-category="cg1" id="grade-item-ig901"></tr>'
+    sesion.arbol_despues = _fixture_calificador("setup-lleno.html").replace(
+        "</table>", nueva + "</table>", 1
+    )
+    assert moodle.crear_calculado(2, "Nota", "TZ_NOTA_E_1", "cg3", 25, 10, oculto=True) == "ig901"
+    assert _campos(sesion)[1]["hidden"] == "1"
 
 
 def test_crear_calculado_sin_peso():
@@ -4523,6 +4566,45 @@ def test_bloquear_es_ig():
     assert params["action"] == "lock"
     assert params["sesskey"] == "clave"
     assert not any(str(v).startswith("cg") for v in params.values())
+
+
+def test_ocultar_usa_la_accion_del_menu():
+    moodle, sesion = _moodle_calificador()
+    moodle.ocultar(2, 169)
+    url, params = sesion.gets[-1]
+    assert url == "https://aula/grade/edit/tree/action.php"
+    assert params["eid"] == "ig169"
+    assert params["action"] == "hide"
+    assert params["sesskey"] == "clave"
+    assert not any(str(v).startswith("cg") for v in params.values())
+
+
+def test_ajuste_totales_lee_el_select():
+    pagina = _fixture_calificador("settings.html").replace(
+        '<option value="1">', '<option value="1" selected>'
+    )
+    moodle, _ = _moodle_calificador(settings=pagina)
+    assert moodle.ajuste_totales(2) == 1
+
+
+def test_ajuste_totales_sin_selected_es_la_primera():
+    # El «por defecto del sitio» (-1) no lleva ``selected``: vale la primera opción.
+    moodle, _ = _moodle_calificador(settings=_fixture_calificador("settings.html"))
+    assert moodle.ajuste_totales(2) == -1
+
+
+def test_ajuste_totales_ilegible_es_none():
+    class Sesion(_SesionCalificador):
+        def get(self, url, params=None, allow_redirects=True, timeout=None):
+            if url.endswith("/grade/edit/settings/index.php"):
+                self.gets.append((url, dict(params or {})))
+                return _RespuestaHttp("", status=303, destino="https://aula/login/index.php")
+            return super().get(url, params, allow_redirects, timeout)
+
+    moodle = publicar.Moodle("https://aula", Sesion(), "clave", pausa=0)
+    assert moodle.ajuste_totales(2) is None
+    sin_campo, _ = _moodle_calificador(settings="<html><body>sin ajuste</body></html>")
+    assert sin_campo.ajuste_totales(2) is None
 
 
 def test_bloquear_rechazado():

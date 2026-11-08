@@ -329,6 +329,7 @@ class NodoAula:
     maximo: float | None
     cmid: int | None
     agregacion: int | None = None  # 13 Natural, 2 Mediana, 6 Calificación más alta
+    oculto: bool = False  # el alumnado no lo ve; en una categoría no se lee (tiza no las oculta)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -444,6 +445,7 @@ class AulaVirtual(Protocol):
         padre_eid: str | None,
         peso: float | None,
         maximo: float,
+        oculto: bool = False,
     ) -> str: ...
 
     def fijar_maximo(self, curso: int, item_id: int, maximo: float) -> None: ...
@@ -455,6 +457,10 @@ class AulaVirtual(Protocol):
     def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str) -> None: ...
 
     def bloquear_total(self, curso: int, item_id: int) -> None: ...
+
+    def ocultar(self, curso: int, item_id: int) -> None: ...
+
+    def ajuste_totales(self, curso: int) -> int | None: ...
 
     def colocar_actividad(
         self, curso: int, cmid: int, categoria_id: int, idnumber: str | None
@@ -1379,6 +1385,7 @@ class Moodle:
                     "grademax_formulario": _valor_de_campo(formulario, pref + "grademax"),
                     "sobrescrito": _casilla_marcada(formulario, pref + "weightoverride"),
                     "bloqueado": _casilla_marcada(formulario, pref + "locked"),
+                    "oculto": not es_categoria and _casilla_marcada(formulario, "hidden"),
                     "tiene_notas": _campo_con_nombre(formulario, "rescalegrades") is not None,
                     "formula": formula or None,
                     "maximo": _numero(fila.get("data-grademax")),
@@ -1420,6 +1427,7 @@ class Moodle:
                     maximo=p["maximo"],
                     cmid=p["cmid"],
                     agregacion=p["agregacion"],
+                    oculto=p["oculto"],
                 )
             )
         decimal = _decimal_visto(parciales)
@@ -1594,10 +1602,12 @@ class Moodle:
         padre_eid: str | None,
         peso: float | None,
         maximo: float,
+        oculto: bool = False,
     ) -> str:
         """Crea un elemento manual con ``grademax`` y devuelve su ``eid`` (``ig<id>``).
 
-        Sin fórmula: va después con ``fijar_formula`` (segunda pasada).
+        Sin fórmula: va después con ``fijar_formula`` (segunda pasada). Con ``oculto``, el alta
+        lleva ``hidden=1`` en la misma petición: el alumnado no lo ve desde el primer momento.
         """
         cambios = {
             "itemname": nombre,
@@ -1605,6 +1615,8 @@ class Moodle:
             "grademax": _texto_numero(maximo),
             "grademin": "0",
         }
+        if oculto:
+            cambios["hidden"] = "1"
         if padre_eid is not None:
             _validar_eid(padre_eid, "cg")
             cambios["parentcategory"] = padre_eid[2:]
@@ -1708,6 +1720,54 @@ class Moodle:
                 "gpr_courseid": curso,
             },
         )
+
+    def ocultar(self, curso: int, item_id: int) -> None:
+        """Oculta al alumnado un elemento con la acción del menú sobre ``ig<id>``.
+
+        Que el aula acepte la orden no prueba que oculte: ``calificador_con`` comprueba al final
+        que ningún calculado de tiza sigue visible (``OCULTAR_FALLIDO``). tiza nunca desoculta.
+        """
+        self._accion_del_calificador(
+            "grade/edit/tree/action.php",
+            {
+                "id": curso,
+                "sesskey": self.sesskey,
+                "eid": f"ig{item_id}",
+                "action": "hide",
+                "gpr_type": "edit",
+                "gpr_plugin": "tree",
+                "gpr_courseid": curso,
+            },
+        )
+
+    def ajuste_totales(self, curso: int) -> int | None:
+        """El ajuste del curso «Ocultar totales si contienen ítems ocultos».
+
+        Devuelve ``-1`` (por defecto del sitio), ``0`` (ocultar), ``1`` (mostrar incluyendo los
+        ocultos) o ``2`` (mostrar excluyéndolos). Si no se puede leer, ``None``: no es un fallo
+        de la publicación. La opción marcada manda; si ninguna lleva ``selected`` (el ``-1``),
+        vale la primera.
+        """
+        try:
+            pagina = self._pagina_del_calificador("grade/edit/settings/index.php", {"id": curso})
+        except ErrorPublicacion:
+            return None
+        select = BeautifulSoup(pagina, "html.parser").find(
+            "select", attrs={"name": "report_user_showtotalsifcontainhidden"}
+        )
+        if select is None:
+            return None
+        opciones = select.find_all("option")
+        elegida = next((o for o in opciones if o.has_attr("selected")), None)
+        if elegida is None and opciones:
+            elegida = opciones[0]
+        if elegida is None:
+            return None
+        try:
+            valor = int(str(elegida.get("value") or "").strip())
+        except ValueError:
+            return None
+        return valor if valor in (-1, 0, 1, 2) else None
 
     def colocar_actividad(
         self, curso: int, cmid: int, categoria_id: int, idnumber: str | None
