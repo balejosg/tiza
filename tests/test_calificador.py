@@ -2413,3 +2413,30 @@ def test_montaje_con_filas_converge_y_oculta_los_calculados(tmp_path):
     assert segundo["resultado"] == "ok", segundo
     assert pasos(segundo, "CALIFICADOR")[0]["detalle"] == "sin cambios"
     assert moodle.escrituras == escrituras
+
+
+def test_calificador_avisa_descriptor_publicado_y_no_cambia_la_escala(tmp_path):
+    from tiza.rubrica_tarea import clave_de_fila
+
+    carpeta = carpeta_filas(tmp_path)
+    clave = clave_de_fila("grua.md", "CE2_2", "Planifica")
+    nombre_escala = f"Escala · CE2_2 · Planifica · {clave}"
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+        escalas=[{"id": 88, "nombre": nombre_escala, "niveles": ("Uno", "Dos")}],
+        resultados=[
+            {
+                "id": 71,
+                "corto": "TZ_OTRO",
+                "nombre": "Otro resultado",
+                "descripcion": "",
+                "escala": 88,
+            }
+        ],
+    )
+    documento = calificar_resultados(carpeta, moodle)
+    assert documento["resultado"] == "ok", documento
+    assert "DESCRIPTOR_PUBLICADO" in [paso["codigo"] for paso in documento["pasos"]]
+    escala = next(e for e in moodle._escalas_de(5678) if e["id"] == 88)
+    assert tuple(escala["niveles"]) == ("Uno", "Dos")
