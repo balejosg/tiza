@@ -10,11 +10,14 @@ del nivel, también con el mayor resto, para que cada suma sea exacta.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+
+import yaml
 
 from . import contenido, filtro
 from .calificacion.esquema import ErrorCalificacion, Esquema, NivelRubrica
@@ -33,10 +36,23 @@ from .rubrica import (
 )
 from .rubrica_criterios import _hoja, mayor_resto
 
-__all__ = ["FilaRubrica", "cargar_rubrica_de_tarea", "rubrica_de_filas"]
+__all__ = [
+    "FilaDeResultado",
+    "FilaRubrica",
+    "RubricaDeFilas",
+    "cargar_filas_de_tarea",
+    "cargar_rubrica_de_tarea",
+    "clave_de_fila",
+    "descripcion_de_fila",
+    "nombre_de_fila",
+    "resultados_de_tarea",
+    "rubrica_de_filas",
+]
 
 MAX_INDICADOR = 100
 MAX_PESO_FILA = 100
+MAX_NOMBRE_ESCALA = 100
+MAX_NOMBRE_RESULTADO = 255
 
 _CAMPOS = {"tipo", "nombre", "filas"}
 _CAMPOS_FILA = {"criterio", "indicador", "peso", "niveles"}
@@ -54,6 +70,83 @@ class FilaRubrica:
     indicador: str
     peso: float | None
     descriptores: dict[str, str]
+
+
+@dataclass(frozen=True)
+class FilaDeResultado:
+    """Una fila convertida en resultado del aula: su escala y su nombre estable.
+
+    ``niveles`` son los textos «Nivel: descriptor» de menor a mayor porcentaje, ya listos
+    para la escala de Moodle. ``clave`` identifica el resultado de esta tarea y esta fila:
+    incluye la ruta y el indicador, así que renombrar el indicador crea un resultado nuevo.
+    """
+
+    criterio: str
+    indicador: str
+    peso: float
+    niveles: tuple[str, ...]
+    clave: str
+
+
+@dataclass(frozen=True)
+class RubricaDeFilas:
+    """Las filas de una tarea que recoge la evidencia con resultados, sin rúbrica nativa."""
+
+    nombre: str
+    filas: tuple[FilaDeResultado, ...]
+
+    def hash(self) -> str:
+        """Hash de la definición de las filas, para que un cambio de descriptores se publique."""
+        resumen = hashlib.sha256()
+        resumen.update(f"{self.nombre}\n".encode())
+        for fila in self.filas:
+            resumen.update(f"--{fila.criterio}\n{fila.indicador}\n{fila.peso!r}\n".encode())
+            for nivel in fila.niveles:
+                resumen.update(f"{nivel}\n".encode())
+        return resumen.hexdigest()
+
+    def de_criterio(self, criterio: str) -> tuple[FilaDeResultado, ...]:
+        """Las filas de un criterio, en el orden del fichero."""
+        return tuple(fila for fila in self.filas if fila.criterio == criterio)
+
+
+def _huella(texto: str) -> str:
+    return hashlib.sha256(texto.encode("utf-8")).hexdigest()[:10]
+
+
+def clave_de_fila(ruta: str, criterio: str, indicador: str) -> str:
+    """La clave estable de un resultado de fila: incluye la tarea, el criterio y el indicador."""
+    return f"{criterio}_{_huella(f'{ruta}|{criterio}|{indicador}')}"
+
+
+def nombre_de_fila(esquema: Esquema, fila: FilaDeResultado) -> str:
+    """El nombre completo del resultado de una fila: «código · indicador»."""
+    elemento, criterio = _hoja(esquema, fila.criterio)
+    codigo = elemento.codigo if criterio is None else criterio.codigo
+    nombre_criterio = elemento.nombre if criterio is None else criterio.nombre
+    nombre = f"{codigo} · {fila.indicador}" if codigo else f"{nombre_criterio} · {fila.indicador}"
+    return nombre[:MAX_NOMBRE_RESULTADO]
+
+
+def descripcion_de_fila(esquema: Esquema, fila: FilaDeResultado) -> str:
+    """La descripción del resultado de una fila: el criterio al que pertenece."""
+    elemento, criterio = _hoja(esquema, fila.criterio)
+    nombre = elemento.nombre if criterio is None else criterio.nombre
+    codigo = elemento.codigo if criterio is None else criterio.codigo
+    return f"{codigo} · {nombre}" if codigo else nombre
+
+
+def resultados_de_tarea(doc: Any) -> tuple[tuple[str, str], ...]:
+    """(clave, criterio) de cada resultado que marca una tarea con ``evidencia: resultados``.
+
+    Sin rúbrica de filas, hay uno por criterio con la clave del criterio (el comportamiento
+    de siempre). Con filas, hay uno por fila y la clave es la de la fila.
+    """
+    if doc.tipo != "tarea" or doc.evidencia != "resultados" or doc.evalua is None:
+        return ()
+    if doc.rubrica_filas is not None:
+        return tuple((fila.clave, fila.criterio) for fila in doc.rubrica_filas.filas)
+    return tuple((criterio, criterio) for criterio, _ in doc.evalua)
 
 
 def _error(codigo: str, detalle: str) -> ErrorCalificacion:
@@ -231,6 +324,88 @@ def rubrica_de_filas(
     return cargada
 
 
+def _rubrica_de_filas_de_resultado(
+    esquema: Esquema, filas: tuple[FilaRubrica, ...], nombre: str, ruta: str
+) -> RubricaDeFilas:
+    """Convierte las filas validadas en los resultados que se crean en el aula."""
+    pesos = _pesos(filas)
+    niveles = sorted(esquema.niveles_rubrica, key=lambda nivel: nivel.porcentaje)
+    resultado: list[FilaDeResultado] = []
+    for fila, peso in zip(filas, pesos, strict=True):
+        indicador = _texto(fila.indicador, "indicador", MAX_INDICADOR)
+        descriptores = _descriptores(esquema.niveles_rubrica, fila.descriptores, fila.criterio)
+        resultado.append(
+            FilaDeResultado(
+                criterio=fila.criterio,
+                indicador=indicador,
+                peso=peso,
+                niveles=tuple(f"{nivel.nombre}: {descriptores[nivel.id]}" for nivel in niveles),
+                clave=clave_de_fila(ruta, fila.criterio, indicador),
+            )
+        )
+    return RubricaDeFilas(nombre=nombre, filas=tuple(resultado))
+
+
+def _lineas_de_los_niveles(texto: str) -> list[dict[str, int]]:
+    """La línea del fichero de cada descriptor, por fila y nivel.
+
+    El frontmatter empieza en la línea 2 (la 1 es ``---``), así que la línea del fichero es
+    la del nodo YAML más 2. Si algo no tiene la forma esperada se devuelve lo que se pueda:
+    la línea solo mejora el aviso, no valida nada.
+    """
+    coincidencia = contenido._FRONTMATTER.match(texto.lstrip("\ufeff"))
+    if coincidencia is None:
+        return []
+    try:
+        nodo = yaml.compose(coincidencia.group(1), Loader=yaml.SafeLoader)
+    except yaml.YAMLError:
+        return []
+    if not isinstance(nodo, yaml.MappingNode):
+        return []
+    filas_nodo = next(
+        (
+            valor
+            for clave, valor in nodo.value
+            if isinstance(clave, yaml.ScalarNode) and clave.value == "filas"
+        ),
+        None,
+    )
+    if not isinstance(filas_nodo, yaml.SequenceNode):
+        return []
+    salida: list[dict[str, int]] = []
+    for item in filas_nodo.value:
+        lineas: dict[str, int] = {}
+        if isinstance(item, yaml.MappingNode):
+            for clave, valor in item.value:
+                if (
+                    isinstance(clave, yaml.ScalarNode)
+                    and clave.value == "niveles"
+                    and isinstance(valor, yaml.MappingNode)
+                ):
+                    for nivel, _ in valor.value:
+                        if isinstance(nivel, yaml.ScalarNode):
+                            lineas[nivel.value] = nivel.start_mark.line + 2
+        salida.append(lineas)
+    return salida
+
+
+def _comprobar_comas(filas: tuple[FilaRubrica, ...], lineas: list[dict[str, int]]) -> None:
+    """Las escalas de Moodle separan sus niveles con comas: un descriptor no puede llevarlas."""
+    for numero, fila in enumerate(filas, 1):
+        for nivel, texto in fila.descriptores.items():
+            if "," not in texto:
+                continue
+            linea = lineas[numero - 1].get(nivel) if numero <= len(lineas) else None
+            donde = f"fila {numero}, nivel «{nivel}»"
+            if linea is not None:
+                donde += f", línea {linea}"
+            raise ErrorContenido(
+                "DESCRIPTOR_CON_COMA",
+                f"{donde}: el descriptor lleva una coma y la escala de Moodle separa sus "
+                "niveles con comas; reescríbelo sin comas",
+            )
+
+
 def _detalle_campo_no_permitido(donde: str, campo: object) -> str:
     """Detalle de un campo desconocido, con la pista de la coma cuando lo parece."""
     texto = str(campo)
@@ -360,7 +535,12 @@ def _validar_rubrica_de_tarea(
     ruta: Path,
     esquema: Esquema,
     evalua: tuple[tuple[str, float], ...],
-) -> RubricaCargada:
+    *,
+    para_resultados: bool = False,
+    texto: str = "",
+    tarea: Path | None = None,
+    base: Path | None = None,
+) -> RubricaCargada | RubricaDeFilas:
     try:
         for campo in datos:
             if campo in _CAMPOS_PRIVADOS:
@@ -376,6 +556,17 @@ def _validar_rubrica_de_tarea(
         nombre = _nombre(datos)
         filas = _filas_de_tarea(datos.get("filas"), esquema, evalua)
         html = _html_descripcion(ruta, cuerpo)
+        if para_resultados:
+            _comprobar_comas(filas, _lineas_de_los_niveles(texto))
+            if tarea is None or base is None:
+                raise ErrorContenido(
+                    "RUBRICA_NO_VALIDA", "falta la tarea de la que salen los resultados"
+                )
+            try:
+                relativa = Path(tarea).resolve().relative_to(Path(base).resolve()).as_posix()
+            except (OSError, ValueError):
+                relativa = Path(tarea).as_posix()
+            return _rubrica_de_filas_de_resultado(esquema, filas, nombre, relativa)
         return rubrica_de_filas(esquema, filas, nombre, cuerpo, html)
     except ErrorCalificacion as exc:
         raise ErrorContenido(exc.codigo, _detalle_con_fichero(exc.detalle, ruta)) from None
@@ -383,19 +574,8 @@ def _validar_rubrica_de_tarea(
         raise ErrorContenido(exc.codigo, _detalle_con_fichero(exc.detalle, ruta)) from None
 
 
-def cargar_rubrica_de_tarea(
-    ruta: Path,
-    raiz: Path | None,
-    esquema: Esquema,
-    evalua: tuple[tuple[str, float], ...],
-) -> RubricaCargada:
-    """Carga el fichero de filas de una rúbrica enlazada desde una tarea.
-
-    ``raiz`` es la carpeta de la asignatura: con ella, el fichero tiene que estar
-    dentro (``RUBRICA_FUERA_DE_CARPETA``). Los problemas de formato son
-    ``RUBRICA_NO_VALIDA``, salvo el frontmatter ilegible (``FRONTMATTER_INVALIDO``)
-    y el HTML peligroso (``HTML_PELIGROSO``); el detalle va en español.
-    """
+def _leer_rubrica(ruta: Path, raiz: Path | None) -> tuple[Path, str]:
+    """La ruta resuelta y el texto de la rúbrica, con las comprobaciones de siempre."""
     ruta = Path(ruta)
     try:
         resuelta = ruta.resolve()
@@ -423,5 +603,56 @@ def cargar_rubrica_de_tarea(
         raise ErrorContenido("FICHERO_AUSENTE", f"no se pudo leer {ruta.name}") from None
     except UnicodeDecodeError:
         raise ErrorContenido("CODIFICACION_INVALIDA", "la rúbrica no es UTF-8") from None
+    return resuelta, texto
+
+
+def cargar_rubrica_de_tarea(
+    ruta: Path,
+    raiz: Path | None,
+    esquema: Esquema,
+    evalua: tuple[tuple[str, float], ...],
+) -> RubricaCargada:
+    """Carga el fichero de filas de una rúbrica enlazada desde una tarea.
+
+    ``raiz`` es la carpeta de la asignatura: con ella, el fichero tiene que estar
+    dentro (``RUBRICA_FUERA_DE_CARPETA``). Los problemas de formato son
+    ``RUBRICA_NO_VALIDA``, salvo el frontmatter ilegible (``FRONTMATTER_INVALIDO``)
+    y el HTML peligroso (``HTML_PELIGROSO``); el detalle va en español.
+    """
+    resuelta, texto = _leer_rubrica(ruta, raiz)
     datos, cuerpo = contenido._separar_frontmatter(texto)
-    return _validar_rubrica_de_tarea(datos, cuerpo, ruta, esquema, evalua)
+    resultado = _validar_rubrica_de_tarea(datos, cuerpo, resuelta, esquema, evalua, texto=texto)
+    assert isinstance(resultado, RubricaCargada)
+    return resultado
+
+
+def cargar_filas_de_tarea(
+    ruta: Path,
+    raiz: Path | None,
+    esquema: Esquema,
+    evalua: tuple[tuple[str, float], ...],
+    *,
+    tarea: Path,
+    base: Path,
+) -> RubricaDeFilas:
+    """Carga las filas de una tarea que recoge la evidencia con resultados.
+
+    Es la misma validación que la rúbrica nativa, pero no construye ``RubricaCargada``: en
+    esta combinación las filas son resultados del aula. Un descriptor con coma da
+    ``DESCRIPTOR_CON_COMA`` con su línea, porque la escala de Moodle separa niveles con comas.
+    """
+    resuelta, texto = _leer_rubrica(ruta, raiz)
+    datos, cuerpo = contenido._separar_frontmatter(texto)
+    resultado = _validar_rubrica_de_tarea(
+        datos,
+        cuerpo,
+        resuelta,
+        esquema,
+        evalua,
+        para_resultados=True,
+        texto=texto,
+        tarea=tarea,
+        base=base,
+    )
+    assert isinstance(resultado, RubricaDeFilas)
+    return resultado

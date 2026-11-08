@@ -103,11 +103,14 @@ class Tarea(Tipo):
                 from ..publicar import METODO_SUBMISSIONS
 
                 payload[METODO_SUBMISSIONS] = "rubric"
-        # ``evidencia: resultados``: la tarea marca los resultados de sus criterios. Solo los
-        # que tiza creó y tiene con id en Moodle; sin ellos, no se envía ningún ``outcome_``.
+        # ``evidencia: resultados``: la tarea marca los resultados de sus criterios (o de sus
+        # filas). Solo los que tiza creó y tiene con id en Moodle; sin ellos, no se envía
+        # ningún ``outcome_``.
         if doc.evidencia == "resultados":
-            for criterio, _ in doc.evalua or ():
-                resultado = (resultados or {}).get(criterio)
+            from ..rubrica_tarea import resultados_de_tarea
+
+            for clave, _criterio in resultados_de_tarea(doc):
+                resultado = (resultados or {}).get(clave)
                 if resultado is not None:
                     payload[f"outcome_{resultado}"] = "1"
         payload.update(fechas_payload(self, doc))
@@ -221,6 +224,12 @@ class Tarea(Tipo):
         if doc.evidencia is not None:
             resumen.update(b"\n--evidencia--\n")
             resumen.update(doc.evidencia.encode("utf-8"))
+
+    def hash_extra(self, doc, resumen) -> None:
+        # Solo las tareas con filas y resultados añaden esto: las demás conservan su hash.
+        if doc.rubrica_filas is not None:
+            resumen.update(b"\n--rubrica-filas--\n")
+            resumen.update(doc.rubrica_filas.hash().encode("utf-8"))
 
     def extra_preview(self, doc) -> str:
         return _rubrica_preview(doc)

@@ -3382,3 +3382,145 @@ def test_tarea_con_notas_en_otra_seccion_sin_registro_se_pregunta(tmp_path):
         if llamada[0] in ("asegurar_escala", "asegurar_resultado")
     ]
     assert not [clave for clave in moodle.formularios[55] if clave.startswith("outcome_")]
+
+
+# --- Descriptores en los resultados: una escala y un resultado por fila --------
+
+NIVELES_DE_FILA_PRUEBA = (
+    ("no_iniciado", "No iniciado", "No lo hace"),
+    ("inicial", "Inicial", "Lo intenta"),
+    ("adecuado", "Adecuado", "Lo hace"),
+    ("avanzado", "Avanzado", "Lo hace bien"),
+    ("destacado", "Destacado", "Lo hace muy bien"),
+)
+
+
+def _rubrica_de_filas(*filas: tuple[str, str, float]) -> str:
+    niveles = "".join(
+        f"      {nivel}: {descriptor}.\n" for nivel, _nombre, descriptor in NIVELES_DE_FILA_PRUEBA
+    )
+    return (
+        "---\ntipo: rubrica\nnombre: Rúbrica del proyecto\nfilas:\n"
+        + "".join(
+            f"  - criterio: {criterio}\n    indicador: {indicador}\n    peso: {peso:g}\n"
+            f"    niveles:\n{niveles}"
+            for criterio, indicador, peso in filas
+        )
+        + "---\n\nDescripción de la rúbrica para el alumnado.\n"
+    )
+
+
+TAREA_CON_FILAS = """\
+---
+tipo: tarea
+nombre: Proyecto
+seccion: 3
+apertura: 2026-10-01
+entrega: 2026-10-10
+evalua: {CE1: 100, CE2: 100}
+evidencia: resultados
+rubrica: rubricas/proyecto.md
+---
+
+Monta el proyecto.
+"""
+
+
+def _tarea_con_filas(carpeta: Path, *filas: tuple[str, str, float]) -> None:
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RUBRICA, encoding="utf-8")
+    (carpeta / "rubricas").mkdir(exist_ok=True)
+    (carpeta / "rubricas" / "proyecto.md").write_text(
+        _rubrica_de_filas(
+            *(
+                filas
+                or (
+                    ("CE1", "Planifica", 1.0),
+                    ("CE1", "Materiales", 2.0),
+                    ("CE2", "Instala", 1.0),
+                )
+            )
+        ),
+        encoding="utf-8",
+    )
+    (carpeta / "t.md").write_text(TAREA_CON_FILAS, encoding="utf-8")
+
+
+def _clave_de_fila(carpeta: Path, criterio: str, indicador: str) -> str:
+    from tiza.rubrica_tarea import clave_de_fila
+
+    return clave_de_fila("t.md", criterio, indicador)
+
+
+def test_filas_con_evidencia_crean_una_escala_y_un_resultado_por_fila(tmp_path):
+    carpeta = tmp_path.resolve()
+    moodle = _aula_dos_cursos()
+    _tarea_con_filas(carpeta)
+    documento, presencia = _en(carpeta, moodle, "real", ficheros=("t.md",))
+    assert documento["resultado"] == "ok", documento
+    escalas = [llamada for llamada in moodle.llamadas if llamada[0] == "asegurar_escala"]
+    assert len(escalas) == 3
+    assert [llamada[2] for llamada in escalas] == [
+        publicacion.nombre_de_escala_de_fila(
+            type(
+                "Fila",
+                (),
+                {
+                    "criterio": criterio,
+                    "indicador": indicador,
+                    "clave": _clave_de_fila(carpeta, criterio, indicador),
+                },
+            )()
+        )
+        for criterio, indicador in (
+            ("CE1", "Planifica"),
+            ("CE1", "Materiales"),
+            ("CE2", "Instala"),
+        )
+    ]
+    for llamada in escalas:
+        assert llamada[3][0] == "No iniciado: No lo hace."
+        assert llamada[3][-1] == "Destacado: Lo hace muy bien."
+        assert all("," not in nivel for nivel in llamada[3])
+    resultados = [llamada for llamada in moodle.llamadas if llamada[0] == "asegurar_resultado"]
+    assert [llamada[2] for llamada in resultados] == [
+        f"TZ_{_clave_de_fila(carpeta, criterio, indicador)}"
+        for criterio, indicador in (
+            ("CE1", "Planifica"),
+            ("CE1", "Materiales"),
+            ("CE2", "Instala"),
+        )
+    ]
+    cmid = documento["ficheros"][0]["cmid"]
+    marcados = sorted(clave for clave in moodle.formularios[cmid] if clave.startswith("outcome_"))
+    assert len(marcados) == 3
+    assert not any(llamada[0] == "definir_rubrica" for llamada in moodle.llamadas)
+    assert publicar.METODO_SUBMISSIONS not in moodle.formularios[cmid]
+    assert not [aviso for aviso in presencia.avisos if aviso.codigo == "DESCRIPTOR_PUBLICADO"]
+
+
+def test_descriptor_publicado_no_se_cambia_y_avisa(tmp_path):
+    carpeta = tmp_path.resolve()
+    clave = _clave_de_fila(carpeta, "CE1", "Planifica")
+    nombre_escala = f"Escala · CE1 · Planifica · {clave}"
+    moodle = _aula_dos_cursos(
+        escalas=[{"id": 88, "nombre": nombre_escala, "niveles": ("Uno", "Dos")}],
+        resultados=[
+            {
+                "id": 71,
+                "corto": "TZ_OTRO",
+                "nombre": "Otro resultado",
+                "descripcion": "",
+                "escala": 88,
+            }
+        ],
+    )
+    _tarea_con_filas(carpeta)
+    presencia = PresenciaFalsa()
+    documento, presencia = _en(carpeta, moodle, "real", ficheros=("t.md",), presencia=presencia)
+    assert documento["resultado"] == "ok", documento
+    assert "DESCRIPTOR_PUBLICADO" in [paso["codigo"] for paso in documento["pasos"]]
+    assert any(aviso.codigo == "DESCRIPTOR_PUBLICADO" for aviso in presencia.avisos)
+    escala = next(e for e in moodle._escalas_de(5678) if e["id"] == 88)
+    assert tuple(escala["niveles"]) == ("Uno", "Dos")
+    usos = [llamada for llamada in moodle.llamadas if llamada[0] == "asegurar_resultado"]
+    assert any(llamada[2] == f"TZ_{clave}" and llamada[5] == 88 for llamada in usos)

@@ -28,6 +28,7 @@ from tiza.calificacion.esquema import (
     Tope,
 )
 from tiza.contenido import Documento
+from tiza.rubrica_tarea import FilaDeResultado, RubricaDeFilas, clave_de_fila
 
 CARPETA = Path("/curso")
 
@@ -1279,6 +1280,150 @@ def test_ids_estables() -> None:
         "u1/grua.md",
     )
     assert despues == antes
+
+
+NIVELES_DE_FILA = (
+    "No iniciado: No lo hace",
+    "Inicial: Lo intenta",
+    "Adecuado: Lo hace",
+    "Avanzado: Lo hace bien",
+    "Destacado: Lo hace muy bien",
+)
+
+
+def fila(ruta: str, criterio: str, indicador: str, peso: float = 1.0) -> FilaDeResultado:
+    return FilaDeResultado(
+        criterio,
+        indicador,
+        peso,
+        NIVELES_DE_FILA,
+        clave_de_fila(ruta, criterio, indicador),
+    )
+
+
+def tarea_de_filas(ruta: str, seccion: int | str, filas: tuple[FilaDeResultado, ...], **evalua):
+    tarea_con_filas = tarea(ruta, seccion, **evalua)
+    tarea_con_filas.rubrica_filas = RubricaDeFilas("Rúbrica de la grúa", filas)
+    return tarea_con_filas
+
+
+def documentos_de_filas() -> list[Documento]:
+    """La tarea con dos filas en CE2_2 y una en CE3_1, y la actividad que completa CE2_2."""
+    filas = (
+        fila("u1/grua.md", "CE2_2", "Planifica", 1.0),
+        fila("u1/grua.md", "CE2_2", "Materiales", 2.0),
+        fila("u1/grua.md", "CE3_1", "Instala", 1.0),
+    )
+    return [
+        tarea_de_filas("u1/grua.md", 1, filas, CE2_2=50, CE3_1=100),
+        doc("u1/otra.md", 1, CE2_2=50),
+    ]
+
+
+def idnumber_de_fila(ruta: str, clave: str) -> str:
+    return f"TZ_O_{hashlib.sha256(f'{ruta}|{clave}'.encode()).hexdigest()[:10]}"
+
+
+def calc_de_fila(ruta: str, clave: str, vista: str) -> str:
+    return f"TZ_R_{hashlib.sha256(f'{ruta}|{clave}|{vista}'.encode()).hexdigest()[:10]}"
+
+
+def test_filas_con_evidencia_crean_un_resultado_por_fila() -> None:
+    d = deseado(esquema_resultados(), documentos_de_filas(), False, CARPETA)
+    resultados = [n for n in d.nodos if n.clase == "resultado"]
+    assert len(resultados) == 3
+    assert {n.nombre for n in resultados} == {
+        "2.2 · Planifica",
+        "2.2 · Materiales",
+        "3.1 · Instala",
+    }
+    assert len([n for n in d.nodos if n.clase == "resultado_calc"]) == 6
+    assert {ruta for ruta, _, _ in d.resultados} == {"u1/grua.md"}
+    assert len(d.resultados) == 3
+    for criterio, indicador in (
+        ("CE2_2", "Planifica"),
+        ("CE2_2", "Materiales"),
+        ("CE3_1", "Instala"),
+    ):
+        clave = clave_de_fila("u1/grua.md", criterio, indicador)
+        assert ("u1/grua.md", clave, idnumber_de_fila("u1/grua.md", clave)) in d.resultados
+
+
+def test_criterio_de_una_fila_sin_subcategoria() -> None:
+    d = deseado(esquema_resultados(), documentos_de_filas(), False, CARPETA)
+    subcategorias = [n for n in d.nodos if n.idnumber.startswith("TZ_F_")]
+    assert {n.padre for n in subcategorias} == {"TZ_E_CE2_2", "TZ_V_1_CE2_2"}
+    assert all(n.peso == 50.0 for n in subcategorias)
+    una_fila = calc_de_fila("u1/grua.md", clave_de_fila("u1/grua.md", "CE3_1", "Instala"), "E")
+    assert nodo(d, una_fila).padre == "TZ_E_CE3_1"
+    assert nodo(d, una_fila).peso == 100.0
+    assert nodo(d, una_fila).maximo == 10.0
+
+
+def test_media_ponderada_por_fila() -> None:
+    d = deseado(esquema_resultados(), documentos_de_filas(), False, CARPETA)
+    (subcategoria,) = [
+        n for n in d.nodos if n.idnumber.startswith("TZ_F_") and n.padre == "TZ_E_CE2_2"
+    ]
+    assert subcategoria.clase == "categoria"
+    assert subcategoria.agregacion == 13
+    assert subcategoria.visualizacion == "porcentaje"
+    hijas = hijos(d, subcategoria.idnumber)
+    assert [n.clase for n in hijas] == ["resultado_calc", "resultado_calc"]
+    assert [n.peso for n in hijas] == [33.33, 66.67]
+    assert {n.formula_de for n in hijas} == {
+        idnumber_de_fila("u1/grua.md", clave_de_fila("u1/grua.md", "CE2_2", "Planifica")),
+        idnumber_de_fila("u1/grua.md", clave_de_fila("u1/grua.md", "CE2_2", "Materiales")),
+    }
+
+
+def test_indicador_renombrado_es_fila_nueva() -> None:
+    antes = deseado(esquema_resultados(), documentos_de_filas(), False, CARPETA)
+    claves_antes = {clave for _, clave, _ in antes.resultados}
+    filas = (
+        fila("u1/grua.md", "CE2_2", "Planifica el montaje", 1.0),
+        fila("u1/grua.md", "CE2_2", "Materiales", 2.0),
+        fila("u1/grua.md", "CE3_1", "Instala", 1.0),
+    )
+    despues = deseado(
+        esquema_resultados(),
+        [
+            tarea_de_filas("u1/grua.md", 1, filas, CE2_2=50, CE3_1=100),
+            doc("u1/otra.md", 1, CE2_2=50),
+        ],
+        False,
+        CARPETA,
+    )
+    claves_despues = {clave for _, clave, _ in despues.resultados}
+    assert clave_de_fila("u1/grua.md", "CE2_2", "Planifica") not in claves_despues
+    assert clave_de_fila("u1/grua.md", "CE2_2", "Planifica el montaje") in claves_despues
+    assert claves_antes - claves_despues == {clave_de_fila("u1/grua.md", "CE2_2", "Planifica")}
+
+
+def test_criterio_sin_fila_y_peso_cero_no_crea_resultado() -> None:
+    filas = (
+        fila("u1/grua.md", "CE2_2", "Planifica", 1.0),
+        fila("u1/grua.md", "CE2_2", "Materiales", 1.0),
+    )
+    d = deseado(
+        esquema_resultados(),
+        [tarea_de_filas("u1/grua.md", 1, filas, CE2_2=100, CE3_1=0), doc("u1/otra.md", 1, CE2_2=0)],
+        False,
+        CARPETA,
+    )
+    assert all(clave != "CE3_1" for _, clave, _ in d.resultados)
+    assert not [n for n in d.nodos if n.clase == "resultado" and n.padre == "TZ_E_CE3_1"]
+
+
+def test_sin_filas_la_evidencia_sigue_como_hoy() -> None:
+    d = deseado(esquema_resultados(), documentos_resultados(), False, CARPETA)
+    assert len([n for n in d.nodos if n.clase == "resultado"]) == 2
+    assert len([n for n in d.nodos if n.clase == "resultado_calc"]) == 4
+    assert not [n for n in d.nodos if n.idnumber.startswith("TZ_F_")]
+    assert d.resultados == (
+        ("u1/grua.md", "CE2_2", idnumber_resultado("u1/grua.md", "CE2_2")),
+        ("u1/grua.md", "CE3_1", idnumber_resultado("u1/grua.md", "CE3_1")),
+    )
 
 
 def test_evidencia_compartida() -> None:

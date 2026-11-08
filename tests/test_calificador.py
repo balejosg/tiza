@@ -2353,3 +2353,63 @@ def test_totales_visibles_deja_paso_en_pruebas_y_no_avisa_con_ocultar(tmp_path):
     moodle.ajustes_totales[CURSO] = -1
     otro = atender(pedir(carpeta), moodle, carpeta)
     assert not pasos(otro, "TOTALES_VISIBLES")
+
+
+# --- Descriptores en los resultados: una escala y un resultado por fila --------
+
+
+def carpeta_filas(tmp_path: Path) -> Path:
+    carpeta = tmp_path / "filas"
+    carpeta.mkdir()
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_RESULTADOS, encoding="utf-8")
+    (carpeta / "rubricas").mkdir()
+    (carpeta / "rubricas" / "grua.md").write_text(
+        "---\ntipo: rubrica\nnombre: Rúbrica de la grúa\nfilas:\n"
+        "  - criterio: CE2_2\n    indicador: Planifica\n    peso: 1\n    niveles:\n"
+        "      destacado: Lo hace muy bien.\n      avanzado: Lo hace bien.\n"
+        "      adecuado: Lo hace.\n      inicial: Lo intenta.\n"
+        "      no_iniciado: No lo hace.\n"
+        "  - criterio: CE2_2\n    indicador: Materiales\n    peso: 2\n    niveles:\n"
+        "      destacado: Lo hace muy bien.\n      avanzado: Lo hace bien.\n"
+        "      adecuado: Lo hace.\n      inicial: Lo intenta.\n"
+        "      no_iniciado: No lo hace.\n"
+        "  - criterio: CE3_1\n    indicador: Instala\n    peso: 1\n    niveles:\n"
+        "      destacado: Lo hace muy bien.\n      avanzado: Lo hace bien.\n"
+        "      adecuado: Lo hace.\n      inicial: Lo intenta.\n"
+        "      no_iniciado: No lo hace.\n"
+        "---\n\nDescripción de la rúbrica para el alumnado.\n",
+        encoding="utf-8",
+    )
+    (carpeta / "grua.md").write_text(
+        TAREA_RESULTADOS.replace(
+            "evidencia: resultados\n", "evidencia: resultados\nrubrica: rubricas/grua.md\n"
+        ),
+        encoding="utf-8",
+    )
+    return carpeta.resolve()
+
+
+def test_montaje_con_filas_converge_y_oculta_los_calculados(tmp_path):
+    carpeta = carpeta_filas(tmp_path)
+    moodle = AulaViva(
+        extra=[nodo("ig11", "", "actividad", CURSO_EID, cmid=11, nombre="grua", maximo=10.0)],
+        secciones=secciones_resultados(),
+    )
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    primero = publicacion.calificador_con(
+        moodle, "pruebas", CURSO, esquema, documentos, carpeta / ".tiza", evidencia_confirmada=True
+    )
+    assert primero["resultado"] == "ok", primero
+    resultados = resultados_del_aula(moodle)
+    assert len(resultados) == 3
+    calculados = [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_R_")]
+    assert len(calculados) == 6
+    assert all(n.oculto for n in calculados)
+    assert any(n.idnumber.startswith("TZ_F_") for n in moodle.nodos.values())
+    escrituras = list(moodle.escrituras)
+    segundo = publicacion.calificador_con(
+        moodle, "pruebas", CURSO, esquema, documentos, carpeta / ".tiza", evidencia_confirmada=True
+    )
+    assert segundo["resultado"] == "ok", segundo
+    assert pasos(segundo, "CALIFICADOR")[0]["detalle"] == "sin cambios"
+    assert moodle.escrituras == escrituras

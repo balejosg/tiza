@@ -583,6 +583,11 @@ class MoodleFalso:
     def _escala_de(self, curso, escala):
         return next((e for e in self._escalas_de(curso) if e["id"] == escala), None)
 
+    def escala_con_nombre(self, curso, nombre):
+        self.llamadas.append(("escala_con_nombre", curso, nombre))
+        encontradas = [e["id"] for e in self._escalas_de(curso) if e["nombre"] == nombre]
+        return encontradas[0] if len(encontradas) == 1 else None
+
     def resultado_por_corto(self, curso, corto):
         self.llamadas.append(("resultado_por_corto", curso, corto))
         if not self.resultados_activos(curso):
@@ -1058,6 +1063,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "COPIA_QUEDA_EN_EL_AULA": publicacion.Aviso.copia_queda_en_el_aula(),
         "CREANDO_SECCION": publicacion.Aviso.creando_seccion("Tema"),
         "CURSOS_GUARDADOS": publicacion.Aviso.cursos_guardados(Path("tiza.toml")),
+        "DESCRIPTOR_PUBLICADO": publicacion.Aviso.descriptor_publicado("T", "Planifica"),
         "ELEMENTO_CON_NOTAS_QUITADO": publicacion.Aviso.elemento_con_notas_quitado("T"),
         "ELEMENTO_SIN_ACTIVIDADES": publicacion.Aviso.elemento_sin_actividades("RA1"),
         "CRITERIOS_SIN_PESO": publicacion.Aviso.criterios_sin_peso("RA1"),

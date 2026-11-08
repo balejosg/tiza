@@ -1049,6 +1049,16 @@ def _elemento_con_notas_quitado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _descriptor_publicado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "La escala de esta fila ya está publicada con otros niveles y no se ha tocado: "
+            f"«{texto_seguro(datos['fila'], 100)}» en «{texto_seguro(datos['nombre'], 100)}». "
+            "Para cambiar sus descriptores, renombra el indicador de la fila."
+        ),
+    )
+
+
 def _resultado_con_notas_quitado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(
@@ -1438,6 +1448,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "CREANDO_SECCION": _creando_seccion,
     "CRITERIOS_SIN_PESO": _criterios_sin_peso,
     "CURSOS_GUARDADOS": _cursos_guardados,
+    "DESCRIPTOR_PUBLICADO": _descriptor_publicado,
     "ELEMENTO_CON_NOTAS_QUITADO": _elemento_con_notas_quitado,
     "ELEMENTO_SIN_ACTIVIDADES": _elemento_sin_actividades,
     "ERROR_INTERNO": _error_interno,

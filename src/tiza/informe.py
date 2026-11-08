@@ -107,6 +107,8 @@ PASOS = (
             "CURSO_OMITIDO",
             "DEPENDENCIA_SIN_FINALIZACION",
             "DEPENDENCIAS",
+            "DESCRIPTOR_CON_COMA",
+            "DESCRIPTOR_PUBLICADO",
             "ELEMENTO_CON_NOTAS_QUITADO",
             "ELEMENTO_SIN_ACTIVIDADES",
             "ESTRUCTURA",

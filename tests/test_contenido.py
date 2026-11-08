@@ -2851,6 +2851,55 @@ class TestRubricaDeTareaPorFilas:
         assert exc.value.codigo == "RUBRICA_FUERA_DE_CARPETA"
 
 
+class TestRubricaDeFilasConResultados:
+    """``evidencia: resultados`` + fichero de filas: resultados, no rúbrica nativa."""
+
+    def preparar(self, tmp_path, *, niveles: str | None = None):
+        tarea_texto = _TAREA_CON_RUBRICA_FILAS.replace(
+            "rubrica: rubricas/grua.md",
+            "rubrica: rubricas/grua.md\nevidencia: resultados",
+        )
+        if niveles is None:
+            return _carpeta_rubrica(tmp_path, tarea_texto=tarea_texto)
+        texto = _texto_rubrica(_FILAS_DE_PRUEBA).replace("avanzado: Descriptor avanzado.", niveles)
+        return _carpeta_rubrica(tmp_path, rubrica_texto=texto, tarea_texto=tarea_texto)
+
+    def test_no_hay_rubrica_nativa_y_si_filas(self, tmp_path):
+        doc = cargar(self.preparar(tmp_path), raiz=tmp_path)
+        assert doc.rubrica is None
+        assert doc.rubrica_filas is not None
+        assert [fila.criterio for fila in doc.rubrica_filas.filas] == ["CE1", "CE2", "CE3"]
+
+    def test_descriptor_con_coma_en_esa_combinacion(self, tmp_path):
+        ruta = self.preparar(tmp_path, niveles="avanzado: Dos, con coma.")
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(ruta, raiz=tmp_path)
+        assert exc.value.codigo == "DESCRIPTOR_CON_COMA"
+        assert "grua.md" in exc.value.detalle
+        assert "línea" in exc.value.detalle
+
+    def test_el_hash_cambia_solo_al_cambiar_las_filas(self, tmp_path):
+        doc = cargar(self.preparar(tmp_path), raiz=tmp_path)
+        antes = doc.hash_cargado
+        otra = tmp_path / "otra"
+        otra.mkdir()
+        ruta = self.preparar(otra)
+        assert cargar(ruta, raiz=otra).hash_cargado == antes
+        rubrica = otra / "rubricas" / "grua.md"
+        rubrica.write_text(
+            _texto_rubrica(_FILAS_DE_PRUEBA).replace(
+                "avanzado: Descriptor avanzado.", "avanzado: Otro descriptor."
+            ),
+            encoding="utf-8",
+        )
+        assert cargar(ruta, raiz=otra).hash_cargado != antes
+
+    def test_sin_evidencia_sigue_siendo_la_rubrica_nativa(self, tmp_path):
+        doc = cargar(_carpeta_rubrica(tmp_path), raiz=tmp_path)
+        assert doc.rubrica is not None
+        assert doc.rubrica_filas is None
+
+
 class TestPublicadosDelDocumento:
     """``Documento.publicados``: lo que ``.tiza/publicados.json`` dice de este fichero, por curso."""
 

@@ -16,7 +16,12 @@ from tiza.calificacion.esquema import (
     NivelRubrica,
 )
 from tiza.contenido import MAX_DOCUMENTO_BYTES, ErrorContenido
-from tiza.rubrica_tarea import FilaRubrica, cargar_rubrica_de_tarea, rubrica_de_filas
+from tiza.rubrica_tarea import (
+    FilaRubrica,
+    cargar_filas_de_tarea,
+    cargar_rubrica_de_tarea,
+    rubrica_de_filas,
+)
 
 NIVELES = ("destacado", "avanzado", "adecuado", "inicial", "no_iniciado")
 
@@ -730,3 +735,58 @@ def test_descripcion_con_html_peligroso(tmp_path) -> None:
             texto_rubrica(fila_yaml(), cuerpo="<script>alert(1)</script>\n"),
         )
     assert exc.value.codigo == "HTML_PELIGROSO"
+
+
+# --- filas para los resultados: sin rúbrica nativa y sin comas -----------------
+
+
+def cargar_para_resultados(tmp_path, texto: str):
+    return cargar_filas_de_tarea(
+        escribir_rubrica(tmp_path, texto),
+        tmp_path,
+        esquema_con(criterio("CE1", "1.1"), criterio("CE2", "1.2")),
+        (("CE1", 100.0), ("CE2", 100.0)),
+        tarea=tmp_path / "grua.md",
+        base=tmp_path,
+    )
+
+
+def test_filas_para_resultados_con_pesos_y_niveles_ordenados(tmp_path) -> None:
+    cargada = cargar_para_resultados(
+        tmp_path,
+        texto_rubrica(fila_yaml(peso=1) + fila_yaml("CE2", "Otro indicador", peso=2)),
+    )
+    assert cargada.nombre == "Rúbrica de la grúa"
+    assert [fila.criterio for fila in cargada.filas] == ["CE1", "CE2"]
+    assert [fila.peso for fila in cargada.filas] == [1.0, 2.0]
+    assert cargada.filas[0].niveles == (
+        "No iniciado: Descriptor no_iniciado",
+        "Inicial: Descriptor inicial",
+        "Adecuado: Descriptor adecuado",
+        "Avanzado: Descriptor avanzado",
+        "Destacado: Descriptor destacado",
+    )
+    assert cargada.filas[0].clave != cargada.filas[1].clave
+    assert cargada.filas[0].clave.startswith("CE1_")
+
+
+def test_descriptor_con_coma_da_linea(tmp_path) -> None:
+    niveles = descriptores()
+    niveles["avanzado"] = "Dos, con coma"
+    with pytest.raises(ErrorContenido) as exc:
+        cargar_para_resultados(
+            tmp_path, texto_rubrica(fila_yaml(niveles=niveles) + fila_yaml("CE2", "Otro"))
+        )
+    assert exc.value.codigo == "DESCRIPTOR_CON_COMA"
+    assert "grua.md" in exc.value.detalle
+    assert "fila 1" in exc.value.detalle
+    assert "avanzado" in exc.value.detalle
+    assert "línea 9" in exc.value.detalle
+
+
+def test_la_rubrica_nativa_sigue_admitiendo_comas(tmp_path) -> None:
+    niveles = descriptores()
+    niveles["avanzado"] = "Dos, con coma"
+    cargada = cargar_desde(tmp_path, texto_rubrica(fila_yaml(niveles=niveles)))
+    nivel = next(n for n in cargada.criterios[0].niveles if n.id == "avanzado")
+    assert nivel.descripcion == "Avanzado: Dos, con coma"

@@ -480,6 +480,8 @@ class AulaVirtual(Protocol):
 
     def asegurar_escala(self, curso: int, nombre: str, niveles: tuple[str, ...]) -> int: ...
 
+    def escala_con_nombre(self, curso: int, nombre: str) -> int | None: ...
+
     def asegurar_resultado(
         self, curso: int, corto: str, nombre: str, descripcion: str, escala: int
     ) -> int: ...
@@ -2086,6 +2088,11 @@ class Moodle:
         if not nuevas:
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
         return nuevas[0]
+
+    def escala_con_nombre(self, curso: int, nombre: str) -> int | None:
+        """El id de la escala del curso que se llama así, si hay exactamente una."""
+        candidatas = self._escalas_con_nombre(curso, nombre)
+        return candidatas[0] if len(candidatas) == 1 else None
 
     def _ids_de_resultados(self, curso: int) -> set[int]:
         """Los ids de los resultados usados en el curso (``removeoutcomes[]``).

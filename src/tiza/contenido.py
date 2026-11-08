@@ -35,6 +35,7 @@ from .filtro import CONTROL as _CONTROL
 if TYPE_CHECKING:  # el registro importa este módulo: el import va dentro de las funciones
     from . import tipos
     from .rubrica import RubricaCargada
+    from .rubrica_tarea import RubricaDeFilas
 
 __all__ = [
     "EXTENSIONES",
@@ -299,6 +300,9 @@ class Documento:
     evalua: tuple[tuple[str, float], ...] | None = None
     # La rúbrica de una tarea (por criterios o desde un fichero de filas), ya construida.
     rubrica: RubricaCargada | None = None
+    # Las filas de una tarea con «evidencia: resultados»: no hay rúbrica nativa, sino un
+    # resultado del aula por fila. La carga y valida ``rubrica_tarea``.
+    rubrica_filas: RubricaDeFilas | None = None
     # Cómo se recoge la evidencia de cada criterio: None o «resultados».
     evidencia: str | None = None
     # Números de evaluación (1-based) cuyos criterios recupera esta actividad; None: no recupera.
@@ -351,7 +355,13 @@ def cargar(
     datos, cuerpo = _separar_frontmatter(texto)
     doc = _validar(datos, cuerpo, ruta, zona, raiz)
     if doc.tipo == "tarea" and "rubrica" in datos:
-        doc.rubrica = _rubrica_de_tarea(datos["rubrica"], ruta, raiz, doc)
+        from .rubrica_tarea import RubricaDeFilas
+
+        cargada = _rubrica_de_tarea(datos["rubrica"], ruta, raiz, doc)
+        if isinstance(cargada, RubricaDeFilas):
+            doc.rubrica_filas = cargada
+        else:
+            doc.rubrica = cargada
     if doc.evidencia is not None:
         _evidencia_de_tarea(ruta, raiz)
     try:
@@ -640,8 +650,10 @@ def _validar(
     )
 
 
-def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento) -> RubricaCargada:
-    """Construye la rúbrica de una tarea: por criterios o desde un fichero de filas."""
+def _rubrica_de_tarea(
+    valor: Any, ruta: Path, raiz: Path | None, doc: Documento
+) -> RubricaCargada | RubricaDeFilas:
+    """Construye la rúbrica de una tarea: por criterios, nativa o filas para resultados."""
     if not isinstance(valor, str) or not valor.strip():
         raise ErrorContenido(
             "RUBRICA_NO_VALIDA",
@@ -673,8 +685,17 @@ def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento)
             return rubrica_de_criterios(esquema, tuple(id_ for id_, _ in doc.evalua), doc.nombre)
         except ErrorCalificacion as exc:
             raise ErrorContenido(exc.codigo, f"{ruta.name}: {exc.detalle}") from None
-    from .rubrica_tarea import cargar_rubrica_de_tarea
+    from .rubrica_tarea import cargar_filas_de_tarea, cargar_rubrica_de_tarea
 
+    if doc.evidencia == "resultados":
+        return cargar_filas_de_tarea(
+            base / valor,
+            raiz,
+            esquema,
+            doc.evalua,
+            tarea=ruta,
+            base=base,
+        )
     return cargar_rubrica_de_tarea(base / valor, raiz, esquema, doc.evalua)
 
 

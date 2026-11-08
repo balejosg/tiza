@@ -52,6 +52,13 @@ from .contenido import Documento, ErrorContenido, hash_documento
 from .estado import ErrorEstado
 from .estructura import Estructura, Seccion, aplica_origen
 from .publicar import AulaVirtual, CalificadorAula, ErrorPublicacion
+from .rubrica_tarea import (
+    MAX_NOMBRE_ESCALA,
+    FilaDeResultado,
+    descripcion_de_fila,
+    nombre_de_fila,
+    resultados_de_tarea,
+)
 from .tipos import CAMPO_RECORDATORIO, FechaActividad
 from .vigilancia import Anotacion, EstadoDeCambios, Rechazo, Vigilancia
 
@@ -144,6 +151,7 @@ AVISOS = frozenset(
         "CREANDO_SECCION",
         "CRITERIOS_SIN_PESO",
         "CURSOS_GUARDADOS",
+        "DESCRIPTOR_PUBLICADO",
         "ELEMENTO_CON_NOTAS_QUITADO",
         "ELEMENTO_SIN_ACTIVIDADES",
         "ERROR_INTERNO",
@@ -286,6 +294,11 @@ class Aviso:
         if tipo is not None:
             datos["tipo"] = tipo
         return cls("EVIDENCIA_COMPARTIDA", datos)
+
+    @classmethod
+    def descriptor_publicado(cls, nombre: str, fila: str) -> Aviso:
+        """``nombre``: la tarea; ``fila``: el indicador cuya escala ya estaba publicada."""
+        return cls("DESCRIPTOR_PUBLICADO", {"nombre": nombre, "fila": fila})
 
     @classmethod
     def resultado_con_notas_quitado(cls, nombre: str) -> Aviso:
@@ -1200,6 +1213,37 @@ def niveles_de_escala(esquema: Esquema) -> tuple[str, ...]:
     )
 
 
+def nombre_de_escala_de_fila(fila: FilaDeResultado) -> str:
+    """El nombre estable de la escala de una fila: criterio, indicador y su clave.
+
+    La clave lleva la tarea, el criterio y el indicador: dos tareas con la misma fila tienen
+    escalas distintas y renombrar el indicador crea otra escala.
+    """
+    base = f"Escala · {fila.criterio} · {fila.indicador}"
+    sufijo = f" · {fila.clave}"
+    return (base[: MAX_NOMBRE_ESCALA - len(sufijo)] + sufijo)[:MAX_NOMBRE_ESCALA]
+
+
+def _asegurar_escala_de_fila(
+    aula: AulaVirtual, curso: int, fila: FilaDeResultado
+) -> tuple[int, bool]:
+    """(id de la escala, ¿ya estaba publicada con otros niveles?).
+
+    Si la escala está en uso con otros niveles, Moodle no la cambia (D-F2-7): se queda como
+    está, se avisa ``DESCRIPTOR_PUBLICADO`` y se sigue con el resto.
+    """
+    nombre = nombre_de_escala_de_fila(fila)
+    try:
+        return aula.asegurar_escala(curso, nombre, fila.niveles), False
+    except ErrorPublicacion as exc:
+        if exc.codigo != "ESCALA_EN_USO":
+            raise
+        escala = aula.escala_con_nombre(curso, nombre)
+        if escala is None:
+            raise
+        return escala, True
+
+
 def descripcion_de_resultado(esquema: Esquema, criterio: str) -> str:
     """La descripción de un resultado: el nombre del criterio y la lista de niveles (D9)."""
     niveles = ", ".join(
@@ -1219,13 +1263,11 @@ def _cargar_esquema_de_evidencia(base: Path) -> Esquema:
 
 
 def _resultados_propios(aula: AulaVirtual, curso: int, doc: Documento) -> set[int]:
-    """Ids de Moodle de los resultados de los criterios de ``doc.evalua`` que ya existen."""
-    if doc.evalua is None:
-        return set()
+    """Ids de Moodle de los resultados de ``doc`` (criterios o filas) que ya existen."""
     return {
         resultado
-        for criterio, _ in doc.evalua
-        if (resultado := aula.resultado_por_corto(curso, f"TZ_{criterio}")) is not None
+        for clave, _criterio in resultados_de_tarea(doc)
+        if (resultado := aula.resultado_por_corto(curso, f"TZ_{clave}")) is not None
     }
 
 
@@ -1404,11 +1446,28 @@ def publicar_con(
                 borrador.paso("EVIDENCIA_CAMBIADA_CON_NOTAS", detalle=doc.ruta.name)
                 presencia.informar(Aviso.evidencia_cambiada_con_notas(doc.nombre))
                 return {}
+        resultados: dict[str, int] = {}
+        if doc.rubrica_filas is not None:
+            for fila in doc.rubrica_filas.filas:
+                escala, publicado = _asegurar_escala_de_fila(aula, curso, fila)
+                if publicado:
+                    borrador.paso(
+                        "DESCRIPTOR_PUBLICADO",
+                        detalle=f"{doc.ruta.name}: {fila.indicador}",
+                    )
+                    presencia.informar(Aviso.descriptor_publicado(doc.nombre, fila.indicador))
+                resultados[fila.clave] = aula.asegurar_resultado(
+                    curso,
+                    f"TZ_{fila.clave}",
+                    nombre_de_fila(esquema_evidencia, fila),
+                    descripcion_de_fila(esquema_evidencia, fila),
+                    escala,
+                )
+            return resultados
         if escala_logro is None:
             escala_logro = aula.asegurar_escala(
                 curso, ESCALA_LOGRO, niveles_de_escala(esquema_evidencia)
             )
-        resultados: dict[str, int] = {}
         for criterio, _ in doc.evalua:
             resultados[criterio] = aula.asegurar_resultado(
                 curso,
@@ -2587,25 +2646,43 @@ def _resultados_para_calificador(
     documentos: list[Documento],
     base: Path,
     sin_resultados: Collection[str] = (),
-) -> tuple[dict[str, int], bool]:
+) -> tuple[dict[str, int], bool, tuple[tuple[str, str], ...]]:
     """La escala y los resultados del curso para las tareas con evidencia (D8, D9, D12).
 
     Solo asegura las tareas que **no** están en ``sin_resultados`` (las que el docente declinó
-    en D11). Devuelve ``(criterio -> id del resultado, resultados_desactivados)``. Se llama
-    **después** de que el docente confirme el calificador: ``preparar_calificador`` no escribe
-    nada. Sin resultados activos no se escribe nada y el segundo valor es verdadero para que el
-    informe lo cuente (``RESULTADOS_DESACTIVADOS``); el calificador sigue montando el resto.
+    en D11). Devuelve ``(clave -> id del resultado, resultados_desactivados, descriptores ya
+    publicados)``; el último son pares ``(tarea, fila)`` cuya escala no se ha tocado (D-F2-7).
+    Se llama **después** de que el docente confirme el calificador: ``preparar_calificador`` no
+    escribe nada. Sin resultados activos no se escribe nada y el segundo valor es verdadero
+    para que el informe lo cuente (``RESULTADOS_DESACTIVADOS``); el calificador sigue montando
+    el resto.
     """
     if not any(doc.evidencia == "resultados" for doc in documentos):
-        return {}, False
+        return {}, False, ()
     if not aula.resultados_activos(curso):
-        return {}, True
+        return {}, True, ()
     escala: int | None = None
     resultados: dict[str, int] = {}
+    publicados: list[tuple[str, str]] = []
     for doc in documentos:
         if doc.evidencia != "resultados" or doc.evalua is None:
             continue
         if _ruta_de(doc, base) in sin_resultados:
+            continue
+        if doc.rubrica_filas is not None:
+            for fila in doc.rubrica_filas.filas:
+                if fila.clave in resultados:
+                    continue
+                escala_fila, publicado = _asegurar_escala_de_fila(aula, curso, fila)
+                if publicado:
+                    publicados.append((doc.nombre, fila.indicador))
+                resultados[fila.clave] = aula.asegurar_resultado(
+                    curso,
+                    f"TZ_{fila.clave}",
+                    nombre_de_fila(esquema, fila),
+                    descripcion_de_fila(esquema, fila),
+                    escala_fila,
+                )
             continue
         if escala is None:
             escala = aula.asegurar_escala(curso, ESCALA_LOGRO, niveles_de_escala(esquema))
@@ -2619,7 +2696,7 @@ def _resultados_para_calificador(
                 descripcion_de_resultado(esquema, criterio),
                 escala,
             )
-    return resultados, False
+    return resultados, False, tuple(publicados)
 
 
 def _resultados_existentes(
@@ -2647,18 +2724,15 @@ def _resultados_existentes(
     efectivas: set[str] = set()
     pendientes = False
     for doc in con_evidencia:
-        evalua = doc.evalua
-        if evalua is None:
-            continue
         propios: list[int] = []
-        for criterio, _ in evalua:
-            if criterio not in vistos:
-                vistos.add(criterio)
-                encontrado = aula.resultado_por_corto(curso, f"TZ_{criterio}")
+        for clave, _criterio in resultados_de_tarea(doc):
+            if clave not in vistos:
+                vistos.add(clave)
+                encontrado = aula.resultado_por_corto(curso, f"TZ_{clave}")
                 if encontrado is not None:
-                    resultados[criterio] = encontrado
-            if criterio in resultados:
-                propios.append(resultados[criterio])
+                    resultados[clave] = encontrado
+            if clave in resultados:
+                propios.append(resultados[clave])
         ruta = _ruta_de(doc, base)
         cmid = cmids.get(ruta)
         marcados = aula.campos_resultado_tarea(cmid) if cmid is not None else {}
@@ -2987,6 +3061,7 @@ def calificador_con(
         resultados: dict[str, int]
         efectivas: frozenset[str]
         desactivados: bool
+        descriptores_publicados: tuple[tuple[str, str], ...] = ()
         if not any(doc.evidencia == "resultados" for doc in documentos):
             # Sin tareas con evidencia no se toca nada de resultados: ni se consulta el aula.
             resultados, efectivas, desactivados = {}, frozenset(), False
@@ -2997,7 +3072,7 @@ def calificador_con(
             efectivas = plan.documentos_con_resultados - declinadas
             desactivados = False
         else:
-            resultados, desactivados = _resultados_para_calificador(
+            resultados, desactivados, descriptores_publicados = _resultados_para_calificador(
                 aula, curso, esquema, documentos, plan.base, declinadas
             )
             efectivas = (
@@ -3038,6 +3113,11 @@ def calificador_con(
             for doc in documentos:
                 if doc.evidencia == "resultados":
                     presencia.informar(Aviso.resultados_desactivados(doc.nombre))
+    if descriptores_publicados:
+        borrador.paso("DESCRIPTOR_PUBLICADO", detalle=str(len(descriptores_publicados)))
+        if presencia is not None:
+            for nombre, fila in descriptores_publicados:
+                presencia.informar(Aviso.descriptor_publicado(nombre, fila))
     if esquema.final.tope is not None:
         borrador.paso("TOPE", detalle=detalle_tope(plan.deseado))
     rec = plan.reconciliacion

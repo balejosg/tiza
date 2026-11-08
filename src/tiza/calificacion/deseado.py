@@ -44,6 +44,7 @@ from tiza.calificacion.esquema import (
     Esquema,
 )
 from tiza.contenido import Documento
+from tiza.rubrica_tarea import FilaDeResultado, nombre_de_fila
 
 __all__ = [
     "Deseado",
@@ -124,8 +125,9 @@ class Deseado:
     visualización). ``cerradas`` son los ``TZ_V_<n>`` de las evaluaciones cerradas;
     ``actividades`` empareja cada ruta con el ``idnumber`` de su padre real; ``avisos`` son
     pares ``(codigo, clave)``, con el id del elemento o, en ``EVIDENCIA_COMPARTIDA``, el nombre
-    de la actividad o casilla manual; ``resultados`` son las tripletas ``(ruta, id del criterio,
-    idnumber TZ_O_…)`` de las tareas con ``evidencia: resultados``. ``niveles`` es cuántos
+    de la actividad o casilla manual; ``resultados`` son las tripletas ``(ruta, clave, idnumber
+    TZ_O_…)`` de las tareas con ``evidencia: resultados``: la clave es el criterio o, con
+    rúbrica de filas, la clave estable de cada fila. ``niveles`` es cuántos
     niveles tiene la escala de logro (``niveles_rubrica``), para la fórmula del calculado.
     ``tope_activos`` y ``tope_pendientes`` emparejan cada elemento con el número (1-based) de la
     evaluación en la que entra en el tope; los pendientes aún no cuentan y los elementos sin
@@ -152,6 +154,8 @@ class _Actividad:
     evalua: tuple[tuple[str, float], ...]
     manual: bool = False  # un instrumento: su ruta es el idnumber ``TZ_M_<id>`` de la casilla
     resultados: bool = False  # la tarea recoge la evidencia con resultados del aula
+    # Con rúbrica de filas, cada fila es un resultado del aula; vacío: un resultado por criterio.
+    filas: tuple[FilaDeResultado, ...] = ()
     # Lo que declaró el documento; None en una casilla manual.
     evidencia_declarada: str | None = None
     # Números de evaluación (1-based) cuyos criterios recupera; vacío: no recupera.
@@ -366,6 +370,11 @@ def _actividades(
             _sin_evaluacion(esquema, ruta, evalua, documento.seccion)
         recupera = documento.recupera or ()
         _validar_recupera(esquema, ruta, recupera)
+        filas = (
+            documento.rubrica_filas.filas
+            if documento.evidencia == "resultados" and documento.rubrica_filas is not None
+            else ()
+        )
         resultado.append(
             _Actividad(
                 ruta,
@@ -374,6 +383,7 @@ def _actividades(
                 evalua,
                 resultados=documento.evidencia == "resultados"
                 and (resultados is None or ruta in resultados),
+                filas=tuple(filas),
                 evidencia_declarada=documento.evidencia,
                 recupera=recupera,
             )
@@ -562,19 +572,24 @@ class _Montaje:
             if not self._es_real(a, hoja, vista)
         }
 
-    def _resultado_id(self, ruta: str, hoja: str) -> str:
-        """``TZ_O_<huella>``: el elemento de resultado del aula de una tarea y un criterio."""
-        return f"TZ_O_{_huella(f'{ruta}|{hoja}')}"
+    def _resultado_id(self, ruta: str, clave: str) -> str:
+        """``TZ_O_<huella>``: el resultado del aula de una tarea y un criterio o una fila."""
+        return f"TZ_O_{_huella(f'{ruta}|{clave}')}"
 
-    def _calc_id(self, ruta: str, hoja: str, vista: str, grupo: int | None = None) -> str:
+    def _calc_id(self, ruta: str, clave: str, vista: str, grupo: int | None = None) -> str:
         """``TZ_R_<huella>``: el calculado que reescala el resultado en una vista.
 
         Una recuperación de una tarea con resultados puede aparecer en varias evaluaciones:
         cada grupo lleva su propio calculado del criterio, no una copia del calculado.
         """
         if grupo is None:
-            return f"TZ_R_{_huella(f'{ruta}|{hoja}|{vista}')}"
-        return f"TZ_R_{_huella(f'{ruta}|{hoja}|{vista}|recupera|{grupo}')}"
+            return f"TZ_R_{_huella(f'{ruta}|{clave}|{vista}')}"
+        return f"TZ_R_{_huella(f'{ruta}|{clave}|{vista}|recupera|{grupo}')}"
+
+    def _filas_id(self, ruta: str, hoja: str, vista: str, grupo: int | None = None) -> str:
+        """``TZ_F_<huella>``: la subcategoría Natural de las filas de un criterio en una vista."""
+        sufijo = "" if grupo is None else f"|recupera|{grupo}"
+        return f"TZ_F_{_huella(f'{ruta}|{hoja}|{vista}{sufijo}')}"
 
     def _es_real(self, actividad: _Actividad, hoja: str, vista: str) -> bool:
         return hoja == actividad.evalua[0][0] and vista == self.vista_real
@@ -661,6 +676,8 @@ class _Montaje:
     ) -> str:
         """La evidencia de una actividad en un contenedor (calculado, actividad real o copia)."""
         if actividad.resultados:
+            if actividad.filas:
+                return self._evidencia_de_filas(padre, hoja, vista, actividad, peso, grupo)
             calculado = self._calc_id(
                 actividad.ruta, hoja, vista, grupo if actividad.recupera else None
             )
@@ -686,45 +703,105 @@ class _Montaje:
         )
         return idnumber
 
+    def _filas_de(self, actividad: _Actividad, hoja: str) -> tuple[FilaDeResultado, ...]:
+        """Las filas de una tarea para un criterio, en el orden del fichero."""
+        return tuple(fila for fila in actividad.filas if fila.criterio == hoja)
+
+    def _resultados_de(self, actividad: _Actividad, hoja: str) -> list[tuple[str, str]]:
+        """(idnumber, nombre) de cada resultado del aula que aporta la tarea a la hoja."""
+        if actividad.filas:
+            return [
+                (self._resultado_id(actividad.ruta, fila.clave), nombre_de_fila(self.esquema, fila))
+                for fila in self._filas_de(actividad, hoja)
+            ]
+        return [(self._resultado_id(actividad.ruta, hoja), self.nombre_de_hoja[hoja])]
+
+    def _evidencia_de_filas(
+        self,
+        padre: str,
+        hoja: str,
+        vista: str,
+        actividad: _Actividad,
+        peso: float | None,
+        grupo: int | None,
+    ) -> str:
+        """Las filas de una tarea como evidencia del criterio: una subcategoría Natural.
+
+        Con una sola fila no hay subcategoría: su calculado es la evidencia. Con varias, la
+        subcategoría «solo no vacías» reparte el 100 entre las filas con su peso, y ella lleva
+        el peso de ``evalua`` en el criterio (D2).
+        """
+        filas = self._filas_de(actividad, hoja)
+        if not filas:
+            return ""
+        sufijo_grupo = grupo if actividad.recupera else None
+        if len(filas) == 1:
+            fila = filas[0]
+            calculado = self._calc_id(actividad.ruta, fila.clave, vista, sufijo_grupo)
+            self._agregar(
+                Nodo(
+                    calculado,
+                    "resultado_calc",
+                    nombre_de_fila(self.esquema, fila),
+                    padre,
+                    peso,
+                    self._resultado_id(actividad.ruta, fila.clave),
+                    maximo=10.0,
+                )
+            )
+            return calculado
+        subcategoria = self._filas_id(actividad.ruta, hoja, vista, sufijo_grupo)
+        self._agregar(
+            Nodo(
+                subcategoria,
+                "categoria",
+                f"Filas · {self.nombre_de_hoja[hoja]}",
+                padre,
+                peso,
+                None,
+                "porcentaje",
+            )
+        )
+        pesos = normalizar_pesos([fila.peso for fila in filas])
+        for fila, peso_fila in zip(filas, pesos, strict=True):
+            self._agregar(
+                Nodo(
+                    self._calc_id(actividad.ruta, fila.clave, vista, sufijo_grupo),
+                    "resultado_calc",
+                    nombre_de_fila(self.esquema, fila),
+                    subcategoria,
+                    peso_fila,
+                    self._resultado_id(actividad.ruta, fila.clave),
+                    maximo=10.0,
+                )
+            )
+        return subcategoria
+
     def _pieza_completa(
         self, padre: str, hoja: str, vista: str, actividad: _Actividad, peso: float
     ) -> str:
-        """La actividad entera en el contenedor: real, resultado del aula y calculado o copia."""
+        """La actividad entera en el contenedor: real, resultados del aula y calculado o copia."""
         if actividad.resultados:
             if self._pieza_real(actividad, hoja, vista):
                 clase = "manual" if actividad.manual else "actividad"
                 self._agregar(Nodo(actividad.ruta, clase, actividad.nombre, padre, 0.0))
             if vista == self.vista_real:
-                self._agregar(
-                    Nodo(
-                        self._resultado_id(actividad.ruta, hoja),
-                        "resultado",
-                        self.nombre_de_hoja[hoja],
-                        padre,
-                        0.0,
-                    )
-                )
+                for idnumber, nombre in self._resultados_de(actividad, hoja):
+                    self._agregar(Nodo(idnumber, "resultado", nombre, padre, 0.0))
         return self._evidencia(padre, hoja, vista, actividad, peso)
 
     def _base_resultados(self, padre: str, hoja: str, vista: str, actividad: _Actividad) -> None:
-        """Lo que no es evidencia de una tarea con resultados: su actividad real y su resultado.
+        """Lo que no es evidencia de una tarea con resultados: su actividad real y sus resultados.
 
-        Lo que va dentro de una regla o de una recuperación es el calculado del criterio; la
-        tarea real y el elemento de resultado del aula se quedan fuera, con peso 0 (D10/D9).
+        Lo que va dentro de una regla o de una recuperación es el calculado del criterio (o las
+        filas); la tarea real y los elementos de resultado del aula se quedan fuera, con peso 0.
         """
         if self._pieza_real(actividad, hoja, vista):
             clase = "manual" if actividad.manual else "actividad"
             self._agregar(Nodo(actividad.ruta, clase, actividad.nombre, padre, 0.0))
         if vista == self.vista_real:
-            self._agregar(
-                Nodo(
-                    self._resultado_id(actividad.ruta, hoja),
-                    "resultado",
-                    self.nombre_de_hoja[hoja],
-                    padre,
-                    0.0,
-                )
-            )
+            for idnumber, nombre in self._resultados_de(actividad, hoja):
+                self._agregar(Nodo(idnumber, "resultado", nombre, padre, 0.0))
 
     def _peso_base(self, actividad: _Actividad, hoja: str, vista: str, regla: str) -> float:
         """El peso de ``evalua``, con el factor de su evaluación si la hoja es progresiva."""
@@ -1170,10 +1247,12 @@ class _Montaje:
             cerradas=tuple(f"TZ_V_{n}" for n, e in enumerate(esquema.evaluaciones, 1) if e.cerrada),
             actividades=self._actividades_reales(),
             resultados=tuple(
-                (a.ruta, hoja, self._resultado_id(a.ruta, hoja))
+                (a.ruta, clave, self._resultado_id(a.ruta, clave))
                 for a in self.actividades
                 if a.resultados
-                for hoja, _ in a.evalua
+                for clave in (
+                    [fila.clave for fila in a.filas] if a.filas else [hoja for hoja, _ in a.evalua]
+                )
             ),
             niveles=len(esquema.niveles_rubrica),
             tope_activos=activos,

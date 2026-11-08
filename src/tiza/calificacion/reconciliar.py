@@ -373,12 +373,12 @@ class _Plan:
         self.idx = _Indice(aula)
         self.dnodos = {n.idnumber: n for n in deseado.nodos}
         self.rutas = {ruta for ruta, _ in deseado.actividades}
-        # (ruta, criterio) -> TZ_O_… y su vuelta; y criterio -> id del resultado en Moodle.
+        # (ruta, clave) -> TZ_O_… y su vuelta; y clave -> id del resultado en Moodle.
         self.resultados_de = {
-            (ruta, criterio): idnumber for ruta, criterio, idnumber in deseado.resultados
+            (ruta, clave): idnumber for ruta, clave, idnumber in deseado.resultados
         }
         self.resultado_de_id = {
-            idnumber: (ruta, criterio) for ruta, criterio, idnumber in deseado.resultados
+            idnumber: (ruta, clave) for ruta, clave, idnumber in deseado.resultados
         }
         self.resultados_moodle = dict(resultados or {})
         self.nombres_resultado = frozenset(
@@ -502,11 +502,11 @@ class _Plan:
                 datos = self.resultado_de_id.get(n.idnumber)
                 if datos is None:
                     continue
-                ruta, criterio = datos
+                ruta, clave = datos
                 if (
                     self.cmids.get(ruta) is None
                     or ruta in pendientes
-                    or (self._resultado_aula(n) is None and criterio not in self.resultados_moodle)
+                    or (self._resultado_aula(n) is None and clave not in self.resultados_moodle)
                 ):
                     omitidos.add(n.idnumber)
         for n in self.d.nodos:
@@ -768,9 +768,9 @@ class _Plan:
             datos = self.resultado_de_id.get(nodo.idnumber)
             if datos is None:
                 return
-            ruta, criterio = datos
+            ruta, clave = datos
             cmid = self.cmids.get(ruta)
-            resultado = self.resultados_moodle.get(criterio)
+            resultado = self.resultados_moodle.get(clave)
             if cmid is None or resultado is None:
                 return
             self.alta.append(
