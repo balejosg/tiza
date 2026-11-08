@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## No publicado
+## 0.41.0 — 2026-11-08
 
 ### Añadido
 - **Mapa de cobertura del calificador.** `tiza comprobar calificacion.yaml` deja en `.tiza/cobertura.json` qué evalúa cada criterio o elemento sin criterios, con el instrumento deducido (tarea con rúbrica por criterios o por filas, tarea con resultados, tarea, cuestionario, H5P o casilla manual), la actividad, la evaluación, el peso normalizado, la regla y la marca de recuperación. Avisa sin fallar de los huecos: `HOJA_SIN_EVIDENCIAS`, `HOJA_CON_UNA_EVIDENCIA`, `MEDIANA_CON_POCAS_EVIDENCIAS` y `PROGRESIVA_EN_UNA_EVALUACION`. La guía del calificador explica cómo leer los avisos, preparar una tabla de trazabilidad y, con la guía nueva `guias/informar-al-alumnado.md`, la página de inicio de curso. Incluye ejemplos `ejemplos/como-se-evalua.md` y `ejemplos/trazabilidad.md`.
