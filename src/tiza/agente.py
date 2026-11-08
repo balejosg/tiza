@@ -20,6 +20,8 @@ from pathlib import Path
 from . import buzon, calendario, contenido, estado, informe, rutas
 from .calendario import ErrorCalendario
 from .calificacion.carpeta import actividades_sin_evalua, cargar_calificacion
+from .calificacion.cobertura import avisos as avisos_de_cobertura
+from .calificacion.cobertura import cobertura as mapa_de_cobertura
 from .calificacion.deseado import reparto_por_hoja
 from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
 from .contenido import Documento, ErrorContenido, hash_documento
@@ -198,12 +200,19 @@ def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> Fi
     Es lo que ``tiza calificador`` comprueba antes de tocar el aula (el calificador anterior del
     curso no cambia si hay errores: solo cambia lo que se coloca, no si algo es válido).
     """
+    dir_tiza = raiz / rutas.CARPETA_TRABAJO
     try:
         esquema, documentos = cargar_calificacion(ruta, raiz)
     except ErrorCalificacion as exc:
+        # Un mapa viejo parecería bueno: si el esquema ya no vale, no se queda.
+        try:
+            estado.borrar_cobertura(dir_tiza)
+        except ErrorEstado:
+            pass
         borrador.error(exc.codigo)
         borrador.fallo("COMPROBAR", f"{ruta.name}: {exc.codigo}")
         return FicheroComprobado(ruta.name, exc.codigo, exc.detalle)
+    mapa = mapa_de_cobertura(esquema, documentos, raiz)
     for relativa in actividades_sin_evalua(esquema, documentos, raiz):
         borrador.paso("ACTIVIDAD_SIN_EVALUA", detalle=relativa)
     for hoja, reparto in reparto_por_hoja(esquema, documentos, raiz):
@@ -218,6 +227,20 @@ def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> Fi
         if esquema.final.de == "evaluaciones":
             detalle += " (en la final, cada evaluación normaliza por separado)"
         borrador.paso("REPARTO", detalle=f"{hoja}: {detalle}")
+    for codigo, detalle in avisos_de_cobertura(mapa, esquema):
+        borrador.paso(codigo, detalle=detalle)
+    try:
+        estado.escribir_cobertura(dir_tiza, mapa.como_dict())
+    except (ErrorEstado, FicheroNoSeguro, OSError):
+        # No puede quedar un mapa viejo que parezca bueno.
+        try:
+            estado.borrar_cobertura(dir_tiza)
+        except ErrorEstado:
+            pass
+        borrador.error("COBERTURA_NO_ESCRITA")
+        borrador.fallo("COBERTURA", "COBERTURA_NO_ESCRITA")
+    else:
+        borrador.paso("COBERTURA", detalle=f"{rutas.CARPETA_TRABAJO}/{estado.FICHERO_COBERTURA}")
     borrador.paso("COMPROBAR", detalle=ruta.name)
     return FicheroComprobado(ruta.name)
 
@@ -228,7 +251,7 @@ def _texto_de_reparto(texto: str) -> str:
     ``str.isprintable()`` descarta además los separadores y los caracteres de formato (entre
     ellos los de escritura bidireccional), que un informe no debe llevar.
     """
-    return "".join(c for c in texto if c.isprintable() and c not in "<>")
+    return estado.texto_guardado(texto)
 
 
 def _con_dolar_simple(doc: Documento) -> bool:

@@ -2252,6 +2252,8 @@ class TestCalificadorEnCli:
         )
         assert cli.main(["comprobar", "calificacion.yaml"]) == 0
         assert leer_informe(tmp_path)["comando"] == "comprobar"
+        assert (tmp_path / ".tiza" / "cobertura.json").is_file()
+        assert "Paso COBERTURA: ok — .tiza/cobertura.json" in capsys.readouterr().out
 
 
 class TestCopia:

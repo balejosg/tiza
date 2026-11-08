@@ -9,6 +9,8 @@ import sys
 import threading
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from dobles import enlace_simbolico
 from tiza import agente, buzon, contenido, estado, informe
 
@@ -200,6 +202,89 @@ class TestComprobar:
         borrador = informe.Borrador("comprobar", entorno="pruebas")
         borrador.paso("REPARTO", detalle=f"RA1: {limpio} 100 %")
         informe.validar(borrador.documento())
+
+
+ESQUEMA_COBERTURA = """\
+etapa: fp
+organizacion: elementos
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 100
+    criterios:
+      - {id: RA1_a, nombre: Criterio 1.a, peso: 60, codigo: RA1.a}
+      - {id: RA1_b, nombre: Criterio 1.b, peso: 40, codigo: RA1.b}
+evaluaciones:
+  - {nombre: Primera, secciones: [1]}
+  - {nombre: Segunda, secciones: [2]}
+final: {de: elementos}
+"""
+
+TAREA_COBERTURA = """\
+---
+tipo: tarea
+nombre: Proyecto de red
+seccion: 1
+apertura: 2026-10-01
+entrega: 2026-10-10
+evalua: {RA1_a: 100}
+---
+
+Diseña una red.
+"""
+
+
+class TestCobertura:
+    """``tiza comprobar calificacion.yaml`` deja el mapa y avisa de los huecos, sin fallar."""
+
+    def preparar(self, tmp_path):
+        (tmp_path / "calificacion.yaml").write_text(ESQUEMA_COBERTURA, encoding="utf-8")
+        (tmp_path / "proyecto.md").write_text(TAREA_COBERTURA, encoding="utf-8")
+
+    def test_comprobar_esquema_escribe_cobertura(self, tmp_path):
+        self.preparar(tmp_path)
+        resultado = agente.comprobar(tmp_path, ["calificacion.yaml"])
+        assert resultado.informe["resultado"] == "ok"
+        informe.validar(resultado.informe)
+        datos = estado.cargar_cobertura(tmp_path / ".tiza")
+        assert datos["version"] == 1
+        assert datos["etapa"] == "fp"
+        assert [e["nombre"] for e in datos["evaluaciones"]] == ["Primera", "Segunda"]
+        assert [h["id"] for h in datos["hojas"]] == ["RA1_a", "RA1_b"]
+        assert datos["hojas"][0]["evidencias"][0]["ruta"] == "proyecto.md"
+        assert datos["hojas"][1]["evidencias"] == []
+        pasos = {p["codigo"]: p for p in resultado.informe["pasos"]}
+        assert pasos["COBERTURA"]["detalle"] == ".tiza/cobertura.json"
+        assert pasos["HOJA_SIN_EVIDENCIAS"]["detalle"] == "RA1_b"
+        assert pasos["HOJA_SIN_EVIDENCIAS"]["resultado"] == "ok"
+
+    def test_comprobar_esquema_invalido_borra_cobertura(self, tmp_path):
+        self.preparar(tmp_path)
+        agente.comprobar(tmp_path, ["calificacion.yaml"])
+        assert (tmp_path / ".tiza" / "cobertura.json").is_file()
+        (tmp_path / "calificacion.yaml").write_text(
+            ESQUEMA_COBERTURA.replace("final: {de: elementos}", "final: {de: otro}"),
+            encoding="utf-8",
+        )
+        resultado = agente.comprobar(tmp_path, ["calificacion.yaml"])
+        assert resultado.informe["resultado"] == "error"
+        assert "ESQUEMA_INVALIDO" in resultado.informe["errores"]
+        assert not (tmp_path / ".tiza" / "cobertura.json").exists()
+        with pytest.raises(estado.ErrorEstado) as exc:
+            estado.cargar_cobertura(tmp_path / ".tiza")
+        assert exc.value.codigo == "COBERTURA_AUSENTE"
+
+    def test_avisos_de_cobertura_no_fallan(self, tmp_path):
+        self.preparar(tmp_path)
+        resultado = agente.comprobar(tmp_path, ["calificacion.yaml"])
+        assert resultado.informe["errores"] == []
+        assert resultado.informe["resultado"] == "ok"
+        assert all(p["resultado"] == "ok" for p in resultado.informe["pasos"])
+        # La tarea deja el 1.a con una evidencia y el 1.b sin ninguna: avisos, no errores.
+        assert {p["codigo"] for p in resultado.informe["pasos"]} >= {
+            "HOJA_CON_UNA_EVIDENCIA",
+            "HOJA_SIN_EVIDENCIAS",
+        }
 
 
 def test_importar_el_lado_del_agente_no_carga_python_moodle():
