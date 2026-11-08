@@ -120,6 +120,127 @@ class TestEstructuraFichero:
         assert not (tmp_path / "estructura.json").exists()
 
 
+class TestCobertura:
+    """`.tiza/cobertura.json`: el mapa de cobertura del calificador (versión 1)."""
+
+    DATOS = {
+        "etapa": "fp",
+        "evaluaciones": [
+            {"numero": 1, "nombre": "1.ª evaluación", "cerrada": False},
+            {"numero": 2, "nombre": "2.ª evaluación", "cerrada": True},
+        ],
+        "hojas": [
+            {
+                "id": "RA1",
+                "codigo": "RA1",
+                "nombre": "Redes locales",
+                "elemento": "RA1",
+                "regla": "media",
+                "evidencias": [
+                    {
+                        "ruta": "tareas/proyecto.md",
+                        "nombre": "Proyecto de red",
+                        "instrumento": "tarea_resultados",
+                        "evaluacion": 1,
+                        "peso": 60.0,
+                        "recupera": [],
+                    },
+                    {
+                        "ruta": "instrumentos[0]",
+                        "nombre": "Examen oral",
+                        "instrumento": "casilla_manual",
+                        "evaluacion": 2,
+                        "peso": 40.0,
+                        "recupera": [1],
+                    },
+                ],
+            },
+            {
+                "id": "RA2",
+                "codigo": None,
+                "nombre": "Sistemas operativos",
+                "elemento": "RA2",
+                "regla": "progresiva",
+                "evidencias": [],
+            },
+        ],
+    }
+
+    def test_cobertura_ida_y_vuelta(self, tmp_path):
+        ruta = estado.escribir_cobertura(tmp_path / ".tiza", self.DATOS)
+        assert ruta == tmp_path / ".tiza" / "cobertura.json"
+        crudo = json.loads(ruta.read_text(encoding="utf-8"))
+        assert crudo["version"] == 1
+        assert crudo["generado"]
+        assert estado.cargar_cobertura(tmp_path / ".tiza") == crudo
+
+    @pytest.mark.parametrize(
+        "cambio",
+        [
+            lambda d: d.update(version=2),
+            lambda d: d.update(otra=True),
+            lambda d: d["hojas"][0].update(regla="suma"),
+            lambda d: d["hojas"][0].update(instrumento="otro"),
+            lambda d: d["hojas"][0]["evidencias"][0].update(instrumento="otro"),
+            lambda d: d["hojas"][0]["evidencias"][0].update(peso=101),
+            lambda d: d["hojas"][0]["evidencias"][0].update(evaluacion=3),
+            lambda d: d["hojas"][0]["evidencias"][0].update(recupera=[3]),
+            lambda d: d["hojas"][0].update(id="1RA"),
+            lambda d: d["hojas"].append(d["hojas"][0]),
+            lambda d: d["evaluaciones"][0].update(numero=0),
+        ],
+    )
+    def test_cobertura_fuera_de_esquema_es_invalida(self, tmp_path, cambio):
+        datos = json.loads(json.dumps(self.DATOS))
+        cambio(datos)
+        datos = {"version": 1, "generado": "2026-11-08T10:00:00+00:00", **datos}
+        (tmp_path / "cobertura.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as exc:
+            estado.cargar_cobertura(tmp_path)
+        assert exc.value.codigo == "COBERTURA_INVALIDA"
+
+    def test_nombres_saneados(self, tmp_path):
+        datos = json.loads(json.dumps(self.DATOS))
+        datos["evaluaciones"][0]["nombre"] = "1.ª <b>evaluación</b>\x07\u202e"
+        datos["hojas"][0]["codigo"] = "RA1<"
+        datos["hojas"][0]["nombre"] = "Redes <b>locales</b>\x00"
+        datos["hojas"][0]["evidencias"][0]["nombre"] = "Proyecto <i>de red</i>\u200b"
+        ruta = estado.escribir_cobertura(tmp_path, datos)
+        crudo = json.loads(ruta.read_text(encoding="utf-8"))
+        assert crudo["evaluaciones"][0]["nombre"] == "1.ª bevaluación/b"
+        assert crudo["hojas"][0]["codigo"] == "RA1"
+        assert crudo["hojas"][0]["nombre"] == "Redes blocales/b"
+        assert crudo["hojas"][0]["evidencias"][0]["nombre"] == "Proyecto ide red/i"
+        assert estado.cargar_cobertura(tmp_path) == crudo
+
+    def test_borrar_quita_el_mapa_y_sin_fichero_no_hace_nada(self, tmp_path):
+        estado.escribir_cobertura(tmp_path, self.DATOS)
+        assert estado.borrar_cobertura(tmp_path) is True
+        assert not (tmp_path / "cobertura.json").exists()
+        assert estado.borrar_cobertura(tmp_path) is False
+
+    def test_ausente_es_error_y_un_directorio_es_invalido(self, tmp_path):
+        with pytest.raises(estado.ErrorEstado) as exc:
+            estado.cargar_cobertura(tmp_path)
+        assert exc.value.codigo == "COBERTURA_AUSENTE"
+        (tmp_path / "cobertura.json").mkdir()
+        with pytest.raises(estado.ErrorEstado) as exc:
+            estado.cargar_cobertura(tmp_path)
+        assert exc.value.codigo == "COBERTURA_INVALIDA"
+
+    def test_borrar_no_sigue_un_tiza_enlazado(self, tmp_path):
+        from dobles import enlace_simbolico
+
+        fuera = tmp_path / "fuera"
+        fuera.mkdir()
+        (fuera / "cobertura.json").write_text("{}", encoding="utf-8")
+        enlace_simbolico(tmp_path / ".tiza", fuera)
+        with pytest.raises(estado.ErrorEstado) as exc:
+            estado.borrar_cobertura(tmp_path / ".tiza")
+        assert exc.value.codigo == "COBERTURA_INVALIDA"
+        assert (fuera / "cobertura.json").exists()
+
+
 class TestVerificados:
     def test_guarda_y_carga_con_fecha(self, tmp_path):
         ruta = estado.guardar_verificado(tmp_path, "a" * 64, "pagina.md", 100)

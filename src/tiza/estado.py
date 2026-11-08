@@ -17,8 +17,10 @@ estructura se valida al escribir y al leer con el esquema cerrado de
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import json
+import math
 import os
 import re
 import shutil
@@ -55,6 +57,7 @@ __all__ = [
     "FICHERO_BASE_ENVIADO",
     "FICHERO_BASE_FUENTE",
     "FICHERO_CALIFICADOR",
+    "FICHERO_COBERTURA",
     "FICHERO_COPIA",
     "FICHERO_ESTRUCTURA",
     "FICHERO_INFORME",
@@ -67,6 +70,8 @@ __all__ = [
     "Publicado",
     "Verificado",
     "anotar_verificado",
+    "borrar_cobertura",
+    "cargar_cobertura",
     "guardar_base",
     "olvidar_base",
     "ruta_base",
@@ -78,6 +83,7 @@ __all__ = [
     "cargar_verificados",
     "comprobar_puerta_real",
     "escribir_copia",
+    "escribir_cobertura",
     "escribir_estructura",
     "fichero_de_cmid",
     "guardar_huella_de_copia",
@@ -118,6 +124,8 @@ _AVISO_CAMBIADA = re.compile(
 )
 FICHERO_CALIFICADOR = "calificador.json"  # la huella de cada nodo del calificador que montó tiza
 MAX_CALIFICADOR_JSON = 16 * 1024 * 1024  # calificador.json, al leerlo
+FICHERO_COBERTURA = "cobertura.json"  # el mapa de qué evalúa cada criterio (tiza comprobar)
+MAX_COBERTURA_JSON = 16 * 1024 * 1024  # cobertura.json, al leerlo
 FICHERO_COPIA = "copia.json"  # el resumen de lo que ``tiza importar`` hizo con una copia
 CARPETA_COPIA = "copia"  # ``copia/<cmid>.html``: la versión nueva de una actividad ya importada
 CARPETA_COPIAS = "copias"  # donde ``tiza copia`` deja los .mbz que pide a la sesión
@@ -522,6 +530,241 @@ def guardar_huellas(dir_tiza: str | Path, curso: int, nodos: Mapping[str, str]) 
     _validar_calificador(datos)
     asegurar_directorio(Path(dir_tiza))
     return escribir_json(Path(dir_tiza) / FICHERO_CALIFICADOR, datos)
+
+
+_ID_DE_HOJA = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,15}")
+
+
+def _reglas_de_cobertura() -> tuple[str, ...]:
+    # Import diferido: esquema importa contenido, que importa este módulo.
+    from .calificacion.esquema import REGLAS
+
+    return REGLAS
+
+
+def _etapas_de_cobertura() -> tuple[str, ...]:
+    from .calificacion.esquema import ETAPAS
+
+    return ETAPAS
+
+
+def _instrumentos_de_cobertura() -> tuple[str, ...]:
+    from .calificacion.cobertura import INSTRUMENTOS
+
+    return INSTRUMENTOS
+
+
+def _texto_de_cobertura(valor: Any) -> bool:
+    return (
+        isinstance(valor, str)
+        and bool(valor.strip())
+        and len(valor) <= 1024
+        and texto_guardado(valor) == valor
+    )
+
+
+def _saneado_de_cobertura(datos: Any) -> Any:
+    """Copia con los textos del docente saneados como el detalle del reparto del informe."""
+    copia = copy.deepcopy(datos)
+    if not isinstance(copia, dict):
+        return copia
+    evaluaciones = copia.get("evaluaciones")
+    if isinstance(evaluaciones, list):
+        for evaluacion in evaluaciones:
+            if isinstance(evaluacion, dict) and isinstance(evaluacion.get("nombre"), str):
+                evaluacion["nombre"] = texto_guardado(evaluacion["nombre"])
+    hojas = copia.get("hojas")
+    if isinstance(hojas, list):
+        for hoja in hojas:
+            if not isinstance(hoja, dict):
+                continue
+            if isinstance(hoja.get("codigo"), str):
+                hoja["codigo"] = texto_guardado(hoja["codigo"]) or None
+            if isinstance(hoja.get("nombre"), str):
+                hoja["nombre"] = texto_guardado(hoja["nombre"])
+            evidencias = hoja.get("evidencias")
+            if isinstance(evidencias, list):
+                for evidencia in evidencias:
+                    if isinstance(evidencia, dict) and isinstance(evidencia.get("nombre"), str):
+                        evidencia["nombre"] = texto_guardado(evidencia["nombre"])
+    return copia
+
+
+def _validar_cobertura(datos: Any) -> None:
+    """Esquema cerrado de ``cobertura.json`` (versión 1)."""
+    if not isinstance(datos, dict) or set(datos) != {
+        "version",
+        "generado",
+        "etapa",
+        "evaluaciones",
+        "hojas",
+    }:
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    if type(datos["version"]) is not int or datos["version"] != 1:
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    if not isinstance(datos["generado"], str) or not datos["generado"]:
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    etapa = datos["etapa"]
+    if etapa is not None and etapa not in _etapas_de_cobertura():
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    evaluaciones = datos["evaluaciones"]
+    if not isinstance(evaluaciones, list):
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    numeros: set[int] = set()
+    for evaluacion in evaluaciones:
+        if not isinstance(evaluacion, dict) or set(evaluacion) != {
+            "numero",
+            "nombre",
+            "cerrada",
+        }:
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        numero = evaluacion["numero"]
+        if (
+            isinstance(numero, bool)
+            or not isinstance(numero, int)
+            or numero < 1
+            or numero in numeros
+        ):
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        numeros.add(numero)
+        if not _texto_de_cobertura(evaluacion["nombre"]):
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        if not isinstance(evaluacion["cerrada"], bool):
+            raise ErrorEstado("COBERTURA_INVALIDA")
+    hojas = datos["hojas"]
+    if not isinstance(hojas, list):
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    ids: set[str] = set()
+    reglas = _reglas_de_cobertura()
+    instrumentos = _instrumentos_de_cobertura()
+    for hoja in hojas:
+        if not isinstance(hoja, dict) or set(hoja) != {
+            "id",
+            "codigo",
+            "nombre",
+            "elemento",
+            "regla",
+            "evidencias",
+        }:
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        id_ = hoja["id"]
+        if not isinstance(id_, str) or _ID_DE_HOJA.fullmatch(id_) is None or id_ in ids:
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        ids.add(id_)
+        if hoja["codigo"] is not None and not _texto_de_cobertura(hoja["codigo"]):
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        if not _texto_de_cobertura(hoja["nombre"]):
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        elemento = hoja["elemento"]
+        if not isinstance(elemento, str) or _ID_DE_HOJA.fullmatch(elemento) is None:
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        if hoja["regla"] not in reglas:
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        evidencias = hoja["evidencias"]
+        if not isinstance(evidencias, list):
+            raise ErrorEstado("COBERTURA_INVALIDA")
+        for evidencia in evidencias:
+            if not isinstance(evidencia, dict) or set(evidencia) != {
+                "ruta",
+                "nombre",
+                "instrumento",
+                "evaluacion",
+                "peso",
+                "recupera",
+            }:
+                raise ErrorEstado("COBERTURA_INVALIDA")
+            if not _ruta_de_registro(evidencia["ruta"]):
+                raise ErrorEstado("COBERTURA_INVALIDA")
+            if not _texto_de_cobertura(evidencia["nombre"]):
+                raise ErrorEstado("COBERTURA_INVALIDA")
+            if evidencia["instrumento"] not in instrumentos:
+                raise ErrorEstado("COBERTURA_INVALIDA")
+            evaluacion = evidencia["evaluacion"]
+            if (
+                isinstance(evaluacion, bool)
+                or not isinstance(evaluacion, int)
+                or evaluacion not in numeros
+            ):
+                raise ErrorEstado("COBERTURA_INVALIDA")
+            peso = evidencia["peso"]
+            if (
+                isinstance(peso, bool)
+                or not isinstance(peso, (int, float))
+                or not math.isfinite(peso)
+                or not 0 <= peso <= 100
+            ):
+                raise ErrorEstado("COBERTURA_INVALIDA")
+            recupera = evidencia["recupera"]
+            if not isinstance(recupera, list) or any(
+                isinstance(n, bool) or not isinstance(n, int) or n not in numeros for n in recupera
+            ):
+                raise ErrorEstado("COBERTURA_INVALIDA")
+            if len(recupera) != len(set(recupera)):
+                raise ErrorEstado("COBERTURA_INVALIDA")
+
+
+def escribir_cobertura(dir_tiza: str | Path, datos: Mapping[str, Any]) -> Path:
+    """Valida y escribe ``cobertura.json`` (versión 1) con la fecha de ahora.
+
+    ``datos`` es lo que devuelve ``Cobertura.como_dict()``: ``etapa``, ``evaluaciones`` y
+    ``hojas``. Los textos del docente se sanean igual que el detalle del reparto del informe.
+    """
+    if not isinstance(datos, dict) or set(datos) != {"etapa", "evaluaciones", "hojas"}:
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    documento = {
+        "version": 1,
+        "generado": datetime.now(UTC).isoformat(timespec="seconds"),
+    }
+    documento.update(_saneado_de_cobertura(datos))
+    _validar_cobertura(documento)
+    asegurar_directorio(Path(dir_tiza))
+    return escribir_json(Path(dir_tiza) / FICHERO_COBERTURA, documento)
+
+
+def cargar_cobertura(dir_tiza: str | Path) -> dict:
+    """Lee ``cobertura.json`` validado; un fichero fuera del esquema es ``COBERTURA_INVALIDA``.
+
+    ``COBERTURA_AUSENTE`` si no existe (no se ha comprobado el esquema), ``COBERTURA_INVALIDA``
+    si no es un fichero normal (directorio, FIFO, enlace) y ``COBERTURA_ILEGIBLE`` si no se puede
+    leer.
+    """
+    ruta = Path(dir_tiza) / FICHERO_COBERTURA
+    try:
+        modo = os.lstat(ruta).st_mode
+    except FileNotFoundError:
+        raise ErrorEstado("COBERTURA_AUSENTE") from None
+    except OSError as exc:
+        raise ErrorEstado("COBERTURA_ILEGIBLE") from exc
+    if not stat.S_ISREG(modo):  # un directorio, una FIFO o un enlace: no es el de tiza
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    try:
+        datos = json.loads(leer_bytes_acotado(ruta, MAX_COBERTURA_JSON).decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ErrorEstado("COBERTURA_ILEGIBLE") from exc
+    _validar_cobertura(datos)
+    return datos
+
+
+def borrar_cobertura(dir_tiza: str | Path) -> bool:
+    """Borra ``cobertura.json``; ``False`` si no estaba. Un directorio es ``COBERTURA_INVALIDA``."""
+    if Path(dir_tiza).is_symlink():
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    ruta = Path(dir_tiza) / FICHERO_COBERTURA
+    try:
+        modo = os.lstat(ruta).st_mode
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise ErrorEstado("COBERTURA_INVALIDA") from exc
+    if stat.S_ISDIR(modo):
+        raise ErrorEstado("COBERTURA_INVALIDA")
+    try:
+        ruta.unlink()
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise ErrorEstado("COBERTURA_INVALIDA") from exc
+    return True
 
 
 _TIPO_PUBLICADO = re.compile(r"[a-z0-9_]{1,40}")
