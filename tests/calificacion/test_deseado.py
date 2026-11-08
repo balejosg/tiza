@@ -1825,6 +1825,19 @@ def test_tope_cuenta_los_de_la_evaluacion_cerrada() -> None:
     assert d.tope_pendientes == (("RA2", 2), ("RA3", 3))
 
 
+def test_entra_por_la_evaluacion_mas_temprana_no_por_la_ruta() -> None:
+    # RA2 tiene una evidencia en la 2.ª (u1/a.md) y otra en la 1.ª, cerrada (u9/z.md): la
+    # primera evidencia es la de la 1.ª, aunque su ruta vaya después.
+    d = deseado(
+        esquema_con_tope(),
+        [doc("u1/a.md", 2, RA2=100), doc("u9/z.md", 1, RA2=100)],
+        False,
+        CARPETA,
+    )
+    assert ("RA2", 1) in d.tope_activos
+    assert "TZ_NOTA_E_RA2" in d.tope[2]
+
+
 def test_elemento_sin_evidencias_no_entra() -> None:
     d = deseado(
         esquema_con_tope(),

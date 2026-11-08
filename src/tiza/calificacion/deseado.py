@@ -1103,13 +1103,14 @@ class _Montaje:
         tampoco: no aporta al elemento y su nota quedaría vacía. ``None`` si no tiene evidencias.
         """
         hojas = set(_hojas_de(elemento))
-        for actividad in self.actividades:
-            if actividad.recupera:
-                continue
-            pesos = dict(actividad.evalua)
-            if any(pesos.get(hoja, 0) > 0 for hoja in hojas):
-                return actividad.evaluacion
-        return None
+        # La más temprana, no la de la primera actividad en orden de ruta.
+        evaluaciones = [
+            actividad.evaluacion
+            for actividad in self.actividades
+            if not actividad.recupera
+            and any(dict(actividad.evalua).get(hoja, 0) > 0 for hoja in hojas)
+        ]
+        return min(evaluaciones) if evaluaciones else None
 
     def _tope_de_elementos(
         self,
