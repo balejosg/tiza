@@ -95,6 +95,7 @@ __all__ = [
     "ruta_lectura",
     "ruta_publicada_valida",
     "temporal_de_copia",
+    "texto_guardado",
 ]
 
 MAX_COPIA_JSON = 16 * 1024 * 1024  # copia.json, al leerlo
@@ -133,6 +134,16 @@ class ErrorEstado(Exception):
         super().__init__(codigo)
         self.codigo = codigo
         self.detalle = detalle
+
+
+def texto_guardado(texto: object) -> str:
+    """Texto de un fichero del docente apto para el estado: sin controles, bidi ni «<»/«>».
+
+    Es el mismo saneado que el detalle del reparto del informe: ``str.isprintable()`` descarta
+    controles, saltos de línea, separadores y caracteres de formato (entre ellos los de escritura
+    bidireccional), y los dos signos que el esquema cerrado del informe no admite.
+    """
+    return "".join(c for c in str(texto) if c.isprintable() and c not in "<>")
 
 
 @dataclass(frozen=True)
