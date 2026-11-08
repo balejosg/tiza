@@ -1459,8 +1459,9 @@ def test_cambiar_los_pesos_de_un_calificador_montado_converge_en_el_segundo_mont
     carpeta_fp(tmp_path, ESQUEMA_CRITERIOS_CON_PESO, ACTIVIDADES_CRITERIOS)
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["resultado"] == "ok", documento
-    assert moodle.por_id("TZ_E_CE1_1").peso == pytest.approx(40.0, abs=0.01)
-    assert moodle.por_id("TZ_E_CE1_2").peso == pytest.approx(60.0, abs=0.01)
+    # a la precisión con que el aula devuelve el peso (un decimal): ver _peso_correcto
+    assert moodle.por_id("TZ_E_CE1_1").peso == pytest.approx(40.0, abs=0.05)
+    assert moodle.por_id("TZ_E_CE1_2").peso == pytest.approx(60.0, abs=0.05)
     moodle.escrituras.clear()
     atender(pedir(carpeta), moodle, carpeta)
     assert moodle.escrituras == []

@@ -318,6 +318,10 @@ def huellas_de(aula: CalificadorAula, cmids: dict[str, int]) -> dict[str, str]:
     return resultado
 
 
+# Medio decimal: el aula redondea a un decimal el peso que devuelve (más un margen de coma flotante).
+_TOLERANCIA_PESO_AULA = 0.05 + 1e-9
+
+
 def _cerca(a: float | None, b: float | None) -> bool:
     return a is not None and b is not None and abs(a - b) <= TOLERANCIA_PESOS
 
@@ -332,7 +336,17 @@ def es_calculado_de_tiza(nodo: NodoAula) -> bool:
 
 
 def _peso_correcto(nodo: NodoAula, deseado: float) -> bool:
-    return nodo.sobrescrito and _cerca(nodo.peso, deseado)
+    """El peso del aula vale si coincide con el deseado a la precisión con que lo devuelve.
+
+    El formulario de Moodle muestra el peso con un decimal (66,67 se lee 66,7): con la
+    tolerancia del esquema, un peso no redondo no convergería nunca y cada pasada lo volvería
+    a fijar (e2e de R1).
+    """
+    return (
+        nodo.sobrescrito
+        and nodo.peso is not None
+        and abs(nodo.peso - deseado) <= _TOLERANCIA_PESO_AULA
+    )
 
 
 # --------------------------------------------------------------------------- #

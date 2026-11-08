@@ -214,6 +214,27 @@ def montar(esquema=FP, documentos=None, anterior=False, aula=None, huellas=None,
     return d, aplicar(aula, ajustes)
 
 
+def test_pesos_no_redondos_convergen_con_el_redondeo_del_aula() -> None:
+    # Pesos relativos 100 y 50 en RA1: 66,67 y 33,33. El formulario de Moodle los devuelve con
+    # un decimal (66,7 y 33,3); si no se tolera, cada pasada vuelve a fijarlos (e2e de R1).
+    documentos = [doc("a.md", 1, RA1=100), doc("d.md", 1, RA1=50, RA2=50), doc("c.md", 2, RA2=50)]
+    d, aula = montar(documentos=documentos)
+    decimales = {round(n.peso % 1, 2) for n in aula.nodos if n.sobrescrito and n.peso}
+    assert decimales - {0.0}, "el montaje debe tener pesos no redondos"
+    redondeada = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, peso=round(n.peso, 1)) if n.peso is not None else n
+            for n in aula.nodos
+        ),
+        decimal=aula.decimal,
+    )
+    huellas = huellas_de(redondeada, CMIDS)
+    assert not [
+        o for o in reconciliar(d, redondeada, huellas, CMIDS).operaciones if o.tipo == "fijar_peso"
+    ]
+    assert pasada2(d, redondeada, huellas, CMIDS) == ()
+
+
 def tipos(operaciones) -> list[str]:
     return [o.tipo for o in operaciones]
 
