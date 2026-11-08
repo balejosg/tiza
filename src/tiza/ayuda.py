@@ -20,7 +20,6 @@ MENSAJES: dict[str, str] = {
     "PROGRESIVA_SIN_FACTORES": "La regla «progresiva» necesita «agregacion.factores»: un factor mayor que 0 y hasta 100 por cada evaluación, en orden. Añádelos al esquema.",
     "RECUPERA_INVALIDO": "El campo «recupera» debe ser un número de evaluación (1, 2, 3…) o una lista de números distintos, cada uno con su evaluación en calificacion.yaml; además, la actividad necesita «evalua».",
     "ACTIVIDAD_SIN_EVALUACION": "Una actividad con regla «progresiva» cae en una sección que no está en ninguna evaluación. Añade su sección a una evaluación o cambia la regla de ese criterio.",
-    "REGLA_CON_TOPE": "Con «final.tope» solo valen las reglas «media» y «progresiva», y no se puede usar «recupera»: el tope cuenta los máximos de las actividades de la categoría y una subcategoría con otra agregación rompe esa cuenta. Quita el tope o cambia la regla.",
     "RECUPERACION_SOLO_FINAL_DE_ELEMENTOS": "Una actividad usa «recupera» y la nota final es de evaluaciones. Las recuperaciones solo valen con «final: {de: elementos}»; cambia la final o quita «recupera».",
     "RECUPERA_SIN_EVIDENCIAS": "Una actividad recupera una evaluación en la que ese criterio no tiene ninguna evidencia normal. Añade una actividad sin «recupera» que evalúe ese criterio en esa evaluación o quita la recuperación.",
     "RECUPERACION_CON_MEDIANA": "Un criterio con regla «mediana» no admite recuperación: la mediana no puede sustituirse por una nota mayor. Cambia la regla del criterio o quita «recupera» a la actividad.",

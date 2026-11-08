@@ -311,20 +311,6 @@ def _validar_reglas(esquema: Esquema, actividades: list[_Actividad]) -> None:
             "RECUPERACION_SOLO_FINAL_DE_ELEMENTOS",
             f"{con_recupera[0].ruta}: recupera solo vale cuando la final es de elementos",
         )
-    if esquema.final.tope is not None:
-        for hoja, _ in _hojas(esquema):
-            regla = esquema.regla_de(hoja)
-            if regla not in ("media", "progresiva"):
-                raise ErrorCalificacion(
-                    "REGLA_CON_TOPE",
-                    f"«{hoja}» usa la regla «{regla}» y la final tiene tope: con tope solo "
-                    "valen media y progresiva",
-                )
-        if con_recupera:
-            raise ErrorCalificacion(
-                "REGLA_CON_TOPE",
-                f"{con_recupera[0].ruta}: recupera no vale si la final tiene tope",
-            )
     for a in con_recupera:
         for hoja, _ in a.evalua:
             if esquema.regla_de(hoja) == "mediana":
@@ -770,11 +756,13 @@ class _Montaje:
         )
         for a in dentro:
             grupo = None if evaluacion is None else evaluacion + 1
-            referencia = self._evidencia(ag_id, hoja, vista, a, None, grupo=grupo)
-            if vista == _VISTA_ELEMENTOS and cuenta:
-                self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
-                    (referencia, a.nombre)
-                )
+            self._evidencia(ag_id, hoja, vista, a, None, grupo=grupo)
+        # Con tope, el contador cuenta la subcategoría entera (máximo 100), no sus evidencias:
+        # una regla no Natural no suma los máximos de dentro.
+        if vista == _VISTA_ELEMENTOS and cuenta and dentro:
+            self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
+                (ag_id, f"{self.nombre_de_hoja[hoja]} ({nombre_regla})")
+            )
         # Lo de peso 0 se queda fuera de la regla, como hoy.
         for a in self.actividades:
             if hoja not in dict(a.evalua) or a.recupera:
@@ -860,17 +848,14 @@ class _Montaje:
                 )
             )
             for a, p in zip(evidencias, pesos_grupo, strict=True):
-                referencia = self._evidencia(rp_id, hoja, vista, a, p, grupo=r)
-                if vista == _VISTA_ELEMENTOS and cuenta:
-                    self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
-                        (referencia, a.nombre)
-                    )
+                self._evidencia(rp_id, hoja, vista, a, p, grupo=r)
             for a in self._recuperadoras(hoja, r):
-                referencia = self._evidencia(rm_id, hoja, vista, a, None, grupo=r)
-                if vista == _VISTA_ELEMENTOS and cuenta:
-                    self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
-                        (referencia, a.nombre)
-                    )
+                self._evidencia(rm_id, hoja, vista, a, None, grupo=r)
+            # Con tope, la recuperación cuenta como una subcategoría (máximo 100).
+            if vista == _VISTA_ELEMENTOS and cuenta:
+                self.hijos_de_elemento.setdefault(self.elemento_de_hoja[hoja], []).append(
+                    (rm_id, f"Recuperación · {self.nombre_de_hoja[hoja]} ({nombre_eval})")
+                )
         # Fuera de las recuperaciones: lo que no va en ningún TZ_RM.
         for i, (a, peso) in enumerate(zip(normales, pesos, strict=True)):
             if i in en_grupo:

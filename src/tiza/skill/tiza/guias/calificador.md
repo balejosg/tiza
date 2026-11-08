@@ -64,7 +64,7 @@ instrumentos:
 - `evaluaciones`: `nombre`, `secciones` (números o nombres) y `cerrada`; con la final por evaluaciones, cada una lleva `peso` (suman 100).
 - `final`: `de` (`elementos` o `evaluaciones`) y `tope` (solo con `de: elementos`):
   `si_alguno_menor_que` (>0 y hasta 10) y `maximo` (0–10, sin llegar).
-- `agregacion` (opcional): `regla` (`media`, `mediana`, `mas_alta` o `progresiva`) y `factores` (uno por evaluación, solo con progresiva). Cada elemento sin criterios o cada criterio puede llevar su propia `regla`; sin `agregacion`, todo es `media`. Con `final.tope` solo valen `media` y `progresiva`, sin recuperaciones (`REGLA_CON_TOPE`).
+- `agregacion` (opcional): `regla` (`media`, `mediana`, `mas_alta` o `progresiva`) y `factores` (uno por evaluación, solo con progresiva). Cada elemento sin criterios o cada criterio puede llevar su propia `regla`; sin `agregacion`, todo es `media`. Con `final.tope` valen todas las reglas y también `recupera`.
 - Con criterios, recomienda `final: {de: elementos}` (acumula por criterio); la UD o situación de aprendizaje es una unidad de planificación, no de calificación. Propón la regla según la programación: `media` por defecto, `progresiva` si lo último pesa más, `mas_alta` para criterios que se demuestran una vez y `mediana` con muchas evidencias y alguna atípica. La decide el departamento y tú no la cambias.
 
 Lo que el esquema no expresa (redondeos, la actitud, otros pesos dentro de una evaluación) **se lo dices al docente y no lo fuerzas**.
@@ -258,7 +258,7 @@ y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen 
 - Con más de 500 ficheros `.md` o `.html`, `CARPETA_DEMASIADO_GRANDE`: saca los que no sean del curso.
 - Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no adivines cuál es: el docente borra o renombra una.
 - `ESQUEMA_INVALIDO`, `PESOS_NO_SUMAN_100`, `ID_REPETIDO`, `SECCION_REPETIDA`, `TOPE_SIN_ELEMENTOS`
-  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera; `PROGRESIVA_SIN_FACTORES`, `RECUPERA_INVALIDO`, `RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`, `RECUPERACION_SOLO_FINAL_DE_ELEMENTOS`, `ACTIVIDAD_SIN_EVALUACION` y `REGLA_CON_TOPE` completan el diagnóstico.
+  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera; `PROGRESIVA_SIN_FACTORES`, `RECUPERA_INVALIDO`, `RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`, `RECUPERACION_SOLO_FINAL_DE_ELEMENTOS` y `ACTIVIDAD_SIN_EVALUACION` completan el diagnóstico.
 - `ELEMENTO_CON_CRITERIOS`: un `evalua` nombra un elemento con criterios; usa sus criterios.
   `CRITERIOS_SIN_PESO` es un aviso: tiza los pesa igual, y se lo dices al docente.
 - Si `.tiza/calificador.json` da `CALIFICADOR_INVALIDO`, no lo edites ni lo borres: pide al docente que lo revise; si se borra, tiza deja de saber qué cambió el docente a mano.

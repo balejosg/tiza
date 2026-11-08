@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## No publicado
+
+### Cambia
+- **Con tope, valen todas las reglas y las recuperaciones.** `final.tope` deja de limitar las hojas a `media` y `progresiva`: también funcionan `mediana` y `mas_alta`, y una actividad puede declarar `recupera`. El tope cuenta cada subcategoría de regla o de recuperación como un elemento más (máximo 100), no la suma de lo que tiene dentro, así que la nota no se dispara.
+
 ## 0.41.0 — 2026-11-08
 
 ### Añadido

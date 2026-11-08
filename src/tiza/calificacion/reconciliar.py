@@ -630,6 +630,10 @@ class _Plan:
             assert isinstance(fuente, str)
             if fuente in self.dnodos and fuente not in self.rutas:  # una copia o una casilla
                 fuente = self.dnodos[fuente].formula_de or fuente  # type: ignore[assignment]
+            if isinstance(fuente, str) and fuente in self.dnodos:
+                if self.dnodos[fuente].clase == "categoria":
+                    # Una subcategoría de regla o de recuperación vale 100, no la suma de dentro.
+                    return _MAXIMO_SIN_DATO
             if str(fuente).startswith(_PREFIJO_MANUAL):
                 return self._maximo_casilla(str(fuente))
             return self._maximo_actividad(str(fuente))

@@ -310,8 +310,8 @@ final:
   (por defecto), `mediana`, `mas_alta` o `progresiva`; con `progresiva` hacen falta
   `factores: [1, 2, 3]`, uno por evaluación y mayores que 0. Cada elemento sin criterios o cada
   criterio puede llevar su propia `regla`. La regla se puede cambiar a mitad de curso; las evaluaciones cerradas
-  no se tocan y el informe lo avisa con `REGLA_CAMBIADA`. Con `final.tope` solo valen `media` y
-  `progresiva`, y no se admite `recupera` (`REGLA_CON_TOPE`).
+  no se tocan y el informe lo avisa con `REGLA_CAMBIADA`. Con `final.tope` valen todas las reglas y
+  también `recupera`.
 - Una sección solo puede estar en una evaluación (`SECCION_REPETIDA`). Una actividad con `evalua`
   en una sección que no es de ninguna evaluación da `SECCION_SIN_EVALUACION`.
 - `cerrada: true` bloquea la evaluación en el aula al terminar de montar (si no estaba completa,

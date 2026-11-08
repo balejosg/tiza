@@ -50,7 +50,9 @@ ESO = Esquema(
 CMIDS = {"a.md": 11, "d.md": 12, "c.md": 13}
 
 
-def doc(ruta: str, seccion: int, **evalua: float) -> Documento:
+def doc(
+    ruta: str, seccion: int, *, recupera: tuple[int, ...] | None = None, **evalua: float
+) -> Documento:
     return Documento(
         ruta=CARPETA / ruta,
         tipo="pagina",
@@ -60,6 +62,7 @@ def doc(ruta: str, seccion: int, **evalua: float) -> Documento:
         html="",
         recursos=[],
         evalua=tuple(evalua.items()),
+        recupera=recupera,
     )
 
 
@@ -524,6 +527,48 @@ def test_montaje_completo_con_tope() -> None:
     # las actividades sin número de ID reciben TZ_A<cmid>, que usan las fórmulas
     assert por_id(aula, "TZ_A11").cmid == 11
     assert any("[[TZ_A11]]" in (n.formula or "") for n in aula.nodos)
+
+
+def test_indicador_de_subcategoria_mas_alta_vale_100() -> None:
+    esquema = Esquema(
+        "elementos",
+        (
+            Elemento(
+                "RA1",
+                "Redes",
+                100.0,
+                criterios=(Criterio("CE1", "Uno", 100.0, regla="mas_alta"),),
+            ),
+        ),
+        (Evaluacion("Primera", (1,), cerrada=True),),
+        Final("elementos", Tope(5.0, 4.0)),
+    )
+    _, aula = montar(esquema, [doc("a.md", 1, CE1=100)])
+    ind = next(n for n in aula.nodos if n.idnumber.startswith("TZ_I_"))
+    assert ind.maximo == 100.0
+    assert ind.formula.endswith("*0+100")
+
+
+@pytest.mark.parametrize(
+    "regla,recupera",
+    [(None, True), ("mediana", False), ("mas_alta", False)],
+)
+def test_reglas_y_recuperacion_con_tope_convergen(regla, recupera) -> None:
+    criterio = Criterio("CE1", "Uno", 100.0, regla=regla)
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0, criterios=(criterio,)),),
+        (Evaluacion("Primera", (1,), cerrada=True), Evaluacion("Segunda", (2,))),
+        Final("elementos", Tope(5.0, 4.0)),
+    )
+    documentos = [doc("a.md", 1, CE1=100)]
+    documentos.append(
+        doc("c.md", 2, CE1=100, recupera=(1,)) if recupera else doc("c.md", 2, CE1=100)
+    )
+    d, aula = montar(esquema, documentos)
+    huellas = huellas_de(aula, CMIDS)
+    assert reconciliar(d, aula, huellas, CMIDS).operaciones == ()
+    assert pasada2(d, aula, huellas, CMIDS) == ()
 
 
 def test_un_numero_de_id_con_caracteres_raros_no_deja_huella() -> None:

@@ -1693,6 +1693,64 @@ def test_recuperacion_con_mas_alta_es_una_evidencia() -> None:
     assert copia_de(d, "u2/recu.md", "TZ_AG_V_1_CE3_1")
 
 
+def test_indicador_de_subcategoria_mas_alta_vale_100() -> None:
+    esquema = esquema_con_criterio("mas_alta", (Evaluacion("Primera", (1,)),), tope=Tope(5.0, 4.0))
+    d = deseado(esquema, [doc("u1/a.md", 1, CE3_1=100)], False, CARPETA)
+    # El contador apunta a la subcategoría (máximo 100), no a las evidencias de dentro.
+    assert [i.formula_de for i in hijos(d, "TZ_K_RA1")] == ["TZ_AG_E_CE3_1"]
+
+
+def test_recuperacion_con_tope_registra_la_rm() -> None:
+    esquema = esquema_con_criterio(
+        None,
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))),
+        tope=Tope(5.0, 4.0),
+    )
+    docs = [
+        doc("u1/a.md", 1, CE3_1=50),
+        doc("u2/b.md", 2, CE3_1=50),
+        doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    # La recuperación es una subcategoría: el contador la cuenta a ella, con máximo 100.
+    assert [i.formula_de for i in hijos(d, "TZ_K_RA1")] == [
+        "TZ_RM_E_1_CE3_1",
+        "u2/b.md",
+    ]
+
+
+def test_mediana_con_tope_monta() -> None:
+    esquema = esquema_con_criterio(
+        "mediana",
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))),
+        tope=Tope(5.0, 4.0),
+    )
+    docs = [doc("u1/a.md", 1, CE3_1=50), doc("u2/b.md", 2, CE3_1=50)]
+    d = deseado(esquema, docs, False, CARPETA)
+    assert [i.formula_de for i in hijos(d, "TZ_K_RA1")] == ["TZ_AG_E_CE3_1"]
+    assert nodo(d, "TZ_AG_E_CE3_1").agregacion == 2
+
+
+def test_sin_reglas_el_arbol_con_tope_no_cambia() -> None:
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 60.0), Elemento("RA2", "Sistemas", 40.0)),
+        (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,))),
+        Final("elementos", Tope(5.0, 4.0)),
+    )
+    docs = [
+        doc("u1/a.md", 1, RA1=60),
+        doc("u1/b.md", 1, RA1=40, RA2=50),
+        doc("u2/c.md", 2, RA2=50),
+    ]
+    d = deseado(esquema, docs, False, CARPETA)
+    # Sin reglas ni recuperaciones, cada indicador sigue apuntando a su evidencia directa.
+    for elemento in ("RA1", "RA2"):
+        assert [i.formula_de for i in hijos(d, f"TZ_K_{elemento}")] == [
+            n.idnumber for n in hijos(d, f"TZ_E_{elemento}") if n.peso
+        ]
+
+
 def test_recuperacion_con_mediana() -> None:
     esquema = esquema_con_criterio(
         "mediana", (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
@@ -1745,28 +1803,28 @@ def test_recuperacion_solo_final_de_elementos() -> None:
     assert "u2/recu.md" in info.value.detalle
 
 
-def test_regla_con_tope() -> None:
+def test_reglas_y_recuperacion_valen_con_tope() -> None:
     evaluaciones = (Evaluacion("Primera", (1,)), Evaluacion("Segunda", (2,)))
-    with pytest.raises(ErrorCalificacion) as info:
-        deseado(
-            esquema_con_criterio("mediana", evaluaciones, tope=Tope(5.0, 4.0)),
-            [doc("u1/a.md", 1, CE3_1=100)],
-            False,
-            CARPETA,
-        )
-    assert info.value.codigo == "REGLA_CON_TOPE"
-    with pytest.raises(ErrorCalificacion) as info:
-        deseado(
-            esquema_con_criterio(None, evaluaciones, tope=Tope(5.0, 4.0)),
-            [
-                doc("u1/a.md", 1, CE3_1=100),
-                doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
-            ],
-            False,
-            CARPETA,
-        )
-    assert info.value.codigo == "REGLA_CON_TOPE"
-    # La progresiva sí vale con tope.
+    # La mediana ya no está prohibida con tope.
+    d = deseado(
+        esquema_con_criterio("mediana", evaluaciones, tope=Tope(5.0, 4.0)),
+        [doc("u1/a.md", 1, CE3_1=100)],
+        False,
+        CARPETA,
+    )
+    assert nodo(d, "TZ_NOTAS")
+    # La recuperación tampoco.
+    d = deseado(
+        esquema_con_criterio(None, evaluaciones, tope=Tope(5.0, 4.0)),
+        [
+            doc("u1/a.md", 1, CE3_1=100),
+            doc("u2/recu.md", 2, recupera=(1,), CE3_1=100),
+        ],
+        False,
+        CARPETA,
+    )
+    assert nodo(d, "TZ_NOTAS")
+    # La progresiva sigue valiendo con tope.
     d = deseado(
         esquema_con_criterio(
             "progresiva",
