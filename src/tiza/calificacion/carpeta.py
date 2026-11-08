@@ -102,13 +102,11 @@ def cargar_calificacion(esquema: Path, base: Path) -> tuple[Esquema, list[Docume
 def actividades_sin_evalua(
     esquema: Esquema, documentos: list[Documento], carpeta: Path
 ) -> list[str]:
-    """Rutas relativas de las actividades calificables sin ``evalua``, solo en ESO.
+    """Rutas relativas de las actividades calificables sin ``evalua``, en cualquier etapa.
 
     Son las tareas, los cuestionarios y los H5P que aún no cuentan en el calificador. Las
     páginas y las etiquetas no tienen nota y no salen. El resultado va ordenado.
     """
-    if esquema.etapa != "eso":
-        return []
     raiz = Path(carpeta).resolve()
     rutas: list[str] = []
     for documento in documentos:

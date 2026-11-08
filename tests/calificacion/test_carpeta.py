@@ -1,4 +1,4 @@
-"""Avisos de la carpeta del calificador: actividades de ESO sin criterios."""
+"""Avisos de la carpeta del calificador: actividades calificables sin criterios."""
 
 from __future__ import annotations
 
@@ -51,14 +51,12 @@ def test_sin_evalua_no_lista_paginas_ni_etiquetas() -> None:
     assert actividades_sin_evalua(ESQUEMA, documentos, CARPETA) == []
 
 
-def test_sin_evalua_vacio_fuera_de_eso() -> None:
+def test_actividad_sin_evalua_en_fp() -> None:
     documentos = [doc("tarea.md", "tarea")]
+    fp = Esquema("elementos", ESQUEMA.elementos, (), Final("elementos"), etapa="fp")
     sin_etapa = Esquema("elementos", ESQUEMA.elementos, (), Final("elementos"))
-    bachillerato = Esquema(
-        "elementos", ESQUEMA.elementos, (), Final("elementos"), etapa="bachillerato"
-    )
-    assert actividades_sin_evalua(sin_etapa, documentos, CARPETA) == []
-    assert actividades_sin_evalua(bachillerato, documentos, CARPETA) == []
+    assert actividades_sin_evalua(fp, documentos, CARPETA) == ["tarea.md"]
+    assert actividades_sin_evalua(sin_etapa, documentos, CARPETA) == ["tarea.md"]
 
 
 def test_comprobar_esquema_informa_el_aviso_sin_fallar(tmp_path: Path) -> None:

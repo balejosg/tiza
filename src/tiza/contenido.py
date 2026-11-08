@@ -299,7 +299,7 @@ class Documento:
     evalua: tuple[tuple[str, float], ...] | None = None
     # La rúbrica de una tarea (por criterios o desde un fichero de filas), ya construida.
     rubrica: RubricaCargada | None = None
-    # Cómo se recoge la evidencia de cada criterio: None o «resultados» (solo en ESO).
+    # Cómo se recoge la evidencia de cada criterio: None o «resultados».
     evidencia: str | None = None
     # Números de evaluación (1-based) cuyos criterios recupera esta actividad; None: no recupera.
     recupera: tuple[int, ...] | None = None
@@ -666,12 +666,6 @@ def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento)
         esquema = cargar_esquema(esquema_path, base)
     except ErrorCalificacion as exc:
         raise ErrorContenido(exc.codigo, exc.detalle) from None
-    if esquema.etapa != "eso":
-        raise ErrorContenido(
-            "RUBRICA_SOLO_ESO",
-            f"{ruta.name}: la rúbrica de una tarea solo vale en ESO "
-            "(pon «etapa: eso» en calificacion.yaml)",
-        )
     if valor == "por_criterios":
         from .rubrica_criterios import rubrica_de_criterios
 
@@ -685,7 +679,7 @@ def _rubrica_de_tarea(valor: Any, ruta: Path, raiz: Path | None, doc: Documento)
 
 
 def _evidencia_de_tarea(ruta: Path, raiz: Path | None) -> None:
-    """``evidencia: resultados`` solo vale en ESO, con el esquema y una escala lineal."""
+    """``evidencia: resultados`` necesita el esquema de calificación y una escala lineal."""
     base = Path(raiz).resolve() if raiz is not None else ruta.parent.resolve()
     esquema_path = base / "calificacion.yaml"
     if not esquema_path.is_file():
@@ -697,13 +691,7 @@ def _evidencia_de_tarea(ruta: Path, raiz: Path | None) -> None:
     from .calificacion.esquema import ErrorCalificacion, cargar_esquema
 
     try:
-        esquema = cargar_esquema(esquema_path, base, resultados=True)
-        if esquema.etapa != "eso":
-            raise ErrorContenido(
-                "EVIDENCIA_SOLO_ESO",
-                f"{ruta.name}: los resultados por criterio solo valen en ESO "
-                "(pon «etapa: eso» en calificacion.yaml)",
-            )
+        cargar_esquema(esquema_path, base, resultados=True)
     except ErrorCalificacion as exc:
         raise ErrorContenido(exc.codigo, f"{ruta.name}: {exc.detalle}") from None
 

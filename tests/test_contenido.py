@@ -2607,7 +2607,7 @@ def _carpeta_evidencia(tmp_path, esquema: str = ESQUEMA_EVIDENCIA, texto: str | 
 
 
 class TestEvidencia:
-    """«evidencia: resultados» en una tarea: solo ESO, necesita evalua y una escala lineal."""
+    """«evidencia: resultados» en una tarea: cualquier etapa, necesita evalua y una escala lineal."""
 
     def test_evidencia_solo_admite_resultados(self, tmp_path):
         ruta = _carpeta_evidencia(
@@ -2638,16 +2638,22 @@ class TestEvidencia:
 
         assert ayuda.explicar("EVIDENCIA_SIN_ESQUEMA")
 
-    def test_evidencia_fuera_de_eso(self, tmp_path):
-        for etapa in ("", "etapa: bachillerato\n"):
-            carpeta = tmp_path / ("sin_etapa" if not etapa else "bachillerato")
-            carpeta.mkdir()
-            ruta = _carpeta_evidencia(
-                carpeta, esquema=ESQUEMA_EVIDENCIA.replace("etapa: eso\n", etapa)
-            )
-            with pytest.raises(ErrorContenido) as exc:
-                cargar(ruta, raiz=carpeta)
-            assert exc.value.codigo == "EVIDENCIA_SOLO_ESO"
+    def test_evidencia_en_fp(self, tmp_path):
+        carpeta = tmp_path / "fp"
+        carpeta.mkdir()
+        ruta = _carpeta_evidencia(
+            carpeta, esquema=ESQUEMA_EVIDENCIA.replace("etapa: eso\n", "etapa: fp\n")
+        )
+        doc = cargar(ruta, raiz=carpeta)
+        assert doc.evidencia == "resultados"
+
+    @pytest.mark.parametrize("etapa", ["etapa: bachillerato\n", ""], ids=["bachillerato", "sin"])
+    def test_evidencia_en_bachillerato_y_sin_etapa(self, tmp_path, etapa):
+        carpeta = tmp_path / ("bachillerato" if etapa else "sin_etapa")
+        carpeta.mkdir()
+        ruta = _carpeta_evidencia(carpeta, esquema=ESQUEMA_EVIDENCIA.replace("etapa: eso\n", etapa))
+        doc = cargar(ruta, raiz=carpeta)
+        assert doc.evidencia == "resultados"
 
     def test_evidencia_en_pagina_no_calificable(self, tmp_path):
         ruta = escribir(
@@ -2786,17 +2792,32 @@ class TestRubricaDeTareaPorFilas:
         assert [c.criterio for c in doc.rubrica.criterios] == ["CE1", "CE2", "CE3"]
         assert [c.niveles[0].puntos for c in doc.rubrica.criterios] == [2.5, 5.0, 2.5]
 
-    def test_fuera_de_eso(self, tmp_path):
-        for etapa in ("", "etapa: bachillerato\n"):
-            carpeta = tmp_path / ("sin_etapa" if not etapa else "bachillerato")
-            carpeta.mkdir()
-            ruta = _carpeta_rubrica(
-                carpeta,
-                esquema=ESQUEMA_RUBRICA_FILAS.replace("etapa: eso\n", etapa),
-            )
-            with pytest.raises(ErrorContenido) as exc:
-                cargar(ruta, raiz=carpeta)
-            assert exc.value.codigo == "RUBRICA_SOLO_ESO"
+    def test_rubrica_en_fp(self, tmp_path):
+        carpeta = tmp_path / "fp"
+        carpeta.mkdir()
+        ruta = _carpeta_rubrica(
+            carpeta,
+            esquema=ESQUEMA_RUBRICA_FILAS.replace("etapa: eso\n", "etapa: fp\n"),
+        )
+        doc = cargar(ruta, raiz=carpeta)
+        assert doc.rubrica is not None
+
+    def test_rubrica_en_bachillerato(self, tmp_path):
+        carpeta = tmp_path / "bachillerato"
+        carpeta.mkdir()
+        ruta = _carpeta_rubrica(
+            carpeta,
+            esquema=ESQUEMA_RUBRICA_FILAS.replace("etapa: eso\n", "etapa: bachillerato\n"),
+        )
+        doc = cargar(ruta, raiz=carpeta)
+        assert doc.rubrica is not None
+
+    def test_rubrica_sin_etapa(self, tmp_path):
+        carpeta = tmp_path / "sin_etapa"
+        carpeta.mkdir()
+        ruta = _carpeta_rubrica(carpeta, esquema=ESQUEMA_RUBRICA_FILAS.replace("etapa: eso\n", ""))
+        doc = cargar(ruta, raiz=carpeta)
+        assert doc.rubrica is not None
 
     def test_rubrica_sin_evalua(self, tmp_path):
         tarea_texto = _TAREA_CON_RUBRICA_FILAS.replace(

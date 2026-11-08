@@ -209,14 +209,15 @@ def test_por_criterios_sin_calificacion_yaml(tmp_path) -> None:
     assert exc.value.codigo == "RUBRICA_SIN_ESQUEMA"
 
 
-def test_por_criterios_fuera_de_eso(tmp_path) -> None:
-    for etapa in ("", "etapa: bachillerato\n"):
-        carpeta = tmp_path / ("sin_etapa" if not etapa else "bachillerato")
-        carpeta.mkdir()
-        ruta = _carpeta(carpeta, etapa=etapa)
-        with pytest.raises(ErrorContenido) as exc:
-            contenido.cargar(ruta, raiz=carpeta)
-        assert exc.value.codigo == "RUBRICA_SOLO_ESO"
+@pytest.mark.parametrize(
+    "etapa", ["", "etapa: bachillerato\n", "etapa: fp\n"], ids=["sin", "bachillerato", "fp"]
+)
+def test_por_criterios_en_cualquier_etapa(tmp_path, etapa) -> None:
+    carpeta = tmp_path / (etapa.strip().replace(":", "_") or "sin_etapa")
+    carpeta.mkdir()
+    ruta = _carpeta(carpeta, etapa=etapa)
+    doc = contenido.cargar(ruta, raiz=carpeta)
+    assert doc.rubrica is not None
 
 
 def test_ruta_de_rubrica_que_no_existe(tmp_path) -> None:
