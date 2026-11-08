@@ -301,6 +301,8 @@ class Documento:
     rubrica: RubricaCargada | None = None
     # Cómo se recoge la evidencia de cada criterio: None o «resultados» (solo en ESO).
     evidencia: str | None = None
+    # Números de evaluación (1-based) cuyos criterios recupera esta actividad; None: no recupera.
+    recupera: tuple[int, ...] | None = None
     hash_cargado: str = ""  # hash al cargar; si cambia un recurso después, no se publica
     sha256_fichero: str = (
         ""  # sha256 de los bytes del fichero tal como se leyó (no entra en el hash)
@@ -493,6 +495,40 @@ def _validar_evalua(datos: dict[str, Any]) -> tuple[tuple[str, float], ...] | No
     return tuple(salida)
 
 
+def _validar_recupera(datos: dict[str, Any]) -> tuple[int, ...] | None:
+    """Números de evaluación (1-based) que recupera la actividad, o None si no recupera."""
+    if "recupera" not in datos:
+        return None
+    valor = datos["recupera"]
+    if isinstance(valor, bool) or not isinstance(valor, (int, list)):
+        raise ErrorContenido(
+            "RECUPERA_INVALIDO",
+            "«recupera» debe ser un número de evaluación o una lista de números de evaluación",
+        )
+    if isinstance(valor, int):
+        if valor < 1:
+            raise ErrorContenido(
+                "RECUPERA_INVALIDO", "«recupera» debe ser un número de evaluación mayor que 0"
+            )
+        return (valor,)
+    if not valor:
+        raise ErrorContenido(
+            "RECUPERA_INVALIDO",
+            "«recupera» debe ser una lista con al menos un número de evaluación",
+        )
+    salida: list[int] = []
+    for item in valor:
+        if isinstance(item, bool) or not isinstance(item, int) or item < 1:
+            raise ErrorContenido(
+                "RECUPERA_INVALIDO",
+                "cada número de «recupera» debe ser un entero mayor que 0",
+            )
+        salida.append(item)
+    if len(salida) != len(set(salida)):
+        raise ErrorContenido("RECUPERA_INVALIDO", "«recupera» no puede repetir evaluaciones")
+    return tuple(salida)
+
+
 def _validar(
     datos: dict[str, Any], cuerpo: str, ruta: Path, zona: ZoneInfo, raiz: Path | None = None
 ) -> Documento:
@@ -549,6 +585,9 @@ def _validar(
     restricciones = _validar_restricciones(datos, ruta, zona, raiz)
     origen = _validar_origen(datos)
     evalua = _validar_evalua(datos)
+    recupera = _validar_recupera(datos)
+    if recupera is not None and evalua is None:
+        raise ErrorContenido("RECUPERA_INVALIDO", "«recupera» necesita el campo «evalua»")
     if evalua is not None and not adapter.calificable:
         raise ErrorContenido(
             "EVALUA_NO_CALIFICABLE",
@@ -597,6 +636,7 @@ def _validar(
         origen=origen,
         evalua=evalua,
         evidencia=evidencia,
+        recupera=recupera,
     )
 
 

@@ -32,7 +32,15 @@ from .base import (
 # Campos propios del frontmatter (las preguntas van dentro) y campos de fecha del
 # formulario de Moodle («Abrir el cuestionario» y «Cerrar el cuestionario»).
 CAMPOS_CUESTIONARIO = frozenset(
-    {"apertura", "cierre", "tiempo_limite", "intentos", "mezclar_respuestas", "preguntas"}
+    {
+        "apertura",
+        "cierre",
+        "tiempo_limite",
+        "intentos",
+        "mezclar_respuestas",
+        "preguntas",
+        "recupera",
+    }
 )
 CAMPOS_FECHA = ("timeopen", "timeclose")
 

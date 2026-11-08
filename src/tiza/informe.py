@@ -124,6 +124,7 @@ PASOS = (
             "PREPARAR",
             "PUBLICAR",
             "REGISTRO_NO_GUARDADO",
+            "REPARTO",
             "RESULTADO_CON_NOTAS_QUITADO",
             "RESULTADO_RECREADO",
             "RESULTADOS_DESACTIVADOS",

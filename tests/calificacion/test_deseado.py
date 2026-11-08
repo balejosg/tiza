@@ -8,8 +8,15 @@ from pathlib import Path
 
 import pytest
 
-from tiza.calificacion.deseado import Deseado, Nodo, comprobar_sin_circulares, deseado
+from tiza.calificacion.deseado import (
+    Deseado,
+    Nodo,
+    comprobar_sin_circulares,
+    deseado,
+    reparto_por_hoja,
+)
 from tiza.calificacion.esquema import (
+    Agregacion,
     Criterio,
     Elemento,
     ErrorCalificacion,
@@ -59,6 +66,7 @@ def doc(
     *,
     tipo: str = "pagina",
     evidencia: str | None = None,
+    recupera: tuple[int, ...] | None = None,
     **evalua: float,
 ) -> Documento:
     return Documento(
@@ -71,6 +79,7 @@ def doc(
         recursos=[],
         evalua=tuple(evalua.items()),
         evidencia=evidencia,
+        recupera=recupera,
     )
 
 
@@ -313,12 +322,10 @@ def test_seccion_de_texto_sin_distinguir_mayusculas() -> None:
     assert d.cerradas == ("TZ_V_2",)
 
 
-def test_pesos_ra_no_suman() -> None:
-    docs = [doc("u1/a.md", 1, RA1=40), doc("u1/b.md", 1, RA1=40)]
-    with pytest.raises(ErrorCalificacion) as info:
-        deseado(FP, docs, False, CARPETA)
-    assert info.value.codigo == "PESOS_NO_SUMAN_100"
-    assert "RA1" in info.value.detalle and "80" in info.value.detalle
+def test_pesos_relativos() -> None:
+    docs = [doc("u1/a.md", 1, RA1=1), doc("u1/b.md", 1, RA1=3)]
+    d = deseado(FP, docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [25.0, 75.0]
 
 
 def test_elemento_sin_actividades_es_aviso() -> None:
@@ -753,15 +760,12 @@ def test_criterio_inexistente_es_elemento_desconocido() -> None:
     assert "instrumentos[0]" in info.value.detalle
 
 
-def test_los_pesos_se_comprueban_por_hoja_contando_instrumentos() -> None:
+def test_los_pesos_se_normalizan_por_hoja_contando_instrumentos() -> None:
     docs = [doc("u1/a.md", 1, CA1=60)]
     instrumento = Instrumento("exposicion", "Exposición", 1, (("CA1", 60.0),))
-    with pytest.raises(ErrorCalificacion) as info:
-        deseado(con_criterios(instrumentos=(instrumento,)), docs, False, CARPETA)
-    assert info.value.codigo == "PESOS_NO_SUMAN_100"
-    assert info.value.detalle.startswith("CA1: ") and "120" in info.value.detalle
-    assert "u1/a.md" in info.value.detalle and "TZ_M_exposicion" in info.value.detalle
-    # suman 100 con el instrumento (y CA2, RA2 sin nada: suman 0)
+    d = deseado(con_criterios(instrumentos=(instrumento,)), docs, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_CA1")] == [50.0, 50.0]
+    # 60 y 40 se reparten 60/40 (y CA2, RA2 sin nada: no cuentan)
     ok = Instrumento("exposicion", "Exposición", 1, (("CA1", 40.0),))
     d = deseado(con_criterios(instrumentos=(ok,)), docs, False, CARPETA)
     assert [n.peso for n in hijos(d, "TZ_E_CA1")] == [60.0, 40.0]
@@ -960,7 +964,7 @@ def test_pesan_igual_ignora_los_numeros_de_evalua() -> None:
     assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [50.0, 50.0]
 
 
-def test_pesan_igual_no_exige_que_sumen_100() -> None:
+def test_los_pesos_de_evalua_se_normalizan_aunque_no_sumen_100() -> None:
     esquema = Esquema(
         "elementos",
         (Elemento("RA1", "Redes", 100.0),),
@@ -978,9 +982,9 @@ def test_pesan_igual_no_exige_que_sumen_100() -> None:
         EVALUACIONES,
         Final("elementos"),
     )
-    with pytest.raises(ErrorCalificacion) as exc:
-        deseado(sin_opcion, documentos, False, CARPETA)
-    assert exc.value.codigo == "PESOS_NO_SUMAN_100"
+    # Sin «actividades_pesan_igual» también se normalizan: 40 y 40 son 50 y 50.
+    d = deseado(sin_opcion, documentos, False, CARPETA)
+    assert [n.peso for n in hijos(d, "TZ_E_RA1")] == [50.0, 50.0]
 
 
 def test_sin_la_opcion_el_arbol_no_cambia() -> None:
@@ -993,6 +997,73 @@ def test_sin_la_opcion_el_arbol_no_cambia() -> None:
         actividades_pesan_igual=False,
     )
     assert deseado(con_false, completo(), False, CARPETA) == base
+
+
+# ---- reparto por hoja, pesos relativos y recupera ----
+
+ESO_UNA_EVALUACION = Esquema(
+    "evaluaciones",
+    (Elemento("RA1", "Redes", 100.0),),
+    (Evaluacion("Primera", (1,), 100.0),),
+    Final("evaluaciones"),
+)
+
+
+def test_recupera_no_existe_en_el_esquema() -> None:
+    with pytest.raises(ErrorCalificacion) as info:
+        deseado(
+            ESO_UNA_EVALUACION,
+            [doc("u1/a.md", 1, recupera=(2,), RA1=100)],
+            False,
+            CARPETA,
+        )
+    assert info.value.codigo == "RECUPERA_INVALIDO"
+    assert "u1/a.md" in info.value.detalle
+    assert "2" in info.value.detalle
+
+
+def test_reparto_por_hoja() -> None:
+    documentos = [doc("a.md", 1, RA1=1), doc("b.md", 1, RA1=3)]
+    assert reparto_por_hoja(FP, documentos, CARPETA) == (("RA1", (("a", 25.0), ("b", 75.0))),)
+
+    iguales = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        EVALUACIONES,
+        Final("elementos"),
+        actividades_pesan_igual=True,
+    )
+    assert reparto_por_hoja(iguales, documentos, CARPETA) == (("RA1", (("a", 50.0), ("b", 50.0))),)
+
+    progresiva = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        (
+            Evaluacion("Primera", (1,)),
+            Evaluacion("Segunda", (2,)),
+            Evaluacion("Tercera", (3,)),
+        ),
+        Final("elementos"),
+        agregacion=Agregacion("progresiva", (1.0, 2.0, 3.0)),
+    )
+    documentos = [doc("a.md", 1, RA1=50), doc("c.md", 3, RA1=50)]
+    assert reparto_por_hoja(progresiva, documentos, CARPETA) == (
+        ("RA1", (("a", 25.0), ("c", 75.0))),
+    )
+
+
+def test_reparto_por_hoja_con_instrumento() -> None:
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        EVALUACIONES,
+        Final("elementos"),
+        instrumentos=(Instrumento("Examen", "Examen", 1, (("RA1", 40.0),)),),
+    )
+    documentos = [doc("a.md", 1, RA1=60)]
+    assert reparto_por_hoja(esquema, documentos, CARPETA) == (
+        ("RA1", (("a", 60.0), ("Examen", 40.0))),
+    )
 
 
 # ---- evidencia por resultados: resultado del aula y calculado por criterio ----

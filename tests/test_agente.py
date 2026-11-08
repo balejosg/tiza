@@ -192,6 +192,15 @@ class TestComprobar:
         assert fichero.codigo == "SECCION_AUSENTE"
         assert "curso de real" in fichero.detalle
 
+    def test_el_texto_del_reparto_quita_lo_que_el_informe_no_admite(self):
+        limpio = agente._texto_de_reparto("a<b>c\x07d\u202ee")
+        assert limpio == "abcde"
+        assert not set(limpio) & set("<>")
+        assert all(caracter.isprintable() for caracter in limpio)
+        borrador = informe.Borrador("comprobar", entorno="pruebas")
+        borrador.paso("REPARTO", detalle=f"RA1: {limpio} 100 %")
+        informe.validar(borrador.documento())
+
 
 def test_importar_el_lado_del_agente_no_carga_python_moodle():
     codigo = (

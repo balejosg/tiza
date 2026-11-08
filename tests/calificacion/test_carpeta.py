@@ -79,3 +79,19 @@ def test_comprobar_esquema_informa_el_aviso_sin_fallar(tmp_path: Path) -> None:
         paso for paso in resultado.informe["pasos"] if paso["codigo"] == "ACTIVIDAD_SIN_EVALUA"
     ]
     assert [paso["detalle"] for paso in avisos] == ["tarea.md"]
+
+
+def test_comprobar_no_ignora_una_actividad_que_solo_falla_por_recupera(tmp_path: Path) -> None:
+    (tmp_path / "calificacion.yaml").write_text(
+        "etapa: eso\norganizacion: elementos\n"
+        "elementos:\n  - {id: RA1, nombre: Redes, peso: 100}\n"
+        "final: {de: elementos}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tarea.md").write_text(
+        "---\ntipo: tarea\nnombre: Problemas\nseccion: 1\n"
+        "apertura: 2026-10-01\nentrega: 2026-10-10\nrecupera: 2\n---\n\nResuelve.\n",
+        encoding="utf-8",
+    )
+    resultado = agente.comprobar(tmp_path, ["calificacion.yaml"])
+    assert resultado.informe["errores"] == ["RECUPERA_INVALIDO"]

@@ -37,7 +37,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tiza.calificacion.esquema import (
-    TOLERANCIA_PESOS,
     Criterio,
     Elemento,
     ErrorCalificacion,
@@ -52,6 +51,7 @@ __all__ = [
     "deseado",
     "nombre_de_hoja",
     "normalizar_pesos",
+    "reparto_por_hoja",
 ]
 
 CLASES = (
@@ -137,6 +137,8 @@ class _Actividad:
     resultados: bool = False  # la tarea recoge la evidencia con resultados del aula
     # Lo que declaró el documento; None en una casilla manual.
     evidencia_declarada: str | None = None
+    # Números de evaluación (1-based) cuyos criterios recupera; vacío: no recupera.
+    recupera: tuple[int, ...] = ()
 
 
 def comprobar_sin_circulares(nodos: tuple[Nodo, ...]) -> None:
@@ -263,6 +265,15 @@ def _validar(
     return evaluacion
 
 
+def _validar_recupera(esquema: Esquema, ruta: str, recupera: tuple[int, ...]) -> None:
+    """Cada número de ``recupera`` debe tener su evaluación en el esquema (1-based)."""
+    for n in recupera:
+        if not 1 <= n <= len(esquema.evaluaciones):
+            raise ErrorCalificacion(
+                "RECUPERA_INVALIDO", f"{ruta}: recupera {n} y no hay evaluación {n}"
+            )
+
+
 def _actividades(
     esquema: Esquema,
     documentos: list[Documento],
@@ -284,6 +295,8 @@ def _actividades(
         if esquema.actividades_pesan_igual:
             evalua = tuple((id_, 1.0) for id_, _ in evalua)
         evaluacion = _validar(esquema, ruta, evalua, documento.seccion)
+        recupera = documento.recupera or ()
+        _validar_recupera(esquema, ruta, recupera)
         resultado.append(
             _Actividad(
                 ruta,
@@ -293,13 +306,17 @@ def _actividades(
                 resultados=documento.evidencia == "resultados"
                 and (resultados is None or ruta in resultados),
                 evidencia_declarada=documento.evidencia,
+                recupera=recupera,
             )
         )
     for i, instrumento in enumerate(esquema.instrumentos):
         evalua = instrumento.evalua
         if esquema.actividades_pesan_igual:
             evalua = tuple((id_, 1.0) for id_, _ in evalua)
-        evaluacion = _validar(esquema, f"instrumentos[{i}]", evalua, instrumento.seccion)
+        ruta = f"instrumentos[{i}]"
+        evaluacion = _validar(esquema, ruta, evalua, instrumento.seccion)
+        recupera = instrumento.recupera or ()
+        _validar_recupera(esquema, ruta, recupera)
         resultado.append(
             _Actividad(
                 f"TZ_M_{instrumento.id}",
@@ -307,24 +324,10 @@ def _actividades(
                 evaluacion,
                 evalua,
                 manual=True,
+                recupera=recupera,
             )
         )
     return resultado
-
-
-def _comprobar_pesos(esquema: Esquema, actividades: list[_Actividad]) -> None:
-    """Los pesos de lo que evalúa cada hoja suman 0 o 100 (salvo ``actividades_pesan_igual``)."""
-    if esquema.actividades_pesan_igual:
-        return
-    for hoja, _ in _hojas(esquema):
-        pesos = [(a.ruta, dict(a.evalua)[hoja]) for a in actividades if hoja in dict(a.evalua)]
-        total = round(sum(p for _, p in pesos), 2)
-        if total != 0 and round(abs(total - 100), 2) > TOLERANCIA_PESOS:
-            rutas = ", ".join(r for r, _ in pesos[:5]) + (", …" if len(pesos) > 5 else "")
-            raise ErrorCalificacion(
-                "PESOS_NO_SUMAN_100",
-                f"{hoja}: los pesos de sus actividades suman {total:g} y deben sumar 100 ({rutas})",
-            )
 
 
 def deseado(
@@ -343,8 +346,38 @@ def deseado(
     no estén se tratan como tareas normales, con actividad real y copias.
     """
     actividades = _actividades(esquema, documentos, carpeta, resultados)
-    _comprobar_pesos(esquema, actividades)
     return _Montaje(esquema, actividades, anterior).montar()
+
+
+def reparto_por_hoja(
+    esquema: Esquema, documentos: list[Documento], carpeta: Path
+) -> tuple[tuple[str, tuple[tuple[str, float], ...]], ...]:
+    """El porcentaje normalizado de cada actividad en su hoja, en orden.
+
+    Sirve a ``tiza comprobar`` para enseñar el efecto de los pesos relativos de ``evalua``.
+    Con la regla ``progresiva`` el peso se multiplica por el factor de la evaluación de la
+    actividad antes de normalizar; con ``media`` no. Solo salen las hojas con actividades.
+    """
+    actividades = _actividades(esquema, documentos, carpeta)
+    reparto: list[tuple[str, tuple[tuple[str, float], ...]]] = []
+    for hoja, _ in _hojas(esquema):
+        de_hoja = [a for a in actividades if hoja in dict(a.evalua)]
+        if not de_hoja:
+            continue
+        pesos = [dict(a.evalua)[hoja] for a in de_hoja]
+        if esquema.regla_de(hoja) == "progresiva":
+            pesos = [
+                peso * esquema.agregacion.factores[a.evaluacion]
+                for peso, a in zip(pesos, de_hoja, strict=True)
+            ]
+        normalizados = normalizar_pesos(pesos)
+        reparto.append(
+            (
+                hoja,
+                tuple((a.nombre, peso) for a, peso in zip(de_hoja, normalizados, strict=True)),
+            )
+        )
+    return tuple(reparto)
 
 
 class _Montaje:

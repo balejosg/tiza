@@ -9,7 +9,7 @@ lenguaje de fórmulas. Los errores llevan la ruta YAML de lo que falla
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
 from typing import Any
@@ -19,6 +19,7 @@ from tiza.escritura import ErrorEscritura
 from tiza.escritura.relleno import cargar_yaml_sin_alias, dentro_de_la_carpeta
 
 __all__ = [
+    "Agregacion",
     "ErrorCalificacion",
     "Criterio",
     "Elemento",
@@ -27,6 +28,7 @@ __all__ = [
     "Final",
     "Instrumento",
     "NivelRubrica",
+    "REGLAS",
     "Tope",
     "cargar_esquema",
     "comprobar_niveles_equidistantes",
@@ -36,6 +38,9 @@ EXTENSIONES_ESQUEMA = frozenset({".yaml"})
 TOLERANCIA_PESOS = 0.01
 ETAPAS = ("primaria", "eso", "bachillerato", "fp")
 MAX_NIVELES_RUBRICA = 10
+REGLAS = ("media", "mediana", "mas_alta", "progresiva")
+_REQUERIDAS_INSTRUMENTO = ("id", "nombre", "seccion", "evalua")
+_PERMITIDAS_INSTRUMENTO = (*_REQUERIDAS_INSTRUMENTO, "recupera")
 
 
 class ErrorCalificacion(Exception):
@@ -66,11 +71,20 @@ NIVELES_RUBRICA = (
 
 
 @dataclass(frozen=True)
+class Agregacion:
+    """Cómo se combinan las evidencias de cada hoja y los factores de la progresiva."""
+
+    regla: str = "media"
+    factores: tuple[float, ...] = ()
+
+
+@dataclass(frozen=True)
 class Criterio:
     id: str
     nombre: str
     peso: float | None
     codigo: str | None = None
+    regla: str | None = None
 
 
 @dataclass(frozen=True)
@@ -80,6 +94,7 @@ class Elemento:
     peso: float
     codigo: str | None = None
     criterios: tuple[Criterio, ...] = ()
+    regla: str | None = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +105,7 @@ class Instrumento:
     nombre: str
     seccion: int | str
     evalua: tuple[tuple[str, float], ...]
+    recupera: tuple[int, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -122,6 +138,22 @@ class Esquema:
     etapa: str | None = None
     niveles_rubrica: tuple[NivelRubrica, ...] = NIVELES_RUBRICA
     actividades_pesan_igual: bool = False
+    agregacion: Agregacion = field(default_factory=Agregacion)
+
+    def regla_de(self, hoja: str) -> str:
+        """La regla de una hoja (criterio o elemento sin criterios) o la general.
+
+        Un elemento con criterios no contagia su regla a los criterios: la regla va en el
+        elemento sin criterios o en cada criterio.
+        """
+        for elemento in self.elementos:
+            if elemento.criterios:
+                for criterio in elemento.criterios:
+                    if criterio.id == hoja:
+                        return criterio.regla or self.agregacion.regla
+            elif elemento.id == hoja:
+                return elemento.regla or self.agregacion.regla
+        return self.agregacion.regla
 
 
 class _Lector:
@@ -180,6 +212,53 @@ class _Lector:
         if numero <= 0:
             raise self.invalido(ruta, "debe ser mayor que 0")
         return numero
+
+    def regla(self, valor: Any, ruta: str) -> str:
+        if not isinstance(valor, str) or valor not in REGLAS:
+            raise self.invalido(ruta, f"debe ser una de {', '.join(REGLAS)}")
+        return valor
+
+    def agregacion(self, valor: Any) -> Agregacion:
+        datos = self.mapa(valor, "agregacion", ("regla", "factores"), ())
+        regla = self.regla(datos["regla"], "agregacion.regla") if "regla" in datos else "media"
+        factores: tuple[float, ...] = ()
+        if "factores" in datos:
+            crudos = datos["factores"]
+            if not isinstance(crudos, list):
+                raise self.invalido("agregacion.factores", "debe ser una lista de factores")
+            # Una lista vacía es válida aquí: «sin factores» lo decide _comprobar_reglas con la
+            # regla de cada hoja (PROGRESIVA_SIN_FACTORES), no la forma del YAML.
+            salida: list[float] = []
+            for i, bruto in enumerate(crudos):
+                ruta = f"agregacion.factores[{i}]"
+                factor = self.peso(bruto, ruta)
+                if factor > 100:
+                    raise self.invalido(ruta, "debe ser como mucho 100")
+                salida.append(factor)
+            factores = tuple(salida)
+        return Agregacion(regla, factores)
+
+    def recupera(self, valor: Any, ruta: str) -> tuple[int, ...]:
+        """Un número de evaluación o una lista no vacía de números distintos (1-based)."""
+        if isinstance(valor, bool):
+            raise self.invalido(ruta, "debe ser un número de evaluación o una lista de números")
+        if isinstance(valor, int):
+            if valor < 1:
+                raise self.invalido(ruta, "debe ser un número de evaluación mayor que 0")
+            return (valor,)
+        if isinstance(valor, list):
+            if not valor:
+                raise self.invalido(ruta, "debe ser una lista con al menos un número de evaluación")
+            salida: list[int] = []
+            for i, item in enumerate(valor):
+                destino = f"{ruta}[{i}]"
+                if isinstance(item, bool) or not isinstance(item, int) or item < 1:
+                    raise self.invalido(destino, "debe ser un número de evaluación mayor que 0")
+                salida.append(item)
+            if len(salida) != len(set(salida)):
+                raise self.invalido(ruta, "no puede repetir números de evaluación")
+            return tuple(salida)
+        raise self.invalido(ruta, "debe ser un número de evaluación o una lista de números")
 
     def suman_100(self, pesos: list[float], ruta: str) -> None:
         total = sum(pesos)
@@ -250,7 +329,7 @@ class _Lector:
             datos = self.mapa(
                 bruto,
                 ruta,
-                ("id", "nombre", "peso", "codigo", "criterios"),
+                ("id", "nombre", "peso", "codigo", "criterios", "regla"),
                 ("id", "nombre", "peso"),
             )
             id_ = self.id_(datos["id"], f"{ruta}.id")
@@ -263,6 +342,13 @@ class _Lector:
                 if "criterios" in datos
                 else ()
             )
+            regla = self.regla(datos["regla"], f"{ruta}.regla") if "regla" in datos else None
+            if regla is not None and criterios:
+                raise self.invalido(
+                    f"{ruta}.regla",
+                    "la regla de un elemento con criterios va en el elemento sin criterios "
+                    "o en cada criterio",
+                )
             resultado.append(
                 Elemento(
                     id_,
@@ -270,6 +356,7 @@ class _Lector:
                     self.peso(datos["peso"], f"{ruta}.peso"),
                     codigo,
                     criterios,
+                    regla,
                 )
             )
         return tuple(resultado)
@@ -278,15 +365,18 @@ class _Lector:
         resultado: list[Criterio] = []
         for j, bruto in enumerate(self.lista(valor, ruta)):
             destino = f"{ruta}[{j}]"
-            datos = self.mapa(bruto, destino, ("id", "nombre", "peso", "codigo"), ("id", "nombre"))
+            datos = self.mapa(
+                bruto, destino, ("id", "nombre", "peso", "codigo", "regla"), ("id", "nombre")
+            )
             id_ = self.id_(datos["id"], f"{destino}.id")
             if id_ in vistos:
                 raise self.error("ID_REPETIDO", f"{destino}.id", f"el id «{id_}» está repetido")
             vistos.add(id_)
             codigo = self.texto(datos["codigo"], f"{destino}.codigo") if "codigo" in datos else None
             peso = self.peso(datos["peso"], f"{destino}.peso") if "peso" in datos else None
+            regla = self.regla(datos["regla"], f"{destino}.regla") if "regla" in datos else None
             resultado.append(
-                Criterio(id_, self.texto(datos["nombre"], f"{destino}.nombre"), peso, codigo)
+                Criterio(id_, self.texto(datos["nombre"], f"{destino}.nombre"), peso, codigo, regla)
             )
         con_peso = [c.peso for c in resultado if c.peso is not None]
         if con_peso:
@@ -306,23 +396,36 @@ class _Lector:
         valor = self.texto(valor, ruta)
         return valor.casefold(), valor
 
-    def instrumentos(self, valor: Any) -> tuple[Instrumento, ...]:
+    def instrumentos(self, valor: Any, evaluaciones: int) -> tuple[Instrumento, ...]:
         resultado: list[Instrumento] = []
         vistos: set[str] = set()
         for i, bruto in enumerate(self.lista(valor, "instrumentos")):
             ruta = f"instrumentos[{i}]"
-            claves = ("id", "nombre", "seccion", "evalua")
-            datos = self.mapa(bruto, ruta, claves, claves)
+            datos = self.mapa(bruto, ruta, _PERMITIDAS_INSTRUMENTO, _REQUERIDAS_INSTRUMENTO)
             id_ = self.id_(datos["id"], f"{ruta}.id")
             if id_ in vistos:
                 raise self.error("ID_REPETIDO", f"{ruta}.id", f"el id «{id_}» está repetido")
             vistos.add(id_)
+            recupera = (
+                self.recupera(datos["recupera"], f"{ruta}.recupera")
+                if "recupera" in datos
+                else None
+            )
+            if recupera is not None:
+                for n in recupera:
+                    if not 1 <= n <= evaluaciones:
+                        raise self.error(
+                            "RECUPERA_INVALIDO",
+                            f"{ruta}.recupera",
+                            f"recupera {n} y no hay evaluación {n}",
+                        )
             resultado.append(
                 Instrumento(
                     id_,
                     self.texto(datos["nombre"], f"{ruta}.nombre"),
                     self.seccion(datos["seccion"], f"{ruta}.seccion")[1],
                     self.evalua(datos["evalua"], f"{ruta}.evalua"),
+                    recupera,
                 )
             )
         return tuple(resultado)
@@ -426,6 +529,67 @@ def comprobar_niveles_equidistantes(esquema: Esquema) -> None:
         )
 
 
+def _reglas_de_hojas(
+    elementos: tuple[Elemento, ...], agregacion: Agregacion
+) -> list[tuple[str, str, str]]:
+    """(hoja, regla efectiva, ruta YAML de donde sale) de cada hoja del esquema."""
+    resultado: list[tuple[str, str, str]] = []
+    for i, elemento in enumerate(elementos):
+        if elemento.criterios:
+            for j, criterio in enumerate(elemento.criterios):
+                if criterio.regla is not None:
+                    ruta = f"elementos[{i}].criterios[{j}].regla"
+                    resultado.append((criterio.id, criterio.regla, ruta))
+                else:
+                    resultado.append((criterio.id, agregacion.regla, "agregacion.regla"))
+        elif elemento.regla is not None:
+            resultado.append((elemento.id, elemento.regla, f"elementos[{i}].regla"))
+        else:
+            resultado.append((elemento.id, agregacion.regla, "agregacion.regla"))
+    return resultado
+
+
+def _comprobar_reglas(
+    lector: _Lector,
+    agregacion: Agregacion,
+    elementos: tuple[Elemento, ...],
+    evaluaciones: int,
+) -> None:
+    """La progresiva necesita un factor por evaluación y los factores no valen sin ella."""
+    progresivas = [
+        (hoja, ruta)
+        for hoja, regla, ruta in _reglas_de_hojas(elementos, agregacion)
+        if regla == "progresiva"
+    ]
+    if progresivas:
+        if evaluaciones == 0:
+            hoja, ruta = progresivas[0]
+            raise lector.invalido(
+                "evaluaciones",
+                f"la regla «progresiva» de «{hoja}» necesita «evaluaciones»: define las "
+                "evaluaciones del curso, con un factor por cada una en «agregacion.factores»",
+            )
+        if not agregacion.factores:
+            hoja, ruta = progresivas[0]
+            raise lector.error(
+                "PROGRESIVA_SIN_FACTORES",
+                ruta,
+                f"la regla «progresiva» de «{hoja}» necesita «agregacion.factores», "
+                "uno por evaluación",
+            )
+        if len(agregacion.factores) != evaluaciones:
+            raise lector.invalido(
+                "agregacion.factores",
+                f"hay {evaluaciones} evaluaciones y {len(agregacion.factores)} factores; "
+                "debe haber uno por evaluación",
+            )
+    elif agregacion.factores:
+        raise lector.invalido(
+            "agregacion.factores",
+            "solo valen si alguna hoja usa la regla «progresiva»",
+        )
+
+
 def cargar_esquema(ruta: Path, carpeta: Path, *, resultados: bool = False) -> Esquema:
     """Lee y valida un ``calificacion.yaml`` de la carpeta de la asignatura.
 
@@ -450,6 +614,7 @@ def cargar_esquema(ruta: Path, carpeta: Path, *, resultados: bool = False) -> Es
         "",
         (
             "organizacion",
+            "agregacion",
             "elementos",
             "evaluaciones",
             "final",
@@ -463,6 +628,7 @@ def cargar_esquema(ruta: Path, carpeta: Path, *, resultados: bool = False) -> Es
     organizacion = datos["organizacion"]
     if organizacion not in ("elementos", "evaluaciones"):
         raise lector.invalido("organizacion", "debe ser «elementos» o «evaluaciones»")
+    agregacion = lector.agregacion(datos["agregacion"]) if "agregacion" in datos else Agregacion()
     etapa = lector.etapa(datos.get("etapa"))
     niveles_rubrica = (
         lector.niveles_rubrica(datos["niveles_rubrica"])
@@ -488,7 +654,12 @@ def cargar_esquema(ruta: Path, carpeta: Path, *, resultados: bool = False) -> Es
         lector.suman_100([e.peso for e in elementos], "elementos")
     else:
         lector.suman_100([e.peso for e in evaluaciones if e.peso is not None], "evaluaciones")
-    instrumentos = lector.instrumentos(datos["instrumentos"]) if "instrumentos" in datos else ()
+    instrumentos = (
+        lector.instrumentos(datos["instrumentos"], len(evaluaciones))
+        if "instrumentos" in datos
+        else ()
+    )
+    _comprobar_reglas(lector, agregacion, elementos, len(evaluaciones))
     esquema = Esquema(
         organizacion,
         elementos,
@@ -498,6 +669,7 @@ def cargar_esquema(ruta: Path, carpeta: Path, *, resultados: bool = False) -> Es
         etapa,
         niveles_rubrica,
         actividades_pesan_igual,
+        agregacion,
     )
     if resultados:
         comprobar_niveles_equidistantes(esquema)

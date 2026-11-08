@@ -1155,6 +1155,73 @@ def test_comprobar_valida_el_esquema_sin_red(tmp_path):
     assert resultado.ficheros[0].codigo is None
 
 
+def test_comprobar_muestra_el_reparto(tmp_path):
+    esquema = """\
+organizacion: elementos
+elementos:
+  - {id: RA1, nombre: Redes, peso: 100}
+evaluaciones:
+  - {nombre: Primera, secciones: [1]}
+final: {de: elementos}
+"""
+    carpeta = carpeta_fp(
+        tmp_path,
+        esquema=esquema,
+        actividades=(("a", 1, 11, {"RA1": 1}), ("b", 1, 12, {"RA1": 3})),
+    )
+    resultado = agente.comprobar(carpeta, ["calificacion.yaml"])
+    assert resultado.informe["errores"] == []
+    assert pasos(resultado.informe, "COMPROBAR")[0]["detalle"] == "calificacion.yaml"
+    reparto = pasos(resultado.informe, "REPARTO")
+    assert [paso["detalle"] for paso in reparto] == ["RA1: a 25 %, b 75 %"]
+
+
+def test_comprobar_no_muestra_porcentajes_con_regla_mas_alta(tmp_path):
+    esquema = """\
+organizacion: elementos
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 100
+    criterios:
+      - {id: CE1_1, nombre: Configura, regla: mas_alta}
+evaluaciones:
+  - {nombre: Primera, secciones: [1]}
+final: {de: elementos}
+"""
+    carpeta = carpeta_fp(
+        tmp_path,
+        esquema=esquema,
+        actividades=(("a", 1, 11, {"CE1_1": 1}), ("b", 1, 12, {"CE1_1": 3})),
+    )
+    resultado = agente.comprobar(carpeta, ["calificacion.yaml"])
+    assert resultado.informe["errores"] == []
+    assert [paso["detalle"] for paso in pasos(resultado.informe, "REPARTO")] == [
+        "CE1_1: a, b (regla mas_alta: los pesos no cuentan)"
+    ]
+
+
+def test_comprobar_avisa_de_que_la_final_normaliza_por_evaluacion(tmp_path):
+    esquema = """\
+organizacion: evaluaciones
+elementos:
+  - {id: RA1, nombre: Redes, peso: 100}
+evaluaciones:
+  - {nombre: Primera, secciones: [1], peso: 100}
+final: {de: evaluaciones}
+"""
+    carpeta = carpeta_fp(
+        tmp_path,
+        esquema=esquema,
+        actividades=(("a", 1, 11, {"RA1": 1}), ("b", 1, 12, {"RA1": 3})),
+    )
+    resultado = agente.comprobar(carpeta, ["calificacion.yaml"])
+    assert resultado.informe["errores"] == []
+    assert [paso["detalle"] for paso in pasos(resultado.informe, "REPARTO")] == [
+        "RA1: a 25 %, b 75 % (en la final, cada evaluación normaliza por separado)"
+    ]
+
+
 def test_comprobar_da_el_error_del_esquema_con_su_linea(tmp_path):
     carpeta = carpeta_fp(tmp_path, ESQUEMA.replace("peso: 40", "peso: -3"))
     resultado = agente.comprobar(carpeta, ["calificacion.yaml"])

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from tiza.calificacion.esquema import ErrorCalificacion, cargar_esquema
+from tiza.calificacion.esquema import Agregacion, ErrorCalificacion, cargar_esquema
 
 FP = """\
 # esquema de FP
@@ -501,3 +501,215 @@ def test_actividades_pesan_igual_por_defecto_false_y_debe_ser_booleano(tmp_path:
     )
     assert error.codigo == "ESQUEMA_INVALIDO"
     assert "actividades_pesan_igual" in error.detalle
+
+
+# --- Reglas de agregación por hoja ------------------------------------------
+
+ESQUEMA_REGLAS = """\
+organizacion: elementos
+elementos:
+  - id: RA1
+    nombre: Redes
+    peso: 50
+    criterios:
+      - {id: CE1_1, nombre: Configura, regla: mas_alta}
+      - {id: CE1_2, nombre: Documenta}
+  - {id: RA2, nombre: Sistemas, peso: 50, regla: mas_alta}
+evaluaciones:
+  - {nombre: Primera, secciones: [1]}
+  - {nombre: Segunda, secciones: [2]}
+  - {nombre: Tercera, secciones: [3]}
+final: {de: elementos}
+"""
+
+
+def _con_agregacion(texto: str, agregacion: str) -> str:
+    return texto.replace("organizacion: elementos\n", f"organizacion: elementos\n{agregacion}\n")
+
+
+def test_regla_por_defecto_media(tmp_path: Path) -> None:
+    esquema = _cargar(tmp_path, ESQUEMA_REGLAS)
+    assert esquema.agregacion == Agregacion()
+    assert esquema.agregacion.regla == "media"
+    assert esquema.agregacion.factores == ()
+    # Un criterio sin regla y una hoja que no existe usan la general.
+    assert esquema.regla_de("CE1_2") == "media"
+    assert esquema.regla_de("NO_EXISTE") == "media"
+
+
+def test_regla_de_la_hoja_manda(tmp_path: Path) -> None:
+    esquema = _cargar(tmp_path, _con_agregacion(ESQUEMA_REGLAS, "agregacion: {regla: mediana}"))
+    assert esquema.agregacion.regla == "mediana"
+    assert esquema.regla_de("CE1_1") == "mas_alta"
+    assert esquema.regla_de("CE1_2") == "mediana"
+    assert esquema.regla_de("RA2") == "mas_alta"
+    # Un elemento con criterios no hereda su regla a los criterios: no la tiene.
+    assert esquema.regla_de("RA1") == "mediana"
+
+
+def test_regla_desconocida(tmp_path: Path) -> None:
+    error = _codigo(tmp_path, _con_agregacion(ESQUEMA_REGLAS, "agregacion: {regla: moda}"))
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "agregacion.regla" in error.detalle
+    assert "línea" in error.detalle
+
+    en_elemento = ESQUEMA_REGLAS.replace(
+        "Sistemas, peso: 50, regla: mas_alta", "Sistemas, peso: 50, regla: moda"
+    )
+    error = _codigo(tmp_path, en_elemento)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "elementos[1].regla" in error.detalle
+    assert "línea" in error.detalle
+
+
+def test_elemento_con_criterios_no_admite_regla(tmp_path: Path) -> None:
+    texto = ESQUEMA_REGLAS.replace(
+        "    nombre: Redes\n    peso: 50\n",
+        "    nombre: Redes\n    peso: 50\n    regla: mediana\n",
+    )
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "elementos[0].regla" in error.detalle
+    assert "criterios" in error.detalle
+
+
+def test_progresiva_sin_factores(tmp_path: Path) -> None:
+    texto = ESQUEMA_REGLAS.replace(
+        "nombre: Configura, regla: mas_alta", "nombre: Configura, regla: progresiva"
+    )
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "PROGRESIVA_SIN_FACTORES"
+    assert "agregacion.factores" in error.detalle
+    assert "línea" in error.detalle
+
+
+def test_progresiva_sin_evaluaciones_dice_que_faltan(tmp_path: Path) -> None:
+    texto = ESQUEMA_REGLAS.replace(
+        "evaluaciones:\n"
+        "  - {nombre: Primera, secciones: [1]}\n"
+        "  - {nombre: Segunda, secciones: [2]}\n"
+        "  - {nombre: Tercera, secciones: [3]}\n",
+        "",
+    ).replace("nombre: Configura, regla: mas_alta", "nombre: Configura, regla: progresiva")
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "evaluaciones" in error.detalle
+
+
+def test_factores_vacios_dan_progresiva_sin_factores(tmp_path: Path) -> None:
+    texto = _con_agregacion(
+        ESQUEMA_REGLAS.replace(
+            "nombre: Configura, regla: mas_alta", "nombre: Configura, regla: progresiva"
+        ),
+        "agregacion: {regla: progresiva, factores: []}",
+    )
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "PROGRESIVA_SIN_FACTORES"
+    assert "agregacion.factores" in error.detalle
+
+
+@pytest.mark.parametrize("factor", ["true", "false", "1.234"])
+def test_factor_booleano_o_con_mas_de_dos_decimales(tmp_path: Path, factor: str) -> None:
+    texto = _con_agregacion(
+        ESQUEMA_REGLAS.replace(
+            "nombre: Configura, regla: mas_alta", "nombre: Configura, regla: progresiva"
+        ),
+        f"agregacion: {{factores: [{factor}, 1, 1]}}",
+    )
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "agregacion.factores[0]" in error.detalle
+
+
+def test_factor_exactamente_100_es_valido(tmp_path: Path) -> None:
+    texto = _con_agregacion(
+        ESQUEMA_REGLAS.replace(
+            "nombre: Configura, regla: mas_alta", "nombre: Configura, regla: progresiva"
+        ),
+        "agregacion: {factores: [100, 1, 1]}",
+    )
+    assert _cargar(tmp_path, texto).agregacion.factores == (100.0, 1.0, 1.0)
+
+
+def test_factores_no_cuadran_con_evaluaciones(tmp_path: Path) -> None:
+    texto = _con_agregacion(
+        ESQUEMA_REGLAS.replace(
+            "nombre: Configura, regla: mas_alta", "nombre: Configura, regla: progresiva"
+        ),
+        "agregacion: {factores: [1, 2]}",
+    )
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "agregacion.factores" in error.detalle
+    assert "3" in error.detalle and "2" in error.detalle
+
+
+def test_factores_sin_progresiva(tmp_path: Path) -> None:
+    error = _codigo(tmp_path, _con_agregacion(ESQUEMA_REGLAS, "agregacion: {factores: [1, 2, 3]}"))
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "agregacion.factores" in error.detalle
+    assert "progresiva" in error.detalle
+
+
+@pytest.mark.parametrize("factor", ["0", "-1", "100.5", "101"])
+def test_factor_fuera_de_rango(tmp_path: Path, factor: str) -> None:
+    texto = _con_agregacion(
+        ESQUEMA_REGLAS.replace(
+            "nombre: Configura, regla: mas_alta", "nombre: Configura, regla: progresiva"
+        ),
+        f"agregacion: {{factores: [{factor}, 1, 1]}}",
+    )
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "agregacion.factores[0]" in error.detalle
+
+
+# --- Recuperación en los instrumentos ---------------------------------------
+
+INSTRUMENTOS_CON_EVALUACIONES = """\
+organizacion: elementos
+elementos:
+  - {id: RA1, nombre: Redes, peso: 100}
+evaluaciones:
+  - {nombre: Primera, secciones: [1]}
+  - {nombre: Segunda, secciones: [2]}
+final: {de: elementos}
+instrumentos:
+  - {id: Examen1, nombre: Examen, seccion: 1, evalua: {RA1: 100}, recupera: 2}
+"""
+
+
+def test_recupera_de_instrumento_numero_o_lista(tmp_path: Path) -> None:
+    esquema = _cargar(tmp_path, INSTRUMENTOS_CON_EVALUACIONES)
+    assert esquema.instrumentos[0].recupera == (2,)
+
+    esquema = _cargar(
+        tmp_path, INSTRUMENTOS_CON_EVALUACIONES.replace("recupera: 2", "recupera: [1, 2]")
+    )
+    assert esquema.instrumentos[0].recupera == (1, 2)
+
+
+def test_recupera_de_instrumento_que_no_existe(tmp_path: Path) -> None:
+    error = _codigo(tmp_path, INSTRUMENTOS_CON_EVALUACIONES.replace("recupera: 2", "recupera: 3"))
+    assert error.codigo == "RECUPERA_INVALIDO"
+    assert "instrumentos[0].recupera" in error.detalle
+    assert "3" in error.detalle
+
+
+def test_recupera_de_instrumento_sin_evaluaciones(tmp_path: Path) -> None:
+    texto = INSTRUMENTOS_CON_EVALUACIONES.replace(
+        "evaluaciones:\n  - {nombre: Primera, secciones: [1]}\n"
+        "  - {nombre: Segunda, secciones: [2]}\n",
+        "",
+    )
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "RECUPERA_INVALIDO"
+    assert "instrumentos[0].recupera" in error.detalle
+
+
+@pytest.mark.parametrize("valor", ["0", "true", "[]", '"2"', "[1, 1]", "[1, 0]"])
+def test_recupera_de_instrumento_invalido(tmp_path: Path, valor: str) -> None:
+    texto = INSTRUMENTOS_CON_EVALUACIONES.replace("recupera: 2", f"recupera: {valor}")
+    error = _codigo(tmp_path, texto)
+    assert error.codigo == "ESQUEMA_INVALIDO"
+    assert "instrumentos[0].recupera" in error.detalle

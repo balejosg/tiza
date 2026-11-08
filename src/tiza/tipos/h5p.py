@@ -101,7 +101,7 @@ class H5P(Tipo):
     llano = "Contenido interactivo (H5P)"
     calificable = True
     modulo = "h5pactivity"
-    campos = frozenset({"actividad", "paquete"})
+    campos = frozenset({"actividad", "paquete", "recupera"})
     finalizaciones = ("ninguna", "manual", "ver", "calificar")
     banderas = ("completionview", "completionusegrade")
 

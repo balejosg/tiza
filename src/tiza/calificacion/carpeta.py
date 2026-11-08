@@ -28,15 +28,16 @@ MAX_FICHEROS = 500  # ficheros .md y .html que se miran como mucho
 _EXTENSIONES = {".md", ".html", ".htm"}
 
 
-_CAMPOS_DE_CALIFICACION = re.compile(r"^(?:evalua|evidencia|rubrica)\s*:", re.MULTILINE)
+_CAMPOS_DE_CALIFICACION = re.compile(r"^(?:evalua|evidencia|rubrica|recupera)\s*:", re.MULTILINE)
 _FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|\Z)", re.DOTALL)
 
 
 def _menciona_calificacion(ruta: Path) -> bool:
     """Si el frontmatter de un fichero que no carga lo hace del calificador.
 
-    ``evalua``, ``evidencia`` y ``rubrica`` cambian la nota o el calificador: si el fichero no
-    carga, no se puede ignorar sin más. Se mira solo la cabecera, no el cuerpo del documento.
+    ``evalua``, ``evidencia``, ``rubrica`` y ``recupera`` cambian la nota o el calificador: si el
+    fichero no carga, no se puede ignorar sin más. Se mira solo la cabecera, no el cuerpo del
+    documento.
     """
     try:
         texto = leer_bytes_acotado(ruta, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8-sig")
@@ -50,10 +51,10 @@ def documentos_de_la_carpeta(base: Path) -> list[Documento]:
     """Los ficheros de tiza de la carpeta (y sus subcarpetas, salvo las ocultas), por ruta.
 
     Un fichero que no es de tiza (un ``README.md``, unos apuntes) se ignora. Uno que no carga pero
-    cuyo frontmatter menciona ``evalua``, ``evidencia`` o ``rubrica`` no se ignora: dejar fuera
-    una actividad del cálculo cambiaría la nota final sin avisar, así que el comando falla con el
-    código de su error, antes de tocar el aula. ``CARPETA_DEMASIADO_GRANDE`` si hay más de
-    ``MAX_FICHEROS`` candidatos.
+    cuyo frontmatter menciona ``evalua``, ``evidencia``, ``rubrica`` o ``recupera`` no se ignora:
+    dejar fuera una actividad del cálculo cambiaría la nota final sin avisar, así que el comando
+    falla con el código de su error, antes de tocar el aula. ``CARPETA_DEMASIADO_GRANDE`` si hay
+    más de ``MAX_FICHEROS`` candidatos.
     """
     raiz = Path(base).resolve()
     candidatos: list[Path] = []
@@ -82,8 +83,9 @@ def documentos_de_la_carpeta(base: Path) -> list[Documento]:
 def cargar_calificacion(esquema: Path, base: Path) -> tuple[Esquema, list[Documento]]:
     """El esquema y las actividades de la carpeta, ya comprobados entre sí.
 
-    Todo lo que se puede saber sin mirar el aula: la forma del esquema, los ``evalua`` de las
-    actividades y que sus pesos cuadren. Lanza ``ErrorCalificacion`` con su línea o ruta.
+    Todo lo que se puede saber sin mirar el aula: la forma del esquema, los ``evalua`` y
+    ``recupera`` de las actividades y que todo cuadre con el esquema. Lanza
+    ``ErrorCalificacion`` con su línea o ruta.
     """
     raiz = Path(base).resolve()
     datos = cargar_esquema(Path(esquema), raiz)

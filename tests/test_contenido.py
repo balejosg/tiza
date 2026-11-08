@@ -2922,3 +2922,70 @@ class TestEjemplosDeLaUnidad:
             assert len(entregas.find_all("li")) >= 2, f"{fichero.name}: una sola forma de entrega"
             assert "Antes de entregar" in arbol.get_text(), f"{fichero.name}: falta la comprobación"
             assert arbol.find("details") is not None, f"{fichero.name}: falta el ejemplo resuelto"
+
+
+# --------------------------------------------------------------------------- #
+# Recuperación («recupera»)
+# --------------------------------------------------------------------------- #
+
+
+class TestRecupera:
+    def test_numero_o_lista(self, tmp_path):
+        doc = cargar(
+            escribir(tmp_path, tarea("Resuelve.", evalua="{RA1: 100}", recupera=2), "tarea.md")
+        )
+        assert doc.recupera == (2,)
+
+        doc = cargar(
+            escribir(
+                tmp_path,
+                cuestionario(PREGUNTA_MULTIPLE, evalua="{RA1: 100}", recupera="[1, 3]"),
+                "cuestionario.md",
+            )
+        )
+        assert doc.recupera == (1, 3)
+
+        doc = cargar(
+            escribir(
+                tmp_path,
+                h5p(RELLENAR_HUECOS, evalua="{RA1: 100}", recupera=2),
+                "actividad.md",
+            )
+        )
+        assert doc.recupera == (2,)
+
+    @pytest.mark.parametrize(
+        "valor", ["0", "-1", '"2"', "true", "[]", "[1, 1]", "[1, true]", "[1, dos]"]
+    )
+    def test_invalido(self, tmp_path, valor):
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, tarea("Resuelve.", evalua="{RA1: 100}", recupera=valor)))
+        assert exc.value.codigo == "RECUPERA_INVALIDO"
+
+    def test_sin_evalua(self, tmp_path):
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, tarea("Resuelve.", recupera=2)))
+        assert exc.value.codigo == "RECUPERA_INVALIDO"
+
+    def test_no_cambia_el_hash(self, tmp_path):
+        casos = [
+            lambda **campos: tarea("Resuelve.", **campos),
+            lambda **campos: cuestionario(PREGUNTA_MULTIPLE, **campos),
+            lambda **campos: h5p(RELLENAR_HUECOS, **campos),
+        ]
+        for fabrica in casos:
+            con = cargar(escribir(tmp_path, fabrica(evalua="{RA1: 100}", recupera=2), "a.md"))
+            sin = cargar(escribir(tmp_path, fabrica(evalua="{RA1: 100}"), "b.md"))
+            assert con.recupera == (2,) and sin.recupera is None
+            assert hash_documento(con) == hash_documento(sin)
+            assert con.hash_cargado == sin.hash_cargado
+
+    def test_no_vale_en_pagina_ni_etiqueta(self, tmp_path):
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, pagina(recupera=2)))
+        assert exc.value.codigo == "CAMPO_DESCONOCIDO"
+
+        etiqueta = "---\ntipo: etiqueta\nnombre: Bienvenida\nseccion: 3\nrecupera: 2\n---\n\nHola\n"
+        with pytest.raises(ErrorContenido) as exc:
+            cargar(escribir(tmp_path, etiqueta, "etiqueta.md"))
+        assert exc.value.codigo == "CAMPO_DESCONOCIDO"

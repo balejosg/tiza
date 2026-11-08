@@ -20,6 +20,7 @@ from pathlib import Path
 from . import buzon, calendario, contenido, estado, informe, rutas
 from .calendario import ErrorCalendario
 from .calificacion.carpeta import actividades_sin_evalua, cargar_calificacion
+from .calificacion.deseado import reparto_por_hoja
 from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
 from .contenido import Documento, ErrorContenido, hash_documento
 from .escritura import ErrorEscritura
@@ -205,8 +206,29 @@ def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> Fi
         return FicheroComprobado(ruta.name, exc.codigo, exc.detalle)
     for relativa in actividades_sin_evalua(esquema, documentos, raiz):
         borrador.paso("ACTIVIDAD_SIN_EVALUA", detalle=relativa)
+    for hoja, reparto in reparto_por_hoja(esquema, documentos, raiz):
+        regla = esquema.regla_de(hoja)
+        if regla in ("mediana", "mas_alta"):
+            detalle = ", ".join(_texto_de_reparto(nombre) for nombre, _ in reparto)
+            detalle += f" (regla {regla}: los pesos no cuentan)"
+        else:
+            detalle = ", ".join(
+                f"{_texto_de_reparto(nombre)} {porcentaje:g} %" for nombre, porcentaje in reparto
+            )
+        if esquema.final.de == "evaluaciones":
+            detalle += " (en la final, cada evaluación normaliza por separado)"
+        borrador.paso("REPARTO", detalle=f"{hoja}: {detalle}")
     borrador.paso("COMPROBAR", detalle=ruta.name)
     return FicheroComprobado(ruta.name)
+
+
+def _texto_de_reparto(texto: str) -> str:
+    """Un nombre apto para el detalle del informe: sin «<», «>» ni caracteres de control.
+
+    ``str.isprintable()`` descarta además los separadores y los caracteres de formato (entre
+    ellos los de escritura bidireccional), que un informe no debe llevar.
+    """
+    return "".join(c for c in texto if c.isprintable() and c not in "<>")
 
 
 def _con_dolar_simple(doc: Documento) -> bool:
