@@ -3085,8 +3085,10 @@ def calificador_con(
     avisos = [*rec.avisos, *plan.deseado.avisos]
     for codigo, cuantos in Counter(codigo for codigo, _ in avisos).items():
         if codigo == "CALCULADOS_OCULTADOS":  # un solo aviso, con el número de calculados
+            if not ocultados:
+                continue  # el aula los rechazó todos: lo cuenta OCULTAR_FALLIDO
             cuantos = ocultados
-            if presencia is not None and ocultados:
+            if presencia is not None:
                 presencia.informar(Aviso.calculados_ocultados(ocultados))
         borrador.paso(codigo, detalle=str(cuantos))
     # R1: privacidad. Lo que sigue visible en el aula final (un ocultado que no surtió efecto o

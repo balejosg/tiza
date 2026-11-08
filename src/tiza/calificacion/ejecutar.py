@@ -107,6 +107,10 @@ class Ejecucion:
                 ):
                     self.formulas_pendientes += 1
                     continue
+                if op.tipo == "ocultar":
+                    # R1: un ocultado rechazado no corta el curso ni se reintenta; lo que siga
+                    # visible lo cuenta ``OCULTAR_FALLIDO`` sobre el aula final.
+                    continue
                 raise
             self.hechas.append(op)
             if op.tipo in TIPOS_DE_BLOQUEO:

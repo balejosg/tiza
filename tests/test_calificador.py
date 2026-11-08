@@ -2279,6 +2279,27 @@ def test_ocultar_sin_efecto_avisa_ocultar_fallido_sin_reintentar(tmp_path):
     assert "OCULTAR_FALLIDO" in presencia.codigos()
 
 
+def test_ocultar_rechazado_por_el_aula_no_corta_el_curso(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    un_calculado_visible(moodle)
+
+    def rechazar(curso, item_id):
+        raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+    moodle.ocultar = rechazar
+    presencia = PresenciaFalsa()
+    documento = atender(pedir(carpeta), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert not [
+        p for p in documento["pasos"] if p["resultado"] == "fallo" and p["codigo"] == "CALIFICADOR"
+    ]
+    assert [p["detalle"] for p in pasos(documento, "OCULTAR_FALLIDO")] == ["1"]
+    assert not pasos(documento, "CALCULADOS_OCULTADOS")
+    assert "OCULTAR_FALLIDO" in presencia.codigos()
+
+
 def test_alta_que_no_queda_oculta_avisa_ocultar_fallido(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     moodle = AulaViva(ignorar_alta_oculta=True)
