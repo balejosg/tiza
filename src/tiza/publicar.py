@@ -1335,6 +1335,7 @@ class Moodle:
             for fila in sopa.find_all("tr")
             if ("data-category" in fila.attrs or "data-itemid" in fila.attrs)
             and "data-aggregationforcategory" not in fila.attrs
+            and not _actividad_en_borrado(fila)
         ]
         previos = self._formularios.get(curso_id) if tocados is not None else None
         releer = None if previos is None else _a_releer(filas, previos, tocados or ())
@@ -2683,6 +2684,27 @@ def _es_informe_de_notas(base_url: str, destino: str) -> bool:
 
 
 _ENLACE_DE_ACTIVIDAD = re.compile(r"/mod/\w+/view\.php\?id=(\d+)")
+# El icono de un elemento de actividad: ``theme/image.php/<tema>/<módulo>/<rev>/monologo``. Los
+# elementos manuales y calculados llevan iconos del núcleo (``…/core/…``).
+_ICONO_DE_MODULO = re.compile(r"/image\.php/[^/]+/(?!core/)[a-z][a-z0-9_]*/[0-9]+/monologo")
+
+
+def _actividad_en_borrado(fila: Any) -> bool:
+    """¿La fila es el elemento de una actividad que Moodle está borrando?
+
+    Al borrar una actividad, Moodle la deja «[Borrado en progreso]» hasta que pasa su cron: el
+    elemento sigue en el calificador con el icono del módulo, pero el título ya no enlaza con la
+    actividad y sus páginas redirigen. tiza no la lee ni la toca; desaparece sola. Se reconoce por
+    la estructura, nunca por el texto traducido.
+    """
+    if "data-category" in fila.attrs:
+        return False
+    if fila.find("a", class_="gradeitemheader", href=_ENLACE_DE_ACTIVIDAD) is not None:
+        return False
+    return any(
+        _ICONO_DE_MODULO.search(str(img.get("src") or ""))
+        for img in fila.find_all("img", class_="itemicon")
+    )
 
 
 def _valor_de_campo(formulario: Any, nombre: str) -> str:

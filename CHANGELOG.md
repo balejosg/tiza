@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## No publicado
+
+### Arreglado
+- **El calificador ya no falla si acabas de borrar una actividad.** Moodle deja la actividad «Borrado en progreso» hasta que termina de borrarla, y `tiza calificador` respondía `CALIFICADOR_NO_PERMITIDO`. Ahora la deja fuera y monta lo demás.
+
 ## 0.43.0 — 2026-11-08
 
 ### Añadido

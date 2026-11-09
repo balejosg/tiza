@@ -4044,6 +4044,36 @@ def test_calificador_lee_oculto_del_formulario():
     assert _nodo(cal, "cg3").oculto is False  # tiza nunca oculta categorías
 
 
+_ICONO_TAREA = (
+    '<img class="icon itemicon" alt="Tarea" '
+    'src="https://aula/theme/image.php/boost/assign/1792136132/monologo?filtericon=1">'
+)
+_ICONO_MANUAL = '<img class="icon itemicon" alt="" src="https://aula/theme/image.php/boost/core/1792136132/i/manual_item">'
+
+
+def test_calificador_omite_la_actividad_en_borrado():
+    # Una tarea borrada queda «[Borrado en progreso]» hasta que pasa el cron: su elemento lleva el
+    # icono del módulo, pero ya no enlaza con la actividad; su calculation.php redirige al informe.
+    arbol = _fixture_calificador("setup-lleno.html").replace(
+        '<div class="rowtitle">Espiga examen 1</div>',
+        f'{_ICONO_TAREA}<div class="rowtitle"><span class="gradeitemheader">'
+        "[Borrado en progreso] Espiga examen 1</span></div>",
+    )
+    cal, sesion = _calificador(arbol=arbol)
+    assert "ig166" not in {n.eid for n in cal.nodos}
+    assert not [p for u, p in sesion.gets if u.endswith("calculation.php") and p.get("id") == 166]
+    assert _nodo(cal, "ig165").clase == "manual"
+
+
+def test_calificador_lee_el_elemento_manual_con_icono_del_nucleo():
+    arbol = _fixture_calificador("setup-lleno.html").replace(
+        '<div class="rowtitle">Espiga examen 1</div>',
+        f'{_ICONO_MANUAL}<div class="rowtitle">Espiga examen 1</div>',
+    )
+    cal, _ = _calificador(arbol=arbol)
+    assert _nodo(cal, "ig166").clase == "manual"
+
+
 def test_calificador_bloqueo_de_categoria():
     html = _fixture_calificador("category.html").replace(
         'name="grade_item_locked" type="checkbox"',
