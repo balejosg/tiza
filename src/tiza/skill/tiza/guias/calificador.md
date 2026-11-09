@@ -125,6 +125,7 @@ El `instrumento` es un valor cerrado que deduce tiza, no un campo nuevo:
 | `tarea_rubrica_criterios` | tarea con `rubrica: por_criterios` |
 | `tarea_rubrica_filas` | tarea con una rúbrica de `filas` |
 | `tarea_resultados` | tarea con `evidencia: resultados` |
+| `tarea_resultados_filas` | tarea con `evidencia: resultados` y una rúbrica de `filas`: un resultado por fila, con sus descriptores |
 | `tarea` | tarea sin rúbrica ni resultados |
 | `cuestionario` | cuestionario |
 | `h5p` | contenido H5P |

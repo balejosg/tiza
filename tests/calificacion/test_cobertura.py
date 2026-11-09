@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 
-from tiza.calificacion.cobertura import avisos, cobertura
+from tiza.calificacion.cobertura import INSTRUMENTOS, avisos, cobertura
 from tiza.calificacion.deseado import reparto_por_hoja
 from tiza.calificacion.esquema import (
     Agregacion,
@@ -17,6 +18,7 @@ from tiza.calificacion.esquema import (
 )
 from tiza.contenido import Documento
 from tiza.rubrica import CriterioRubrica, Nivel, RubricaCargada
+from tiza.rubrica_tarea import FilaDeResultado, RubricaDeFilas
 
 CARPETA = Path("/curso")
 
@@ -153,6 +155,22 @@ def test_instrumento_deducido_por_tipo() -> None:
         "h5p.md": "h5p",
         "instrumentos[0]": "casilla_manual",
     }
+
+
+def test_resultados_con_filas_tienen_su_instrumento() -> None:
+    # Con un fichero de filas y «evidencia: resultados», las filas son resultados con
+    # descriptores: no es una tarea con resultados sin más.
+    esquema = esquema_de_hojas("media")
+    con_filas = dataclasses.replace(
+        doc("proyecto.md", RA1=100, evidencia="resultados"),
+        rubrica_filas=RubricaDeFilas(
+            "Rúbrica",
+            (FilaDeResultado("RA1", "Planifica", 1.0, ("Inicial: a", "Adecuado: b"), "RA1_x"),),
+        ),
+    )
+    m = mapa(esquema, [con_filas])
+    assert [e.instrumento for e in hoja(m, "RA1").evidencias] == ["tarea_resultados_filas"]
+    assert "tarea_resultados_filas" in INSTRUMENTOS
 
 
 def test_recuperacion_marcada_y_no_cuenta_para_avisos() -> None:

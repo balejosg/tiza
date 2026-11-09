@@ -32,6 +32,7 @@ INSTRUMENTOS = (
     "tarea_rubrica_criterios",
     "tarea_rubrica_filas",
     "tarea_resultados",
+    "tarea_resultados_filas",
     "tarea",
     "cuestionario",
     "h5p",
@@ -214,6 +215,9 @@ def _instrumento(evidencia: EvidenciaDeHoja) -> str:
         return "h5p"
     if documento.tipo == "tarea":
         if documento.evidencia == "resultados":
+            # Con un fichero de filas, cada fila es un resultado con sus descriptores.
+            if documento.rubrica_filas is not None:
+                return "tarea_resultados_filas"
             return "tarea_resultados"
         if documento.rubrica is not None:
             if any(criterio.criterio is not None for criterio in documento.rubrica.criterios):
