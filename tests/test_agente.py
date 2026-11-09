@@ -258,6 +258,23 @@ class TestCobertura:
         assert pasos["HOJA_SIN_EVIDENCIAS"]["detalle"] == "RA1_b"
         assert pasos["HOJA_SIN_EVIDENCIAS"]["resultado"] == "ok"
 
+    def test_criterios_sin_peso_tambien_en_comprobar(self, tmp_path):
+        # El calificador lo avisa al montar; comprobar lo dice antes, sin red.
+        sin_peso = ESQUEMA_COBERTURA.replace(
+            ", peso: 60, codigo: RA1.a", ", codigo: RA1.a"
+        ).replace(", peso: 40, codigo: RA1.b", ", codigo: RA1.b")
+        (tmp_path / "calificacion.yaml").write_text(sin_peso, encoding="utf-8", newline="\n")
+        (tmp_path / "proyecto.md").write_text(TAREA_COBERTURA, encoding="utf-8", newline="\n")
+        resultado = agente.comprobar(tmp_path, ["calificacion.yaml"])
+        assert resultado.informe["resultado"] == "ok"
+        pasos = [p for p in resultado.informe["pasos"] if p["codigo"] == "CRITERIOS_SIN_PESO"]
+        assert [(p["resultado"], p["detalle"]) for p in pasos] == [("ok", "RA1")]
+
+    def test_con_pesos_no_avisa_de_criterios_sin_peso(self, tmp_path):
+        self.preparar(tmp_path)
+        resultado = agente.comprobar(tmp_path, ["calificacion.yaml"])
+        assert not [p for p in resultado.informe["pasos"] if p["codigo"] == "CRITERIOS_SIN_PESO"]
+
     def test_comprobar_esquema_invalido_borra_cobertura(self, tmp_path):
         self.preparar(tmp_path)
         agente.comprobar(tmp_path, ["calificacion.yaml"])

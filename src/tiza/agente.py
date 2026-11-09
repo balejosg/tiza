@@ -227,8 +227,13 @@ def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> Fi
         if esquema.final.de == "evaluaciones":
             detalle += " (en la final, cada evaluación normaliza por separado)"
         borrador.paso("REPARTO", detalle=f"{hoja}: {detalle}")
+    arbol = deseado(esquema, documentos, False, raiz)
     if esquema.final.tope is not None:
-        borrador.paso("TOPE", detalle=detalle_tope(deseado(esquema, documentos, False, raiz)))
+        borrador.paso("TOPE", detalle=detalle_tope(arbol))
+    # Lo mismo que avisa tiza calificador al montar, pero antes y sin red.
+    for codigo, elemento in arbol.avisos:
+        if codigo == "CRITERIOS_SIN_PESO":
+            borrador.paso(codigo, detalle=elemento)
     for codigo, detalle in avisos_de_cobertura(mapa, esquema):
         borrador.paso(codigo, detalle=detalle)
     try:
