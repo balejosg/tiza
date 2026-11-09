@@ -6,6 +6,9 @@ se avisa aquí con **Cambia**.
 
 ## No publicado
 
+### Añadido
+- **El informe del calificador desglosa los cambios.** El paso `CALIFICADOR_CAMBIOS` dice cuántos cambios de cada tipo hizo `tiza calificador` (crear categorías, fijar pesos, fórmulas…) y los primeros números de ID de tiza de cada uno, también si el montaje se corta a medias. Sirve para saber qué se repite cuando un segundo montaje no sale «sin cambios».
+
 ### Arreglado
 - **El calificador ya no falla si acabas de borrar una actividad.** Moodle deja la actividad «Borrado en progreso» hasta que termina de borrarla, y `tiza calificador` respondía `CALIFICADOR_NO_PERMITIDO`. Ahora la deja fuera y monta lo demás.
 

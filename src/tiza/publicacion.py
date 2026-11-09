@@ -3021,6 +3021,34 @@ def _ajustar(
     return ejecutar(final, cierres) if cierres else final
 
 
+MAX_IDS_POR_TIPO = 4  # en el desglose de los cambios: los primeros números de ID de cada tipo
+
+
+def desglose_de_cambios(operaciones: list[rc.Operacion]) -> str:
+    """Los cambios del calificador por tipo, con los primeros números de ID de tiza de cada uno.
+
+    Sirve para ver qué se repite cuando un montaje no converge. Solo lleva el tipo de operación y
+    números de ID ``TZ_…``, que pone tiza: nunca nombres ni textos del aula.
+    """
+    cuantos: dict[str, int] = {}
+    ids: dict[str, list[str]] = {}
+    for op in operaciones:
+        cuantos[op.tipo] = cuantos.get(op.tipo, 0) + 1
+        idnumber = op.idnumber or ""
+        lista = ids.setdefault(op.tipo, [])
+        if idnumber.startswith("TZ_") and idnumber not in lista:
+            lista.append(idnumber)
+    partes = []
+    for tipo in sorted(cuantos):
+        texto = f"{tipo}: {cuantos[tipo]}"
+        lista = ids[tipo]
+        if lista:
+            resto = ", …" if len(lista) > MAX_IDS_POR_TIPO else ""
+            texto += f" ({', '.join(lista[:MAX_IDS_POR_TIPO])}{resto})"
+        partes.append(texto)
+    return "; ".join(partes)
+
+
 def calificador_con(
     aula: AulaVirtual,
     entorno: str,
@@ -3139,6 +3167,8 @@ def calificador_con(
         depurar(exc, debug)
         hechas_antes = [*primera.hechas, *(op for s in segundas for op in s.hechas)]
         if hechas_antes:
+            borrador.paso("CALIFICADOR_CAMBIOS", detalle=desglose_de_cambios(hechas_antes))
+        if hechas_antes:
             try:
                 estado.guardar_huellas(
                     dir_tiza,
@@ -3153,6 +3183,8 @@ def calificador_con(
     borrador.paso(
         "CALIFICADOR", detalle=f"{len(hechas_todas)} cambios" if hechas_todas else "sin cambios"
     )
+    if hechas_todas:
+        borrador.paso("CALIFICADOR_CAMBIOS", detalle=desglose_de_cambios(hechas_todas))
     bloqueos = sum(1 for op in hechas_todas if op.tipo in TIPOS_DE_BLOQUEO)
     if bloqueos:
         borrador.paso("CALIFICADOR_BLOQUEAR", detalle=str(bloqueos))

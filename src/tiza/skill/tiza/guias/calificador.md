@@ -260,7 +260,7 @@ estaba bloqueada. **tiza no puede reabrirla**: si falla a medias, repite el coma
 
 Lánzalo en segundo plano (hasta una hora): si te corta, la sesión acaba lo empezado y lo hecho no
 se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente` o `sin_colocar`,
-y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las notas calculadas que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de las que el aula no dejó ocultar (no corta el montaje) y `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos.
+y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; `CALIFICADOR_CAMBIOS` desglosa los cambios por tipo, con los primeros números de ID `TZ_…`. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose: es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las notas calculadas que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de las que el aula no dejó ocultar (no corta el montaje) y `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos.
 
 ## 11. Lo que tiza no hace
 

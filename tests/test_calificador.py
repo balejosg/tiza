@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -411,6 +412,26 @@ def test_las_relecturas_tras_escribir_dicen_lo_tocado(tmp_path):
     assert colocadas <= set().union(*relecturas)
 
 
+def test_el_informe_desglosa_los_cambios_por_tipo(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    [paso] = pasos(documento, "CALIFICADOR_CAMBIOS")
+    tipos = dict(parte.split(": ")[:2] for parte in paso["detalle"].split("; ") if ": " in parte)
+    total = int(pasos(documento, "CALIFICADOR")[0]["detalle"].split()[0])
+    assert {"crear_categoria", "fijar_peso"} <= set(tipos)
+    assert sum(int(v.split()[0]) for v in tipos.values()) == total
+    # solo números de ID de tiza (TZ_…), nunca nombres ni textos del aula
+    assert all(
+        id_.startswith("TZ_")
+        for id_ in re.findall(r"\(([^)]*)\)", paso["detalle"])
+        for id_ in id_.split(", ")
+        if id_ and id_ != "…"
+    )
+    segundo = atender(pedir(carpeta), moodle, carpeta)
+    assert not pasos(segundo, "CALIFICADOR_CAMBIOS")
+
+
 def test_calificador_vuelve_a_dejarlo_igual_sin_tocar_nada(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     moodle = AulaViva()
@@ -532,6 +553,9 @@ def test_montaje_cerrado_que_falla_a_medias_se_completa_antes_de_bloquearse(tmp_
     moodle.fallos["fijar_formula"] = ["ESCRITURA_CALIFICADOR"]  # cae al empezar con las fórmulas
     primero = atender(pedir(carpeta), moodle, carpeta)
     assert primero["resultado"] == "error"
+    # el desglose dice qué llegó a hacer antes de caer (sin fórmulas: cayó en la primera)
+    [desglose] = pasos(primero, "CALIFICADOR_CAMBIOS")
+    assert "crear_categoria" in desglose["detalle"] and "fijar_formula" not in desglose["detalle"]
     assert "bloquear_total" not in moodle.metodos()
     assert moodle.por_id("TZ_V_1").bloqueado is False  # creada a medias y sin bloquear
     assert not any(n.formula for n in moodle.nodos.values() if n.clase == "calculado")

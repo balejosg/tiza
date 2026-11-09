@@ -94,6 +94,7 @@ PASOS = (
             "CALCULADOS_OCULTADOS",
             "CALIFICADOR",
             "CALIFICADOR_BLOQUEAR",
+            "CALIFICADOR_CAMBIOS",
             "CALIFICADOR_COLOCAR",
             "CAMBIADO_A_MANO",
             "CAMBIO_DEL_AULA_DESCARTADO",
