@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## No publicado
+## 0.43.1 — 2026-11-09
 
 ### Añadido
 - **El informe del calificador desglosa los cambios.** El paso `CALIFICADOR_CAMBIOS` dice cuántos cambios de cada tipo hizo `tiza calificador` (crear categorías, fijar pesos, fórmulas…) y los primeros números de ID de tiza de cada uno, también si el montaje se corta a medias. Sirve para saber qué se repite cuando un segundo montaje no sale «sin cambios».
