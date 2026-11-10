@@ -2228,6 +2228,41 @@ class TestCalificadorEnCli:
         assert enviada["visible"] is None and enviada["solo_fechas"] is False
         buzon.validar_peticion(enviada)
 
+    def test_la_ponderacion_sin_sesion_da_sin_sesion_igual_que_el_calificador(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "ponderacion.yaml").write_text("ponderacion: []\n", encoding="utf-8")
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(terminal, "pedir_password", lambda: pytest.fail("sin contraseña"))
+        assert cli.main(["calificador", "ponderacion.yaml", "--en", "real"]) == 1
+        informe_ = leer_informe(tmp_path)
+        assert (informe_["comando"], informe_["errores"]) == ("calificador", ["SIN_SESION"])
+        assert informe_["entorno"] == "real"
+        assert "SIN_SESION" in capsys.readouterr().err
+
+    def test_la_ponderacion_con_sesion_envia_el_yaml_por_el_buzon(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        capturado: dict = {}
+
+        def enviar(dir_tiza, peticion, espera, *a, **k):
+            capturado["peticion"] = peticion
+            capturado["espera"] = espera
+            return informe_ok(comando="calificador", entorno="real", curso=5678)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        assert cli.main(["calificador", "ponderacion.yaml", "--en", "real"]) == 0
+        assert capturado["espera"] == buzon.ESPERA_CALIFICADOR
+        enviada = capturado["peticion"]
+        assert (enviada["comando"], enviada["entorno"], enviada["ficheros"]) == (
+            "calificador",
+            "real",
+            ["ponderacion.yaml"],
+        )
+        buzon.validar_peticion(enviada)
+
     def test_sesion_incompatible_lo_explica(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         simular_terminal(monkeypatch, interactiva=False)

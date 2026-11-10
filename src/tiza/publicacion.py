@@ -85,6 +85,8 @@ __all__ = [
     "FicheroAislamiento",
     "PlanCalificador",
     "PlanPonderacionCurso",
+    "ResumenCambioAMano",
+    "ResumenPonderacion",
     "Presencia",
     "ResumenAislamiento",
     "ResumenCalificador",
@@ -115,6 +117,8 @@ __all__ = [
     "preparar_calificador",
     "preparar_ponderacion",
     "ponderacion_con",
+    "ponderacion_en_cursos",
+    "replanificar_ponderacion",
     "publicar_con",
     "publicar_en_cursos",
     "puerta_real",
@@ -148,6 +152,8 @@ AVISOS = frozenset(
         "CAMBIADA_EN_EL_AULA",
         "CAMBIADO_A_MANO",
         "CANCELADA",
+        "CATEGORIA_BLOQUEADA",
+        "CATEGORIA_NO_DECLARADA",
         "CARPETA_NO_AISLADA",
         "CERRANDO_SESION_ANTERIOR",
         "COMPROBACIONES_DE_AISLAMIENTO",
@@ -175,8 +181,11 @@ AVISOS = frozenset(
         "ORDENANDO_EN_PRUEBAS",
         "PANEL_ACTUALIZADO",
         "PANEL_NO_ACTUALIZADO",
+        "PESOS_CON_NOTAS",
         "PESOS_SIN_EFECTO",
         "PETICION_RETIRADA",
+        "PONDERACION_NO_APLICADA",
+        "PONDERANDO_EN_PRUEBAS",
         "PRIMERA_VEZ",
         "PUBLICANDO_EN_PRUEBAS",
         "QUEDAN_MINUTOS",
@@ -253,6 +262,30 @@ class Aviso:
     def cambiado_a_mano(cls, nombre: str) -> Aviso:
         """``nombre``: lo que el docente cambió en el aula y tiza no toca (viene del aula)."""
         return cls("CAMBIADO_A_MANO", {"nombre": nombre})
+
+    @classmethod
+    def categoria_bloqueada(cls, nombre: str) -> Aviso:
+        """``nombre``: la categoría bloqueada del aula, de la que tiza no cambia nada."""
+        return cls("CATEGORIA_BLOQUEADA", {"nombre": nombre})
+
+    @classmethod
+    def categoria_no_declarada(cls, nombre: str) -> Aviso:
+        """``nombre``: la categoría ``TZP_`` del aula que ``ponderacion.yaml`` ya no declara."""
+        return cls("CATEGORIA_NO_DECLARADA", {"nombre": nombre})
+
+    @classmethod
+    def pesos_con_notas(cls, nombre: str) -> Aviso:
+        """``nombre``: la categoría con notas cuyos pesos cambian (viene del aula)."""
+        return cls("PESOS_CON_NOTAS", {"nombre": nombre})
+
+    @classmethod
+    def ponderacion_no_aplicada(cls, referencia: str) -> Aviso:
+        """``referencia``: la clave del esquema (``fichero:…``) que el aula no refleja."""
+        return cls("PONDERACION_NO_APLICADA", {"referencia": referencia})
+
+    @classmethod
+    def ponderando_en_pruebas(cls, esquema: str) -> Aviso:
+        return cls("PONDERANDO_EN_PRUEBAS", {"esquema": esquema})
 
     @classmethod
     def criterios_sin_peso(cls, elemento: str) -> Aviso:
@@ -776,6 +809,36 @@ class PlanCalificador:
 
 
 @dataclass(frozen=True)
+class ResumenPonderacion:
+    """Lo que va a hacer ``tiza calificador ponderacion.yaml`` en un curso real: el antes/después.
+
+    Los nombres son los del aula (solo los ve el docente, saneados). ``pesos_con_notas`` y
+    ``salidas`` son nombres de categorías; ``avisos`` los que no llevan su propia línea.
+    """
+
+    curso: int
+    nombre_curso: str | None
+    afectadas: tuple[ponderacion.CategoriaAfectada, ...]
+    cambios_a_mano: tuple[ponderacion.CambioAMano, ...]
+    pesos_con_notas: tuple[str, ...]
+    salidas: tuple[str, ...]
+    avisos: tuple[Aviso, ...]
+    posicion: int = 1
+    total: int = 1
+
+
+@dataclass(frozen=True)
+class ResumenCambioAMano:
+    """Un peso que el docente cambió a mano en el aula y que tiza solo pisa si él lo dice."""
+
+    curso: int
+    nombre_curso: str | None
+    cambio: ponderacion.CambioAMano
+    posicion: int = 1
+    total: int = 1
+
+
+@dataclass(frozen=True)
 class ResumenCopia:
     """La copia que se pide: la presencia lo enseña y el docente decide.
 
@@ -925,6 +988,15 @@ class Presencia(Protocol):
 
     def confirmar_calificador(self, resumen: ResumenCalificador) -> bool:
         """¿Montar el calificador en real como enseña ``resumen``? Una respuesta por curso."""
+        ...
+
+    def confirmar_ponderacion(self, resumen: ResumenPonderacion) -> bool:
+        """¿Aplicar en este curso la ponderación que enseña ``resumen``? Una respuesta por curso."""
+        ...
+
+    def confirmar_ponderacion_a_mano(self, resumen: ResumenCambioAMano) -> bool:
+        """¿Sobrescribir lo que cambiaste a mano en el aula? Una respuesta por cambio; sin
+        respuesta, es no."""
         ...
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
@@ -2771,6 +2843,8 @@ def preparar_calificador(
     contados = [doc for doc in documentos if doc.evalua is not None]
     cmids = _cmids_de(aula.estructura(curso), contados, curso, base)
     actual = aula.calificador(curso)
+    if any(nodo.idnumber.startswith(ponderacion.PREFIJO_IDNUMBER) for nodo in actual.nodos):
+        raise ErrorPublicacion("CALIFICADOR_CON_PONDERACION")
     anterior = rc.hay_anterior(actual)
     resultados, efectivas, pendientes = _resultados_existentes(aula, curso, documentos, cmids, base)
     deseado = calcular_deseado(esquema, documentos, anterior, base, resultados=efectivas)
@@ -3654,6 +3728,207 @@ def calificador_en_cursos(
         omitidos=omitidos,
         nombres=nombres,
     )
+
+
+def replanificar_ponderacion(
+    plan_curso: PlanPonderacionCurso, *, sobrescribir: Collection[str] = ()
+) -> PlanPonderacionCurso:
+    """El mismo curso leído, replanificado dando por aceptado pisar las ``sobrescribir`` (referencias)."""
+    plan = ponderacion.planificar(
+        plan_curso.esquema,
+        plan_curso.estructura,
+        plan_curso.arbol,
+        plan_curso.huellas,
+        tzp=plan_curso.tzp,
+        sobrescribir=sobrescribir,
+    )
+    return replace(plan_curso, plan=plan)
+
+
+_AVISOS_DE_PONDERACION: dict[str, Callable[[str], Aviso]] = {
+    "CAMBIADO_A_MANO": Aviso.cambiado_a_mano,
+    "CATEGORIA_BLOQUEADA": Aviso.categoria_bloqueada,
+    "CATEGORIA_NO_DECLARADA": Aviso.categoria_no_declarada,
+    "PESOS_CON_NOTAS": Aviso.pesos_con_notas,
+}
+
+
+def _avisos_del_plan(
+    plan: ponderacion.PlanPonderacion, *, codigos: Collection[str]
+) -> tuple[Aviso, ...]:
+    """Los avisos del plan de esos ``codigos`` en el tipo de la presencia, sin repetir."""
+    avisos: dict[tuple[str, str], Aviso] = {}
+    for aviso in plan.avisos:
+        if aviso.codigo in codigos and aviso.codigo in _AVISOS_DE_PONDERACION:
+            avisos.setdefault(
+                (aviso.codigo, aviso.nombre), _AVISOS_DE_PONDERACION[aviso.codigo](aviso.nombre)
+            )
+    return tuple(avisos.values())
+
+
+def ponderacion_en_cursos(
+    aula: AulaVirtual,
+    cfg: Config,
+    esquema: EsquemaPonderacion,
+    base: Path,
+    presencia: Presencia,
+    *,
+    entorno: str,
+    nombre_esquema: str,
+    vigente: Callable[[], bool] | None = None,
+    cupo: dict | None = None,
+    avisar_en_pruebas: bool = False,
+    omitidos: Collection[int] = (),
+    nombres: Mapping[int, str] | None = None,
+    debug: bool = False,
+) -> dict:
+    """Aplica ``ponderacion.yaml`` en ``entorno``; gemela de :func:`calificador_en_cursos`.
+
+    En pruebas gasta 1 del cupo y no pregunta. En real va a todos los cursos reales con una
+    confirmación por curso (el antes/después), preguntas aparte por lo cambiado a mano y parada
+    en el primer fallo. Si en un curso no hay nada que cambiar no se pregunta.
+    """
+    return recorrido.recorrer(
+        _TrabajoPonderacion(aula, entorno, esquema, base, nombre_esquema, presencia, debug=debug),
+        cfg,
+        presencia,
+        entorno=entorno,
+        vigente=vigente,
+        cupo=cupo,
+        avisar_en_pruebas=avisar_en_pruebas,
+        omitidos=omitidos,
+        nombres=nombres,
+    )
+
+
+def _a_mano(resumen: ResumenCambioAMano) -> Callable[[Presencia], bool]:
+    return lambda presencia: presencia.confirmar_ponderacion_a_mano(resumen)
+
+
+class _TrabajoPonderacion(recorrido.TrabajoBase):
+    """Lo que la ponderación hace en un curso; el bucle y las preguntas son del recorrido."""
+
+    comando = "calificador"
+
+    def __init__(
+        self,
+        aula: AulaVirtual,
+        entorno: str,
+        esquema: EsquemaPonderacion,
+        base: Path,
+        nombre_esquema: str,
+        presencia: Presencia,
+        *,
+        debug: bool,
+    ) -> None:
+        self._aula = aula
+        self._entorno = entorno
+        self._esquema = esquema
+        self._dir_tiza = Path(base) / rutas.CARPETA_TRABAJO
+        self._nombre_esquema = nombre_esquema
+        self._presencia = presencia
+        self._debug = debug
+
+    def aviso_en_pruebas(self) -> Aviso:
+        return Aviso.ponderando_en_pruebas(self._nombre_esquema)
+
+    def en_pruebas(self, curso: int) -> dict:
+        try:
+            plan_curso = preparar_ponderacion(self._aula, curso, self._esquema, self._dir_tiza)
+        except (ErrorPublicacion, ErrorPonderacion, ErrorEstado) as exc:
+            borrador = informe.Borrador("calificador", entorno=self._entorno, curso=curso)
+            borrador.paso("LOGIN")
+            borrador.fallo("PONDERACION", exc.codigo)
+            borrador.error(exc.codigo)
+            depurar(exc, self._debug)
+            return borrador.documento("error")
+        # Con el plan cortado ``ponderacion_con`` no escribe: da CATEGORIA_BLOQUEADA.
+        if not plan_curso.plan.corta:
+            for aviso in _avisos_del_plan(
+                plan_curso.plan,
+                codigos=("CAMBIADO_A_MANO", "CATEGORIA_BLOQUEADA", "CATEGORIA_NO_DECLARADA"),
+            ):
+                self._presencia.informar(aviso)
+        return ponderacion_con(
+            self._aula,
+            self._entorno,
+            curso,
+            plan_curso,
+            self._dir_tiza,
+            presencia=self._presencia,
+            debug=self._debug,
+        )
+
+    def _ejecutar(
+        self, turno: recorrido.Turno, plan_curso: PlanPonderacionCurso
+    ) -> recorrido.Resultado:
+        documento = ponderacion_con(
+            self._aula,
+            self._entorno,
+            turno.curso,
+            plan_curso,
+            self._dir_tiza,
+            presencia=self._presencia,
+            debug=self._debug,
+        )
+        return recorrido.Resultado.hecho(documento)
+
+    def _resumen(
+        self, plan_curso: PlanPonderacionCurso, turno: recorrido.Turno
+    ) -> ResumenPonderacion:
+        plan = plan_curso.plan
+        return ResumenPonderacion(
+            curso=turno.curso,
+            nombre_curso=turno.nombre_curso,
+            afectadas=plan.afectadas,
+            cambios_a_mano=plan.cambios_a_mano,
+            pesos_con_notas=plan.pesos_con_notas,
+            salidas=plan.salidas,
+            avisos=_avisos_del_plan(plan, codigos=("CATEGORIA_BLOQUEADA", "CAMBIADO_A_MANO")),
+            posicion=turno.posicion,
+            total=turno.total,
+        )
+
+    def en_curso(self, turno: recorrido.Turno) -> recorrido.Resultado:
+        try:
+            plan_curso = preparar_ponderacion(
+                self._aula, turno.curso, self._esquema, self._dir_tiza
+            )
+        except (ErrorPublicacion, ErrorPonderacion, ErrorEstado) as exc:
+            # Cada curso se lee entero antes de escribir nada en él (y antes de preguntar).
+            return recorrido.Resultado.fallo(exc.codigo)
+        plan = plan_curso.plan
+        if plan.corta:
+            return recorrido.Resultado.fallo("CATEGORIA_BLOQUEADA")
+        confirmado = False
+        if not plan.sin_cambios:
+            resumen = self._resumen(plan_curso, turno)
+            if not turno.preguntar(lambda presencia: presencia.confirmar_ponderacion(resumen)):
+                return recorrido.Resultado.declinado()
+            confirmado = True
+        for aviso in _avisos_del_plan(plan, codigos=("PESOS_CON_NOTAS", "CATEGORIA_NO_DECLARADA")):
+            self._presencia.informar(aviso)
+        sobrescribir: list[str] = []
+        for cambio in plan.cambios_a_mano:
+            pregunta = ResumenCambioAMano(
+                turno.curso, turno.nombre_curso, cambio, turno.posicion, turno.total
+            )
+            if turno.preguntar(_a_mano(pregunta), tras_no=True):
+                sobrescribir.append(cambio.referencia)
+            else:
+                self._presencia.informar(Aviso.cambiado_a_mano(cambio.nombre))
+        if sobrescribir:
+            try:
+                plan_curso = replanificar_ponderacion(plan_curso, sobrescribir=sobrescribir)
+            except ErrorPonderacion as exc:
+                return recorrido.Resultado.fallo(exc.codigo)
+            if plan_curso.plan.corta:
+                return recorrido.Resultado.fallo("CATEGORIA_BLOQUEADA")
+            if not confirmado and not plan_curso.plan.sin_cambios:
+                resumen = self._resumen(plan_curso, turno)
+                if not turno.preguntar(lambda presencia: presencia.confirmar_ponderacion(resumen)):
+                    return recorrido.Resultado.declinado()
+        return self._ejecutar(turno, plan_curso)
 
 
 class _TrabajoCalificador(recorrido.TrabajoBase):

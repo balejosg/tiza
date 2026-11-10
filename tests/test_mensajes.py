@@ -8,6 +8,7 @@ import pytest
 
 from dobles import avisos_de_ejemplo
 from tiza import ayuda, informe, mensajes, publicacion
+from tiza.calificacion.ponderacion import CambioAMano, CategoriaAfectada, HijoAfectado
 from tiza.tipos import FechaActividad
 
 
@@ -661,3 +662,143 @@ def test_detalle_orden_cuenta_notas():
         "En el calificador se reordenan 3 notas para seguir el orden del curso."
         in mensajes.detalle_orden(resumen(3)).finales
     )
+
+
+def _resumen_de_e1(**cambios):
+    """E1: la categoría nueva del examen y «PRIMERA EVALUACIÓN», que ya tiene notas."""
+    nueva = CategoriaAfectada(
+        nombre="Examen 1.ª evaluación",
+        referencia="categoria:EXAMEN_1EV",
+        calculo_antes=None,
+        calculo_despues="media_ponderada",
+        solo_antes=None,
+        solo_despues=False,
+        hijos=(
+            HijoAfectado("Test 1 · Hardware", "fichero:1eva/test-1.md", None, 21.3333, 16),
+            HijoAfectado(
+                "Test 2 · Procesador de textos", "fichero:1eva/test-2.md", None, 10.6667, 8
+            ),
+            HijoAfectado("Test 3 · Máquinas virtuales", "fichero:1eva/test-3.md", None, 8.0, 6),
+            HijoAfectado("Tarea · Monta tu PC", "fichero:1eva/tarea.html", None, 60.0, 45),
+        ),
+    )
+    primera = CategoriaAfectada(
+        nombre="PRIMERA EVALUACIÓN",
+        referencia="categoria:PRIMERA EVALUACIÓN",
+        calculo_antes="media_ponderada",
+        calculo_despues="media_ponderada",
+        solo_antes=True,
+        solo_despues=True,
+        hijos=(
+            HijoAfectado("Examen 1.ª evaluación", "categoria:EXAMEN_1EV", None, 30.0),
+            HijoAfectado("Test 1 · Hardware", "fichero:1eva/test-1.md", 14.2857, None),
+            HijoAfectado("Práctica Linux", None, 14.2857, 23.3333),
+        ),
+    )
+    datos = {
+        "curso": 7,
+        "nombre_curso": "4.º ESO Digitalización",
+        "afectadas": (nueva, primera),
+        "cambios_a_mano": (),
+        "pesos_con_notas": ("PRIMERA EVALUACIÓN",),
+        "salidas": (),
+        "avisos": (),
+    }
+    datos.update(cambios)
+    return publicacion.ResumenPonderacion(**datos)
+
+
+def test_detalle_ponderacion_e1_al_pie_de_la_letra():
+    detalle = mensajes.detalle_ponderacion(_resumen_de_e1())
+    assert detalle.curso == "«4.º ESO Digitalización» (id 7)"
+    assert (detalle.posicion, detalle.total) == (1, 1)
+    assert detalle.encabezado == "Ponderación en el curso REAL «4.º ESO Digitalización» (id 7):"
+    assert detalle.lineas == (
+        "  Nueva categoría «Examen 1.ª evaluación»",
+        "    media ponderada · solo no vacías: no",
+        "    Test 1 · Hardware: — → 21,3 %  (peso 16)",
+        "    Test 2 · Procesador de textos: — → 10,7 %  (peso 8)",
+        "    Test 3 · Máquinas virtuales: — → 8,0 %  (peso 6)",
+        "    Tarea · Monta tu PC: — → 60,0 %  (peso 45)",
+        "  «PRIMERA EVALUACIÓN» (media ponderada; no se cambia)",
+        "    Examen 1.ª evaluación: — → 30,0 %",
+        "    Test 1 · Hardware: 14,3 % → sale de la categoría",
+        "    Práctica Linux: 14,3 % → 23,3 %",
+        "  ⚠ «PRIMERA EVALUACIÓN» ya tiene notas: su total cambiará para el alumnado.",
+    )
+    assert detalle.pregunta == "¿Aplicar en este curso?"
+    assert "[s/N]" not in detalle.pregunta
+
+
+def test_detalle_ponderacion_cuando_cambian_el_metodo_y_solo_no_vacias():
+    categoria = CategoriaAfectada("Evaluación", None, "natural", "media_ponderada", True, False, ())
+    detalle = mensajes.detalle_ponderacion(_resumen_de_e1(afectadas=(categoria,)))
+    assert detalle.lineas[:2] == (
+        "  «Evaluación» (antes: natural; después: media ponderada)",
+        "    solo no vacías: sí → no",
+    )
+
+
+def test_detalle_ponderacion_salidas_avisos_y_nombres_saneados():
+    categoria = CategoriaAfectada(
+        "Evalu\x1bación",
+        None,
+        "natural",
+        "natural",
+        None,
+        None,
+        (HijoAfectado("N\x07ota", None, None, None),),
+    )
+    resumen = _resumen_de_e1(
+        afectadas=(categoria,),
+        pesos_con_notas=(),
+        salidas=("Otra\x1b",),
+        avisos=(
+            publicacion.Aviso.categoria_bloqueada("Cerrada"),
+            publicacion.Aviso.cambiado_a_mano("Test 1"),
+        ),
+    )
+    detalle = mensajes.detalle_ponderacion(resumen)
+    assert detalle.lineas == (
+        "  «Evaluación» (natural; no se cambia)",
+        "    Nota: — → —",
+        "  Sale una nota de «Otra»: su total cambiará.",
+        "  «Cerrada» está bloqueada: tiza no cambia nada de ella ni de lo que entra o sale.",
+        "  Lo cambiaste a mano en el aula y tiza no lo toca: Test 1",
+    )
+
+
+@pytest.mark.parametrize(
+    ("antes", "despues", "esperado"),
+    [
+        (
+            25.0,
+            30.0,
+            "Has cambiado a mano «Test 1»: ahora pesa 25 %; tiza pondría 30 %. ¿Sobrescribir?",
+        ),
+        (None, 30.0, "Has cambiado a mano «Test 1»; tiza pondría 30 %. ¿Sobrescribir?"),
+        (25.5, None, "Has cambiado a mano «Test 1»: ahora pesa 25,5 %. ¿Sobrescribir?"),
+        (None, None, "Has cambiado a mano «Test 1». ¿Sobrescribir?"),
+    ],
+)
+def test_detalle_cambio_a_mano(antes, despues, esperado):
+    resumen = publicacion.ResumenCambioAMano(
+        7, "4.º ESO", CambioAMano("fichero:1eva/test-1.md", "Test\x1b 1", antes, despues), 2, 3
+    )
+    detalle = mensajes.detalle_cambio_a_mano(resumen)
+    assert detalle.pregunta == esperado
+    assert (detalle.curso, detalle.posicion, detalle.total) == ("«4.º ESO» (id 7)", 2, 3)
+    assert detalle.encabezado
+
+
+def test_los_rotulos_de_la_ponderacion():
+    assert mensajes.rotulos("confirmar_ponderacion") == {
+        "texto_si": "Aplicar la ponderación",
+        "texto_no": "Saltar este curso",
+        "riesgo": "real",
+    }
+    assert mensajes.rotulos("confirmar_ponderacion_a_mano") == {
+        "texto_si": "Sobrescribir y perder el cambio",
+        "texto_no": "Conservar el cambio del aula",
+        "riesgo": "peligro",
+    }

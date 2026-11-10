@@ -1157,7 +1157,7 @@ def _ordenar(args) -> int:
 
 
 def _calificador(args) -> int:
-    """El calificador lo monta la sesión del docente: sin sesión no hay modo directo."""
+    """El calificador (y la ponderación) lo monta la sesión del docente: sin sesión no hay modo directo."""
     dir_tiza = _dir_tiza()
     if buzon.sesion_activa(dir_tiza):
         return _responder_buzon(

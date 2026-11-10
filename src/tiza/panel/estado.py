@@ -38,9 +38,11 @@ from ..publicacion import (
     Aviso,
     ResumenAislamiento,
     ResumenCalificador,
+    ResumenCambioAMano,
     ResumenCopia,
     ResumenEvidencia,
     ResumenOrden,
+    ResumenPonderacion,
     ResumenPublicacion,
     ResumenRubricas,
     ResumenSinPruebas,
@@ -838,6 +840,31 @@ class PresenciaPanel:
             lineas,
             mensajes.PREGUNTA_DESTINO,
             **mensajes.rotulos("confirmar_calificador"),
+        )
+
+    def confirmar_ponderacion(self, resumen: ResumenPonderacion) -> bool:
+        detalle = mensajes.detalle_ponderacion(resumen)
+        lineas = _lineas(
+            [mensajes.cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)],
+            detalle.lineas,
+        )
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            detalle.pregunta,
+            **mensajes.rotulos("confirmar_ponderacion"),
+        )
+
+    def confirmar_ponderacion_a_mano(self, resumen: ResumenCambioAMano) -> bool:
+        detalle = mensajes.detalle_cambio_a_mano(resumen)
+        lineas = _lineas(
+            [mensajes.cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)],
+        )
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            detalle.pregunta,
+            **mensajes.rotulos("confirmar_ponderacion_a_mano"),
         )
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:

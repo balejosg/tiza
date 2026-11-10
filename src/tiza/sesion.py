@@ -644,6 +644,12 @@ class _PresenciaVigilada:
     def confirmar_calificador(self, resumen: publicacion.ResumenCalificador) -> bool:
         return self._preguntar(lambda: self._presencia.confirmar_calificador(resumen))
 
+    def confirmar_ponderacion(self, resumen: publicacion.ResumenPonderacion) -> bool:
+        return self._preguntar(lambda: self._presencia.confirmar_ponderacion(resumen))
+
+    def confirmar_ponderacion_a_mano(self, resumen: publicacion.ResumenCambioAMano) -> bool:
+        return self._preguntar(lambda: self._presencia.confirmar_ponderacion_a_mano(resumen))
+
     def confirmar_copia(self, resumen: publicacion.ResumenCopia) -> bool:
         return self._preguntar(lambda: self._presencia.confirmar_copia(resumen))
 

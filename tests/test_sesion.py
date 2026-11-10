@@ -90,7 +90,7 @@ def test_el_doble_cumple_la_interfaz_de_presencia():
         for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
-    assert len(metodos) == 23
+    assert len(metodos) == 25
     for nombre in metodos:
         esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaFalsa, nombre)).parameters)
@@ -777,6 +777,27 @@ class TestPresenciaVigilada:
         cierre.pedido.set()  # pedido el cierre, responde no sin preguntar
         assert vigilada.confirmar_sobrescribir(None) is False
         assert vistos == [True]
+
+    def test_las_preguntas_de_la_ponderacion_tambien_se_vigilan(self, tmp_path):
+        cierre, *_ = TestCierrePedido().preparar(tmp_path)
+        vistos: list[str] = []
+
+        class Presencia(PresenciaFalsa):
+            def confirmar_ponderacion(self, resumen):
+                vistos.append("general")
+                return True
+
+            def confirmar_ponderacion_a_mano(self, resumen):
+                vistos.append("a mano")
+                return True
+
+        vigilada = sesion._PresenciaVigilada(Presencia(), cierre)
+        assert vigilada.confirmar_ponderacion(None) is True
+        assert vigilada.confirmar_ponderacion_a_mano(None) is True
+        cierre.pedido.set()
+        assert vigilada.confirmar_ponderacion(None) is False
+        assert vigilada.confirmar_ponderacion_a_mano(None) is False
+        assert vistos == ["general", "a mano"]
 
     def test_cumple_la_interfaz_de_presencia(self):
         metodos = [

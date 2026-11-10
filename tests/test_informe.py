@@ -723,3 +723,24 @@ def test_los_pasos_de_las_notas_estan_registrados(codigo):
             "publicar", "ok", [Paso(codigo, detalle="t.md: AMBIGUA")], [], [], "real", 5678
         )
     )
+
+
+def test_los_pasos_de_la_ponderacion_son_validos_y_un_campo_suelto_no(tmp_path):
+    documento = crear(
+        "calificador",
+        "ok",
+        [
+            Paso("LOGIN"),
+            Paso("PONDERACION_CAMBIOS", detalle="crear: 1; mover: 4; coeficiente: 4"),
+            Paso("PONDERACION", detalle="parcial"),
+            Paso("PONDERACION_NO_APLICADA", "fallo", "fichero:1eva/test-1.md"),
+        ],
+        [],
+        entorno="real",
+        curso=5678,
+    )
+    validar(documento)
+    assert escribir(documento, tmp_path / ".tiza").is_file()
+    documento["pasos"][1]["nombre_del_aula"] = "Examen 1.ª evaluación"
+    with pytest.raises(ErrorInforme):
+        validar(documento)

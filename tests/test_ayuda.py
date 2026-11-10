@@ -66,3 +66,12 @@ def test_textos_son_de_una_linea_y_seguros():
 
 def test_codigo_desconocido_da_none():
     assert ayuda.explicar("NO_EXISTE") is None
+
+
+def test_los_codigos_de_la_ponderacion_tienen_explicacion():
+    for codigo in (
+        "CALIFICADOR_CON_PONDERACION",
+        "CATEGORIA_BLOQUEADA",
+        "PONDERACION_CON_CALIFICADOR_DE_TIZA",
+    ):
+        assert ayuda.explicar(codigo), codigo

@@ -1024,6 +1024,119 @@ class TestCalificadorEnLaSesion:
             )
 
 
+class TestPonderacionEnLaSesion:
+    """``tiza calificador ponderacion.yaml`` por el buzón: se despacha por la raíz del ``.yaml``."""
+
+    CFG_PONDERACION = config.Config(
+        url="https://aula.ejemplo.org/centro",
+        usuario="profe",
+        cursos={"pruebas": 2},
+        reales=(2,),
+    )
+
+    def carpeta(self, tmp_path) -> Path:
+        from calificacion.test_ponderacion_esquema import EJEMPLO_PONDERACION
+
+        carpeta = tmp_path / "asignatura"
+        (carpeta / "1eva").mkdir(parents=True)
+        pregunta = (
+            "preguntas:\n  - tipo: verdadero_falso\n    enunciado: Seguro.\n"
+            "    respuesta: verdadero\n"
+        )
+        for ruta, nombre in (
+            ("test-1-hardware.md", "Test 1"),
+            ("test-2-procesador-textos.md", "Test 2"),
+            ("test-3-maquinas-virtuales-linux.md", "Test 3"),
+        ):
+            (carpeta / "1eva" / ruta).write_text(
+                f"---\ntipo: cuestionario\nnombre: {nombre}\nseccion: 1\n{pregunta}---\n\nTexto.\n",
+                encoding="utf-8",
+            )
+        (carpeta / "1eva" / "tarea-sheets-monta-tu-pc.html").write_text(
+            "---\ntipo: tarea\nnombre: Monta tu PC\nseccion: 1\n"
+            "apertura: 2026-10-01\nentrega: 2026-10-10\n---\n\n<p>Texto.</p>\n",
+            encoding="utf-8",
+        )
+        (carpeta / "ponderacion.yaml").write_text(EJEMPLO_PONDERACION, encoding="utf-8")
+        return carpeta.resolve()
+
+    def test_cruza_el_buzon_pregunta_y_aplica(self, tmp_path):
+        from test_ponderacion_ejecucion import aula_con_e1
+
+        carpeta = self.carpeta(tmp_path)
+        moodle = aula_con_e1()
+        presencia = PresenciaFalsa()
+        abierta = sesion_abierta.SesionAbierta(
+            moodle, self.CFG_PONDERACION, carpeta, presencia, nombres={2: "4.º ESO"}
+        )
+
+        respuesta = cruzar_el_buzon(
+            carpeta / ".tiza",
+            abierta.atender,
+            agente.peticion_calificador("ponderacion.yaml", "real"),
+        )
+
+        assert respuesta["resultado"] == "ok" and respuesta["comando"] == "calificador"
+        assert [p["detalle"] for p in respuesta["pasos"] if p["codigo"] == "PONDERACION"] == [
+            "aplicada"
+        ]
+        [resumen] = presencia.resumenes_ponderacion
+        assert (resumen.curso, resumen.nombre_curso) == (2, "4.º ESO")
+        assert presencia.resumenes_calificador == []
+        assert [e[0] for e in moodle.escrituras][0] == "crear_categoria"
+        assert presencia.codigos()[-1] == "RESULTADO"
+        escrito = json.loads((carpeta / ".tiza" / "informe.json").read_text(encoding="utf-8"))
+        assert escrito == respuesta
+
+    def test_en_pruebas_gasta_cupo_y_no_pregunta(self, tmp_path):
+        from test_ponderacion_ejecucion import aula_con_e1
+
+        carpeta = self.carpeta(tmp_path)
+        presencia = PresenciaFalsa()
+        abierta = sesion_abierta.SesionAbierta(
+            aula_con_e1(), self.CFG_PONDERACION, carpeta, presencia
+        )
+        respuesta = abierta.atender(agente.peticion_calificador("ponderacion.yaml", "pruebas"))
+        assert respuesta["resultado"] == "ok"
+        assert abierta.cupo["pruebas"] == 1
+        assert presencia.resumenes_ponderacion == []
+        assert "PONDERANDO_EN_PRUEBAS" in presencia.codigos()
+
+    def test_un_esquema_roto_da_su_codigo_sin_tocar_el_aula(self, tmp_path):
+        carpeta = self.carpeta(tmp_path)
+        (carpeta / "ponderacion.yaml").write_text("ponderacion: 3\n", encoding="utf-8")
+        moodle = MoodleFalso()
+        respuesta = atender(
+            agente.peticion_calificador("ponderacion.yaml", "real"),
+            moodle,
+            self.CFG_PONDERACION,
+            carpeta,
+            PresenciaFalsa(),
+        )
+        assert respuesta["resultado"] == "error"
+        assert respuesta["errores"] == ["PONDERACION_INVALIDA"]
+        assert moodle.llamadas == []
+
+    def test_un_calificacion_yaml_sigue_el_camino_viejo(self, tmp_path, monkeypatch):
+        from test_calificador import AulaViva, carpeta_fp
+
+        carpeta = carpeta_fp(tmp_path)
+        llamadas: list[str] = []
+        for nombre in ("ponderacion_en_cursos", "calificador_en_cursos"):
+            original = getattr(publicacion, nombre)
+            monkeypatch.setattr(
+                publicacion,
+                nombre,
+                lambda *a, _n=nombre, _o=original, **k: (llamadas.append(_n), _o(*a, **k))[1],
+            )
+        presencia = PresenciaFalsa()
+        abierta = sesion_abierta.SesionAbierta(AulaViva(), CFG, carpeta, presencia)
+        respuesta = abierta.atender(agente.peticion_calificador("calificacion.yaml", "pruebas"))
+        assert respuesta["resultado"] == "ok"
+        assert llamadas == ["calificador_en_cursos"]
+        assert presencia.resumenes_ponderacion == []
+
+
 class TestCopiaEnLaSesion:
     """``tiza copia`` por el buzón entero: petición del agente, confirmación y copia en la carpeta."""
 

@@ -13,6 +13,7 @@ import pytest
 
 from dobles import avisos_de_ejemplo
 from tiza import mensajes, publicacion, sesion, terminal
+from tiza.calificacion.ponderacion import CambioAMano, CategoriaAfectada, HijoAfectado
 from tiza.publicar import Contrasena
 
 
@@ -717,3 +718,54 @@ def test_confirmar_sobrescribir_sin_respuesta_es_no(monkeypatch):
 
     monkeypatch.setattr("builtins.input", sin_entrada)
     assert terminal.PresenciaTerminal().confirmar_sobrescribir(_resumen_de_sobrescribir()) is False
+
+
+def _resumen_de_ponderacion(posicion=1, total=1):
+    categoria = CategoriaAfectada(
+        "Examen\x1b[2J",
+        None,
+        None,
+        "media_ponderada",
+        None,
+        False,
+        (HijoAfectado("Test 1", None, None, 100.0, 16),),
+    )
+    return publicacion.ResumenPonderacion(
+        curso=5678,
+        nombre_curso="Matemáticas 2ºB",
+        afectadas=(categoria,),
+        cambios_a_mano=(),
+        pesos_con_notas=("PRIMERA",),
+        salidas=(),
+        avisos=(),
+        posicion=posicion,
+        total=total,
+    )
+
+
+def test_confirmar_ponderacion_ensena_el_antes_despues_saneado_y_pregunta(monkeypatch, capsys):
+    preguntas: list = []
+    monkeypatch.setattr(terminal, "confirmar", lambda pregunta: preguntas.append(pregunta) or True)
+    resumen = _resumen_de_ponderacion(posicion=1, total=2)
+    assert terminal.PresenciaTerminal().confirmar_ponderacion(resumen) is True
+    assert preguntas == ["¿Aplicar en este curso?"]
+    salida = capsys.readouterr().out
+    assert salida.startswith("Curso 1 de 2: ")
+    assert "Ponderación en el curso REAL" in salida
+    assert "  Nueva categoría «Examen[2J»" in salida
+    assert "    Test 1: — → 100,0 %  (peso 16)" in salida
+    assert "⚠ «PRIMERA» ya tiene notas" in salida
+    assert "\x1b" not in salida
+
+
+def test_confirmar_ponderacion_a_mano_hace_la_pregunta_exacta(monkeypatch, capsys):
+    preguntas: list = []
+    monkeypatch.setattr(terminal, "confirmar", lambda pregunta: preguntas.append(pregunta) or False)
+    resumen = publicacion.ResumenCambioAMano(
+        5678, None, CambioAMano("fichero:t.md", "Test\x1b 1", 25.0, 30.0)
+    )
+    assert terminal.PresenciaTerminal().confirmar_ponderacion_a_mano(resumen) is False
+    assert preguntas == [
+        "Has cambiado a mano «Test 1»: ahora pesa 25 %; tiza pondría 30 %. ¿Sobrescribir?"
+    ]
+    assert capsys.readouterr().out == ""

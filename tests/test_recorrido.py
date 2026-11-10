@@ -599,9 +599,11 @@ def test_solo_el_recorrido_recorre_los_cursos_y_mira_la_vigencia():
         publicacion.publicar_en_cursos,
         publicacion.ordenar_en_cursos,
         publicacion.calificador_en_cursos,
+        publicacion.ponderacion_en_cursos,
         publicacion._TrabajoPublicar,
         publicacion._TrabajoOrdenar,
         publicacion._TrabajoCalificador,
+        publicacion._TrabajoPonderacion,
     )
     for objeto in recorridos:
         arbol = _arbol_de(objeto)
@@ -617,6 +619,7 @@ def test_las_confirmaciones_de_los_trabajos_pasan_por_el_turno():
         publicacion._TrabajoPublicar,
         publicacion._TrabajoOrdenar,
         publicacion._TrabajoCalificador,
+        publicacion._TrabajoPonderacion,
     ):
         arbol = _arbol_de(clase)
         padres = _padres(arbol)
@@ -629,7 +632,12 @@ def test_las_confirmaciones_de_los_trabajos_pasan_por_el_turno():
 def test_las_funciones_externas_delegan_en_el_recorrido_sin_bucle():
     fuente = Path(publicacion.__file__).read_text(encoding="utf-8")
     arbol = ast.parse(fuente)
-    for nombre in ("publicar_en_cursos", "ordenar_en_cursos", "calificador_en_cursos"):
+    for nombre in (
+        "publicar_en_cursos",
+        "ordenar_en_cursos",
+        "calificador_en_cursos",
+        "ponderacion_en_cursos",
+    ):
         nodo = next(
             nodo for nodo in arbol.body if isinstance(nodo, ast.FunctionDef) and nodo.name == nombre
         )

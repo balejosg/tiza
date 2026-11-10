@@ -27,9 +27,11 @@ from .publicacion import (
     Aviso,
     ResumenAislamiento,
     ResumenCalificador,
+    ResumenCambioAMano,
     ResumenCopia,
     ResumenEvidencia,
     ResumenOrden,
+    ResumenPonderacion,
     ResumenPublicacion,
     ResumenRubricas,
     ResumenSinPruebas,
@@ -413,6 +415,19 @@ class PresenciaTerminal:
         for linea in detalle.lineas:
             print(f"  {linea}")
         return confirmar_destino("real", resumen.curso, nombre=resumen.nombre_curso)
+
+    def confirmar_ponderacion(self, resumen: ResumenPonderacion) -> bool:
+        detalle = mensajes.detalle_ponderacion(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        print(detalle.encabezado)
+        for linea in detalle.lineas:
+            print(linea)
+        return confirmar(detalle.pregunta)
+
+    def confirmar_ponderacion_a_mano(self, resumen: ResumenCambioAMano) -> bool:
+        detalle = mensajes.detalle_cambio_a_mano(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        return confirmar(detalle.pregunta)
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
         detalle = mensajes.detalle_copia(resumen)

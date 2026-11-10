@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 import pytest
 
 from tiza import aislamiento, config, mensajes, publicacion, publicar
+from tiza.calificacion.ponderacion import CambioAMano, CategoriaAfectada, HijoAfectado
 from tiza.panel import estado as pe
 from tiza.panel import recientes
 from tiza.panel.estado import Panel, PresenciaPanel, Puente
@@ -136,7 +137,7 @@ def test_presencia_panel_cumple_la_interfaz_de_presencia():
         for nombre, valor in vars(publicacion.Presencia).items()
         if callable(valor) and not nombre.startswith("_")
     ]
-    assert len(metodos) == 23
+    assert len(metodos) == 25
     for nombre in metodos:
         esperado = list(inspect.signature(getattr(publicacion.Presencia, nombre)).parameters)
         obtenido = list(inspect.signature(getattr(PresenciaPanel, nombre)).parameters)
@@ -289,6 +290,45 @@ def test_confirmar_calificador(entorno):
     assert leer() is False
 
 
+def test_confirmar_ponderacion(entorno):
+    categoria = CategoriaAfectada(
+        "Examen", None, None, "media_ponderada", None, False, (HijoAfectado("T", None, None, 50.0),)
+    )
+    resumen = publicacion.ResumenPonderacion(
+        curso=5678,
+        nombre_curso="Mates",
+        afectadas=(categoria,),
+        cambios_a_mano=(),
+        pesos_con_notas=(),
+        salidas=(),
+        avisos=(),
+        posicion=2,
+        total=3,
+    )
+    leer = entorno.lanzar(entorno.presencia.confirmar_ponderacion, resumen)
+    p = entorno.pantalla()
+    detalle = mensajes.detalle_ponderacion(resumen)
+    assert p["titulo"] == detalle.encabezado
+    assert p["pregunta"] == detalle.pregunta
+    assert p["lineas"][0] == f"Curso 2 de 3: {detalle.curso}"
+    assert tuple(p["lineas"][1:]) == detalle.lineas
+    entorno.responder(p, True)
+    assert leer() is True
+
+
+def test_confirmar_ponderacion_a_mano(entorno):
+    resumen = publicacion.ResumenCambioAMano(
+        5678, "Mates", CambioAMano("fichero:t.md", "Test 1", 25.0, 30.0)
+    )
+    leer = entorno.lanzar(entorno.presencia.confirmar_ponderacion_a_mano, resumen)
+    p = entorno.pantalla()
+    detalle = mensajes.detalle_cambio_a_mano(resumen)
+    assert p["titulo"] == detalle.encabezado
+    assert p["pregunta"] == detalle.pregunta
+    entorno.responder(p, False)
+    assert leer() is False
+
+
 def test_confirmar_copia(entorno):
     resumen = publicacion.ResumenCopia(
         curso=5678, nombre_curso="Mates", entorno="real", actividades=("Problemas",)
@@ -402,6 +442,18 @@ def test_preguntas_de_si_o_no(entorno, metodo, args, texto, valor):
         (
             "confirmar_sobrescribir",
             (publicacion.ResumenSobrescribir(5678, "Mates", ("Problemas",)),),
+        ),
+        (
+            "confirmar_ponderacion",
+            (publicacion.ResumenPonderacion(5678, "Mates", (), (), (), (), ()),),
+        ),
+        (
+            "confirmar_ponderacion_a_mano",
+            (
+                publicacion.ResumenCambioAMano(
+                    5678, "Mates", CambioAMano("fichero:t.md", "Test 1", None, None)
+                ),
+            ),
         ),
         (
             "confirmar_copia",

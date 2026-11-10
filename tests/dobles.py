@@ -921,6 +921,8 @@ class PresenciaFalsa:
         sobrescribir: bool | tuple[bool, ...] = False,  # una respuesta por curso con cambios
         rubricas: bool | tuple[bool, ...] = False,  # «ninguna tiene notas» por curso
         evidencia: bool | tuple[bool, ...] = False,  # «activar los resultados» por curso
+        ponderacion: bool | tuple[bool, ...] | None = None,  # None: lo que diga «real»
+        ponderacion_a_mano: bool | tuple[bool, ...] = False,  # «sobrescribir» cada cambio a mano
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
         cerrar_anterior: bool = False,
@@ -944,6 +946,12 @@ class PresenciaFalsa:
         self._sobrescribir = list(sobrescribir) if isinstance(sobrescribir, tuple) else sobrescribir
         self._rubricas = list(rubricas) if isinstance(rubricas, tuple) else rubricas
         self._evidencia = list(evidencia) if isinstance(evidencia, tuple) else evidencia
+        self._ponderacion = list(ponderacion) if isinstance(ponderacion, tuple) else ponderacion
+        self._ponderacion_a_mano = (
+            list(ponderacion_a_mano)
+            if isinstance(ponderacion_a_mano, tuple)
+            else ponderacion_a_mano
+        )
         self._sin_pruebas = sin_pruebas
         self._ampliar = list(ampliar)
         self._cerrar_anterior = cerrar_anterior
@@ -958,6 +966,8 @@ class PresenciaFalsa:
         self.resumenes_sobrescribir: list = []
         self.resumenes_rubricas: list = []
         self.resumenes_evidencia: list = []
+        self.resumenes_ponderacion: list = []
+        self.resumenes_ponderacion_a_mano: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
         self._configuracion = configuracion
@@ -1013,6 +1023,20 @@ class PresenciaFalsa:
     def confirmar_calificador(self, resumen):
         self.resumenes_calificador.append(resumen)
         return self._respuesta_real()
+
+    def confirmar_ponderacion(self, resumen):
+        self.resumenes_ponderacion.append(resumen)
+        if self._ponderacion is None:
+            return self._respuesta_real()
+        if isinstance(self._ponderacion, list):
+            return self._ponderacion.pop(0) if self._ponderacion else False
+        return self._ponderacion
+
+    def confirmar_ponderacion_a_mano(self, resumen):
+        self.resumenes_ponderacion_a_mano.append(resumen)
+        if isinstance(self._ponderacion_a_mano, list):
+            return self._ponderacion_a_mano.pop(0) if self._ponderacion_a_mano else False
+        return self._ponderacion_a_mano
 
     def confirmar_copia(self, resumen):
         self.resumenes_copia.append(resumen)
@@ -1117,6 +1141,8 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "CAMBIADA_DESDE_LA_PUBLICACION": publicacion.Aviso.cambiada_desde_la_publicacion("T"),
         "CAMBIADO_A_MANO": publicacion.Aviso.cambiado_a_mano("T"),
         "CANCELADA": publicacion.Aviso.cancelada(),
+        "CATEGORIA_BLOQUEADA": publicacion.Aviso.categoria_bloqueada("PRIMERA EVALUACIÓN"),
+        "CATEGORIA_NO_DECLARADA": publicacion.Aviso.categoria_no_declarada("Examen"),
         "CARPETA_NO_AISLADA": publicacion.Aviso.carpeta_no_aislada(),
         "CERRANDO_SESION_ANTERIOR": publicacion.Aviso.cerrando_sesion_anterior(),
         "COMPROBACIONES_DE_AISLAMIENTO": publicacion.Aviso.comprobaciones_de_aislamiento(
@@ -1130,6 +1156,11 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ELEMENTO_CON_NOTAS_QUITADO": publicacion.Aviso.elemento_con_notas_quitado("T"),
         "ELEMENTO_SIN_ACTIVIDADES": publicacion.Aviso.elemento_sin_actividades("RA1"),
         "CRITERIOS_SIN_PESO": publicacion.Aviso.criterios_sin_peso("RA1"),
+        "PESOS_CON_NOTAS": publicacion.Aviso.pesos_con_notas("PRIMERA EVALUACIÓN"),
+        "PONDERACION_NO_APLICADA": publicacion.Aviso.ponderacion_no_aplicada(
+            "fichero:1eva/test-1.md"
+        ),
+        "PONDERANDO_EN_PRUEBAS": publicacion.Aviso.ponderando_en_pruebas("ponderacion.yaml"),
         "ERROR_INTERNO": publicacion.Aviso.error_interno("RuntimeError"),
         "ESTRUCTURA_NO_LEIDA": publicacion.Aviso.estructura_no_leida(),
         "EVALUACION_CERRADA_EN_EL_AULA": publicacion.Aviso.evaluacion_cerrada_en_el_aula("T"),

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from . import ayuda, estado, informe, rutas, tipos
+from .calificacion.ponderacion import CategoriaAfectada
 from .informe import ErrorInforme
 from .publicacion import (
     CAMPO_RECORDATORIO,
@@ -30,9 +31,11 @@ from .publicacion import (
     DocumentoResumen,
     ResumenAislamiento,
     ResumenCalificador,
+    ResumenCambioAMano,
     ResumenCopia,
     ResumenEvidencia,
     ResumenOrden,
+    ResumenPonderacion,
     ResumenPublicacion,
     ResumenRubricas,
     ResumenSinPruebas,
@@ -64,6 +67,8 @@ __all__ = [
     "SESION_ANTERIOR_ATENDIENDO",
     "SESION_ANTERIOR_TEXTO",
     "DetalleCalificador",
+    "DetalleCambioAMano",
+    "DetallePonderacion",
     "DetalleCopia",
     "DetalleCorto",
     "DetalleEvidencia",
@@ -88,6 +93,8 @@ __all__ = [
     "describir_curso",
     "describir_documento",
     "detalle_calificador",
+    "detalle_cambio_a_mano",
+    "detalle_ponderacion",
     "detalle_copia",
     "detalle_corto",
     "detalle_orden",
@@ -664,6 +671,139 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
 
 
 @dataclass(frozen=True)
+class DetallePonderacion:
+    """La confirmación de ``tiza calificador ponderacion.yaml`` en un curso real: el antes/después."""
+
+    curso: str
+    posicion: int
+    total: int
+    encabezado: str
+    lineas: tuple[str, ...]
+    pregunta: str
+
+
+@dataclass(frozen=True)
+class DetalleCambioAMano:
+    """La pregunta aparte por algo que el docente cambió a mano en el aula."""
+
+    curso: str
+    posicion: int
+    total: int
+    encabezado: str
+    pregunta: str
+
+
+_METODOS_LLANOS = {
+    "media_ponderada": "media ponderada",
+    "natural": "natural",
+    "otro": "otro método",
+}
+
+
+def _porcentaje_en_decimales(valor: float | None) -> str:
+    """Un porcentaje efectivo con un decimal y coma (``21,3 %``); «—» si no hay."""
+    if valor is None:
+        return "—"
+    return f"{valor:.1f} %".replace(".", ",")
+
+
+def _metodo_llano(calculo: str | None) -> str:
+    return "—" if calculo is None else _METODOS_LLANOS.get(calculo, "otro método")
+
+
+def _si_no(valor: bool | None) -> str:
+    return "—" if valor is None else ("sí" if valor else "no")
+
+
+def _lineas_de_categoria(categoria: CategoriaAfectada) -> list[str]:
+    nombre = f"«{texto_seguro(categoria.nombre, 80)}»"
+    lineas: list[str] = []
+    if categoria.calculo_antes is None:
+        lineas.append(f"  Nueva categoría {nombre}")
+        lineas.append(
+            f"    {_metodo_llano(categoria.calculo_despues)} · "
+            f"solo no vacías: {_si_no(categoria.solo_despues)}"
+        )
+    else:
+        if categoria.calculo_antes == categoria.calculo_despues:
+            metodo = f"({_metodo_llano(categoria.calculo_despues)}; no se cambia)"
+        else:
+            metodo = (
+                f"(antes: {_metodo_llano(categoria.calculo_antes)}; "
+                f"después: {_metodo_llano(categoria.calculo_despues)})"
+            )
+        lineas.append(f"  {nombre} {metodo}")
+        if categoria.solo_antes != categoria.solo_despues:
+            lineas.append(
+                f"    solo no vacías: {_si_no(categoria.solo_antes)} → "
+                f"{_si_no(categoria.solo_despues)}"
+            )
+    for hijo in categoria.hijos:
+        nombre_hijo = texto_seguro(hijo.nombre, 80)
+        if hijo.despues is None and hijo.antes is not None:
+            cambio = f"{_porcentaje_en_decimales(hijo.antes)} → sale de la categoría"
+        else:
+            cambio = (
+                f"{_porcentaje_en_decimales(hijo.antes)} → {_porcentaje_en_decimales(hijo.despues)}"
+            )
+        peso = f"  (peso {_numero(hijo.peso)})" if hijo.peso is not None else ""
+        lineas.append(f"    {nombre_hijo}: {cambio}{peso}")
+    return lineas
+
+
+def detalle_ponderacion(resumen: ResumenPonderacion) -> DetallePonderacion:
+    """El antes/después de ``tiza calificador ponderacion.yaml`` en el curso, en lenguaje llano.
+
+    Los nombres de categorías y notas vienen del aula y se sanean aquí. Es la pantalla del
+    docente: no se escribe en ``.tiza``.
+    """
+    lineas: list[str] = []
+    for categoria in resumen.afectadas:
+        lineas.extend(_lineas_de_categoria(categoria))
+    for nombre in resumen.pesos_con_notas:
+        lineas.append(
+            f"  ⚠ «{texto_seguro(nombre, 80)}» ya tiene notas: su total cambiará para el alumnado."
+        )
+    for nombre in resumen.salidas:
+        lineas.append(f"  Sale una nota de «{texto_seguro(nombre, 80)}»: su total cambiará.")
+    for aviso in resumen.avisos:
+        lineas.extend(f"  {linea.texto}" for linea in lineas_de_aviso(aviso))
+    curso = describir_curso(resumen.curso, resumen.nombre_curso)
+    return DetallePonderacion(
+        curso=curso,
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado=f"Ponderación en el curso REAL {curso}:",
+        lineas=tuple(lineas),
+        pregunta="¿Aplicar en este curso?",
+    )
+
+
+def detalle_cambio_a_mano(resumen: ResumenCambioAMano) -> DetalleCambioAMano:
+    """La pregunta por un peso que el docente cambió a mano en el aula y tiza pisaría."""
+    cambio = resumen.cambio
+    nombre = f"«{texto_seguro(cambio.nombre, 80)}»"
+    if cambio.antes is not None and cambio.despues is not None:
+        texto = (
+            f"Has cambiado a mano {nombre}: ahora pesa {_porcentaje(cambio.antes)}; "
+            f"tiza pondría {_porcentaje(cambio.despues)}."
+        )
+    elif cambio.despues is not None:
+        texto = f"Has cambiado a mano {nombre}; tiza pondría {_porcentaje(cambio.despues)}."
+    elif cambio.antes is not None:
+        texto = f"Has cambiado a mano {nombre}: ahora pesa {_porcentaje(cambio.antes)}."
+    else:
+        texto = f"Has cambiado a mano {nombre}."
+    return DetalleCambioAMano(
+        curso=describir_curso(resumen.curso, resumen.nombre_curso),
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado="Has cambiado algo a mano en el aula:",
+        pregunta=f"{texto} ¿Sobrescribir?",
+    )
+
+
+@dataclass(frozen=True)
 class DetalleCopia:
     """La confirmación de ``tiza copia``: de qué curso y la pregunta al docente."""
 
@@ -825,6 +965,12 @@ _ROTULOS: dict[str, tuple[str, str, str]] = {
     "confirmar_real_sin_pruebas": ("Publicar en este curso", "Saltar este curso", "real"),
     "confirmar_orden": ("Ordenar este curso", "Saltar este curso", "real"),
     "confirmar_calificador": ("Cambiar el calificador", "Saltar este curso", "real"),
+    "confirmar_ponderacion": ("Aplicar la ponderación", "Saltar este curso", "real"),
+    "confirmar_ponderacion_a_mano": (
+        "Sobrescribir y perder el cambio",
+        "Conservar el cambio del aula",
+        "peligro",
+    ),
     "confirmar_sobrescribir": (
         "Sobrescribir y perder sus cambios",
         "Conservar los cambios del aula",
@@ -1037,6 +1183,51 @@ def _calificando_en_pruebas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 def _cambiado_a_mano(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(f"Lo cambiaste a mano en el aula y tiza no lo toca: {texto_seguro(datos['nombre'])}"),
+    )
+
+
+def _ponderando_en_pruebas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "El agente pide aplicar la ponderación en pruebas con "
+            f"«{texto_seguro(datos['esquema'], 200)}»."
+        ),
+    )
+
+
+def _pesos_con_notas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'])}» ya tiene notas: su total cambiará para el alumnado."
+        ),
+    )
+
+
+def _categoria_bloqueada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'])}» está bloqueada: tiza no cambia nada de ella "
+            "ni de lo que entra o sale."
+        ),
+    )
+
+
+def _categoria_no_declarada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"«{texto_seguro(datos['nombre'])}» es una categoría de tiza que ya no está en "
+            "ponderacion.yaml: se queda en el aula."
+        ),
+    )
+
+
+def _ponderacion_no_aplicada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "El aula no refleja lo pedido para "
+            f"{texto_seguro(datos['referencia'], 200)}: revísalo o repite el comando.",
+            error=True,
+        ),
     )
 
 
@@ -1440,6 +1631,8 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
     "CAMBIADO_A_MANO": _cambiado_a_mano,
     "CANCELADA": _cancelada,
+    "CATEGORIA_BLOQUEADA": _categoria_bloqueada,
+    "CATEGORIA_NO_DECLARADA": _categoria_no_declarada,
     "CARPETA_NO_AISLADA": _carpeta_no_aislada,
     "CERRANDO_SESION_ANTERIOR": _cerrando_sesion_anterior,
     "COMPROBACIONES_DE_AISLAMIENTO": _comprobaciones_de_aislamiento,
@@ -1467,8 +1660,11 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ORDENANDO_EN_PRUEBAS": _ordenando_en_pruebas,
     "PANEL_ACTUALIZADO": _panel_actualizado,
     "PANEL_NO_ACTUALIZADO": _panel_no_actualizado,
+    "PESOS_CON_NOTAS": _pesos_con_notas,
     "PESOS_SIN_EFECTO": _pesos_sin_efecto,
     "PETICION_RETIRADA": _peticion_retirada,
+    "PONDERACION_NO_APLICADA": _ponderacion_no_aplicada,
+    "PONDERANDO_EN_PRUEBAS": _ponderando_en_pruebas,
     "PRIMERA_VEZ": _primera_vez,
     "PUBLICANDO_EN_PRUEBAS": _publicando_en_pruebas,
     "QUEDAN_MINUTOS": _quedan_minutos,

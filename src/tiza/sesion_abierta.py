@@ -27,6 +27,7 @@ from typing import Any
 from . import buzon, contenido, estado, informe, publicacion, rutas
 from .calificacion.carpeta import cargar_calificacion
 from .calificacion.esquema import ErrorCalificacion
+from .calificacion.ponderacion_esquema import cargar_ponderacion, es_ponderacion
 from .config import Config
 from .contenido import Documento, ErrorContenido
 from .estructura import Estructura
@@ -145,7 +146,7 @@ class SesionAbierta:
 
     def _calificador(self, peticion: dict, base: Path, entorno: str, curso: int | None) -> dict:
         """``tiza calificador``: el esquema y todas las actividades de la carpeta, no solo los
-        ficheros de la petición. Lo que se puede saber sin el aula (el esquema, los ``evalua`` y que
+        ficheros de la petición. Un ``.yaml`` con la raíz ``ponderacion`` va a la ponderación. Lo que se puede saber sin el aula (el esquema, los ``evalua`` y que
         sus pesos cuadren) se comprueba antes de gastar cupo o leer nada del aula."""
         comando = peticion["comando"]
         nombre = peticion["ficheros"][0]
@@ -154,11 +155,31 @@ class SesionAbierta:
             return informe.crear(
                 comando, "error", [], [], ["RUTA_FUERA_DE_CARPETA"], entorno, curso
             )
+        dir_tiza = base / rutas.CARPETA_TRABAJO
+        if es_ponderacion(ruta, base):
+            try:
+                ponderacion = cargar_ponderacion(ruta, base)
+            except ErrorCalificacion as exc:  # también ErrorPonderacion
+                return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
+            documento = publicacion.ponderacion_en_cursos(
+                self.aula,
+                self.cfg,
+                ponderacion,
+                base,
+                self.presencia,
+                entorno=entorno,
+                nombre_esquema=nombre,
+                vigente=lambda: buzon.peticion_pendiente(dir_tiza, peticion["id"]),
+                cupo=self.cupo,
+                avisar_en_pruebas=True,
+                nombres=self.nombres,
+                debug=self.debug,
+            )
+            return registrar(documento, base, self.presencia)
         try:
             esquema, documentos = cargar_calificacion(ruta, base)
         except ErrorCalificacion as exc:
             return informe.crear(comando, "error", [], [], [exc.codigo], entorno, curso)
-        dir_tiza = base / rutas.CARPETA_TRABAJO
         documento = publicacion.calificador_en_cursos(
             self.aula,
             self.cfg,

@@ -25,6 +25,7 @@ MENSAJES: dict[str, str] = {
     "RECUPERACION_CON_MEDIANA": "Un criterio con regla «mediana» no admite recuperación: la mediana no puede sustituirse por una nota mayor. Cambia la regla del criterio o quita «recupera» a la actividad.",
     "ESQUEMA_INVALIDO": "El esquema de calificación (.yaml) tiene un error: el mensaje dice la ruta y la línea. Corrígelo y repite «tiza comprobar» con él antes de pedir el calificador.",
     "PONDERACION_INVALIDA": "El esquema de ponderación (ponderacion.yaml) tiene un error: el mensaje dice la ruta y la línea. Corrígelo y repite «tiza comprobar» con él antes de pedir el calificador.",
+    "CALIFICADOR_CON_PONDERACION": "El curso ya tiene categorías de ponderación (las de ponderacion.yaml) y no se mezclan con el calificador de calificacion.yaml. Elige un solo modo para ese curso; tiza no toca nada en él.",
     "PONDERACION_CON_CALIFICADOR_DE_TIZA": "El curso ya tiene el «Calificador de tiza» (el de calificacion.yaml) y no se mezcla con la ponderación de ponderacion.yaml. Elige un solo modo para ese curso; tiza no toca nada en él.",
     "CATEGORIA_BLOQUEADA": "Una categoría nueva de ponderacion.yaml caería dentro de una categoría bloqueada del aula, y tiza no escribe en ella. No se ha cambiado nada en este curso: desbloquéala a mano en el calificador o cambia «dentro_de».",
     "PESOS_MEZCLADOS": "En una misma lista de «elementos» de ponderacion.yaml hay elementos con «peso» y otros con «porcentaje». Usa solo uno de los dos en cada lista.",
