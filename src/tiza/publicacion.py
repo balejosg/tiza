@@ -3443,6 +3443,20 @@ class _EjecucionPonderacion:
                 coeficiente=op.coeficiente,
             )
             self.reales[str(op.eid)] = eid
+            # El aula ignora el coeficiente en el alta de una categoría (S1: nace a 0), así que
+            # se fija justo después. Se anota como operación para verificarlo y dejar su huella.
+            if op.coeficiente is not None:
+                aula.fijar_coeficiente(curso, eid, op.coeficiente, "media_ponderada")
+                self.hechas.append(
+                    ponderacion.OperacionPonderacion(
+                        "coeficiente",
+                        op.referencia,
+                        eid=eid,
+                        coeficiente=op.coeficiente,
+                        porcentaje=op.porcentaje,
+                        metodo_del_padre="media_ponderada",
+                    )
+                )
         elif op.tipo == "mover":
             aula.mover_nota(
                 curso, str(self.real(op.eid)), str(self.real(op.destino)), self.real(op.despues_de)

@@ -216,6 +216,7 @@ def test_las_escrituras_van_en_orden_y_crear_lleva_solo_y_coeficiente(tmp_path):
     assert resultado["resultado"] == "ok"
     assert [e[0] for e in aula.escrituras] == [
         "crear_categoria",
+        "fijar_coeficiente",
         *["mover_nota"] * 4,
         *["fijar_coeficiente"] * 4,
     ]
@@ -232,6 +233,7 @@ def test_las_escrituras_van_en_orden_y_crear_lleva_solo_y_coeficiente(tmp_path):
     ]
     coeficientes = [e for e in aula.escrituras if e[0] == "fijar_coeficiente"]
     assert [(e[2], e[3], e[4]) for e in coeficientes] == [
+        (eid_examen, 1.2857, "media_ponderada"),
         ("ig11", 16.0, "media_ponderada"),
         ("ig12", 8.0, "media_ponderada"),
         ("ig13", 6.0, "media_ponderada"),
@@ -277,7 +279,7 @@ def test_verificacion_correcta_informe_y_huellas(tmp_path):
     assert pasos(resultado, "PONDERACION")[0]["detalle"] == "aplicada"
     assert (
         pasos(resultado, "PONDERACION_CAMBIOS")[0]["detalle"]
-        == "crear: 1; mover: 4; coeficiente: 4"
+        == "crear: 1; mover: 4; coeficiente: 5"
     )
     guardadas = huellas(tmp_path)
     assert set(guardadas) == {*REF_FICHEROS, REF_EXAMEN, REF_PRIMERA}
@@ -360,7 +362,7 @@ def test_un_fallo_a_medias_para_en_seco_y_la_pasada_siguiente_converge(tmp_path)
     guardadas = huellas(tmp_path)
     assert REF_EXAMEN in guardadas  # lo verificado: la categoría creada
     assert not set(REF_FICHEROS) & set(guardadas)  # con un solo coeficiente, ningún reparto cuadra
-    assert [p["detalle"] for p in pasos(resultado, "PONDERACION_NO_APLICADA")] == [REF_FICHEROS[0]]
+    assert pasos(resultado, "PONDERACION_NO_APLICADA") == []
 
     aula.fallar_tras = None
     segunda, resultado = ejecutar(aula, esquema_e1(), tmp_path)
