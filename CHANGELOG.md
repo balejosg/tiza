@@ -7,7 +7,9 @@ se avisa aquí con **Cambia**.
 ## Sin publicar
 
 ### Añadido
+- **El agente explica mejor desde la primera versión.** Antes de proponer una unidad (o una pieza suelta, si le falta el contexto) te pregunta en un solo mensaje con qué trabaja tu alumnado, qué saben ya, cuánto dura de verdad la sesión y qué dinámicas aceptas, y te ofrece guardar lo estable en `preferencias.txt`. Explica cada concepto empezando por para qué sirve, uno por apartado, con una comparación cotidiana mantenida, ejemplos resueltos paso a paso y actividades que dicen qué hacer, qué deberías obtener y para qué. Antes de enseñarte nada rehace ejemplos, soluciones y criterios, prueba los criterios con casos límite y te dice qué ha corregido. La propuesta por defecto es individual o por parejas; lo que exige manejar a todo el grupo va marcado «exige gestión de aula».
 - **`tiza comprobar` avisa de las referencias rotas.** Si una pieza cita a otra entre «» con un nombre que se parece al de una pieza de la carpeta pero no coincide (por ejemplo, tras renombrarla), avisa con `REFERENCIA_ROTA`. Es un aviso: no impide publicar.
+- **El límite de palabras ya no recorta la explicación.** Sirve para decidir cuándo partir una página; las páginas se planifican por concepto, no por sesión.
 
 ### Arreglado
 - **La sesión ya no se da por cerrada por una lectura fallida.** En Windows, `tiza publicar` podía responder `SESION_CERRADA` con la sesión abierta. Pasaba al leer el fichero de la sesión justo cuando la sesión lo renovaba, y obligaba a reabrirla una y otra vez. Ahora el agente reintenta esa lectura y solo da la sesión por cerrada si se cerró de verdad o deja de renovarse.

@@ -5,6 +5,11 @@
 Nivel: 3.º de ESO
 Materia: Matemáticas
 
+# Aula (lo estable; sin datos del alumnado)
+Equipos: portátiles con Windows 11 y LibreOffice; sin calculadora científica
+Sesión: 55 minutos de verdad
+Dinámicas: individual o por parejas; nada que obligue a moverse por el aula
+
 # Tono
 Tono: cercano y directo, sin infantilizar
 Trato: de tú al docente y de vosotros a la clase

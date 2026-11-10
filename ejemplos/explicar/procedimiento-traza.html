@@ -1,0 +1,91 @@
+---
+tipo: pagina
+nombre: "Seguir un bucle a mano: la traza"
+seccion: "Bucles"
+finalizacion: ver
+---
+<div style="max-width:52rem">
+<p class="lead">Antes de ejecutar un programa conviene saber qué va a hacer. Una traza te deja seguirlo a mano, línea a línea, y encontrar dónde se equivoca sin adivinar.</p>
+
+<div class="alert alert-info">
+  <h4><i class="fa-solid fa-fw fa-bullseye" aria-hidden="true"></i> Qué vas a aprender</h4>
+  <ul class="mb-0">
+    <li>Para qué sirve una traza.</li>
+    <li>Hacer la traza de un bucle <code>for</code> paso a paso.</li>
+  </ul>
+</div>
+
+<h3>Para qué sirve: saber qué hará el programa</h3>
+<p>Un bucle repite unas líneas muchas veces y es fácil perder la cuenta. Si el resultado no es
+el que esperabas, la traza te dice en qué vuelta se torció. Es como el marcador de un partido:
+no cuentas cada jugada de memoria, miras el marcador después de cada una.</p>
+
+<h3>Qué es una traza: el marcador del programa</h3>
+<p>Una <mark>traza</mark> es una tabla con una columna por variable. Cada fila es un paso del
+programa: anotas qué línea se ejecuta y cómo queda el marcador. Lo que cambia en ese paso va
+resaltado. Este bucle, que ya conoces de «Bucles for», suma 1 + 2 + 3:</p>
+
+<pre class="bg-light border rounded p-3" style="line-height:1.5;font-size:0.9rem"><code class="language-java">int total = 0;
+for (int i = 1; i &lt;= 3; i++) {
+    total = total + i;
+}</code></pre>
+
+<h3>Cómo se hace, paso a paso</h3>
+<p>Lee la tabla fila a fila. En cada paso, mira solo la celda resaltada: es lo único que cambia
+en el marcador. La última columna dice si se cumple la condición.</p>
+<div class="table-responsive">
+  <table class="table table-striped">
+    <thead>
+      <tr><th scope="col">Paso</th><th scope="col">Qué se ejecuta</th><th scope="col">i</th><th scope="col">total</th><th scope="col">¿i ≤ 3?</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td><code>int total = 0</code></td><td>—</td><td><mark>0</mark></td><td>—</td></tr>
+      <tr><td>2</td><td><code>int i = 1</code></td><td><mark>1</mark></td><td>0</td><td>sí</td></tr>
+      <tr><td>3</td><td><code>total = total + i</code></td><td>1</td><td><mark>1</mark></td><td>sí</td></tr>
+      <tr><td>4</td><td><code>i++</code></td><td><mark>2</mark></td><td>1</td><td>sí</td></tr>
+      <tr><td>5</td><td><code>total = total + i</code></td><td>2</td><td><mark>3</mark></td><td>sí</td></tr>
+      <tr><td>6</td><td><code>i++</code></td><td><mark>3</mark></td><td>3</td><td>sí</td></tr>
+      <tr><td>7</td><td><code>total = total + i</code></td><td>3</td><td><mark>6</mark></td><td>sí</td></tr>
+      <tr><td>8</td><td><code>i++</code></td><td><mark>4</mark></td><td>6</td><td><strong>no</strong>: sale del bucle</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>Al salir, el marcador dice <strong>total = 6</strong>, que es 1 + 2 + 3. Fíjate en el paso 8:
+<code>i</code> llega a 4, la condición deja de cumplirse y el bucle termina sin sumar el 4.</p>
+
+<div class="alert alert-warning">
+  <h4><i class="fa-solid fa-fw fa-triangle-exclamation" aria-hidden="true"></i> Importante</h4>
+  <p class="mb-0">La condición se comprueba al empezar y <strong>después de cada
+  <code>i++</code></strong>: es ahí donde el bucle decide si da otra vuelta.</p>
+</div>
+
+<div class="card bg-light mb-3">
+  <div class="card-body">
+    <h4 class="card-title"><i class="fa-solid fa-fw fa-book" aria-hidden="true"></i> Palabras de esta página</h4>
+    <dl class="mb-0">
+      <dt>Traza</dt><dd>Tabla con el valor de cada variable después de cada paso del programa.</dd>
+      <dt>Vuelta</dt><dd>Cada vez que el bucle repite sus líneas.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="alert alert-success">
+  <h4><i class="fa-solid fa-fw fa-circle-check" aria-hidden="true"></i> Resumen</h4>
+  <ul class="mb-0">
+    <li>La traza es el marcador del programa: una columna por variable, una fila por paso.</li>
+    <li>En cada paso cambia un solo valor del marcador: anótalo y resáltalo.</li>
+    <li>El bucle termina cuando la condición deja de cumplirse tras <code>i++</code>.</li>
+  </ul>
+</div>
+
+<div class="card border-primary mb-3">
+  <div class="card-body">
+    <h4 class="card-title"><i class="fa-solid fa-fw fa-pen" aria-hidden="true"></i> Actividad</h4>
+    <p class="card-text">Haz en tu cuaderno la traza de este bucle, con la misma tabla:
+    <code>for (int i = 2; i &lt;= 6; i = i + 2) { total = total + i; }</code>, empezando con
+    <code>total = 0</code>. Deberías obtener <strong>total = 12</strong>; comprueba que tu última
+    fila tiene <code>i</code> = 8 y la condición en «no». Así practicas seguir un bucle que no va
+    de uno en uno.</p>
+  </div>
+</div>
+</div>

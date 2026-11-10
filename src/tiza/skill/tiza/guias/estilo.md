@@ -3,7 +3,8 @@
 Se usa antes de escribir una página, una tarea o una etiqueta. Léela entera y escribe en
 `.html`. El resultado debe verse cuidado, igual en todas las páginas del curso y bien en el
 tema del aula, sin imitar ninguna marca. Lo que cuenta cada pieza (una idea de más de una
-forma, glosario, tareas con varias formas de entrega, tests) sigue `guias/dua.md`.
+forma, glosario, tareas con varias formas de entrega, tests) sigue `guias/dua.md`, y cómo se
+explica (el porqué primero, un concepto por apartado, ejemplos paso a paso), `guias/explicar.md`.
 
 ## 1. Cuándo se usa
 
@@ -154,7 +155,8 @@ en cuántas partes se divide; el de arriba, cuántas tomamos.</p>
 
 ### Ejemplo resuelto
 
-El enunciado se ve; la solución va plegada. El `summary` nombra lo que se despliega
+El enunciado se ve; la solución va plegada. Si es un procedimiento, la solución va en pasos
+numerados y cada paso dice qué se hace y qué cambia (`guias/explicar.md` §2). El `summary` nombra lo que se despliega
 («Solución», «Los pasos», «Una mejora posible»), sin empezar por «Ver».
 
 ```html
@@ -190,16 +192,19 @@ for (int i = 1; i != 11; i++) {
 
 ### Actividad o tarea
 
-Lo que hace el alumnado ahora. El botón-enlace es solo para una dirección externa real (una
+Lo que hace el alumnado ahora, con tres cosas: qué hace, qué debería obtener u observar y qué
+aprende con ello. El botón-enlace es solo para una dirección externa real (una
 ficha en la web); `btn` solo vale en `<a>`. Nunca enlaces otra actividad del curso ni otro
-fichero de la carpeta: nómbrala entre comillas («2. Comparar fracciones»), que el aula ya
-lleva a la siguiente (enlazar un `.md` o `.html` de la carpeta da `ENLACE_A_DOCUMENTO`).
+fichero de la carpeta: nómbrala entre comillas con su `nombre` exacto («2. Comparar fracciones»; si no coincide,
+`tiza comprobar` avisa con `REFERENCIA_ROTA`), que el aula ya lleva a la siguiente (enlazar un `.md` o `.html` de la carpeta da `ENLACE_A_DOCUMENTO`).
 
 ```html
 <div class="card border-primary mb-3">
   <div class="card-body">
     <h4 class="card-title"><i class="fa-solid fa-fw fa-pen" aria-hidden="true"></i> Actividad</h4>
-    <p class="card-text">Resuelve los ejercicios de la ficha y súbela a la tarea.</p>
+    <p class="card-text">Resuelve los ejercicios de la ficha y súbela a la tarea. Deberías
+    obtener cuatro fracciones ordenadas de menor a mayor; comprueba que la primera es 1/4. Así
+    practicas comparar con un denominador común.</p>
     <a class="btn btn-primary" href="https://www.ejemplo.org/ficha">Abrir la ficha de ejercicios</a>
   </div>
 </div>
@@ -322,10 +327,14 @@ marcados como opcionales. No cambies las clases ni añadas bloques nuevos.
 Límites que se pueden contar:
 
 - Una página de contenido tiene como mucho **600 palabras y 6 apartados `h3`**. Si pasa,
-  pártela en dos páginas y propónselo al docente antes de publicar.
+  pártela en dos páginas y propónselo al docente antes de publicar. El límite sirve para
+  decidir **cuándo partir** una página, nunca para quitar explicación: no comprimas. Si el
+  docente pide más desarrollo, manda el docente.
 - Como mucho **dos columnas** (`col-md-6`).
 - Toda página de contenido termina con «Resumen» y un bloque «Actividad» que lleva a lo
-  siguiente.
+  siguiente. Si es una actividad, dice qué hacer, qué debería obtener u observar y para qué
+  sirve (`guias/explicar.md` §2); si solo lleva a la pieza siguiente, se titula «Sigue» (con
+  `fa-arrow-right`) y la nombra entre «».
 - Sin fechas en el texto: las pone Moodle.
 
 Todas llevan encima el bloque YAML de siempre, con `tipo`, `nombre` y `seccion`:
@@ -407,7 +416,7 @@ seccion: "[RELLENA: nombre de la sección]"
       <p class="card-text">[RELLENA: enunciado del ejemplo.]</p>
       <details>
         <summary>Solución</summary>
-        <p class="mt-2 mb-0">[RELLENA: solución paso a paso.]</p>
+        <p class="mt-2 mb-0">[RELLENA: solución paso a paso: qué se hace en cada paso y qué cambia.]</p>
       </details>
     </div>
   </div>
@@ -433,7 +442,7 @@ seccion: "[RELLENA: nombre de la sección]"
   <div class="card border-primary mb-3">
     <div class="card-body">
       <h4 class="card-title"><i class="fa-solid fa-fw fa-pen" aria-hidden="true"></i> Actividad</h4>
-      <p class="card-text">[RELLENA: qué tiene que hacer el alumnado ahora y con qué actividad sigue, por su nombre.]</p>
+      <p class="card-text">[RELLENA: qué hace el alumnado, qué debería obtener u observar y qué aprende con ello. Si solo lleva a la pieza siguiente, titula el bloque «Sigue» y nómbrala entre «».]</p>
     </div>
   </div>
 </div>
@@ -539,7 +548,7 @@ Revisa tu `.html`:
 - ¿Algún `<pre>` sin el bloque «Código» (`bg-light border rounded p-3` y
   `style="line-height:1.5;font-size:0.9rem"`)?
 - ¿Falta el contenedor `<div style="max-width:52rem">`?
-- ¿Pasa de 600 palabras?
+- ¿Pasa de 600 palabras? Pártela; no la comprimas.
 - ¿Solo clases de este catálogo y ninguna de Bootstrap 5 (`fw-*`, `fst-*`, `gap-*`…)?
 - ¿Títulos desde `h3`, sin saltos de nivel y sin repetir el nombre de la actividad?
 - ¿`alt` en todas las imágenes?
@@ -549,7 +558,8 @@ Revisa tu `.html`:
 - ¿Solo bloques del catálogo?
 
 Si la respuesta es sí a cualquiera de las cinco primeras, no lo retoques: rehazlo con la
-plantilla. Después ejecuta `tiza comprobar <fichero>.html`. Si da `HTML_PELIGROSO`, corrige
+plantilla (si es la de las 600 palabras, parte la página). Repasa también la lista de
+`guias/explicar.md` §5. Después ejecuta `tiza comprobar <fichero>.html`. Si da `HTML_PELIGROSO`, corrige
 lo que diga y repite: tiza no limpia nada en silencio.
 
 ## 8. Si el aula limpia los estilos

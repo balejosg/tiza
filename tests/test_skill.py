@@ -350,6 +350,58 @@ def test_guia_dua_es_breve_y_dice_lo_que_tiza_no_hace():
         assert parte in texto, parte
 
 
+GUIA_EXPLICAR = SKILL.parent / "guias/explicar.md"
+
+
+def test_guia_explicar_se_carga_con_la_de_dua_al_escribir_y_en_la_unidad():
+    assert GUIA_EXPLICAR.is_file()
+    texto = SKILL.read_text(encoding="utf-8")
+    escribir = texto.split("2. **Escribe el contenido**", 1)[1].split("\n3. ", 1)[0]
+    assert "guias/dua.md` y `guias/explicar.md`" in escribir
+    unidad = texto.split("## Unidad completa", 1)[1].split("\n## ", 1)[0]
+    assert "guias/explicar.md" in unidad
+    for guia in ("unidad.md", "estilo.md", "dua.md"):
+        assert "guias/explicar.md" in (SKILL.parent / "guias" / guia).read_text(encoding="utf-8")
+
+
+def test_guia_explicar_es_breve_y_trae_los_pasos_comprobables():
+    texto = GUIA_EXPLICAR.read_text(encoding="utf-8")
+    assert len(texto.splitlines()) <= 150
+    for parte in (
+        "en un solo mensaje",  # descubrimiento del aula
+        "preferencias.txt",  # lo estable, con el sí del docente
+        "Primero el porqué",
+        "Un concepto nuevo por apartado",
+        "qué debería obtener",  # actividad con resultado esperado
+        "paso a paso",
+        "Andamiaje gradual",
+        "exige gestión de aula",  # dinámicas
+        "Antes de `tiza comprobar`".lower(),
+        "casos límite",
+        "No afirmes de memoria",
+        "Autorrevisión",
+        "nunca para quitar explicación",
+        "`ejemplos/explicar/`",
+    ):
+        assert parte.lower() in texto.lower(), parte
+
+
+def test_el_limite_de_palabras_sirve_para_partir_no_para_comprimir():
+    estilo = (SKILL.parent / "guias/estilo.md").read_text(encoding="utf-8")
+    assert "nunca para quitar explicación" in estilo
+    unidad = (SKILL.parent / "guias/unidad.md").read_text(encoding="utf-8")
+    assert "por concepto, no por sesión" in unidad
+
+
+def test_la_unidad_pregunta_el_contexto_del_aula_antes_de_proponer():
+    texto = SKILL.read_text(encoding="utf-8")
+    paso = texto.split("1. **Averigua antes de escribir**", 1)[1].split("\n2. ", 1)[0]
+    for parte in ("con qué trabaja el alumnado", "qué saben ya", "dura", "dinámicas"):
+        assert parte in paso, parte
+    guia = (SKILL.parent / "guias/unidad.md").read_text(encoding="utf-8")
+    assert "con qué trabaja el alumnado" in guia.split("## 2.", 1)[0]
+
+
 GUIA_LICENCIAS = SKILL.parent / "guias/licencias.md"
 
 
@@ -416,6 +468,9 @@ EJEMPLOS_QUE_VIAJAN = (
     "unidad/4-practica.md",
     "unidad/5-comprobacion.md",
     "unidad/6-reparto-final.html",
+    "explicar/concepto-densidad.html",
+    "explicar/procedimiento-traza.html",
+    "explicar/tarea-andamiaje.html",
     "pagina-con-estilo.html",
     "tarea-con-estilo.html",
     "etiqueta.md",

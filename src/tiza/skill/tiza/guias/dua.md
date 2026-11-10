@@ -3,7 +3,8 @@
 Se aplica **siempre** que escribas una página, una tarea, un cuestionario, un H5P o una
 unidad, aunque el docente no lo pida. Son buenas prácticas del Diseño Universal para el
 Aprendizaje (DUA): el material se diseña desde el principio para toda la clase, en vez de
-adaptarlo después. La maqueta y la accesibilidad del HTML siguen en `guias/estilo.md`.
+adaptarlo después. La maqueta y la accesibilidad del HTML siguen en `guias/estilo.md`; cómo se
+explica cada concepto, en `guias/explicar.md`, que se carga siempre con esta.
 
 ## 1. Alcance
 
@@ -14,7 +15,7 @@ adaptarlo después. La maqueta y la accesibilidad del HTML siguen en `guias/esti
   sin retroalimentación), avísale una vez, con el motivo en llano, y hazlo como lo pide. Lo
   que no choca lo sigues aplicando.
 - **Mandan los límites de `guias/estilo.md`.** Si con el glosario la página pasa de 600
-  palabras, pártela y propónselo; no la estires.
+  palabras, pártela y propónselo; no la estires ni recortes la explicación.
 - **Sin jerga.** No le hables al docente de «DUA» ni de pautas. Al proponer, cuenta en una
   frase tres o cuatro cosas que notará: «cada idea va con texto y con un dibujo, el
   cuestionario explica cada opción y la tarea se puede entregar de varias formas con los

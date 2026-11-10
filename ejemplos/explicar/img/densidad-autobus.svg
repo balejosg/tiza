@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <title>Dos autobuses iguales, vistos desde arriba, con distinta gente</title>
+  <desc>El autobús de la izquierda lleva 4 personas y es menos denso; el de la derecha lleva 12 en el mismo espacio y es más denso.</desc>
+  <rect x="60" y="40" width="300" height="300" rx="16" fill="#e7f1ff" stroke="#0d6efd" stroke-width="4"/>
+  <rect x="440" y="40" width="300" height="300" rx="16" fill="#e7f1ff" stroke="#0d6efd" stroke-width="4"/>
+  <g fill="#6c757d">
+    <circle cx="150" cy="130" r="30"/><circle cx="270" cy="130" r="30"/>
+    <circle cx="150" cy="250" r="30"/><circle cx="270" cy="250" r="30"/>
+  </g>
+  <g fill="#6c757d">
+    <circle cx="485" cy="100" r="26"/><circle cx="555" cy="100" r="26"/><circle cx="625" cy="100" r="26"/><circle cx="695" cy="100" r="26"/>
+    <circle cx="485" cy="190" r="26"/><circle cx="555" cy="190" r="26"/><circle cx="625" cy="190" r="26"/><circle cx="695" cy="190" r="26"/>
+    <circle cx="485" cy="280" r="26"/><circle cx="555" cy="280" r="26"/><circle cx="625" cy="280" r="26"/><circle cx="695" cy="280" r="26"/>
+  </g>
+  <g font-size="36" text-anchor="middle" fill="#212529">
+    <text x="210" y="400">Menos denso</text>
+    <text x="210" y="450">4 personas</text>
+    <text x="590" y="400">Más denso</text>
+    <text x="590" y="450">12 personas</text>
+  </g>
+</svg>

@@ -12,6 +12,10 @@ Pide, juntos y diciendo para qué sirve cada uno:
 - **Cómo evalúa y pondera el departamento**, si está por escrito: para los instrumentos y los pesos.
 - **La programación del ciclo**, en FP, si existe: para los resultados de aprendizaje.
 
+En el mismo mensaje, lo del aula que no esté en `preferencias.txt` (`guias/explicar.md` §1):
+con qué trabaja el alumnado (dispositivos, programas, material, libro, espacios), qué saben ya
+y qué les cuesta, cuánto dura de verdad la sesión y qué dinámicas acepta el docente.
+
 Pide copias **sin datos del alumnado**. Si falta algún documento, sigue y avisa de lo pendiente.
 
 ## 2. Léelos
@@ -53,6 +57,10 @@ a toda la clase (`guias/dua.md`) es propuesta tuya, salvo lo que cite `tiza norm
 ## 6. Propón en el chat
 
 La unidad, con las relaciones curriculares en una tabla «código | texto literal | procedencia».
+Páginas **por concepto, no por sesión** (una sesión puede tener varias páginas cortas): de
+cada una, su concepto y la comparación que la recorre; de cada procedimiento, la página de su
+ejemplo resuelto. Dinámica por defecto, individual o por parejas; la que exige manejar a todo
+el grupo va aparte, marcada «exige gestión de aula» (`guias/explicar.md` §3).
 Haz solo las preguntas que únicamente el docente puede contestar, y todas juntas. Di qué
 imágenes o esquemas necesita cada página y qué debe mostrar cada uno, en una línea, marcado
 como «la dibujo yo (esquema)» o «la traes tú»: los esquemas sencillos los dibujas tú con
@@ -64,8 +72,10 @@ reales o el material ajeno los trae el docente.
 Escribe `unidad-N.md` y conviértelo con `tiza documento unidad-N.md`. Si ya existe ese Word
 (`DOCUMENTO_EXISTE`), genera otro con `--salida unidad-N-v2.docx` y dilo: nunca se borra un
 Word del docente. Después, las actividades: las páginas y etiquetas se escriben en `.html` siguiendo
-`guias/estilo.md` (los cuestionarios, H5P y tareas cortas, en `.md`), todas con `guias/dua.md`, y el camino de siempre:
-`tiza comprobar`, pruebas y real.
+`guias/estilo.md` (los cuestionarios, H5P y tareas cortas, en `.md`), todas con `guias/dua.md` y
+`guias/explicar.md`. Antes de `tiza comprobar`, verifica ejemplos, soluciones y criterios y haz
+la autorrevisión (`guias/explicar.md` §4 y §5), y dile al docente qué corregiste. Después, el
+camino de siempre: `tiza comprobar`, pruebas y real.
 
 ### Markdown que admite `tiza documento`
 

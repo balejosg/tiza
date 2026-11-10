@@ -611,6 +611,7 @@ class TestEjemplosDelRepo:
         ficheros = [
             *sorted((RAIZ_REPO / "ejemplos").glob("*.html")),
             *sorted((RAIZ_REPO / "ejemplos" / "unidad").glob("*.html")),
+            *sorted((RAIZ_REPO / "ejemplos" / "explicar").glob("*.html")),
         ]
         revisados = set()
         for fichero in ficheros:
@@ -636,6 +637,11 @@ class TestEjemplosDelRepo:
                     f"{fichero.name}: un pre no lleva el interlineado del bloque «Código»"
                 )
         assert {"pagina-con-estilo.html", "maquetado.html", "tarea-con-estilo.html"} <= revisados
+        assert {
+            "concepto-densidad.html",
+            "procedimiento-traza.html",
+            "tarea-andamiaje.html",
+        } <= revisados
 
     def test_los_fragmentos_de_la_guia_de_estilo_pasan_el_filtro(self):
         fragmentos = bloques_html(RAIZ_SKILL / "guias" / "estilo.md")
