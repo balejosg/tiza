@@ -2086,7 +2086,9 @@ class Moodle:
                     else None
                 ),
                 "opciones": opciones,
+                # En media ponderada el peso está en «aggregationcoef»; en natural, en «…coef2».
                 "coef_texto": _valor_de_campo(formulario, "grade_item_aggregationcoef"),
+                "coef2_texto": _valor_de_campo(formulario, "grade_item_aggregationcoef2"),
                 "tiene_notas": False,
             }
         for eid in elementos:
@@ -2101,6 +2103,7 @@ class Moodle:
             leidos[eid] = {
                 "idnumber": _valor_de_campo(formulario, "idnumber"),
                 "coef_texto": _valor_de_campo(formulario, "aggregationcoef"),
+                "coef2_texto": _valor_de_campo(formulario, "aggregationcoef2"),
                 "tiene_notas": _campo_con_nombre(formulario, "rescalegrades") is not None,
             }
 
@@ -2141,8 +2144,21 @@ class Moodle:
                 clase = "actividad"
             else:
                 clase = "manual"
+            # El coeficiente que pesa en el padre depende del método del padre: en media
+            # ponderada, el campo sin «2»; en natural, el peso sobrescrito («…coef2»).
+            nodo_padre = por_eid.get(f["padre_eid"]) if f["padre_eid"] is not None else None
+            metodo_padre = (
+                f["agregacion"]
+                if f["es_categoria"]
+                else (nodo_padre["agregacion"] if nodo_padre is not None else None)
+            )
+            campo_coef = "coef2_texto" if metodo_padre != 10 else "coef_texto"
+            texto_coef = dato.get(campo_coef) or ""
             decimal = (
-                decimal or _decimal_de(f["peso_texto"]) or _decimal_de(dato.get("coef_texto", ""))
+                decimal
+                or _decimal_de(f["peso_texto"])
+                or _decimal_de(dato.get("coef_texto", ""))
+                or _decimal_de(dato.get("coef2_texto", ""))
             )
             nodos.append(
                 ponderacion.NodoPonderacion(
@@ -2159,7 +2175,7 @@ class Moodle:
                     agregacion=f["agregacion"],
                     solo_no_vacias=dato.get("solo_no_vacias"),
                     opciones_agregacion=dato.get("opciones"),
-                    coeficiente=_numero(dato["coef_texto"]) if dato.get("coef_texto") else None,
+                    coeficiente=_numero(texto_coef) if texto_coef else None,
                     peso=_numero(f["peso_texto"]),
                     sobrescrito=f["sobrescrito"],
                     maximo=f["maximo"],

@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 from . import calendario, colocacion, contenido, estado, informe, publicar, recorrido, rutas, tipos
+from .calificacion import ponderacion
 from .calificacion import reconciliar as rc
 from .calificacion.deseado import Deseado, detalle_tope, nombre_de_hoja
 from .calificacion.deseado import deseado as calcular_deseado
@@ -47,6 +48,7 @@ from .calificacion.esquema import (
     Esquema,
     cargar_esquema,
 )
+from .calificacion.ponderacion_esquema import ErrorPonderacion, EsquemaPonderacion
 from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
 from .estado import ErrorEstado
@@ -82,6 +84,7 @@ __all__ = [
     "EvaluacionCerrada",
     "FicheroAislamiento",
     "PlanCalificador",
+    "PlanPonderacionCurso",
     "Presencia",
     "ResumenAislamiento",
     "ResumenCalificador",
@@ -110,6 +113,8 @@ __all__ = [
     "ordenar_en_cursos",
     "ordenar_por_dependencias",
     "preparar_calificador",
+    "preparar_ponderacion",
+    "ponderacion_con",
     "publicar_con",
     "publicar_en_cursos",
     "puerta_real",
@@ -3241,6 +3246,368 @@ def calificador_con(
             estado.guardar_huellas(dir_tiza, curso, nuevas)
         except (ErrorEstado, OSError):
             borrador.fallo("HUELLA_NO_GUARDADA", "calificador")
+    return borrador.documento()
+
+
+@dataclass(frozen=True)
+class PlanPonderacionCurso:
+    """Lo leído del aula y el plan de ``ponderacion.yaml`` para un curso. No escribe nada.
+
+    ``nombres`` son los nombres exactos con los que se relee el árbol de ponderación; ``tzp``
+    es ``eid -> número de ID`` de las categorías ``TZP_`` que ya había en el aula.
+    """
+
+    curso: int
+    esquema: EsquemaPonderacion
+    estructura: Estructura
+    arbol: ponderacion.ArbolPonderacion
+    plan: ponderacion.PlanPonderacion
+    huellas: dict[str, str]
+    nombres: tuple[str, ...]
+    tzp: dict[str, str]
+
+
+MAX_PASADAS_DE_PESOS = 8  # repasos de los pesos en natural (Moodle reescala a los hermanos)
+_TIPOS_DE_PONDERACION = ("crear", "mover", "metodo", "coeficiente")
+
+
+def _nombres_de_ponderacion(esquema: EsquemaPonderacion) -> tuple[str, ...]:
+    """Los nombres exactos que hay que abrir en el aula para planificar este esquema."""
+    nuevas = {e.id for e in esquema.entradas if e.nueva}
+    nombres: dict[str, None] = {}
+    for entrada in esquema.entradas:
+        if entrada.nueva:
+            nombres[str(entrada.nombre)] = None
+            if entrada.dentro_de not in nuevas:
+                nombres[str(entrada.dentro_de)] = None
+        else:
+            nombres[str(entrada.categoria)] = None
+        for elemento in entrada.elementos:
+            referencia = elemento.referencia
+            if referencia.clase == "fichero":
+                if elemento.documento is not None:
+                    nombres[elemento.documento.nombre] = None
+            elif referencia.clase == "categoria" and referencia.nombre in nuevas:
+                continue
+            else:
+                nombres[referencia.nombre] = None
+    return tuple(nombres)
+
+
+def _referencias_de_ponderacion(esquema: EsquemaPonderacion) -> frozenset[str]:
+    return frozenset(
+        [ponderacion.referencia_de(e) for e in esquema.entradas]
+        + [ponderacion.referencia_de(el) for e in esquema.entradas for el in e.elementos]
+    )
+
+
+def preparar_ponderacion(
+    aula: AulaVirtual,
+    curso: int,
+    esquema: EsquemaPonderacion,
+    dir_tiza: Path,
+) -> PlanPonderacionCurso:
+    """Lee el curso y calcula qué hay que hacer para que cumpla ``esquema``. No escribe nada.
+
+    ``ErrorPublicacion`` si el aula no deja leer, ``ErrorPonderacion`` si el esquema no cuadra con
+    el aula (o el curso tiene el «Calificador de tiza») y ``ErrorEstado`` si
+    ``.tiza/ponderacion.json`` no vale. Si el plan corta (``plan.corta``) no se debe ejecutar.
+    """
+    estructura = aula.estructura(curso)
+    categorias = [fila.eid for fila in aula.arbol_notas(curso).filas if fila.eid.startswith("cg")]
+    ids = aula.idnumbers_de(curso, categorias)
+    tzp = {eid: valor for eid, valor in ids.items() if valor.startswith("TZP_")}
+    nombres = _nombres_de_ponderacion(esquema)
+    arbol = aula.arbol_ponderacion(curso, nombres)
+    huellas = estado.cargar_huellas_ponderacion(dir_tiza, curso)
+    plan = ponderacion.planificar(
+        esquema,
+        estructura,
+        arbol,
+        huellas,
+        calificador_de_tiza=any(valor == "TZ_TIZA" for valor in ids.values()),
+        tzp=tzp,
+    )
+    return PlanPonderacionCurso(curso, esquema, estructura, arbol, plan, huellas, nombres, tzp)
+
+
+def _desglose_ponderacion(operaciones: Sequence[ponderacion.OperacionPonderacion]) -> str:
+    """Los cambios por tipo (``crear: 1; mover: 4``): nunca nombres ni ids del aula."""
+    cuantos = Counter(op.tipo for op in operaciones)
+    return "; ".join(f"{tipo}: {cuantos[tipo]}" for tipo in _TIPOS_DE_PONDERACION if cuantos[tipo])
+
+
+class _EjecucionPonderacion:
+    """Las escrituras de un curso, con la traducción de ``nuevo:<id>`` al eid que dio el aula."""
+
+    def __init__(self, aula: AulaVirtual, curso: int) -> None:
+        self.aula = aula
+        self.curso = curso
+        self.reales: dict[str, str] = {}
+        self.hechas: list[ponderacion.OperacionPonderacion] = []
+
+    def real(self, eid: str | None) -> str | None:
+        return self.reales.get(eid, eid) if eid is not None else None
+
+    def ejecutar(self, operaciones: Iterable[ponderacion.OperacionPonderacion]) -> None:
+        for op in operaciones:
+            self._una(op)
+            self.hechas.append(op)
+
+    def _una(self, op: ponderacion.OperacionPonderacion) -> None:
+        aula, curso = self.aula, self.curso
+        if op.tipo == "crear":
+            eid = aula.crear_categoria(
+                curso,
+                str(op.nombre),
+                str(op.idnumber),
+                self.real(op.padre),
+                None,
+                None,
+                agregacion=int(op.agregacion if op.agregacion is not None else 13),
+                solo_no_vacias=True if op.solo_no_vacias is None else op.solo_no_vacias,
+                coeficiente=op.coeficiente,
+            )
+            self.reales[str(op.eid)] = eid
+        elif op.tipo == "mover":
+            aula.mover_nota(
+                curso, str(self.real(op.eid)), str(self.real(op.destino)), self.real(op.despues_de)
+            )
+        elif op.tipo == "metodo":
+            aula.fijar_agregacion(
+                curso, str(self.real(op.eid)), int(op.agregacion or 0), op.solo_no_vacias
+            )
+        else:
+            aula.fijar_coeficiente(
+                curso,
+                str(self.real(op.eid)),
+                float(op.coeficiente or 0.0),
+                str(op.metodo_del_padre),
+            )
+
+
+def _pesos_en_natural(plan: ponderacion.PlanPonderacion) -> bool:
+    return any(
+        op.tipo == "coeficiente" and op.metodo_del_padre == "natural" for op in plan.operaciones
+    )
+
+
+def _repetir_pesos(
+    aula: AulaVirtual,
+    plan_curso: PlanPonderacionCurso,
+    ejecucion: _EjecucionPonderacion,
+) -> bool:
+    """Repite los coeficientes hasta que el aula coincide con el plan; ``False`` si no converge.
+
+    En natural Moodle reescala a los hermanos al guardar un peso, así que fijarlos de una vez no
+    basta: se relee, se replanifica (con todo lo del esquema como «ya aceptado», para no tomar el
+    reescalado por un cambio a mano) y se ejecutan solo los coeficientes que queden.
+    """
+    sobrescribir = _referencias_de_ponderacion(plan_curso.esquema) | set(plan_curso.huellas)
+    for pasada in range(MAX_PASADAS_DE_PESOS + 1):
+        arbol = aula.arbol_ponderacion(plan_curso.curso, plan_curso.nombres)
+        tzp = dict(plan_curso.tzp)
+        tzp.update(
+            {
+                real: f"TZP_{eid[len(ponderacion.PREFIJO_NUEVA) :]}"
+                for eid, real in ejecucion.reales.items()
+            }
+        )
+        try:
+            nuevo = ponderacion.planificar(
+                plan_curso.esquema,
+                plan_curso.estructura,
+                arbol,
+                plan_curso.huellas,
+                tzp=tzp,
+                sobrescribir=sobrescribir,
+            )
+        except ErrorPonderacion:
+            return False
+        quedan = [op for op in nuevo.operaciones if op.tipo == "coeficiente"]
+        if not quedan:
+            return True
+        if pasada == MAX_PASADAS_DE_PESOS:
+            return False
+        ejecucion.ejecutar(quedan)
+    return False
+
+
+def _nodo_final(
+    arbol: ponderacion.ArbolPonderacion, eid: str | None
+) -> ponderacion.NodoPonderacion | None:
+    if eid is None:
+        return None
+    if eid.startswith(ponderacion.PREFIJO_NUEVA):
+        idnumber = f"{ponderacion.PREFIJO_IDNUMBER}{eid[len(ponderacion.PREFIJO_NUEVA) :]}"
+        return next((n for n in arbol.nodos if n.idnumber == idnumber), None)
+    return arbol.nodo(eid)
+
+
+def _eid_final(arbol: ponderacion.ArbolPonderacion, eid: str | None) -> str | None:
+    nodo = _nodo_final(arbol, eid)
+    return nodo.eid if nodo is not None else eid
+
+
+def _aplicada(op: ponderacion.OperacionPonderacion, arbol: ponderacion.ArbolPonderacion) -> bool:
+    """¿Lo que pidió la operación está en el aula releída?"""
+    nodo = _nodo_final(arbol, op.eid)
+    if nodo is None:
+        return False
+    if op.tipo == "crear":
+        if nodo.padre_eid != _eid_final(arbol, op.padre):
+            return False
+    if op.tipo == "mover":
+        return nodo.padre_eid == _eid_final(arbol, op.destino)
+    if op.tipo in ("crear", "metodo"):
+        if nodo.agregacion != op.agregacion:
+            return False
+        if op.solo_no_vacias is not None and nodo.solo_no_vacias != op.solo_no_vacias:
+            return False
+        if op.tipo == "metodo" or op.porcentaje is None:
+            return True
+    if op.porcentaje is None:
+        return True
+    efectivo = ponderacion.porcentaje_efectivo(nodo, arbol)
+    return efectivo is not None and abs(efectivo - op.porcentaje) < ponderacion.TOLERANCIA_EFECTIVA
+
+
+def _verificadas(
+    hechas: Sequence[ponderacion.OperacionPonderacion], arbol: ponderacion.ArbolPonderacion
+) -> list[str]:
+    """Las referencias de las operaciones hechas que el aula no refleja, sin repetir."""
+    ultimas: dict[tuple[str, str | None], ponderacion.OperacionPonderacion] = {}
+    for op in hechas:
+        ultimas[(op.tipo, op.eid)] = op  # de varias pasadas de pesos, cuenta la última
+    fallidas: dict[str, None] = {}
+    for op in ultimas.values():
+        if not _aplicada(op, arbol):
+            fallidas[op.referencia] = None
+    return list(fallidas)
+
+
+def _huellas_de_ponderacion(
+    plan_curso: PlanPonderacionCurso,
+    arbol: ponderacion.ArbolPonderacion,
+    ejecucion: _EjecucionPonderacion,
+    fallidas: Collection[str],
+) -> dict[str, str]:
+    """Las huellas de lo que el aula tiene ahora y está verificado; lo demás conserva la de antes."""
+    plan = plan_curso.plan
+    tzp = dict(plan_curso.tzp)
+    tzp.update({n.eid: n.idnumber for n in arbol.nodos if n.idnumber.startswith("TZP_")})
+    nodos = ponderacion.nodos_nombrados(plan_curso.esquema, plan_curso.estructura, arbol, tzp=tzp)
+    pendientes = {op.referencia for op in plan.operaciones if op not in ejecucion.hechas}
+    con_operacion = {op.referencia for op in plan.operaciones}
+    a_mano = {c.referencia for c in plan.cambios_a_mano}
+    nuevas: dict[str, str] = {}
+    for referencia, nodo in nodos.items():
+        antes = plan_curso.huellas.get(referencia)
+        if referencia in fallidas or referencia in a_mano:
+            verificada = False
+        elif referencia in con_operacion:
+            verificada = referencia not in pendientes
+        else:
+            verificada = _en_orden(nodo, arbol)
+        if verificada:
+            nuevas[referencia] = ponderacion.huella_nodo(nodo, arbol)
+        elif antes is not None:
+            nuevas[referencia] = antes
+    return nuevas
+
+
+def _en_orden(nodo: ponderacion.NodoPonderacion, arbol: ponderacion.ArbolPonderacion) -> bool:
+    """Lo que el plan no toca solo cuenta como hecho si no está bloqueado ni sin método de pesos."""
+    actual: ponderacion.NodoPonderacion | None = nodo
+    while actual is not None:
+        if actual.bloqueado:
+            return False
+        actual = arbol.nodo(actual.padre_eid) if actual.padre_eid else None
+    padre = arbol.nodo(nodo.padre_eid) if nodo.padre_eid else None
+    return padre is not None and padre.agregacion in (
+        ponderacion.MEDIA_PONDERADA,
+        ponderacion.NATURAL,
+    )
+
+
+def _guardar_huellas_ponderacion(
+    dir_tiza: Path, plan_curso: PlanPonderacionCurso, nuevas: dict[str, str]
+) -> None:
+    if nuevas != plan_curso.huellas:
+        estado.guardar_huellas_ponderacion(dir_tiza, plan_curso.curso, nuevas)
+
+
+def ponderacion_con(
+    aula: AulaVirtual,
+    entorno: str,
+    curso: int,
+    plan_curso: PlanPonderacionCurso,
+    dir_tiza: Path,
+    *,
+    presencia: Presencia | None = None,
+    debug: bool = False,
+) -> dict:
+    """Con el aula ya abierta: aplica el plan de ponderación de ``curso`` y devuelve el informe.
+
+    Las operaciones van en el orden del plan (crear, mover, método, coeficientes) y paran en seco
+    ante el primer ``ErrorPublicacion`` (no se deshace nada: la pasada siguiente completa). Si
+    algún reparto es natural, los coeficientes se repiten (con tope) porque Moodle reescala a los
+    hermanos. Después se relee lo tocado, se comprueba operación por operación (lo que el aula
+    no refleja es un ``PONDERACION_NO_APLICADA`` por su referencia, sin cortar) y solo lo
+    verificado guarda su huella en ``.tiza/ponderacion.json``.
+
+    No pregunta ni avisa: la confirmación y los avisos son del trabajo que lo llama.
+    """
+    borrador = informe.Borrador("calificador", entorno=entorno, curso=curso)
+    borrador.paso("LOGIN")
+    dir_tiza = Path(dir_tiza)
+    plan = plan_curso.plan
+    if plan.corta:
+        borrador.error("CATEGORIA_BLOQUEADA")
+        borrador.fallo("PONDERACION", "CATEGORIA_BLOQUEADA")
+        return borrador.documento("error")
+    ejecucion = _EjecucionPonderacion(aula, curso)
+    corte: ErrorPublicacion | None = None
+    inestable = False
+    try:
+        ejecucion.ejecutar(plan.operaciones)
+        if _pesos_en_natural(plan):
+            inestable = not _repetir_pesos(aula, plan_curso, ejecucion)
+    except ErrorPublicacion as exc:
+        corte = exc
+        depurar(exc, debug)
+        borrador.error(exc.codigo)
+    hechas = ejecucion.hechas
+    if corte is not None:
+        borrador.fallo("PONDERACION", f"{corte.codigo} tras {len(hechas)} cambios")
+    if hechas:
+        borrador.paso("PONDERACION_CAMBIOS", detalle=_desglose_ponderacion(hechas))
+    final = plan_curso.arbol
+    if hechas:
+        try:
+            final = aula.arbol_ponderacion(curso, plan_curso.nombres)
+        except ErrorPublicacion as exc:
+            depurar(exc, debug)
+            if corte is None:
+                borrador.error(exc.codigo)
+                borrador.fallo("PONDERACION", f"{exc.codigo} tras {len(hechas)} cambios")
+            return borrador.documento("error")
+    fallidas = _verificadas(hechas, final)
+    for referencia in fallidas:
+        borrador.fallo("PONDERACION_NO_APLICADA", referencia)
+    if inestable:
+        borrador.fallo("PONDERACION_NO_APLICADA", "pesos inestables")
+    if corte is None:
+        if not hechas:
+            borrador.paso("PONDERACION", detalle="sin cambios")
+        else:
+            parcial = bool(fallidas) or inestable
+            borrador.paso("PONDERACION", detalle="parcial" if parcial else "aplicada")
+    try:
+        nuevas = _huellas_de_ponderacion(plan_curso, final, ejecucion, fallidas)
+        _guardar_huellas_ponderacion(dir_tiza, plan_curso, nuevas)
+    except (ErrorPonderacion, ErrorEstado, OSError):
+        borrador.fallo("HUELLA_NO_GUARDADA", "ponderacion")
     return borrador.documento()
 
 
