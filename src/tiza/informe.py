@@ -95,6 +95,8 @@ PASOS = (
             "CALIFICADOR",
             "CALIFICADOR_BLOQUEAR",
             "CALIFICADOR_CAMBIOS",
+            "CALIFICADOR_SIN_LEER",
+            "CALIFICACION_Y_PONDERACION",
             "CALIFICADOR_COLOCAR",
             "CAMBIADO_A_MANO",
             "CAMBIO_DEL_AULA_DESCARTADO",

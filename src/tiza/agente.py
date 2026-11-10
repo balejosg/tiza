@@ -24,6 +24,10 @@ from .calificacion.cobertura import avisos as avisos_de_cobertura
 from .calificacion.cobertura import cobertura as mapa_de_cobertura
 from .calificacion.deseado import deseado, detalle_tope, reparto_por_hoja
 from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
+from .calificacion.ponderacion_esquema import (
+    cargar_ponderacion,
+    es_ponderacion,
+)
 from .contenido import Documento, ErrorContenido, hash_documento
 from .escritura import ErrorEscritura
 from .estado import CursosGuardados, ErrorEstado, cargar_estructura
@@ -114,10 +118,11 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             borrador.error(exc.codigo)
             borrador.fallo("CALENDARIO", exc.detalle)
 
+    avisados: set[str] = set()
     for nombre in ficheros:
         ruta = base / nombre
         if ruta.suffix.lower() in EXTENSIONES_ESQUEMA:
-            resultados.append(_comprobar_esquema(borrador, ruta, raiz))
+            resultados.append(_comprobar_esquema(borrador, ruta, raiz, avisados))
             continue
         try:
             doc = contenido.cargar(ruta, raiz=raiz)
@@ -194,12 +199,52 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
     return Comprobacion(borrador.documento(), tuple(resultados))
 
 
-def _comprobar_esquema(borrador: informe.Borrador, ruta: Path, raiz: Path) -> FicheroComprobado:
-    """Un ``.yaml`` de calificación: su forma y que las actividades de la carpeta cuadren. Sin red.
+def _comprobar_esquema(
+    borrador: informe.Borrador, ruta: Path, raiz: Path, avisados: set[str] | None = None
+) -> FicheroComprobado:
+    """Un ``.yaml``: ``ponderacion.yaml`` si su raíz es ``ponderacion``; si no, calificación.
 
     Es lo que ``tiza calificador`` comprueba antes de tocar el aula (el calificador anterior del
     curso no cambia si hay errores: solo cambia lo que se coloca, no si algo es válido).
     """
+    avisados = avisados if avisados is not None else set()
+    if es_ponderacion(ruta, raiz):
+        return _comprobar_ponderacion(borrador, ruta, raiz, avisados)
+    resultado = _comprobar_calificacion(borrador, ruta, raiz)
+    if resultado.codigo is None and ruta.parent.joinpath("ponderacion.yaml").is_file():
+        _avisar_los_dos(borrador, avisados)
+    return resultado
+
+
+def _avisar_los_dos(borrador: informe.Borrador, avisados: set[str]) -> None:
+    """Avisa una sola vez de que la carpeta tiene los dos esquemas (son excluyentes por curso)."""
+    if "CALIFICACION_Y_PONDERACION" not in avisados:
+        avisados.add("CALIFICACION_Y_PONDERACION")
+        borrador.paso("CALIFICACION_Y_PONDERACION")
+
+
+def _comprobar_ponderacion(
+    borrador: informe.Borrador, ruta: Path, raiz: Path, avisados: set[str]
+) -> FicheroComprobado:
+    """``ponderacion.yaml``: forma, ficheros, ciclos y repeticiones. Sin red ni aula."""
+    try:
+        cargar_ponderacion(ruta, raiz)
+    except ErrorCalificacion as exc:
+        borrador.error(exc.codigo)
+        borrador.fallo("COMPROBAR", f"{ruta.name}: {exc.codigo}")
+        return FicheroComprobado(ruta.name, exc.codigo, exc.detalle)
+    borrador.paso("COMPROBAR", detalle=ruta.name)
+    if ruta.parent.joinpath("calificacion.yaml").is_file():
+        _avisar_los_dos(borrador, avisados)
+    # Hasta que el estado traiga el calificador, las referencias las comprueba la sesión.
+    borrador.paso("CALIFICADOR_SIN_LEER", detalle=ruta.name)
+    return FicheroComprobado(ruta.name)
+
+
+def _comprobar_calificacion(
+    borrador: informe.Borrador, ruta: Path, raiz: Path
+) -> FicheroComprobado:
+    """Un ``calificacion.yaml``: su forma y que las actividades de la carpeta cuadren. Sin red."""
     dir_tiza = raiz / rutas.CARPETA_TRABAJO
     try:
         esquema, documentos = cargar_calificacion(ruta, raiz)
