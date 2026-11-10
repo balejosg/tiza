@@ -19,6 +19,7 @@ from py_moodle.session import MoodleSessionError
 
 from dobles import MoodleFalso, aula_con_tarea, estructura_de, fecha_en_formulario, tarea_en
 from tiza import config, contenido, estado, publicar, rubrica, tipos
+from tiza.colocacion import ArbolNotas, FilaNota
 from tiza.estructura import Actividad
 from tiza.publicar import ErrorPublicacion
 
@@ -6730,3 +6731,88 @@ def test_crear_categoria_media_ponderada_sin_coeficiente_no_lo_envia():
     sesion.arbol_despues = _arbol_con_nueva_categoria()
     moodle.crear_categoria(2, "Nueva", "TZ_N", "cg1", None, None, agregacion=10)
     assert "grade_item_aggregationcoef" not in _enviado(sesion)[1]
+
+
+# --- D3: las categorías TZP_ de la ponderación cuentan para colocar ---
+
+
+def _curso_con_tres_notas() -> object:
+    return estructura_de(
+        [
+            {
+                "numero": 1,
+                "nombre": "PRIMERA EVALUACIÓN",
+                "id": 11,
+                "modulos": [
+                    {"cmid": 1, "nombre": "Práctica", "tipo": "tarea"},
+                    {"cmid": 2, "nombre": "Test 1", "tipo": "tarea"},
+                    {"cmid": 3, "nombre": "Tarea nueva", "tipo": "tarea"},
+                ],
+            }
+        ]
+    )
+
+
+def _arbol_con_primera_y_examen() -> ArbolNotas:
+    return ArbolNotas(
+        (
+            FilaNota("cg1", None, None, "Curso"),
+            FilaNota("cg10", "cg1", None, "PRIMERA EVALUACIÓN"),
+            FilaNota("cg20", "cg10", None, "Examen"),
+            FilaNota("ig1", "cg10", 1, "Práctica"),
+            FilaNota("ig2", "cg20", 2, "Test 1"),
+            FilaNota("ig3", "cg1", 3, "Tarea nueva"),
+        )
+    )
+
+
+def test_colocar_notas_con_tzp_lee_los_idnumbers_solo_si_es_ambigua():
+    estructura = _curso_con_tres_notas()
+    moodle = MoodleFalso()
+    moodle.arboles[5678] = _arbol_con_primera_y_examen()
+    moodle.idnumbers[5678] = {"cg10": "", "cg20": "TZP_EXAMEN"}
+    movimientos, sin = publicar.colocar_notas(moodle, 5678, estructura, [3])
+    assert sin == ()
+    assert [(m.cmid, m.categoria) for m in movimientos] == [(3, "cg10")]
+    leidas = [llamada for llamada in moodle.llamadas if llamada[0] == "idnumbers_de"]
+    assert len(leidas) == 1 and leidas[0][2] == frozenset({"cg10", "cg20"})
+    assert any(llamada[0] == "mover_nota" and llamada[3] == "cg10" for llamada in moodle.llamadas)
+
+
+def test_colocar_notas_sin_ambiguedad_no_lee_ningun_idnumber():
+    estructura = estructura_de(
+        [
+            {
+                "numero": 1,
+                "nombre": "UT1",
+                "id": 11,
+                "modulos": [
+                    {"cmid": 1, "nombre": "Práctica", "tipo": "tarea"},
+                    {"cmid": 3, "nombre": "Tarea nueva", "tipo": "tarea"},
+                ],
+            }
+        ]
+    )
+    moodle = MoodleFalso()
+    moodle.arboles[5678] = ArbolNotas(
+        (
+            FilaNota("cg1", None, None, "Curso"),
+            FilaNota("cg10", "cg1", None, "PRIMERA EVALUACIÓN"),
+            FilaNota("ig1", "cg10", 1, "Práctica"),
+            FilaNota("ig3", "cg1", 3, "Tarea nueva"),
+        )
+    )
+    movimientos, sin = publicar.colocar_notas(moodle, 5678, estructura, [3])
+    assert sin == () and [(m.cmid, m.categoria) for m in movimientos] == [(3, "cg10")]
+    assert not any(llamada[0] == "idnumbers_de" for llamada in moodle.llamadas)
+
+
+def test_colocar_notas_sigue_ambigua_si_las_dos_categorias_son_del_docente():
+    estructura = _curso_con_tres_notas()
+    moodle = MoodleFalso()
+    moodle.arboles[5678] = _arbol_con_primera_y_examen()
+    moodle.idnumbers[5678] = {"cg10": "", "cg20": "RA1"}
+    movimientos, sin = publicar.colocar_notas(moodle, 5678, estructura, [3])
+    assert movimientos == ()
+    assert [(s.cmid, s.motivo) for s in sin] == [(3, "AMBIGUA")]
+    assert sum(1 for llamada in moodle.llamadas if llamada[0] == "idnumbers_de") == 1

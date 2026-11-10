@@ -4176,6 +4176,16 @@ def colocar_notas(
     """
     arbol = moodle.arbol_notas(curso)
     movimientos, sin_colocar = colocacion.colocar(estructura, arbol, cmids)
+    # D3: si el patrón es ambiguo, las categorías TZP_ (ponderación) cuentan como de tiza.
+    # Solo se lee su número de ID cuando hace falta, y como mucho una vez por llamada.
+    ambiguas = {
+        eid for sin in sin_colocar if sin.motivo == colocacion.AMBIGUA for eid in sin.categorias
+    }
+    if ambiguas:
+        ids = moodle.idnumbers_de(curso, ambiguas)
+        tzp = {eid for eid, idnumber in ids.items() if idnumber.startswith("TZP_")}
+        if tzp:
+            movimientos, sin_colocar = colocacion.colocar(estructura, arbol, cmids, de_tiza=tzp)
     if esperado is not None:
         validos: list[colocacion.MovimientoNota] = []
         cambiadas: list[colocacion.SinColocar] = []

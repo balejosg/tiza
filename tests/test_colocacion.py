@@ -109,7 +109,7 @@ def test_ambigua() -> None:
     notas = arbol(cat("cg10", "Ev1"), nota(1, "cg10"), nota(2, RAIZ), nota(3, RAIZ))
     movimientos, sin = colocar(estructura, notas, [3])
     assert movimientos == ()
-    assert sin == (SinColocar(3, "AMBIGUA", None),)
+    assert sin == (SinColocar(3, "AMBIGUA", None, ("cg10", RAIZ)),)
 
 
 def test_sin_patron() -> None:
@@ -191,6 +191,23 @@ def test_ignora_las_de_tiza() -> None:
         nota(3, RAIZ),
     )
     movimientos, sin = colocar(estructura, notas, [3])
+    assert [(m.categoria, m.despues_de) for m in movimientos] == [("cg10", "ig1")]
+    assert sin == ()
+
+
+def test_una_categoria_extra_de_tiza_no_hace_patron() -> None:
+    # D3: las TZP_ se añaden al conjunto de las de tiza y dejan de contar como patrón.
+    estructura = curso((1, 2, 3))
+    notas = arbol(
+        cat("cg10", "PRIMERA"),
+        cat("cg20", "Examen"),
+        nota(1, "cg10"),
+        nota(2, "cg20"),
+        nota(3, RAIZ),
+    )
+    sin_extra = colocar(estructura, notas, [3])
+    assert sin_extra == ((), (SinColocar(3, "AMBIGUA", None, ("cg10", "cg20")),))
+    movimientos, sin = colocar(estructura, notas, [3], de_tiza={"cg20"})
     assert [(m.categoria, m.despues_de) for m in movimientos] == [("cg10", "ig1")]
     assert sin == ()
 

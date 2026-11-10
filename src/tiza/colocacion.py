@@ -94,12 +94,22 @@ class SinColocar:
     cmid: int
     motivo: str
     categoria: str | None  # nombre, solo con "CERRADA"
+    # Con «AMBIGUA»: los eid de las categorías que no dejan elegir (para leer su número de ID).
+    categorias: tuple[str, ...] = ()
 
 
 def colocar(
-    estructura: Estructura, arbol: ArbolNotas, cmids: Sequence[int]
+    estructura: Estructura,
+    arbol: ArbolNotas,
+    cmids: Sequence[int],
+    *,
+    de_tiza: Collection[str] = (),
 ) -> tuple[tuple[MovimientoNota, ...], tuple[SinColocar, ...]]:
-    """Los movimientos y los avisos para colocar las notas de ``cmids`` según su sección."""
+    """Los movimientos y los avisos para colocar las notas de ``cmids`` según su sección.
+
+    ``de_tiza`` son categorías que cuentan como de tiza aunque el árbol no las marque: las
+    ``TZP_`` de la ponderación, que se leen solo cuando el patrón sale ``AMBIGUA`` (D3).
+    """
     orden, seccion_de = _orden_del_curso(estructura)
     secciones = tuple(estructura)
     pedidos = set(cmids)
@@ -116,15 +126,15 @@ def colocar(
         if fila is None:
             continue
         origen = actual.fila(fila.padre) if fila.padre is not None else None
-        if origen is not None and origen.de_tiza:
+        if origen is not None and (origen.de_tiza or origen.eid in de_tiza):
             continue  # lo que está en una categoría de tiza no se toca
         de_atras = [secciones[i].cmids for i in range(seccion_de[cmid], -1, -1)]
-        categorias = _patron(actual, cmid, de_atras, pedidos - colocadas)
+        categorias = _patron(actual, cmid, de_atras, pedidos - colocadas, de_tiza)
         if not categorias:
             sin_colocar.append(SinColocar(cmid, SIN_PATRON, None))
             continue
         if len(categorias) > 1:
-            sin_colocar.append(SinColocar(cmid, AMBIGUA, None))
+            sin_colocar.append(SinColocar(cmid, AMBIGUA, None, tuple(categorias)))
             continue
         ((destino, destino_fila),) = categorias.items()
         despues = _despues_de(filas, orden, cmid, destino)
@@ -169,13 +179,17 @@ def _cmid(fila: FilaNota) -> int:
 
 
 def reordenar(
-    estructura: Estructura, arbol: ArbolNotas, cmids: Collection[int]
+    estructura: Estructura,
+    arbol: ArbolNotas,
+    cmids: Collection[int],
+    *,
+    de_tiza: Collection[str] = (),
 ) -> tuple[MovimientoNota, ...]:
     """Los movimientos que dejan las notas, en las categorías de ``cmids``, en el orden del curso.
 
-    Solo se miran las categorías que contienen alguna nota de ``cmids`` y no son de tiza ni
-    están bloqueadas. En cada una, las notas de actividades se reparten los huecos que ya
-    ocupaban; lo demás (manuales, calculadas, subcategorías) no se mueve. Como
+    Solo se miran las categorías que contienen alguna nota de ``cmids`` y no son de tiza (ni
+    están en ``de_tiza``) ni están bloqueadas. En cada una, las notas de actividades se reparten
+    los huecos que ya ocupaban; lo demás (manuales, calculadas, subcategorías) no se mueve. Como
     ``publicar.plan_de_orden``: de atrás hacia delante, y solo se mueve la nota que no está ya
     justo delante de la que le sigue. ``despues_de`` es lo que queda delante tras mover.
     """
@@ -183,7 +197,7 @@ def reordenar(
     pedidos = set(cmids)
     movimientos: list[MovimientoNota] = []
     for categoria in arbol.filas:
-        if categoria.de_tiza or categoria.bloqueada:
+        if categoria.de_tiza or categoria.eid in de_tiza or categoria.bloqueada:
             continue
         hijos = [f for f in arbol.filas if f.padre == categoria.eid]
         if not any(f.cmid in pedidos for f in hijos):
@@ -263,7 +277,11 @@ def prever(
 
 
 def _patron(
-    arbol: ArbolNotas, cmid: int, secciones: Sequence[Sequence[int]], excluidos: set[int]
+    arbol: ArbolNotas,
+    cmid: int,
+    secciones: Sequence[Sequence[int]],
+    excluidos: set[int],
+    de_tiza: Collection[str] = (),
 ) -> dict[str, FilaNota]:
     """Las categorías de las otras notas de la primera sección (hacia atrás) que tenga alguna."""
     for cmids_de_la_seccion in secciones:
@@ -273,7 +291,7 @@ def _patron(
                 continue
             fila = arbol.de_cmid(otro)
             padre = arbol.fila(fila.padre) if fila is not None and fila.padre else None
-            if padre is None or padre.de_tiza:
+            if padre is None or padre.de_tiza or padre.eid in de_tiza:
                 continue
             categorias[padre.eid] = padre
         if categorias:
