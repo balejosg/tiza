@@ -41,6 +41,7 @@ from py_moodle.section import MoodleSectionError
 from py_moodle.session import MoodleSessionError
 
 from . import __version__, colocacion, informe, tipos
+from .calificacion import ponderacion
 from .calificacion.formulas import (  # noqa: F401  (se reexportan: son de la API de ``publicar``)
     formula_copia,
     formula_indicador,
@@ -435,6 +436,8 @@ class AulaVirtual(Protocol):
         peso: float | None,
         visualizacion: str | None,
         agregacion: int = 13,
+        solo_no_vacias: bool = True,
+        coeficiente: float | None = None,
     ) -> str: ...
 
     def crear_calculado(
@@ -452,7 +455,13 @@ class AulaVirtual(Protocol):
 
     def fijar_peso(self, curso: int, eid: str, peso: float) -> None: ...
 
-    def fijar_agregacion(self, curso: int, eid: str, agregacion: int) -> None: ...
+    def fijar_coeficiente(
+        self, curso: int, eid: str, valor: float, metodo_del_padre: str
+    ) -> None: ...
+
+    def fijar_agregacion(
+        self, curso: int, eid: str, agregacion: int, solo_no_vacias: bool | None = None
+    ) -> None: ...
 
     def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str) -> None: ...
 
@@ -469,6 +478,12 @@ class AulaVirtual(Protocol):
     def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None: ...
 
     def arbol_notas(self, curso: int) -> colocacion.ArbolNotas: ...
+
+    def arbol_ponderacion(
+        self, curso: int, nombradas: Collection[str] | None = None
+    ) -> ponderacion.ArbolPonderacion: ...
+
+    def idnumbers_de(self, curso: int, eids: Collection[str]) -> dict[str, str]: ...
 
     def mover_nota(self, curso: int, eid: str, categoria: str, despues_de: str | None) -> None: ...
 
@@ -1600,19 +1615,25 @@ class Moodle:
         peso: float | None,
         visualizacion: str | None,
         agregacion: int = 13,
+        solo_no_vacias: bool = True,
+        coeficiente: float | None = None,
     ) -> str:
-        """Crea una categoría «solo lo calificado» y devuelve su ``eid`` (``cg<id>``).
+        """Crea una categoría y devuelve su ``eid`` (``cg<id>``).
 
-        ``agregacion`` es la de Moodle (13 Natural, 2 Mediana, 6 Calificación más alta).
-        ``peso`` no nulo la pesa en su padre; con ``None`` (hijos de un contador) no se
-        sobrescribe el peso. ``visualizacion == "porcentaje"`` muestra el total en porcentaje.
+        ``agregacion`` es la de Moodle (13 Natural, 10 Media ponderada, 2 Mediana, 6 Calificación
+        más alta). ``solo_no_vacias`` es «solo las calificaciones no vacías». ``peso`` no nulo la
+        pesa en su padre (natural); con ``None`` (hijos de un contador) no se sobrescribe el peso.
+        ``coeficiente`` es el peso en un padre de media ponderada (4 decimales): sin él, la
+        categoría nace a 0. ``visualizacion == "porcentaje"`` muestra el total en porcentaje.
         """
         cambios = {
             "fullname": nombre,
             "grade_item_idnumber": idnumber,
             "aggregation": str(agregacion),
-            "aggregateonlygraded": "1",
+            "aggregateonlygraded": "1" if solo_no_vacias else "0",
         }
+        if agregacion == 10 and coeficiente is not None:
+            cambios["grade_item_aggregationcoef"] = _coeficiente_texto(coeficiente)
         if padre_eid is not None:
             _validar_eid(padre_eid, "cg")
             cambios["parentcategory"] = padre_eid[2:]
@@ -1696,13 +1717,40 @@ class Moodle:
                 {"weightoverride": "1", "aggregationcoef2": _texto_numero(peso)},
             )
 
-    def fijar_agregacion(self, curso: int, eid: str, agregacion: int) -> None:
-        """Cambia la agregación de una categoría (D13); no pide confirmación aunque tenga notas."""
+    def fijar_coeficiente(self, curso: int, eid: str, valor: float, metodo_del_padre: str) -> None:
+        """El peso de un elemento o subcategoría según el método de su categoría.
+
+        ``media_ponderada``: el coeficiente (``aggregationcoef`` en un elemento,
+        ``grade_item_aggregationcoef`` en una subcategoría), con 4 decimales. ``natural``: el
+        peso sobrescrito de siempre (``fijar_peso``). No hay otros métodos.
+        """
+        _validar_eid(eid)
+        if metodo_del_padre == "natural":
+            self.fijar_peso(curso, eid, valor)
+        elif metodo_del_padre == "media_ponderada":
+            if eid.startswith("cg"):
+                ruta, campo = "grade/edit/tree/category.php", "grade_item_aggregationcoef"
+            else:
+                ruta, campo = "grade/edit/tree/item.php", "aggregationcoef"
+            self._guardar(
+                ruta, {"courseid": curso, "id": int(eid[2:])}, {campo: _coeficiente_texto(valor)}
+            )
+        else:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+
+    def fijar_agregacion(
+        self, curso: int, eid: str, agregacion: int, solo_no_vacias: bool | None = None
+    ) -> None:
+        """Cambia la agregación de una categoría (D13); no pide confirmación aunque tenga notas.
+
+        Con ``solo_no_vacias=None`` no se envía el campo: se conserva el del formulario.
+        """
         _validar_eid(eid, "cg")
+        cambios = {"aggregation": str(agregacion)}
+        if solo_no_vacias is not None:
+            cambios["aggregateonlygraded"] = "1" if solo_no_vacias else "0"
         self._guardar(
-            "grade/edit/tree/category.php",
-            {"courseid": curso, "id": int(eid[2:])},
-            {"aggregation": str(agregacion), "aggregateonlygraded": "1"},
+            "grade/edit/tree/category.php", {"courseid": curso, "id": int(eid[2:])}, cambios
         )
 
     def fijar_formula(self, curso: int, item_id: int, formula: str, decimal: str) -> None:
@@ -1909,6 +1957,216 @@ class Moodle:
                 for eid, padre, cmid, nombre in datos
             )
         )
+
+    def _formulario_de_categoria(self, curso: int, eid: str) -> Any:
+        """El ``category.php`` de una categoría; si no se puede leer, ``ERROR_CONSULTA``."""
+        formulario = BeautifulSoup(
+            self._pagina_del_calificador(
+                "grade/edit/tree/category.php", {"courseid": curso, "id": int(eid[2:])}
+            ),
+            "html.parser",
+        )
+        if formulario.find("form") is None:
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        return formulario
+
+    def idnumbers_de(self, curso: int, eids: Collection[str]) -> dict[str, str]:
+        """El número de ID de las categorías pedidas (``eid`` -> ``grade_item_idnumber``).
+
+        Abre solo el ``category.php`` de esas categorías, ni el árbol ni otro formulario.
+        """
+        for eid in eids:
+            _validar_eid(eid, "cg")
+        return {
+            eid: _valor_de_campo(self._formulario_de_categoria(curso, eid), "grade_item_idnumber")
+            for eid in sorted(eids, key=lambda e: int(e[2:]))
+        }
+
+    def arbol_ponderacion(
+        self, curso: int, nombradas: Collection[str] | None = None
+    ) -> ponderacion.ArbolPonderacion:
+        """El calificador con lo necesario para ponderar: una lectura del árbol y pocos formularios.
+
+        ``nombradas`` son los nombres exactos de los nodos que el esquema menciona. Se abre
+        ``category.php`` de las categorías nombradas y de la categoría de cada nodo nombrado (número
+        de ID, «solo no vacías», opciones de agregación) y ``item.php`` solo de los elementos
+        nombrados (el coeficiente con 4 decimales y ``rescalegrades``). Con ``None`` se abre
+        ``category.php`` de todas las categorías y ningún ``item.php``. Nunca un informe de notas.
+
+        ``tiene_notas`` solo se calcula con ``nombradas``: en las categorías afectadas y en lo que
+        cuelga de ellas (actividades por su ajuste, manuales por ``rescalegrades`` si se abrió
+        su formulario). En lo demás es ``False``: no se paga por todo el curso.
+        """
+        pagina = self._pagina_del_calificador("grade/edit/tree/index.php", {"id": curso})
+        if _es_recalculo(pagina):
+            raise ErrorPublicacion("ERROR_CONSULTA")
+        sopa = BeautifulSoup(pagina, "html.parser")
+        if sopa.find("form", id="gradetreeform") is None:
+            raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+        candados = {
+            str(fila["data-aggregationforcategory"])
+            for fila in sopa.find_all("tr")
+            if "data-aggregationforcategory" in fila.attrs and fila.select_one(".fa-lock")
+        }
+        filas: list[dict[str, Any]] = []
+        for fila in sopa.find_all("tr"):
+            if "data-aggregationforcategory" in fila.attrs or _actividad_en_borrado(fila):
+                continue
+            es_categoria = "data-category" in fila.attrs
+            if not es_categoria and "data-itemid" not in fila.attrs:
+                continue
+            item_id = int(str(fila["data-itemid"]))
+            padre = fila.get("data-parent-category")
+            titulo = fila.find(class_="rowtitle")
+            enlace = fila.find("a", class_="gradeitemheader", href=_ENLACE_DE_ACTIVIDAD)
+            href = str(enlace["href"]) if enlace else ""
+            coincidencia = _ENLACE_DE_ACTIVIDAD.search(href)
+            modulo = _TIPO_DE_MODULO.search(href)
+            peso = fila.find("input", attrs={"name": f"weight_{item_id}"})
+            agregacion = _numero(fila.get("data-aggregation")) if es_categoria else None
+            filas.append(
+                {
+                    "eid": str(fila["data-category"]) if es_categoria else f"ig{item_id}",
+                    "item_id": item_id,
+                    "es_categoria": es_categoria,
+                    "nombre": titulo.get_text(" ", strip=True) if titulo else "",
+                    "padre_eid": str(padre) if padre else None,
+                    "cmid": int(coincidencia.group(1)) if coincidencia else None,
+                    "tipo": modulo.group(1) if modulo else None,
+                    "bloqueado": (
+                        str(fila["data-category"]) in candados
+                        if es_categoria
+                        else fila.select_one(".fa-lock") is not None
+                    ),
+                    "agregacion": int(agregacion) if agregacion is not None else None,
+                    "maximo": _numero(fila.get("data-grademax")),
+                    "peso_texto": str(peso.get("value") or "").strip() if peso else "",
+                    "sobrescrito": _casilla_marcada(fila, f"weightoverride_{item_id}"),
+                    "oculto": str(fila.get("data-hidden", "")).lower() == "true",
+                }
+            )
+        if not any(f["padre_eid"] is None for f in filas):
+            raise ErrorPublicacion("ERROR_CONSULTA")
+
+        por_eid = {f["eid"]: f for f in filas}
+        hijos_de: dict[str | None, list[str]] = {}
+        for f in filas:
+            hijos_de.setdefault(f["padre_eid"], []).append(f["eid"])
+
+        nombres = None if nombradas is None else set(nombradas)
+        con_nombre = [] if nombres is None else [f["eid"] for f in filas if f["nombre"] in nombres]
+        if nombres is None:
+            categorias = [f["eid"] for f in filas if f["es_categoria"]]
+            elementos: list[str] = []
+            afectadas: set[str] = set()
+        else:
+            categorias = []
+            for eid in con_nombre:
+                candidatos = [eid] if por_eid[eid]["es_categoria"] else []
+                padre = por_eid[eid]["padre_eid"]
+                if padre is not None and padre in por_eid:
+                    candidatos.append(padre)
+                categorias += [c for c in candidatos if c not in categorias]
+            elementos = [e for e in con_nombre if not por_eid[e]["es_categoria"]]
+            afectadas = set(categorias)
+
+        leidos: dict[str, dict[str, Any]] = {}
+        for eid in categorias:
+            formulario = self._formulario_de_categoria(curso, eid)
+            seleccion = _campo_con_nombre(formulario, "aggregation")
+            opciones: tuple[int, ...] | None = None
+            if seleccion is not None and seleccion.name == "select":
+                valores = [_numero(o.get("value")) for o in seleccion.find_all("option")]
+                opciones = tuple(int(v) for v in valores if v is not None)
+            leidos[eid] = {
+                "idnumber": _valor_de_campo(formulario, "grade_item_idnumber"),
+                "solo_no_vacias": (
+                    _casilla_marcada(formulario, "aggregateonlygraded")
+                    if _campo_con_nombre(formulario, "aggregateonlygraded") is not None
+                    else None
+                ),
+                "opciones": opciones,
+                "coef_texto": _valor_de_campo(formulario, "grade_item_aggregationcoef"),
+                "tiene_notas": False,
+            }
+        for eid in elementos:
+            formulario = BeautifulSoup(
+                self._pagina_del_calificador(
+                    "grade/edit/tree/item.php", {"courseid": curso, "id": por_eid[eid]["item_id"]}
+                ),
+                "html.parser",
+            )
+            if formulario.find("form") is None:
+                raise ErrorPublicacion("ERROR_CONSULTA")
+            leidos[eid] = {
+                "idnumber": _valor_de_campo(formulario, "idnumber"),
+                "coef_texto": _valor_de_campo(formulario, "aggregationcoef"),
+                "tiene_notas": _campo_con_nombre(formulario, "rescalegrades") is not None,
+            }
+
+        # Las notas, solo en lo que cuelga de las categorías afectadas y en lo nombrado.
+        con_notas: set[str] = set()
+        en_alcance: set[str] = set()
+        if nombres is not None:
+            en_alcance = set(elementos) | afectadas
+            pendientes = list(afectadas)
+            while pendientes:
+                for hijo in hijos_de.get(pendientes.pop(), []):
+                    if hijo not in en_alcance:
+                        en_alcance.add(hijo)
+                        if por_eid[hijo]["es_categoria"]:
+                            pendientes.append(hijo)
+            for eid in en_alcance:
+                f = por_eid[eid]
+                if f["es_categoria"]:
+                    continue
+                if f["cmid"] is not None:
+                    tiene = self.actividad_tiene_notas(f["cmid"])
+                else:
+                    tiene = bool(leidos.get(eid, {}).get("tiene_notas"))
+                if tiene:
+                    actual: str | None = eid
+                    while actual is not None and actual not in con_notas:
+                        con_notas.add(actual)
+                        actual = por_eid[actual]["padre_eid"] if actual in por_eid else None
+
+        nodos = []
+        decimal = ""
+        for f in filas:
+            eid = f["eid"]
+            dato = leidos.get(eid, {})
+            if f["es_categoria"]:
+                clase = "categoria" if f["padre_eid"] else "curso"
+            elif f["cmid"] is not None:
+                clase = "actividad"
+            else:
+                clase = "manual"
+            decimal = (
+                decimal or _decimal_de(f["peso_texto"]) or _decimal_de(dato.get("coef_texto", ""))
+            )
+            nodos.append(
+                ponderacion.NodoPonderacion(
+                    eid=eid,
+                    item_id=f["item_id"],
+                    idnumber=dato.get("idnumber", ""),
+                    clase=clase,
+                    nombre=f["nombre"],
+                    padre_eid=f["padre_eid"],
+                    cmid=f["cmid"],
+                    tipo=f["tipo"],
+                    bloqueado=f["bloqueado"],
+                    tiene_notas=eid in con_notas and eid in en_alcance,
+                    agregacion=f["agregacion"],
+                    solo_no_vacias=dato.get("solo_no_vacias"),
+                    opciones_agregacion=dato.get("opciones"),
+                    coeficiente=_numero(dato["coef_texto"]) if dato.get("coef_texto") else None,
+                    peso=_numero(f["peso_texto"]),
+                    sobrescrito=f["sobrescrito"],
+                    maximo=f["maximo"],
+                    oculto=f["oculto"],
+                )
+            )
+        return ponderacion.ArbolPonderacion(curso=curso, nodos=tuple(nodos), decimal=decimal or ".")
 
     def borrar_nodo(self, curso: int, eid: str) -> None:
         """Borra un nodo del calificador por su ``eid``.
@@ -2717,6 +2975,7 @@ def _es_informe_de_notas(base_url: str, destino: str) -> bool:
 
 
 _ENLACE_DE_ACTIVIDAD = re.compile(r"/mod/\w+/view\.php\?id=(\d+)")
+_TIPO_DE_MODULO = re.compile(r"/mod/(\w+)/view\.php")
 # El icono de un elemento de actividad: ``theme/image.php/<tema>/<módulo>/<rev>/monologo``. Los
 # elementos manuales y calculados llevan iconos del núcleo (``…/core/…``).
 _ICONO_DE_MODULO = re.compile(r"/image\.php/[^/]+/(?!core/)[a-z][a-z0-9_]*/[0-9]+/monologo")
@@ -2754,6 +3013,11 @@ def _casilla_marcada(formulario: Any, nombre: str) -> bool:
         campo.get("type") == "checkbox" and campo.has_attr("checked")
         for campo in formulario.find_all("input", attrs={"name": nombre})
     )
+
+
+def _coeficiente_texto(valor: float) -> str:
+    """Un coeficiente con los 4 decimales que guarda el aula."""
+    return f"{valor:.4f}"
 
 
 def _numero(texto: Any) -> float | None:

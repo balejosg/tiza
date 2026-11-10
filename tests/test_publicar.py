@@ -6443,8 +6443,290 @@ def test_leer_agregacion_del_aula():
 
 def test_fijar_agregacion_envia():
     moodle, sesion = _moodle_calificador()
-    moodle.fijar_agregacion(2, "cg3", 2)
+    moodle.fijar_agregacion(2, "cg3", 2, solo_no_vacias=True)
     url, campos = _campos(sesion)
     assert url == "https://aula/grade/edit/tree/category.php"
     assert campos["aggregation"] == "2"
     assert campos["aggregateonlygraded"] == "1"
+
+
+# --- Ponderación: lectura y escritura (arbol_ponderacion, coeficientes) ---------
+
+
+def _fila_peso(item, valor, sobrescrito=False):
+    marca = ' checked=""' if sobrescrito else ""
+    return (
+        f'<td><input type="text" name="weight_{item}" value="{valor}"/>'
+        f'<input type="hidden" name="weightoverride_{item}" value="0"/>'
+        f'<input type="checkbox" name="weightoverride_{item}" value="1"{marca}/></td>'
+    )
+
+
+def _arbol_ponderacion_html():
+    return (
+        '<form id="gradetreeform"><table>'
+        '<tr class="coursecategory category" data-category="cg1" data-aggregation="10" '
+        'data-grademax="100" data-itemid="1" data-hidden="false">'
+        '<td><div class="rowtitle">Curso</div></td></tr>'
+        '<tr class="category cg1" data-category="cg3" data-parent-category="cg1" '
+        'data-aggregation="10" data-grademax="20" data-itemid="162" data-hidden="false">'
+        f'<td><div class="rowtitle">Bloque A</div></td>{_fila_peso(162, "2,0")}</tr>'
+        '<tr class="item cg1 cg3" data-itemid="165" data-hidden="false" '
+        'data-parent-category="cg3" data-grademax="10">'
+        f'<td><div class="rowtitle">Práctica</div></td>{_fila_peso(165, "1,0")}</tr>'
+        '<tr class="item cg1 cg3" data-itemid="171" data-hidden="false" '
+        'data-parent-category="cg3" data-grademax="10">'
+        '<td><div class="rowtitle"><a class="gradeitemheader" '
+        'href="/mod/assign/view.php?id=258">Tarea</a></div></td>'
+        f"{_fila_peso(171, '2,5')}</tr>"
+        '<tr class="categoryitem item cg1 cg3" data-itemid="162" '
+        'data-aggregationforcategory="cg3"><td>Total</td></tr>'
+        '<tr class="category cg1" data-category="cg4" data-parent-category="cg1" '
+        'data-aggregation="13" data-grademax="10" data-itemid="163" data-hidden="false">'
+        f'<td><div class="rowtitle">Bloque B</div></td>{_fila_peso(163, "30.0", True)}</tr>'
+        '<tr class="item cg1 cg4" data-itemid="167" data-hidden="true" '
+        'data-parent-category="cg4" data-grademax="10">'
+        '<td><div class="rowtitle"><a class="gradeitemheader" '
+        'href="/mod/h5pactivity/view.php?id=300">Juego</a></div></td>'
+        f"{_fila_peso(167, '70,455')}</tr>"
+        '<tr class="categoryitem item cg1 cg4" data-itemid="163" '
+        'data-aggregationforcategory="cg4"><td><i class="fa-lock"></i>Total</td></tr>'
+        "</table></form>"
+    )
+
+
+def _categoria_ponderada(idnumber="", agregacion=10, solo=False, coef="2,0000"):
+    opciones = "".join(
+        f'<option value="{v}"{" selected" if v == agregacion else ""}>m{v}</option>'
+        for v in (0, 10, 13)
+    )
+    marca = ' checked=""' if solo else ""
+    return (
+        '<form action="/grade/edit/tree/category.php">'
+        f'<input name="grade_item_idnumber" type="text" value="{idnumber}"/>'
+        f'<select name="aggregation">{opciones}</select>'
+        '<input type="hidden" name="aggregateonlygraded" value="0"/>'
+        f'<input type="checkbox" name="aggregateonlygraded" value="1"{marca}/>'
+        f'<input name="grade_item_aggregationcoef" type="text" value="{coef}"/>'
+        "</form>"
+    )
+
+
+def _moodle_ponderacion(**kwargs):
+    kwargs.setdefault("arbol", _arbol_ponderacion_html())
+    return _moodle_calificador(**kwargs)
+
+
+def _abiertas(sesion, final):
+    return sorted(p["id"] for u, p in sesion.gets if u.endswith(final))
+
+
+def test_arbol_ponderacion_lee_pesos_agregacion_y_tipos():
+    moodle, sesion = _moodle_ponderacion(
+        categorias={1: _categoria_ponderada("R"), 3: _categoria_ponderada("TZ_A", solo=True)}
+    )
+    arbol = moodle.arbol_ponderacion(2, {"Bloque A"})
+    assert [n.eid for n in arbol.nodos] == ["cg1", "cg3", "ig165", "ig171", "cg4", "ig167"]
+    assert arbol.raiz().eid == "cg1"
+    assert [n.eid for n in arbol.hijos("cg3")] == ["ig165", "ig171"]
+    assert arbol.por_nombre("Juego")[0].eid == "ig167"
+    assert arbol.nodo("nada") is None
+    assert arbol.decimal == ","
+    a = arbol.nodo("cg3")
+    assert (a.clase, a.agregacion, a.idnumber, a.solo_no_vacias) == ("categoria", 10, "TZ_A", True)
+    assert a.opciones_agregacion == (0, 10, 13)
+    assert a.coeficiente == 2.0 and a.peso == 2.0 and a.item_id == 162
+    assert arbol.nodo("cg1").clase == "curso"
+    assert arbol.nodo("cg1").idnumber == "R"
+    t = arbol.nodo("ig171")
+    assert (t.clase, t.tipo, t.cmid, t.peso, t.sobrescrito) == (
+        "actividad",
+        "assign",
+        258,
+        2.5,
+        False,
+    )
+    assert arbol.nodo("ig165").clase == "manual" and arbol.nodo("ig165").tipo is None
+    natural = arbol.nodo("cg4")
+    assert (natural.agregacion, natural.peso, natural.sobrescrito) == (13, 30.0, True)
+    assert natural.bloqueado and not a.bloqueado
+    assert natural.solo_no_vacias is None  # no se abrió su formulario
+    juego = arbol.nodo("ig167")
+    assert (juego.tipo, juego.peso, juego.oculto, juego.maximo) == (
+        "h5pactivity",
+        70.455,
+        True,
+        10.0,
+    )
+
+
+def test_arbol_ponderacion_solo_abre_lo_nombrado_y_sus_padres():
+    moodle, sesion = _moodle_ponderacion(categorias={3: _categoria_ponderada("A")})
+    moodle.arbol_ponderacion(2, {"Práctica"})
+    assert _abiertas(sesion, "category.php") == [3]  # solo la categoría padre de lo nombrado
+    assert _abiertas(sesion, "item.php") == [165]
+    assert not [u for u in sesion.urls if "grade/report" in u]
+    assert not [u for u in sesion.urls if "calculation.php" in u]
+
+
+def test_arbol_ponderacion_de_una_categoria_nombrada_abre_ella_y_su_padre():
+    moodle, sesion = _moodle_ponderacion()
+    moodle.arbol_ponderacion(2, {"Bloque B"})
+    assert _abiertas(sesion, "category.php") == [1, 4]
+    assert _abiertas(sesion, "item.php") == []
+
+
+def test_arbol_ponderacion_sin_nombradas_abre_todas_las_categorias_y_ningun_elemento():
+    moodle, sesion = _moodle_ponderacion()
+    arbol = moodle.arbol_ponderacion(2)
+    assert _abiertas(sesion, "category.php") == [1, 3, 4]
+    assert _abiertas(sesion, "item.php") == []
+    assert not any(n.tiene_notas for n in arbol.nodos)
+    assert not [u for u in sesion.urls if "modedit" in u or "grade/report" in u]
+
+
+def test_arbol_ponderacion_coeficiente_con_cuatro_decimales_y_notas():
+    item = _formulario_item(rescale=True).replace(
+        'name="aggregationcoef2"',
+        'name="aggregationcoef" value="1,2857"/><input name="aggregationcoef2"',
+    )
+    moodle, sesion = _moodle_ponderacion(
+        items={165: item},
+        modedit={258: MEDIT_SIN_NOTAS.replace("</form>", '<input name="rescalegrades"></form>')},
+    )
+    arbol = moodle.arbol_ponderacion(2, {"Práctica"})
+    assert arbol.nodo("ig165").coeficiente == 1.2857
+    assert arbol.nodo("ig165").tiene_notas  # rescalegrades de su formulario
+    assert arbol.nodo("cg3").tiene_notas  # su categoría, por lo que hay dentro
+    assert arbol.nodo("ig171").tiene_notas  # la tarea tiene notas en sus ajustes
+    assert not arbol.nodo("cg4").tiene_notas  # fuera de lo afectado: no se calcula
+    assert not arbol.nodo("ig167").tiene_notas
+    assert [u for u in sesion.urls if "modedit" in u] and len(
+        [u for u in sesion.urls if "modedit" in u]
+    ) == 1
+
+
+def test_arbol_ponderacion_con_categoria_ilegible_es_error_propio():
+    moodle, _ = _moodle_ponderacion(categorias={3: "<html>sin formulario</html>"})
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.arbol_ponderacion(2, {"Bloque A"})
+    assert exc.value.codigo == "ERROR_CONSULTA"
+
+
+def test_arbol_ponderacion_sin_permiso_o_sin_raiz():
+    moodle, _ = _moodle_ponderacion(arbol="<html>nada</html>")
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.arbol_ponderacion(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+    moodle, _ = _moodle_ponderacion(arbol='<form id="gradetreeform"></form>')
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.arbol_ponderacion(2)
+    assert exc.value.codigo == "ERROR_CONSULTA"
+
+
+def test_idnumbers_de_abre_solo_las_categorias_pedidas():
+    moodle, sesion = _moodle_ponderacion(
+        categorias={3: _categoria_ponderada("TZ_A"), 4: _categoria_ponderada("")}
+    )
+    assert moodle.idnumbers_de(2, {"cg3", "cg4"}) == {"cg3": "TZ_A", "cg4": ""}
+    assert _abiertas(sesion, "category.php") == [3, 4]
+    assert [u for u in sesion.urls if "index.php" in u] == []
+    with pytest.raises(ErrorPublicacion):
+        moodle.idnumbers_de(2, {"ig3"})
+
+
+def _enviado(sesion):
+    url, campos = sesion.posts[-1]
+    return url, dict(campos)
+
+
+def test_fijar_coeficiente_media_ponderada_en_un_elemento():
+    moodle, sesion = _moodle_ponderacion()
+    moodle.fijar_coeficiente(2, "ig165", 1.285714, "media_ponderada")
+    url, campos = _enviado(sesion)
+    assert url.endswith("/item.php")
+    assert campos["aggregationcoef"] == "1.2857"
+    assert campos.get("weightoverride") != "1"  # no es el peso natural
+
+
+def test_fijar_coeficiente_media_ponderada_en_una_subcategoria():
+    moodle, sesion = _moodle_ponderacion()
+    moodle.fijar_coeficiente(2, "cg3", 3, "media_ponderada")
+    url, campos = _enviado(sesion)
+    assert url.endswith("/category.php")
+    assert campos["grade_item_aggregationcoef"] == "3.0000"
+
+
+def test_fijar_coeficiente_natural_delega_en_fijar_peso():
+    moodle, sesion = _moodle_ponderacion()
+    moodle.fijar_coeficiente(2, "ig165", 30, "natural")
+    _, campos = _enviado(sesion)
+    assert campos["weightoverride"] == "1" and campos["aggregationcoef2"] == "30"
+    moodle.fijar_coeficiente(2, "cg3", 40, "natural")
+    url, campos = _enviado(sesion)
+    assert url.endswith("/category.php")
+    assert campos["grade_item_weightoverride"] == "1"
+    assert campos["grade_item_aggregationcoef2"] == "40"
+
+
+def test_fijar_coeficiente_con_otro_metodo_es_error():
+    moodle, sesion = _moodle_ponderacion()
+    for metodo in ("otro", "", "media"):
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle.fijar_coeficiente(2, "ig165", 1, metodo)
+        assert exc.value.codigo == "ESCRITURA_CALIFICADOR"
+    assert not sesion.posts
+
+
+def test_fijar_agregacion_solo_no_vacias_none_no_lo_envia():
+    form = _categoria_ponderada(solo=True)
+    moodle, sesion = _moodle_ponderacion(categorias={3: form})
+    moodle.fijar_agregacion(2, "cg3", 13)
+    campos = sesion.posts[-1][1]
+    assert ("aggregation", "13") in campos
+    # lo que traía el formulario (el oculto a 0 y la casilla marcada), sin tocar
+    assert [v for k, v in campos if k == "aggregateonlygraded"] == ["0", "1"]
+
+
+@pytest.mark.parametrize("valor,esperado", [(True, "1"), (False, "0")])
+def test_fijar_agregacion_con_bool_envia_uno_o_cero(valor, esperado):
+    moodle, sesion = _moodle_ponderacion(categorias={3: _categoria_ponderada(solo=True)})
+    moodle.fijar_agregacion(2, "cg3", 10, solo_no_vacias=valor)
+    campos = sesion.posts[-1][1]
+    assert ("aggregation", "10") in campos
+    assert [v for k, v in campos if k == "aggregateonlygraded"] == [esperado]
+
+
+def test_crear_categoria_media_ponderada_envia_coeficiente_y_solo_no_vacias():
+    moodle, sesion = _moodle_calificador(arbol=_arbol_con_nueva_categoria())
+    sesion.arbol = _fixture_calificador("setup-lleno.html")
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    eid = moodle.crear_categoria(
+        2, "Nueva", "TZ_N", "cg1", None, None, agregacion=10, solo_no_vacias=False, coeficiente=2.5
+    )
+    assert eid == "cg9"
+    campos = _enviado(sesion)[1]
+    assert campos["aggregation"] == "10"
+    assert campos["aggregateonlygraded"] == "0"
+    assert campos["grade_item_aggregationcoef"] == "2.5000"
+    assert campos["grade_item_aggregationcoef2"] != "2.5000"
+    assert campos.get("grade_item_weightoverride") != "1"
+
+
+def test_crear_categoria_natural_sigue_enviando_el_peso_sobrescrito():
+    moodle, sesion = _moodle_calificador()
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    moodle.crear_categoria(2, "Nueva", "TZ_N", "cg1", 30, None)
+    campos = _enviado(sesion)[1]
+    assert campos["aggregation"] == "13"
+    assert campos["aggregateonlygraded"] == "1"
+    assert campos["grade_item_weightoverride"] == "1"
+    assert campos["grade_item_aggregationcoef2"] == "30"
+    assert "grade_item_aggregationcoef" not in campos
+
+
+def test_crear_categoria_media_ponderada_sin_coeficiente_no_lo_envia():
+    moodle, sesion = _moodle_calificador()
+    sesion.arbol_despues = _arbol_con_nueva_categoria()
+    moodle.crear_categoria(2, "Nueva", "TZ_N", "cg1", None, None, agregacion=10)
+    assert "grade_item_aggregationcoef" not in _enviado(sesion)[1]

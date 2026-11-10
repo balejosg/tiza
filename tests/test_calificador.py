@@ -208,10 +208,27 @@ class AulaViva(MoodleFalso):
     # -- escritura --------------------------------------------------------
 
     def crear_categoria(
-        self, curso, nombre, idnumber, padre_eid, peso, visualizacion, agregacion=13
+        self,
+        curso,
+        nombre,
+        idnumber,
+        padre_eid,
+        peso,
+        visualizacion,
+        agregacion=13,
+        solo_no_vacias=True,
+        coeficiente=None,
     ):
         eid = super().crear_categoria(
-            curso, nombre, idnumber, padre_eid, peso, visualizacion, agregacion
+            curso,
+            nombre,
+            idnumber,
+            padre_eid,
+            peso,
+            visualizacion,
+            agregacion,
+            solo_no_vacias,
+            coeficiente,
         )
         return self._crear(
             eid, idnumber, "categoria", nombre, padre_eid, peso, agregacion=agregacion
@@ -243,8 +260,8 @@ class AulaViva(MoodleFalso):
             self.perturbar = False  # una sola vez: Moodle reescala a RA1 al guardar RA2
             self._cambiar(self.por_id("TZ_E_RA1").eid, None, peso=1.0)
 
-    def fijar_agregacion(self, curso, eid, agregacion):
-        super().fijar_agregacion(curso, eid, agregacion)
+    def fijar_agregacion(self, curso, eid, agregacion, solo_no_vacias=None):
+        super().fijar_agregacion(curso, eid, agregacion, solo_no_vacias)
         self._cambiar(eid, None, agregacion=agregacion)
 
     def fijar_formula(self, curso, item_id, formula, decimal):

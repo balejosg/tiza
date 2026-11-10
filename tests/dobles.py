@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 import pytest
 
 from tiza import aislamiento, buzon, colocacion, config, informe, publicacion, publicar, rutas
+from tiza.calificacion import ponderacion
 from tiza.estructura import Estructura
 from tiza.publicar import (
     CAMPOS_FECHA_CUESTIONARIO,
@@ -199,6 +200,13 @@ class MoodleFalso:
         self.ajustes_totales: dict[int, int | None] = {}
         # Árbol de notas por curso (``colocacion.ArbolNotas``); sin configurar, solo la raíz.
         self.arboles: dict[int, colocacion.ArbolNotas] = {}
+        # Árbol de ponderación por curso (``ponderacion.ArbolPonderacion``); sin configurar, la raíz.
+        self.arboles_ponderacion: dict[int, ponderacion.ArbolPonderacion] = {}
+        # Números de ID de categorías por curso (``idnumbers_de``): eid -> idnumber.
+        self.idnumbers: dict[int, dict[str, str]] = {}
+        # Lo que se pidió con los parámetros nuevos de ``crear_categoria``/``fijar_agregacion``:
+        # (método, eid o nombre, solo_no_vacias[, coeficiente]); aparte de ``escrituras``.
+        self.opciones_de_escritura: list[tuple] = []
         self._siguiente_eid = 1000
         self.cerradas = 0  # veces que se cerró la sesión del aula
         self.subidas: list[tuple[str, bytes]] = []
@@ -445,8 +453,20 @@ class MoodleFalso:
         return f"{prefijo}{self._siguiente_eid}"
 
     def crear_categoria(
-        self, curso, nombre, idnumber, padre_eid, peso, visualizacion, agregacion=13
+        self,
+        curso,
+        nombre,
+        idnumber,
+        padre_eid,
+        peso,
+        visualizacion,
+        agregacion=13,
+        solo_no_vacias=True,
+        coeficiente=None,
     ):
+        self.opciones_de_escritura.append(
+            ("crear_categoria", idnumber, solo_no_vacias, coeficiente)
+        )
         self._escribir_calificador(
             "crear_categoria",
             curso,
@@ -471,7 +491,11 @@ class MoodleFalso:
     def fijar_peso(self, curso, eid, peso):
         self._escribir_calificador("fijar_peso", curso, eid, peso)
 
-    def fijar_agregacion(self, curso, eid, agregacion):
+    def fijar_coeficiente(self, curso, eid, valor, metodo_del_padre):
+        self._escribir_calificador("fijar_coeficiente", curso, eid, valor, metodo_del_padre)
+
+    def fijar_agregacion(self, curso, eid, agregacion, solo_no_vacias=None):
+        self.opciones_de_escritura.append(("fijar_agregacion", eid, solo_no_vacias))
         self._escribir_calificador("fijar_agregacion", curso, eid, agregacion)
 
     def fijar_formula(self, curso, item_id, formula, decimal):
@@ -501,6 +525,45 @@ class MoodleFalso:
         return self.arboles.get(
             curso, colocacion.ArbolNotas((colocacion.FilaNota("cg1", None, None, "Curso"),))
         )
+
+    def arbol_ponderacion(self, curso, nombradas=None):
+        self.llamadas.append(
+            ("arbol_ponderacion", curso, None if nombradas is None else frozenset(nombradas))
+        )
+        pendientes = self.fallos.get("arbol_ponderacion")
+        if pendientes:
+            raise ErrorPublicacion(pendientes.pop(0))
+        if curso in self.arboles_ponderacion:
+            return self.arboles_ponderacion[curso]
+        raiz = ponderacion.NodoPonderacion(
+            eid="cg1",
+            item_id=1,
+            idnumber="",
+            clase="curso",
+            nombre="Curso",
+            padre_eid=None,
+            cmid=None,
+            tipo=None,
+            bloqueado=False,
+            tiene_notas=False,
+            agregacion=13,
+            solo_no_vacias=None,
+            opciones_agregacion=None,
+            coeficiente=None,
+            peso=None,
+            sobrescrito=False,
+            maximo=None,
+            oculto=False,
+        )
+        return ponderacion.ArbolPonderacion(curso=curso, nodos=(raiz,), decimal=".")
+
+    def idnumbers_de(self, curso, eids):
+        self.llamadas.append(("idnumbers_de", curso, frozenset(eids)))
+        pendientes = self.fallos.get("idnumbers_de")
+        if pendientes:
+            raise ErrorPublicacion(pendientes.pop(0))
+        conocidos = self.idnumbers.get(curso, {})
+        return {eid: conocidos.get(eid, "") for eid in eids}
 
     def mover_nota(self, curso, eid, categoria, despues_de):
         self._escribir_calificador("mover_nota", curso, eid, categoria, despues_de)

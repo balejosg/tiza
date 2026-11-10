@@ -185,7 +185,7 @@ class Ejecucion:
         elif tipo == "fijar_agregacion":
             assert op.agregacion is not None
             self.tocados.add(self._eid(op))
-            aula.fijar_agregacion(curso, self._eid(op), op.agregacion)
+            aula.fijar_agregacion(curso, self._eid(op), op.agregacion, solo_no_vacias=True)
         elif tipo == "fijar_maximo":
             assert op.maximo is not None
             self.tocados.add(f"ig{self._item(op)}")
