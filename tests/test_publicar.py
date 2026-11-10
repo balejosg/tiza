@@ -3918,8 +3918,13 @@ class _SesionCalificador:
         calculos=None,
         respuesta_arbol=None,
         settings=None,
+        modedit=None,
+        quiz=None,
     ):
         self.arbol = _fixture_calificador("setup-lleno.html") if arbol is None else arbol
+        # Ajustes de cada actividad (``course/modedit.php``) y página de cada cuestionario.
+        self.modedit = modedit or {}
+        self.quiz = quiz or {}
         self.items = items or {}
         self.categorias = categorias or {}
         self.calculos = calculos or {}
@@ -3949,6 +3954,11 @@ class _SesionCalificador:
             return _RespuestaHttp("", status=303, destino="https://aula/grade/edit/tree/index.php")
         if url.endswith("/grade/edit/tree/index.php"):
             return self.respuesta_arbol or _RespuestaHttp(self.arbol)
+        if "/course/modedit.php" in url:
+            cmid = int(url.rsplit("=", 1)[1])
+            return _RespuestaHttp(self.modedit.get(cmid, MEDIT_SIN_NOTAS))
+        if url.endswith("/mod/quiz/view.php"):
+            return _RespuestaHttp(self.quiz[int(params["id"])])
         if url.endswith("/grade/edit/settings/index.php"):
             if self.settings is None:
                 raise AssertionError(f"petición inesperada: {url}")
@@ -4029,6 +4039,27 @@ def test_calificador_flags():
     assert _nodo(cal, "cg3").tiene_notas is True
     assert _nodo(cal, "cg4").tiene_notas is False
     assert _nodo(cal, "cg1").tiene_notas is True
+
+
+def test_calificador_ve_las_notas_de_una_actividad():
+    # El item.php de una actividad nunca trae «rescalegrades»: se pregunta a sus ajustes, y
+    # la categoría que solo la tiene a ella con notas también tiene notas (bloquear ajena).
+    sin, _ = _calificador()
+    assert _nodo(sin, "ig171").tiene_notas is False
+    assert _nodo(sin, "cg3").tiene_notas is False
+    con, sesion = _calificador(modedit={258: MEDIT_CON_NOTAS})
+    assert _nodo(con, "ig171").tiene_notas is True
+    assert _nodo(con, "cg3").tiene_notas is True
+    assert _nodo(con, "cg4").tiene_notas is False
+    assert any("course/modedit.php?update=258" in url for url in sesion.urls)
+    assert all("grade/report" not in url for url in sesion.urls)
+
+
+def test_calificador_ve_un_cuestionario_con_intentos():
+    con, _ = _calificador(modedit={258: MEDIT_CUESTIONARIO}, quiz={258: QUIZ_CON_INTENTOS})
+    assert _nodo(con, "cg3").tiene_notas is True
+    sin, _ = _calificador(modedit={258: MEDIT_CUESTIONARIO}, quiz={258: QUIZ_SIN_INTENTOS})
+    assert _nodo(sin, "cg3").tiene_notas is False
 
 
 def test_calificador_lee_oculto_del_formulario():
@@ -5371,6 +5402,48 @@ def test_actividad_tiene_notas_por_rescalegrades(monkeypatch):
     moodle = _moodle_rubrica(sesion, monkeypatch)
     assert moodle.actividad_tiene_notas(5) is True
     assert moodle.actividad_tiene_notas(5) is False
+
+
+MEDIT_CUESTIONARIO = """<form action="modedit.php" method="post">
+  <input type="hidden" name="_qf__mod_quiz_mod_form" value="1">
+  <input name="name" value="Repaso">
+  <input name="grade" value="10">
+</form>"""
+
+QUIZ_CON_INTENTOS = """<div id="region-main"><div class="quizattemptcounts">
+  <a href="https://aula.example.org/mod/quiz/report.php?id=5&amp;mode=overview">Intentos: 3</a>
+</div></div>"""
+
+QUIZ_SIN_INTENTOS = (
+    """<div id="region-main"><p>Método de calificación: calificación más alta</p></div>"""
+)
+
+
+@pytest.mark.parametrize(
+    ("pagina", "esperado"),
+    [
+        (QUIZ_CON_INTENTOS, True),
+        (QUIZ_SIN_INTENTOS, False),
+        ("<html><body>Entrar</body></html>", True),  # no es la página del cuestionario
+    ],
+)
+def test_cuestionario_tiene_notas_si_tiene_intentos(monkeypatch, pagina, esperado):
+    # Los ajustes de un cuestionario nunca traen «rescalegrades»: cuenta el recuento de intentos.
+    sesion = _SesionSinNotas([_RespuestaRubrica(MEDIT_CUESTIONARIO), _RespuestaRubrica(pagina)])
+    assert _moodle_rubrica(sesion, monkeypatch).actividad_tiene_notas(5) is esperado
+    assert [url.rsplit("/", 2)[-2:] for _, url, _ in sesion.peticiones][1] == ["quiz", "view.php"]
+    assert all("report.php" not in url for _, url, _ in sesion.peticiones)
+
+
+def test_cuestionario_ilegible_tiene_notas(monkeypatch):
+    sesion = _SesionSinNotas([_RespuestaRubrica(MEDIT_CUESTIONARIO), RuntimeError("sin red")])
+    assert _moodle_rubrica(sesion, monkeypatch).actividad_tiene_notas(5) is True
+
+
+def test_tarea_sin_notas_no_mira_intentos(monkeypatch):
+    sesion = _SesionSinNotas([_RespuestaRubrica(MEDIT_SIN_NOTAS)])
+    assert _moodle_rubrica(sesion, monkeypatch).actividad_tiene_notas(5) is False
+    assert len(sesion.peticiones) == 1
 
 
 def test_actividad_tiene_notas_ilegible_es_verdadero(monkeypatch):

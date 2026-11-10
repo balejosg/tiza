@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Arreglado
+- **El calificador ve las notas de las actividades.** Una categoría de tu calificador que solo tenía actividades con nota (tareas, cuestionarios o H5P) se daba por vacía. `tiza calificador` sacaba sus actividades sin bloquear antes su total (`CALIFICADOR_BLOQUEAR`), y la confirmación no avisaba de que una evaluación ya tenía notas. Ahora tiza lo pregunta a cada actividad, sin leer ninguna nota: en tareas y H5P, por sus ajustes; en un cuestionario, por si tiene intentos.
+
 ## 0.43.1 — 2026-11-09
 
 ### Añadido

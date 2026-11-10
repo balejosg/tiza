@@ -728,17 +728,24 @@ class Moodle:
         }
 
     def actividad_tiene_notas(self, cmid: int) -> bool:
-        """¿La tarea ya tiene notas en el calificador? Solo por ``rescalegrades`` en sus ajustes.
+        """¿La actividad ya tiene notas en el calificador? Sin leer ninguna nota ni ningún nombre.
 
-        No abre la tabla de calificación ni la lista de participantes: no lee ninguna nota ni
-        ningún nombre. Moodle muestra ese campo cuando el elemento del calificador ya tiene
-        notas: una nota liberada, o una puesta sin flujo de trabajo. Una nota en borrador (con
-        ``markingworkflow`` activo) no lo muestra; por eso la confirmación del docente es la
-        regla principal y este campo es solo un freno. Si el formulario no se puede leer, se
-        trata como si tuviera notas (D14): ante la duda, no se cambia su método ni su rúbrica.
+        Tareas y H5P: por ``rescalegrades`` en sus ajustes (``modedit``), que Moodle muestra
+        cuando el elemento del calificador ya tiene notas: una nota liberada, o una puesta sin
+        flujo de trabajo. Una nota en borrador (con ``markingworkflow`` activo) no lo muestra;
+        por eso la confirmación del docente es la regla principal y este campo es solo un freno.
+
+        Cuestionarios: sus ajustes no tienen ese campo (la nota máxima se cambia en otra
+        página), así que cuenta que haya intentos: el recuento «Intentos: N» de su página
+        (``.quizattemptcounts`` con el enlace al informe), que solo sale si hay alguno. No se
+        abre el informe. Un intento sin terminar también cuenta: ante la duda, tiene notas.
+
+        Si algo no se puede leer, se trata como si tuviera notas (D14): ante la duda, no se
+        cambia su método ni su rúbrica, y su categoría ajena se bloquea antes de sacarla.
         """
         url = f"{self.base_url}/course/modedit.php?update={cmid}"
         try:
+            self._esperar()
             respuesta = self.sesion.get(url, timeout=TIEMPO_ESPERA)
             respuesta.raise_for_status()
             texto = getattr(respuesta, "text", "") or ""
@@ -749,9 +756,28 @@ class Moodle:
         if formulario is None:
             # Una página de login con 200 (sesión caducada) no es el formulario de ajustes.
             return True
-        return any(
-            "rescalegrades" in str(campo.get("name") or "") for campo in formulario.find_all(True)
-        )
+        nombres = [str(campo.get("name") or "") for campo in formulario.find_all(True)]
+        if any("rescalegrades" in nombre for nombre in nombres):
+            return True
+        if "_qf__mod_quiz_mod_form" not in nombres:
+            return False
+        return self._cuestionario_con_intentos(cmid)
+
+    def _cuestionario_con_intentos(self, cmid: int) -> bool:
+        """¿Tiene intentos el cuestionario? Solo mira si sale el recuento en su página."""
+        try:
+            self._esperar()
+            respuesta = self.sesion.get(
+                f"{self.base_url}/mod/quiz/view.php", params={"id": cmid}, timeout=TIEMPO_ESPERA
+            )
+            respuesta.raise_for_status()
+            texto = getattr(respuesta, "text", "") or ""
+        except Exception:  # noqa: BLE001 - no poder saberlo cuenta como «tiene notas»
+            return True
+        sopa = BeautifulSoup(texto, "html.parser")
+        if sopa.select_one('#region-main, [role="main"]') is None:
+            return True  # no es la página del cuestionario (p. ej., el login)
+        return sopa.select_one('.quizattemptcounts a[href*="mode=overview"]') is not None
 
     def _area_rubrica(self, cmid: int) -> int:
         contexto = self.leer_modulo(cmid).get("contexto")
@@ -1316,7 +1342,8 @@ class Moodle:
 
         Abre el árbol y el formulario de cada elemento y categoría, nunca un informe de notas
         (``grade/report/``). Que un elemento tiene notas se sabe solo por la presencia del campo
-        ``rescalegrades`` de su formulario. Lo que devuelve es dato estructural; el texto de
+        ``rescalegrades`` de su formulario; en una actividad, por ``actividad_tiene_notas`` (su
+        ``item.php`` nunca trae ese campo). Lo que devuelve es dato estructural; el texto de
         Moodle no sale de aquí salvo los nombres, que solo ve el docente.
 
         ``tocados`` (los ``eid`` que se acaban de cambiar; ``ig<n>`` vale también para el total
@@ -1389,7 +1416,13 @@ class Moodle:
                     "sobrescrito": _casilla_marcada(formulario, pref + "weightoverride"),
                     "bloqueado": _casilla_marcada(formulario, pref + "locked"),
                     "oculto": not es_categoria and _casilla_marcada(formulario, "hidden"),
-                    "tiene_notas": _campo_con_nombre(formulario, "rescalegrades") is not None,
+                    # El ``item.php`` de una actividad nunca trae ``rescalegrades`` (su máximo
+                    # se cambia en sus ajustes): se pregunta a la actividad.
+                    "tiene_notas": _campo_con_nombre(formulario, "rescalegrades") is not None
+                    or (
+                        coincidencia is not None
+                        and self.actividad_tiene_notas(int(coincidencia.group(1)))
+                    ),
                     "formula": formula or None,
                     "maximo": _numero(fila.get("data-grademax")),
                     "cmid": int(coincidencia.group(1)) if coincidencia else None,
