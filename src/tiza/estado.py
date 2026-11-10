@@ -61,8 +61,10 @@ __all__ = [
     "FICHERO_COPIA",
     "FICHERO_ESTRUCTURA",
     "FICHERO_INFORME",
+    "FICHERO_PONDERACION",
     "FICHERO_PUBLICADOS",
     "MAX_BASE_BYTES",
+    "MAX_PONDERACION_JSON",
     "MAX_PUBLICADOS_JSON",
     "FICHERO_VERIFICADOS",
     "AVISO_CAMBIADA",
@@ -80,6 +82,7 @@ __all__ = [
     "publicados_de_fichero",
     "cargar_estructura",
     "cargar_huellas",
+    "cargar_huellas_ponderacion",
     "cargar_verificados",
     "comprobar_puerta_real",
     "escribir_copia",
@@ -88,6 +91,7 @@ __all__ = [
     "fichero_de_cmid",
     "guardar_huella_de_copia",
     "guardar_huellas",
+    "guardar_huellas_ponderacion",
     "guardar_publicado",
     "guardar_verificado",
     "guardar_version_de_copia",
@@ -99,6 +103,7 @@ __all__ = [
     "reservar_copia",
     "ruta_de_registro_valida",
     "ruta_lectura",
+    "referencia_de_ponderacion_valida",
     "ruta_publicada_valida",
     "temporal_de_copia",
     "texto_guardado",
@@ -530,6 +535,97 @@ def guardar_huellas(dir_tiza: str | Path, curso: int, nodos: Mapping[str, str]) 
     _validar_calificador(datos)
     asegurar_directorio(Path(dir_tiza))
     return escribir_json(Path(dir_tiza) / FICHERO_CALIFICADOR, datos)
+
+
+FICHERO_PONDERACION = "ponderacion.json"  # lo que tiza dejó en el aula por nodo nombrado
+MAX_PONDERACION_JSON = 16 * 1024 * 1024  # ponderacion.json, al leerlo
+MAX_REFERENCIA = 500
+# Referencias del esquema (``fichero:…``, ``actividad:…``, ``elemento:…``, ``categoria:…``): texto
+# del docente con «/», espacios, acentos, «:», «.», «-» y «_». Se prohíben los controles, los
+# separadores de línea, los invisibles y de escritura bidireccional, y «<»/«>» (la misma clase que
+# ``texto_guardado`` e ``informe._TEXTO_PROHIBIDO``, con los invisibles que esa no cubre).
+_REFERENCIA_PROHIBIDA = re.compile(
+    r"[<>\x00-\x1f\x7f-\x9f\u00ad\u061c\u200b-\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\ufeff]"
+)
+
+
+def referencia_de_ponderacion_valida(referencia: str) -> bool:
+    """¿Puede ``referencia`` ser clave de ``ponderacion.json``? Texto no vacío, sin lo prohibido."""
+    return (
+        isinstance(referencia, str)
+        and 0 < len(referencia) <= MAX_REFERENCIA
+        and _REFERENCIA_PROHIBIDA.search(referencia) is None
+    )
+
+
+def _validar_ponderacion(datos: Any) -> None:
+    """Esquema cerrado de ``ponderacion.json``: ``{version: 1, cursos: {id: {referencia: sha256}}}``."""
+    if not isinstance(datos, dict) or set(datos) != {"version", "cursos"}:
+        raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+    if type(datos["version"]) is not int or datos["version"] != 1:
+        raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+    cursos = datos["cursos"]
+    if not isinstance(cursos, dict):
+        raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+    for curso, entrada in cursos.items():
+        if not isinstance(curso, str) or not _CURSO_PUBLICADO.fullmatch(curso):
+            raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+        if not isinstance(entrada, dict):
+            raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+        for referencia, huella in entrada.items():
+            if not referencia_de_ponderacion_valida(referencia):
+                raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+            if not isinstance(huella, str) or not _HUELLA.fullmatch(huella):
+                raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+
+
+def _cargar_ponderacion(dir_tiza: str | Path) -> dict | None:
+    """``ponderacion.json`` validado, o ``None`` si no existe; fuera del esquema es inválido."""
+    ruta = Path(dir_tiza) / FICHERO_PONDERACION
+    try:
+        modo = os.lstat(ruta).st_mode
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ErrorEstado("PONDERACION_ESTADO_INVALIDO") from exc
+    if not stat.S_ISREG(modo):  # un directorio, una FIFO o un enlace: no es el de tiza
+        raise ErrorEstado("PONDERACION_ESTADO_INVALIDO")
+    try:
+        datos = json.loads(leer_bytes_acotado(ruta, MAX_PONDERACION_JSON).decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ErrorEstado("PONDERACION_ESTADO_INVALIDO") from exc
+    _validar_ponderacion(datos)
+    return datos
+
+
+def cargar_huellas_ponderacion(dir_tiza: str | Path, curso: int) -> dict[str, str]:
+    """Las huellas de lo que tiza dejó en ``curso`` (referencia -> sha256).
+
+    Sin ``ponderacion.json`` o sin entrada para el curso, ``{}``. Un fichero fuera del esquema,
+    ilegible o que no es regular es ``PONDERACION_ESTADO_INVALIDO``.
+    """
+    datos = _cargar_ponderacion(dir_tiza)
+    if datos is None:
+        return {}
+    entrada = datos["cursos"].get(str(int(curso)))
+    return dict(entrada) if entrada else {}
+
+
+def guardar_huellas_ponderacion(
+    dir_tiza: str | Path, curso: int, referencias: Mapping[str, str]
+) -> Path:
+    """Guarda las huellas de ``curso`` (sustituye las anteriores) y deja intactos los demás cursos.
+
+    Las referencias que no cumplen ``referencia_de_ponderacion_valida`` se descartan, como en
+    ``guardar_huellas``: ese nodo queda sin huella y la pasada siguiente lo trata como nuevo. Una
+    huella que no sea un sha256 en hex no se guarda: es ``PONDERACION_ESTADO_INVALIDO``.
+    """
+    datos = _cargar_ponderacion(dir_tiza) or {"version": 1, "cursos": {}}
+    guardables = {r: h for r, h in referencias.items() if referencia_de_ponderacion_valida(r)}
+    datos["cursos"][str(int(curso))] = guardables
+    _validar_ponderacion(datos)
+    asegurar_directorio(Path(dir_tiza))
+    return escribir_json(Path(dir_tiza) / FICHERO_PONDERACION, datos)
 
 
 _ID_DE_HOJA = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,15}")

@@ -477,6 +477,132 @@ class TestHuellasDelCalificador:
         assert error.value.codigo == "CALIFICADOR_INVALIDO"
 
 
+class TestHuellasDePonderacion:
+    """``.tiza/ponderacion.json``: la huella de lo que tiza dejó en el aula, por curso y referencia."""
+
+    HUELLA = "a" * 64
+    OTRA = "b" * 64
+
+    def test_sin_fichero_no_hay_huellas(self, tmp_path):
+        assert estado.cargar_huellas_ponderacion(tmp_path, 7) == {}
+
+    def test_sin_entrada_del_curso_no_hay_huellas(self, tmp_path):
+        estado.guardar_huellas_ponderacion(tmp_path, 7, {"elemento:Examen": self.HUELLA})
+        assert estado.cargar_huellas_ponderacion(tmp_path, 9) == {}
+
+    def test_ida_y_vuelta_por_curso(self, tmp_path):
+        ruta = estado.guardar_huellas_ponderacion(
+            tmp_path, 7, {"categoria:Teoria": self.HUELLA, "elemento:Examen": self.OTRA}
+        )
+        assert ruta == tmp_path / "ponderacion.json"
+        estado.guardar_huellas_ponderacion(tmp_path, 8, {"fichero:1DAM/Tema 1.md": self.OTRA})
+        assert estado.cargar_huellas_ponderacion(tmp_path, 7) == {
+            "categoria:Teoria": self.HUELLA,
+            "elemento:Examen": self.OTRA,
+        }
+        assert estado.cargar_huellas_ponderacion(tmp_path, 8) == {
+            "fichero:1DAM/Tema 1.md": self.OTRA
+        }
+
+    def test_guardar_reemplaza_solo_las_de_ese_curso(self, tmp_path):
+        estado.guardar_huellas_ponderacion(tmp_path, 7, {"elemento:A": self.HUELLA})
+        estado.guardar_huellas_ponderacion(tmp_path, 8, {"elemento:B": self.HUELLA})
+        estado.guardar_huellas_ponderacion(tmp_path, 7, {"elemento:C": self.OTRA})
+        assert estado.cargar_huellas_ponderacion(tmp_path, 7) == {"elemento:C": self.OTRA}
+        assert estado.cargar_huellas_ponderacion(tmp_path, 8) == {"elemento:B": self.HUELLA}
+
+    def test_refs_con_barra_espacios_y_acentos_sobreviven(self, tmp_path):
+        refs = {
+            "actividad:tarea:Tema 3/Mañana:Entrega única": self.HUELLA,
+            "categoria:Evaluación continua": self.OTRA,
+            "elemento:Prueba_1.2-b": self.HUELLA,
+        }
+        estado.guardar_huellas_ponderacion(tmp_path, 7, refs)
+        assert estado.cargar_huellas_ponderacion(tmp_path, 7) == refs
+
+    def test_refs_prohibidas_se_descartan_al_guardar(self, tmp_path):
+        buenas = {"elemento:Examen": self.HUELLA}
+        malas = {
+            "": self.HUELLA,
+            "elemento:a\nb": self.HUELLA,
+            "elemento:<x>": self.HUELLA,
+            "elemento:\u202ex": self.HUELLA,
+            "elemento:\u200bx": self.HUELLA,
+            "elemento:\ufeffx": self.HUELLA,
+            "elemento:" + "a" * 500: self.HUELLA,
+        }
+        estado.guardar_huellas_ponderacion(tmp_path, 7, {**buenas, **malas})
+        assert estado.cargar_huellas_ponderacion(tmp_path, 7) == buenas
+        texto = (tmp_path / "ponderacion.json").read_text(encoding="utf-8")
+        assert "<" not in texto and "\u202e" not in texto and "\u200b" not in texto
+
+    def test_huella_invalida_no_se_guarda(self, tmp_path):
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.guardar_huellas_ponderacion(tmp_path, 7, {"elemento:A": "no es un sha256"})
+        assert error.value.codigo == "PONDERACION_ESTADO_INVALIDO"
+        assert not (tmp_path / "ponderacion.json").exists()
+
+    @pytest.mark.parametrize(
+        "datos",
+        [
+            {"version": 2, "cursos": {}},
+            {"version": True, "cursos": {}},
+            {"version": 1.0, "cursos": {}},
+            {"version": 1},
+            {"version": 1, "cursos": {}, "extra": 1},
+            [],
+            {"version": 1, "cursos": []},
+            {"version": 1, "cursos": {"007": {"elemento:A": "a" * 64}}},
+            {"version": 1, "cursos": {"0": {"elemento:A": "a" * 64}}},
+            {"version": 1, "cursos": {"siete": {}}},
+            {"version": 1, "cursos": {"7": []}},
+            {"version": 1, "cursos": {"7": {"elemento:A": "corta"}}},
+            {"version": 1, "cursos": {"7": {"elemento:A": "A" * 64}}},
+            {"version": 1, "cursos": {"7": {"elemento:A": 5}}},
+            {"version": 1, "cursos": {"7": {"": "a" * 64}}},
+            {"version": 1, "cursos": {"7": {"elemento:<x>": "a" * 64}}},
+            {"version": 1, "cursos": {"7": {"elemento:x\ny": "a" * 64}}},
+        ],
+    )
+    def test_fuera_del_esquema_es_invalido(self, tmp_path, datos):
+        (tmp_path / "ponderacion.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas_ponderacion(tmp_path, 7)
+        assert error.value.codigo == "PONDERACION_ESTADO_INVALIDO"
+
+    def test_no_json_es_invalido(self, tmp_path):
+        (tmp_path / "ponderacion.json").write_text("{no es json", encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas_ponderacion(tmp_path, 7)
+        assert error.value.codigo == "PONDERACION_ESTADO_INVALIDO"
+
+    def test_un_directorio_no_es_el_fichero(self, tmp_path):
+        (tmp_path / "ponderacion.json").mkdir()
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas_ponderacion(tmp_path, 7)
+        assert error.value.codigo == "PONDERACION_ESTADO_INVALIDO"
+
+    def test_un_enlace_no_es_el_fichero_y_no_se_lee_fuera(self, tmp_path):
+        from dobles import enlace_simbolico
+
+        fuera = tmp_path / "fuera.json"
+        fuera.write_text(
+            json.dumps({"version": 1, "cursos": {"7": {"elemento:A": self.HUELLA}}}),
+            encoding="utf-8",
+        )
+        carpeta = tmp_path / ".tiza"
+        carpeta.mkdir()
+        enlace_simbolico(carpeta / "ponderacion.json", fuera)
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_huellas_ponderacion(carpeta, 7)
+        assert error.value.codigo == "PONDERACION_ESTADO_INVALIDO"
+
+    def test_escritura_atomica_no_deja_temporales(self, tmp_path):
+        estado.guardar_huellas_ponderacion(tmp_path / ".tiza", 7, {"elemento:A": self.HUELLA})
+        estado.guardar_huellas_ponderacion(tmp_path / ".tiza", 8, {"elemento:B": self.OTRA})
+        assert sorted(p.name for p in (tmp_path / ".tiza").iterdir()) == ["ponderacion.json"]
+
+
 H = "a" * 64
 M = "b" * 64
 
