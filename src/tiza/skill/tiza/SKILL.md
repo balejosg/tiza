@@ -315,6 +315,16 @@ Si el docente pide montar el calificador del aula, o cambiar cómo se calcula su
 - Lo que no se puede expresar (redondeos, actitud, otros pesos dentro de una evaluación) se lo dices al docente y no lo fuerzas.
 - Cerrar una evaluación es `cerrada: true` y volver a montar; tiza no la reabre.
 
+### Ponderar sin competencias
+
+Si el docente quiere que una parte de la nota pese un porcentaje pero **no** quiere criterios en Moodle, no escribas `calificacion.yaml`: escribe un `ponderacion.yaml` y pásalo por el mismo `tiza calificador`. Solo retoca el calificador que ya tiene (crea una subcategoría dentro de una existente, mete actividades, fija método y pesos) y no monta el «Calificador de tiza».
+
+- **Pregunta siempre** el método (`media_ponderada` o `natural`), si la categoría nueva lleva «solo no vacías» y si el porcentaje es del total de la categoría.
+- **Nombres exactos**: pide `tiza estructura --calificador` y lee `.tiza/estructura.json` (versión 3) para las categorías, sus hijos y el porcentaje efectivo. Si no trae el calificador, pide esa lectura.
+- **Los dos modos no conviven por curso**: `TZ_TIZA` da `PONDERACION_CON_CALIFICADOR_DE_TIZA`; `TZP_` da `CALIFICADOR_CON_PONDERACION` al montar `calificacion.yaml`. Si están los dos ficheros, `tiza comprobar` avisa con `CALIFICACION_Y_PONDERACION`.
+- **No leas ni escribas notas**: `PESOS_CON_NOTAS` solo avisa de que el total de una categoría cambiará; `CAMBIADO_A_MANO` se pregunta aparte.
+- La guía completa y el ejemplo validado están en `guias/calificador.md` §8.
+
 ## Programación del docente (plantilla de departamento)
 
 Si el docente pide su programación en Word, o actualizarla a partir de la plantilla de su departamento o de una programación de referencia, carga `guias/programacion.md` y síguela **antes de preguntar nada**. Lo que escribes es un `relleno.yaml` (en la carpeta de la asignatura) que `tiza rellenar` aplica sobre una copia de la plantilla. Si no hay ni plantilla ni referencia, pídela: no inventes la estructura.
@@ -396,6 +406,7 @@ Si responden `SESION_INCOMPATIBLE`, la sesión abierta usa otra versión de tiza
 | `tiza publicar <md>… --en pruebas\|real --solo-fechas` | Con sesión: cambia solo las fechas de tareas y cuestionarios ya publicados; en real, el docente confirma las fechas antes y después |
 | `tiza ordenar <md>… --en pruebas\|real` | Con sesión: deja las actividades de esos ficheros en ese orden dentro de su sección sin mover nada más; en real, el docente confirma el orden curso a curso |
 | `tiza calificador <calificacion.yaml> --en pruebas\|real` | Con sesión: monta el calificador del aula según el esquema y coloca las actividades con `evalua`; en real, el docente confirma `[s/N]` curso a curso. Sigue `guias/calificador.md`. Sin sesión, `SIN_SESION` |
-| `tiza estructura` | Con sesión: actualiza `.tiza/estructura.json`. Con `--cambios <fichero>…` dice, por curso real, si el docente retocó a mano esas actividades (`cambiada`, `sin_cambios`, `sin_registro`). Sigue `guias/juntar.md` |
+| `tiza calificador <ponderacion.yaml> --en pruebas\|real` | Con sesión: retoca el calificador que ya existe para que lo nombrado pese el porcentaje pedido (crea subcategorías, mueve notas y fija método y pesos), sin criterios ni competencias. En real, el docente confirma el antes/después y cada cambio a mano. Sigue `guias/calificador.md` §8. Sin sesión, `SIN_SESION` |
+| `tiza estructura` | Con sesión: actualiza `.tiza/estructura.json`. Con `--cambios <fichero>…` dice, por curso real, si el docente retocó a mano esas actividades (`cambiada`, `sin_cambios`, `sin_registro`). Con `--calificador` añade el árbol de categorías del calificador (método, «solo no vacías», bloqueo, notas y porcentajes) y escribe la versión 3. Sigue `guias/juntar.md` |
 | `tiza revisar` | Solo lectura: comprueba que estás aislado del aula; si algo falta, pide al docente `tiza aislar` |
 | `tiza --help` | Ayuda |

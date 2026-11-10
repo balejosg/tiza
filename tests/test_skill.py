@@ -221,7 +221,7 @@ def test_ejemplo_con_criterios_carga_con_pesos_y_casilla_manual():
 def test_guia_calificador_existe_se_cita_y_nombra_sus_codigos():
     assert GUIA_CALIFICADOR.is_file()
     texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
-    assert len(texto.splitlines()) <= 280
+    assert len(texto.splitlines()) <= 360
     assert "guias/calificador.md" in SKILL.read_text(encoding="utf-8")
     for codigo in CODIGOS_CALIFICADOR:
         assert codigo in texto, f"la guía del calificador no nombra {codigo}"
@@ -240,10 +240,11 @@ def test_guia_calificador_fragmento_de_criterios_esta_en_el_ejemplo():
     texto = GUIA_CALIFICADOR.read_text(encoding="utf-8")
     assert "ejemplos/calificacion-criterios.yaml" not in texto  # la skill instalada no lo trae
     bloques = _bloques_yaml(texto)
-    assert len(bloques) == 3
+    assert len(bloques) == 4
     ejemplo = EJEMPLO_CALIFICADOR_CRITERIOS.read_text(encoding="utf-8")
-    for fragmento in bloques[1:]:
+    for fragmento in bloques[1:3]:
         assert fragmento in ejemplo
+    assert bloques[3].startswith("ponderacion:\n") and "porcentaje: 30" in bloques[3]
 
 
 def test_skill_carga_la_guia_del_calificador_en_su_seccion():

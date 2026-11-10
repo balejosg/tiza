@@ -236,7 +236,59 @@ Común: una tarea con notas pide confirmación (`EVIDENCIA_CAMBIADA_CON_NOTAS`);
 
 El total de cualquier categoría se puede sobrescribir a mano en el informe del calificador de Moodle; la media calculada queda a la vista. tiza no lo deshace ni escribe notas. Si la programación lo exige, el docente lo justifica (art. 46.4) y lo deja escrito en el aula.
 
-## 8. Si el aula ya tiene un calificador
+## 8. Ponderar sin competencias
+
+Cuando el docente quiere que una parte de la nota pese un porcentaje (por ejemplo, «el examen
+pesa el 30 % de la primera evaluación») pero **no** quiere criterios ni competencias en Moodle,
+no uses `calificacion.yaml`: escribe un `ponderacion.yaml` y pásalo por el mismo comando,
+`tiza calificador ponderacion.yaml`. tiza retoca el calificador que el docente ya tiene en el
+sitio; no monta el «Calificador de tiza».
+
+```yaml
+ponderacion:
+  - id: EXAMEN_1EV
+    nombre: "Examen 1.ª evaluación"
+    dentro_de: "PRIMERA EVALUACIÓN"
+    calculo: media_ponderada
+    solo_no_vacias: false
+    elementos:
+      - {fichero: 1eva/test-1-hardware.md, peso: 16}
+      - {fichero: 1eva/test-2-procesador-textos.md, peso: 8}
+      - {fichero: 1eva/test-3-maquinas-virtuales-linux.md, peso: 6}
+      - {fichero: 1eva/tarea-sheets-monta-tu-pc.html, peso: 45}
+
+  - categoria: "PRIMERA EVALUACIÓN"
+    elementos:
+      - {categoria: EXAMEN_1EV, porcentaje: 30}
+```
+
+- **Pregunta siempre** el método (`media_ponderada` o `natural`), si la categoría nueva lleva
+  «solo no vacías», y si el porcentaje es del total de esa categoría. En una categoría que ya
+  existe, `porcentaje` es la parte del total; `peso` solo vale en las nuevas y es relativo.
+- **Nombra lo que hay**, con los nombres exactos: `tiza estructura --calificador` deja en
+  `.tiza/estructura.json` las categorías, sus métodos y sus hijos con el porcentaje efectivo.
+  Si el fichero no trae el calificador, pide `tiza estructura --calificador`.
+- **Solo se toca lo nombrado**: tiza crea la subcategoría nueva dentro de una que ya existe
+  (`dentro_de`, nunca en la raíz), mete ahí las actividades y fija método y pesos. Lo que no
+  nombras no cambia; lo que sale de una categoría se ve en el antes/después.
+- **No se borra nada** y tiza no desbloquea. Una categoría `TZP_` que quitas del fichero se
+  queda en el aula (`CATEGORIA_NO_DECLARADA`).
+- **La exclusión es por curso**: un curso con el «Calificador de tiza» (`TZ_TIZA`) da
+  `PONDERACION_CON_CALIFICADOR_DE_TIZA`; uno con categorías `TZP_` no admite `calificacion.yaml`
+  (`CALIFICADOR_CON_PONDERACION`). Si están los dos ficheros en la carpeta, `tiza comprobar`
+  avisa con `CALIFICACION_Y_PONDERACION`. Elige un solo modo por curso.
+- Si el aula no ofrece «media ponderada» (`CALCULO_NO_DISPONIBLE`), propón `natural`; con
+  porcentajes da el mismo reparto si las piezas están sobre la misma escala.
+- Los códigos del esquema (`PONDERACION_INVALIDA`, `PESOS_MEZCLADOS`, `PESO_EN_EXISTENTE`,
+  `ELEMENTO_REPETIDO`, `CICLO_DE_CATEGORIAS`, `PORCENTAJES_SUPERAN_100`, `NO_CALIFICABLE`) llevan
+  ruta y línea. Los del aula (`CATEGORIA_AUSENTE`/`AMBIGUA`, `ACTIVIDAD_AUSENTE`/`AMBIGUA`,
+  `ELEMENTO_AUSENTE`/`AMBIGUO`, `PORCENTAJES_SIN_RESTO`, `PORCENTAJE_IMPOSIBLE`,
+  `CALCULO_SIN_PESOS`, `CATEGORIA_BLOQUEADA`) dicen qué corregir antes de volver a pedirlo.
+- `CAMBIADO_A_MANO` se pregunta aparte, después del «sí» al curso; con «no», se conserva el
+  cambio del aula. `PESOS_CON_NOTAS` avisa de la categoría cuyo total cambia porque ya tiene
+  notas. tiza nunca lee ni escribe notas del alumnado.
+
+## 9. Si el aula ya tiene un calificador
 
 - Lo que tiza monta va a «Calificador de tiza», con peso 0 en el total si había otro: el total
   del curso sigue siendo el del docente. Las actividades que pasan a tiza dejan de sumar en él.
@@ -244,15 +296,18 @@ El total de cualquier categoría se puede sobrescribir a mano en el informe del 
   (`CALIFICADOR_BLOQUEAR`); nunca lo desbloquea. `CAMBIADO_A_MANO` y `BLOQUEO_FALLIDO` se resuelven a mano.
 - Un elemento que ya no está en el esquema pero tiene notas se queda con peso 0
   (`ELEMENTO_CON_NOTAS_QUITADO`); no se borra nada con notas.
+- **No se mezcla con `ponderacion.yaml` en el mismo curso.** Si el aula ya tiene categorías
+  `TZP_`, montar `calificacion.yaml` da `CALIFICADOR_CON_PONDERACION`; elige el modo por
+  categorías de la §8 o quita antes esas categorías a mano.
 
-## 9. Cerrar una evaluación
+## 10. Cerrar una evaluación
 
 Cerrar una evaluación es poner `cerrada: true` y volver a montar: tiza la completa y la bloquea.
 Dentro de una evaluación bloqueada no se crea, cambia, mueve ni borra nada; una actividad nueva
 sale como `ACTIVIDAD_EN_EVALUACION_CERRADA` y `EVALUACION_CERRADA_EN_EL_AULA` avisa de que ya
 estaba bloqueada. **tiza no puede reabrirla**: si falla a medias, repite el comando.
 
-## 10. Cómo se monta
+## 11. Cómo se monta
 
 1. `tiza comprobar calificacion.yaml` (offline) hasta que salga 0; también comprueba `evalua`.
 2. Las actividades tienen que estar publicadas; una que falta sale como `ACTIVIDAD_PENDIENTE`.
@@ -263,9 +318,10 @@ Lánzalo en segundo plano (hasta una hora): si te corta, la sesión acaba lo emp
 se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente` o `sin_colocar`,
 y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; `CALIFICADOR_CAMBIOS` desglosa los cambios por tipo, con los primeros números de ID `TZ_…`. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose: es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las notas calculadas que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de las que el aula no dejó ocultar (no corta el montaje) y `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos.
 
-## 11. Lo que tiza no hace
+## 12. Lo que tiza no hace
 
-- **No lee ni escribe notas** del alumnado: solo sabe si un elemento tiene notas. No pidas ni muestres notas de nadie y no desbloquees nada.
+- **No lee ni escribe notas** del alumnado: solo sabe si un elemento tiene notas. No pidas ni muestres notas de nadie y no desbloquees nada. En la ponderación (§8) solo se usa `tiene_notas` para avisar de que el total de una categoría cambiará.
+- **Los dos modos no conviven en un curso**: `calificacion.yaml` (por criterios, con `TZ_TIZA`) y `ponderacion.yaml` (por categorías, con `TZP_`) son excluyentes. Si están los dos ficheros, `tiza comprobar` avisa; elige uno por curso.
 - No usa los descriptores de las competencias de Moodle, pero **sí** sus «resultados»
   (*outcomes*) para la evidencia por criterio. No usa las «competencias» de Moodle.
 - **No admitido**: cambiar `organizacion` o `final.de` de un calificador ya montado, ni configurar escalas propias (tiza crea la escala de logro de §6).

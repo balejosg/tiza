@@ -4,10 +4,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.44.0 — 2026-11-10
 
-### Arreglado
-- **El calificador ve las notas de las actividades.** Una categoría de tu calificador que solo tenía actividades con nota (tareas, cuestionarios o H5P) se daba por vacía. `tiza calificador` sacaba sus actividades sin bloquear antes su total (`CALIFICADOR_BLOQUEAR`), y la confirmación no avisaba de que una evaluación ya tenía notas. Ahora tiza lo pregunta a cada actividad, sin leer ninguna nota: en tareas y H5P, por sus ajustes; en un cuestionario, por si tiene intentos.
+### Añadido
+- **Ponderación simple del calificador, sin competencias.** `tiza calificador ponderacion.yaml` retoca el calificador que ya tienes: crea subcategorías dentro de una existente y fija método (`media_ponderada` o `natural`), «solo no vacías» y los pesos o porcentajes de lo que nombres. Lo que no nombras no se toca; lo que sale de una categoría se ve en el antes/después. Solo lee el árbol y los formularios afectados, nunca un informe de notas. En real confirmas cada curso y, aparte, cada peso que hayas cambiado a mano. No se mezcla con `calificacion.yaml` en el mismo curso.
+- **`tiza estructura --calificador`.** Añade a `.tiza/estructura.json` el árbol de categorías (método, «solo no vacías», bloqueo, si tiene notas y los hijos con su porcentaje efectivo), para que el agente escriba `ponderacion.yaml` con los nombres exactos. Sin `--calificador` todo sigue igual.
+- **El calificador ve las notas de las actividades.** Una categoría que solo tenía actividades con nota (tareas, cuestionarios o H5P) se daba por vacía. `tiza calificador` sacaba sus actividades sin bloquear antes su total (`CALIFICADOR_BLOQUEAR`) y la confirmación no avisaba de que una evaluación ya tenía notas. Ahora tiza lo pregunta a cada actividad, sin leer ninguna nota: en tareas y H5P, por sus ajustes; en un cuestionario, por si tiene intentos.
+
+### Cambia
+- **El buzón sube a la versión 10** por el campo opcional `calificador` de las peticiones de `estructura`. Una sesión y un agente de versiones distintas no se entienden: actualiza los dos.
+- **`estructura.json` admite la versión 3** con el calificador opcional por curso. Las versiones 1 y 2 se siguen leyendo igual.
+- **Las categorías `TZP_` de la ponderación cuentan para colocar notas.** Al publicar, si el patrón de la sección sale ambiguo, tiza lee solo los números de ID de las categorías implicadas y trata las `TZP_` como de tiza; el caso normal no paga ninguna lectura de más.
+- **`fijar_agregacion` conserva «solo no vacías»** si no se le dice lo contrario; el calificador por criterios sigue enviando `1` explícito como antes.
 
 ## 0.43.1 — 2026-11-09
 

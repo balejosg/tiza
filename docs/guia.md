@@ -20,11 +20,12 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 | `tiza rellenar <relleno.yaml>` | agente o docente | Offline: aplica un `relleno.yaml` de la carpeta sobre una copia de la plantilla Word (`.docx`) del departamento o de una programación de referencia, con los ids de `tiza leer` (también los de encabezados y pies); conserva estilos y numeración, y lo que no cambies de encabezados y pies, y el índice se puede actualizar al abrir el Word (Word pregunta si actualizar los campos). Nunca sobrescribe (`DOCUMENTO_EXISTE`). Formato y errores en [formato.md](formato.md) |
 | `tiza importar <copia.mbz> [--como-nuevas] [--destino aula]` | agente o docente | Offline: convierte una copia de seguridad del curso, hecha sin usuarios, en un fichero de tiza por actividad (con `origen`) en la carpeta de destino, y deja el resumen en `.tiza/copia.json` (una entrada por curso). Nunca sobrescribe (`YA_IMPORTADO`). `--como-nuevas` importa una copia de otro curso como actividades nuevas (con un curso de `tiza.toml`, `COPIA_DEL_MISMO_CURSO`: se importa sin ella). Errores: `COPIA_CON_USUARIOS`, `COPIA_NO_VALIDA`, `COPIA_DEMASIADO_GRANDE`, `COPIA_DE_OTRO_CURSO`, `COPIA_DEL_MISMO_CURSO` |
 | `tiza copia <curso>` | agente o docente | Con `tiza sesion` abierta: pide al docente una copia de seguridad del curso sin usuarios (`pruebas`, `real` o el id de `tiza.toml`), que confirmas `[s/N]` en tu terminal; queda en `.tiza/copias/`, lista para `tiza importar`. Máximo 3 por sesión. Con `--actividad <fichero>` (repetible), copia solo esas actividades del curso real (máximo 20 por sesión) para juntar tus cambios; tiza las halla por su registro u `origen`. Sin sesión, `SIN_SESION` |
-| `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json`; con `calificacion.yaml`, deja `.tiza/cobertura.json` y avisa de los criterios sin evidencias o con pocas |
+| `tiza comprobar <fichero>…` | agente | Offline: valida `.md` o `.html`, genera `.tiza/preview/*.html` y comprueba la sección en `.tiza/estructura.json`; con `calificacion.yaml`, deja `.tiza/cobertura.json` y avisa de los criterios sin evidencias o con pocas; con `ponderacion.yaml`, comprueba su forma y, si `estructura.json` trae el calificador, que las categorías, actividades y elementos existan |
 | `tiza sesion [--minutos 60] [--elegir-cursos] [--sin-ventana]` | docente | Autenticado: abre la sesión (un único login) para que el agente publique mientras siga abierta |
 | `tiza ordenar <md>… --en pruebas\|real` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): deja las actividades de esos ficheros en ese orden dentro de su sección, sin mover nada más de las actividades (y reordena también sus notas del calificador para que sigan ese orden: ver «Ordenar y mover actividades»); en real, el docente confirma el orden curso a curso. Cambiar `seccion:` y publicar mueve la actividad en vez de duplicarla |
 | `tiza calificador <calificacion.yaml> --en pruebas\|real` | agente o docente | Con `tiza sesion` abierta (sin sesión da `SIN_SESION`): monta en el calificador del aula las categorías y totales que dice el esquema (elementos, criterios y casillas manuales), y coloca las actividades con `evalua`. El alumnado no ve las notas calculadas que monta (sí las actividades, las casillas y los niveles por criterio), y tiza vuelve a ocultarlas en cada pasada. Nunca lee ni escribe notas ni desbloquea nada; en real confirmas cada curso. La primera vez, en un curso grande, tarda más de 10 minutos: deja la sesión abierta hasta que acabe (el agente espera hasta una hora). Guía del agente en [formato.md](formato.md#calificador-calificacionyaml) |
-| `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados. Con `--cambios <fichero>…` dice además, por curso real, si retocaste esas actividades a mano en el aula (`cambiada`, `sin_cambios`, `sin_registro`) |
+| `tiza calificador <ponderacion.yaml> --en pruebas\|real` | agente o docente | Con `tiza sesion` abierta: retoca el calificador que ya tienes para que lo nombrado pese el porcentaje pedido (crea subcategorías dentro de una existente, mueve notas y fija método y pesos), sin criterios ni competencias. Solo toca lo nombrado y nunca lee ni escribe notas. En real confirmas el antes/después y cada cambio a mano. No se mezcla con `calificacion.yaml` en el mismo curso |
+| `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados. Con `--cambios <fichero>…` dice además, por curso real, si retocaste esas actividades a mano en el aula (`cambiada`, `sin_cambios`, `sin_registro`). Con `--calificador` añade el árbol de categorías (método, «solo no vacías», bloqueo, notas y porcentajes) y escribe `estructura.json` en la versión 3 |
 | `tiza publicar <md>… --en pruebas` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): crea (oculto) o actualiza (conserva la visibilidad), verifica y registra el hash. Si hay calificador organizado a mano, su nota va con las de su sección (ver «Ordenar y mover actividades») |
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
 | `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas y cuestionarios ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
@@ -367,6 +368,49 @@ confirmación de real dice de qué sección a cuál. Si hay dos actividades con 
 y nombre, tiza no adivina (`ACTIVIDAD_AMBIGUA`). La confirmación avisa si el orden deja una
 actividad encima de otra que debe completarse antes; el orden en pantalla no cambia las
 restricciones.
+
+## Ponderar sin competencias
+
+Si quieres que una parte de la nota pese un porcentaje (por ejemplo, «el examen pesa el 30 % de
+la primera evaluación») sin montar criterios ni competencias en Moodle, escribe un
+`ponderacion.yaml` y pásalo por el mismo comando, `tiza calificador ponderacion.yaml`. tiza
+retoca **tu** calificador: crea una subcategoría dentro de una que ya existe, mete ahí las
+actividades y fija el método y los pesos. Lo que no nombras no se toca.
+
+```yaml
+ponderacion:
+  - id: EXAMEN_1EV
+    nombre: "Examen 1.ª evaluación"
+    dentro_de: "PRIMERA EVALUACIÓN"
+    calculo: media_ponderada
+    solo_no_vacias: false
+    elementos:
+      - {fichero: 1eva/test-1-hardware.md, peso: 16}
+      - {fichero: 1eva/test-2-procesador-textos.md, peso: 8}
+      - {fichero: 1eva/test-3-maquinas-virtuales-linux.md, peso: 6}
+      - {fichero: 1eva/tarea-sheets-monta-tu-pc.html, peso: 45}
+
+  - categoria: "PRIMERA EVALUACIÓN"
+    elementos:
+      - {categoria: EXAMEN_1EV, porcentaje: 30}
+```
+
+- **Métodos**: `media_ponderada` y `natural`. `peso` es relativo y solo vale en una categoría
+  nueva; `porcentaje` (0–100) es la parte del total de la categoría y vale en cualquiera.
+- **Solo lo nombrado**: una categoría nueva va dentro de una que ya existe (`dentro_de`), nunca
+  en la raíz. No se borra nada ni se desbloquea. Una `TZP_` que quitas del fichero se queda en
+  el aula (`CATEGORIA_NO_DECLARADA`).
+- **Antes de escribir**, `tiza estructura --calificador` deja en `.tiza/estructura.json`
+  (versión 3) las categorías, su método, sus hijos y el porcentaje efectivo; el agente lo usa
+  para copiar los nombres exactos. Sin esa lectura, `tiza comprobar` avisa con
+  `CALIFICADOR_SIN_LEER`.
+- **Confirmación**: en real ves el antes/después de cada categoría (también de los hijos que no
+  nombras) y los avisos `PESOS_CON_NOTAS`, `CATEGORIA_BLOQUEADA` y `CAMBIADO_A_MANO`. Este
+  último se pregunta aparte, después del «sí» al curso; con «no», se conserva tu cambio.
+- **Exclusión por curso**: un curso con el «Calificador de tiza» (`TZ_TIZA`) da
+  `PONDERACION_CON_CALIFICADOR_DE_TIZA`; uno con categorías `TZP_` no admite `calificacion.yaml`
+  (`CALIFICADOR_CON_PONDERACION`). Si están los dos ficheros en la carpeta, `tiza comprobar`
+  avisa con `CALIFICACION_Y_PONDERACION`.
 
 ## Prueba de contrato
 
