@@ -2058,7 +2058,8 @@ class Moodle:
         if nombres is None:
             categorias = [f["eid"] for f in filas if f["es_categoria"]]
             elementos: list[str] = []
-            afectadas: set[str] = set()
+            # Para `tiza estructura --calificador` se calculan las notas de todo el árbol.
+            afectadas: set[str] = set(categorias)
         else:
             categorias = []
             for eid in con_nombre:

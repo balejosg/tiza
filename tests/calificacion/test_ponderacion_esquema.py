@@ -501,3 +501,48 @@ def test_contra_el_calificador_calculo_sin_pesos(tmp_path: Path) -> None:
         "      - {categoria: Repetida, porcentaje: 10}\n"
     )
     assert "CALCULO_SIN_PESOS" not in codigos(texto, tmp_path)
+
+
+def test_comprobar_usa_el_calificador_de_estructura_v3(tmp_path: Path) -> None:
+    from tiza import estado
+
+    preparar_ejemplo(tmp_path)
+    (tmp_path / "ponderacion.yaml").write_text(EJEMPLO_PONDERACION, encoding="utf-8")
+    actividades = [
+        {
+            "tipo": "actividad",
+            "actividad": "tarea",
+            "nombre": Path(relativa).stem,
+            "seccion": "1",
+            "porcentaje": 25.0,
+        }
+        for relativa in FICHEROS_EJEMPLO
+    ]
+    calificador = {
+        "categorias": [
+            {
+                "nombre": "PRIMERA EVALUACIÓN",
+                "calculo": "media_ponderada",
+                "solo_no_vacias": False,
+                "bloqueada": False,
+                "tiene_notas": True,
+                "porcentaje": None,
+                "hijos": actividades,
+            }
+        ]
+    }
+    estado.escribir_estructura(
+        tmp_path / ".tiza",
+        {
+            "pruebas": {
+                "id": 1234,
+                "secciones": [{"numero": 1, "nombre": "Tema 1", "id": 11}],
+                "calificador": calificador,
+            }
+        },
+        version=3,
+    )
+    resultado = agente.comprobar(tmp_path, ["ponderacion.yaml"])
+    codigos = [paso["codigo"] for paso in resultado.informe["pasos"]]
+    assert resultado.informe["errores"] == []
+    assert "CALIFICADOR_SIN_LEER" not in codigos

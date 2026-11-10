@@ -74,6 +74,36 @@ class TestEstructuraFichero:
         estructura = estado.cargar_estructura(tmp_path)
         assert [curso.id for curso in estructura.reales] == [5678, 9]
 
+    def test_escribe_y_lee_la_v3_con_el_calificador(self, tmp_path):
+        calificador = {
+            "categorias": [
+                {
+                    "nombre": "PRIMERA EVALUACIÓN",
+                    "calculo": "media_ponderada",
+                    "solo_no_vacias": False,
+                    "bloqueada": False,
+                    "tiene_notas": True,
+                    "porcentaje": None,
+                    "hijos": [
+                        {
+                            "tipo": "actividad",
+                            "actividad": "tarea",
+                            "nombre": "Práctica",
+                            "seccion": "Tema 3",
+                            "porcentaje": 100.0,
+                        }
+                    ],
+                }
+            ]
+        }
+        cursos = {"pruebas": {**CURSOS["pruebas"], "calificador": calificador}}
+        ruta = estado.escribir_estructura(tmp_path / ".tiza", cursos, version=3)
+        crudo = json.loads(ruta.read_text(encoding="utf-8"))
+        assert crudo["version"] == 3
+        estructura = estado.cargar_estructura(tmp_path / ".tiza")
+        assert estructura.pruebas is not None
+        assert estructura.pruebas.calificador == calificador
+
     def test_un_entorno_desconocido_no_tiene_cursos(self, tmp_path):
         estado.escribir_estructura(tmp_path, CURSOS)
         estructura = estado.cargar_estructura(tmp_path)

@@ -25,7 +25,10 @@ from .calificacion.cobertura import cobertura as mapa_de_cobertura
 from .calificacion.deseado import deseado, detalle_tope, reparto_por_hoja
 from .calificacion.esquema import EXTENSIONES_ESQUEMA, ErrorCalificacion
 from .calificacion.ponderacion_esquema import (
+    CalificadorAula,
+    CategoriaAula,
     cargar_ponderacion,
+    comprobar_contra_calificador,
     es_ponderacion,
 )
 from .contenido import Documento, ErrorContenido, hash_documento
@@ -228,7 +231,7 @@ def _comprobar_ponderacion(
 ) -> FicheroComprobado:
     """``ponderacion.yaml``: forma, ficheros, ciclos y repeticiones. Sin red ni aula."""
     try:
-        cargar_ponderacion(ruta, raiz)
+        esquema = cargar_ponderacion(ruta, raiz)
     except ErrorCalificacion as exc:
         borrador.error(exc.codigo)
         borrador.fallo("COMPROBAR", f"{ruta.name}: {exc.codigo}")
@@ -236,9 +239,55 @@ def _comprobar_ponderacion(
     borrador.paso("COMPROBAR", detalle=ruta.name)
     if ruta.parent.joinpath("calificacion.yaml").is_file():
         _avisar_los_dos(borrador, avisados)
-    # Hasta que el estado traiga el calificador, las referencias las comprueba la sesión.
-    borrador.paso("CALIFICADOR_SIN_LEER", detalle=ruta.name)
+    calificador = _calificador_guardado(raiz)
+    if calificador is None:
+        # Sin el calificador en estructura.json, las referencias las comprueba la sesión.
+        borrador.paso("CALIFICADOR_SIN_LEER", detalle=ruta.name)
+        return FicheroComprobado(ruta.name)
+    hallazgos = comprobar_contra_calificador(esquema, calificador)
+    detalle_error = ""
+    for hallazgo in hallazgos:
+        if hallazgo.error:
+            borrador.error(hallazgo.codigo)
+            detalle_error = detalle_error or hallazgo.detalle
+        else:
+            borrador.paso(hallazgo.codigo, detalle=hallazgo.detalle)
+    if detalle_error:
+        borrador.fallo("COMPROBAR", f"{ruta.name}: {detalle_error}")
+        codigo = next(hallazgo.codigo for hallazgo in hallazgos if hallazgo.error)
+        return FicheroComprobado(ruta.name, codigo, detalle_error)
     return FicheroComprobado(ruta.name)
+
+
+def _calificador_guardado(raiz: Path) -> CalificadorAula | None:
+    """El calificador de ``estructura.json`` v3 (el curso de pruebas o el primero real), o nada."""
+    try:
+        guardados = cargar_estructura(raiz / rutas.CARPETA_TRABAJO)
+    except ErrorEstado:
+        return None
+    for curso in (guardados.pruebas, *guardados.reales):
+        if curso is None or curso.calificador is None:
+            continue
+        categorias: list[CategoriaAula] = []
+        for categoria in curso.calificador.get("categorias", ()):
+            hijos = categoria.get("hijos", ())
+            categorias.append(
+                CategoriaAula(
+                    nombre=categoria["nombre"],
+                    calculo=categoria["calculo"],
+                    actividades=tuple(
+                        (hijo["actividad"], hijo["nombre"], hijo["seccion"])
+                        for hijo in hijos
+                        if hijo["tipo"] == "actividad"
+                    ),
+                    elementos=tuple(hijo["nombre"] for hijo in hijos if hijo["tipo"] == "elemento"),
+                    subcategorias=tuple(
+                        hijo["nombre"] for hijo in hijos if hijo["tipo"] == "categoria"
+                    ),
+                )
+            )
+        return CalificadorAula(tuple(categorias))
+    return None
 
 
 def _comprobar_calificacion(
@@ -483,9 +532,13 @@ def peticion_copia(curso: str, ficheros: Sequence[str] = ()) -> dict:
     }
 
 
-def peticion_estructura(cambios: Sequence[str] = ()) -> dict:
-    """Petición de estructura; con ``cambios``, también si el docente retocó esas actividades."""
-    return {
+def peticion_estructura(cambios: Sequence[str] = (), *, calificador: bool = False) -> dict:
+    """Petición de estructura; con ``cambios``, también si el docente retocó esas actividades.
+
+    ``calificador`` pide además el árbol de categorías del calificador (versión 3 de
+    ``estructura.json``): nombres, método, «solo no vacías», bloqueo, notas y porcentajes.
+    """
+    peticion = {
         "version": buzon.VERSION_PROTOCOLO,
         "id": uuid.uuid4().hex,
         "comando": "estructura",
@@ -494,6 +547,9 @@ def peticion_estructura(cambios: Sequence[str] = ()) -> dict:
         "visible": None,
         "solo_fechas": False,
     }
+    if calificador:
+        peticion["calificador"] = True
+    return peticion
 
 
 def publicar(
@@ -562,6 +618,7 @@ def estructura(
     carpeta: str | Path,
     *,
     cambios: Sequence[str] = (),
+    calificador: bool = False,
     espera: float = buzon.ESPERA_POR_DEFECTO,
     cancelar: threading.Event | None = None,
 ) -> dict:
@@ -569,9 +626,11 @@ def estructura(
 
     Con ``cambios`` (ficheros de la carpeta), el informe dice además, por curso real, si el
     docente retocó a mano esas actividades desde que tiza las publicó o importó (``cambiada``,
-    ``sin_cambios`` o ``sin_registro``). Parámetro nuevo: la versión menor sube en su tarea.
+    ``sin_cambios`` o ``sin_registro``). Con ``calificador``, el fichero pasa a la versión 3 y
+    lleva el árbol de categorías del calificador. Parámetro nuevo: la versión menor sube en su
+    tarea.
     """
-    return _enviar(carpeta, peticion_estructura(cambios), espera, cancelar)
+    return _enviar(carpeta, peticion_estructura(cambios, calificador=calificador), espera, cancelar)
 
 
 def estado_sesion(carpeta: str | Path) -> dict:

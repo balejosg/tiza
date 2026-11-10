@@ -24,7 +24,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import buzon, contenido, estado, informe, publicacion, rutas
+from . import buzon, contenido, estado, informe, publicacion, rutas, tipos
+from .calificacion import ponderacion
 from .calificacion.carpeta import cargar_calificacion
 from .calificacion.esquema import ErrorCalificacion
 from .calificacion.ponderacion_esquema import cargar_ponderacion, es_ponderacion
@@ -51,19 +52,84 @@ def registrar(documento: dict, carpeta: Path, presencia: Presencia) -> dict:
     return documento
 
 
+def _calificador_para_estructura(
+    arbol: ponderacion.ArbolPonderacion, secciones: Estructura
+) -> dict:
+    """El árbol de categorías de ``tiza estructura --calificador``: nombres y porcentajes, sin notas."""
+    seccion_de_cmid = {
+        actividad.cmid: seccion.nombre for seccion in secciones for actividad in seccion.actividades
+    }
+    categorias: list[dict] = []
+    for nodo in arbol.nodos:
+        if nodo.clase != "categoria":
+            continue
+        hijos: list[dict] = []
+        for hijo in arbol.hijos(nodo.eid):
+            porcentaje = ponderacion.porcentaje_efectivo(hijo, arbol)
+            if hijo.clase == "actividad":
+                tipo = tipos.de_modulo(hijo.tipo or "") or hijo.tipo or "desconocido"
+                hijos.append(
+                    {
+                        "tipo": "actividad",
+                        "actividad": tipo,
+                        "nombre": estado.texto_guardado(hijo.nombre),
+                        "seccion": (
+                            estado.texto_guardado(seccion_de_cmid[hijo.cmid])
+                            if hijo.cmid is not None and hijo.cmid in seccion_de_cmid
+                            else None
+                        ),
+                        "porcentaje": porcentaje,
+                    }
+                )
+            elif hijo.clase == "manual":
+                hijos.append(
+                    {
+                        "tipo": "elemento",
+                        "nombre": estado.texto_guardado(hijo.nombre),
+                        "porcentaje": porcentaje,
+                    }
+                )
+            elif hijo.clase == "categoria":
+                hijos.append(
+                    {
+                        "tipo": "categoria",
+                        "nombre": estado.texto_guardado(hijo.nombre),
+                        "porcentaje": porcentaje,
+                    }
+                )
+        categorias.append(
+            {
+                "nombre": estado.texto_guardado(nodo.nombre),
+                "calculo": {
+                    ponderacion.MEDIA_PONDERADA: "media_ponderada",
+                    ponderacion.NATURAL: "natural",
+                }.get(nodo.agregacion if nodo.agregacion is not None else -1, "otro"),
+                "solo_no_vacias": nodo.solo_no_vacias,
+                "bloqueada": nodo.bloqueado,
+                "tiene_notas": nodo.tiene_notas,
+                "porcentaje": ponderacion.porcentaje_efectivo(nodo, arbol),
+                "hijos": hijos,
+            }
+        )
+    return {"categorias": categorias}
+
+
 def estructura_con(
     aula: AulaVirtual,
     cfg: Config,
     carpeta: Path,
     *,
     ficheros: Sequence[Documento] = (),
+    calificador: bool = False,
     debug: bool = False,
 ) -> dict:
     """Con el aula ya abierta: lee y guarda la estructura de los cursos configurados.
 
     Con ``ficheros``, el informe lleva además un ``Fichero`` por documento y curso real que dice
     si el docente retocó la actividad a mano (``cambiada``, ``sin_cambios`` o ``sin_registro``).
-    Sin ellos no se lee nada más. El curso de pruebas no se comprueba.
+    Sin ellos no se lee nada más. El curso de pruebas no se comprueba. Con ``calificador`` se
+    lee también el árbol de categorías (método, «solo no vacías», bloqueo, notas y porcentajes)
+    y ``estructura.json`` pasa a la versión 3.
     """
     borrador = informe.Borrador("estructura")
     borrador.paso("LOGIN")
@@ -80,6 +146,10 @@ def estructura_con(
                 "id": curso_id,
                 "secciones": [seccion.para_fichero() for seccion in secciones],
             }
+            if calificador:
+                curso["calificador"] = _calificador_para_estructura(
+                    aula.arbol_ponderacion(curso_id, None), secciones
+                )
             if nombre == "real":
                 cursos.setdefault("real", []).append(curso)
                 reales.append((curso_id, secciones))
@@ -92,7 +162,9 @@ def estructura_con(
         publicacion.depurar(exc, debug)
         return borrador.documento("error")
     try:
-        estado.escribir_estructura(Path(carpeta) / rutas.CARPETA_TRABAJO, cursos)
+        estado.escribir_estructura(
+            Path(carpeta) / rutas.CARPETA_TRABAJO, cursos, version=3 if calificador else 2
+        )
     except estado.ErrorEstado as exc:
         borrador.fallo("ESTRUCTURA", exc.codigo)
         borrador.error(exc.codigo)
@@ -220,7 +292,12 @@ class SesionAbierta:
                 except ErrorContenido as exc:
                     return informe.crear(comando, "error", [], [], [exc.codigo])
             documento = estructura_con(
-                self.aula, self.cfg, base, ficheros=pedidos, debug=self.debug
+                self.aula,
+                self.cfg,
+                base,
+                ficheros=pedidos,
+                calificador=bool(peticion.get("calificador", False)),
+                debug=self.debug,
             )
             return registrar(documento, base, self.presencia)
         if comando == "copia":

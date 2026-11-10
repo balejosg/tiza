@@ -161,10 +161,15 @@ def texto_guardado(texto: object) -> str:
 
 @dataclass(frozen=True)
 class CursoGuardado:
-    """Un curso de ``estructura.json``: su id y sus secciones, ya sin actividades."""
+    """Un curso de ``estructura.json``: su id, sus secciones y, si se pidió, su calificador.
+
+    ``calificador`` es el árbol de categorías de ``tiza estructura --calificador`` (v3), ya
+    validado por :mod:`tiza.informe`; ``None`` si el fichero no lo trae.
+    """
 
     id: int
     estructura: Estructura
+    calificador: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -187,15 +192,18 @@ class CursosGuardados:
         return ()
 
 
-def escribir_estructura(dir_tiza: str | Path, cursos: Mapping[str, Any]) -> Path:
-    """Escribe ``estructura.json`` (versión 2, validada) con la fecha de ahora.
+def escribir_estructura(
+    dir_tiza: str | Path, cursos: Mapping[str, Any], *, version: int = 2
+) -> Path:
+    """Escribe ``estructura.json`` (validada) con la fecha de ahora.
 
     ``cursos``: «pruebas» (un curso) y «real» (un curso o una lista). Cada curso
     lleva «id» y sus «secciones» (cada una, «numero», «nombre» e «id»). Un «real»
-    con un solo curso puede venir como objeto: se escribe como lista.
+    con un solo curso puede venir como objeto: se escribe como lista. La versión 3
+    admite además ``calificador`` en cada curso.
     """
     datos = {
-        "version": 2,
+        "version": version,
         "generado": datetime.now(UTC).isoformat(timespec="seconds"),
         "cursos": _normalizar_cursos(cursos),
     }
@@ -246,8 +254,11 @@ def _curso_guardado(datos: Mapping[str, Any]) -> CursoGuardado:
         identificador = datos["id"]
         if isinstance(identificador, bool) or not isinstance(identificador, int):
             raise ErrorEstado("ESTRUCTURA_INVALIDA")
+        calificador = datos.get("calificador")
         return CursoGuardado(
-            id=identificador, estructura=Estructura.de_dicts_guardada(datos["secciones"])
+            id=identificador,
+            estructura=Estructura.de_dicts_guardada(datos["secciones"]),
+            calificador=calificador if isinstance(calificador, Mapping) else None,
         )
     except ErrorEstructura as exc:
         raise ErrorEstado("ESTRUCTURA_INVALIDA") from exc

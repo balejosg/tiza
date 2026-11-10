@@ -1100,8 +1100,25 @@ class TestSoloFechasEnLaPeticion:
 
     def test_el_protocolo_sube_con_el_campo(self):
         # 5: solo_fechas; 6: «copia»; 7: «calificador»; 8: «copia» y «estructura» con ficheros;
-        # 9: la nota sigue a su sección (pasos NOTA_COLOCADA, NOTA_SIN_COLOCAR y NOTAS_ORDENADAS)
-        assert buzon.VERSION_PROTOCOLO == 9
+        # 9: la nota sigue a su sección; 10: «estructura» con «calificador» (estructura.json v3)
+        assert buzon.VERSION_PROTOCOLO == 10
+
+    def test_la_version_9_ya_no_vale(self):
+        with pytest.raises(buzon.ErrorBuzon):
+            buzon.validar_peticion(
+                peticion_valida(comando="estructura", ficheros=[], entorno=None, version=9)
+            )
+
+    def test_calificador_solo_en_estructura_y_booleano(self):
+        with pytest.raises(buzon.ErrorBuzon):
+            buzon.validar_peticion(peticion_valida(comando="publicar", calificador=True))
+        with pytest.raises(buzon.ErrorBuzon):
+            buzon.validar_peticion(
+                peticion_valida(comando="estructura", ficheros=[], entorno=None, calificador="sí")
+            )
+        buzon.validar_peticion(
+            peticion_valida(comando="estructura", ficheros=[], entorno=None, calificador=True)
+        )
 
 
 class TestOtraSesion:

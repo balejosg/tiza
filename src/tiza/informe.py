@@ -862,8 +862,19 @@ def _exigir_ruta_relativa(valor: Any, nombre: str) -> None:
 
 
 _CAMPOS_ESTRUCTURA = {"version", "generado", "cursos"}
-_CAMPOS_CURSO = {"id", "secciones"}
+_CAMPOS_CURSO = {"id", "secciones", "calificador"}
 _CAMPOS_SECCION = {"numero", "nombre", "id"}
+_CAMPOS_CALIFICADOR = {"categorias"}
+_CAMPOS_CATEGORIA = {
+    "nombre",
+    "calculo",
+    "solo_no_vacias",
+    "bloqueada",
+    "tiene_notas",
+    "porcentaje",
+    "hijos",
+}
+_CALCULOS = {"media_ponderada", "natural", "otro"}
 
 
 def validar_estructura(datos: Any) -> None:
@@ -871,28 +882,32 @@ def validar_estructura(datos: Any) -> None:
     if not isinstance(datos, dict):
         raise ErrorInforme("TIPO_INCORRECTO", "la estructura debe ser un objeto")
     _exigir_campos(datos, _CAMPOS_ESTRUCTURA, "estructura")
-    # v1: «real» es un curso; v2: «real» es una lista de cursos (uno por curso real).
-    if datos["version"] not in (1, 2) or isinstance(datos["version"], bool):
-        raise ErrorInforme("VALOR_NO_PERMITIDO", "version debe ser 1 o 2")
+    # v1: «real» es un curso; v2: «real» es una lista de cursos (uno por curso real);
+    # v3 añade el calificador opcional de cada curso.
+    if datos["version"] not in (1, 2, 3) or isinstance(datos["version"], bool):
+        raise ErrorInforme("VALOR_NO_PERMITIDO", "version debe ser 1, 2 o 3")
     _exigir_texto(datos["generado"], "generado")
     if not isinstance(datos["cursos"], dict):
         raise ErrorInforme("TIPO_INCORRECTO", "cursos debe ser un objeto")
     for entorno, curso in datos["cursos"].items():
         _exigir_opcion(entorno, {"pruebas", "real"}, "entorno")
-        if datos["version"] == 2 and entorno == "real":
+        if datos["version"] in (2, 3) and entorno == "real":
             lista = _exigir_lista(curso, "cursos reales")
             if not 1 <= len(lista) <= MAX_CURSOS_REALES:
                 raise ErrorInforme("VALOR_NO_PERMITIDO", "número de cursos reales no permitido")
             for uno in lista:
-                _validar_curso_estructura(uno)
+                _validar_curso_estructura(uno, datos["version"])
         else:
-            _validar_curso_estructura(curso)
+            _validar_curso_estructura(curso, datos["version"])
 
 
-def _validar_curso_estructura(curso: Any) -> None:
+def _validar_curso_estructura(curso: Any, version: int) -> None:
     if not isinstance(curso, dict):
         raise ErrorInforme("TIPO_INCORRECTO", "cada curso debe ser un objeto")
-    _exigir_campos(curso, _CAMPOS_CURSO, "curso")
+    if "calificador" in curso and version != 3:
+        raise ErrorInforme("CAMPO_NO_PERMITIDO", "campo «calificador» no permitido en curso")
+    requeridos = {campo: valor for campo, valor in curso.items() if campo != "calificador"}
+    _exigir_campos(requeridos, _CAMPOS_CURSO - {"calificador"}, "curso")
     _exigir_entero(curso["id"], "id del curso")
     for seccion in _exigir_lista(curso["secciones"], "secciones"):
         if not isinstance(seccion, dict):
@@ -903,6 +918,63 @@ def _validar_curso_estructura(curso: Any) -> None:
         if not isinstance(seccion["nombre"], str):
             raise ErrorInforme("TIPO_INCORRECTO", "el nombre de la sección debe ser texto")
         _exigir_texto(seccion["nombre"], "nombre de sección")
+    if "calificador" in curso:
+        _validar_calificador_estructura(curso["calificador"])
+
+
+def _validar_calificador_estructura(datos: Any) -> None:
+    """El árbol de categorías de ``tiza estructura --calificador``: nombres y porcentajes, sin notas."""
+    if not isinstance(datos, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "el calificador debe ser un objeto")
+    _exigir_campos(datos, _CAMPOS_CALIFICADOR, "calificador")
+    for categoria in _exigir_lista(datos["categorias"], "categorías"):
+        if not isinstance(categoria, dict):
+            raise ErrorInforme("TIPO_INCORRECTO", "cada categoría debe ser un objeto")
+        _exigir_campos(categoria, _CAMPOS_CATEGORIA, "categoría")
+        for campo in ("nombre",):
+            if not isinstance(categoria[campo], str):
+                raise ErrorInforme("TIPO_INCORRECTO", f"{campo} de la categoría debe ser texto")
+            _exigir_texto(categoria[campo], campo)
+        _exigir_opcion(categoria["calculo"], _CALCULOS, "calculo")
+        _exigir_bool_o_nulo(categoria["solo_no_vacias"], "solo_no_vacias")
+        _exigir_bool(categoria["bloqueada"], "bloqueada")
+        _exigir_bool(categoria["tiene_notas"], "tiene_notas")
+        _exigir_numero_o_nulo(categoria["porcentaje"], "porcentaje")
+        for hijo in _exigir_lista(categoria["hijos"], "hijos"):
+            _validar_hijo_calificador(hijo)
+
+
+def _validar_hijo_calificador(hijo: Any) -> None:
+    if not isinstance(hijo, dict):
+        raise ErrorInforme("TIPO_INCORRECTO", "cada hijo debe ser un objeto")
+    tipo = hijo.get("tipo")
+    if tipo == "actividad":
+        _exigir_campos(hijo, {"tipo", "actividad", "nombre", "seccion", "porcentaje"}, "hijo")
+        if not isinstance(hijo["actividad"], str) or not _MODULO.match(hijo["actividad"]):
+            raise ErrorInforme("VALOR_NO_PERMITIDO", "el tipo de la actividad no es válido")
+        _exigir_texto(hijo["seccion"], "sección de la actividad")
+    elif tipo in ("elemento", "categoria"):
+        _exigir_campos(hijo, {"tipo", "nombre", "porcentaje"}, "hijo")
+    else:
+        raise ErrorInforme("VALOR_NO_PERMITIDO", "el tipo del hijo no es válido")
+    if not isinstance(hijo["nombre"], str):
+        raise ErrorInforme("TIPO_INCORRECTO", "el nombre del hijo debe ser texto")
+    _exigir_texto(hijo["nombre"], "nombre del hijo")
+    _exigir_numero_o_nulo(hijo["porcentaje"], "porcentaje del hijo")
+
+
+def _exigir_bool_o_nulo(valor: Any, nombre: str) -> None:
+    if valor is not None and not isinstance(valor, bool):
+        raise ErrorInforme("TIPO_INCORRECTO", f"{nombre} debe ser verdadero, falso o nulo")
+
+
+def _exigir_numero_o_nulo(valor: Any, nombre: str) -> None:
+    if valor is None:
+        return
+    if isinstance(valor, bool) or not isinstance(valor, (int, float)):
+        raise ErrorInforme("TIPO_INCORRECTO", f"{nombre} debe ser un número o nulo")
+    if not 0 <= valor <= 100:
+        raise ErrorInforme("VALOR_NO_PERMITIDO", f"{nombre} debe estar entre 0 y 100")
 
 
 def _exigir_entero(valor: Any, nombre: str) -> None:

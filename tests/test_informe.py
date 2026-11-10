@@ -282,6 +282,59 @@ def test_estructura_v1_sigue_valiendo_con_un_objeto():
     validar_estructura({**estructura_valida(), "cursos": {"real": _curso(5678)}})
 
 
+def _calificador_de_ejemplo() -> dict:
+    return {
+        "categorias": [
+            {
+                "nombre": "PRIMERA EVALUACIÓN",
+                "calculo": "media_ponderada",
+                "solo_no_vacias": False,
+                "bloqueada": False,
+                "tiene_notas": True,
+                "porcentaje": None,
+                "hijos": [
+                    {
+                        "tipo": "actividad",
+                        "actividad": "tarea",
+                        "nombre": "Práctica",
+                        "seccion": "Tema 3",
+                        "porcentaje": 100.0,
+                    },
+                    {"tipo": "elemento", "nombre": "Actitud", "porcentaje": 0.0},
+                    {"tipo": "categoria", "nombre": "Examen", "porcentaje": None},
+                ],
+            }
+        ]
+    }
+
+
+def test_estructura_v3_admite_el_calificador_opcional():
+    datos = {
+        "version": 3,
+        "generado": "2026-10-03T10:00:00+00:00",
+        "cursos": {
+            "pruebas": {**_curso(1234), "calificador": _calificador_de_ejemplo()},
+            "real": [_curso(101)],
+        },
+    }
+    validar_estructura(datos)
+
+
+def test_la_v3_no_admite_ningun_campo_de_nota():
+    datos = {
+        "version": 3,
+        "generado": "2026-10-03T10:00:00+00:00",
+        "cursos": {"pruebas": {**_curso(1234), "calificador": _calificador_de_ejemplo()}},
+    }
+    datos["cursos"]["pruebas"]["calificador"]["categorias"][0]["nota"] = 7.5
+    with pytest.raises(ErrorInforme):
+        validar_estructura(datos)
+    datos["cursos"]["pruebas"]["calificador"]["categorias"][0].pop("nota")
+    datos["cursos"]["pruebas"]["calificador"]["categorias"][0]["hijos"][0]["notas"] = [7.5]
+    with pytest.raises(ErrorInforme):
+        validar_estructura(datos)
+
+
 @pytest.mark.parametrize(
     "datos",
     [
@@ -291,7 +344,7 @@ def test_estructura_v1_sigue_valiendo_con_un_objeto():
         {"version": 2, "cursos": {"real": [_curso(1), "x"]}},
         {"version": 2, "cursos": {"pruebas": [_curso(1)]}},  # pruebas sigue siendo un objeto
         {"version": 1, "cursos": {"real": [_curso(101)]}},  # v1: «real» es un objeto
-        {"version": 3, "cursos": {}},
+        {"version": 4, "cursos": {}},
         {"version": True, "cursos": {}},
     ],
 )

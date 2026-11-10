@@ -477,6 +477,10 @@ class TestBuzon:
         buzon.validar_peticion(agente.peticion_estructura())
         buzon.validar_peticion(agente.peticion_estructura(["a.md", "b.html"]))
         assert agente.peticion_estructura()["ficheros"] == []
+        assert "calificador" not in agente.peticion_estructura()
+        con_calificador = agente.peticion_estructura(calificador=True)
+        buzon.validar_peticion(con_calificador)
+        assert con_calificador["calificador"] is True
         buzon.validar_peticion(agente.peticion_publicar(["a.md"], "real", None))
 
 

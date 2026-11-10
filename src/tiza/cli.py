@@ -144,6 +144,12 @@ def _parser() -> argparse.ArgumentParser:
         help="dice, en cada curso real, si retocaste a mano en el aula esas actividades desde "
         "la última vez que tiza las publicó o importó",
     )
+    estructura.add_argument(
+        "--calificador",
+        action="store_true",
+        help="añade el árbol de categorías del calificador (método, pesos, bloqueo y notas); "
+        "estructura.json pasa a la versión 3",
+    )
     estructura.add_argument("--debug", action="store_true")
 
     publicar_parser = sub.add_parser(
@@ -1232,7 +1238,7 @@ def _publicar_por_buzon(args, dir_tiza: Path) -> int:
 
 
 def _estructura_por_buzon(args, dir_tiza: Path) -> int:
-    peticion = agente.peticion_estructura(args.cambios)
+    peticion = agente.peticion_estructura(args.cambios, calificador=args.calificador)
     return _responder_buzon("estructura", peticion, dir_tiza, debug=args.debug)
 
 

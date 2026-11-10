@@ -625,6 +625,21 @@ class TestBuzonAgente:
         assert capturado["peticion"]["entorno"] is None
         buzon.validar_peticion(capturado["peticion"])
 
+    def test_estructura_calificador_lo_pide_en_la_peticion(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        simular_terminal(monkeypatch, interactiva=False)
+        monkeypatch.setattr(buzon, "sesion_activa", lambda *a, **k: True)
+        capturado: dict = {}
+
+        def enviar(dir_tiza, peticion, *a, **k):
+            capturado["peticion"] = peticion
+            return informe_ok(comando="estructura", entorno=None, curso=None)
+
+        monkeypatch.setattr(buzon, "enviar", enviar)
+        assert cli.main(["estructura", "--calificador"]) == 0
+        assert capturado["peticion"]["calificador"] is True
+        buzon.validar_peticion(capturado["peticion"])
+
 
 def procesar(peticion, moodle, cfg, base, _dir_tiza=None, **opciones):
     """Lo que hace «tiza sesion» con una petición, con la presencia de la terminal."""
@@ -711,6 +726,49 @@ class TestProcesarPeticion:
         datos = json.loads((dir_tiza / "estructura.json").read_text(encoding="utf-8"))
         assert datos["cursos"]["pruebas"]["id"] == 1234
         assert datos["cursos"]["real"][0]["id"] == 5678
+
+    def test_estructura_con_calificador_escribe_la_v3_sin_notas(self, tmp_path, monkeypatch):
+        from tiza.calificacion import ponderacion
+
+        cfg = self.preparar(tmp_path, monkeypatch)
+        base = tmp_path.resolve()
+        dir_tiza = base / ".tiza"
+        moodle = MoodleFalso()
+        moodle.secciones[0]["modulos"] = [{"cmid": 999, "nombre": "Práctica", "tipo": "tarea"}]
+        curso = 1234
+        raiz = ponderacion.NodoPonderacion(
+            "cg1", 1, "", "curso", "Curso", None, None, None, False, False, 13,
+            None, None, None, None, False, None, False,
+        )  # fmt: skip
+        categoria = ponderacion.NodoPonderacion(
+            "cg10", 10, "", "categoria", "PRIMERA EVALUACIÓN", "cg1", None, None, False, True, 10,
+            False, (0, 10, 11, 12, 2, 4, 6, 8, 13), None, None, False, 10.0, False,
+        )  # fmt: skip
+        actividad = ponderacion.NodoPonderacion(
+            "ig20", 20, "", "actividad", "Práctica", "cg10", 999, "assign", False, False, None,
+            None, None, 1.0, 1.0, False, 10.0, False,
+        )  # fmt: skip
+        moodle.arboles_ponderacion[curso] = ponderacion.ArbolPonderacion(
+            curso, (raiz, categoria, actividad), "."
+        )
+        peticion = {**peticion_estructura(), "calificador": True}
+        documento = procesar(peticion, moodle, cfg, base, dir_tiza)
+        assert documento["resultado"] == "ok"
+        datos = json.loads((dir_tiza / "estructura.json").read_text(encoding="utf-8"))
+        assert datos["version"] == 3
+        calificador = datos["cursos"]["pruebas"]["calificador"]
+        [cat] = calificador["categorias"]
+        assert cat["nombre"] == "PRIMERA EVALUACIÓN"
+        assert cat["calculo"] == "media_ponderada" and cat["tiene_notas"] is True
+        [hijo] = cat["hijos"]
+        assert hijo == {
+            "tipo": "actividad",
+            "actividad": "tarea",
+            "nombre": "Práctica",
+            "seccion": "Tema 3",
+            "porcentaje": 100.0,
+        }
+        assert '"notas"' not in json.dumps(datos["cursos"]["pruebas"])
 
 
 def test_minutos_tiene_limite():

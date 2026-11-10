@@ -81,10 +81,11 @@ INTERVALO = 0.5
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
-VERSION_PROTOCOLO = 9  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
+VERSION_PROTOCOLO = 10  # súbela si cambia el formato de las peticiones o lo que garantiza la sesión
 
 _CAMPOS = {"version", "id", "comando", "ficheros", "entorno", "visible", "solo_fechas"}
 _CAMPO_CURSO = "curso"  # solo en «copia»: el nombre del curso de tiza.toml (pruebas, real o un id)
+_CAMPO_CALIFICADOR = "calificador"  # solo en «estructura» y opcional: pide el árbol de categorías
 _CURSO = re.compile(r"\A[A-Za-z0-9._-]{1,40}\Z")
 _ID = re.compile(r"\A[0-9a-f]{32}\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
@@ -213,7 +214,7 @@ def validar_peticion(peticion: Any) -> None:
     if not isinstance(peticion, dict):
         raise ErrorBuzon("PETICION_INVALIDA", "la petición debe ser un objeto")
     for campo in peticion:
-        if campo not in _CAMPOS and campo != _CAMPO_CURSO:
+        if campo not in _CAMPOS and campo not in {_CAMPO_CURSO, _CAMPO_CALIFICADOR}:
             raise ErrorBuzon("PETICION_INVALIDA", f"campo «{campo}» no permitido")
     for campo in _CAMPOS:
         if campo not in peticion:
@@ -240,6 +241,13 @@ def validar_peticion(peticion: Any) -> None:
         raise ErrorBuzon("PETICION_INVALIDA", "entorno no permitido")
     if (_CAMPO_CURSO in peticion) != (peticion["comando"] == "copia"):
         raise ErrorBuzon("PETICION_INVALIDA", "el campo «curso» es de «copia» y solo de «copia»")
+    if _CAMPO_CALIFICADOR in peticion:
+        if peticion["comando"] != "estructura":
+            raise ErrorBuzon(
+                "PETICION_INVALIDA", "el campo «calificador» es de «estructura» y solo de ella"
+            )
+        if not isinstance(peticion[_CAMPO_CALIFICADOR], bool):
+            raise ErrorBuzon("PETICION_INVALIDA", "calificador debe ser booleano")
     if peticion["comando"] == "copia":
         curso = peticion[_CAMPO_CURSO]
         if not isinstance(curso, str) or not _CURSO.match(curso):
