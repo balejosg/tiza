@@ -116,6 +116,9 @@ en español.
   descarga de la copia del aula está solo en `publicar.py` (`Moodle.hacer_copia`). Reconoce lo
   que publicó tiza (`PUBLICADA_POR_TIZA[_CAMBIADA]`, con `publicados.json`, sin duplicarlo en
   `aula/`) y acepta las copias de una sola actividad (`COPIA_DE_ACTIVIDAD_DESCONOCIDA`).
+- `src/tiza/referencias.py`: el aviso `REFERENCIA_ROTA` de `tiza comprobar`, offline: las citas
+  «…» que se parecen al `nombre` de otra pieza de la carpeta sin coincidir (lee solo el
+  frontmatter). Es un aviso de forma, no juzga el contenido.
 - `src/tiza/estructura.py`: **la estructura del aula, tipada y pura**: `Actividad`, `Seccion` y
   `Estructura` inmutables, los constructores que validan la forma una sola vez
   (`ESTRUCTURA_DEL_AULA_INVALIDA`) y las operaciones que antes estaban repartidas: búsqueda de

@@ -6,6 +6,9 @@ se avisa aquí con **Cambia**.
 
 ## Sin publicar
 
+### Añadido
+- **`tiza comprobar` avisa de las referencias rotas.** Si una pieza cita a otra entre «» con un nombre que se parece al de una pieza de la carpeta pero no coincide (por ejemplo, tras renombrarla), avisa con `REFERENCIA_ROTA`. Es un aviso: no impide publicar.
+
 ### Arreglado
 - **La sesión ya no se da por cerrada por una lectura fallida.** En Windows, `tiza publicar` podía responder `SESION_CERRADA` con la sesión abierta. Pasaba al leer el fichero de la sesión justo cuando la sesión lo renovaba, y obligaba a reabrirla una y otra vez. Ahora el agente reintenta esa lectura y solo da la sesión por cerrada si se cerró de verdad o deja de renovarse.
 

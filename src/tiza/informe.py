@@ -133,6 +133,7 @@ PASOS = (
             "OCULTAR_FALLIDO",
             "ORDENAR",
             "PESOS_SIN_EFECTO",
+            "REFERENCIA_ROTA",
             "PONDERACION",
             "PONDERACION_CAMBIOS",
             "PONDERACION_NO_APLICADA",

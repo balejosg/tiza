@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
-from . import buzon, calendario, contenido, estado, informe, rutas
+from . import buzon, calendario, contenido, estado, informe, referencias, rutas
 from .calendario import ErrorCalendario
 from .calificacion.carpeta import actividades_sin_evalua, cargar_calificacion
 from .calificacion.cobertura import avisos as avisos_de_cobertura
@@ -122,6 +122,7 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
             borrador.fallo("CALENDARIO", exc.detalle)
 
     avisados: set[str] = set()
+    nombres: set[str] | None = None  # los de la carpeta, solo si algún fichero cita «…»
     for nombre in ficheros:
         ruta = base / nombre
         if ruta.suffix.lower() in EXTENSIONES_ESQUEMA:
@@ -147,6 +148,14 @@ def comprobar(carpeta: str | Path, ficheros: Sequence[str]) -> Comprobacion:
         avisos = tuple(avisos_doc)
         if _con_dolar_simple(doc):
             borrador.paso("FORMULA_DOLAR_SIMPLE", detalle=ruta.name)
+        texto = _texto_del_fichero(ruta)
+        if "«" in texto:
+            if nombres is None:
+                nombres = referencias.nombres_de_la_carpeta(raiz)
+            for cita, parecido in referencias.rotas(texto, nombres):
+                borrador.paso(
+                    "REFERENCIA_ROTA", detalle=f"{ruta.name}: «{cita}» no coincide con «{parecido}»"
+                )
         problema = revisar_dependencias(doc, raiz)
         if problema is not None:
             borrador.error(problema[0])
@@ -366,6 +375,14 @@ def _con_dolar_simple(doc: Documento) -> bool:
             for opcion in pregunta.opciones:
                 fuentes.extend([opcion.texto, opcion.retro or ""])
     return any(contenido.hay_dolar_simple(fuente) for fuente in fuentes)
+
+
+def _texto_del_fichero(ruta: Path) -> str:
+    """El fichero tal cual (también el YAML de un cuestionario), para buscar citas «…»."""
+    try:
+        return leer_bytes_acotado(ruta, contenido.MAX_DOCUMENTO_BYTES).decode("utf-8-sig")
+    except (OSError, FicheroNoSeguro, UnicodeDecodeError):
+        return ""
 
 
 MAX_PROFUNDIDAD_DEPENDENCIAS = 20
