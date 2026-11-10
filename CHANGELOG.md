@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.45.0 — 2026-11-10
 
 ### Añadido
 - **El agente explica mejor desde la primera versión.** Antes de proponer una unidad (o una pieza suelta, si le falta el contexto) te pregunta en un solo mensaje con qué trabaja tu alumnado, qué saben ya, cuánto dura de verdad la sesión y qué dinámicas aceptas, y te ofrece guardar lo estable en `preferencias.txt`. Explica cada concepto empezando por para qué sirve, uno por apartado, con una comparación cotidiana mantenida, ejemplos resueltos paso a paso y actividades que dicen qué hacer, qué deberías obtener y para qué. Antes de enseñarte nada rehace ejemplos, soluciones y criterios, prueba los criterios con casos límite y te dice qué ha corregido. La propuesta por defecto es individual o por parejas; lo que exige manejar a todo el grupo va marcado «exige gestión de aula».
