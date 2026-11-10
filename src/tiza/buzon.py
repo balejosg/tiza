@@ -78,6 +78,10 @@ LATIDO_MAX = 20.0
 ESPERA_POR_DEFECTO = 600.0
 ESPERA_CALIFICADOR = 3600.0  # montar el calificador de un curso grande pasa de 10 minutos
 INTERVALO = 0.5
+# Cuánto tolera el agente no poder leer sesion.json antes de darla por cerrada. En Windows,
+# leerla justo cuando la sesión la reemplaza (os.replace) falla un instante; una sesión
+# cerrada de verdad lo borra, y eso no espera a este margen.
+MARGEN_LECTURA = 2 * LATIDO_SEGUNDOS
 INTERVALO_ATENCION = 1.0
 MAX_FICHEROS = 20
 MAX_PETICION_BYTES = 64 * 1024  # una petición de verdad ocupa unos cientos de bytes
@@ -485,6 +489,25 @@ def abrir_sesion(
         _borrar(reserva)
 
 
+def _leer_sesion(dir_tiza: str | Path, *, intentos: int = 5, pausa: float = 0.05) -> Any:
+    """``sesion.json``, reintentando si existe pero no se puede leer (Windows, a media
+    sustitución con os.replace); None si no existe o sigue sin poder leerse."""
+    ruta = carpeta_buzon(dir_tiza) / SESION
+    for intento in range(intentos):
+        datos = _leer_json(ruta)
+        if datos is not None:
+            return datos
+        try:
+            ruta.stat()
+        except FileNotFoundError:
+            return None
+        except OSError:
+            pass
+        if intento + 1 < intentos:
+            time.sleep(pausa)
+    return None
+
+
 def _sesion_viva(datos: Any, momento: datetime, latido_max: float) -> bool:
     """Fichero de sesión con pid, latido reciente y caducidad futura (sin mirar el protocolo).
 
@@ -510,7 +533,7 @@ def sesion_activa(
     latido_max: float = LATIDO_MAX,
 ) -> bool:
     """Hay sesión si el fichero es válido, late, no ha caducado y habla nuestro protocolo."""
-    datos = _leer_json(carpeta_buzon(dir_tiza) / SESION)
+    datos = _leer_sesion(dir_tiza)
     momento = (ahora or ahora_utc)()
     return _sesion_viva(datos, momento, latido_max) and datos.get("version") == VERSION_PROTOCOLO
 
@@ -522,7 +545,7 @@ def sesion_incompatible(
     latido_max: float = LATIDO_MAX,
 ) -> str | None:
     """Versión de tiza de una sesión viva que habla otro protocolo; None si no la hay."""
-    datos = _leer_json(carpeta_buzon(dir_tiza) / SESION)
+    datos = _leer_sesion(dir_tiza)
     momento = (ahora or ahora_utc)()
     if not _sesion_viva(datos, momento, latido_max) or datos.get("version") == VERSION_PROTOCOLO:
         return None
@@ -549,7 +572,7 @@ def otra_sesion(
     El pid viene de ``sesion.json``, que el agente puede escribir: no basta para tocar
     un proceso (lo confirma el directorio privado de la sesión, en :mod:`tiza.sesion`).
     """
-    datos = _leer_json(carpeta_buzon(dir_tiza) / SESION)
+    datos = _leer_sesion(dir_tiza)
     if not _sesion_viva(datos, (ahora or ahora_utc)(), latido_max):
         return None
     return OtraSesion(datos["pid"], bool(_ID.match(str(datos.get("atendiendo") or ""))))
@@ -569,13 +592,44 @@ def caducidad(
     """Hora de cierre de la sesión activa, para enseñarla; None si no hay sesión."""
     if not sesion_activa(dir_tiza, ahora=ahora):
         return None
-    datos = _leer_json(carpeta_buzon(dir_tiza) / SESION)
+    datos = _leer_sesion(dir_tiza)
     return _fecha(datos.get("caduca")) if isinstance(datos, dict) else None
 
 
 # --------------------------------------------------------------------------- #
 # Lado del agente
 # --------------------------------------------------------------------------- #
+
+
+class _Vigia:
+    """Lo que el agente sabe de la sesión mientras espera: viva, cerrada o aún no se sabe.
+
+    ``viva()`` da verdadero o falso cuando lee ``sesion.json``, y None si no puede leerla
+    pero el fichero sigue ahí y aún no ha pasado ``margen`` desde la última lectura buena
+    (o desde que empezó). Sin fichero, la sesión se cerró.
+    """
+
+    def __init__(self, dir_tiza: str | Path, reloj: Callable[[], datetime], margen: float):
+        self._ruta = carpeta_buzon(dir_tiza) / SESION
+        self._reloj = reloj
+        self._margen = margen
+        self._leida = time.monotonic()
+
+    def viva(self) -> bool | None:
+        datos = _leer_json(self._ruta)
+        if datos is None:
+            try:
+                self._ruta.stat()
+            except FileNotFoundError:
+                return False  # la sesión lo borra al cerrarse
+            except OSError:
+                pass
+            return None if time.monotonic() - self._leida < self._margen else False
+        self._leida = time.monotonic()
+        return (
+            _sesion_viva(datos, self._reloj(), LATIDO_MAX)
+            and datos.get("version") == VERSION_PROTOCOLO
+        )
 
 
 def enviar(
@@ -586,11 +640,19 @@ def enviar(
     intervalo: float = INTERVALO,
     dormir: Callable[[float], None] = time.sleep,
     ahora: Callable[[], datetime] | None = None,
+    margen: float = MARGEN_LECTURA,
 ) -> dict:
-    """Deja una petición y espera la respuesta del docente."""
+    """Deja una petición y espera la respuesta del docente.
+
+    Una lectura fallida de ``sesion.json`` no cierra la sesión (``_Vigia``): solo si
+    se lee y ya no late, o si sigue sin poder leerse pasado ``margen``.
+    """
     validar_peticion(peticion)
     reloj = ahora or ahora_utc
-    if not sesion_activa(dir_tiza, ahora=reloj):
+    vigia = _Vigia(dir_tiza, reloj, margen)
+    while (viva := vigia.viva()) is None:
+        dormir(intervalo)
+    if not viva:
         raise ErrorBuzon("SESION_CERRADA", "no hay una sesión abierta del docente")
     carpeta = carpeta_buzon(dir_tiza)
     ruta_peticion = carpeta / f"{peticion['id']}{SUFIJO_PETICION}"
@@ -599,7 +661,7 @@ def enviar(
     limite = reloj() + timedelta(seconds=espera)
     try:
         while True:
-            if not sesion_activa(dir_tiza, ahora=reloj):
+            if vigia.viva() is False:
                 raise ErrorBuzon("SESION_CERRADA", "la sesión del docente se ha cerrado")
             respuesta = _leer_json(ruta_respuesta)
             if respuesta is not None:

@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Arreglado
+- **La sesión ya no se da por cerrada por una lectura fallida.** En Windows, `tiza publicar` podía responder `SESION_CERRADA` con la sesión abierta. Pasaba al leer el fichero de la sesión justo cuando la sesión lo renovaba, y obligaba a reabrirla una y otra vez. Ahora el agente reintenta esa lectura y solo da la sesión por cerrada si se cerró de verdad o deja de renovarse.
+
 ## 0.44.0 — 2026-11-10
 
 ### Añadido

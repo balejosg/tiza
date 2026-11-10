@@ -514,6 +514,69 @@ class TestEnviar:
         assert exc.value.codigo == "SESION_CERRADA"
         assert list(buzon.carpeta_buzon(tmp_path).glob("*.peticion.json")) == []
 
+    @staticmethod
+    def _sesion_ilegible(monkeypatch, fallos: int | None) -> None:
+        """Las ``fallos`` primeras lecturas de sesion.json fallan (None: todas), como en
+        Windows mientras la sesión la reemplaza con os.replace."""
+        original = buzon._leer_json
+        cuenta = {"n": 0}
+
+        def leer(ruta):
+            if ruta.name == buzon.SESION:
+                cuenta["n"] += 1
+                if fallos is None or cuenta["n"] <= fallos:
+                    return None
+            return original(ruta)
+
+        monkeypatch.setattr(buzon, "_leer_json", leer)
+
+    def test_sesion_activa_reintenta_una_lectura_fallida(self, tmp_path, monkeypatch):
+        buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5))
+        self._sesion_ilegible(monkeypatch, 2)
+        assert buzon.sesion_activa(tmp_path) is True
+
+    def test_sesion_activa_sin_fichero_no_reintenta(self, tmp_path, monkeypatch):
+        dormidas: list[float] = []
+        monkeypatch.setattr(buzon.time, "sleep", dormidas.append)
+        assert buzon.sesion_activa(tmp_path) is False
+        assert dormidas == []
+
+    @pytest.mark.parametrize("fallos", [1, 3])
+    def test_una_lectura_fallida_de_la_sesion_no_la_da_por_cerrada(
+        self, tmp_path, monkeypatch, fallos
+    ):
+        buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5))
+        ruta_peticion = buzon.carpeta_buzon(tmp_path) / f"{'a' * 32}{buzon.SUFIJO_PETICION}"
+
+        def docente():
+            esperar(ruta_peticion)
+            time.sleep(0.05)  # el agente ya sondea mientras falla la lectura
+            peticion = json.loads(ruta_peticion.read_text(encoding="utf-8"))
+            respuesta = ruta_peticion.with_name(f"{'a' * 32}{buzon.SUFIJO_RESPUESTA}")
+            respuesta.write_text(json.dumps(informe_ok(peticion)), encoding="utf-8")
+
+        hilo = threading.Thread(target=docente)
+        hilo.start()
+        self._sesion_ilegible(monkeypatch, fallos)
+        respuesta = buzon.enviar(tmp_path, peticion_valida(), espera=5, intervalo=0.005)
+        hilo.join()
+        assert respuesta["resultado"] == "ok"
+
+    def test_sesion_ilegible_mas_alla_del_margen_es_cerrada(self, tmp_path, monkeypatch):
+        buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5))
+        self._sesion_ilegible(monkeypatch, None)
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.enviar(tmp_path, peticion_valida(), espera=5, intervalo=0.005, margen=0.05)
+        assert exc.value.codigo == "SESION_CERRADA"
+        assert list(buzon.carpeta_buzon(tmp_path).glob("*.peticion.json")) == []
+
+    def test_sesion_que_ya_no_late_es_cerrada_sin_esperar_el_margen(self, tmp_path):
+        buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5))
+        tarde = lambda: ahora() + timedelta(seconds=buzon.LATIDO_MAX + 1)  # noqa: E731
+        with pytest.raises(buzon.ErrorBuzon) as exc:
+            buzon.enviar(tmp_path, peticion_valida(), espera=5, ahora=tarde, margen=3600)
+        assert exc.value.codigo == "SESION_CERRADA"
+
     def test_respuesta_invalida(self, tmp_path):
         buzon.crear_sesion(tmp_path, ahora() + timedelta(minutes=5))
         ruta_peticion = buzon.carpeta_buzon(tmp_path) / f"{'a' * 32}{buzon.SUFIJO_PETICION}"
