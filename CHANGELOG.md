@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.45.1 — 2026-11-11
 
 ### Cambiado
 - **Los ejercicios ya no regalan la solución.** El ejemplo resuelto va antes de los ejercicios y a la vista. Un ejercicio dice qué comprobar («un total mayor que la base»), no el resultado, que va plegado; los criterios que ve el alumnado tampoco lo llevan. En un cuestionario, ninguna pregunta da la respuesta de otra, y la retroalimentación sí explica la solución entera.
