@@ -17,7 +17,8 @@ la carpeta, y pregunta **en un solo mensaje** lo que falte y condicione lo que v
 - **Cuánto dura de verdad la sesión** y qué dinámicas de aula acepta el docente.
 
 Vale también para una pieza suelta si te falta ese contexto. Si ya está en `preferencias.txt`,
-no lo vuelvas a preguntar. Lo estable (equipos, programas, duración de la sesión, dinámicas)
+no lo vuelvas a preguntar: di en una línea qué tomas de ahí («Tomo de tus preferencias: …») y
+pregunta solo lo que falte. Lo estable (equipos, programas, duración de la sesión, dinámicas)
 ofrécele guardarlo en `preferencias.txt` y escríbelo solo si dice que sí; nunca datos del
 alumnado.
 
@@ -29,7 +30,11 @@ alumnado.
 3. **Nada antes de explicarlo.** Ningún término, símbolo, fórmula o procedimiento se usa antes
    de explicarlo en esa página o en una anterior, citada por su `nombre` exacto entre «».
 4. **Cada actividad dice tres cosas**: qué hace el alumno, qué debería obtener u observar
-   («Deberías obtener…», «Comprueba que…») y qué aprende con ello.
+   («Deberías obtener…», «Comprueba que…») y qué aprende con ello. En un ejemplo resuelto, lo
+   que debería obtener es el resultado. En un ejercicio, es una comprobación que no lo desvela
+   («un total mayor que la base», «los porcentajes suman 100 %», «la barra más alta es la de
+   un mes de invierno»). El resultado va en la solución plegada. La retroalimentación de un
+   cuestionario o un H5P se ve después de responder: esa sí explica la solución entera.
 5. **Ejemplo resuelto paso a paso** de cada procedimiento que el alumnado tenga que ejecutar
    (un cálculo, un experimento, usar una herramienta, un comentario de texto…). Cada paso dice
    qué se hace y qué cambia. Una lista de pasos sueltos no basta.
@@ -37,7 +42,10 @@ alumnado.
    con un ejemplo resuelto distinto del que se pide. Nada de pistas que solo entiende quien ya
    sabe hacerlo.
 7. **Andamiaje gradual**: primero un ejemplo resuelto, después un ejercicio guiado (con huecos o
-   con los pasos dados) y por último uno autónomo.
+   con los pasos dados) y por último uno autónomo, en ese orden y a la vista: el ejemplo va
+   antes de los ejercicios, no plegado al final. El guiado da los pasos, **nunca el
+   resultado**: lo calcula o lo escribe el alumno, y la solución va plegada (`<details>`). Los
+   criterios de calificación que ve el alumno tampoco llevan los valores de la solución.
 8. **Enlaza con lo ya visto**, nombrando la pieza anterior: «En «1. Qué es la densidad» viste…».
 9. **Lenguaje llano y del nivel**: frases cortas, ejemplos de la vida del alumnado y **una sola
    comparación cotidiana mantenida** a lo largo de la página, mejor que varias sueltas.
@@ -70,12 +78,22 @@ como alternativa marcada «exige gestión de aula», salvo que el docente diga q
 2. **Prueba cada criterio de calificación y cada instrucción de tarea** con casos límite y con
    respuestas inesperadas (una entrega en blanco, una correcta por otro camino, una que acierta
    a medias): ¿sigue siendo justo y se puede aplicar?
-3. **No afirmes de memoria lo que se puede comprobar**: cómo se ve o se comporta un programa o
-   una web, fechas, cifras, citas. Compruébalo en una fuente o escríbelo de forma genérica y
-   pide al docente que lo confirme. La normativa, solo con `tiza normativa`.
-4. **Herramienta externa en clase**: avisa al docente de si pide cuenta, si tiene límites de uso
+3. **No afirmes de memoria lo que se puede comprobar**: fechas, cifras, citas. Compruébalo en
+   una fuente o escríbelo de forma genérica y pide al docente que lo confirme. La normativa,
+   solo con `tiza normativa`.
+4. **Pasos en un programa** (menús, botones, qué hace por defecto). Escríbelos para el programa
+   y la versión del alumnado, y que el procedimiento tenga su ejemplo resuelto como cualquier
+   otro. Detrás de cada paso que cambie la pantalla, pon lo que el alumno debe ver («Comprueba
+   que el precio queda en el eje vertical; si no, …»). Así un paso que no coincida se nota.
+   Al docente, dile que los has escrito sin abrir el programa y que haga el recorrido una vez
+   antes de clase, nombrándole los pasos de los que dudas.
+5. **Datos verosímiles y una sola unidad.** Las cifras de los ejemplos tienen el orden de
+   magnitud real (lo que cuesta un pan, lo que pesa una mochila, lo que gasta una nevera). En
+   cada cálculo, todas las magnitudes en la misma unidad; si hay que cambiarla, ese cambio es
+   un paso del ejemplo resuelto.
+6. **Herramienta externa en clase**: avisa al docente de si pide cuenta, si tiene límites de uso
    o publicidad, y pregunta si su centro la permite.
-5. **Las instrucciones de uso** de dispositivos y programas son las de lo que tiene el alumnado
+7. **Las instrucciones de uso** de dispositivos y programas son las de lo que tiene el alumnado
    (sección 1): ni otro sistema ni otra versión.
 
 ## 5. Autorrevisión antes de enseñarle nada al docente
@@ -93,8 +111,11 @@ Relee cada pieza como un alumno de ese nivel que no conoce el tema y repasa esta
   pendientes de que los confirme el docente?
 - ¿Las referencias «…» a otras piezas coinciden con su `nombre` (también tras renombrar)?
   `tiza comprobar` avisa de las que se parecen sin coincidir (`REFERENCIA_ROTA`).
-- ¿La suma de tiempos cabe en las sesiones? ¿La dinámica por defecto es individual o por
-  parejas?
+- ¿Cada sesión lleva minutos por actividad y suman, como mucho, el 85 % de lo que dura de verdad
+  (el resto es para empezar y recoger)? ¿La dinámica por defecto es individual o por parejas?
+- ¿Algún ejercicio, guiado o no, da el resultado en el enunciado, en un «Deberías obtener» o en
+  los criterios? ¿Cifras verosímiles y una sola unidad por cálculo?
+- En un cuestionario, ¿alguna pregunta, opción o retroalimentación da la respuesta de otra?
 
 Después dile al docente en el chat, en pocas líneas, qué encontraste y qué corregiste. No le
 enseñes una pieza con un fallo de esta lista sin decírselo.

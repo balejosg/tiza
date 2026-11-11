@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Cambiado
+- **Los ejercicios ya no regalan la solución.** El ejemplo resuelto va antes de los ejercicios y a la vista. Un ejercicio dice qué comprobar («un total mayor que la base»), no el resultado, que va plegado; los criterios que ve el alumnado tampoco lo llevan. En un cuestionario, ninguna pregunta da la respuesta de otra, y la retroalimentación sí explica la solución entera.
+- **Pasos de programa comprobables y tiempos con margen.** Los pasos de un programa van con lo que el alumnado debe ver en pantalla tras cada uno, y el agente te avisa de que los pruebes una vez antes de clase. Cada sesión lleva los minutos de cada actividad y ocupa como mucho el 85 % de lo que dura de verdad. Las cifras de los ejemplos tienen el tamaño real, con una sola unidad por cálculo.
+
 ## 0.45.0 — 2026-11-10
 
 ### Añadido

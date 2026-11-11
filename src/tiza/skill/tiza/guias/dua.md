@@ -84,7 +84,8 @@ explica cada concepto, en `guias/explicar.md`, que se carga siempre con esta.
 - Opciones de longitud parecida: que la correcta no se adivine por ser la más larga.
 - Retroalimentación que explique. En `opcion_multiple`, `retro` en **cada** opción (por qué
   vale o qué error es) y `retro` general que diga dónde repasar. Los demás tipos solo tienen
-  `retro` general: pon ahí la explicación.
+  `retro` general: pon ahí la explicación, con la solución resuelta (no solo una pista).
+- Ninguna pregunta, opción ni retroalimentación da la respuesta de otra pregunta.
 - Varias correctas: el enunciado dice cuántas hay que marcar y que las incorrectas restan.
   Si el docente no quiere penalizar, una sola correcta.
 - Pregunta con imagen: el `alt` describe la figura sin dar la respuesta, y los datos que no

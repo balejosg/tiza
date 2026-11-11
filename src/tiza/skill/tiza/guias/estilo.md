@@ -203,7 +203,8 @@ fichero de la carpeta: nómbrala entre comillas con su `nombre` exacto («2. Com
   <div class="card-body">
     <h4 class="card-title"><i class="fa-solid fa-fw fa-pen" aria-hidden="true"></i> Actividad</h4>
     <p class="card-text">Resuelve los ejercicios de la ficha y súbela a la tarea. Deberías
-    obtener cuatro fracciones ordenadas de menor a mayor; comprueba que la primera es 1/4. Así
+    obtener cuatro fracciones ordenadas de menor a mayor; comprueba que todas tienen el mismo
+    denominador antes de compararlas. Así
     practicas comparar con un denominador común.</p>
     <a class="btn btn-primary" href="https://www.ejemplo.org/ficha">Abrir la ficha de ejercicios</a>
   </div>
