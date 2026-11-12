@@ -99,6 +99,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    tiempo_limite: 30               # opcional, minutos
    intentos: 2                     # opcional; por defecto 1
    mezclar_respuestas: true        # opcional; por defecto true
+   penalizar: true                 # opcional; por defecto true (los fallos de opción múltiple restan)
    preguntas:
      - tipo: opcion_multiple
        enunciado: ¿Cuánto es **2 + 2**?
@@ -180,7 +181,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    - **Etiqueta**: mismo Markdown/HTML y mismo filtro que una página, pero el contenido se muestra directamente en la página del curso. Úsala para un texto breve, una imagen o un vídeo, sin actividad ni entrega.
    - **Cuestionario**:
      - **Un cuestionario, un criterio.** Para que cada criterio reciba su propia nota, lo recomendable es que un cuestionario declare un solo criterio en `evalua`. Si la prueba cubre varios, propón al docente partirla en un cuestionario por criterio en la misma sección: la prueba de la UD3 con CE2.2 y CE3.1 se publica como dos cuestionarios, «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1). Cada uno con al menos 3 preguntas para que su nota sea fiable (recomendación). Propón el criterio de cada pregunta a partir del texto literal del criterio (`tiza normativa ficha`) y confírmalo con el docente en una tabla de preguntas antes de escribir el fichero. Las calificaciones del cuestionario no crean elementos en el calificador: no reparten la nota entre criterios. Un cuestionario con 2+ criterios con peso se publica igual, pero `tiza comprobar` y `tiza calificador` avisan con `EVIDENCIA_COMPARTIDA`.
-     - Ajustes, todos opcionales: `apertura` y `cierre` (`apertura` < `cierre`), `tiempo_limite` (minutos, de 1 a 600), `intentos` (de 1 a 10 o `ilimitados`; por defecto 1) y `mezclar_respuestas` (`true` o `false`; por defecto `true`).
+     - Ajustes, todos opcionales: `apertura` y `cierre` (`apertura` < `cierre`), `tiempo_limite` (minutos, de 1 a 600), `intentos` (de 1 a 10 o `ilimitados`; por defecto 1) `mezclar_respuestas` (`true` o `false`; por defecto `true`) y `penalizar` (`true` o `false`; por defecto `true`).
      - De 1 a 100 preguntas, que se publican en el orden escrito. Cada una lleva `tipo`, `enunciado` y, opcionalmente, `retro` (retroalimentación general). Solo hay cinco tipos:
        - `opcion_multiple`: `opciones` (de 2 a 10), cada una con `texto`, `correcta: true` si lo es y `retro` opcional. Al menos una correcta.
        - `verdadero_falso`: `respuesta: verdadero` o `respuesta: falso`.
@@ -197,7 +198,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
            distractores: [Madrid]
          ```
      - No hay ensayo, huecos múltiples (cloze), calculadas ni preguntas aleatorias: adapta la petición con la tabla de arriba o díselo al docente.
-     - No escribas puntuaciones: las calcula tiza. Cada pregunta vale 1. Con varias opciones correctas, cada correcta suma su parte y cada incorrecta marcada la resta; si el docente no quiere penalizar, usa una sola correcta.
+     - No escribas puntuaciones: las calcula tiza. Cada pregunta vale 1, y en blanco vale 0. Por defecto, en `opcion_multiple` con una correcta y n opciones, una incorrecta resta 1/(n−1) (con 4 opciones, 1/3): contestar al azar da 0. Una pregunta puede quedar en negativo y restar de las demás, pero la nota del cuestionario no baja de 0. Si el docente no quiere que resten, pon `penalizar: false` (vale para todo el cuestionario). Con varias opciones correctas, cada correcta suma su parte y cada incorrecta marcada la resta siempre, también con `penalizar: false` (si no, marcarlo todo daría la pregunta entera). `verdadero_falso` nunca resta (Moodle no lo permite): si el docente quiere que el azar no puntúe en una pregunta de dos alternativas, usa `opcion_multiple` con dos opciones. Respuesta corta, numérica y emparejamiento no restan.
      - `enunciado`, `texto` y `retro` son Markdown con el mismo filtro HTML que el cuerpo (los iframes permitidos valen en el enunciado), pero admiten **imágenes locales** (PNG, JPEG, GIF o WebP) con texto alternativo obligatorio (`![El circuito de la figura 1](img/circuito.png)`; sin él, `IMAGEN_SIN_ALT`), de hasta 1 MB cada una y 10 MB en todo el cuestionario (`IMAGEN_DEMASIADO_GRANDE`; cada uso cuenta). Valen en el enunciado, las opciones, las parejas y la retroalimentación. Cualquier otro fichero local o enlace a un fichero (un PDF) da `RECURSO_EN_PREGUNTA`: ponlo en la descripción. Nunca uses fotos con alumnado. Antes de dar por bueno el cuestionario, tiza comprueba que el aula guardó y sirve cada imagen (`VERIFICACION_IMAGENES` si no).
      - Cuando un alumno empieza un intento, el cuestionario queda congelado: tiza no cambia nada, ni preguntas ni ajustes, y responde `CUESTIONARIO_CON_INTENTOS`. Para corregirlo, crea otro con un `nombre` distinto.
    - Si el nombre contiene `: `, escríbelo entre comillas (`nombre: "Repaso: fracciones"`); YAML lo necesita.

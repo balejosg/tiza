@@ -86,8 +86,11 @@ explica cada concepto, en `guias/explicar.md`, que se carga siempre con esta.
   vale o qué error es) y `retro` general que diga dónde repasar. Los demás tipos solo tienen
   `retro` general: pon ahí la explicación, con la solución resuelta (no solo una pista).
 - Ninguna pregunta, opción ni retroalimentación da la respuesta de otra pregunta.
-- Varias correctas: el enunciado dice cuántas hay que marcar y que las incorrectas restan.
-  Si el docente no quiere penalizar, una sola correcta.
+- Los fallos de opción múltiple restan por defecto: la descripción del cuestionario lo dice
+  (y que en blanco vale 0 y verdadero/falso no resta). Si el docente no quiere,
+  `penalizar: false`.
+- Varias correctas: el enunciado dice cuántas hay que marcar y que las incorrectas restan
+  (también con `penalizar: false`).
 - Pregunta con imagen: el `alt` describe la figura sin dar la respuesta, y los datos que no
   son la respuesta van también en el enunciado, para que se pueda contestar sin verla. Si lo
   que se evalúa es justo leer la figura (una gráfica, un mapa), pregúntaselo al docente.

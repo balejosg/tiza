@@ -38,6 +38,7 @@ CAMPOS_CUESTIONARIO = frozenset(
         "tiempo_limite",
         "intentos",
         "mezclar_respuestas",
+        "penalizar",
         "preguntas",
         "recupera",
     }
@@ -217,6 +218,7 @@ class Cuestionario(Tipo):
             ("Intentos", "ilimitados" if cuestionario.intentos == 0 else str(cuestionario.intentos))
         )
         filas.append(("Mezclar respuestas", "sí" if cuestionario.mezclar_respuestas else "no"))
+        filas.append(("Los fallos restan", "sí" if cuestionario.penalizar else "no"))
         return filas
 
     def extra_preview(self, doc) -> str:
@@ -397,6 +399,11 @@ def _validar_cuestionario(datos: dict[str, Any], ctx: Contexto) -> contenido.Cue
         mezclar = True
     elif not isinstance(mezclar, bool):
         raise ErrorContenido("AJUSTE_INVALIDO", "«mezclar_respuestas» debe ser true o false")
+    penalizar = datos.get("penalizar")
+    if penalizar is None:
+        penalizar = True
+    elif not isinstance(penalizar, bool):
+        raise ErrorContenido("AJUSTE_INVALIDO", "«penalizar» debe ser true o false")
 
     valor_preguntas = datos.get("preguntas")
     if not isinstance(valor_preguntas, list) or not 1 <= len(valor_preguntas) <= MAX_PREGUNTAS:
@@ -419,6 +426,7 @@ def _validar_cuestionario(datos: dict[str, Any], ctx: Contexto) -> contenido.Cue
         tiempo_limite=tiempo_limite,
         intentos=intentos,
         mezclar_respuestas=mezclar,
+        penalizar=penalizar,
         externos=tuple(externos),
         incrustados=tuple(incrustados),
         imagenes=tuple(imagenes.por_nombre.values()),

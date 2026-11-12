@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import pytest
 
 from tiza.contenido import cargar
-from tiza.cuestionario import FRACCIONES, fraccion_correcta, preguntas_xml
+from tiza.cuestionario import FRACCIONES, fraccion_correcta, fraccion_fallo, preguntas_xml
 
 TODOS_LOS_TIPOS = """
 - tipo: opcion_multiple
@@ -103,7 +103,62 @@ def test_una_sola_correcta_se_marca_single(tmp_path):
     )
     pregunta = raiz.find("question")
     assert pregunta.findtext("single") == "true"
-    assert [a.get("fraction") for a in pregunta.findall("answer")] == ["100", "0", "0"]
+    # Por defecto cada incorrecta resta 1/(n-1): al azar, la media es 0.
+    assert [a.get("fraction") for a in pregunta.findall("answer")] == ["100", "-50", "-50"]
+
+
+def test_fraccion_de_fallo_hace_que_el_azar_de_cero():
+    for opciones in range(2, 11):
+        fallo = float(fraccion_fallo(opciones))
+        assert (100 + (opciones - 1) * fallo) / opciones == pytest.approx(0, abs=1e-3)
+    assert fraccion_fallo(2) == "-100"
+    assert fraccion_fallo(4) == "-33.33333"
+    # Son valores de la tabla de Moodle (la importación va con matchgrades=error).
+    assert {fraccion_fallo(n)[1:] for n in range(3, 11)} <= set(FRACCIONES.values())
+    with pytest.raises(ValueError):
+        fraccion_fallo(11)
+
+
+UNA_CORRECTA_Y_VF = """
+- tipo: opcion_multiple
+  enunciado: x
+  opciones:
+    - {texto: "a"}
+    - {texto: "b", correcta: true}
+    - {texto: "c"}
+    - {texto: "d"}
+- tipo: verdadero_falso
+  enunciado: y
+  respuesta: verdadero
+"""
+
+
+def test_penalizar_false_deja_los_fallos_a_cero(tmp_path):
+    raiz = arbol(tmp_path, UNA_CORRECTA_Y_VF, penalizar="false")
+    multiple, vf = raiz.findall("question")
+    assert [a.get("fraction") for a in multiple.findall("answer")] == ["0", "100", "0", "0"]
+    assert [a.get("fraction") for a in vf.findall("answer")] == ["100", "0"]
+
+
+def test_por_defecto_los_fallos_de_opcion_multiple_restan(tmp_path):
+    multiple, vf = arbol(tmp_path, UNA_CORRECTA_Y_VF).findall("question")
+    fallo = "-33.33333"
+    assert [a.get("fraction") for a in multiple.findall("answer")] == [fallo, "100", fallo, fallo]
+    # Verdadero/falso no resta: Moodle guarda su fallo a 0 (espiga en el Moodle de pruebas).
+    assert [a.get("fraction") for a in vf.findall("answer")] == ["100", "0"]
+
+
+def test_varias_correctas_restan_aunque_no_se_penalice(tmp_path):
+    preguntas = """
+- tipo: opcion_multiple
+  enunciado: x
+  opciones:
+    - {texto: "a", correcta: true}
+    - {texto: "b"}
+    - {texto: "c", correcta: true}
+"""
+    respuestas = arbol(tmp_path, preguntas, penalizar="false").findall("question/answer")
+    assert [a.get("fraction") for a in respuestas] == ["50", "-50", "50"]
 
 
 def test_varias_correctas_reparten_la_fraccion(tmp_path):

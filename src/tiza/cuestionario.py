@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 
 from .contenido import PREFIJO_IMAGEN, Documento, Imagen, Pregunta, numero_texto
 
-__all__ = ["FRACCIONES", "fraccion_correcta", "preguntas_xml"]
+__all__ = ["FRACCIONES", "fraccion_correcta", "fraccion_fallo", "preguntas_xml"]
 
 # Fracciones que acepta la importación de Moodle para cada número de respuestas
 # correctas de una pregunta de opción múltiple (k de 2 a 10). La importación va
@@ -47,6 +47,18 @@ def fraccion_correcta(cuantas: int) -> str:
         raise ValueError(f"no hay fracción para {cuantas} respuestas correctas") from None
 
 
+def fraccion_fallo(opciones: int) -> str:
+    """Lo que resta cada incorrecta de una pregunta con una sola correcta y ``opciones`` opciones.
+
+    Resta 1/(opciones − 1): contestar al azar da 0 de media. Con dos opciones, un fallo resta la
+    pregunta entera. Verdadero/falso no resta: Moodle guarda su fallo a 0 aunque se le mande otra
+    cosa (lo vio la espiga en el Moodle de pruebas).
+    """
+    if not 2 <= opciones <= 10:
+        raise ValueError(f"no hay fracción de fallo para {opciones} opciones")
+    return "-100" if opciones == 2 else "-" + FRACCIONES[opciones - 1]
+
+
 def preguntas_xml(doc: Documento) -> bytes:
     """El XML de todas las preguntas, en el orden escrito, listo para importar."""
     if doc.cuestionario is None:
@@ -54,7 +66,7 @@ def preguntas_xml(doc: Documento) -> bytes:
     raiz = ET.Element("quiz")
     imagenes = {imagen.nombre: imagen for imagen in doc.cuestionario.imagenes}
     for numero, pregunta in enumerate(doc.cuestionario.preguntas, 1):
-        _anadir_pregunta(raiz, f"P{numero:02d}", pregunta, imagenes)
+        _anadir_pregunta(raiz, f"P{numero:02d}", pregunta, imagenes, doc.cuestionario.penalizar)
     cuerpo = ET.tostring(raiz, encoding="unicode")
     return ('<?xml version="1.0" encoding="UTF-8"?>\n' + cuerpo).encode("utf-8")
 
@@ -80,7 +92,11 @@ def _adjuntar(padre: ET.Element, usadas: list[Imagen]) -> None:
 
 
 def _anadir_pregunta(
-    raiz: ET.Element, nombre: str, pregunta: Pregunta, imagenes: dict[str, Imagen]
+    raiz: ET.Element,
+    nombre: str,
+    pregunta: Pregunta,
+    imagenes: dict[str, Imagen],
+    penalizar: bool,
 ) -> None:
     nodo = ET.SubElement(raiz, "question", type=_TIPO_XML[pregunta.tipo])
     ET.SubElement(ET.SubElement(nodo, "name"), "text").text = nombre
@@ -91,7 +107,7 @@ def _anadir_pregunta(
     ET.SubElement(nodo, "penalty").text = penalizacion
     ET.SubElement(nodo, "hidden").text = "0"
     if pregunta.tipo == "opcion_multiple":
-        _multichoice(nodo, pregunta, imagenes)
+        _multichoice(nodo, pregunta, imagenes, penalizar)
     elif pregunta.tipo == "verdadero_falso":
         _verdadero_falso(nodo, pregunta)
     elif pregunta.tipo == "respuesta_corta":
@@ -132,15 +148,21 @@ def _respuesta(
     return nodo
 
 
-def _multichoice(nodo: ET.Element, pregunta: Pregunta, imagenes: dict[str, Imagen]) -> None:
+def _multichoice(
+    nodo: ET.Element, pregunta: Pregunta, imagenes: dict[str, Imagen], penalizar: bool
+) -> None:
+    # Con una correcta, cada incorrecta resta lo justo para que el azar dé 0 (salvo
+    # ``penalizar: false``). Con varias, las incorrectas marcadas restan siempre: si no,
+    # marcarlo todo daría la pregunta entera.
     correctas = [opcion for opcion in pregunta.opciones if opcion.correcta]
     unica = len(correctas) == 1
     ET.SubElement(nodo, "single").text = "true" if unica else "false"
     ET.SubElement(nodo, "shuffleanswers").text = "true"
     ET.SubElement(nodo, "answernumbering").text = "abc"
+    fallo = fraccion_fallo(len(pregunta.opciones)) if penalizar else "0"
     for opcion in pregunta.opciones:
         if unica:
-            fraccion = "100" if opcion.correcta else "0"
+            fraccion = "100" if opcion.correcta else fallo
         else:
             valor = fraccion_correcta(len(correctas))
             fraccion = valor if opcion.correcta else f"-{valor}"
@@ -148,6 +170,7 @@ def _multichoice(nodo: ET.Element, pregunta: Pregunta, imagenes: dict[str, Image
 
 
 def _verdadero_falso(nodo: ET.Element, pregunta: Pregunta) -> None:
+    # Sin penalización: Moodle guarda el fallo de una verdadero/falso a 0 sea cual sea.
     respuestas = (("true", "verdadero"), ("false", "falso"))
     for texto, valor in respuestas:
         fraccion = "100" if pregunta.respuesta == valor else "0"

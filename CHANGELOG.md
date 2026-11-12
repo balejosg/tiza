@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Cambia
+- **En los cuestionarios, los fallos de opción múltiple restan por defecto.** Con una sola correcta, cada incorrecta resta lo justo para que contestar al azar dé 0 (con 4 opciones, 1/3 de la pregunta). En blanco sigue valiendo 0, y la nota del cuestionario no baja de 0. Verdadero/falso no resta: Moodle no lo permite. Si no lo quieres, pon `penalizar: false` en el cuestionario. Los cuestionarios ya publicados cambian la próxima vez que los publiques si nadie los ha empezado; para dejarlos como estaban, añade `penalizar: false`. `tiza importar` reconoce las dos formas.
+
 ## 0.45.1 — 2026-11-11
 
 ### Cambiado

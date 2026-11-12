@@ -175,7 +175,8 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   entrega» de Moodle: después se siguen admitiendo entregas, marcadas con
   retraso. `limite` es la «Fecha límite»: a partir de ella ya no se admiten
   entregas. Es opcional; sin ella, se admiten entregas con retraso sin fin.
-- Un cuestionario admite además `apertura`, `cierre` y `mezclar_respuestas`, y
+- Un cuestionario admite además `apertura`, `cierre`, `mezclar_respuestas` y
+  `penalizar`, y
   de 1 a 100 preguntas de cinco tipos: `opcion_multiple` (de 2 a 10 opciones),
   `verdadero_falso`, `respuesta_corta`, `numerica` y `emparejamiento` (de 2 a 10
   parejas y `distractores` opcionales; la respuesta es texto plano y hacen falta al
@@ -183,6 +184,14 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   (retroalimentación) y vale 1 punto (el emparejamiento lo reparte a partes iguales);
   tiza calcula las puntuaciones. No hay preguntas de ensayo: para respuestas abiertas,
   usa una tarea.
+- Por defecto, en `opcion_multiple` con una correcta y n opciones, **cada
+  incorrecta resta** 1/(n−1) (con 4 opciones, 1/3): contestar al azar da 0. En
+  blanco vale 0. Una pregunta puede quedar en negativo y restar de las demás, pero
+  la nota del cuestionario no baja de 0. Con `penalizar: false` no restan en todo
+  el cuestionario. Con varias correctas, cada incorrecta marcada resta su parte
+  siempre (si no, marcarlo todo daría la pregunta entera). `verdadero_falso` no
+  resta nunca (Moodle no lo permite); respuesta corta, numérica y emparejamiento
+  tampoco.
 - Las preguntas admiten **imágenes locales** (PNG, JPEG, GIF o WebP, hasta 1 MB cada
   una y 10 MB por cuestionario) en el enunciado, las opciones, las parejas y la
   retroalimentación, con **texto alternativo obligatorio** (`IMAGEN_SIN_ALT`). tiza las

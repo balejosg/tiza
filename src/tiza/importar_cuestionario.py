@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from .copia import ActividadCopia, PreguntaCopia, RespuestaCopia
-from .cuestionario import fraccion_correcta
+from .cuestionario import fraccion_correcta, fraccion_fallo
 
 __all__ = [
     "ajustes_del_cuestionario",
@@ -105,12 +105,23 @@ def _es(valor: float, esperado: float) -> bool:
     return math.isclose(valor, esperado, abs_tol=1e-6)
 
 
+def _fallo(opciones: int) -> float:
+    """Lo que resta (en negativo) una incorrecta cuando tiza penaliza, con ``opciones`` opciones."""
+    return float(fraccion_fallo(opciones)) / 100
+
+
 def _fracciones_de_multichoice(respuestas: Sequence[RespuestaCopia]) -> bool:
-    """¿Son las que tiza generaría? Una correcta: 1 y 0. Varias (2 a 10): ±n según la tabla."""
+    """¿Son las que tiza generaría? Una correcta: 1 y las incorrectas todas a 0 o todas restando
+    1/(n − 1) (con ``penalizar`` o sin él). Varias (2 a 10): ±n según la tabla."""
     fracciones = [r.fraccion for r in respuestas]
     correctas = sum(1 for x in fracciones if x > 0)
     if correctas == 1:
-        return all(_es(x, 1.0) or _es(x, 0.0) for x in fracciones)
+        if not any(_es(x, 1.0) for x in fracciones):
+            return False
+        fallos = [x for x in fracciones if not _es(x, 1.0)]
+        return all(_es(x, 0.0) for x in fallos) or all(
+            _es(x, _fallo(len(fracciones))) for x in fallos
+        )
     if not 2 <= correctas <= 10:
         return False
     valor = float(fraccion_correcta(correctas)) / 100
@@ -231,6 +242,25 @@ def _convertir(pregunta: PreguntaCopia) -> dict[str, Any] | str:
     return resultado
 
 
+def _penaliza(pregunta: PreguntaCopia) -> bool | None:
+    """¿Restan sus fallos? Solo en las de opción múltiple con una correcta, que son las que
+    dependen de ``penalizar``; ``None`` en las demás."""
+    if pregunta.tipo != "multichoice":
+        return None
+    fracciones = [r.fraccion for r in pregunta.respuestas]
+    if sum(1 for x in fracciones if x > 0) != 1:
+        return None
+    return any(x < 0 for x in fracciones)
+
+
+def _penalizaciones(actividad: ActividadCopia) -> set[bool]:
+    return {
+        penaliza
+        for pregunta in actividad.preguntas
+        if (penaliza := _penaliza(pregunta)) is not None
+    }
+
+
 def convertir_preguntas(actividad: ActividadCopia) -> tuple[list[dict[str, Any]], list[str]]:
     """Las preguntas convertidas y los motivos (sin repetir, en orden) de las que no se pueden."""
     convertidas: list[dict[str, Any]] = []
@@ -242,6 +272,9 @@ def convertir_preguntas(actividad: ActividadCopia) -> tuple[list[dict[str, Any]]
                 motivos.append(resultado)
         else:
             convertidas.append(resultado)
+    if len(_penalizaciones(actividad)) > 1:
+        # ``penalizar`` es de todo el cuestionario: unas que restan y otras que no, no.
+        motivos.append("unas preguntas restan los fallos y otras no")
     if not actividad.preguntas:
         motivos.append("sin_preguntas")
     elif len(actividad.preguntas) > _MAX_PREGUNTAS:
@@ -255,7 +288,8 @@ def convertir_preguntas(actividad: ActividadCopia) -> tuple[list[dict[str, Any]]
 
 
 def ajustes_del_cuestionario(actividad: ActividadCopia) -> tuple[dict[str, Any], list[str]]:
-    """``intentos``, ``tiempo_limite`` (minutos) y ``mezclar_respuestas`` con la semántica de tiza.
+    """``intentos``, ``tiempo_limite`` (minutos), ``mezclar_respuestas`` y ``penalizar`` con la
+    semántica de tiza (``penalizar: false`` solo si ninguna pregunta resta los fallos).
 
     tiza los manda siempre al publicar: sin ellos, republicar pisaría los del aula. Lo que tiza no
     puede decir (más de 10 intentos, un tiempo que no son minutos enteros de 1 a 600) no se
@@ -277,4 +311,6 @@ def ajustes_del_cuestionario(actividad: ActividadCopia) -> tuple[dict[str, Any],
         ajustes["tiempo_limite"] = minutos
     if actividad.mezclar_respuestas is not None:
         ajustes["mezclar_respuestas"] = actividad.mezclar_respuestas
+    if _penalizaciones(actividad) == {False}:
+        ajustes["penalizar"] = False
     return ajustes, motivos

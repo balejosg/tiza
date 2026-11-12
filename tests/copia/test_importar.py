@@ -836,6 +836,8 @@ def multichoice(respuestas, **ajustes):
     "respuestas",
     [
         (1.0, 0.0, 0.0),
+        (1.0, -0.5, -0.5),  # una correcta, con penalización
+        (-1.0, 1.0),
         (0.5, 0.5, -0.5),
         (0.3333333, 0.3333333, 0.3333333, -0.3333333),
         (0.25, 0.25, 0.25, 0.25, -0.25),
@@ -855,6 +857,8 @@ def test_fracciones_que_tiza_generaria_se_aceptan(carpeta, respuestas):
         ((0.7, 0.3, -0.3), "0"),  # no son las fracciones de tiza
         ((1.0, 0.5, 0.0), "1"),  # puntuación parcial en una de respuesta única
         ((1.0, 0.0, -0.25), "1"),
+        ((1.0, 0.0, -0.5), "1"),  # penaliza unas incorrectas y otras no
+        ((1.0, -0.25, -0.25), "1"),  # no es 1/(n-1)
         ((1.0, 0.0, 0.0), "0"),  # una correcta pero sin «una sola respuesta»
         ((0.5, 0.5, -0.5), "1"),  # varias correctas marcadas como respuesta única
     ],
@@ -879,6 +883,60 @@ def test_fracciones_en_verdadero_falso_corta_y_numerica(carpeta):
         shutil_rm(carpeta)
 
 
+def cabecera_de(carpeta):
+    texto = (carpeta / "aula" / "02-tema-1-intro" / "notas-510.md").read_text(encoding="utf-8")
+    return yaml.safe_load(texto.split("---\n")[1])
+
+
+def verdadero_falso(numero, falla):
+    return pregunta(numero, "VF", ((1, "<p>v</p>"),), "truefalse", (("V", 1.0), ("F", falla)))
+
+
+def test_sin_penalizacion_se_importa_con_penalizar_false(carpeta):
+    preguntas = [multichoice((1.0, 0.0, 0.0), single="1"), verdadero_falso(102, 0.0)]
+    importar_en(carpeta, [quiz_de(preguntas)])
+    assert actividades_de(carpeta)[510]["estado"] == "IMPORTADA"
+    assert cabecera_de(carpeta)["penalizar"] is False
+
+
+def test_con_penalizacion_no_escribe_penalizar(carpeta):
+    preguntas = [multichoice((1.0, -0.5, -0.5), single="1"), verdadero_falso(102, 0.0)]
+    importar_en(carpeta, [quiz_de(preguntas)])
+    assert actividades_de(carpeta)[510]["estado"] == "IMPORTADA"
+    assert "penalizar" not in cabecera_de(carpeta)
+
+
+def test_solo_varias_correctas_no_escribe_penalizar(carpeta):
+    importar_en(carpeta, [quiz_de([multichoice((0.5, 0.5, -0.5), single="0")])])
+    assert "penalizar" not in cabecera_de(carpeta)
+
+
+def test_verdadero_falso_no_decide_penalizar(carpeta):
+    importar_en(carpeta, [quiz_de([verdadero_falso(102, 0.0)])])
+    assert "penalizar" not in cabecera_de(carpeta)
+
+
+def test_verdadero_falso_que_resta_no_se_importa(carpeta):
+    importar_en(carpeta, [quiz_de([verdadero_falso(102, -1.0)])])
+    assert actividades_de(carpeta)[510]["estado"] == "PREGUNTAS_NO_ADMITIDAS"
+
+
+def test_unas_que_restan_y_otras_que_no_no_se_importa(carpeta):
+    sin_restar = pregunta(
+        102,
+        "Q",
+        ((1, "<p>Otra</p>"),),
+        "multichoice",
+        (("<p>a</p>", 0.0), ("<p>b</p>", 1.0)),
+        ajustes={"single": "1"},
+    )
+    preguntas = [multichoice((1.0, -0.5, -0.5), single="1"), sin_restar]
+    importar_en(carpeta, [quiz_de(preguntas)])
+    entrada = actividades_de(carpeta)[510]
+    assert entrada["estado"] == "PREGUNTAS_NO_ADMITIDAS" and entrada["fichero"] is None
+    assert "restan" in entrada["detalle"]
+
+
 def shutil_rm(carpeta):
     import shutil
 
@@ -892,7 +950,11 @@ def test_republicar_no_cambia_la_puntuacion(carpeta):
 
     from tiza.cuestionario import preguntas_xml
 
-    for respuestas, single in (((1.0, 0.0, 0.0), "1"), ((0.5, 0.5, -0.5), "0")):
+    for respuestas, single in (
+        ((1.0, 0.0, 0.0), "1"),
+        ((-1 / 3, 1.0, -1 / 3, -1 / 3), "1"),
+        ((0.5, 0.5, -0.5), "0"),
+    ):
         shutil_rm(carpeta)
         importar_en(carpeta, [quiz_de([multichoice(respuestas, single=single)])])
         ruta = carpeta / "aula" / "02-tema-1-intro" / "notas-510.md"

@@ -225,6 +225,7 @@ class Cuestionario:
     tiempo_limite: int | None = None  # minutos, 1..600
     intentos: int = 1  # 0 significa ilimitados
     mezclar_respuestas: bool = True
+    penalizar: bool = True  # opción múltiple de una correcta: el azar da 0
     externos: tuple[str, ...] = ()  # enlaces externos de las preguntas
     incrustados: tuple[str, ...] = ()  # iframes de las preguntas, ya normalizados
     imagenes: tuple[Imagen, ...] = ()  # imágenes locales de las preguntas, sin repetir

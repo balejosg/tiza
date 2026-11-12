@@ -1291,6 +1291,7 @@ def test_una_tarea_con_dos_criterios_no_avisa(tmp_path):
         (PREGUNTA_MULTIPLE, {"intentos": '"ilimitado"'}, "AJUSTE_INVALIDO", "intentos"),
         (PREGUNTA_MULTIPLE, {"intentos": "true"}, "AJUSTE_INVALIDO", "intentos"),
         (PREGUNTA_MULTIPLE, {"mezclar_respuestas": "sí"}, "AJUSTE_INVALIDO", "mezclar_respuestas"),
+        (PREGUNTA_MULTIPLE, {"penalizar": "a veces"}, "AJUSTE_INVALIDO", "penalizar"),
         (PREGUNTA_MULTIPLE, {"apertura": "el jueves"}, "FECHA_INVALIDA", "jueves"),
         (
             PREGUNTA_MULTIPLE,
