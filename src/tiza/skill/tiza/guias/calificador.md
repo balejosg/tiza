@@ -61,7 +61,7 @@ instrumentos:
   (0–100, todos suman 100) y `codigo` opcional; `criterios` (opcional) es una lista de `{id, nombre, peso?, codigo?}` con pesos en todos o en ninguno, sumando 100 (sin pesos pesan igual y sale `CRITERIOS_SIN_PESO`); ids únicos y `codigo` legible.
 - `instrumentos` (opcional): casillas manuales, `{id, nombre, seccion, evalua}` (ver §3).
 - `etapa` (`primaria`, `eso`, `bachillerato` o `fp`), `niveles_rubrica` (2–10 niveles `{id, nombre, porcentaje}`, con 0 y 100; por defecto 100/75/50/25/0) y `actividades_pesan_igual` (todas las actividades de un criterio pesan igual).
-- `evaluaciones`: `nombre`, `secciones` (números o nombres) y `cerrada`; con la final por evaluaciones, cada una lleva `peso` (suman 100).
+- `evaluaciones`: `nombre`, `secciones` (números o nombres) y `cerrada`; con la final por evaluaciones, cada una lleva `peso` (suman 100). Con la final de elementos, el `peso` es opcional: es el `q_n` con el que cada copia del curso pesa su trimestre; sin pesos, todos los trimestres con evidencias pesan igual.
 - `final`: `de` (`elementos` o `evaluaciones`) y `tope` (solo con `de: elementos`):
   `si_alguno_menor_que` (>0 y hasta 10) y `maximo` (0–10, sin llegar).
 - `agregacion` (opcional): `regla` (`media`, `mediana`, `mas_alta` o `progresiva`) y `factores` (uno por evaluación, solo con progresiva). Cada elemento sin criterios o cada criterio puede llevar su propia `regla`; sin `agregacion`, todo es `media`. Con `final.tope` valen todas las reglas y también `recupera`.
@@ -73,10 +73,11 @@ Lo que el esquema no expresa (redondeos, la actitud, otros pesos dentro de una e
 
 Cada tarea, cuestionario o contenido H5P declara en su cabecera con qué resultados se evalúa y
 con qué peso: `evalua: {RA1: 40, RA3: 25}` (de 0 a 100). Sin `evidencia: resultados`, la
-actividad real queda en el primer elemento de `evalua` (en el orden del YAML) y en los demás
-aparece una copia que refleja su nota. Con evidencia, va un calculado del resultado por criterio
-y la tarea real queda con peso 0 (§6). Una actividad sin `evalua` no entra en el calificador, y
-una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiza comprobar`).
+actividad real queda en su primer criterio de la vista por evaluaciones (en el orden del YAML) y
+en los demás criterios aparece una copia oculta que refleja su nota. Con evidencia, la tarea real
+queda con peso 0 y cada criterio lleva un resultado y su calculado (§6); la vista del curso copia
+los totales trimestrales. Una actividad sin `evalua` no entra en el calificador, y una página o
+etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiza comprobar`).
 
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
   elemento da `ELEMENTO_CON_CRITERIOS`. Los pesos son **relativos** y se normalizan por hoja: no
@@ -85,16 +86,18 @@ una página o etiqueta con `evalua` da `EVALUA_NO_CALIFICABLE` (también en `tiz
   la prueba de la UD3 con CE2.2 y CE3.1 se publica como «UD3 · Planificación» (CE2.2) y «UD3 · Construcción» (CE3.1), con al menos 3 preguntas cada uno (recomendado). Propón el criterio de cada pregunta a partir
   del texto literal (`tiza normativa ficha`) y confírmalo con el docente en una tabla de preguntas antes de escribir el fichero. Las calificaciones del cuestionario no crean elementos en el calificador: no
   reparten la nota entre criterios.
-- **Casillas manuales** (`instrumentos`): tiza crea la casilla (sobre 10) en su primer criterio y
-  copias en los demás. La nota la pone el docente a mano; tiza nunca la toca ni cambia su
-  máximo. Una nota va a todos sus criterios; quitarlo con notas lo deja con peso 0
-  (`ELEMENTO_CON_NOTAS_QUITADO`).
+- **Casillas manuales** (`instrumentos`): tiza crea la casilla (sobre 10) en su primer criterio de
+  la vista primaria y copias en los demás; en la vista del curso, la copia de su criterio. La
+  nota la pone el docente a mano; tiza nunca la toca ni cambia su máximo. Una nota va a todos sus
+  criterios; quitarlo con notas lo deja con coeficiente 0 (`ELEMENTO_CON_NOTAS_QUITADO`).
 - **`evidencia: resultados`**: la tarea marca los resultados de sus criterios.
   Necesita `evalua` y `calificacion.yaml` con niveles equidistantes; tiza crea una
   escala de logro y un resultado por criterio, y el docente marca un nivel por criterio en
-  Moodle. Con un fichero de `filas`, hay un resultado con su propia escala y sus descriptores
-  por cada fila (ver §6).
-- **`recupera`**: `recupera: 1` o `recupera: [1, 3]` en una tarea, cuestionario o H5P. Recupera los criterios de su `evalua` y su nota sustituye a la de esa evaluación si es mayor. Necesita `final: {de: elementos}`; cada criterio recuperado debe tener evidencias normales en esa evaluación y no puede ser `mediana` (`RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`). En una evaluación cerrada no cambia su nota: `RECUPERACION_EN_CERRADA` y la recuperación cuenta en la final. Declara solo las que recoja la programación (art. 45.5).
+  Moodle. El resultado del aula no se puede ponderar directamente en media ponderada (S2):
+  un calculado `TZ_R_` sobre 100 lleva el peso de `evalua` y el resultado queda con peso 0.
+  Con un fichero de `filas`, hay un resultado con su propia escala y sus descriptores por cada
+  fila (ver §6).
+- **`recupera`**: `recupera: 1` o `recupera: [1, 3]` en una tarea, cuestionario o H5P. Recupera los criterios de su `evalua` y su nota sustituye a la del trimestre en la nota del curso si es mayor; la recuperación no es evidencia del trimestre y se monta en la vista del curso, envolviendo la copia del trimestre recuperado en una «más alta» (o suelta si la hoja ya es `mas_alta`). Necesita `final: {de: elementos}`; cada criterio recuperado debe tener evidencias normales en esa evaluación y no puede ser `mediana` (`RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`). En una evaluación cerrada no cambia su nota: `RECUPERACION_EN_CERRADA` y la recuperación cuenta en la final. Declara solo las que recoja la programación (art. 45.5).
 
 ## 4. Mapa de cobertura
 
@@ -145,6 +148,11 @@ para los RA y CE, parte de `tiza normativa ficha`. Para la página de inicio de 
 
 ## 5. Rúbrica de la tarea
 
+Para una tarea con **varios criterios**, la recomendación es **B**: `evidencia: resultados` sin
+filas, con los descriptores en el enunciado. **A** (`por_criterios` o rúbrica nativa) para un
+criterio o un RA sin criterios. **C** (rúbrica de `filas`) solo si lo pide, sabiendo que los
+descriptores no se cambian después de publicar.
+
 Una tarea con `evalua` puede llevar `rubrica` de dos formas, en cualquier etapa (ESO,
 Bachillerato, FP o Primaria). `rubrica: por_criterios` crea
 una fila genérica por criterio, con los pesos de `calificacion.yaml` y los niveles de
@@ -175,10 +183,11 @@ Después hace falta el cuerpo: descripción para el alumnado, sin imágenes ni f
   Dos filas no repiten criterio e indicador; o todas llevan `peso` o ninguna (`PESOS_DE_FILA_INCOMPLETOS`); fuera de la carpeta, `RUBRICA_FUERA_DE_CARPETA`.
   La forma de las filas es `RUBRICA_NO_VALIDA`; el frontmatter mal escrito, `FRONTMATTER_INVALIDO`; el HTML peligroso, `HTML_PELIGROSO`; los ficheros, `FICHERO_AUSENTE`, `CODIFICACION_INVALIDA` o `FICHERO_DEMASIADO_GRANDE`.
 - El peso de la fila reparte la nota visible de la tarea (los 10 puntos que Moodle reescala) y,
-  con `evidencia: resultados`, también la media ponderada dentro de su criterio. Sin pesos, todas
-  pesan igual. Sin `evidencia: resultados`, la nota total de la tarea llega a todos sus criterios
-  según `evalua`; con evidencia sin filas, cada criterio recibe su nivel; con evidencia y filas,
-  cada fila tiene su resultado y su escala con descriptores, y no se crea la rúbrica nativa. En
+  con `evidencia: resultados`, el peso del calculado de cada fila. Sin pesos, todas pesan igual.
+  Sin `evidencia: resultados`, la nota total de la tarea llega a todos sus criterios según
+  `evalua`; con evidencia sin filas, cada criterio recibe su nivel; con evidencia y filas, cada
+  fila tiene su resultado y su calculado directo en el criterio (sin subcategoría «Filas»), y no
+  se crea la rúbrica nativa. En
   `tiza-privado`, `copiar-niveles` copia el nivel de cada fila al resultado de su criterio si no
   usas la combinación de descriptores.
 - `EVIDENCIA_COMPARTIDA` avisa en `tiza calificador` de una actividad o casilla manual (una vez por cada una) con 2+ criterios con peso y sin `evidencia`: su nota total llega a todos según
@@ -193,23 +202,27 @@ Después hace falta el cuerpo: descripción para el alumnado, sin imágenes ni f
 
 ## 6. Evidencia por criterio (resultados)
 
-En una tarea con **más de un criterio** en `evalua`, propón `evidencia: resultados`: el docente marca un nivel por criterio en Moodle; con uno solo no aporta.
+En una tarea con **más de un criterio** en `evalua`, propón **B**: `evidencia: resultados` sin
+filas. El docente marca un nivel por criterio en Moodle; la tarea real queda con peso 0 y cada
+criterio lleva su resultado `TZ_O_…` y un calculado `TZ_R_…` sobre 100 con el peso de `evalua`.
+El resultado del aula no se puede ponderar directamente en media ponderada (su formulario no
+tiene coeficiente): el peso va en el calculado. **La nota total de la tarea deja de contar para
+los criterios.** Los descriptores van en el enunciado.
 
 Sin fichero de filas, tiza crea la escala «Escala de logro (tiza)» con los niveles de
 `niveles_rubrica` (equidistantes; si no, `NIVELES_NO_EQUIDISTANTES`) y un resultado `TZ_<criterio>`
-por criterio; un calculado por tarea y criterio lleva el nivel a 0–10 con el peso de `evalua` y
-**la nota total de la tarea deja de contar para los criterios**. Los descriptores van en el enunciado.
+por criterio; un calculado por criterio lleva el nivel a 0–100 con el peso de `evalua`.
 
-Con `rubrica: rubricas/<tarea>.md` (descriptores en los desplegables y en el informe):
+Con `rubrica: rubricas/<tarea>.md` (**C**, solo si el docente lo pide):
 
 - cada fila es un resultado con **su propia escala** «Nivel: descriptor», de menor a mayor; hay un
-  desplegable por fila con el descriptor entero y **no se crea la rúbrica nativa**. Un criterio
-  con varias filas lleva una subcategoría Natural «solo no vacías» con un calculado por fila
-  (peso de la fila), que es su evidencia con el peso de `evalua`; si solo se marca una fila, la
-  vacía no cuenta. Un criterio de una fila tiene un resultado, sin subcategoría.
+  desplegable por fila con el descriptor entero y **no se crea la rúbrica nativa**. Cada fila lleva
+  su calculado directo en la categoría del criterio, con el peso `evalua × parte de la fila`; no
+  hay subcategoría «Filas». Una fila sin marcar no cuenta y el criterio se renormaliza entre todas
+  sus evidencias de ese trimestre, no solo entre las filas de la tarea.
 - el valor es **continuo**, sin redondear al nivel. Para la programación: «La calificación de cada
-  criterio es la media ponderada de sus filas, con el nivel alcanzado en cada una (0–10), sin
-  redondear al nivel».
+  criterio es la media ponderada de sus evidencias, con el nivel alcanzado en cada fila (0–100),
+  sin redondear al nivel».
 - **sin comas**: la escala de Moodle separa niveles con comas. Un descriptor con coma da
   `DESCRIPTOR_CON_COMA` con fichero, fila, nivel y línea; la rúbrica nativa (sin evidencia o con «por_criterios») sí las admite.
 - **fija los descriptores antes de publicar**: una escala ya usada no se cambia y tiza no sabe si
@@ -223,14 +236,23 @@ Común: una tarea con notas pide confirmación (`EVIDENCIA_CAMBIADA_CON_NOTAS`);
 
 ## 7. Cómo se ve la nota
 
+- El árbol es **evaluación → RA o competencia → criterio → actividades** en la vista primaria (la
+  que da la final). La otra vista, en `TZ_VISTA` con peso 0, es la del curso: una copia oculta por
+  trimestre con evidencias, pesada con el `q_n` de la evaluación (`TZ_C_…`). La nota del RA es la
+  media ponderada de sus trimestres; la del criterio, la de sus trimestres. Escríbelo en la
+  programación: «La calificación de cada criterio es la media ponderada de la obtenida en él en
+  cada evaluación, con el peso de cada evaluación; la del RA, la media ponderada de sus criterios».
 - Todos los totales se ven en **porcentaje** (p. ej. «RA1: 40 %»). La nota sale en cadena
   instrumento → criterio → competencia → final, con la nota visible en cada nivel; en la vista
   por evaluaciones, la misma cadena dentro de cada evaluación.
-- **Qué ve el alumnado**: las actividades, las casillas manuales y los niveles por criterio, pero no las notas calculadas que monta tiza (copias, indicadores, notas sobre 10 y la final): las crea ocultas y las vuelve a ocultar en cada pasada (`CALCULADOS_OCULTADOS`, u `OCULTAR_FALLIDO` si el aula no deja). El ajuste del curso debe estar en «Ocultar totales si contienen ítems ocultos»; si no, avisa con `TOTALES_VISIBLES` (Calificaciones → Configuración del calificador → Informe del usuario) y no lo cambia.
-- Solo si la final tiene tope, tiza monta «Notas (sobre 10)» con la nota de cada elemento y la
-  final. El tope cuenta los elementos cuya evaluación ya está cerrada: antes no topa y, después,
-  un elemento sin notas cuenta como 0. Con tope, el total lleva fórmula y Moodle deja desmarcado
-  «solo calificaciones no vacías»; si el docente la quita, que lo vuelva a marcar.
+- **Qué ve el alumnado**: las actividades, las casillas manuales y los niveles por criterio, pero no las copias ni la nota final: tiza las crea ocultas y las vuelve a ocultar en cada pasada (`CALCULADOS_OCULTADOS`, u `OCULTAR_FALLIDO` si el aula no deja). El ajuste del curso debe estar en «Ocultar totales si contienen ítems ocultos»; si no, avisa con `TOTALES_VISIBLES` (Calificaciones → Configuración del calificador → Informe del usuario) y no lo cambia. Si el informe del usuario muestra «Ponderación» o «Contribución al total del curso», avisa con `PONDERACIONES_VISIBLES`: con las actividades en la vista que no da la final, el alumnado vería 0 % en esas columnas; tampoco cambia el ajuste.
+- La regla `mediana` en el curso es la **mediana de las medianas trimestrales**, no la de todas las
+  evidencias del año; es un cambio de definición y va junto a `MEDIANA_CON_POCAS_EVIDENCIAS`.
+- Solo si la final tiene tope, tiza monta `TZ_NOTA_FINAL` («Nota final (sobre 10)»), oculta y sobre
+  100; el total del curso la copia dividida por 10. El tope cuenta los elementos cuya evaluación ya
+  está cerrada: antes no topa y, después, un elemento sin notas cuenta como 0. Con tope, el total
+  lleva fórmula y Moodle deja desmarcado «solo calificaciones no vacías»; si el docente la quita,
+  que lo vuelva a marcar.
 
 ## Juicio del docente
 
@@ -299,6 +321,10 @@ ponderacion:
 - **No se mezcla con `ponderacion.yaml` en el mismo curso.** Si el aula ya tiene categorías
   `TZP_`, montar `calificacion.yaml` da `CALIFICADOR_CON_PONDERACION`; elige el modo por
   categorías de la §8 o quita antes esas categorías a mano.
+- **Árbol de la generación anterior.** `TZ_NOTAS`, `TZ_K_TIZA`, `TZ_AG_*`, `TZ_RP_*`, `TZ_F_*` o
+  copias `TZ_C_` en una vista con actividades dan `CALIFICADOR_ANTIGUO`, sin escribir nada. Borra a
+  mano «Calificador de tiza» en Calificaciones → Configuración del calificador (sus hijos suben al
+  curso) y repite; tiza quita la entrada vieja de `calificador.json`.
 
 ## 10. Cerrar una evaluación
 
@@ -316,7 +342,7 @@ estaba bloqueada. **tiza no puede reabrirla**: si falla a medias, repite el coma
 
 Lánzalo en segundo plano (hasta una hora): si te corta, la sesión acaba lo empezado y lo hecho no
 se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente` o `sin_colocar`,
-y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; `CALIFICADOR_CAMBIOS` desglosa los cambios por tipo, con los primeros números de ID `TZ_…`. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose: es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las notas calculadas que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de las que el aula no dejó ocultar (no corta el montaje) y `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos.
+y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; `CALIFICADOR_CAMBIOS` desglosa los cambios por tipo (también `fijar_coeficiente`), con los primeros números de ID `TZ_…`. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose: es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las copias y calculados que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de los que el aula no dejó ocultar (no corta el montaje), `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos y `PONDERACIONES_VISIBLES` de que el informe del usuario muestra ponderaciones o contribución. `CALCULO_NO_DISPONIBLE` corta antes de escribir si el aula no ofrece «Media ponderada de calificaciones»; `CALIFICADOR_ANTIGUO`, si el árbol es de la generación anterior.
 
 ## 12. Lo que tiza no hace
 
@@ -328,7 +354,7 @@ y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen 
 - Con más de 500 ficheros `.md` o `.html`, `CARPETA_DEMASIADO_GRANDE`: saca los que no sean del curso.
 - Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no adivines cuál es: el docente borra o renombra una.
 - `ESQUEMA_INVALIDO`, `PESOS_NO_SUMAN_100`, `ID_REPETIDO`, `SECCION_REPETIDA`, `TOPE_SIN_ELEMENTOS`
-  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera; `PROGRESIVA_SIN_FACTORES`, `RECUPERA_INVALIDO`, `RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`, `RECUPERACION_SOLO_FINAL_DE_ELEMENTOS` y `ACTIVIDAD_SIN_EVALUACION` completan el diagnóstico.
+  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera; `PROGRESIVA_SIN_FACTORES`, `RECUPERA_INVALIDO`, `RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`, `RECUPERACION_SOLO_FINAL_DE_ELEMENTOS` y `ACTIVIDAD_SIN_EVALUACION` completan el diagnóstico. `CALCULO_NO_DISPONIBLE` y `CALIFICADOR_ANTIGUO` cortan antes de escribir; no los rodees con otro montaje.
 - `ELEMENTO_CON_CRITERIOS`: un `evalua` nombra un elemento con criterios; usa sus criterios.
   `CRITERIOS_SIN_PESO` es un aviso: tiza los pesa igual, y se lo dices al docente.
 - Si `.tiza/calificador.json` da `CALIFICADOR_INVALIDO`, no lo edites ni lo borres: pide al docente que lo revise; si se borra, tiza deja de saber qué cambió el docente a mano.

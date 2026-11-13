@@ -24,10 +24,14 @@ recuperaciones.
 1. **Qué se evalúa**: las competencias específicas o resultados de aprendizaje, con sus criterios.
    En FP habla de «resultado de aprendizaje» y «criterio», no de «competencia».
 2. **Cómo cuenta**: una tabla por criterio con el instrumento (tarea, cuestionario, H5P, casilla
-   manual), la evaluación en que se trabaja y el peso normalizado. Si la regla no es la media,
-   dilo en una frase: mediana, más alta o progresiva.
-3. **Cómo se recupera**: qué actividades recuperan qué evaluación y con qué regla; si una
-   recuperación solo cuenta en la final o no cambia una evaluación cerrada, se dice.
+   manual), la evaluación en que se trabaja y el peso normalizado. La nota de cada criterio en el
+   curso es la media ponderada de la obtenida en cada evaluación, con el peso que la programación
+   asigna a cada una; la del RA o competencia, la media ponderada de sus criterios. Si la regla no
+   es la media, dilo en una frase: mediana (la del curso es la mediana de las medianas
+   trimestrales), más alta o progresiva.
+3. **Cómo se recupera**: qué actividades recuperan qué evaluación y con qué regla; la recuperación
+   sustituye a la nota del trimestre en la nota del curso si es mayor, no es una evidencia más del
+   trimestre y no cambia una evaluación ya cerrada.
 4. **Dónde verá su nivel**: en las actividades, en las casillas manuales y en los resultados por
    criterio. **No prometas totales ni notas calculadas**: tiza las crea ocultas al alumnado.
    Si el centro enseña un total, lo decide el docente en el aula, no esta página.

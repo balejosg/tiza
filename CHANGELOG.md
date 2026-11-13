@@ -4,6 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## No publicado
+
+### Cambia
+- **La nota del RA o competencia del curso es la media ponderada de sus trimestres.** La de cada criterio, la media ponderada de sus notas trimestrales, con el peso que la programación asigna a cada evaluación (`q_n`); la del RA, la media ponderada de sus criterios. Coincide con la media directa de las actividades solo si cada trimestre pesa lo mismo que sus actividades. Si la regla es `mediana`, la nota del curso es la mediana de las medianas trimestrales.
+- **El árbol del calificador se simplifica y se monta en «Media ponderada de calificaciones»**: evaluación → RA o competencia → criterio → actividades reales, con una vista del curso sobre copias ocultas de los totales trimestrales. Desaparecen los contadores, indicadores, «Notas (sobre 10)» como contenedor y las categorías vacías. `TZ_NOTA_FINAL` sigue oculta, sobre 100, y el total del curso la copia dividida por 10. Los coeficientes se escriben con 4 decimales y ya no hacen falta las pasadas repetidas de pesos.
+- **`CALIFICADOR_ANTIGUO`**: un curso con el árbol de la generación anterior (`TZ_NOTAS`, `TZ_K_TIZA`, `TZ_AG_*`, `TZ_RP_*`, `TZ_F_*` o copias `TZ_C_` dentro de una vista con actividades) no se toca. Borra a mano la categoría «Calificador de tiza» en Calificaciones → Configuración del calificador (Moodle sube sus hijos al curso sin perder actividades ni resultados) y vuelve a pedir el calificador. `.tiza/calificador.json` pasa a `version: 2`; un fichero `version: 1` se lee y sus cursos se tratan como antiguos.
+- **Para una tarea con varios criterios, la recomendación es B**: `evidencia: resultados` sin filas, con la tabla de descriptores en el enunciado. A (rúbrica nativa o `por_criterios`) para un solo criterio o un RA sin criterios; C (rúbrica de filas) solo si lo pides, sabiendo que los descriptores no se cambian tras publicar. El resultado del aula no se puede ponderar directamente en media ponderada: el peso va en un calculado `TZ_R_` sobre 100.
+- **`CALCULO_NO_DISPONIBLE`** si el aula no ofrece «Media ponderada de calificaciones»: tiza no monta el calificador. **`PONDERACIONES_VISIBLES`** avisa, sin cambiar nada, si el informe del usuario muestra «Ponderación» o «Contribución al total del curso».
+
 ## 0.46.0 — 2026-11-12
 
 ### Cambia

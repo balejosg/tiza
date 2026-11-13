@@ -263,8 +263,9 @@ evalua: {RA1: 40, RA3: 25}   # id: peso relativo de 0 a 100, con hasta 2 decimal
   (un elemento o una evaluación) pesa 0, ese criterio no cuenta: sus hermanos se reparten el 100.
 - `recupera` (opcional) declara que la actividad recupera una o varias evaluaciones:
   `recupera: 1` o `recupera: [1, 3]`. Recupera los criterios de su `evalua`; su nota sustituye a
-  la de esas evidencias si es mayor. Necesita `evalua` y `final: {de: elementos}`; cada criterio
-  recuperado debe tener evidencias normales en esa evaluación y no puede usar la regla `mediana`.
+  la del trimestre en la vista del curso si es mayor; no es evidencia del trimestre y en
+  `mas_alta` va suelta. Necesita `evalua` y `final: {de: elementos}`; cada criterio recuperado
+  debe tener evidencias normales en esa evaluación y no puede usar la regla `mediana`.
   No cambia el hash de la actividad.
 - Si el elemento tiene criterios, `evalua` nombra sus criterios (`CE1_1`, no `CE1`); nombrar el
   elemento da `ELEMENTO_CON_CRITERIOS`.
@@ -307,6 +308,10 @@ final:
   tope: {si_alguno_menor_que: 5, maximo: 4}   # opcional, solo con de: elementos
 ```
 
+Con `final: {de: elementos}`, el `peso` de cada evaluación es opcional: es el `q_n` con el que
+cada copia del curso pesa su trimestre, normalizado entre los trimestres con evidencias de la
+hoja; sin pesos, todos pesan igual.
+
 - `id`: letra inicial y luego letras, cifras o `_`, 16 como mucho. Los ids repetidos dan `ID_REPETIDO`.
 - `criterios` (opcional en cada elemento): `{id, nombre, peso?, codigo?}`. Con pesos, van en todos
   o en ninguno y suman 100; sin pesos pesan igual y sale `CRITERIOS_SIN_PESO`. Elementos y criterios
@@ -330,6 +335,11 @@ final:
 - No se admite cambiar `organizacion` o `final.de` de un calificador ya montado (habría que
   borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas configuradas por el
   docente: tiza solo usa la escala de logro que crea para la evidencia por criterio (ver más abajo).
+- Un árbol de la generación anterior (`TZ_NOTAS`, `TZ_K_TIZA`, `TZ_AG_*`, `TZ_RP_*`, `TZ_F_*` o
+  copias `TZ_C_` dentro de una vista con actividades) da `CALIFICADOR_ANTIGUO` antes de escribir;
+  hay que borrar a mano «Calificador de tiza» y volver a pedirlo. Si el aula no ofrece «Media
+  ponderada de calificaciones», `CALCULO_NO_DISPONIBLE`. Si el informe del usuario muestra
+  «Ponderación» o «Contribución al total del curso», `PONDERACIONES_VISIBLES` solo avisa.
 - Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Solo
   cuentan los elementos cuya evaluación ya está cerrada: antes de cerrar la primera, la final
   no topa; después, un elemento sin notas cuenta como 0. Un error del esquema da
@@ -377,12 +387,15 @@ elementos:
 - Con `progresiva`, `factores` tiene un número mayor que 0 por evaluación; si falta o no cuadra,
   `PROGRESIVA_SIN_FACTORES` o `ESQUEMA_INVALIDO`.
 - En `mediana` y `mas_alta`, los pesos de `evalua` no cuentan; si no son todos iguales,
-  `PESOS_SIN_EFECTO` lo avisa. La tarea real con resultados y las actividades de peso 0 quedan
-  fuera de la regla.
+  `PESOS_SIN_EFECTO` lo avisa. La tarea real de B/C y las actividades de peso 0 suben al
+  antepasado de media ponderada (el elemento, o la evaluación si la hoja es un elemento sin
+  criterios); el calculado del resultado y el resultado del aula se quedan en la hoja.
 - Una actividad con `recupera` sustituye la nota de las evidencias de la evaluación recuperada
-  cuando es mayor. En la vista por elementos la recuperación cuenta siempre; en la vista por
-  evaluaciones solo si la evaluación no está cerrada. Si está cerrada, `RECUPERACION_EN_CERRADA`
-  avisa de que su nota no cambia y la recuperación cuenta en la final.
+  cuando es mayor. La recuperación vive en la vista del curso y envuelve la copia del trimestre
+  recuperado en una categoría «más alta»; si la hoja es `mas_alta`, va suelta. Cerrar la
+  evaluación no impide corregirla, pero una evaluación ya bloqueada no cambia su nota:
+  `RECUPERACION_EN_CERRADA` avisa y la recuperación cuenta en la final. La `mediana` del curso es
+  la mediana de las medianas trimestrales.
 - Una actividad de recuperación no es evidencia de su propia sección ni de su propia evaluación.
   Cada criterio recuperado necesita evidencias normales en esa evaluación
   (`RECUPERA_SIN_EVIDENCIAS`) y no puede usar `mediana` (`RECUPERACION_CON_MEDIANA`). Con
@@ -532,15 +545,13 @@ alumnado:
   «Nivel: descriptor», ordenada de menor a mayor. En la tarea hay un desplegable por fila y cada
   opción muestra el descriptor entero. **No se crea la rúbrica nativa de Moodle**: no se marca dos
   veces.
-  - En el calificador, un criterio con varias filas lleva una subcategoría Natural «solo no
-    vacías» con un calculado por fila, pesados con el peso de la fila; esa subcategoría es la
-    evidencia del criterio con el peso de `evalua`. Si solo se marca una fila, la vacía no cuenta
-    y la subcategoría vale lo de la fila marcada. Un criterio con una sola fila tiene un resultado,
-    sin subcategoría.
+  - En el calificador, cada fila lleva su resultado y un calculado directo en la categoría del
+    criterio, con el peso `evalua × parte de la fila`; no hay subcategoría «Filas». Una fila sin
+    marcar no cuenta y el criterio se renormaliza entre todas sus evidencias de ese trimestre, no
+    solo entre las filas de la tarea.
   - El valor es **continuo**, sin redondear al nivel: la nota del criterio es la media ponderada de
-    los niveles de sus filas. Para la programación: «La calificación de cada criterio es la media
-    ponderada de sus filas, calculada con el nivel alcanzado en cada una (0–10), sin redondear al
-    nivel».
+    sus evidencias. Para la programación: «La calificación de cada criterio es la media ponderada
+    de sus evidencias, con el nivel alcanzado en cada fila (0–100), sin redondear al nivel».
 - **Sin comas en los descriptores** de esa combinación: la escala de Moodle separa sus niveles con
   comas. Un descriptor con coma da `DESCRIPTOR_CON_COMA` con el fichero, la fila, el nivel y la
   línea. La rúbrica nativa (sin `evidencia` o con `por_criterios`) sí admite comas.
@@ -570,9 +581,10 @@ evidencia: resultados   # con evalua y calificacion.yaml
   niveles de `niveles_rubrica`, ordenados de menor a mayor, y un resultado por criterio con nombre
   corto `TZ_<criterio>`, nombre completo «código · nombre» (o solo el nombre si el criterio no tiene
   `codigo`) y una descripción con los niveles. En el calificador pone un calculado por tarea y
-  criterio que reescala el nivel a 0–10 y lleva el peso de `evalua`; **la nota total de la tarea
-  deja de contar para los criterios**. Los descriptores de cada nivel van en el enunciado de la
-  tarea, para que el alumnado sepa qué se le pide.
+  criterio que reescala el nivel a 0–100 y lleva el peso de `evalua`; el resultado del aula queda
+  con peso 0, porque su formulario no admite coeficiente. **La nota total de la tarea deja de
+  contar para los criterios**. Los descriptores de cada nivel van en el enunciado de la tarea, para
+  que el alumnado sepa qué se le pide.
 - **Con fichero de filas**, crea una escala y un resultado por fila (nombre corto estable
   `TZ_<criterio>_<huella>` y nombre completo «código · indicador»), con la escala «Nivel:
   descriptor». El resultado y su escala se reutilizan al volver a publicar; la definición de las
@@ -581,9 +593,9 @@ evidencia: resultados   # con evalua y calificacion.yaml
   (`EVIDENCIA_CAMBIADA_CON_NOTAS`): sus notas antiguas dejan de contar para los criterios. Con «N»,
   la tarea se publica sin resultados. `tiza calificador` también pregunta por las tareas pendientes
   con notas, aunque no emita ese paso.
-- Quitar `evidencia` no borra el resultado: al volver a montar el calificador se queda con peso 0.
-  En `tiza calificador`, `RESULTADO_CON_NOTAS_QUITADO` solo avisa si el resultado ya tenía niveles
-  puestos.
+- Quitar `evidencia` no borra el resultado: al volver a montar el calificador se queda con
+  coeficiente 0. En `tiza calificador`, `RESULTADO_CON_NOTAS_QUITADO` solo avisa si el resultado ya
+  tenía niveles puestos.
 - Si el sitio tiene los resultados desactivados, `RESULTADOS_DESACTIVADOS` en `tiza publicar` (no
   se escribe nada de resultados y se publica el resto) o en `tiza calificador` (queda el paso
   `RESULTADOS_DESACTIVADOS` y el calificador sigue). Sin filas, si la escala común ya está en uso
