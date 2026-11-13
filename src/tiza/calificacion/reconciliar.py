@@ -43,8 +43,6 @@ from tiza.calificacion.deseado import NOTA_FINAL, Deseado, Nodo, normalizar_peso
 from tiza.calificacion.esquema import TOLERANCIA_PESOS
 from tiza.calificacion.formulas import (
     formula_copia,
-    formula_indicador,
-    formula_nota,
     formula_resultado,
     formula_tope,
 )
@@ -63,6 +61,7 @@ __all__ = [
     "huella_de_nodo",
     "huellas_de",
     "es_calculado_de_tiza",
+    "es_calificador_antiguo",
     "pasada2",
     "reconciliar",
 ]
@@ -78,6 +77,7 @@ TIPOS = (
     "marcar_resultado",
     "fijar_idnumber_resultado",
     "fijar_agregacion",
+    "fijar_coeficiente",
     "fijar_peso",
     "fijar_maximo",
     "fijar_formula",
@@ -101,12 +101,12 @@ AVISOS = (
 CURSO = "TZ_CURSO"  # la clave de la huella del total del curso en ``calificador.json``
 # R1-D1: las clases calculadas que crea tiza y que el alumnado no ve. No se ocultan las
 # actividades, las casillas manuales (el instrumento) ni los elementos de resultado.
-CLASES_OCULTAS = ("copia", "indicador", "nota", "resultado_calc")
+CLASES_OCULTAS = ("copia", "nota", "resultado_calc")
 _PREFIJO = "TZ_"
 _PREFIJO_RESULTADO = "TZ_O_"
 _PREFIJO_CALCULADO_RESULTADO = "TZ_R_"
 _EVALUACION = re.compile(r"TZ_V_[0-9]+")
-_CLASES_CATEGORIA = ("contenedor", "categoria", "contador")
+_CLASES_CATEGORIA = ("contenedor", "categoria")
 _MAXIMO_NOTA = 10.0
 _PREFIJO_MANUAL = "TZ_M_"  # las casillas manuales: el docente pone las notas a mano
 _MAXIMO_SIN_DATO = 100.0
@@ -132,6 +132,8 @@ class Operacion:
       número de ID.
     * ``fijar_idnumber_resultado``: ``item_id`` del elemento de resultado y ``idnumber``.
     * ``fijar_agregacion``: ``eid`` (o ``idnumber`` si es nuevo) y ``agregacion`` de Moodle.
+    * ``fijar_coeficiente``: ``eid`` (o ``idnumber`` si es nuevo) y ``coeficiente`` de la media
+      ponderada (4 decimales). ``fijar_peso`` sigue para la ponderación de siempre.
     * ``fijar_peso``: ``eid`` (o ``idnumber`` si es nuevo) y ``peso``.
     * ``fijar_maximo``: ``item_id`` (o ``idnumber``) y ``maximo``.
     * ``fijar_formula``: ``item_id`` (o ``idnumber``) y ``formula`` en la notación interna
@@ -152,6 +154,7 @@ class Operacion:
     padre: str | None = None
     padre_eid: str | None = None
     peso: float | None = None
+    coeficiente: float | None = None
     maximo: float | None = None
     nombre: str | None = None
     visualizacion: str | None = None
@@ -221,6 +224,37 @@ class _Indice:
         return self.por_eid.get(nodo.padre_eid) if nodo.padre_eid else None
 
 
+def es_calificador_antiguo(aula: CalificadorAula) -> bool:
+    """¿El aula tiene un árbol de la generación anterior, que hay que borrar a mano?
+
+    Lo delatan los nodos de la 0.43 (``TZ_NOTAS``, ``TZ_K_TIZA``, ``TZ_AG_*``, ``TZ_RP_*``,
+    ``TZ_F_*``) o una copia ``TZ_C_`` dentro de una vista ``TZ_V_*``/``TZ_E_*`` que contiene
+    actividades. La vista del curso nueva tiene copias ``TZ_C_`` pero **no** actividades dentro
+    (las actividades reales están en la vista primaria); la copia de una actividad en la vista
+    primaria es ``TZ_CR_``, así que no se confunde.
+    """
+    indice = _Indice(aula)
+    for nodo in aula.nodos:
+        if not nodo.idnumber.startswith(_PREFIJO):
+            continue
+        if nodo.idnumber in ("TZ_NOTAS", "TZ_K_TIZA") or nodo.idnumber.startswith(
+            ("TZ_AG_", "TZ_RP_", "TZ_F_")
+        ):
+            return True
+        if not nodo.idnumber.startswith("TZ_C_"):
+            continue
+        padre = indice.padre(nodo)
+        if padre is None or not padre.idnumber.startswith(("TZ_V_", "TZ_E_")):
+            continue
+        pendientes = [padre]
+        while pendientes:
+            actual = pendientes.pop()
+            if actual.clase == "actividad":
+                return True
+            pendientes.extend(indice.hijos.get(actual.eid, []))
+    return False
+
+
 def hay_anterior(aula: CalificadorAula) -> bool:
     """Hay un calificador anterior si existe algún nodo sin ``TZ_`` que no sea el curso.
 
@@ -264,6 +298,14 @@ def _texto_peso(nodo: NodoAula) -> str:
     return f"{round(nodo.peso, 2):.2f}"
 
 
+def _texto_coeficiente(nodo: NodoAula, indice: _Indice) -> str:
+    """El coeficiente si el padre es de media ponderada; si no, el peso de siempre."""
+    padre = indice.padre(nodo)
+    if padre is not None and padre.agregacion == 10:
+        return "-" if nodo.coeficiente is None else f"{nodo.coeficiente:.4f}"
+    return _texto_peso(nodo)
+
+
 def _sha(partes: list[str]) -> str:
     return hashlib.sha256(json.dumps(partes, ensure_ascii=False).encode("utf-8")).hexdigest()
 
@@ -275,7 +317,7 @@ def _huella(nodo: NodoAula, indice: _Indice, decimal: str) -> str:
         [
             nodo.clase,
             padre.idnumber if padre else "",
-            _texto_peso(nodo),
+            _texto_coeficiente(nodo, indice),
             _normalizar(nodo.formula, decimal),
             nombre,
         ]
@@ -335,18 +377,13 @@ def es_calculado_de_tiza(nodo: NodoAula) -> bool:
     return nodo.clase == "calculado" and nodo.idnumber.startswith(_PREFIJO)
 
 
-def _peso_correcto(nodo: NodoAula, deseado: float) -> bool:
-    """El peso del aula vale si coincide con el deseado a la precisión con que lo devuelve.
+def _coeficiente_correcto(nodo: NodoAula, deseado: float) -> bool:
+    """El coeficiente de media ponderada del aula vale si coincide con el deseado.
 
-    El formulario de Moodle muestra el peso con un decimal (66,67 se lee 66,7): con la
-    tolerancia del esquema, un peso no redondo no convergería nunca y cada pasada lo volvería
-    a fijar (e2e de R1).
+    Se compara a medio decimal, como los pesos de siempre: el formulario de Moodle muestra el
+    coeficiente con cuatro decimales, pero puede redondear la última cifra.
     """
-    return (
-        nodo.sobrescrito
-        and nodo.peso is not None
-        and abs(nodo.peso - deseado) <= _TOLERANCIA_PESO_AULA
-    )
+    return nodo.coeficiente is not None and abs(nodo.coeficiente - deseado) <= _TOLERANCIA_PESO_AULA
 
 
 # --------------------------------------------------------------------------- #
@@ -563,9 +600,9 @@ class _Plan:
             return False
         deseado = self.dnodos.get(padre)
         if deseado is not None:
-            return deseado.clase == "categoria" and deseado.agregacion != 13
+            return deseado.clase == "categoria" and deseado.agregacion != 10
         aula = self.idx.por_id.get(padre)
-        return aula is not None and aula.agregacion not in (None, 13)
+        return aula is not None and aula.agregacion not in (None, 10)
 
     def _nuevas_en_cerrada(self, pendientes: set[str]) -> set[str]:
         """Las actividades del aula aún sin colocar cuyo sitio (real o copia) cae en una cerrada."""
@@ -621,31 +658,19 @@ class _Plan:
 
     def _maximo(self, nodo: Nodo) -> float:
         """El máximo que debe tener un calculado."""
-        if nodo.clase == "resultado_calc":
-            return nodo.maximo if nodo.maximo is not None else _MAXIMO_NOTA
-        if nodo.clase in ("nota", "manual"):
+        if nodo.clase in ("resultado_calc", "nota"):
+            return nodo.maximo if nodo.maximo is not None else _MAXIMO_SIN_DATO
+        if nodo.clase == "manual":
             return _MAXIMO_NOTA
-        if nodo.clase == "indicador":
+        if nodo.clase == "copia":
+            if nodo.maximo is not None:
+                return nodo.maximo
             fuente = nodo.formula_de
-            assert isinstance(fuente, str)
-            if fuente in self.dnodos and fuente not in self.rutas:  # una copia o una casilla
-                fuente = self.dnodos[fuente].formula_de or fuente  # type: ignore[assignment]
-            if isinstance(fuente, str) and fuente in self.dnodos:
-                if self.dnodos[fuente].clase == "categoria":
-                    # Una subcategoría de regla o de recuperación vale 100, no la suma de dentro.
-                    return _MAXIMO_SIN_DATO
-            if str(fuente).startswith(_PREFIJO_MANUAL):
-                return self._maximo_casilla(str(fuente))
-            return self._maximo_actividad(str(fuente))
-        fuente = nodo.formula_de
-        if isinstance(fuente, str) and fuente in self.rutas:
-            return self._maximo_actividad(fuente)
-        if isinstance(fuente, str) and fuente.startswith(_PREFIJO_MANUAL):
-            return self._maximo_casilla(fuente)
-        # TZ_KC_<id>: el máximo completo de TZ_E_<id>, que solo se conoce con las actividades dentro
-        elemento = self.idx.por_id.get(f"{_PREFIJO}E_{nodo.idnumber[len(_PREFIJO + 'KC_') :]}")
-        if elemento is not None and elemento.maximo is not None:
-            return elemento.maximo
+            if isinstance(fuente, str) and fuente in self.rutas:
+                return self._maximo_actividad(fuente)
+            if isinstance(fuente, str) and fuente.startswith(_PREFIJO_MANUAL):
+                return self._maximo_casilla(fuente)
+            return _MAXIMO_SIN_DATO
         return _MAXIMO_SIN_DATO
 
     def _formula(self, nodo: Nodo) -> str:
@@ -656,14 +681,12 @@ class _Plan:
         if nodo.clase == "resultado_calc":
             assert isinstance(fuente, str)
             return formula_resultado(fuente, self.d.niveles)
-        if nodo.clase == "indicador":
-            assert isinstance(fuente, str)
-            return formula_indicador(self._referencia(fuente), self._maximo(nodo))
-        assert isinstance(fuente, tuple)
-        if nodo.idnumber == NOTA_FINAL and self.d.tope is not None:
+        if nodo.clase == "nota" and nodo.idnumber == NOTA_FINAL:
+            if self.d.tope is None:
+                return formula_copia("TZ_FINAL")
             umbral, maximo, notas = self.d.tope
             return formula_tope(umbral, maximo, list(notas))
-        return formula_nota(*fuente)
+        raise AssertionError(f"sin fórmula para {nodo.idnumber}")
 
     # -- el recorrido ------------------------------------------------------
 
@@ -726,10 +749,16 @@ class _Plan:
             colocada = True
         elif not en_su_sitio:
             return  # en la segunda pasada no se ajusta lo que no está donde debe
-        peso = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
-        if peso is not None and (colocada or not _peso_correcto(act, peso)):
+        coeficiente = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
+        if coeficiente is not None and (colocada or not _coeficiente_correcto(act, coeficiente)):
             self.peso.append(
-                Operacion("fijar_peso", idnumber=clave, eid=act.eid, item_id=act.item_id, peso=peso)
+                Operacion(
+                    "fijar_coeficiente",
+                    idnumber=clave,
+                    eid=act.eid,
+                    item_id=act.item_id,
+                    coeficiente=coeficiente,
+                )
             )
 
     def _bloquear_ajena(self, act: NodoAula) -> None:
@@ -865,15 +894,17 @@ class _Plan:
             else:  # tiza no sabe mover categorías: se respeta donde estén y se avisa
                 self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
                 return
-        peso = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
-        if peso is not None and (movido or not _peso_correcto(existente, peso)):
+        coeficiente = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
+        if coeficiente is not None and (
+            movido or not _coeficiente_correcto(existente, coeficiente)
+        ):
             self.peso.append(
                 Operacion(
-                    "fijar_peso",
+                    "fijar_coeficiente",
                     idnumber=nodo.idnumber,
                     eid=existente.eid,
                     item_id=existente.item_id,
-                    peso=peso,
+                    coeficiente=coeficiente,
                 )
             )
         if not calculado or nodo.clase == "manual":
@@ -902,7 +933,7 @@ class _Plan:
             )
 
     def _crear(self, nodo: Nodo, calculado: bool, padre: NodoAula | None) -> None:
-        peso = self._peso(nodo)
+        coeficiente = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
         if calculado:
             self.alta.append(
                 Operacion(
@@ -911,7 +942,7 @@ class _Plan:
                     nombre=nodo.nombre,
                     padre=nodo.padre,
                     padre_eid=padre.eid if padre else None,
-                    peso=peso,
+                    coeficiente=coeficiente,
                     maximo=self._maximo(nodo),
                     oculto=nodo.clase in CLASES_OCULTAS,
                 )
@@ -924,14 +955,11 @@ class _Plan:
                     nombre=nodo.nombre,
                     padre=nodo.padre,
                     padre_eid=padre.eid if padre else None,
-                    peso=peso,
+                    coeficiente=coeficiente,
                     visualizacion=nodo.visualizacion,
                     agregacion=nodo.agregacion,
                 )
             )
-        # Moodle reescala los pesos al añadir dentro: se fijan al final, con todo creado
-        if peso is not None:
-            self.peso.append(Operacion("fijar_peso", idnumber=nodo.idnumber, peso=peso))
         if calculado and nodo.clase != "manual":
             self.formula.append(
                 Operacion("fijar_formula", idnumber=nodo.idnumber, formula=self._formula(nodo))
@@ -955,9 +983,15 @@ class _Plan:
             clave = n.idnumber or f"{_PREFIJO}A{n.cmid}"
             if clave in self.a_mano:
                 self._aviso("CAMBIADO_A_MANO", clave)
-            elif not _peso_correcto(n, 0.0):
+            elif not _coeficiente_correcto(n, 0.0):
                 self.peso.append(
-                    Operacion("fijar_peso", idnumber=clave, eid=n.eid, item_id=n.item_id, peso=0.0)
+                    Operacion(
+                        "fijar_coeficiente",
+                        idnumber=clave,
+                        eid=n.eid,
+                        item_id=n.item_id,
+                        coeficiente=0.0,
+                    )
                 )
 
     def _total_del_curso(self) -> None:
@@ -970,7 +1004,8 @@ class _Plan:
             return
         actual = _normalizar(curso.formula, self.aula.decimal)
         if total == NOTA_FINAL:
-            esperada: str | None = formula_copia(NOTA_FINAL)
+            # La nota final es 0–100 (oculta); el total del curso se muestra sobre 10.
+            esperada: str | None = f"{formula_copia(NOTA_FINAL)}/10"
             hace_falta = actual != _normalizar(esperada, ".")
         else:  # «porcentaje»: solo la visualización, que el aula no enseña; se hace una vez
             esperada = None
@@ -1031,18 +1066,14 @@ class _Plan:
             nivel += 1
             nodo = padre
 
-    def _de_contador(self, nodo: NodoAula) -> bool:
-        padre = self.idx.padre(nodo)
-        return padre is not None and padre.idnumber.startswith(f"{_PREFIJO}K_")
-
     def _sobrantes(self) -> None:
         """Los nodos de tiza que ya no están en el esquema.
 
         Se borran si no tienen notas (solo en la primera pasada); los que se quedan (con notas
-        o con algo dentro que se queda) pasan a pesar 0, como una actividad que deja de contar.
-        Los resultados del aula (``TZ_O_``) y sus calculados (``TZ_R_``) nunca se borran: al
-        quitar ``evidencia`` se quedan con peso 0 y, si el resultado tiene niveles, se avisa
-        (D11). Borrarlos perdería esos niveles y no hace falta para que dejen de contar.
+        o con algo dentro que se queda) pasan a coeficiente 0 si su padre es de media ponderada,
+        como una actividad que deja de contar. Los resultados del aula (``TZ_O_``) y sus
+        calculados (``TZ_R_``) nunca se borran: al quitar ``evidencia`` se quedan con peso 0 y,
+        si el resultado tiene niveles, se avisa (D11).
         """
         candidatos = [
             n
@@ -1053,8 +1084,7 @@ class _Plan:
             and not self._cerrado_aula(n)
             and not n.idnumber.startswith((_PREFIJO_RESULTADO, _PREFIJO_CALCULADO_RESULTADO))
         ]
-        # lo que cuelga de un contador es calculado y no guarda nada del docente: se borra siempre
-        con_notas = {n.eid for n in candidatos if n.tiene_notas and not self._de_contador(n)}
+        con_notas = {n.eid for n in candidatos if n.tiene_notas}
         for n in candidatos:
             if n.eid in con_notas and not any(
                 h.eid in con_notas for h in self.idx.hijos.get(n.eid, [])
@@ -1092,14 +1122,16 @@ class _Plan:
             if n.eid in borrados or n.idnumber in self.a_mano:
                 continue
             padre = self.idx.padre(n)
-            if padre is not None and padre.idnumber.startswith(f"{_PREFIJO}K_"):
-                continue  # los hijos de un contador no llevan peso sobrescrito
             if self._padre_sin_peso(padre.idnumber if padre else None):
                 continue
-            if not _peso_correcto(n, 0.0):
+            if not _coeficiente_correcto(n, 0.0):
                 self.peso.append(
                     Operacion(
-                        "fijar_peso", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id, peso=0.0
+                        "fijar_coeficiente",
+                        idnumber=n.idnumber,
+                        eid=n.eid,
+                        item_id=n.item_id,
+                        coeficiente=0.0,
                     )
                 )
         for n in resultados_que_quedan:
@@ -1107,14 +1139,18 @@ class _Plan:
                 self._aviso("CAMBIADO_A_MANO", n.idnumber)
                 continue
             if n.idnumber.startswith(_PREFIJO_RESULTADO):
-                continue  # sin ``aggregateoutcomes`` ya pesa 0 (D6)
+                continue  # el formulario del resultado no lleva coeficiente
             padre = self.idx.padre(n)
             if self._padre_sin_peso(padre.idnumber if padre else None):
                 continue
-            if not _peso_correcto(n, 0.0):
+            if not _coeficiente_correcto(n, 0.0):
                 self.peso.append(
                     Operacion(
-                        "fijar_peso", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id, peso=0.0
+                        "fijar_coeficiente",
+                        idnumber=n.idnumber,
+                        eid=n.eid,
+                        item_id=n.item_id,
+                        coeficiente=0.0,
                     )
                 )
 

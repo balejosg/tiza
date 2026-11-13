@@ -416,6 +416,27 @@ class TestHuellasDelCalificador:
         estado.guardar_huellas(tmp_path, 7, {"TZ_TIZA": "c" * 64})
         assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": "c" * 64}
 
+    def test_la_version_1_se_lee_y_al_guardar_pasa_a_2(self, tmp_path):
+        datos = {"version": 1, "cursos": {"7": {"nodos": {"TZ_TIZA": self.HUELLA}}}}
+        (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
+        assert estado.version_de_calificador(tmp_path) == 1
+        assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": self.HUELLA}
+        estado.guardar_huellas(tmp_path, 8, {"TZ_TIZA": "b" * 64})
+        assert estado.version_de_calificador(tmp_path) == 2
+        assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": self.HUELLA}
+        assert estado.cargar_huellas(tmp_path, 8) == {"TZ_TIZA": "b" * 64}
+
+    def test_olvidar_una_entrada_deja_la_version_2(self, tmp_path):
+        datos = {
+            "version": 1,
+            "cursos": {"7": {"nodos": {"TZ_TIZA": self.HUELLA}}, "8": {"nodos": {}}},
+        }
+        (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
+        estado.olvidar_huellas(tmp_path, 7)
+        assert estado.cargar_huellas(tmp_path, 7) == {}
+        assert estado.version_de_calificador(tmp_path) == 2
+        assert estado.cargar_huellas(tmp_path, 8) == {}
+
     def test_huellas_esquema_cerrado(self, tmp_path):
         (tmp_path / "calificador.json").write_text(
             json.dumps(
@@ -435,7 +456,7 @@ class TestHuellasDelCalificador:
         "datos",
         [
             [],
-            {"version": 2, "cursos": {}},
+            {"version": 3, "cursos": {}},
             {"version": 1},
             {"version": 1, "cursos": []},
             {"version": 1, "cursos": {"siete": {"nodos": {}}}},

@@ -4349,29 +4349,16 @@ def test_formula_moodle_punto():
 
 
 def test_formula_tope():
-    notas = ["TZ_NOTA_E_RA1", "TZ_NOTA_E_RA2", "TZ_NOTA_E_RA3"]
+    notas = ["TZ_E_RA1", "TZ_E_RA2", "TZ_E_RA3"]
     f = publicar.formula_tope(5, 4, notas)
-    esperado = (
-        "=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10;4+1000*floor(min("
-        "[[TZ_NOTA_E_RA1]];[[TZ_NOTA_E_RA2]];[[TZ_NOTA_E_RA3]])/5))"
-    )
+    esperado = "=min([[TZ_FINAL]];40+1000*floor(min([[TZ_E_RA1]];[[TZ_E_RA2]];[[TZ_E_RA3]])/50))"
     assert publicar.formula_moodle(f, ",") == esperado
     assert publicar.formula_moodle(f, ".") == esperado.replace(";", ",")
 
 
 def test_formula_tope_con_decimales():
     f = publicar.formula_tope(4.5, 7.5, ["TZ_N1"])
-    assert "7.5+1000*floor(min([[TZ_N1]])/4.5)" in f
-
-
-def test_formula_nota():
-    assert publicar.formula_nota("TZ_E_RA1", "TZ_K_RA1") == "=[[TZ_E_RA1]]/[[TZ_K_RA1]]*10"
-
-
-def test_formula_indicador():
-    assert publicar.formula_indicador("TZ_A258", 100) == "=[[TZ_A258]]*0+100"
-    assert publicar.formula_indicador("TZ_A258", 2.5) == "=[[TZ_A258]]*0+2.5"
-    assert publicar.formula_indicador("X", 1 / 3) == "=[[X]]*0+0.33333"
+    assert "75+1000*floor(min([[TZ_N1]])/45)" in f
 
 
 def test_formula_copia():

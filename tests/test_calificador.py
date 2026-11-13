@@ -147,13 +147,16 @@ class AulaViva(MoodleFalso):
     def calificador(self, curso_id, tocados=None):
         self.llamadas.append(("calificador", curso_id))
         self.relecturas.append(None if tocados is None else set(tocados))
-        for _ in range(6):  # el máximo de una categoría Natural es la suma de sus hijos
+        for _ in range(6):
             for n in list(self.nodos.values()):
                 if n.clase == "categoria":
-                    hijos = [h for h in self.nodos.values() if h.padre_eid == n.eid]
-                    self.nodos[n.eid] = dataclasses.replace(
-                        n, maximo=sum(h.maximo or 0.0 for h in hijos)
-                    )
+                    if n.agregacion == 13:  # Natural: la suma de sus hijos
+                        hijos = [h for h in self.nodos.values() if h.padre_eid == n.eid]
+                        self.nodos[n.eid] = dataclasses.replace(
+                            n, maximo=sum(h.maximo or 0.0 for h in hijos)
+                        )
+                    else:  # media ponderada, mediana y más alta: sobre 100
+                        self.nodos[n.eid] = dataclasses.replace(n, maximo=100.0)
         return CalificadorAula(nodos=tuple(self.nodos.values()), decimal=self.decimal)
 
     def por_id(self, idnumber: str) -> NodoAula:
@@ -172,7 +175,7 @@ class AulaViva(MoodleFalso):
         if not self.reescalar or padre_eid is None:
             return
         hijos = [h for h in self.nodos.values() if h.padre_eid == padre_eid]
-        if not hijos or not all(h.sobrescrito and h.peso is not None for h in hijos):
+        if not hijos or not all(h.sobrescrito and h.coeficiente is not None for h in hijos):
             return
         total = sum(h.peso for h in hijos)
         if total > 0 and abs(total - 100) > 0.001:
@@ -190,6 +193,7 @@ class AulaViva(MoodleFalso):
         maximo=None,
         agregacion=None,
         oculto=False,
+        coeficiente=None,
     ) -> str:
         self.nodos[eid] = nodo(
             eid,
@@ -198,6 +202,7 @@ class AulaViva(MoodleFalso):
             padre_eid or CURSO_EID,
             nombre=nombre,
             peso=peso,
+            coeficiente=coeficiente,
             sobrescrito=peso is not None,
             maximo=maximo,
             agregacion=agregacion,
@@ -231,11 +236,22 @@ class AulaViva(MoodleFalso):
             coeficiente,
         )
         return self._crear(
-            eid, idnumber, "categoria", nombre, padre_eid, peso, agregacion=agregacion
+            eid,
+            idnumber,
+            "categoria",
+            nombre,
+            padre_eid,
+            peso,
+            agregacion=agregacion,
+            coeficiente=coeficiente,
         )
 
-    def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo, oculto=False):
-        eid = super().crear_calculado(curso, nombre, idnumber, padre_eid, peso, maximo, oculto)
+    def crear_calculado(
+        self, curso, nombre, idnumber, padre_eid, peso, maximo, oculto=False, coeficiente=None
+    ):
+        eid = super().crear_calculado(
+            curso, nombre, idnumber, padre_eid, peso, maximo, oculto, coeficiente
+        )
         clase = "manual" if idnumber.startswith("TZ_M_") else "calculado"  # sin fórmula: manual
         return self._crear(
             eid,
@@ -246,11 +262,16 @@ class AulaViva(MoodleFalso):
             peso,
             maximo,
             oculto=oculto and not self.ignorar_alta_oculta,
+            coeficiente=coeficiente,
         )
 
     def fijar_maximo(self, curso, item_id, maximo):
         super().fijar_maximo(curso, item_id, maximo)
         self._cambiar(None, item_id, maximo=maximo)
+
+    def fijar_coeficiente(self, curso, eid, valor, metodo_del_padre):
+        super().fijar_coeficiente(curso, eid, valor, metodo_del_padre)
+        self._cambiar(eid, None, coeficiente=valor)
 
     def fijar_peso(self, curso, eid, peso):
         super().fijar_peso(curso, eid, peso)
@@ -345,7 +366,7 @@ class AulaViva(MoodleFalso):
         tocadas = []
         for escritura in self.escrituras:
             metodo, destino = escritura[0], escritura[2] if len(escritura) > 2 else None
-            if metodo in ("fijar_peso", "borrar_nodo") and destino in dentro:
+            if metodo in ("fijar_peso", "fijar_coeficiente", "borrar_nodo") and destino in dentro:
                 tocadas.append(escritura)
             elif metodo in ("fijar_maximo", "fijar_formula", "bloquear_total", "mover_manual"):
                 if destino in ids:
@@ -399,11 +420,11 @@ def test_calificador_fp_curso_vacio(tmp_path):
     metodos = moodle.metodos()
     creadas = [e[3] for e in moodle.escrituras if e[0] in ("crear_categoria", "crear_calculado")]
     assert {"TZ_TIZA", "TZ_E_RA1", "TZ_E_RA2", "TZ_VISTA", "TZ_V_1", "TZ_V_2"} <= set(creadas)
-    assert metodos.count("crear_calculado") == 5  # las copias
+    assert metodos.count("crear_calculado") == 4  # copias del curso y de la rúbrica nativa
     assert metodos.count("colocar_actividad") == 3
     # TZ_TIZA cuelga del curso y pesa 100 (no había calificador anterior)
     [tiza] = [e for e in moodle.escrituras if e[0] == "crear_categoria" and e[3] == "TZ_TIZA"]
-    assert tiza[4] == CURSO_EID and tiza[5] == 100.0
+    assert tiza[4] == CURSO_EID and tiza[8] == 100.0
     # las fórmulas van después de crear todo
     assert max(i for i, m in enumerate(metodos) if m.startswith("crear_")) < min(
         i for i, m in enumerate(metodos) if m == "fijar_formula"
@@ -423,7 +444,7 @@ def test_las_relecturas_tras_escribir_dicen_lo_tocado(tmp_path):
     primera, *relecturas = moodle.relecturas
     assert primera is None  # la lectura inicial es completa
     assert relecturas and all(r is not None for r in relecturas)
-    pesados = {e[2] for e in moodle.escrituras if e[0] == "fijar_peso"}
+    pesados = {e[2] for e in moodle.escrituras if e[0] in ("fijar_peso", "fijar_coeficiente")}
     colocadas = {f"ig{n.item_id}" for n in moodle.nodos.values() if n.clase == "actividad"}
     assert pesados and pesados <= set().union(*relecturas)
     assert colocadas <= set().union(*relecturas)
@@ -436,7 +457,7 @@ def test_el_informe_desglosa_los_cambios_por_tipo(tmp_path):
     [paso] = pasos(documento, "CALIFICADOR_CAMBIOS")
     tipos = dict(parte.split(": ")[:2] for parte in paso["detalle"].split("; ") if ": " in parte)
     total = int(pasos(documento, "CALIFICADOR")[0]["detalle"].split()[0])
-    assert {"crear_categoria", "fijar_peso"} <= set(tipos)
+    assert {"crear_categoria", "fijar_coeficiente"} <= set(tipos)
     assert sum(int(v.split()[0]) for v in tipos.values()) == total
     # solo números de ID de tiza (TZ_…), nunca nombres ni textos del aula
     assert all(
@@ -482,8 +503,8 @@ def test_calificador_segunda_pasada(tmp_path):
     documento = atender(pedir(carpeta), moodle, carpeta)
 
     assert documento["resultado"] == "ok", documento
-    assert moodle.por_id("TZ_E_RA1").peso == 60.0
-    assert moodle.por_id("TZ_E_RA2").peso == 40.0
+    assert moodle.por_id("TZ_E_RA1").coeficiente == 60.0
+    assert moodle.por_id("TZ_E_RA2").coeficiente == 40.0
     assert all(n.formula for n in moodle.nodos.values() if n.clase == "calculado")
     # la fórmula rechazada se repitió en la segunda pasada
     por_item: dict[int, int] = {}
@@ -515,7 +536,7 @@ def test_quitar_el_tope_deja_el_total_del_curso_en_porcentaje_sin_la_formula_vie
     carpeta = carpeta_fp(tmp_path, con_tope)
     moodle = AulaViva()
     atender(pedir(carpeta), moodle, carpeta)
-    assert moodle.nodos[CURSO_EID].formula == "=[[TZ_NOTA_FINAL]]"
+    assert moodle.nodos[CURSO_EID].formula == "=[[TZ_NOTA_FINAL]]/10"
     (carpeta / "calificacion.yaml").write_text(ESQUEMA, encoding="utf-8")
     moodle.escrituras.clear()
     documento = atender(pedir(carpeta), moodle, carpeta)
@@ -557,7 +578,7 @@ def test_calificador_cierra_evaluacion(tmp_path):
     assert documento["resultado"] == "ok"
     assert moodle.escrituras  # algo cambió: los pesos de RA1 y RA2
     assert moodle.objetivos_en("TZ_V_1") == []
-    assert moodle.por_id("TZ_E_RA1").peso == 50.0
+    assert moodle.por_id("TZ_E_RA1").coeficiente == 50.0
 
 
 def test_montaje_cerrado_que_falla_a_medias_se_completa_antes_de_bloquearse(tmp_path):
@@ -642,7 +663,7 @@ def test_calificador_con_anterior(tmp_path):
     assert moodle.escrituras[0] == ("bloquear_total", 5678, 50)
     assert metodos.index("bloquear_total") < metodos.index("colocar_actividad")
     [tiza] = [e for e in moodle.escrituras if e[0] == "crear_categoria" and e[3] == "TZ_TIZA"]
-    assert tiza[5] == 0.0  # TZ_TIZA pesa 0 en el total del curso
+    assert tiza[8] == 0.0  # TZ_TIZA pesa 0 en el total del curso
     assert "fijar_total_curso" not in metodos  # el total del curso es del docente
     assert moodle.nodos[CURSO_EID].formula == "=[[X]]"
     [resumen] = presencia.resumenes_calificador
@@ -769,13 +790,13 @@ def test_el_resumen_sale_del_plan_con_el_total_del_curso_la_regla_y_lo_que_se_qu
     [primero] = presencia.resumenes_calificador
     assert primero.total_curso == "nota_final" and primero.tope == (5.0, 4.0)
     assert primero.quita == ()
-    # se quita el tope: el total del curso vuelve al porcentaje y «Notas (sobre 10)» se borra
+    # se quita el tope: el total del curso vuelve al porcentaje y «Nota final (sobre 10)» se borra
     (carpeta / "calificacion.yaml").write_text(ESQUEMA, encoding="utf-8")
     presencia = PresenciaFalsa(real=True)
     atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
     [segundo] = presencia.resumenes_calificador
     assert segundo.total_curso == "porcentaje" and segundo.tope is None
-    assert "Notas (sobre 10)" in segundo.quita
+    assert "Nota final (sobre 10)" in segundo.quita
     # la tercera vez ya no hay nada que cambiar ni que preguntar
     presencia = PresenciaFalsa(real=True)
     atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
@@ -969,23 +990,23 @@ def test_un_fallo_a_medias_y_la_segunda_ejecucion_convergen(tmp_path):
     nuevo = ESQUEMA.replace("peso: 60", "peso: 70").replace("peso: 40", "peso: 30")
     (carpeta / "calificacion.yaml").write_text(nuevo, encoding="utf-8")
     llamadas = []
-    fijar = moodle.fijar_peso
+    fijar = moodle.fijar_coeficiente
 
-    def fijar_y_falla_la_segunda(curso, eid, peso):
+    def fijar_y_falla_la_segunda(curso, eid, valor, metodo_del_padre):
         llamadas.append(eid)
         if len(llamadas) == 2:
             raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
-        fijar(curso, eid, peso)
+        fijar(curso, eid, valor, metodo_del_padre)
 
-    moodle.fijar_peso = fijar_y_falla_la_segunda
+    moodle.fijar_coeficiente = fijar_y_falla_la_segunda
     primero = atender(pedir(carpeta), moodle, carpeta)
     assert primero["resultado"] == "error"
-    moodle.fijar_peso = fijar
+    moodle.fijar_coeficiente = fijar
     segundo = atender(pedir(carpeta), moodle, carpeta)
     assert segundo["resultado"] == "ok", segundo
     assert pasos(segundo, "CAMBIADO_A_MANO") == []
-    assert moodle.por_id("TZ_E_RA1").peso == 70.0
-    assert moodle.por_id("TZ_E_RA2").peso == 30.0
+    assert moodle.por_id("TZ_E_RA1").coeficiente == 70.0
+    assert moodle.por_id("TZ_E_RA2").coeficiente == 30.0
     tercero = atender(pedir(carpeta), moodle, carpeta)
     assert pasos(tercero, "CALIFICADOR")[0]["detalle"] == "sin cambios"
 
@@ -1152,7 +1173,9 @@ def test_un_cambio_a_mano_se_respeta_y_se_sigue_respetando(tmp_path):
     atender(pedir(carpeta), moodle, carpeta)
     huellas = estado.cargar_huellas(carpeta / ".tiza", CURSO)
     ra1 = moodle.por_id("TZ_E_RA1")
-    moodle.nodos[ra1.eid] = dataclasses.replace(ra1, peso=70.0)  # el docente lo cambia en Moodle
+    moodle.nodos[ra1.eid] = dataclasses.replace(
+        ra1, coeficiente=70.0
+    )  # el docente lo cambia en Moodle
     moodle.escrituras.clear()
     for _ in range(2):  # la segunda vez, igual: no «adopta» el cambio
         documento = atender(pedir(carpeta), moodle, carpeta)
@@ -1501,8 +1524,8 @@ def test_cambiar_los_pesos_de_un_calificador_montado_converge_en_el_segundo_mont
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["resultado"] == "ok", documento
     # a la precisión con que el aula devuelve el peso (un decimal): ver _peso_correcto
-    assert moodle.por_id("TZ_E_CE1_1").peso == pytest.approx(40.0, abs=0.05)
-    assert moodle.por_id("TZ_E_CE1_2").peso == pytest.approx(60.0, abs=0.05)
+    assert moodle.por_id("TZ_E_CE1_1").coeficiente == pytest.approx(40.0, abs=0.05)
+    assert moodle.por_id("TZ_E_CE1_2").coeficiente == pytest.approx(60.0, abs=0.05)
     moodle.escrituras.clear()
     atender(pedir(carpeta), moodle, carpeta)
     assert moodle.escrituras == []
@@ -1547,22 +1570,6 @@ def test_ampliar_un_calificador_montado_converge_en_el_segundo_montaje(tmp_path)
     moodle.escrituras.clear()
     atender(pedir(carpeta), moodle, carpeta)
     assert moodle.escrituras == []
-
-
-def test_si_el_aula_nunca_deja_el_peso_donde_se_pide_los_repasos_tienen_tope(tmp_path):
-    class Terca(AulaViva):
-        def fijar_peso(self, curso, eid, peso):
-            super().fijar_peso(curso, eid, peso)
-            if self.nodos[eid].idnumber == "TZ_E_RA1":
-                self._cambiar(eid, None, peso=1.0)  # Moodle lo vuelve a mover siempre
-
-    carpeta = carpeta_fp(tmp_path)
-    moodle = Terca()
-    documento = atender(pedir(carpeta), moodle, carpeta)
-    assert documento["resultado"] == "ok"
-    eid = moodle.por_id("TZ_E_RA1").eid
-    escrituras = [e for e in moodle.escrituras if e[0] == "fijar_peso" and e[2] == eid]
-    assert 1 < len(escrituras) <= publicacion.MAX_PASADAS_DE_AJUSTE + 2
 
 
 def test_el_calificador_encuentra_por_el_registro_la_actividad_que_cambio_de_nombre(tmp_path):
@@ -1851,8 +1858,8 @@ def test_calificador_coloca_resultado_y_calculado(tmp_path):
     assert len(resultados) == 2
     por_criterio = {resultado.padre_eid: resultado for resultado in resultados}
     assert set(por_criterio) == {
-        moodle.por_id("TZ_E_CE2_2").eid,
-        moodle.por_id("TZ_E_CE3_1").eid,
+        moodle.por_id("TZ_V_1_CE2_2").eid,
+        moodle.por_id("TZ_V_1_CE3_1").eid,
     }
     for resultado in resultados:
         assert resultado.cmid == 11
@@ -1862,14 +1869,14 @@ def test_calificador_coloca_resultado_y_calculado(tmp_path):
         for n in moodle.nodos.values()
         if n.clase == "calculado" and n.idnumber.startswith("TZ_R_")
     ]
-    assert len(calculados) == 4  # 2 criterios × 2 vistas
+    assert len(calculados) == 2  # un calculado por criterio en la vista primaria
     for calculado in calculados:
         fuente = next(
             resultado.idnumber
             for resultado in resultados
             if f"[[{resultado.idnumber}]]" in (calculado.formula or "")
         )
-        assert calculado.formula == f"=([[{fuente}]]-1)/4*10"
+        assert calculado.formula == f"=([[{fuente}]]-1)/4*100"
 
 
 def test_resultado_borrado_a_mano_se_recrea(tmp_path):
@@ -1885,8 +1892,8 @@ def test_resultado_borrado_a_mano_se_recrea(tmp_path):
     resultados = resultados_del_aula(moodle)
     assert len(resultados) == 2
     assert {resultado.padre_eid for resultado in resultados} == {
-        moodle.por_id("TZ_E_CE2_2").eid,
-        moodle.por_id("TZ_E_CE3_1").eid,
+        moodle.por_id("TZ_V_1_CE2_2").eid,
+        moodle.por_id("TZ_V_1_CE3_1").eid,
     }
 
 
@@ -2024,7 +2031,7 @@ def test_calificador_d11_con_no_deja_arbol_normal(tmp_path):
         for n in moodle.nodos.values()
         if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
     )
-    assert real.peso is not None and real.peso > 0
+    assert real.coeficiente is not None and real.coeficiente > 0
     assert [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
 
 
@@ -2047,8 +2054,9 @@ def test_calificador_d11_con_si_marca_resultados(tmp_path):
         for n in moodle.nodos.values()
         if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
     )
-    assert real.peso == 0.0
-    assert not [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
+    assert real.coeficiente == 0.0
+    assert len([n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_R_")]) == 2
+    assert not [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_CR_")]
 
 
 def test_calificador_resultados_desactivados_deja_arbol_normal(tmp_path):
@@ -2074,7 +2082,7 @@ def test_calificador_resultados_desactivados_deja_arbol_normal(tmp_path):
         for n in moodle.nodos.values()
         if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
     )
-    assert real.peso is not None and real.peso > 0
+    assert real.coeficiente is not None and real.coeficiente > 0
     assert [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
 
 
@@ -2150,8 +2158,8 @@ def test_calificador_niega_solo_la_tarea_con_notas(tmp_path):
         for n in moodle.nodos.values()
         if n.cmid == 12 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
     )
-    assert real_grua.peso is not None and real_grua.peso > 0
-    assert real_nueva.peso == 0.0
+    assert real_grua.coeficiente is not None and real_grua.coeficiente > 0
+    assert real_nueva.coeficiente == 0.0
     assert any(n.idnumber.startswith("TZ_C_") for n in moodle.nodos.values())
     assert not any(n.idnumber.startswith("TZ_O_") and n.cmid == 11 for n in moodle.nodos.values())
 
@@ -2188,7 +2196,7 @@ def test_calificador_sin_estructura_no_activa_resultados(tmp_path):
         for n in moodle.nodos.values()
         if n.cmid == 11 and n.clase == "actividad" and not n.idnumber.startswith("TZ_O_")
     )
-    assert real.peso is not None and real.peso > 0
+    assert real.coeficiente is not None and real.coeficiente > 0
 
 
 def test_publicar_con_no_y_calificador_no_marca_resultados(tmp_path):
@@ -2243,7 +2251,7 @@ def test_publicar_con_no_y_calificador_no_marca_resultados(tmp_path):
     ]
     assert not [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_O_")]
     real = next(n for n in moodle.nodos.values() if n.cmid == cmid and n.clase == "actividad")
-    assert real.peso is not None and real.peso > 0
+    assert real.coeficiente is not None and real.coeficiente > 0
     assert [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_C_")]
 
 
@@ -2258,9 +2266,9 @@ def test_el_calificador_monta_una_regla_mas_alta(tmp_path):
     moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CRITERIOS))
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["resultado"] == "ok", documento
-    ag = moodle.por_id("TZ_AG_E_CE1_2")
+    ag = moodle.por_id("TZ_E_CE1_2")
     assert (ag.clase, ag.agregacion) == ("categoria", 6)
-    assert moodle.por_id("TZ_AG_V_1_CE1_2").agregacion == 6
+    assert moodle.por_id("TZ_V_1_CE1_2").agregacion == 6
     hijos = [n for n in moodle.nodos.values() if n.padre_eid == ag.eid]
     assert hijos
     assert all(not n.sobrescrito for n in hijos)
@@ -2270,12 +2278,12 @@ def test_cambiar_la_regla_en_el_aula_avisa_y_la_cambia(tmp_path):
     carpeta = carpeta_fp(tmp_path, ESQUEMA_MAS_ALTA, ACTIVIDADES_CRITERIOS)
     moodle = AulaViva(secciones=secciones_de(ACTIVIDADES_CRITERIOS))
     atender(pedir(carpeta), moodle, carpeta)
-    assert moodle.por_id("TZ_AG_E_CE1_2").agregacion == 6
+    assert moodle.por_id("TZ_E_CE1_2").agregacion == 6
     carpeta_fp(tmp_path, ESQUEMA_MEDIANA, ACTIVIDADES_CRITERIOS)
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["resultado"] == "ok", documento
-    assert moodle.por_id("TZ_AG_E_CE1_2").agregacion == 2
-    assert moodle.por_id("TZ_AG_V_1_CE1_2").agregacion == 2
+    assert moodle.por_id("TZ_E_CE1_2").agregacion == 2
+    assert moodle.por_id("TZ_V_1_CE1_2").agregacion == 2
     assert int(pasos(documento, "REGLA_CAMBIADA")[0]["detalle"]) >= 1
 
 
@@ -2348,7 +2356,7 @@ def test_alta_que_no_queda_oculta_avisa_ocultar_fallido(tmp_path):
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["resultado"] == "ok", documento
     creados = len([e for e in moodle.escrituras if e[0] == "crear_calculado"])
-    assert creados == 5  # las copias del esquema (ninguna casilla manual)
+    assert creados == 4  # copias del curso y de la rúbrica nativa (ninguna casilla manual)
     assert "ocultar" not in moodle.metodos()  # eran altas: no se reintenta ocultándolas
     assert [p["detalle"] for p in pasos(documento, "OCULTAR_FALLIDO")] == [str(creados)]
     assert not pasos(documento, "CALCULADOS_OCULTADOS")
@@ -2444,9 +2452,9 @@ def test_montaje_con_filas_converge_y_oculta_los_calculados(tmp_path):
     resultados = resultados_del_aula(moodle)
     assert len(resultados) == 3
     calculados = [n for n in moodle.nodos.values() if n.idnumber.startswith("TZ_R_")]
-    assert len(calculados) == 6
+    assert len(calculados) == 3
     assert all(n.oculto for n in calculados)
-    assert any(n.idnumber.startswith("TZ_F_") for n in moodle.nodos.values())
+    assert not any(n.idnumber.startswith("TZ_F_") for n in moodle.nodos.values())
     escrituras = list(moodle.escrituras)
     segundo = publicacion.calificador_con(
         moodle, "pruebas", CURSO, esquema, documentos, carpeta / ".tiza", evidencia_confirmada=True
@@ -2481,3 +2489,55 @@ def test_calificador_avisa_descriptor_publicado_y_no_cambia_la_escala(tmp_path):
     assert "DESCRIPTOR_PUBLICADO" in [paso["codigo"] for paso in documento["pasos"]]
     escala = next(e for e in moodle._escalas_de(5678) if e["id"] == 88)
     assert tuple(escala["niveles"]) == ("Uno", "Dos")
+
+
+def test_calificador_antiguo_no_escribe_nada(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(
+        extra=[
+            *nodos_de_actividades(),
+            nodo("ig99", "TZ_NOTAS", "calculado", CURSO_EID, maximo=10.0),
+        ]
+    )
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "error"
+    assert documento["errores"] == ["CALIFICADOR_ANTIGUO"]
+    assert moodle.escrituras == []
+
+
+def test_calificador_sin_media_ponderada_no_escribe_nada(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    moodle.nodos[CURSO_EID] = dataclasses.replace(
+        moodle.nodos[CURSO_EID], opciones_agregacion=(13, 2, 6)
+    )
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "error"
+    assert documento["errores"] == ["CALCULO_NO_DISPONIBLE"]
+    assert moodle.escrituras == []
+
+
+def test_ponderaciones_visibles_avisa(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    moodle.ponderaciones[CURSO] = True
+    presencia = PresenciaFalsa()
+    documento = atender(pedir(carpeta), moodle, carpeta, presencia)
+    assert documento["resultado"] == "ok", documento
+    assert pasos(documento, "PONDERACIONES_VISIBLES")
+    assert "PONDERACIONES_VISIBLES" in presencia.codigos()
+
+
+def test_un_calificador_json_version_1_sin_arbol_antiguo_se_olvida(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    estado.guardar_huellas(carpeta / ".tiza", CURSO, {"TZ_VIEJO": "a" * 64})
+    ruta = carpeta / ".tiza" / "calificador.json"
+    datos = json.loads(ruta.read_text(encoding="utf-8"))
+    datos["version"] = 1
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+    assert estado.version_de_calificador(carpeta / ".tiza") == 1
+
+    documento = atender(pedir(carpeta), AulaViva(), carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert estado.version_de_calificador(carpeta / ".tiza") == 2
+    assert estado.cargar_huellas(carpeta / ".tiza", CURSO) != {}

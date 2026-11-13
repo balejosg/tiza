@@ -1156,6 +1156,18 @@ def _totales_visibles(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _ponderaciones_visibles(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "El informe del usuario del curso muestra «Ponderación» o «Contribución al total "
+            "del curso». Con las actividades en la vista que no da la final, el alumnado vería "
+            "0 % en esas columnas. tiza no cambia el ajuste: si quieres ocultarlas, desmarca "
+            "esas opciones en Calificaciones → Configuración del calificador → Informe del "
+            "usuario."
+        ),
+    )
+
+
 def _actividad_pendiente(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(f"Aún no está en el aula, no cuenta todavía: {texto_seguro(datos['ruta'], 200)}"),
@@ -1683,6 +1695,7 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "SIGUE_LA_VERSION_ACTUAL": _sigue_la_version_actual,
     "TIZA_ACTUALIZADA": _tiza_actualizada,
     "TOTALES_VISIBLES": _totales_visibles,
+    "PONDERACIONES_VISIBLES": _ponderaciones_visibles,
     "SANDBOX_PERMITIDO": _sandbox_permitido,
     "SANDBOX_NO_PERMITIDO": _sandbox_no_permitido,
 }

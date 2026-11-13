@@ -589,6 +589,9 @@ class TestCalificador:
             "TOTAL_AJENO_BLOQUEADO",
             "OCULTAR_FALLIDO",
             "TOTALES_VISIBLES",
+            "PONDERACIONES_VISIBLES",
+            "CALIFICADOR_ANTIGUO",
+            "CALCULO_NO_DISPONIBLE",
         ],
     )
     def test_los_pasos_del_calificador_estan_registrados(self, codigo):

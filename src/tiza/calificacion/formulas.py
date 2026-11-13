@@ -10,9 +10,7 @@ import re
 
 __all__ = [
     "formula_copia",
-    "formula_indicador",
     "formula_moodle",
-    "formula_nota",
     "formula_resultado",
     "formula_tope",
     "texto_numero",
@@ -41,45 +39,36 @@ def formula_moodle(plantilla: str, decimal: str) -> str:
     return "".join(p if p.startswith("[[") else p.replace(",", ";") for p in partes)
 
 
-def formula_nota(total: str, contador: str) -> str:
-    """La nota sobre 10 de un total entre su contador: las dos referencias se vacían a la vez."""
-    return f"=[[{total}]]/[[{contador}]]*10"
-
-
-def formula_indicador(idnumber: str, maximo: float) -> str:
-    """Un indicador del contador: vale ``maximo`` cuando ``idnumber`` tiene nota, y vacío si no."""
-    return f"=[[{idnumber}]]*0+{texto_numero(maximo)}"
-
-
 def formula_copia(idnumber: str) -> str:
     """Una copia de una sola referencia."""
     return f"=[[{idnumber}]]"
 
 
 def formula_resultado(idnumber: str, niveles: int) -> str:
-    """Un resultado del aula (1..niveles) reescalado a 0-10, con la escala lineal.
+    """Un resultado del aula (1..niveles) reescalado a 0-100, con la escala lineal.
 
     La escala de ``idnumber`` debe estar ordenada de menor a mayor: el nivel 1 es el más bajo
     y ``niveles`` el más alto. La escala del aula la crea la publicación así (Tarea 3); los
-    niveles de ``niveles_rubrica`` se ordenan antes de enviarlos.
+    niveles de ``niveles_rubrica`` se ordenan antes de enviarlos. S2 midió que el resultado no
+    se puede ponderar directamente en media ponderada: este calculado lleva el peso.
     """
     if niveles < 2:
         raise ValueError("formula_resultado necesita al menos 2 niveles")
-    return f"=([[{idnumber}]]-1)/{niveles - 1}*10"
+    return f"=([[{idnumber}]]-1)/{niveles - 1}*100"
 
 
 def formula_tope(umbral: float, maximo: float, notas: list[str]) -> str:
-    """La final con tope: ``min(nota, máximo + 1000*floor(min(notas)/umbral))``.
+    """La final con tope, sobre 100: ``min(nota, máximo·10 + 1000·floor(min(notas)/(umbral·10)))``.
 
-    Si alguna nota baja del umbral, ``floor`` da 0 y la final no pasa de ``maximo``; si no,
-    el término enorme anula el tope. Sin notas activas (ninguna evaluación cerrada todavía) no
-    hay ``min``: la final es la nota normal. Notación interna (separador «,»): pasa por
-    ``formula_moodle``.
+    Las notas son los totales de los elementos (``TZ_E_<id>``), ya sobre 100. Si alguna baja
+    del umbral, ``floor`` da 0 y la final no pasa de ``maximo·10``; si no, el término enorme
+    anula el tope. Sin notas activas (ninguna evaluación cerrada todavía) no hay ``min``: la
+    final es ``TZ_FINAL``. Notación interna (separador «,»): pasa por ``formula_moodle``.
     """
     if not notas:
-        return formula_nota("TZ_FINAL", "TZ_K_TIZA")
+        return formula_copia("TZ_FINAL")
     minimo = ",".join(f"[[{n}]]" for n in notas)
     return (
-        f"=min([[TZ_FINAL]]/[[TZ_K_TIZA]]*10,"
-        f"{texto_numero(maximo)}+1000*floor(min({minimo})/{texto_numero(umbral)}))"
+        f"=min([[TZ_FINAL]],{texto_numero(maximo * 10)}+"
+        f"1000*floor(min({minimo})/{texto_numero(umbral * 10)}))"
     )

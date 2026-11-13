@@ -11,10 +11,11 @@ un campo nuevo en el frontmatter.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 
-from tiza.calificacion.deseado import EvidenciaDeHoja, evidencias_por_hoja
+from tiza.calificacion.deseado import EvidenciaDeHoja, evidencias_por_hoja, normalizar_pesos
 from tiza.calificacion.esquema import Criterio, Elemento, Esquema
 from tiza.contenido import Documento
 from tiza.estado import texto_guardado
@@ -26,6 +27,7 @@ __all__ = [
     "INSTRUMENTOS",
     "avisos",
     "cobertura",
+    "cuotas_por_evaluacion",
 ]
 
 INSTRUMENTOS = (
@@ -58,7 +60,12 @@ class Evidencia:
 
 @dataclass(frozen=True)
 class HojaCobertura:
-    """Un criterio o un elemento sin criterios, con sus evidencias y su regla."""
+    """Un criterio o un elemento sin criterios, con sus evidencias, su regla y sus ``q_n``.
+
+    ``q_n`` es el coeficiente de la copia del total de esa hoja en la vista del curso: el
+    ``peso`` de cada evaluación normalizado entre las que tienen evidencia, con el número de
+    evaluación 1-based. Sin ``peso`` en las evaluaciones, todas pesan igual.
+    """
 
     id: str
     codigo: str | None
@@ -66,6 +73,7 @@ class HojaCobertura:
     elemento: str
     regla: str
     evidencias: tuple[Evidencia, ...]
+    q_n: tuple[tuple[int, float], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -108,6 +116,25 @@ class Cobertura:
         }
 
 
+def cuotas_por_evaluacion(esquema: Esquema, con_evidencia: Collection[int]) -> dict[int, float]:
+    """``q_n`` (índice de evaluación desde 0) normalizado entre los trimestres con evidencia.
+
+    Es el reparto que usa ``deseado`` para las copias del curso. Si alguna evaluación no lleva
+    ``peso``, todas pesan igual; con la regla ``progresiva`` el factor se aplica después, en
+    ``deseado`` (aquí se devuelve el reparto limpio).
+    """
+    indices = sorted(con_evidencia)
+    if not indices:
+        return {}
+    crudos = [esquema.evaluaciones[n].peso for n in indices]
+    pesos: list[float]
+    if any(peso is None for peso in crudos):
+        pesos = [1.0] * len(crudos)
+    else:
+        pesos = [float(peso) for peso in crudos if peso is not None]
+    return dict(zip(indices, normalizar_pesos(pesos), strict=True))
+
+
 def cobertura(esquema: Esquema, documentos: list[Documento], carpeta: Path) -> Cobertura:
     """El mapa de cobertura del esquema con las actividades de la carpeta.
 
@@ -129,6 +156,12 @@ def cobertura(esquema: Esquema, documentos: list[Documento], carpeta: Path) -> C
             )
             for evidencia in de_hoja
         )
+        con_evidencia = {
+            evidencia.evaluacion
+            for evidencia in de_hoja
+            if not evidencia.recupera and evidencia.peso > 0
+        }
+        cuotas = cuotas_por_evaluacion(esquema, con_evidencia)
         hojas.append(
             HojaCobertura(
                 id=id_hoja,
@@ -137,6 +170,7 @@ def cobertura(esquema: Esquema, documentos: list[Documento], carpeta: Path) -> C
                 elemento=id_elemento,
                 regla=esquema.regla_de(id_hoja),
                 evidencias=evidencias,
+                q_n=tuple((n + 1, cuota) for n, cuota in sorted(cuotas.items())),
             )
         )
     return Cobertura(

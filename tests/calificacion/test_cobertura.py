@@ -234,6 +234,29 @@ def test_aviso_progresiva_en_una_evaluacion() -> None:
     assert not [c for c in codigos(dos, esquema) if c[0] == "PROGRESIVA_EN_UNA_EVALUACION"]
 
 
+def test_q_n_por_hoja() -> None:
+    con_pesos = Esquema(
+        "elementos",
+        (Elemento("RA1", "Resultado", 100.0),),
+        (
+            Evaluacion("Primera", (1,), 30.0),
+            Evaluacion("Segunda", (2,), 70.0),
+        ),
+        Final("elementos"),
+    )
+    m = mapa(con_pesos, [doc("a.md", 1, RA1=100), doc("b.md", 2, RA1=100)])
+    assert hoja(m, "RA1").q_n == ((1, 30.0), (2, 70.0))
+
+    sin_pesos = Esquema(
+        "elementos",
+        (Elemento("RA1", "Resultado", 100.0),),
+        EVALUACIONES,
+        Final("elementos"),
+    )
+    m = mapa(sin_pesos, [doc("a.md", 1, RA1=100), doc("b.md", 2, RA1=100)])
+    assert hoja(m, "RA1").q_n == ((1, 50.0), (2, 50.0))
+
+
 def test_peso_normalizado_igual_que_reparto() -> None:
     documentos = [doc("a.md", CE1_1=40), doc("b.md", CE1_1=60)]
     m = mapa(ESQUEMA, documentos)

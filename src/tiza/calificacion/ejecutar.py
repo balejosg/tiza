@@ -144,12 +144,20 @@ class Ejecucion:
                 self._padre(op),
                 op.peso,
                 op.visualizacion,
-                op.agregacion if op.agregacion is not None else 13,
+                op.agregacion if op.agregacion is not None else 10,
+                coeficiente=op.coeficiente,
             )
         elif tipo == "crear_calculado":
             assert op.idnumber is not None and op.nombre is not None and op.maximo is not None
             self.eids[op.idnumber] = aula.crear_calculado(
-                curso, op.nombre, op.idnumber, self._padre(op), op.peso, op.maximo, op.oculto
+                curso,
+                op.nombre,
+                op.idnumber,
+                self._padre(op),
+                op.peso,
+                op.maximo,
+                op.oculto,
+                coeficiente=op.coeficiente,
             )
         elif tipo == "colocar":
             assert op.cmid is not None
@@ -178,6 +186,10 @@ class Ejecucion:
             item = self._item(op)
             self.tocados.add(f"ig{item}")
             aula.fijar_idnumber_resultado(curso, item, op.idnumber)
+        elif tipo == "fijar_coeficiente":
+            assert op.coeficiente is not None
+            self.tocados.add(self._eid(op))
+            aula.fijar_coeficiente(curso, self._eid(op), op.coeficiente, "media_ponderada")
         elif tipo == "fijar_peso":
             assert op.peso is not None
             self.tocados.add(self._eid(op))

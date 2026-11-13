@@ -44,9 +44,7 @@ from . import __version__, colocacion, informe, tipos
 from .calificacion import ponderacion
 from .calificacion.formulas import (  # noqa: F401  (se reexportan: son de la API de ``publicar``)
     formula_copia,
-    formula_indicador,
     formula_moodle,
-    formula_nota,
     formula_tope,
 )
 from .calificacion.formulas import texto_numero as _texto_numero
@@ -329,8 +327,10 @@ class NodoAula:
     formula: str | None
     maximo: float | None
     cmid: int | None
-    agregacion: int | None = None  # 13 Natural, 2 Mediana, 6 Calificación más alta
+    agregacion: int | None = None  # 10 Media ponderada, 2 Mediana, 6 Calificación más alta
     oculto: bool = False  # el alumnado no lo ve; en una categoría no se lee (tiza no las oculta)
+    coeficiente: float | None = None  # el de la media ponderada (``aggregationcoef``)
+    opciones_agregacion: tuple[int, ...] | None = None  # las del desplegable, en una categoría
 
 
 @dataclasses.dataclass(frozen=True)
@@ -449,6 +449,7 @@ class AulaVirtual(Protocol):
         peso: float | None,
         maximo: float,
         oculto: bool = False,
+        coeficiente: float | None = None,
     ) -> str: ...
 
     def fijar_maximo(self, curso: int, item_id: int, maximo: float) -> None: ...
@@ -470,6 +471,8 @@ class AulaVirtual(Protocol):
     def ocultar(self, curso: int, item_id: int) -> None: ...
 
     def ajuste_totales(self, curso: int) -> int | None: ...
+
+    def ponderaciones_visibles(self, curso: int) -> bool: ...
 
     def colocar_actividad(
         self, curso: int, cmid: int, categoria_id: int, idnumber: str | None
@@ -1418,15 +1421,27 @@ class Moodle:
                 formula = self._formula_del_elemento(curso_id, item_id)
             else:
                 formula = ""
+            seleccion = formulario.find("select", attrs={"name": "aggregation"})
+            opciones = (
+                tuple(
+                    int(str(opcion.get("value")))
+                    for opcion in seleccion.find_all("option")
+                    if str(opcion.get("value", "")).isdigit()
+                )
+                if seleccion is not None
+                else None
+            )
             parciales.append(
                 {
                     "eid": eid,
                     "item_id": item_id,
                     "es_categoria": es_categoria,
+                    "opciones": opciones,
                     "idnumber": _valor_de_campo(formulario, pref + "idnumber"),
                     "nombre": titulo.get_text(" ", strip=True) if titulo else "",
                     "padre_eid": str(padre) if padre else None,
                     "coef": _valor_de_campo(formulario, pref + "aggregationcoef2"),
+                    "coef_mp": _valor_de_campo(formulario, pref + "aggregationcoef"),
                     "grademax_formulario": _valor_de_campo(formulario, pref + "grademax"),
                     "sobrescrito": _casilla_marcada(formulario, pref + "weightoverride"),
                     "bloqueado": _casilla_marcada(formulario, pref + "locked"),
@@ -1479,6 +1494,8 @@ class Moodle:
                     cmid=p["cmid"],
                     agregacion=p["agregacion"],
                     oculto=p["oculto"],
+                    coeficiente=_numero(p.get("coef_mp")),
+                    opciones_agregacion=p.get("opciones"),
                 )
             )
         decimal = _decimal_visto(parciales)
@@ -1632,7 +1649,7 @@ class Moodle:
             "aggregation": str(agregacion),
             "aggregateonlygraded": "1" if solo_no_vacias else "0",
         }
-        if agregacion == 10 and coeficiente is not None:
+        if coeficiente is not None:
             cambios["grade_item_aggregationcoef"] = _coeficiente_texto(coeficiente)
         if padre_eid is not None:
             _validar_eid(padre_eid, "cg")
@@ -1660,11 +1677,13 @@ class Moodle:
         peso: float | None,
         maximo: float,
         oculto: bool = False,
+        coeficiente: float | None = None,
     ) -> str:
         """Crea un elemento manual con ``grademax`` y devuelve su ``eid`` (``ig<id>``).
 
         Sin fórmula: va después con ``fijar_formula`` (segunda pasada). Con ``oculto``, el alta
         lleva ``hidden=1`` en la misma petición: el alumnado no lo ve desde el primer momento.
+        ``coeficiente`` es el peso en un padre de media ponderada; ``peso``, el de siempre.
         """
         cambios = {
             "itemname": nombre,
@@ -1677,6 +1696,8 @@ class Moodle:
         if padre_eid is not None:
             _validar_eid(padre_eid, "cg")
             cambios["parentcategory"] = padre_eid[2:]
+        if coeficiente is not None:
+            cambios["aggregationcoef"] = _coeficiente_texto(coeficiente)
         if peso is not None:
             cambios["weightoverride"] = "1"
             cambios["aggregationcoef2"] = _texto_numero(peso)
@@ -1852,6 +1873,25 @@ class Moodle:
         except ValueError:
             return None
         return valor if valor in (-1, 0, 1, 2) else None
+
+    def ponderaciones_visibles(self, curso: int) -> bool:
+        """¿El informe del usuario muestra «Ponderación» o «Contribución al total del curso»?
+
+        Se lee en la misma página que «Ocultar totales si contienen ítems ocultos». Solo avisa:
+        tiza no cambia el ajuste.
+        """
+        try:
+            pagina = self._pagina_del_calificador("grade/edit/settings/index.php", {"id": curso})
+        except ErrorPublicacion:
+            return False
+        sopa = BeautifulSoup(pagina, "html.parser")
+        return any(
+            _casilla_marcada(sopa, nombre)
+            for nombre in (
+                "report_user_showweight",
+                "report_user_showcontributiontocoursetotal",
+            )
+        )
 
     def colocar_actividad(
         self, curso: int, cmid: int, categoria_id: int, idnumber: str | None

@@ -198,6 +198,7 @@ class MoodleFalso:
         self.fallos: dict[str, list[str]] = {}
         # Ajuste «Ocultar totales si contienen ítems ocultos» por curso (-1: por defecto del sitio).
         self.ajustes_totales: dict[int, int | None] = {}
+        self.ponderaciones: dict[int, bool] = {}
         # Árbol de notas por curso (``colocacion.ArbolNotas``); sin configurar, solo la raíz.
         self.arboles: dict[int, colocacion.ArbolNotas] = {}
         # Árbol de ponderación por curso (``ponderacion.ArbolPonderacion``); sin configurar, la raíz.
@@ -476,12 +477,23 @@ class MoodleFalso:
             peso,
             visualizacion,
             agregacion,
+            coeficiente,
         )
         return self._nuevo_eid("cg")
 
-    def crear_calculado(self, curso, nombre, idnumber, padre_eid, peso, maximo, oculto=False):
+    def crear_calculado(
+        self, curso, nombre, idnumber, padre_eid, peso, maximo, oculto=False, coeficiente=None
+    ):
         self._escribir_calificador(
-            "crear_calculado", curso, nombre, idnumber, padre_eid, peso, maximo, oculto
+            "crear_calculado",
+            curso,
+            nombre,
+            idnumber,
+            padre_eid,
+            peso,
+            maximo,
+            oculto,
+            coeficiente,
         )
         return self._nuevo_eid("ig")
 
@@ -510,6 +522,10 @@ class MoodleFalso:
     def ajuste_totales(self, curso):
         self.llamadas.append(("ajuste_totales", curso))
         return self.ajustes_totales.get(curso, -1)
+
+    def ponderaciones_visibles(self, curso):
+        self.llamadas.append(("ponderaciones_visibles", curso))
+        return self.ponderaciones.get(curso, False)
 
     def colocar_actividad(self, curso, cmid, categoria_id, idnumber):
         self._escribir_calificador("colocar_actividad", curso, cmid, categoria_id, idnumber)
@@ -1205,6 +1221,7 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "SIGUE_LA_VERSION_ACTUAL": publicacion.Aviso.sigue_la_version_actual(),
         "TIZA_ACTUALIZADA": publicacion.Aviso.tiza_actualizada(False),
         "TOTALES_VISIBLES": publicacion.Aviso.totales_visibles(),
+        "PONDERACIONES_VISIBLES": publicacion.Aviso.ponderaciones_visibles(),
         "SANDBOX_PERMITIDO": publicacion.Aviso.sandbox_permitido(),
         "SANDBOX_NO_PERMITIDO": publicacion.Aviso.sandbox_no_permitido(126),
     }

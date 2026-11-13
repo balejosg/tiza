@@ -132,9 +132,9 @@ CUPO_COPIAS = 3  # copias del curso por sesión: frena a un agente en bucle
 CUPO_COPIAS_ACTIVIDAD = 20  # copias de una sola actividad por sesión (cada actividad gasta 1)
 # D9: la escala de logro que comparten todos los resultados de los criterios.
 ESCALA_LOGRO = "Escala de logro (tiza)"
-# Moodle reescala los pesos de los hermanos al guardar uno: fijarlos converge, pero no de golpe.
-# Tope de repasos de la segunda pasada del calificador (cada uno suele dividir el error por 4).
-MAX_PASADAS_DE_AJUSTE = 8
+# Las fórmulas entre categorías recién creadas pueden fallar la primera vez. Los coeficientes
+# de la media ponderada no se reescalan: no hacen falta repasos de pesos.
+MAX_PASADAS_DE_FORMULAS = 3
 
 # Lo que la publicación y la sesión cuentan al docente. Cada aviso tiene su
 # constructor tipado en ``Aviso`` (dueño de las claves de ``datos``) y su texto
@@ -206,6 +206,7 @@ AVISOS = frozenset(
         "SIGUE_LA_VERSION_ACTUAL",
         "TIZA_ACTUALIZADA",
         "TOTALES_VISIBLES",
+        "PONDERACIONES_VISIBLES",
     }
 )
 
@@ -448,6 +449,11 @@ class Aviso:
     def totales_visibles(cls) -> Aviso:
         """El curso muestra al alumnado los totales que contienen ítems ocultos (R1-D4)."""
         return cls("TOTALES_VISIBLES")
+
+    @classmethod
+    def ponderaciones_visibles(cls) -> Aviso:
+        """El informe del usuario muestra «Ponderación» o «Contribución al total del curso»."""
+        return cls("PONDERACIONES_VISIBLES")
 
     @classmethod
     def panel_actualizado(cls, version: str) -> Aviso:
@@ -806,6 +812,8 @@ class PlanCalificador:
     resultados_pendientes: bool = False
     # «Ocultar totales si contienen ítems ocultos» del curso: -1, 0, 1, 2 o None (ilegible).
     ajuste_totales: int | None = None
+    # El informe del usuario muestra «Ponderación» o «Contribución al total del curso».
+    ponderaciones_visibles: bool = False
 
 
 @dataclass(frozen=True)
@@ -2845,6 +2853,23 @@ def preparar_calificador(
     actual = aula.calificador(curso)
     if any(nodo.idnumber.startswith(ponderacion.PREFIJO_IDNUMBER) for nodo in actual.nodos):
         raise ErrorPublicacion("CALIFICADOR_CON_PONDERACION")
+    opciones = next(
+        (
+            nodo.opciones_agregacion
+            for nodo in actual.nodos
+            if nodo.clase in ("curso", "categoria") and nodo.opciones_agregacion
+        ),
+        None,
+    )
+    if opciones is not None and 10 not in opciones:
+        raise ErrorPublicacion("CALCULO_NO_DISPONIBLE")
+    if rc.es_calificador_antiguo(actual):
+        raise ErrorPublicacion("CALIFICADOR_ANTIGUO")
+    if estado.version_de_calificador(dir_tiza) == 1 and huellas:
+        # El docente borró a mano el árbol viejo: su huella ya no describe nada. Si aún
+        # estuviera, ``es_calificador_antiguo`` habría cortado antes.
+        estado.olvidar_huellas(dir_tiza, curso)
+        huellas = {}
     anterior = rc.hay_anterior(actual)
     resultados, efectivas, pendientes = _resultados_existentes(aula, curso, documentos, cmids, base)
     deseado = calcular_deseado(esquema, documentos, anterior, base, resultados=efectivas)
@@ -2861,6 +2886,7 @@ def preparar_calificador(
         documentos_con_resultados=efectivas,
         resultados_pendientes=pendientes,
         ajuste_totales=aula.ajuste_totales(curso),
+        ponderaciones_visibles=aula.ponderaciones_visibles(curso),
     )
 
 
@@ -2963,6 +2989,8 @@ def resumen_calificador(
     ]
     if plan.ajuste_totales in (1, 2):
         avisos.append(Aviso.totales_visibles())
+    if plan.ponderaciones_visibles:
+        avisos.append(Aviso.ponderaciones_visibles())
 
     def nombre_de(op: rc.Operacion) -> str:
         return nombres.get(op.ruta or "", op.ruta or "")
@@ -3065,12 +3093,12 @@ def _ajustar(
     final: CalificadorAula,
     segundas: list[Ejecucion],
 ) -> CalificadorAula:
-    """La segunda pasada sobre el aula releída: repite los ajustes hasta que no quede ninguno.
+    """La segunda pasada sobre el aula releída: los ajustes que falten y, al final, los cierres.
 
-    Moodle reescala los pesos de los hermanos al guardar cada uno, así que fijarlos de una vez
-    no basta: se repite (con tope) hasta que el aula coincide con lo deseado. Los repasos no
-    bloquean nada (un total bloqueado ya no admite ajustes): los cierres van al final, con todo
-    estable. Cada ejecución se añade a ``segundas`` y se devuelve el aula releída.
+    La media ponderada no reescala los coeficientes al añadir hermanos, así que una sola pasada
+    de ajustes basta. Solo se repite si Moodle rechazó una fórmula entre categorías recién
+    creadas (``formulas_pendientes``), con un tope pequeño. Los repasos no bloquean nada: los
+    cierres van al final, con todo estable. Cada ejecución se añade a ``segundas``.
     """
     rec = plan.reconciliacion
 
@@ -3085,19 +3113,23 @@ def _ajustar(
             resultados=plan.resultados,
         )
 
-    def ejecutar(leida: CalificadorAula, ajustes: tuple[rc.Operacion, ...]) -> CalificadorAula:
+    def ejecutar(
+        leida: CalificadorAula, ajustes: tuple[rc.Operacion, ...], *, tolerar: bool
+    ) -> CalificadorAula:
         segunda = Ejecucion(aula, curso, leida.decimal)
         segundas.append(segunda)
-        segunda.ejecutar(ajustes, tolerar_formulas=False)
+        segunda.ejecutar(ajustes, tolerar_formulas=tolerar)
         return aula.calificador(curso, segunda.tocados)
 
-    for _ in range(MAX_PASADAS_DE_AJUSTE):
+    for _ in range(MAX_PASADAS_DE_FORMULAS):
         ajustes = ajustes_de(final, frozenset())
         if not ajustes:
             break
-        final = ejecutar(final, ajustes)
+        final = ejecutar(final, ajustes, tolerar=True)
+        if not segundas[-1].formulas_pendientes:
+            break
     cierres = ajustes_de(final, rec.por_cerrar)
-    return ejecutar(final, cierres) if cierres else final
+    return ejecutar(final, cierres, tolerar=False) if cierres else final
 
 
 MAX_IDS_POR_TIPO = 4  # en el desglose de los cambios: los primeros números de ID de cada tipo
@@ -3274,6 +3306,10 @@ def calificador_con(
         borrador.paso("TOTALES_VISIBLES")
         if presencia is not None:
             presencia.informar(Aviso.totales_visibles())
+    if plan.ponderaciones_visibles:
+        borrador.paso("PONDERACIONES_VISIBLES")
+        if presencia is not None:
+            presencia.informar(Aviso.ponderaciones_visibles())
     ocultados = sum(1 for op in hechas_todas if op.tipo == "ocultar")
     avisos = [*rec.avisos, *plan.deseado.avisos]
     for codigo, cuantos in Counter(codigo for codigo, _ in avisos).items():
