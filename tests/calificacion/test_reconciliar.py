@@ -521,6 +521,17 @@ def test_el_arbol_nuevo_no_se_confunde_con_el_antiguo() -> None:
     assert not rc.es_calificador_antiguo(aula)
 
 
+def test_el_arbol_nuevo_con_recuperacion_en_mas_alta_no_se_confunde() -> None:
+    aula = aula_con(
+        actividad(11, padre="cg9"),
+        nodo_aula("cg9", "TZ_V_1_RA1", "categoria", "cg1", agregacion=10),
+        nodo_aula("cg10", "TZ_E_RA2", "categoria", "cg1", agregacion=6),
+        actividad(12, padre="cg10"),
+        nodo_aula("ig91", "TZ_C_abc", "calculado", "cg10", formula="=[[TZ_V_1_RA2]]"),
+    )
+    assert not rc.es_calificador_antiguo(aula)
+
+
 def test_el_arbol_antiguo_con_copia_y_actividades_se_detecta() -> None:
     aula = aula_con(
         actividad(11, padre="cg9"),

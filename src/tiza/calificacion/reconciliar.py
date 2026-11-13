@@ -175,8 +175,8 @@ class Reconciliacion:
     ``eid`` de la categoría ajena (puede no tener número de ID). ``a_mano`` son las claves
     (idnumber o ``CURSO``) cuyo estado en el aula difería de su huella: hay que pasárselas a
     ``pasada2`` para que no confunda con un cambio del docente lo que haga la propia primera pasada.
-    ``por_cerrar`` son las evaluaciones ``cerrada: true`` que aún no están bloqueadas: se montan
-    como las abiertas y ``pasada2`` las ajusta y las bloquea al final. ``sin_colocar`` son las rutas de las
+    ``por_cerrar`` son las evaluaciones ``cerrada: true``: ``pasada2`` bloquea su total y las
+    categorías de dentro que sigan abiertas. ``sin_colocar`` son las rutas de las
     actividades que están en el aula pero esta pasada no coloca (evaluación cerrada o cambiadas
     a mano).
     """
@@ -187,11 +187,12 @@ class Reconciliacion:
     a_mano: frozenset[str] = frozenset()
     por_cerrar: frozenset[str] = frozenset()
     sin_colocar: frozenset[str] = frozenset()
+    cerradas: frozenset[str] = frozenset()
 
     @property
     def hay_trabajo(self) -> bool:
-        """Hay algo que ejecutar: operaciones de la primera pasada o evaluaciones por bloquear."""
-        return bool(self.operaciones) or bool(self.por_cerrar)
+        """Hay algo que ejecutar: operaciones, evaluaciones por bloquear o categorías que congelar."""
+        return bool(self.operaciones) or bool(self.por_cerrar) or bool(self.cerradas)
 
 
 # --------------------------------------------------------------------------- #
@@ -242,6 +243,13 @@ def es_calificador_antiguo(aula: CalificadorAula) -> bool:
         ):
             return True
         if not nodo.idnumber.startswith("TZ_C_"):
+            continue
+        # La copia del curso nueva referencia el total del trimestre (TZ_V_…); la antigua
+        # copiaba una actividad. Solo la antigua delata el árbol anterior.
+        referencias = re.findall(r"\[\[(.*?)\]\]", nodo.formula or "")
+        if referencias and all(
+            referencia.startswith(("TZ_V_", "TZ_E_")) for referencia in referencias
+        ):
             continue
         padre = indice.padre(nodo)
         if padre is None or not padre.idnumber.startswith(("TZ_V_", "TZ_E_")):
@@ -384,6 +392,15 @@ def _coeficiente_correcto(nodo: NodoAula, deseado: float) -> bool:
     coeficiente con cuatro decimales, pero puede redondear la última cifra.
     """
     return nodo.coeficiente is not None and abs(nodo.coeficiente - deseado) <= _TOLERANCIA_PESO_AULA
+
+
+def _peso_correcto(nodo: NodoAula, deseado: float) -> bool:
+    """El peso natural (``TZ_TIZA`` en el total del curso) vale si coincide con el deseado."""
+    return (
+        nodo.sobrescrito
+        and nodo.peso is not None
+        and abs(nodo.peso - deseado) <= _TOLERANCIA_PESO_AULA
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -594,15 +611,24 @@ class _Plan:
     def _peso(self, nodo: Nodo) -> float | None:
         return self.pesos.get(nodo.idnumber, nodo.peso)
 
-    def _padre_sin_peso(self, padre: str | None) -> bool:
-        """Un hijo de una categoría que no es Natural no lleva peso sobrescrito (D15)."""
-        if padre is None:
-            return False
+    def _padre_mp(self, padre: str | None) -> bool:
+        """¿El padre es de media ponderada? (El curso, para ``TZ_TIZA``, puede no serlo)."""
+        if padre is None or padre == "":
+            return self.idx.curso is not None and self.idx.curso.agregacion == 10
         deseado = self.dnodos.get(padre)
         if deseado is not None:
-            return deseado.clase == "categoria" and deseado.agregacion != 10
+            return deseado.clase in ("contenedor", "categoria") and deseado.agregacion == 10
         aula = self.idx.por_id.get(padre)
-        return aula is not None and aula.agregacion not in (None, 10)
+        return aula is not None and aula.agregacion == 10
+
+    def _ajuste_peso(self, nodo: Nodo) -> tuple[str | None, float | None]:
+        """Cómo se fija el peso de un nodo: coeficiente en MP, peso natural en el curso, o nada."""
+        valor = self._peso(nodo)
+        if self._padre_mp(nodo.padre):
+            return "fijar_coeficiente", valor
+        if nodo.padre is None:
+            return "fijar_peso", valor
+        return None, None
 
     def _nuevas_en_cerrada(self, pendientes: set[str]) -> set[str]:
         """Las actividades del aula aún sin colocar cuyo sitio (real o copia) cae en una cerrada."""
@@ -749,17 +775,28 @@ class _Plan:
             colocada = True
         elif not en_su_sitio:
             return  # en la segunda pasada no se ajusta lo que no está donde debe
-        coeficiente = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
-        if coeficiente is not None and (colocada or not _coeficiente_correcto(act, coeficiente)):
-            self.peso.append(
-                Operacion(
-                    "fijar_coeficiente",
-                    idnumber=clave,
-                    eid=act.eid,
-                    item_id=act.item_id,
-                    coeficiente=coeficiente,
+        tipo, valor = self._ajuste_peso(nodo)
+        if valor is not None:
+            if tipo == "fijar_coeficiente" and (colocada or not _coeficiente_correcto(act, valor)):
+                self.peso.append(
+                    Operacion(
+                        "fijar_coeficiente",
+                        idnumber=clave,
+                        eid=act.eid,
+                        item_id=act.item_id,
+                        coeficiente=valor,
+                    )
                 )
-            )
+            elif tipo == "fijar_peso" and (colocada or not _peso_correcto(act, valor)):
+                self.peso.append(
+                    Operacion(
+                        "fijar_peso",
+                        idnumber=clave,
+                        eid=act.eid,
+                        item_id=act.item_id,
+                        peso=valor,
+                    )
+                )
 
     def _bloquear_ajena(self, act: NodoAula) -> None:
         actual = self.idx.padre(act)
@@ -894,19 +931,30 @@ class _Plan:
             else:  # tiza no sabe mover categorías: se respeta donde estén y se avisa
                 self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
                 return
-        coeficiente = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
-        if coeficiente is not None and (
-            movido or not _coeficiente_correcto(existente, coeficiente)
-        ):
-            self.peso.append(
-                Operacion(
-                    "fijar_coeficiente",
-                    idnumber=nodo.idnumber,
-                    eid=existente.eid,
-                    item_id=existente.item_id,
-                    coeficiente=coeficiente,
+        tipo, valor = self._ajuste_peso(nodo)
+        if valor is not None:
+            if tipo == "fijar_coeficiente" and (
+                movido or not _coeficiente_correcto(existente, valor)
+            ):
+                self.peso.append(
+                    Operacion(
+                        "fijar_coeficiente",
+                        idnumber=nodo.idnumber,
+                        eid=existente.eid,
+                        item_id=existente.item_id,
+                        coeficiente=valor,
+                    )
                 )
-            )
+            elif tipo == "fijar_peso" and (movido or not _peso_correcto(existente, valor)):
+                self.peso.append(
+                    Operacion(
+                        "fijar_peso",
+                        idnumber=nodo.idnumber,
+                        eid=existente.eid,
+                        item_id=existente.item_id,
+                        peso=valor,
+                    )
+                )
         if not calculado or nodo.clase == "manual":
             return  # una casilla manual: tiza nunca toca su máximo ni le pone fórmula
         maximo = self._maximo(nodo)
@@ -933,7 +981,9 @@ class _Plan:
             )
 
     def _crear(self, nodo: Nodo, calculado: bool, padre: NodoAula | None) -> None:
-        coeficiente = None if self._padre_sin_peso(nodo.padre) else self._peso(nodo)
+        tipo, valor = self._ajuste_peso(nodo)
+        coeficiente = valor if tipo == "fijar_coeficiente" else None
+        peso = valor if tipo == "fijar_peso" else None
         if calculado:
             self.alta.append(
                 Operacion(
@@ -942,6 +992,7 @@ class _Plan:
                     nombre=nodo.nombre,
                     padre=nodo.padre,
                     padre_eid=padre.eid if padre else None,
+                    peso=peso,
                     coeficiente=coeficiente,
                     maximo=self._maximo(nodo),
                     oculto=nodo.clase in CLASES_OCULTAS,
@@ -955,6 +1006,7 @@ class _Plan:
                     nombre=nodo.nombre,
                     padre=nodo.padre,
                     padre_eid=padre.eid if padre else None,
+                    peso=peso,
                     coeficiente=coeficiente,
                     visualizacion=nodo.visualizacion,
                     agregacion=nodo.agregacion,
@@ -978,7 +1030,7 @@ class _Plan:
             padre = self.idx.padre(n)
             if padre is None or not padre.idnumber.startswith(_PREFIJO) or self._cerrado_aula(n):
                 continue
-            if self._padre_sin_peso(padre.idnumber or None):
+            if not self._padre_mp(padre.idnumber or None):
                 continue
             clave = n.idnumber or f"{_PREFIJO}A{n.cmid}"
             if clave in self.a_mano:
@@ -1050,12 +1102,32 @@ class _Plan:
         """
         if not self.solo_ajustes:
             return
-        for idnumber in sorted(self.por_cerrar):
+        for idnumber in sorted(set(self.por_cerrar) | set(self.d.cerradas)):
             nodo = self.idx.por_id.get(idnumber)
-            if nodo is not None and not nodo.bloqueado:
-                self.cierre.append(
-                    Operacion("bloquear_cerrada", idnumber=idnumber, item_id=nodo.item_id)
-                )
+            if nodo is None:
+                continue
+            # La copia del curso lee el total de la hoja, no el de la evaluación: hay que
+            # bloquear también las categorías de dentro para que una nota tardía no la mueva.
+            pendientes = [nodo]
+            vistos: set[str] = set()
+            while pendientes:
+                actual = pendientes.pop()
+                if actual.eid in vistos:
+                    continue
+                vistos.add(actual.eid)
+                if (
+                    actual.clase == "categoria"
+                    and not actual.bloqueado
+                    and actual.idnumber.startswith(_PREFIJO)
+                ):
+                    self.cierre.append(
+                        Operacion(
+                            "bloquear_cerrada",
+                            idnumber=actual.idnumber,
+                            item_id=actual.item_id,
+                        )
+                    )
+                pendientes.extend(self.idx.hijos.get(actual.eid, []))
 
     def _profundidad(self, nodo: NodoAula) -> int:
         nivel = 0
@@ -1122,7 +1194,7 @@ class _Plan:
             if n.eid in borrados or n.idnumber in self.a_mano:
                 continue
             padre = self.idx.padre(n)
-            if self._padre_sin_peso(padre.idnumber if padre else None):
+            if not self._padre_mp(padre.idnumber if padre else None):
                 continue
             if not _coeficiente_correcto(n, 0.0):
                 self.peso.append(
@@ -1141,7 +1213,7 @@ class _Plan:
             if n.idnumber.startswith(_PREFIJO_RESULTADO):
                 continue  # el formulario del resultado no lleva coeficiente
             padre = self.idx.padre(n)
-            if self._padre_sin_peso(padre.idnumber if padre else None):
+            if not self._padre_mp(padre.idnumber if padre else None):
                 continue
             if not _coeficiente_correcto(n, 0.0):
                 self.peso.append(
@@ -1200,6 +1272,7 @@ def reconciliar(
         a_mano=frozenset(plan.a_mano),
         por_cerrar=plan.por_cerrar,
         sin_colocar=frozenset(plan.sin_colocar),
+        cerradas=frozenset(deseado.cerradas),
     )
 
 

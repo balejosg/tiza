@@ -424,7 +424,7 @@ def test_calificador_fp_curso_vacio(tmp_path):
     assert metodos.count("colocar_actividad") == 3
     # TZ_TIZA cuelga del curso y pesa 100 (no había calificador anterior)
     [tiza] = [e for e in moodle.escrituras if e[0] == "crear_categoria" and e[3] == "TZ_TIZA"]
-    assert tiza[4] == CURSO_EID and tiza[8] == 100.0
+    assert tiza[4] == CURSO_EID and tiza[5] == 100.0
     # las fórmulas van después de crear todo
     assert max(i for i, m in enumerate(metodos) if m.startswith("crear_")) < min(
         i for i, m in enumerate(metodos) if m == "fijar_formula"
@@ -567,7 +567,9 @@ def test_calificador_cierra_evaluacion(tmp_path):
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert documento["resultado"] == "ok"
     v1 = moodle.por_id("TZ_V_1")
-    assert moodle.escrituras == [("bloquear_total", CURSO, v1.item_id)]
+    bloqueados = [e for e in moodle.escrituras if e[0] == "bloquear_total"]
+    assert len(bloqueados) == 3
+    assert ("bloquear_total", CURSO, v1.item_id) in bloqueados
     assert v1.bloqueado
 
     # otros pesos: nada de lo que cuelga de TZ_V_1 se crea, cambia, mueve ni borra
@@ -625,10 +627,10 @@ def test_primer_montaje_con_una_evaluacion_cerrada_la_crea_y_la_bloquea_al_final
     v1 = moodle.por_id("TZ_V_1")
     assert v1.bloqueado and moodle.por_id("TZ_V_1_RA1").padre_eid == v1.eid
     assert not moodle.por_id("TZ_V_2").bloqueado
-    assert moodle.metodos().count("bloquear_total") == 1
+    assert moodle.metodos().count("bloquear_total") == 3
     assert moodle.metodos()[-1] == "bloquear_total"  # lo último de todo
     assert acciones(documento) == {"a.md": "colocada", "c.md": "colocada", "d.md": "colocada"}
-    assert pasos(documento, "CALIFICADOR_BLOQUEAR")[0]["detalle"] == "1"
+    assert pasos(documento, "CALIFICADOR_BLOQUEAR")[0]["detalle"] == "3"
     moodle.escrituras.clear()
     otra = atender(pedir(carpeta), moodle, carpeta)
     assert moodle.escrituras == [] and otra["resultado"] == "ok"
@@ -663,7 +665,7 @@ def test_calificador_con_anterior(tmp_path):
     assert moodle.escrituras[0] == ("bloquear_total", 5678, 50)
     assert metodos.index("bloquear_total") < metodos.index("colocar_actividad")
     [tiza] = [e for e in moodle.escrituras if e[0] == "crear_categoria" and e[3] == "TZ_TIZA"]
-    assert tiza[8] == 0.0  # TZ_TIZA pesa 0 en el total del curso
+    assert tiza[5] == 0.0  # TZ_TIZA pesa 0 en el total del curso
     assert "fijar_total_curso" not in metodos  # el total del curso es del docente
     assert moodle.nodos[CURSO_EID].formula == "=[[X]]"
     [resumen] = presencia.resumenes_calificador
