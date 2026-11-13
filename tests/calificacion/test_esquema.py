@@ -97,6 +97,16 @@ def test_peso_obligatorio_en_final_de_evaluaciones(tmp_path: Path) -> None:
     assert "evaluaciones[2]" in error.detalle and "peso" in error.detalle
 
 
+def test_evaluaciones_con_peso_en_final_de_elementos(tmp_path: Path) -> None:
+    """Con la final de elementos, el peso de la evaluación es su ``q_n``: es opcional y no suma."""
+    texto = FP.replace(
+        '- {nombre: Segunda, secciones: [3, "Tema 4"], cerrada: true}',
+        '- {nombre: Segunda, secciones: [3, "Tema 4"], peso: 10, cerrada: true}',
+    )
+    esquema = _cargar(tmp_path, texto)
+    assert [e.peso for e in esquema.evaluaciones] == [None, 10.0, None]
+
+
 def test_clave_desconocida(tmp_path: Path) -> None:
     error = _codigo(
         tmp_path, ESO.replace("final: {de: evaluaciones}", "final: {de: evaluaciones, formula: x}")

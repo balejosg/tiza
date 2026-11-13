@@ -443,7 +443,7 @@ class _Lector:
             salida.append((clave, peso))
         return tuple(salida)
 
-    def evaluaciones(self, valor: Any, con_peso: bool) -> tuple[Evaluacion, ...]:
+    def evaluaciones(self, valor: Any, exigir_peso: bool) -> tuple[Evaluacion, ...]:
         resultado: list[Evaluacion] = []
         vistas: set[int | str] = set()
         for i, bruto in enumerate(self.lista(valor, "evaluaciones")):
@@ -452,7 +452,7 @@ class _Lector:
                 bruto,
                 ruta,
                 ("nombre", "secciones", "peso", "cerrada"),
-                ("nombre", "secciones") + (("peso",) if con_peso else ()),
+                ("nombre", "secciones") + (("peso",) if exigir_peso else ()),
             )
             secciones: list[int | str] = []
             for j, seccion in enumerate(self.lista(datos["secciones"], f"{ruta}.secciones")):
