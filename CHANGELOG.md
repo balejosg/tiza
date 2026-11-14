@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## No publicado
+## 0.47.0 — 2026-11-14
 
 ### Cambia
 - **La nota del RA o competencia del curso es la media ponderada de sus trimestres.** La de cada criterio, la media ponderada de sus notas trimestrales, con el peso que la programación asigna a cada evaluación (`q_n`); la del RA, la media ponderada de sus criterios. Coincide con la media directa de las actividades solo si cada trimestre pesa lo mismo que sus actividades. Si la regla es `mediana`, la nota del curso es la mediana de las medianas trimestrales.
