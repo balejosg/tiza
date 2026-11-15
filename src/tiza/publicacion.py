@@ -753,6 +753,19 @@ class EvaluacionCerrada:
 
 
 @dataclass(frozen=True)
+class ResumenAntiguo:
+    """El árbol de la generación anterior que se retira: qué se quita y qué se pierde.
+
+    ``quita`` es el número de operaciones de borrado; ``conserva`` y ``cerradas`` son nombres
+    del aula (solo los ve el docente, saneados en ``mensajes``).
+    """
+
+    quita: int
+    conserva: tuple[str, ...]
+    cerradas: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ResumenCalificador:
     """Lo que va a hacer ``tiza calificador`` en un curso real: la presencia lo enseña y el docente decide.
 
@@ -765,6 +778,7 @@ class ResumenCalificador:
     ``quita``: nombres (del aula) de lo de tiza que se borra, que no tiene notas.
     ``casillas``: nombres (del esquema) de las casillas manuales de instrumentos que se crean.
     ``ocultadas``: calculados de tiza que se ocultarán al alumnado en esta pasada (R1).
+    ``antiguo``: la retirada del árbol de la generación anterior, si la hay.
     """
 
     curso: int
@@ -784,6 +798,7 @@ class ResumenCalificador:
     quita: tuple[str, ...] = ()
     casillas: tuple[str, ...] = ()
     ocultadas: int = 0
+    antiguo: ResumenAntiguo | None = None
 
 
 @dataclass(frozen=True)
@@ -3049,6 +3064,15 @@ def resumen_calificador(
             if op.tipo == "borrar"
         ),
         ocultadas=sum(1 for op in operaciones if op.tipo == "ocultar"),
+        antiguo=(
+            ResumenAntiguo(
+                quita=len(plan.retirada.operaciones),
+                conserva=tuple(n.nombre or n.idnumber for n in plan.retirada.conservadas),
+                cerradas=tuple(n.nombre or n.idnumber for n in plan.retirada.cerradas),
+            )
+            if plan.retirada is not None
+            else None
+        ),
     )
 
 

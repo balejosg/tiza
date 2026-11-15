@@ -590,6 +590,25 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
     aula, y se sanean aquí. Es la pantalla del docente: no se escribe en ``.tiza``.
     """
     lineas: list[str] = []
+    if resumen.antiguo is not None:
+        antiguo = resumen.antiguo
+        lineas.append(
+            "Este curso tiene el calificador de una versión anterior de tiza: lo sustituyo por "
+            f"el nuevo y quito sus {antiguo.quita} categorías y cálculos"
+        )
+        conserva = (
+            f", y las casillas con notas: {_lista_corta(antiguo.conserva)}"
+            if antiguo.conserva
+            else ""
+        )
+        lineas.append("Conservo las notas de las actividades y los resultados" + conserva)
+        lineas.append("Se pierden las notas que cambiaste a mano en el calificador anterior")
+        if antiguo.cerradas:
+            lineas.append(
+                f"{_lista_corta(antiguo.cerradas)}: estaba cerrada; su nota se vuelve a calcular "
+                "con las notas de ahora y puede cambiar"
+            )
+        lineas.append("Antes de seguir, exporta el calificador desde Calificaciones → Exportar")
     for elemento in resumen.lineas_esquema:
         de_la_final = (
             f" ({_porcentaje(elemento.peso)} de la final)" if elemento.peso is not None else ""

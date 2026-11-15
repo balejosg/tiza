@@ -806,6 +806,34 @@ def test_resumen_de_una_evaluacion_cerrada_que_se_bloquea_ahora():
     )
 
 
+def test_el_detalle_avisa_de_lo_que_se_pierde():
+    antiguo = publicacion.ResumenAntiguo(7, ("Examen",), ("1.ª evaluación",))
+    lineas = mensajes.detalle_calificador(_resumen(antiguo=antiguo)).lineas
+
+    assert "versión anterior de tiza" in lineas[0] and "7" in lineas[0]
+    assert "Examen" in lineas[1]
+    assert "cambiaste a mano" in lineas[2]
+    assert "1.ª evaluación" in lineas[3]
+    assert "exporta el calificador" in lineas[4]
+    assert not any(
+        "versión anterior de tiza" in x
+        or "Examen" in x
+        or "cambiaste a mano" in x
+        or "exporta el calificador" in x
+        for x in mensajes.detalle_calificador(_resumen()).lineas
+    )
+
+
+def test_el_resumen_del_curso_real_trae_la_retirada(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(extra=arbol_antiguo())
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+
+    [resumen] = presencia.resumenes_calificador
+    assert resumen.antiguo == publicacion.ResumenAntiguo(7, ("TZ_M_EXAM",), ("TZ_V_1",))
+
+
 def test_el_resumen_sale_del_plan_con_el_total_del_curso_la_regla_y_lo_que_se_quita(tmp_path):
     con_tope = ESQUEMA.replace(
         "final: {de: elementos}",
