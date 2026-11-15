@@ -95,6 +95,7 @@ PASOS = (
             "CALCULO_NO_DISPONIBLE",
             "CALIFICADOR",
             "CALIFICADOR_ANTIGUO",
+            "CALIFICADOR_ANTIGUO_RETIRADO",
             "CALIFICADOR_BLOQUEAR",
             "CALIFICADOR_CAMBIOS",
             "CALIFICADOR_SIN_LEER",

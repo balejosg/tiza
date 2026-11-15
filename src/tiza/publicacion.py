@@ -814,6 +814,8 @@ class PlanCalificador:
     ajuste_totales: int | None = None
     # El informe del usuario muestra «Ponderación» o «Contribución al total del curso».
     ponderaciones_visibles: bool = False
+    # El árbol de la generación anterior que hay que retirar antes de montar (None: no hay).
+    retirada: rc.Retirada | None = None
 
 
 @dataclass(frozen=True)
@@ -2864,7 +2866,13 @@ def preparar_calificador(
     if opciones is not None and 10 not in opciones:
         raise ErrorPublicacion("CALCULO_NO_DISPONIBLE")
     if rc.es_calificador_antiguo(actual):
-        raise ErrorPublicacion("CALIFICADOR_ANTIGUO")
+        # El árbol de la generación anterior se retira en la misma pasada. Se reconcilia
+        # contra el aula simulada tras la retirada y sin huellas: describían nodos que se van.
+        retirada = rc.retirada_antiguo(actual)
+        actual = rc.aula_tras_retirada(actual, retirada)
+        huellas = {}
+    else:
+        retirada = None
     if estado.version_de_calificador(dir_tiza) == 1 and huellas:
         # El docente borró a mano el árbol viejo: su huella ya no describe nada. Si aún
         # estuviera, ``es_calificador_antiguo`` habría cortado antes.
@@ -2887,6 +2895,7 @@ def preparar_calificador(
         resultados_pendientes=pendientes,
         ajuste_totales=aula.ajuste_totales(curso),
         ponderaciones_visibles=aula.ponderaciones_visibles(curso),
+        retirada=retirada,
     )
 
 
@@ -3196,6 +3205,19 @@ def calificador_con(
     dir_tiza = Path(dir_tiza)
     try:
         plan = plan or preparar_calificador(aula, curso, esquema, documentos, dir_tiza)
+        if plan.retirada is not None:
+            # El árbol de la generación anterior se va antes de montar. Si algo falla a medias,
+            # los delatores se borran los últimos y repetir el comando vuelve a retirar.
+            Ejecucion(aula, curso, plan.aula_antes.decimal).ejecutar(
+                plan.retirada.operaciones, tolerar_formulas=False
+            )
+            estado.olvidar_huellas(dir_tiza, curso)
+            borrador.paso(
+                "CALIFICADOR_ANTIGUO_RETIRADO",
+                detalle=f"{len(plan.retirada.operaciones)} quitados, "
+                f"{len(plan.retirada.conservadas)} conservados",
+            )
+            plan = preparar_calificador(aula, curso, esquema, documentos, dir_tiza)
         declinadas = frozenset(sin_resultados)
         resultados: dict[str, int]
         efectivas: frozenset[str]
@@ -4031,7 +4053,11 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
         except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
             # Cada curso se lee entero antes de escribir nada en él (y antes de preguntar).
             return recorrido.Resultado.fallo(exc.codigo)
-        if plan.reconciliacion.hay_trabajo or plan.resultados_pendientes:
+        if (
+            plan.reconciliacion.hay_trabajo
+            or plan.resultados_pendientes
+            or plan.retirada is not None
+        ):
             resumen = resumen_calificador(
                 plan,
                 self._esquema,

@@ -96,6 +96,28 @@ def nodos_de_actividades(actividades=ACTIVIDADES, padre: str = CURSO_EID, **kw) 
     ]
 
 
+def arbol_antiguo() -> list[NodoAula]:
+    """El árbol de la generación anterior, abreviado, colgando del curso.
+
+    Misma forma que el de ``test_reconciliar``: una casilla tecleada (``TZ_M_EXAM``), una
+    evaluación cerrada (``TZ_V_1``), resultados (``TZ_O_abc``), calculados y manuales que se
+    van, y algo del docente dentro de «Calificador de tiza».
+    """
+    return [
+        nodo("cg50", "TZ_TIZA", "categoria", CURSO_EID, agregacion=13),
+        nodo("cg51", "TZ_NOTAS", "categoria", "cg50", agregacion=13),
+        nodo("cg52", "TZ_K_TIZA", "categoria", "cg51", agregacion=10),
+        nodo("cg53", "TZ_V_1", "categoria", "cg50", agregacion=10, bloqueado=True),
+        nodo("cg57", "TZ_V_1_RA1", "categoria", "cg53", agregacion=10, bloqueado=True),
+        nodo("ig54", "TZ_F_abc", "calculado", "cg51", maximo=10.0, tiene_notas=True),
+        nodo("ig55", "TZ_M_EXAM", "manual", "cg53", maximo=10.0, tiene_notas=True),
+        nodo("ig56", "TZ_M_OTRA", "manual", "cg51", maximo=10.0),
+        nodo("ig58", "TZ_O_abc", "manual", "cg53", maximo=10.0),
+        nodo("ig59", "", "manual", "cg50", nombre="Del docente", maximo=10.0),
+        *nodos_de_actividades(padre="cg53", tiene_notas=True),
+    ]
+
+
 def secciones_de(actividades=ACTIVIDADES) -> list[dict]:
     secciones = []
     for numero in sorted({seccion for _, seccion, _, _ in actividades}):
@@ -341,7 +363,11 @@ class AulaViva(MoodleFalso):
 
     def borrar_nodo(self, curso, eid):
         super().borrar_nodo(curso, eid)
-        del self.nodos[eid]
+        borrado = self.nodos.pop(eid)
+        # Moodle sube al padre lo que había dentro de la categoría borrada.
+        for n in list(self.nodos.values()):
+            if n.padre_eid == eid:
+                self.nodos[n.eid] = dataclasses.replace(n, padre_eid=borrado.padre_eid)
 
     def fijar_total_curso(self, curso, formula, decimal):
         super().fijar_total_curso(curso, formula, decimal)
@@ -2493,18 +2519,73 @@ def test_calificador_avisa_descriptor_publicado_y_no_cambia_la_escala(tmp_path):
     assert tuple(escala["niveles"]) == ("Uno", "Dos")
 
 
-def test_calificador_antiguo_no_escribe_nada(tmp_path):
+def test_calificador_antiguo_se_retira_y_se_monta(tmp_path):
     carpeta = carpeta_fp(tmp_path)
-    moodle = AulaViva(
-        extra=[
-            *nodos_de_actividades(),
-            nodo("ig99", "TZ_NOTAS", "calculado", CURSO_EID, maximo=10.0),
-        ]
-    )
+    moodle = AulaViva(extra=arbol_antiguo())
     documento = atender(pedir(carpeta), moodle, carpeta)
-    assert documento["resultado"] == "error"
-    assert documento["errores"] == ["CALIFICADOR_ANTIGUO"]
+
+    assert documento["resultado"] == "ok", documento
+    [paso] = pasos(documento, "CALIFICADOR_ANTIGUO_RETIRADO")
+    assert paso["detalle"] == "7 quitados, 1 conservados"
+    idnumbers = {n.idnumber for n in moodle.nodos.values()}
+    assert not idnumbers & {"TZ_NOTAS", "TZ_K_TIZA", "TZ_F_abc"}
+    assert moodle.por_id("TZ_M_EXAM")
+    assert moodle.por_id("TZ_O_abc")
+    metodos = moodle.metodos()
+    primera_creacion = metodos.index("crear_categoria")
+    assert all(i < primera_creacion for i, m in enumerate(metodos) if m == "borrar_nodo")
+    assert moodle.por_id("TZ_TIZA").eid != "cg50"  # se crea de cero, no se reutiliza
+
+
+def test_la_casilla_con_notas_que_el_esquema_ya_no_tiene_se_queda(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(extra=arbol_antiguo())
+    documento = atender(pedir(carpeta), moodle, carpeta)
+
+    assert documento["resultado"] == "ok", documento
+    assert moodle.por_id("TZ_M_EXAM").tiene_notas
+    assert pasos(documento, "ELEMENTO_CON_NOTAS_QUITADO")
+
+
+def test_la_retirada_cortada_a_medias_converge(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(extra=arbol_antiguo())
+    original = moodle.borrar_nodo
+    veces = 0
+
+    def borrar_a_medias(curso, eid):
+        nonlocal veces
+        veces += 1
+        if veces == 3:
+            raise ErrorPublicacion("ESCRITURA_CALIFICADOR")
+        original(curso, eid)
+
+    moodle.borrar_nodo = borrar_a_medias  # type: ignore[method-assign]
+    primero = atender(pedir(carpeta), moodle, carpeta)
+    assert primero["resultado"] == "error"
+    assert primero["errores"] == ["ESCRITURA_CALIFICADOR"]
+    assert not [e for e in moodle.escrituras if e[0] == "crear_categoria"]
+
+    moodle.borrar_nodo = original  # type: ignore[method-assign]
+    segundo = atender(pedir(carpeta), moodle, carpeta)
+    assert segundo["resultado"] == "ok", segundo
+    idnumbers = {n.idnumber for n in moodle.nodos.values()}
+    assert not idnumbers & {"TZ_NOTAS", "TZ_K_TIZA", "TZ_F_abc"}
+    assert moodle.por_id("TZ_TIZA")
+
+    tercero = atender(pedir(carpeta), moodle, carpeta)
+    assert pasos(tercero, "CALIFICADOR")[0]["detalle"] == "sin cambios"
+
+
+def test_calificador_antiguo_en_real_con_no_no_escribe(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva(extra=arbol_antiguo())
+    presencia = PresenciaFalsa(real=False)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+
+    assert documento["resultado"] == "abortado"
     assert moodle.escrituras == []
+    assert len(presencia.resumenes_calificador) == 1
 
 
 def test_calificador_sin_media_ponderada_no_escribe_nada(tmp_path):

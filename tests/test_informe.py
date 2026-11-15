@@ -591,6 +591,7 @@ class TestCalificador:
             "TOTALES_VISIBLES",
             "PONDERACIONES_VISIBLES",
             "CALIFICADOR_ANTIGUO",
+            "CALIFICADOR_ANTIGUO_RETIRADO",
             "CALCULO_NO_DISPONIBLE",
         ],
     )
