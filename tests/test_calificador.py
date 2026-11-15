@@ -1440,6 +1440,25 @@ def test_comprobar_da_el_error_de_las_actividades(tmp_path):
     assert resultado.informe["errores"] == ["ELEMENTO_DESCONOCIDO"]
 
 
+def test_comprobar_da_la_linea_del_evalua_que_falla(tmp_path):
+    carpeta = carpeta_fp(tmp_path, actividades=(("a", 1, 11, {"RA1": 60, "RA9": 40}),))
+    resultado = agente.comprobar(carpeta, ["calificacion.yaml"])
+    assert resultado.informe["errores"] == ["ELEMENTO_DESCONOCIDO"]
+    assert "(línea 7)" in resultado.ficheros[0].detalle
+    assert "«RA9»" in resultado.ficheros[0].detalle
+
+
+def test_comprobar_da_la_linea_del_evalua_que_nombra_un_elemento_con_criterios(tmp_path):
+    esquema = ESQUEMA.replace(
+        "  - {id: RA1, nombre: Redes, peso: 60}",
+        "  - {id: RA1, nombre: Redes, peso: 60, criterios: [{id: CE1, nombre: x}]}",
+    )
+    carpeta = carpeta_fp(tmp_path, esquema, actividades=(("a", 1, 11, {"RA1": 60}),))
+    resultado = agente.comprobar(carpeta, ["calificacion.yaml"])
+    assert resultado.informe["errores"] == ["ELEMENTO_CON_CRITERIOS"]
+    assert "(línea 7)" in resultado.ficheros[0].detalle
+
+
 def test_el_buzon_entero_con_el_calificador(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     moodle = AulaViva()

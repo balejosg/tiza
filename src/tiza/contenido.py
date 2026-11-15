@@ -467,6 +467,32 @@ def _ids_repetidos_en_evalua(raiz: yaml.Node | None) -> bool:
     return False
 
 
+def linea_en_evalua(ruta: Path, clave: str) -> int | None:
+    """Línea (1-based) del fichero donde está ``clave`` dentro de ``evalua``, o la de ``evalua``.
+
+    Solo para la ruta del error: reparsea el frontmatter con nodos YAML, que sí traen posición.
+    ``None`` si no se puede saber.
+    """
+    try:
+        texto = ruta.read_text(encoding="utf-8").lstrip("\ufeff")
+        coincidencia = _FRONTMATTER.match(texto)
+        raiz = yaml.compose(coincidencia.group(1), Loader=yaml.SafeLoader) if coincidencia else None
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return None
+    if coincidencia is None or not isinstance(raiz, yaml.MappingNode):
+        return None
+    for nombre, valor in raiz.value:
+        if isinstance(nombre, yaml.ScalarNode) and nombre.value == "evalua":
+            nodo = nombre
+            if isinstance(valor, yaml.MappingNode):
+                for k, _ in valor.value:
+                    if isinstance(k, yaml.ScalarNode) and k.value == clave:
+                        nodo = k
+                        break
+            return int(nodo.start_mark.line) + 2  # la línea 1 es el «---» de apertura
+    return None
+
+
 def id_evalua_valido(clave: Any) -> bool:
     """Regla de los ids de ``evalua`` (y de elementos, criterios e instrumentos del calificador)."""
     return isinstance(clave, str) and RE_ID_EVALUA.fullmatch(clave) is not None

@@ -50,7 +50,7 @@ from tiza.calificacion.esquema import (
     ErrorCalificacion,
     Esquema,
 )
-from tiza.contenido import Documento
+from tiza.contenido import Documento, linea_en_evalua
 from tiza.rubrica_tarea import FilaDeResultado, nombre_de_fila
 
 __all__ = [
@@ -258,6 +258,7 @@ def _validar(
     ruta: str,
     evalua: tuple[tuple[str, float], ...],
     seccion: int | str,
+    fichero: Path | None = None,
 ) -> int | None:
     """Comprueba el ``evalua`` y la sección de una actividad o instrumento; da su evaluación.
 
@@ -267,17 +268,23 @@ def _validar(
     """
     hojas = {hoja for hoja, _ in _hojas(esquema)}
     con_criterios = {e.id for e in esquema.elementos if e.criterios}
+
+    def donde(id_: str) -> str:
+        linea = linea_en_evalua(fichero, id_) if fichero is not None else None
+        return f" (línea {linea})" if linea is not None else ""
+
     for id_, _ in evalua:
         if id_ in con_criterios:
             raise ErrorCalificacion(
                 "ELEMENTO_CON_CRITERIOS",
-                f"{ruta}: evalua nombra «{id_}», que tiene criterios: nombra sus criterios",
+                f"{ruta}: evalua nombra «{id_}», que tiene criterios: nombra sus criterios"
+                + donde(id_),
             )
         if id_ not in hojas:
             raise ErrorCalificacion(
                 "ELEMENTO_DESCONOCIDO",
                 f"{ruta}: evalua nombra «{id_}», que no está entre los elementos ni los "
-                "criterios de calificacion.yaml",
+                "criterios de calificacion.yaml" + donde(id_),
             )
     return next(
         (
@@ -369,7 +376,7 @@ def _actividades(
         evalua = documento.evalua
         if esquema.actividades_pesan_igual:
             evalua = tuple((id_, 1.0) for id_, _ in evalua)
-        evaluacion = _validar(esquema, ruta, evalua, documento.seccion)
+        evaluacion = _validar(esquema, ruta, evalua, documento.seccion, documento.ruta)
         if evaluacion is None:
             _sin_evaluacion(esquema, ruta, evalua, documento.seccion)
         recupera = documento.recupera or ()

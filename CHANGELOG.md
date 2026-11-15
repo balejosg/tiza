@@ -7,6 +7,7 @@ se avisa aquí con **Cambia**.
 ## Sin publicar
 
 ### Arreglado
+- **`ELEMENTO_DESCONOCIDO` y `ELEMENTO_CON_CRITERIOS` dicen la línea.** Cuando el `evalua` de una actividad nombra un id que no existe o un elemento con criterios, el error añade «(línea N)» del `.md` de la actividad, donde está esa clave.
 - **Pasar una sección de una evaluación cerrada a otra ya avisa.** La actividad se quedaba dentro de la cerrada, contando en ese trimestre, sin decir nada; ahora sale `SALE_DE_EVALUACION_CERRADA` (una vez por actividad, `sin_colocar` en el informe y en la confirmación) con lo que hacer: devolver la sección a esa evaluación o desbloquearla a mano y quitar `cerrada: true`. tiza sigue sin tocar lo cerrado.
 - **Cambiar `final.de` sobre un calificador ya montado ya no se queda en silencio.** `tiza calificador` daba `ok` sin cambiar nada en el aula; ahora corta ese curso con `CALIFICADOR_REORGANIZADO`, sin escribir, y explica qué hacer: devolver `final.de` o borrar a mano el «Calificador de tiza» y volver a montar (las notas de las actividades se conservan).
 
