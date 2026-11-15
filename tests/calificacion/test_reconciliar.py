@@ -566,3 +566,113 @@ def test_borrar_los_hijos_antes_que_los_padres() -> None:
     borrados = [op.idnumber for op in rec.operaciones if op.tipo == "borrar"]
     if "TZ_E_RA3" in borrados and "TZ_E_RA3_x" in borrados:
         assert borrados.index("TZ_E_RA3_x") < borrados.index("TZ_E_RA3")
+
+
+# --------------------------------------------------------------------------- #
+# La retirada del árbol de la generación anterior
+# --------------------------------------------------------------------------- #
+
+
+def _arbol_antiguo(*, con_notas: bool = True) -> CalificadorAula:
+    """El árbol de la 0.46 abreviado: una casilla tecleada, una cerrada y restos varios.
+
+    Con ``con_notas=False`` no hay ``TZ_NOTAS`` ni ``TZ_K_TIZA``: el único delator es
+    ``TZ_AG_E_RA1``.
+    """
+    delatores = (
+        (
+            nodo_aula("cg51", "TZ_NOTAS", "categoria", "cg50", agregacion=13),
+            nodo_aula("cg52", "TZ_K_TIZA", "categoria", "cg51", agregacion=10),
+            nodo_aula("ig54", "TZ_F_abc", "calculado", "cg51", tiene_notas=True, formula="=1"),
+            nodo_aula("ig56", "TZ_M_OTRA", "manual", "cg51"),
+        )
+        if con_notas
+        else (nodo_aula("cg60", "TZ_AG_E_RA1", "categoria", "cg50", agregacion=6),)
+    )
+    return aula_con(
+        nodo_aula("cg50", "TZ_TIZA", "categoria", "cg1", agregacion=13),
+        nodo_aula("cg53", "TZ_V_1", "categoria", "cg50", agregacion=10, bloqueado=True),
+        nodo_aula("cg57", "TZ_V_1_RA1", "categoria", "cg53", agregacion=10, bloqueado=True),
+        actividad(11, padre="cg53"),
+        nodo_aula("ig55", "TZ_M_EXAM", "manual", "cg53", tiene_notas=True),
+        nodo_aula("ig58", "TZ_O_abc", "manual", "cg53"),
+        nodo_aula("ig59", "", "manual", "cg50", nombre="Del docente"),
+        *delatores,
+    )
+
+
+def _delata(idnumber: str) -> bool:
+    return idnumber in ("TZ_NOTAS", "TZ_K_TIZA") or idnumber.startswith(
+        ("TZ_AG_", "TZ_RP_", "TZ_F_")
+    )
+
+
+def test_la_retirada_conserva_lo_tecleado() -> None:
+    aula = _arbol_antiguo()
+    r = rc.retirada_antiguo(aula)
+
+    assert {op.idnumber for op in r.operaciones} == {
+        "TZ_F_abc",
+        "TZ_M_OTRA",
+        "TZ_TIZA",
+        "TZ_NOTAS",
+        "TZ_K_TIZA",
+        "TZ_V_1",
+        "TZ_V_1_RA1",
+    }
+    assert all(op.tipo == "borrar" for op in r.operaciones)
+    assert all(op.eid is not None and op.item_id is not None for op in r.operaciones)
+    borrados = {op.eid for op in r.operaciones}
+    assert borrados.isdisjoint({"ig55", "ig58", "ig59", "ig111", "cg1"})
+    assert [n.idnumber for n in r.conservadas] == ["TZ_M_EXAM"]
+    assert [n.idnumber for n in r.cerradas] == ["TZ_V_1"]
+
+
+def test_la_retirada_borra_primero_los_elementos_y_de_entro_afuera() -> None:
+    r = rc.retirada_antiguo(_arbol_antiguo())
+    ids = [op.idnumber for op in r.operaciones]
+
+    elementos = {"TZ_F_abc", "TZ_M_OTRA"}
+    categorias = {"TZ_TIZA", "TZ_NOTAS", "TZ_K_TIZA", "TZ_V_1", "TZ_V_1_RA1"}
+    # Dentro de cada tanda (lo que no delata y lo que delata), los elementos van antes que
+    # las categorías: borrar una categoría sube sus hijos y no se quiere reordenar dos veces.
+    for delator in (False, True):
+        ultimo_elemento = max(
+            (ids.index(idn) for idn in elementos if _delata(idn) == delator), default=-1
+        )
+        primera_categoria = min(
+            (ids.index(idn) for idn in categorias if _delata(idn) == delator), default=len(ids)
+        )
+        assert ultimo_elemento < primera_categoria
+    assert ids.index("TZ_V_1_RA1") < ids.index("TZ_V_1")
+
+
+@pytest.mark.parametrize(
+    ("con_notas", "ultima"),
+    [(True, "TZ_NOTAS"), (False, "TZ_AG_E_RA1")],
+)
+def test_la_retirada_deja_un_delator_para_el_final(con_notas: bool, ultima: str) -> None:
+    r = rc.retirada_antiguo(_arbol_antiguo(con_notas=con_notas))
+    ids = [op.idnumber for op in r.operaciones]
+
+    assert ids[-1] == ultima
+    assert _delata(ids[-1])
+    primera_delatora = next(i for i, idn in enumerate(ids) if _delata(idn))
+    assert all(_delata(idn) for idn in ids[primera_delatora:])
+
+
+def test_el_aula_tras_la_retirada_sube_lo_que_queda_al_curso() -> None:
+    aula = _arbol_antiguo()
+    r = rc.retirada_antiguo(aula)
+    despues = rc.aula_tras_retirada(aula, r)
+
+    borrados = {op.eid for op in r.operaciones}
+    assert borrados.isdisjoint({n.eid for n in despues.nodos})
+    por_idnumber = {n.idnumber: n for n in despues.nodos if n.idnumber}
+    assert por_idnumber["TZ_M_EXAM"].padre_eid == "cg1"
+    assert por_idnumber["TZ_O_abc"].padre_eid == "cg1"
+    assert next(n for n in despues.nodos if n.eid == "ig59").padre_eid == "cg1"
+    actividad_11 = next(n for n in despues.nodos if n.cmid == 11)
+    assert actividad_11.padre_eid == "cg1"
+    assert not rc.es_calificador_antiguo(despues)
+    assert despues.decimal == aula.decimal

@@ -31,6 +31,7 @@ ejecuta la repite, con tope, mientras Moodle siga reescalando pesos).
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import re
@@ -56,7 +57,9 @@ __all__ = [
     "CURSO",
     "Operacion",
     "Reconciliacion",
+    "Retirada",
     "TIPOS",
+    "aula_tras_retirada",
     "hay_anterior",
     "huella_de_nodo",
     "huellas_de",
@@ -64,6 +67,7 @@ __all__ = [
     "es_calificador_antiguo",
     "pasada2",
     "reconciliar",
+    "retirada_antiguo",
 ]
 
 # El orden de la lista es el orden de ejecución por tipos (``crear_*``, ``colocar`` y
@@ -195,6 +199,23 @@ class Reconciliacion:
         return bool(self.operaciones) or bool(self.por_cerrar) or bool(self.cerradas)
 
 
+@dataclass(frozen=True)
+class Retirada:
+    """Lo que hay que quitar del árbol de la generación anterior para montar el nuevo.
+
+    ``operaciones`` son todas ``borrar`` (con ``eid``, ``idnumber`` e ``item_id``), en el orden
+    seguro: lo que no delata primero y los delatores al final, para que un corte a medias siga
+    viéndose antiguo. ``conservadas`` son las casillas manuales con notas (lo que tecleó el
+    docente) y ``cerradas`` las evaluaciones ``TZ_V_<n>`` bloqueadas que hay que avisar que se
+    recalculan. Las actividades y los resultados también se conservan, pero no se listan: no
+    hay nada que hacer con ellos salvo dejarlos subir al curso.
+    """
+
+    operaciones: tuple[Operacion, ...]
+    conservadas: tuple[NodoAula, ...]
+    cerradas: tuple[NodoAula, ...]
+
+
 # --------------------------------------------------------------------------- #
 # El aula indexada, la comparación de fórmulas y las huellas
 # --------------------------------------------------------------------------- #
@@ -225,6 +246,18 @@ class _Indice:
         return self.por_eid.get(nodo.padre_eid) if nodo.padre_eid else None
 
 
+def _delata(idnumber: str) -> bool:
+    """¿Este número de ID hace que el árbol se vea de la generación anterior?
+
+    Los delatores se borran los últimos: si la retirada se corta a medias, la pasada
+    siguiente sigue reconociendo el árbol antiguo y vuelve a retirar en vez de montar el
+    nuevo encima de los restos.
+    """
+    return idnumber in ("TZ_NOTAS", "TZ_K_TIZA") or idnumber.startswith(
+        ("TZ_AG_", "TZ_RP_", "TZ_F_")
+    )
+
+
 def es_calificador_antiguo(aula: CalificadorAula) -> bool:
     """¿El aula tiene un árbol de la generación anterior, que hay que borrar a mano?
 
@@ -238,9 +271,7 @@ def es_calificador_antiguo(aula: CalificadorAula) -> bool:
     for nodo in aula.nodos:
         if not nodo.idnumber.startswith(_PREFIJO):
             continue
-        if nodo.idnumber in ("TZ_NOTAS", "TZ_K_TIZA") or nodo.idnumber.startswith(
-            ("TZ_AG_", "TZ_RP_", "TZ_F_")
-        ):
+        if _delata(nodo.idnumber):
             return True
         if not nodo.idnumber.startswith("TZ_C_"):
             continue
@@ -261,6 +292,98 @@ def es_calificador_antiguo(aula: CalificadorAula) -> bool:
                 return True
             pendientes.extend(indice.hijos.get(actual.eid, []))
     return False
+
+
+def _se_borra(nodo: NodoAula) -> bool:
+    """La regla de la retirada, por clase de nodo (nunca por ``tiene_notas`` a secas)."""
+    if not nodo.idnumber.startswith(_PREFIJO) or nodo.clase == "curso":
+        return False
+    if nodo.clase == "actividad" or nodo.idnumber.startswith(_PREFIJO_RESULTADO):
+        return False
+    if nodo.clase == "manual":
+        return not nodo.tiene_notas
+    return True  # categorías y calculados (tengan o no notas)
+
+
+def _profundidad(nodo: NodoAula, indice: _Indice) -> int:
+    nivel = 0
+    padre = indice.padre(nodo)
+    while padre is not None:
+        nivel += 1
+        nodo = padre
+        padre = indice.padre(nodo)
+    return nivel
+
+
+def _en_orden_de_retirada(nodos: list[NodoAula], indice: _Indice) -> list[NodoAula]:
+    """No delatores primero y delatores al final; dentro de cada tanda, elementos y luego
+    categorías de la más profunda a la más externa (estable dentro de la misma profundidad)."""
+    orden: list[NodoAula] = []
+    for delata in (False, True):
+        tanda = [n for n in nodos if _delata(n.idnumber) is delata]
+        orden.extend(n for n in tanda if n.clase != "categoria")
+        orden.extend(
+            sorted(
+                (n for n in tanda if n.clase == "categoria"),
+                key=lambda n: _profundidad(n, indice),
+                reverse=True,
+            )
+        )
+    return orden
+
+
+def retirada_antiguo(aula: CalificadorAula) -> Retirada:
+    """Qué se borra del árbol de la generación anterior, en el orden que no pierde nada.
+
+    Se conservan las actividades, los ``TZ_O_``, las casillas manuales con notas y todo lo que
+    no empiece por ``TZ_``. Los calculados se borran siempre (tengan o no notas): ``tiene_notas``
+    también sale en los calculados con valor y no distingue lo tecleado de lo calculado.
+    """
+    indice = _Indice(aula)
+    conservadas = tuple(
+        n
+        for n in aula.nodos
+        if n.idnumber.startswith(_PREFIJO) and n.clase == "manual" and n.tiene_notas
+    )
+    cerradas = tuple(
+        n
+        for n in aula.nodos
+        if n.clase == "categoria" and n.bloqueado and _EVALUACION.fullmatch(n.idnumber) is not None
+    )
+    borrar = _en_orden_de_retirada(
+        [n for n in aula.nodos if _se_borra(n)],
+        indice,
+    )
+    return Retirada(
+        operaciones=tuple(
+            Operacion("borrar", idnumber=n.idnumber, eid=n.eid, item_id=n.item_id) for n in borrar
+        ),
+        conservadas=conservadas,
+        cerradas=cerradas,
+    )
+
+
+def aula_tras_retirada(aula: CalificadorAula, retirada: Retirada) -> CalificadorAula:
+    """El aula simulada tras la retirada: sin lo borrado, con lo que queda colgando del curso.
+
+    Al borrar una categoría, Moodle sube a su padre lo que había dentro; cada nodo que queda
+    pasa a colgar de su ancestro más cercano que no se borra. El curso nunca se borra.
+    """
+    indice = _Indice(aula)
+    borrados = {op.eid for op in retirada.operaciones if op.eid is not None}
+
+    def padre_que_queda(nodo: NodoAula) -> str | None:
+        padre = indice.padre(nodo)
+        while padre is not None and padre.eid in borrados:
+            padre = indice.padre(padre)
+        return padre.eid if padre is not None else None
+
+    quedan = tuple(
+        dataclasses.replace(n, padre_eid=padre_que_queda(n))
+        for n in aula.nodos
+        if n.eid not in borrados
+    )
+    return dataclasses.replace(aula, nodos=quedan)
 
 
 def hay_anterior(aula: CalificadorAula) -> bool:
