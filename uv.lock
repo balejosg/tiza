@@ -981,7 +981,7 @@ wheels = [
 
 [[package]]
 name = "tiza"
-version = "0.47.1"
+version = "0.48.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
