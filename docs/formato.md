@@ -339,7 +339,7 @@ hoja; sin pesos, todos pesan igual.
   copias `TZ_C_` dentro de una vista con actividades) ya no corta: tiza lo sustituye en la misma
   pasada (`CALIFICADOR_ANTIGUO_RETIRADO`), conserva las notas de las actividades, los resultados y
   las casillas con notas, y en un curso real la confirmación avisa de lo que se pierde y recomienda
-  exportar el calificador antes (Calificaciones → Exportar). Si el aula no ofrece «Media
+  exportar el calificador antes (Calificaciones → Informe del calificador → Exportar). Si el aula no ofrece «Media
   ponderada de calificaciones», `CALCULO_NO_DISPONIBLE`. Si el informe del usuario muestra
   «Ponderación» o «Contribución al total del curso», `PONDERACIONES_VISIBLES` solo avisa.
 - Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Solo

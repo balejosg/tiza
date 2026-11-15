@@ -815,6 +815,7 @@ def test_el_detalle_avisa_de_lo_que_se_pierde():
     assert "cambiaste a mano" in lineas[2]
     assert "1.ª evaluación" in lineas[3]
     assert "exporta el calificador" in lineas[4]
+    assert "Informe del calificador" in lineas[4]
     assert not any(
         "versión anterior de tiza" in x
         or "Examen" in x

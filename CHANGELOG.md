@@ -7,7 +7,7 @@ se avisa aquí con **Cambia**.
 ## 0.48.0 — 2026-11-15
 
 ### Cambia
-- **El calificador de una versión anterior se sustituye solo.** Si un curso tiene el árbol de la generación anterior, `tiza calificador` ya no se para: retira el árbol viejo y monta el nuevo en la misma pasada. Conserva las notas de las actividades, los resultados y las casillas que tengan notas; en un curso real te avisa de lo que se pierde y te recomienda exportar el calificador antes (Calificaciones → Exportar). Si se corta a medias, repetir el comando termina la retirada y monta.
+- **El calificador de una versión anterior se sustituye solo.** Si un curso tiene el árbol de la generación anterior, `tiza calificador` ya no se para: retira el árbol viejo y monta el nuevo en la misma pasada. Conserva las notas de las actividades, los resultados y las casillas que tengan notas; en un curso real te avisa de lo que se pierde y te recomienda exportar el calificador antes (Calificaciones → Informe del calificador → Exportar). Si se corta a medias, repetir el comando termina la retirada y monta.
 
 ## 0.47.1 — 2026-11-15
 

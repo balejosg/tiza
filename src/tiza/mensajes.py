@@ -608,7 +608,10 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
                 f"{_lista_corta(antiguo.cerradas)}: estaba cerrada; su nota se vuelve a calcular "
                 "con las notas de ahora y puede cambiar"
             )
-        lineas.append("Antes de seguir, exporta el calificador desde Calificaciones → Exportar")
+        lineas.append(
+            "Antes de seguir, exporta el calificador desde Calificaciones → "
+            "Informe del calificador → Exportar"
+        )
     for elemento in resumen.lineas_esquema:
         de_la_final = (
             f" ({_porcentaje(elemento.peso)} de la final)" if elemento.peso is not None else ""

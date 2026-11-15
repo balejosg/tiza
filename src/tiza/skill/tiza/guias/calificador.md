@@ -323,7 +323,7 @@ ponderacion:
   categorías de la §8 o quita antes esas categorías a mano.
 - **Árbol de la generación anterior.** `TZ_NOTAS`, `TZ_K_TIZA`, `TZ_AG_*`, `TZ_RP_*`, `TZ_F_*` o
   copias `TZ_C_` en una vista con actividades ya no cortan: tiza lo sustituye en la misma pasada
-  (`CALIFICADOR_ANTIGUO_RETIRADO`), conserva las notas de las actividades, los resultados (`TZ_O_`) y las casillas con notas, y en real avisa y recomienda exportar antes (Calificaciones → Exportar). No tienes que pedirle nada distinto al docente.
+  (`CALIFICADOR_ANTIGUO_RETIRADO`), conserva las notas de las actividades, los resultados (`TZ_O_`) y las casillas con notas, y en real avisa y recomienda exportar antes (Calificaciones → Informe del calificador → Exportar). No tienes que pedirle nada distinto al docente.
 
 ## 10. Cerrar una evaluación
 
