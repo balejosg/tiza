@@ -4186,13 +4186,16 @@ def test_decimal_punto():
     assert cal.decimal == "."
 
 
-def test_sin_permiso():
+def test_la_redireccion_al_login_es_sesion_caducada():
+    # Sin permiso, Moodle responde con una página de error; al login solo manda si la sesión
+    # ya no vale (caducó, o el docente entró con el mismo usuario desde el navegador).
     redireccion = _RespuestaHttp("", status=303, destino="https://aula/login/index.php")
     sesion = _SesionCalificador(respuesta_arbol=redireccion)
     moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
     with pytest.raises(ErrorPublicacion) as exc:
         moodle.calificador(2)
-    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+    assert exc.value.codigo == "SESION_CADUCADA"
+    assert len(sesion.gets) == 1  # no se pidió el login
 
 
 class _SesionConRedireccion(_SesionCalificador):
@@ -4231,10 +4234,9 @@ def test_redireccion_relativa_se_sigue():
         "https://otro.ejemplo/grade/edit/tree/index.php",
         "http://aula/grade/edit/tree/index.php",
         "//otro.ejemplo/grade/edit/tree/index.php",
-        "https://aula/login/index.php",
     ],
 )
-def test_redireccion_ajena_o_al_login_no_se_pide(destino):
+def test_redireccion_ajena_no_se_pide(destino):
     sesion = _SesionConRedireccion(destino)
     moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
     with pytest.raises(ErrorPublicacion) as exc:
@@ -4249,6 +4251,43 @@ def test_dos_redirecciones_seguidas_son_falta_de_permiso():
     with pytest.raises(ErrorPublicacion) as exc:
         moodle.calificador(2)
     assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+
+
+class _SesionQueAcabaEnElLogin(_SesionCalificador):
+    """La sesión se corta a mitad: el árbol redirige a sí mismo y, al seguirlo, al login."""
+
+    def get(self, url, params=None, allow_redirects=True, timeout=None):
+        self.gets.append((url, dict(params or {})))
+        destino = "/grade/edit/tree/index.php?id=2" if len(self.gets) == 1 else "/login/index.php"
+        return _RespuestaHttp("", status=303, destino=f"https://aula{destino}")
+
+
+def test_la_segunda_redireccion_al_login_tambien_es_sesion_caducada():
+    sesion = _SesionQueAcabaEnElLogin()
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "SESION_CADUCADA"
+    assert len(sesion.gets) == 2
+
+
+def test_la_sesion_caducada_a_mitad_de_la_lectura_no_es_falta_de_permiso():
+    # El árbol se leyó bien y la sesión se corta al abrir el formulario de un elemento.
+    redireccion = _RespuestaHttp("", status=303, destino="https://aula/login/index.php")
+    sesion = _SesionCalificador()
+    original = sesion.get
+
+    def get(url, params=None, allow_redirects=True, timeout=None):
+        respuesta = original(url, params, allow_redirects, timeout)
+        if url.endswith("/item.php") and (params or {}).get("id") == 166:
+            return redireccion
+        return respuesta
+
+    sesion.get = get
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "SESION_CADUCADA"
 
 
 class _SesionDeEnteros(_SesionCalificador):

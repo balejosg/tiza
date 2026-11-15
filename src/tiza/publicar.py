@@ -1302,7 +1302,8 @@ class Moodle:
     def _pagina_del_calificador(self, ruta: str, params: dict[str, int]) -> str:
         """El HTML de una página del calificador; una redirección es falta de permiso.
 
-        (Salvo la de ``calculation.php`` al informe de notas: ver ``_formula_del_elemento``.)
+        Salvo dos: la que va al login es ``SESION_CADUCADA`` (sin permiso, Moodle no manda al
+        login), y la de ``calculation.php`` al informe de notas (ver ``_formula_del_elemento``).
 
         Tras crear o borrar un elemento, o cambiar un máximo o un peso, Moodle devuelve primero
         la página «Recalculando calificaciones» (``div.progressbar_container``, sin el árbol):
@@ -1328,15 +1329,15 @@ class Moodle:
         )
         if 300 <= getattr(respuesta, "status_code", 200) < 400:
             # Justo después de escribir, Moodle puede redirigir a otra página del calificador
-            # (p. ej. el recálculo): se sigue una vez. Al login, a otra aula o a un informe de
-            # notas, falta de permiso (y al informe de notas ni siquiera se pide).
+            # (p. ej. el recálculo): se sigue una vez. Al login, la sesión ya no vale. A otra
+            # aula o a un informe de notas, falta de permiso (y ninguna de las tres se pide).
             destino = str((getattr(respuesta, "headers", None) or {}).get("Location", ""))
             if not destino:
                 raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
             if not _es_del_mismo_aula(self.base_url, destino):
                 raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")  # solo a su propia aula
             if _redirige_al_login(self.base_url, destino):
-                raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+                raise ErrorPublicacion("SESION_CADUCADA")
             if _es_informe_de_notas(self.base_url, destino):
                 raise _AlInformeDeNotas
             resuelta = _resolver_destino(self.base_url, destino)
@@ -1349,6 +1350,9 @@ class Moodle:
                 timeout=TIEMPO_ESPERA,
             )
             if 300 <= getattr(respuesta, "status_code", 200) < 400:
+                otro = str((getattr(respuesta, "headers", None) or {}).get("Location", ""))
+                if otro and _redirige_al_login(self.base_url, otro):
+                    raise ErrorPublicacion("SESION_CADUCADA")
                 raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
         self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
         return str(getattr(respuesta, "text", ""))

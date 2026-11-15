@@ -8,6 +8,7 @@ se avisa aquí con **Cambia**.
 
 ### Arreglado
 - **`tiza calificador` ya no dice que falta el permiso cuando no falta.** Respondía `CALIFICADOR_NO_PERMITIDO` si el curso tenía un elemento de calificación de tipo «Texto» o «Ninguna», o si quedaba el resultado de una tarea que el aula aún estaba borrando. Ahora lee el primero sin fórmula y deja fuera lo segundo, como ya hacía con la actividad en «Borrado en progreso».
+- **Si la sesión del aula se corta mientras tiza lee el calificador, lo dice.** Entrar en el aula con el mismo usuario desde el navegador cierra la sesión de tiza; `tiza calificador` respondía `CALIFICADOR_NO_PERMITIDO` y ahora responde `SESION_CADUCADA` (también como motivo de `NOTA_SIN_COLOCAR`): cierra el aula en el navegador y vuelve a abrir «tiza empezar».
 
 ## 0.47.0 — 2026-11-14
 
