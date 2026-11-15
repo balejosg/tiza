@@ -336,8 +336,10 @@ hoja; sin pesos, todos pesan igual.
   borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas configuradas por el
   docente: tiza solo usa la escala de logro que crea para la evidencia por criterio (ver más abajo).
 - Un árbol de la generación anterior (`TZ_NOTAS`, `TZ_K_TIZA`, `TZ_AG_*`, `TZ_RP_*`, `TZ_F_*` o
-  copias `TZ_C_` dentro de una vista con actividades) da `CALIFICADOR_ANTIGUO` antes de escribir;
-  hay que borrar a mano «Calificador de tiza» y volver a pedirlo. Si el aula no ofrece «Media
+  copias `TZ_C_` dentro de una vista con actividades) ya no corta: tiza lo sustituye en la misma
+  pasada (`CALIFICADOR_ANTIGUO_RETIRADO`), conserva las notas de las actividades, los resultados y
+  las casillas con notas, y en un curso real la confirmación avisa de lo que se pierde y recomienda
+  exportar el calificador antes (Calificaciones → Exportar). Si el aula no ofrece «Media
   ponderada de calificaciones», `CALCULO_NO_DISPONIBLE`. Si el informe del usuario muestra
   «Ponderación» o «Contribución al total del curso», `PONDERACIONES_VISIBLES` solo avisa.
 - Con tope, si alguna nota de elemento baja del umbral, la final no pasa del máximo. Solo

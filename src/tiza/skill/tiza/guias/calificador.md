@@ -322,9 +322,8 @@ ponderacion:
   `TZP_`, montar `calificacion.yaml` da `CALIFICADOR_CON_PONDERACION`; elige el modo por
   categorías de la §8 o quita antes esas categorías a mano.
 - **Árbol de la generación anterior.** `TZ_NOTAS`, `TZ_K_TIZA`, `TZ_AG_*`, `TZ_RP_*`, `TZ_F_*` o
-  copias `TZ_C_` en una vista con actividades dan `CALIFICADOR_ANTIGUO`, sin escribir nada. Borra a
-  mano «Calificador de tiza» en Calificaciones → Configuración del calificador (sus hijos suben al
-  curso) y repite; tiza quita la entrada vieja de `calificador.json`.
+  copias `TZ_C_` en una vista con actividades ya no cortan: tiza lo sustituye en la misma pasada
+  (`CALIFICADOR_ANTIGUO_RETIRADO`), conserva las notas de las actividades, los resultados (`TZ_O_`) y las casillas con notas, y en real avisa y recomienda exportar antes (Calificaciones → Exportar). No tienes que pedirle nada distinto al docente.
 
 ## 10. Cerrar una evaluación
 
@@ -342,7 +341,7 @@ estaba bloqueada. **tiza no puede reabrirla**: si falla a medias, repite el coma
 
 Lánzalo en segundo plano (hasta una hora): si te corta, la sesión acaba lo empezado y lo hecho no
 se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente` o `sin_colocar`,
-y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; `CALIFICADOR_CAMBIOS` desglosa los cambios por tipo (también `fijar_coeficiente`), con los primeros números de ID `TZ_…`. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose: es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALCULADOS_OCULTADOS` cuenta las copias y calculados que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de los que el aula no dejó ocultar (no corta el montaje), `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos y `PONDERACIONES_VISIBLES` de que el informe del usuario muestra ponderaciones o contribución. `CALCULO_NO_DISPONIBLE` corta antes de escribir si el aula no ofrece «Media ponderada de calificaciones»; `CALIFICADOR_ANTIGUO`, si el árbol es de la generación anterior.
+y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; `CALIFICADOR_CAMBIOS` desglosa los cambios por tipo (también `fijar_coeficiente`), con los primeros números de ID `TZ_…`. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose: es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALIFICADOR_ANTIGUO_RETIRADO` dice cuántos nodos se quitaron y cuántas casillas con notas se conservaron al sustituir un árbol de la generación anterior. `CALCULADOS_OCULTADOS` cuenta las copias y calculados que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de los que el aula no dejó ocultar (no corta el montaje), `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos y `PONDERACIONES_VISIBLES` de que el informe del usuario muestra ponderaciones o contribución. `CALCULO_NO_DISPONIBLE` corta antes de escribir si el aula no ofrece «Media ponderada de calificaciones»; `CALIFICADOR_ANTIGUO` queda como código de versiones anteriores y ya no corta.
 
 ## 12. Lo que tiza no hace
 
@@ -354,7 +353,7 @@ y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen 
 - Con más de 500 ficheros `.md` o `.html`, `CARPETA_DEMASIADO_GRANDE`: saca los que no sean del curso.
 - Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no adivines cuál es: el docente borra o renombra una.
 - `ESQUEMA_INVALIDO`, `PESOS_NO_SUMAN_100`, `ID_REPETIDO`, `SECCION_REPETIDA`, `TOPE_SIN_ELEMENTOS`
-  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera; `PROGRESIVA_SIN_FACTORES`, `RECUPERA_INVALIDO`, `RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`, `RECUPERACION_SOLO_FINAL_DE_ELEMENTOS` y `ACTIVIDAD_SIN_EVALUACION` completan el diagnóstico. `CALCULO_NO_DISPONIBLE` y `CALIFICADOR_ANTIGUO` cortan antes de escribir; no los rodees con otro montaje.
+  y `ESQUEMA_FUERA_DE_CARPETA` dicen la ruta y la línea. `EVALUA_INVALIDO` es un `evalua` mal escrito; `ELEMENTO_DESCONOCIDO` nombra algo que no está; `SECCION_SIN_EVALUACION` deja una actividad fuera; `PROGRESIVA_SIN_FACTORES`, `RECUPERA_INVALIDO`, `RECUPERA_SIN_EVIDENCIAS`, `RECUPERACION_CON_MEDIANA`, `RECUPERACION_SOLO_FINAL_DE_ELEMENTOS` y `ACTIVIDAD_SIN_EVALUACION` completan el diagnóstico. `CALCULO_NO_DISPONIBLE` corta antes de escribir; no lo rodees con otro montaje. `CALIFICADOR_ANTIGUO` ya no corta: tiza sustituye el árbol anterior en la misma pasada.
 - `ELEMENTO_CON_CRITERIOS`: un `evalua` nombra un elemento con criterios; usa sus criterios.
   `CRITERIOS_SIN_PESO` es un aviso: tiza los pesa igual, y se lo dices al docente.
 - Si `.tiza/calificador.json` da `CALIFICADOR_INVALIDO`, no lo edites ni lo borres: pide al docente que lo revise; si se borra, tiza deja de saber qué cambió el docente a mano.
