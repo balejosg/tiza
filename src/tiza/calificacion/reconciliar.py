@@ -294,6 +294,28 @@ def es_calificador_antiguo(aula: CalificadorAula) -> bool:
     return False
 
 
+def final_montada(aula: CalificadorAula) -> str | None:
+    """De qué sale la nota final de lo que tiza tiene montado: ``elementos``, ``evaluaciones`` o ``None``.
+
+    La señal es lo que cuelga directamente de ``TZ_FINAL``: sus hijos ``TZ_E_*`` (los elementos o
+    RA) o ``TZ_V_*`` (las evaluaciones). ``deseado`` pone en ``TZ_FINAL`` una sola de las dos
+    vistas (la otra va a ``TZ_VISTA``), así que, si solo hay una clase, es inequívoca. Sin
+    ``TZ_FINAL``, sin hijos de tiza o con las dos clases mezcladas (un montaje a medias o
+    tocado a mano) no se decide: ``None``. Lo que no es de tiza (sin ``TZ_``) no cuenta.
+    ``organizacion`` no se deduce: no cambia el árbol (solo ``final.de`` lo hace).
+    """
+    indice = _Indice(aula)
+    final = indice.por_id.get("TZ_FINAL")
+    if final is None:
+        return None
+    clases = {
+        "elementos" if hijo.idnumber.startswith("TZ_E_") else "evaluaciones"
+        for hijo in indice.hijos.get(final.eid, [])
+        if hijo.idnumber.startswith(("TZ_E_", "TZ_V_"))
+    }
+    return next(iter(clases)) if len(clases) == 1 else None
+
+
 def _se_borra(nodo: NodoAula) -> bool:
     """La regla de la retirada, por clase de nodo (nunca por ``tiene_notas`` a secas)."""
     if not nodo.idnumber.startswith(_PREFIJO) or nodo.clase == "curso":

@@ -2888,6 +2888,13 @@ def preparar_calificador(
         huellas = {}
     else:
         retirada = None
+        montada = rc.final_montada(actual)
+        if montada is not None and montada != esquema.final.de:
+            # Cambiar de qué sale la final no se hace solo: nada se escribe, ni bloqueos.
+            raise ErrorPublicacion(
+                "CALIFICADOR_REORGANIZADO",
+                f"la final montada sale de {montada} y el esquema pide {esquema.final.de}",
+            )
     if estado.version_de_calificador(dir_tiza) == 1 and huellas:
         # El docente borró a mano el árbol viejo: su huella ya no describe nada. Si aún
         # estuviera, ``es_calificador_antiguo`` habría cortado antes.
@@ -3288,7 +3295,11 @@ def calificador_con(
             documentos_con_resultados=efectivas,
         )
     except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
-        borrador.fallo("CALIFICADOR", exc.codigo)
+        # Solo este detalle es texto propio de tiza; los demás errores siguen dando su código.
+        borrador.fallo(
+            "CALIFICADOR",
+            exc.detalle if exc.codigo == "CALIFICADOR_REORGANIZADO" else exc.codigo,
+        )
         borrador.error(exc.codigo)
         depurar(exc, debug)
         return borrador.documento("error")

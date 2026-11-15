@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Arreglado
+- **Cambiar `final.de` sobre un calificador ya montado ya no se queda en silencio.** `tiza calificador` daba `ok` sin cambiar nada en el aula; ahora corta ese curso con `CALIFICADOR_REORGANIZADO`, sin escribir, y explica qué hacer: devolver `final.de` o borrar a mano el «Calificador de tiza» y volver a montar (las notas de las actividades se conservan).
+
 ## 0.48.0 — 2026-11-15
 
 ### Cambia

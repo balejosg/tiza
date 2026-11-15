@@ -332,8 +332,11 @@ hoja; sin pesos, todos pesan igual.
   primero la completa). Una vez bloqueada, no se crea, cambia, mueve ni borra nada dentro, y una
   actividad nueva de sus secciones queda sin colocar (`ACTIVIDAD_EN_EVALUACION_CERRADA`). tiza no
   la reabre.
-- No se admite cambiar `organizacion` o `final.de` de un calificador ya montado (habría que
-  borrar a mano lo de tiza en el aula y volver a montar), ni usar escalas configuradas por el
+- No se admite cambiar `final.de` de un calificador ya montado: si lo montado sale de otra cosa
+  que el esquema pedido, ese curso da `CALIFICADOR_REORGANIZADO` y no se escribe nada (devuelve
+  `final.de` a como estaba, o borra a mano el «Calificador de tiza» en el aula y vuelve a montar;
+  las notas de las actividades se conservan). `organizacion` solo valida las claves que hacen falta y
+  no cambia lo que se monta, así que cambiarla sola no toca el aula. Tampoco se admite usar escalas configuradas por el
   docente: tiza solo usa la escala de logro que crea para la evidencia por criterio (ver más abajo).
 - Un árbol de la generación anterior (`TZ_NOTAS`, `TZ_K_TIZA`, `TZ_AG_*`, `TZ_RP_*`, `TZ_F_*` o
   copias `TZ_C_` dentro de una vista con actividades) ya no corta: tiza lo sustituye en la misma

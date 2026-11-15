@@ -541,6 +541,46 @@ def test_el_arbol_antiguo_con_copia_y_actividades_se_detecta() -> None:
     assert rc.es_calificador_antiguo(aula)
 
 
+def test_la_final_montada_se_lee_de_lo_que_cuelga_de_tz_final() -> None:
+    elementos = aula_con(
+        nodo_aula("cg9", "TZ_FINAL", "categoria", "cg1", agregacion=10),
+        nodo_aula("cg10", "TZ_VISTA", "contenedor", "cg1", agregacion=10),
+        nodo_aula("cg11", "TZ_E_RA1", "categoria", "cg9", agregacion=10),
+        nodo_aula("cg12", "TZ_V_1", "categoria", "cg10", agregacion=10),
+    )
+    evaluaciones = aula_con(
+        nodo_aula("cg9", "TZ_FINAL", "categoria", "cg1", agregacion=10),
+        nodo_aula("cg10", "TZ_VISTA", "contenedor", "cg1", agregacion=10),
+        nodo_aula("cg11", "TZ_V_1", "categoria", "cg9", agregacion=10),
+        nodo_aula("cg12", "TZ_E_RA1", "categoria", "cg10", agregacion=10),
+    )
+    assert rc.final_montada(elementos) == "elementos"
+    assert rc.final_montada(evaluaciones) == "evaluaciones"
+
+
+def test_la_final_montada_no_se_decide_con_un_montaje_ambiguo() -> None:
+    assert rc.final_montada(aula_inicial()) is None
+    vacia = aula_con(nodo_aula("cg9", "TZ_FINAL", "categoria", "cg1", agregacion=10))
+    assert rc.final_montada(vacia) is None
+    sin_final = aula_con(nodo_aula("cg9", "TZ_V_1", "categoria", "cg1", agregacion=10))
+    assert rc.final_montada(sin_final) is None
+    mezclada = aula_con(
+        nodo_aula("cg9", "TZ_FINAL", "categoria", "cg1", agregacion=10),
+        nodo_aula("cg11", "TZ_E_RA1", "categoria", "cg9", agregacion=10),
+        nodo_aula("cg12", "TZ_V_1", "categoria", "cg9", agregacion=10),
+    )
+    assert rc.final_montada(mezclada) is None
+
+
+def test_la_final_montada_ignora_lo_que_no_es_de_tiza() -> None:
+    aula = aula_con(
+        nodo_aula("cg9", "TZ_FINAL", "categoria", "cg1", agregacion=10),
+        nodo_aula("cg11", "", "categoria", "cg9", agregacion=10, nombre="Del docente"),
+        nodo_aula("cg12", "TZ_V_1", "categoria", "cg9", agregacion=10),
+    )
+    assert rc.final_montada(aula) == "evaluaciones"
+
+
 def test_pasada2_solo_da_ajustes() -> None:
     d, final, rec = montar()
     assert pasada2(d, final, {}, CMIDS) == ()

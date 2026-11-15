@@ -2629,6 +2629,87 @@ def test_calificador_sin_media_ponderada_no_escribe_nada(tmp_path):
     assert moodle.escrituras == []
 
 
+ESQUEMA_FINAL_EVALUACIONES = """\
+organizacion: evaluaciones
+elementos:
+  - {id: RA1, nombre: Redes, peso: 60}
+  - {id: RA2, nombre: Sistemas, peso: 40}
+evaluaciones:
+  - {nombre: 1.ª evaluación, secciones: [1], peso: 50}
+  - {nombre: 2.ª evaluación, secciones: [2], peso: 50}
+final: {de: evaluaciones}
+"""
+
+
+def _montado_con(tmp_path, esquema: str) -> tuple[Path, AulaViva]:
+    carpeta = carpeta_fp(tmp_path, esquema=esquema)
+    moodle = AulaViva()
+    assert atender(pedir(carpeta), moodle, carpeta)["resultado"] == "ok"
+    moodle.escrituras.clear()
+    return carpeta, moodle
+
+
+@pytest.mark.parametrize(
+    ("montado", "pedido", "dice"),
+    [
+        (ESQUEMA, ESQUEMA_FINAL_EVALUACIONES, "elementos"),
+        (ESQUEMA_FINAL_EVALUACIONES, ESQUEMA, "evaluaciones"),
+    ],
+    ids=["de_elementos_a_evaluaciones", "de_evaluaciones_a_elementos"],
+)
+def test_cambiar_de_que_sale_la_final_no_escribe_nada(tmp_path, montado, pedido, dice):
+    carpeta, moodle = _montado_con(tmp_path, montado)
+    (carpeta / "calificacion.yaml").write_text(pedido, encoding="utf-8")
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "error"
+    assert documento["errores"] == ["CALIFICADOR_REORGANIZADO"]
+    assert moodle.escrituras == []
+    [paso] = pasos(documento, "CALIFICADOR")
+    assert paso["resultado"] == "fallo"
+    assert dice in paso["detalle"]
+    assert "http" not in paso["detalle"]
+
+
+def test_cambiar_la_final_en_real_corta_el_curso_sin_preguntar(tmp_path):
+    carpeta, moodle = _montado_con(tmp_path, ESQUEMA)
+    (carpeta / "calificacion.yaml").write_text(ESQUEMA_FINAL_EVALUACIONES, encoding="utf-8")
+    presencia = PresenciaFalsa(real=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert documento["resultado"] == "error", documento
+    assert "CALIFICADOR_REORGANIZADO" in documento["errores"]
+    assert moodle.escrituras == []
+    assert presencia.resumenes_calificador == []
+
+
+def test_cambiar_solo_organizacion_no_cambia_el_aula(tmp_path):
+    carpeta, moodle = _montado_con(tmp_path, ESQUEMA)
+    cambiado = ESQUEMA.replace("organizacion: elementos", "organizacion: evaluaciones")
+    (carpeta / "calificacion.yaml").write_text(cambiado, encoding="utf-8")
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert moodle.escrituras == []
+
+
+def test_el_mismo_esquema_sobre_lo_montado_sigue_como_siempre(tmp_path):
+    carpeta, moodle = _montado_con(tmp_path, ESQUEMA_FINAL_EVALUACIONES)
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert pasos(documento, "CALIFICADOR")[0]["detalle"] == "sin cambios"
+
+
+def test_un_montaje_a_medias_ambiguo_no_corta_por_reorganizado(tmp_path):
+    carpeta = carpeta_fp(tmp_path, esquema=ESQUEMA_FINAL_EVALUACIONES)
+    moodle = AulaViva(
+        extra=[
+            nodo("cg60", "TZ_TIZA", "categoria", CURSO_EID, agregacion=13),
+            nodo("cg61", "TZ_FINAL", "categoria", "cg60", agregacion=13),
+        ]
+    )
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert "CALIFICADOR_REORGANIZADO" not in documento["errores"]
+    assert documento["resultado"] == "ok", documento
+
+
 def test_ponderaciones_visibles_avisa(tmp_path):
     carpeta = carpeta_fp(tmp_path)
     moodle = AulaViva()

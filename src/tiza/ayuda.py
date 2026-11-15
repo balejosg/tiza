@@ -26,6 +26,7 @@ MENSAJES: dict[str, str] = {
     "ESQUEMA_INVALIDO": "El esquema de calificación (.yaml) tiene un error: el mensaje dice la ruta y la línea. Corrígelo y repite «tiza comprobar» con él antes de pedir el calificador.",
     "PONDERACION_INVALIDA": "El esquema de ponderación (ponderacion.yaml) tiene un error: el mensaje dice la ruta y la línea. Corrígelo y repite «tiza comprobar» con él antes de pedir el calificador.",
     "CALIFICADOR_CON_PONDERACION": "El curso ya tiene categorías de ponderación (las de ponderacion.yaml) y no se mezclan con el calificador de calificacion.yaml. Elige un solo modo para ese curso; tiza no toca nada en él.",
+    "CALIFICADOR_REORGANIZADO": "El «Calificador de tiza» montado sale de otra cosa (final.de) que calificacion.yaml, y tiza no lo reorganiza. No tocó nada. Devuelve final.de a como estaba o borra a mano «Calificador de tiza» y vuelve a montar: las notas se conservan, están en las actividades.",
     "CALIFICADOR_ANTIGUO": "Código de versiones anteriores: tiza ya sustituye el calificador anterior",
     "PONDERACION_CON_CALIFICADOR_DE_TIZA": "El curso ya tiene el «Calificador de tiza» (el de calificacion.yaml) y no se mezcla con la ponderación de ponderacion.yaml. Elige un solo modo para ese curso; tiza no toca nada en él.",
     "CATEGORIA_BLOQUEADA": "Una categoría nueva de ponderacion.yaml caería dentro de una categoría bloqueada del aula, y tiza no escribe en ella. No se ha cambiado nada en este curso: desbloquéala a mano en el calificador o cambia «dentro_de».",

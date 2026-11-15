@@ -349,7 +349,7 @@ y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen 
 - **Los dos modos no conviven en un curso**: `calificacion.yaml` (por criterios, con `TZ_TIZA`) y `ponderacion.yaml` (por categorías, con `TZP_`) son excluyentes. Si están los dos ficheros, `tiza comprobar` avisa; elige uno por curso.
 - No usa los descriptores de las competencias de Moodle, pero **sí** sus «resultados»
   (*outcomes*) para la evidencia por criterio. No usa las «competencias» de Moodle.
-- **No admitido**: cambiar `organizacion` o `final.de` de un calificador ya montado, ni configurar escalas propias (tiza crea la escala de logro de §6).
+- **No admitido**: cambiar `final.de` de un calificador ya montado (`CALIFICADOR_REORGANIZADO`: no escribe nada; di al docente que devuelva `final.de` a como estaba o que borre a mano «Calificador de tiza» en el aula y vuelva a montar; las notas de las actividades se conservan). `organizacion` no cambia lo que se monta. Tampoco, configurar escalas propias (tiza crea la escala de logro de §6).
 - Con más de 500 ficheros `.md` o `.html`, `CARPETA_DEMASIADO_GRANDE`: saca los que no sean del curso.
 - Si dos actividades del mismo tipo y nombre apuntan al mismo sitio (`ACTIVIDAD_AMBIGUA`), no adivines cuál es: el docente borra o renombra una.
 - `ESQUEMA_INVALIDO`, `PESOS_NO_SUMAN_100`, `ID_REPETIDO`, `SECCION_REPETIDA`, `TOPE_SIN_ELEMENTOS`
