@@ -1139,6 +1139,17 @@ def _actividad_en_evaluacion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, .
     )
 
 
+def _sale_de_evaluacion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"{texto_seguro(datos['ruta'], 200)} sigue contando en la evaluación cerrada "
+            f"«{texto_seguro(datos['evaluacion'])}» porque tiza no toca una evaluación cerrada. "
+            "Devuelve su sección a esa evaluación en el esquema o, si de verdad debe moverse, "
+            "desbloquea a mano esa evaluación en el aula y quita `cerrada: true`."
+        ),
+    )
+
+
 def _nota_sin_colocar(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     motivo = _motivo_de_nota(datos["motivo"], datos["categoria"])
     return (Linea(f"No se colocó la nota de «{texto_seguro(datos['nombre'])}»: {motivo}."),)
@@ -1655,6 +1666,7 @@ def _sesion_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
 
 _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ACTIVIDAD_EN_EVALUACION_CERRADA": _actividad_en_evaluacion_cerrada,
+    "SALE_DE_EVALUACION_CERRADA": _sale_de_evaluacion_cerrada,
     "ACTIVIDAD_PENDIENTE": _actividad_pendiente,
     "ACTIVIDAD_SIN_EVALUA": _actividad_sin_evalua,
     "AISLAMIENTO_GUARDADO": _aislamiento_guardado,

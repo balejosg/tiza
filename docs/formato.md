@@ -330,8 +330,11 @@ hoja; sin pesos, todos pesan igual.
   en una sección que no es de ninguna evaluación da `SECCION_SIN_EVALUACION`.
 - `cerrada: true` bloquea la evaluación en el aula al terminar de montar (si no estaba completa,
   primero la completa). Una vez bloqueada, no se crea, cambia, mueve ni borra nada dentro, y una
-  actividad nueva de sus secciones queda sin colocar (`ACTIVIDAD_EN_EVALUACION_CERRADA`). tiza no
-  la reabre.
+  actividad nueva de sus secciones queda sin colocar (`ACTIVIDAD_EN_EVALUACION_CERRADA`). Si el
+  esquema pasa a otra evaluación una sección cuyas actividades ya cuentan en una cerrada, se
+  quedan donde están y siguen contando ahí: `SALE_DE_EVALUACION_CERRADA` lo avisa una vez por
+  actividad (devuelve la sección a esa evaluación, o desbloquéala a mano y quita `cerrada: true`).
+  tiza no la reabre.
 - No se admite cambiar `final.de` de un calificador ya montado: si lo montado sale de otra cosa
   que el esquema pedido, ese curso da `CALIFICADOR_REORGANIZADO` y no se escribe nada (devuelve
   `final.de` a como estaba, o borra a mano el «Calificador de tiza» en el aula y vuelve a montar;

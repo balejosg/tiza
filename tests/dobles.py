@@ -1149,6 +1149,9 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "ACTIVIDAD_EN_EVALUACION_CERRADA": publicacion.Aviso.actividad_en_evaluacion_cerrada(
             "t.md"
         ),
+        "SALE_DE_EVALUACION_CERRADA": publicacion.Aviso.sale_de_evaluacion_cerrada(
+            "t.md", "1.ª evaluación"
+        ),
         "ACTIVIDAD_PENDIENTE": publicacion.Aviso.actividad_pendiente("t.md"),
         "ACTIVIDAD_SIN_EVALUA": publicacion.Aviso.actividad_sin_evalua("t.md"),
         "CALCULADOS_OCULTADOS": publicacion.Aviso.calculados_ocultados(3),

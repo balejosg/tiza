@@ -899,9 +899,48 @@ def test_una_actividad_nueva_en_una_evaluacion_cerrada_sale_como_sin_colocar(tmp
     assert acciones(documento)["e.md"] == "sin_colocar"
     assert acciones(documento)["a.md"] == "ya_estaba"
     assert pasos(documento, "ACTIVIDAD_EN_EVALUACION_CERRADA")[0]["detalle"] == "1"
+    assert pasos(documento, "SALE_DE_EVALUACION_CERRADA") == []
     assert moodle.escrituras == []  # ni ella ni sus copias: nada de FORMULA_NO_VALIDA
     assert moodle.nodos["ig114"].padre_eid == CURSO_EID
     informe.validar(documento)
+
+
+def _con_la_primera_cerrada(tmp_path):
+    cerrada = ESQUEMA.replace(
+        "{nombre: 1.ª evaluación, secciones: [1]}",
+        "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
+    )
+    carpeta = carpeta_fp(tmp_path, cerrada)
+    moodle = AulaViva()
+    atender(pedir(carpeta), moodle, carpeta)
+    atender(pedir(carpeta), moodle, carpeta)
+    assert moodle.por_id("TZ_V_1").bloqueado
+    return cerrada, carpeta, moodle
+
+
+def test_pasar_una_seccion_de_la_cerrada_a_una_abierta_avisa_y_no_la_mueve(tmp_path):
+    cerrada, carpeta, moodle = _con_la_primera_cerrada(tmp_path)
+    a = next(n for n in moodle.nodos.values() if n.cmid == 11)
+    antes = a.padre_eid
+    # la sección 1 pasa a la 2.ª evaluación (abierta); la 1.ª queda cerrada con la sección 3
+    nuevo = cerrada.replace("secciones: [1], cerrada: true", "secciones: [3], cerrada: true")
+    nuevo = nuevo.replace("secciones: [2]}", "secciones: [1, 2]}")
+    carpeta_fp(tmp_path, nuevo)
+    moodle.escrituras.clear()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert documento["resultado"] == "ok", documento
+    assert acciones(documento)["a.md"] == "sin_colocar"
+    assert pasos(documento, "SALE_DE_EVALUACION_CERRADA")[0]["detalle"] == "2"
+    assert next(n for n in moodle.nodos.values() if n.cmid == 11).padre_eid == antes
+    informe.validar(documento)
+
+
+def test_con_la_cerrada_sin_tocar_no_sale_el_aviso_de_que_sale(tmp_path):
+    _cerrada, carpeta, moodle = _con_la_primera_cerrada(tmp_path)
+    moodle.escrituras.clear()
+    documento = atender(pedir(carpeta), moodle, carpeta)
+    assert pasos(documento, "SALE_DE_EVALUACION_CERRADA") == []
+    assert moodle.escrituras == []
 
 
 def test_una_actividad_cambiada_a_mano_sale_como_sin_colocar(tmp_path):

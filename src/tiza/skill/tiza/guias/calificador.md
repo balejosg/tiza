@@ -328,9 +328,10 @@ ponderacion:
 ## 10. Cerrar una evaluación
 
 Cerrar una evaluación es poner `cerrada: true` y volver a montar: tiza la completa y la bloquea.
-Dentro de una evaluación bloqueada no se crea, cambia, mueve ni borra nada; una actividad nueva
-sale como `ACTIVIDAD_EN_EVALUACION_CERRADA` y `EVALUACION_CERRADA_EN_EL_AULA` avisa de que ya
-estaba bloqueada. **tiza no puede reabrirla**: si falla a medias, repite el comando.
+Dentro de una evaluación bloqueada no se crea, cambia, mueve ni borra nada: una actividad nueva
+sale como `ACTIVIDAD_EN_EVALUACION_CERRADA`, `EVALUACION_CERRADA_EN_EL_AULA` avisa de que ya estaba
+bloqueada y una sección pasada a otra evaluación no se mueve (`SALE_DE_EVALUACION_CERRADA`: que la
+devuelva, o desbloquee a mano y quite `cerrada: true`). **tiza no la reabre**; si falla, repite.
 
 ## 11. Cómo se monta
 

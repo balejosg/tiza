@@ -320,6 +320,35 @@ def test_evaluacion_cerrada_no_se_toca() -> None:
     assert not any(op.tipo == "colocar" and op.ruta == "a.md" for op in rec.operaciones)
 
 
+def _aula_con_a_en_la_cerrada():
+    return aula_con(
+        nodo_aula("cg9", "TZ_V_1", "categoria", "cg1", agregacion=10, bloqueado=True),
+        actividad(11, padre="cg9"),
+        actividad(13),
+    )
+
+
+def test_una_actividad_que_sale_de_la_cerrada_avisa_y_no_se_mueve() -> None:
+    d = deseado(FP_CERRADA, [doc("a.md", 2, RA2=100), doc("c.md", 2, RA2=100)], False, CARPETA)
+    rec = reconciliar(d, _aula_con_a_en_la_cerrada(), {}, CMIDS)
+    assert ("SALE_DE_EVALUACION_CERRADA", "a.md") in rec.avisos
+    assert "a.md" in rec.sin_colocar
+    assert not any(op.tipo == "colocar" and op.ruta == "a.md" for op in rec.operaciones)
+
+
+def test_una_actividad_que_sigue_en_la_cerrada_no_avisa_de_que_sale() -> None:
+    d = deseado(FP_CERRADA, [doc("a.md", 1, RA1_a=100), doc("c.md", 2, RA2=100)], False, CARPETA)
+    rec = reconciliar(d, _aula_con_a_en_la_cerrada(), {}, CMIDS)
+    assert not any(codigo == "SALE_DE_EVALUACION_CERRADA" for codigo, _ in rec.avisos)
+
+
+def test_pasar_una_seccion_entre_dos_abiertas_no_avisa_de_que_sale() -> None:
+    d = deseado(E1, [doc("a.md", 2, RA2=100), doc("c.md", 2, RA2=100)], False, CARPETA)
+    aula = aula_con(actividad(11), actividad(13))
+    rec = reconciliar(d, aula, {}, CMIDS)
+    assert not any(codigo == "SALE_DE_EVALUACION_CERRADA" for codigo, _ in rec.avisos)
+
+
 def test_la_cerrada_se_bloquea_al_final_de_la_segunda_pasada() -> None:
     d = deseado(FP_CERRADA, [doc("a.md", 1, RA1_a=100)], False, CARPETA)
     aula = aula_con(actividad(11))

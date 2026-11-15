@@ -143,6 +143,7 @@ AVISOS = frozenset(
     {
         "ACTIVIDAD_EN_EVALUACION_CERRADA",
         "ACTIVIDAD_PENDIENTE",
+        "SALE_DE_EVALUACION_CERRADA",
         "ACTIVIDAD_SIN_EVALUA",
         "AISLAMIENTO_GUARDADO",
         "AUTOPRUEBA_FALLIDA",
@@ -230,6 +231,11 @@ class Aviso:
     def actividad_en_evaluacion_cerrada(cls, ruta: str) -> Aviso:
         """``ruta``: el fichero nuevo en una evaluación cerrada, que se queda sin colocar."""
         return cls("ACTIVIDAD_EN_EVALUACION_CERRADA", {"ruta": ruta})
+
+    @classmethod
+    def sale_de_evaluacion_cerrada(cls, ruta: str, evaluacion: str) -> Aviso:
+        """``ruta``: el fichero que el esquema pasa de evaluación y sigue en la cerrada ``evaluacion``."""
+        return cls("SALE_DE_EVALUACION_CERRADA", {"ruta": ruta, "evaluacion": evaluacion})
 
     @classmethod
     def actividad_pendiente(cls, ruta: str) -> Aviso:
@@ -2921,6 +2927,18 @@ def preparar_calificador(
     )
 
 
+def _evaluacion_cerrada_de(ruta: str, plan: PlanCalificador) -> str:
+    """El nombre de la evaluación cerrada del aula en la que sigue la actividad de ``ruta``."""
+    cmid = plan.cmids.get(ruta)
+    por_eid = {n.eid: n for n in plan.aula_antes.nodos}
+    nodo = next((n for n in plan.aula_antes.nodos if n.cmid == cmid and n.cmid is not None), None)
+    while nodo is not None:
+        if nodo.bloqueado and rc.es_evaluacion(nodo.idnumber):
+            return nodo.nombre or nodo.idnumber
+        nodo = por_eid.get(nodo.padre_eid) if nodo.padre_eid else None
+    return "cerrada"
+
+
 def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
     """El aviso de la reconciliación en el tipo que sabe contar la presencia (``None``: no cuenta)."""
     nombres = {n.idnumber: n.nombre for n in plan.aula_antes.nodos if n.idnumber}
@@ -2931,6 +2949,8 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
         return Aviso.actividad_pendiente(clave)
     if codigo == "ACTIVIDAD_EN_EVALUACION_CERRADA":
         return Aviso.actividad_en_evaluacion_cerrada(clave)
+    if codigo == "SALE_DE_EVALUACION_CERRADA":
+        return Aviso.sale_de_evaluacion_cerrada(clave, _evaluacion_cerrada_de(clave, plan))
     if codigo == "CAMBIADO_A_MANO":
         return Aviso.cambiado_a_mano(nombre)
     if codigo == "EVALUACION_CERRADA_EN_EL_AULA":

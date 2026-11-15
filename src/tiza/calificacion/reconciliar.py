@@ -11,7 +11,9 @@ Qué respeta, por este orden:
 * una evaluación cerrada (``TZ_V_<n>`` **bloqueada en el aula**): nada de lo que cuelga de ella
   se crea, cambia, mueve ni borra, ni ella misma; tiza nunca desbloquea. Una actividad nueva en
   una sección de una evaluación cerrada se queda sin colocar, con todas sus copias e indicadores
-  (``ACTIVIDAD_EN_EVALUACION_CERRADA``). Una evaluación ``cerrada: true`` que aún no está
+  (``ACTIVIDAD_EN_EVALUACION_CERRADA``); una que el esquema pasa a otra evaluación y sigue en la
+  cerrada se queda donde está y avisa (``SALE_DE_EVALUACION_CERRADA``). Una evaluación
+  ``cerrada: true`` que aún no está
   bloqueada (no existe, o a medio montar) se trata como abierta —se crea, se coloca y se ajusta,
   en las dos pasadas— y se bloquea al final de la segunda («cerrar es marcar y volver a montar»):
   si el montaje falla a medias, la ejecución siguiente la completa y después la bloquea;
@@ -98,6 +100,7 @@ AVISOS = (
     "EVALUACION_CERRADA_EN_EL_AULA",
     "ELEMENTO_CON_NOTAS_QUITADO",
     "REGLA_CAMBIADA",
+    "SALE_DE_EVALUACION_CERRADA",
     "RESULTADO_CON_NOTAS_QUITADO",
     "RESULTADO_RECREADO",
     "TOTAL_AJENO_BLOQUEADO",
@@ -871,7 +874,11 @@ class _Plan:
             if n.idnumber in self.bloqueadas_en_aula and n.idnumber not in self.d.cerradas:
                 self._aviso("EVALUACION_CERRADA_EN_EL_AULA", n.idnumber)
         for nodo in self.d.nodos:
-            if nodo.idnumber in self.omitidos or self._cerrado_deseado(nodo.idnumber):
+            if nodo.idnumber in self.omitidos:
+                continue
+            if nodo.clase == "actividad":
+                self._avisar_si_sale_de_cerrada(nodo)
+            if self._cerrado_deseado(nodo.idnumber):
                 continue
             if nodo.clase == "actividad":
                 self._actividad(nodo)
@@ -882,6 +889,29 @@ class _Plan:
         self._sobrantes()
         self._ocultar_calculados()
         self._cierres()
+
+    def _evaluacion_deseada(self, idnumber: str | None) -> str | None:
+        while idnumber is not None:
+            if _EVALUACION.fullmatch(idnumber):
+                return idnumber
+            nodo = self.dnodos.get(idnumber)
+            idnumber = nodo.padre if nodo else None
+        return None
+
+    def _evaluacion_cerrada_del_aula(self, nodo: NodoAula | None) -> str | None:
+        while nodo is not None:
+            if nodo.idnumber in self.cerradas and _EVALUACION.fullmatch(nodo.idnumber):
+                return nodo.idnumber
+            nodo = self.idx.padre(nodo)
+        return None
+
+    def _avisar_si_sale_de_cerrada(self, nodo: Nodo) -> None:
+        """Avisa de la actividad que el esquema pone en otra evaluación y sigue en una cerrada."""
+        act = self._actividad_aula(nodo.idnumber)
+        hoy = self._evaluacion_cerrada_del_aula(act)
+        if hoy is not None and hoy != self._evaluacion_deseada(nodo.padre):
+            self._aviso("SALE_DE_EVALUACION_CERRADA", nodo.idnumber)
+            self.sin_colocar.add(nodo.idnumber)
 
     def _actividad(self, nodo: Nodo) -> None:
         ruta = nodo.idnumber
@@ -1391,6 +1421,10 @@ class _Plan:
             + self.cierre
             + self.borrar
         )
+
+
+def es_evaluacion(idnumber: str) -> bool:
+    return _EVALUACION.fullmatch(idnumber) is not None
 
 
 def reconciliar(
