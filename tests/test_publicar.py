@@ -3921,8 +3921,11 @@ class _SesionCalificador:
         settings=None,
         modedit=None,
         quiz=None,
+        sin_calculo=(),
     ):
         self.arbol = _fixture_calificador("setup-lleno.html") if arbol is None else arbol
+        # Elementos a los que Moodle no deja poner fórmula: su ``calculation.php`` redirige.
+        self.sin_calculo = set(sin_calculo)
         # Ajustes de cada actividad (``course/modedit.php``) y página de cada cuestionario.
         self.modedit = modedit or {}
         self.quiz = quiz or {}
@@ -3972,6 +3975,10 @@ class _SesionCalificador:
                 self.categorias.get(ident) or _fixture_calificador("category.html")
             )
         if url.endswith("/grade/edit/tree/calculation.php"):
+            if ident in self.sin_calculo:
+                return _RespuestaHttp(
+                    "", status=303, destino="https://aula/grade/report/index.php?id=2"
+                )
             formula = self.calculos.get(ident, "")
             return _RespuestaHttp(
                 f'<form action="/grade/edit/tree/calculation.php"><textarea name="calculation">{formula}</textarea></form>'
@@ -4104,6 +4111,59 @@ def test_calificador_lee_el_elemento_manual_con_icono_del_nucleo():
     )
     cal, _ = _calificador(arbol=arbol)
     assert _nodo(cal, "ig166").clase == "manual"
+
+
+def test_calificador_lee_el_elemento_de_texto_sin_formula():
+    # Moodle no deja poner fórmula a un elemento de tipo «Texto» o «Ninguna»: su calculation.php
+    # redirige al informe de notas. No es falta de permiso; el elemento no tiene fórmula.
+    cal, sesion = _calificador(sin_calculo={166})
+    assert _nodo(cal, "ig166").clase == "manual"
+    assert _nodo(cal, "ig166").formula is None
+    assert _nodo(cal, "ig165").clase == "manual"
+    assert all("grade/report" not in url for url in sesion.urls)
+
+
+def test_calificador_lee_la_categoria_sin_nota_sin_formula():
+    cal, sesion = _calificador(sin_calculo={162})
+    assert _nodo(cal, "cg3").clase == "categoria"
+    assert _nodo(cal, "cg3").formula is None
+    assert [n.eid for n in cal.nodos if n.padre_eid == "cg3"] == ["ig165", "ig166", "ig171"]
+    assert all("grade/report" not in url for url in sesion.urls)
+
+
+_FORMULARIO_RESULTADO = (
+    '<form action="outcomeitem.php"><input name="itemname" type="text" value="">'
+    '<input name="idnumber" type="text" value="TZ_O_1"><select name="outcomeid">'
+    '<option value="7" selected>Criterio</option></select><select name="cmid">'
+    '<option value="0" selected>Ninguna</option></select></form>'
+)
+_FORMULARIO_DE_ACTIVIDAD = (
+    '<form action="item.php"><input name="idnumber" type="text" value="">'
+    '<input name="aggregationcoef2" type="text" value="0,0"></form>'
+)
+
+
+@pytest.mark.parametrize(
+    "formulario", [_FORMULARIO_RESULTADO, _FORMULARIO_DE_ACTIVIDAD], ids=["resultado", "nota"]
+)
+def test_calificador_omite_lo_que_queda_de_una_actividad_en_borrado(formulario):
+    # Mientras Moodle borra una tarea, su resultado sigue en el calificador sin enlace y sin el
+    # icono del módulo (y su nota, si el tema no pinta el icono del módulo): no se reconoce por
+    # la fila, pero su formulario es el de una actividad y no admite fórmula. Se deja fuera.
+    cal, sesion = _calificador(items={166: formulario}, sin_calculo={166})
+    assert "ig166" not in {n.eid for n in cal.nodos}
+    assert _nodo(cal, "ig165").clase == "manual"
+    assert _nodo(cal, "ig171").clase == "actividad"
+    assert all("grade/report" not in url for url in sesion.urls)
+
+
+def test_el_informe_de_notas_sigue_siendo_falta_de_permiso_fuera_del_calculo():
+    sesion = _SesionConRedireccion("https://aula/grade/report/index.php?id=2")
+    moodle = publicar.Moodle("https://aula", sesion, "clave", pausa=0)
+    with pytest.raises(ErrorPublicacion) as exc:
+        moodle.calificador(2)
+    assert exc.value.codigo == "CALIFICADOR_NO_PERMITIDO"
+    assert len(sesion.gets) == 1
 
 
 def test_calificador_bloqueo_de_categoria():

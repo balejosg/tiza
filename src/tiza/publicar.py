@@ -306,6 +306,17 @@ class ErrorPublicacion(Exception):
         self.queda_en_el_aula = False
 
 
+class _AlInformeDeNotas(ErrorPublicacion):
+    """El aula manda a un informe de notas, que tiza no pide nunca.
+
+    En general es falta de permiso (el mismo código). En ``calculation.php`` es la respuesta
+    de Moodle a «este elemento no admite fórmula»: lo distingue ``_formula_del_elemento``.
+    """
+
+    def __init__(self) -> None:
+        super().__init__("CALIFICADOR_NO_PERMITIDO")
+
+
 @dataclasses.dataclass(frozen=True)
 class NodoAula:
     """Un elemento o categoría del calificador del aula. Solo estructura: jamás notas.
@@ -1291,6 +1302,8 @@ class Moodle:
     def _pagina_del_calificador(self, ruta: str, params: dict[str, int]) -> str:
         """El HTML de una página del calificador; una redirección es falta de permiso.
 
+        (Salvo la de ``calculation.php`` al informe de notas: ver ``_formula_del_elemento``.)
+
         Tras crear o borrar un elemento, o cambiar un máximo o un peso, Moodle devuelve primero
         la página «Recalculando calificaciones» (``div.progressbar_container``, sin el árbol):
         se repite el mismo GET. El límite son 3 lecturas de página
@@ -1325,7 +1338,7 @@ class Moodle:
             if _redirige_al_login(self.base_url, destino):
                 raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
             if _es_informe_de_notas(self.base_url, destino):
-                raise ErrorPublicacion("CALIFICADOR_NO_PERMITIDO")
+                raise _AlInformeDeNotas
             resuelta = _resolver_destino(self.base_url, destino)
             self._esperar()
             respuesta = self._reducir(
@@ -1340,14 +1353,20 @@ class Moodle:
         self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
         return str(getattr(respuesta, "text", ""))
 
-    def _formula_del_elemento(self, curso_id: int, item_id: int) -> str:
-        """La fórmula de un elemento calculado o categoría, o vacío si no tiene."""
-        texto = BeautifulSoup(
-            self._pagina_del_calificador(
+    def _formula_del_elemento(self, curso_id: int, item_id: int) -> str | None:
+        """La fórmula de un elemento calculado o categoría; vacío si no tiene.
+
+        ``None`` si Moodle no deja ponerle ninguna: a la nota o al resultado de una actividad y
+        a lo que es de tipo «Texto» o «Ninguna», ``calculation.php`` responde con una redirección
+        al informe de notas (que no se pide). No es falta de permiso: sin él, Moodle no redirige.
+        """
+        try:
+            pagina = self._pagina_del_calificador(
                 "grade/edit/tree/calculation.php", {"courseid": curso_id, "id": item_id}
-            ),
-            "html.parser",
-        )
+            )
+        except _AlInformeDeNotas:
+            return None
+        texto = BeautifulSoup(pagina, "html.parser")
         calculo = _campo_con_nombre(texto, "calculation")
         if calculo is None:
             return ""
@@ -1417,10 +1436,12 @@ class Moodle:
             if formulario.find("form") is None:
                 raise ErrorPublicacion("ERROR_CONSULTA")
             pref = "grade_item_" if es_categoria else ""
+            formula: str | None = ""
             if es_categoria or coincidencia is None:
                 formula = self._formula_del_elemento(curso_id, item_id)
-            else:
-                formula = ""
+                if formula is None and not es_categoria and _es_de_actividad(formulario):
+                    # Lo que queda de una actividad en borrado y la fila no delató.
+                    continue
             seleccion = formulario.find("select", attrs={"name": "aggregation"})
             opciones = (
                 tuple(
@@ -3044,7 +3065,8 @@ def _actividad_en_borrado(fila: Any) -> bool:
     Al borrar una actividad, Moodle la deja «[Borrado en progreso]» hasta que pasa su cron: el
     elemento sigue en el calificador con el icono del módulo, pero el título ya no enlaza con la
     actividad y sus páginas redirigen. tiza no la lee ni la toca; desaparece sola. Se reconoce por
-    la estructura, nunca por el texto traducido.
+    la estructura, nunca por el texto traducido. Lo que la fila no delata (sus resultados, o un
+    icono distinto) lo deja fuera ``calificador`` al abrir su formulario (``_es_de_actividad``).
     """
     if "data-category" in fila.attrs:
         return False
@@ -3053,6 +3075,22 @@ def _actividad_en_borrado(fila: Any) -> bool:
     return any(
         _ICONO_DE_MODULO.search(str(img.get("src") or ""))
         for img in fila.find_all("img", class_="itemicon")
+    )
+
+
+def _es_de_actividad(formulario: Any) -> bool:
+    """¿El formulario es el del elemento que pone una actividad: su nota o un resultado suyo?
+
+    Para lo que ``_actividad_en_borrado`` no ve en la fila: el resultado de una tarea en borrado
+    no lleva el icono del módulo, y un tema puede pintar el del módulo de otra forma. Solo se
+    pregunta cuando la fila no enlaza con ninguna actividad y Moodle no le admite fórmula. El
+    formulario de un resultado trae ``outcomeid``; el de la nota de una actividad no deja
+    cambiar el nombre (sin ``itemname``). Un elemento manual de tipo «Texto» o «Ninguna» tiene
+    nombre y no tiene resultado: ese se lee, sin fórmula.
+    """
+    return (
+        _campo_con_nombre(formulario, "outcomeid") is not None
+        or _campo_con_nombre(formulario, "itemname") is None
     )
 
 

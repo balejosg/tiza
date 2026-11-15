@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Arreglado
+- **`tiza calificador` ya no dice que falta el permiso cuando no falta.** Respondía `CALIFICADOR_NO_PERMITIDO` si el curso tenía un elemento de calificación de tipo «Texto» o «Ninguna», o si quedaba el resultado de una tarea que el aula aún estaba borrando. Ahora lee el primero sin fórmula y deja fuera lo segundo, como ya hacía con la actividad en «Borrado en progreso».
+
 ## 0.47.0 — 2026-11-14
 
 ### Cambia
