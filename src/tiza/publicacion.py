@@ -3089,21 +3089,48 @@ def _actividades_de_hojas(
     return ficheros + instrumentos
 
 
-def _porcentajes_deseados(plan: PlanCalificador) -> dict[str, float]:
-    """El porcentaje de cada nodo del deseado sobre sus hermanos (solo los que pesan)."""
+def _valores_actuales(plan: PlanCalificador) -> dict[str, float]:
+    """El peso crudo de cada nodo del aula, con la clave efectiva de su actividad."""
+    indice = rc._Indice(plan.aula_antes)
+    valores: dict[str, float] = {}
+    for nodo in plan.aula_antes.nodos:
+        padre = indice.padre(nodo)
+        if padre is not None and padre.agregacion == 10:
+            valor = nodo.coeficiente or 0.0
+        else:
+            valor = nodo.peso if nodo.sobrescrito and nodo.peso is not None else 0.0
+        clave = _clave_de_nodo_aula(nodo)
+        if clave:
+            valores[clave] = valor
+    return valores
+
+
+def _porcentajes_deseados(plan: PlanCalificador, actuales: Mapping[str, float]) -> dict[str, float]:
+    """El porcentaje de cada nodo del deseado sobre sus hermanos (solo los que pesan).
+
+    Lo que el plan no va a tocar (conservado o cambiado a mano) cuenta con el valor del aula:
+    es lo que quedará después de ejecutar las operaciones de esta pasada.
+    """
     grupos: dict[str | None, list[Nodo]] = {}
     for nodo in plan.deseado.nodos:
         grupos.setdefault(nodo.padre, []).append(nodo)
     salida: dict[str, float] = {}
     efectivas = {ruta: clave for ruta, clave in plan.reconciliacion.claves.items()}
+    quietos = plan.reconciliacion.a_mano | plan.reconciliacion.conservados
     for hermanos in grupos.values():
-        total = sum(nodo.peso or 0.0 for nodo in hermanos)
+        valores: dict[str, float] = {}
+        for nodo in hermanos:
+            clave = efectivas.get(nodo.idnumber, nodo.idnumber)
+            if clave in quietos:
+                valores[clave] = actuales.get(clave, nodo.peso or 0.0)
+            else:
+                valores[clave] = nodo.peso or 0.0
+        total = sum(valores.values())
         if total <= 0:
             continue
-        for nodo in hermanos:
-            if nodo.peso:
-                clave = efectivas.get(nodo.idnumber, nodo.idnumber)
-                salida[clave] = 100.0 * nodo.peso / total
+        for clave, valor in valores.items():
+            if valor:
+                salida[clave] = 100.0 * valor / total
     return salida
 
 
@@ -3146,7 +3173,8 @@ def _cambios_de_peso(
     """Los pesos que cambian, en porcentaje, y si alguno puede mover la nota final."""
     operaciones = plan.reconciliacion.operaciones
     claves = _claves_llanas_del_plan(plan)
-    deseados = _porcentajes_deseados(plan)
+    actuales_crudos = _valores_actuales(plan)
+    deseados = _porcentajes_deseados(plan, actuales_crudos)
     antes = _porcentajes_antes(plan)
     dnodos = {nodo.idnumber: nodo for nodo in plan.deseado.nodos}
     por_clave = {efectiva: ruta for ruta, efectiva in plan.reconciliacion.claves.items()}
@@ -3632,10 +3660,24 @@ def calificador_con(
             dict.fromkeys(claves_llanas.get(clave, clave) for clave in sorted(rec.conservados))
         )
         borrador.paso("CONSERVADO_A_MANO", detalle=detalle)
+    for codigo in ("CATEGORIA_RECREADA", "CATEGORIA_BORRADA_EN_CERRADA"):
+        detalle = ", ".join(
+            dict.fromkeys(
+                clave_llana(clave, plan.deseado)
+                for codigo_aviso, clave in rec.avisos
+                if codigo_aviso == codigo
+            )
+        )
+        if detalle:
+            borrador.paso(codigo, detalle=detalle)
     avisos = [*rec.avisos, *plan.deseado.avisos]
     for codigo, cuantos in Counter(codigo for codigo, _ in avisos).items():
-        if codigo == "CAMBIADO_A_MANO":  # ya sale con sus ids, no como recuento
-            continue
+        if codigo in (
+            "CAMBIADO_A_MANO",
+            "CATEGORIA_RECREADA",
+            "CATEGORIA_BORRADA_EN_CERRADA",
+        ):
+            continue  # ya salen con sus ids, no como recuento
         if codigo == "CALCULADOS_OCULTADOS":  # un solo aviso, con el número de calculados
             if not ocultados:
                 continue  # el aula los rechazó todos: lo cuenta OCULTAR_FALLIDO

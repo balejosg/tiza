@@ -2937,7 +2937,7 @@ def test_una_categoria_borrada_se_recrea_y_recupera_sus_hijos(tmp_path):
     assert [e for e in moodle.escrituras if e[0] == "mover_categoria"]
     assert moodle.por_id("TZ_V_1_CE1_1").padre_eid == moodle.por_id("TZ_V_1_CE1").eid
     assert moodle.por_id("TZ_V_1_CE1_2").padre_eid == moodle.por_id("TZ_V_1_CE1").eid
-    assert pasos(documento, "CATEGORIA_RECREADA")
+    assert pasos(documento, "CATEGORIA_RECREADA")[0]["detalle"] == "CE1"
     assert any(
         aviso.codigo == "CATEGORIA_RECREADA"
         for resumen in presencia2.resumenes_calificador
@@ -2965,7 +2965,7 @@ def test_no_se_recrea_una_categoria_borrada_dentro_de_una_cerrada(tmp_path):
     presencia = PresenciaFalsa(real=True)
     documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
     assert not [e for e in moodle.escrituras if e[0] == "crear_categoria"]
-    assert pasos(documento, "CATEGORIA_BORRADA_EN_CERRADA")[0]["detalle"] == "1"
+    assert pasos(documento, "CATEGORIA_BORRADA_EN_CERRADA")[0]["detalle"] == "CE1"
     assert any(
         aviso.codigo == "CATEGORIA_BORRADA_EN_CERRADA"
         for resumen in presencia.resumenes_calificador
