@@ -9,6 +9,7 @@ import pytest
 from dobles import avisos_de_ejemplo
 from tiza import ayuda, informe, mensajes, publicacion
 from tiza.calificacion.ponderacion import CambioAMano, CategoriaAfectada, HijoAfectado
+from tiza.calificacion.reconciliar import CambioAMano as CambioCalificador
 from tiza.tipos import FechaActividad
 
 
@@ -810,3 +811,42 @@ def test_los_rotulos_de_la_ponderacion():
         "texto_no": "Conservar el cambio del aula",
         "riesgo": "peligro",
     }
+
+
+def test_la_pregunta_de_un_cambio_a_mano_del_calificador():
+    cambio = CambioCalificador(
+        "TZ_E_RA1_a",
+        "peso",
+        "Configura la red",
+        antes=70.0,
+        despues=50.0,
+    )
+    resumen = publicacion.ResumenCambioCalificador(
+        5678,
+        "Redes",
+        cambio,
+        {"TZ_E_RA1_a": "RA1_a"},
+    )
+    detalle = mensajes.detalle_cambio_calificador(resumen)
+    assert "RA1_a · Configura la red" in detalle.pregunta
+    assert "50 → 70" in detalle.pregunta
+    assert "¿Lo vuelvo a dejar como dice tu programación?" in detalle.pregunta
+
+
+def test_la_pregunta_de_un_movimiento_a_mano_del_calificador():
+    cambio = CambioCalificador(
+        "TZ_A11",
+        "padre",
+        "proyecto",
+        padre_antes="TZ_V_1_RA1_b",
+        padre_despues="TZ_V_1_RA1_a",
+    )
+    resumen = publicacion.ResumenCambioCalificador(
+        5678,
+        None,
+        cambio,
+        {"TZ_A11": "u1/proyecto.md", "TZ_V_1_RA1_a": "RA1_a", "TZ_V_1_RA1_b": "RA1_b"},
+    )
+    detalle = mensajes.detalle_cambio_calificador(resumen)
+    assert "moviste a mano" in detalle.pregunta
+    assert "de RA1_a a RA1_b" in detalle.pregunta
