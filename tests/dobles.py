@@ -939,6 +939,7 @@ class PresenciaFalsa:
         evidencia: bool | tuple[bool, ...] = False,  # «activar los resultados» por curso
         ponderacion: bool | tuple[bool, ...] | None = None,  # None: lo que diga «real»
         ponderacion_a_mano: bool | tuple[bool, ...] = False,  # «sobrescribir» cada cambio a mano
+        calificador_a_mano: bool | tuple[bool, ...] = False,  # ídem en el calificador
         sin_pruebas: bool = True,
         ampliar: tuple[bool, ...] = (),
         cerrar_anterior: bool = False,
@@ -968,6 +969,11 @@ class PresenciaFalsa:
             if isinstance(ponderacion_a_mano, tuple)
             else ponderacion_a_mano
         )
+        self._calificador_a_mano = (
+            list(calificador_a_mano)
+            if isinstance(calificador_a_mano, tuple)
+            else calificador_a_mano
+        )
         self._sin_pruebas = sin_pruebas
         self._ampliar = list(ampliar)
         self._cerrar_anterior = cerrar_anterior
@@ -984,6 +990,7 @@ class PresenciaFalsa:
         self.resumenes_evidencia: list = []
         self.resumenes_ponderacion: list = []
         self.resumenes_ponderacion_a_mano: list = []
+        self.resumenes_calificador_a_mano: list = []
         self.sin_pruebas_pedidas: int = 0
         self.avisos: list = []
         self._configuracion = configuracion
@@ -1053,6 +1060,12 @@ class PresenciaFalsa:
         if isinstance(self._ponderacion_a_mano, list):
             return self._ponderacion_a_mano.pop(0) if self._ponderacion_a_mano else False
         return self._ponderacion_a_mano
+
+    def confirmar_calificador_a_mano(self, resumen):
+        self.resumenes_calificador_a_mano.append(resumen)
+        if isinstance(self._calificador_a_mano, list):
+            return self._calificador_a_mano.pop(0) if self._calificador_a_mano else False
+        return self._calificador_a_mano
 
     def confirmar_copia(self, resumen):
         self.resumenes_copia.append(resumen)

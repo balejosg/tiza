@@ -32,6 +32,7 @@ from .publicacion import (
     ResumenAislamiento,
     ResumenCalificador,
     ResumenCambioAMano,
+    ResumenCambioCalificador,
     ResumenCopia,
     ResumenEvidencia,
     ResumenOrden,
@@ -94,6 +95,7 @@ __all__ = [
     "describir_documento",
     "detalle_calificador",
     "detalle_cambio_a_mano",
+    "detalle_cambio_calificador",
     "detalle_ponderacion",
     "detalle_copia",
     "detalle_corto",
@@ -825,6 +827,50 @@ def detalle_cambio_a_mano(resumen: ResumenCambioAMano) -> DetalleCambioAMano:
     )
 
 
+def _llana(claves: Mapping[str, str], clave: str | None) -> str:
+    if not clave:
+        return "el curso"
+    return texto_seguro(claves.get(clave, clave), 100)
+
+
+def detalle_cambio_calificador(resumen: ResumenCambioCalificador) -> DetalleCambioAMano:
+    """La pregunta por un nodo del calificador que el docente cambió a mano y tiza pisaría.
+
+    Nombra el nodo con su id del YAML o la ruta del fichero, y el padre con los mismos ids:
+    nunca con el nombre que tenga en el aula.
+    """
+    cambio = resumen.cambio
+    clave = _llana(resumen.claves, cambio.clave)
+    nombre = texto_seguro(cambio.nombre, 100)
+    etiqueta = (
+        f"«{clave} · {nombre}»" if clave not in (nombre, "total del curso") else f"«{nombre}»"
+    )
+    if cambio.tipo == "peso" and cambio.antes is not None and cambio.despues is not None:
+        detalle = (
+            f"cambiaste a mano {etiqueta} "
+            f"(coeficiente {_numero(cambio.despues)} → {_numero(cambio.antes)})"
+        )
+    elif cambio.tipo == "padre":
+        detalle = (
+            f"moviste a mano {etiqueta} de {_llana(resumen.claves, cambio.padre_despues)} "
+            f"a {_llana(resumen.claves, cambio.padre_antes)}"
+        )
+    elif cambio.tipo == "formula":
+        detalle = f"cambiaste a mano la fórmula de {etiqueta}"
+    elif cambio.tipo == "nombre":
+        detalle = f"cambiaste a mano el nombre de {etiqueta}"
+    else:
+        detalle = f"cambiaste a mano {etiqueta}"
+    curso = describir_curso(resumen.curso, resumen.nombre_curso)
+    return DetalleCambioAMano(
+        curso=curso,
+        posicion=resumen.posicion,
+        total=resumen.total,
+        encabezado="Has cambiado algo a mano en el calificador:",
+        pregunta=f"En {curso}: {detalle}. ¿Lo vuelvo a dejar como dice tu programación?",
+    )
+
+
 @dataclass(frozen=True)
 class DetalleCopia:
     """La confirmación de ``tiza copia``: de qué curso y la pregunta al docente."""
@@ -990,6 +1036,11 @@ _ROTULOS: dict[str, tuple[str, str, str]] = {
     "confirmar_ponderacion": ("Aplicar la ponderación", "Saltar este curso", "real"),
     "confirmar_ponderacion_a_mano": (
         "Sobrescribir y perder el cambio",
+        "Conservar el cambio del aula",
+        "peligro",
+    ),
+    "confirmar_calificador_a_mano": (
+        "Volver a dejarlo como el YAML",
         "Conservar el cambio del aula",
         "peligro",
     ),

@@ -2794,3 +2794,70 @@ def test_un_calificador_json_version_1_sin_arbol_antiguo_se_olvida(tmp_path):
     assert documento["resultado"] == "ok", documento
     assert estado.version_de_calificador(carpeta / ".tiza") == 3
     assert estado.cargar_huellas(carpeta / ".tiza", CURSO) != {}
+
+
+# --------------------------------------------------------------------------- #
+# Lo conservado a mano: la pregunta y el estado
+# --------------------------------------------------------------------------- #
+
+
+def test_conservar_un_cambio_a_mano_no_lo_toca_y_no_vuelve_a_preguntar(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    ra1 = moodle.por_id("TZ_E_RA1")
+    moodle.nodos[ra1.eid] = dataclasses.replace(ra1, coeficiente=70.0)
+
+    presencia = PresenciaFalsa(real=True, calificador_a_mano=False)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert len(presencia.resumenes_calificador_a_mano) == 1
+    resumen = presencia.resumenes_calificador_a_mano[0]
+    assert resumen.cambio.clave == "TZ_E_RA1"
+    assert resumen.cambio.tipo == "peso"
+    assert (resumen.cambio.antes, resumen.cambio.despues) == (70.0, 60.0)
+    assert resumen.claves["TZ_E_RA1"] == "RA1"
+    assert moodle.por_id("TZ_E_RA1").coeficiente == 70.0
+    conservados = estado.cargar_conservados(carpeta / ".tiza", CFG.reales[0])
+    assert set(conservados) == {"TZ_E_RA1"}
+
+    presencia2 = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia2)
+    assert presencia2.resumenes_calificador_a_mano == []
+    assert moodle.por_id("TZ_E_RA1").coeficiente == 70.0
+    assert estado.cargar_conservados(carpeta / ".tiza", CFG.reales[0]) == conservados
+
+
+def test_conservar_vuelve_a_preguntar_si_cambia_el_yaml_y_sobrescribir_lo_pone(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    ra1 = moodle.por_id("TZ_E_RA1")
+    moodle.nodos[ra1.eid] = dataclasses.replace(ra1, coeficiente=70.0)
+    atender(
+        pedir(carpeta, "real"),
+        moodle,
+        carpeta,
+        PresenciaFalsa(real=True, calificador_a_mano=False),
+    )
+
+    yaml = (carpeta / "calificacion.yaml").read_text(encoding="utf-8")
+    (carpeta / "calificacion.yaml").write_text(
+        yaml.replace("peso: 60", "peso: 65").replace("peso: 40", "peso: 35"),
+        encoding="utf-8",
+        newline="\n",
+    )
+    presencia = PresenciaFalsa(real=True, calificador_a_mano=False)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert len(presencia.resumenes_calificador_a_mano) == 1
+    cambio = presencia.resumenes_calificador_a_mano[0].cambio
+    assert (cambio.antes, cambio.despues) == (70.0, 65.0)
+    assert moodle.por_id("TZ_E_RA1").coeficiente == 70.0
+    assert set(estado.cargar_conservados(carpeta / ".tiza", CFG.reales[0])) == {"TZ_E_RA1"}
+
+    ra1 = moodle.por_id("TZ_E_RA1")
+    moodle.nodos[ra1.eid] = dataclasses.replace(ra1, coeficiente=75.0)
+    presencia2 = PresenciaFalsa(real=True, calificador_a_mano=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia2)
+    assert len(presencia2.resumenes_calificador_a_mano) == 1
+    assert moodle.por_id("TZ_E_RA1").coeficiente == 65.0
+    assert estado.cargar_conservados(carpeta / ".tiza", CFG.reales[0]) == {}

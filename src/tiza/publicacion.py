@@ -39,7 +39,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 from . import calendario, colocacion, contenido, estado, informe, publicar, recorrido, rutas, tipos
 from .calificacion import ponderacion
 from .calificacion import reconciliar as rc
-from .calificacion.deseado import Deseado, detalle_tope, nombre_de_hoja
+from .calificacion.deseado import Deseado, claves_llanas, detalle_tope, nombre_de_hoja
 from .calificacion.deseado import deseado as calcular_deseado
 from .calificacion.ejecutar import TIPOS_DE_BLOQUEO, Ejecucion
 from .calificacion.esquema import (
@@ -118,6 +118,7 @@ __all__ = [
     "preparar_ponderacion",
     "ponderacion_con",
     "ponderacion_en_cursos",
+    "replanificar_calificador",
     "replanificar_ponderacion",
     "publicar_con",
     "publicar_en_cursos",
@@ -837,6 +838,12 @@ class PlanCalificador:
     ponderaciones_visibles: bool = False
     # El árbol de la generación anterior que hay que retirar antes de montar (None: no hay).
     retirada: rc.Retirada | None = None
+    # Lo que el docente decidió conservar a mano (idnumber -> sus dos huellas).
+    conservados: dict[str, estado.Conservado] = field(default_factory=dict)
+    # Las claves que ya aceptó sobrescribir en esta pasada.
+    sobrescribir: frozenset[str] = frozenset()
+    # Los cambios a mano que se preguntaron en esta pasada (para contarlos en el informe).
+    cambios_decididos: tuple[rc.CambioAMano, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -865,6 +872,22 @@ class ResumenCambioAMano:
     curso: int
     nombre_curso: str | None
     cambio: ponderacion.CambioAMano
+    posicion: int = 1
+    total: int = 1
+
+
+@dataclass(frozen=True)
+class ResumenCambioCalificador:
+    """Un nodo del calificador que el docente cambió a mano y tiza solo pisa si él lo dice.
+
+    ``claves`` traduce los números de ID de tiza a ids del YAML o rutas (``deseado.claves_llanas``);
+    el nombre del cambio ya es el del YAML o el del fichero, nunca el del aula.
+    """
+
+    curso: int
+    nombre_curso: str | None
+    cambio: rc.CambioAMano
+    claves: Mapping[str, str]
     posicion: int = 1
     total: int = 1
 
@@ -1028,6 +1051,11 @@ class Presencia(Protocol):
     def confirmar_ponderacion_a_mano(self, resumen: ResumenCambioAMano) -> bool:
         """¿Sobrescribir lo que cambiaste a mano en el aula? Una respuesta por cambio; sin
         respuesta, es no."""
+        ...
+
+    def confirmar_calificador_a_mano(self, resumen: ResumenCambioCalificador) -> bool:
+        """¿Volver a dejar como el YAML lo que cambiaste a mano en el calificador? Una respuesta
+        por cambio; sin respuesta, es no (se conserva lo del aula)."""
         ...
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
@@ -2871,6 +2899,7 @@ def preparar_calificador(
     """
     base = Path(dir_tiza).parent
     huellas = estado.cargar_huellas(dir_tiza, curso)
+    conservados = estado.cargar_conservados(dir_tiza, curso)
     contados = [doc for doc in documentos if doc.evalua is not None]
     cmids = _cmids_de(aula.estructura(curso), contados, curso, base)
     actual = aula.calificador(curso)
@@ -2913,7 +2942,9 @@ def preparar_calificador(
         curso=curso,
         aula_antes=actual,
         deseado=deseado,
-        reconciliacion=rc.reconciliar(deseado, actual, huellas, cmids, resultados=resultados),
+        reconciliacion=rc.reconciliar(
+            deseado, actual, huellas, cmids, resultados=resultados, conservados=conservados
+        ),
         cmids=cmids,
         huellas=huellas,
         documentos=tuple(contados),
@@ -2924,6 +2955,7 @@ def preparar_calificador(
         ajuste_totales=aula.ajuste_totales(curso),
         ponderaciones_visibles=aula.ponderaciones_visibles(curso),
         retirada=retirada,
+        conservados=conservados,
     )
 
 
@@ -3111,7 +3143,8 @@ def _huellas_a_guardar(final: CalificadorAula, plan: PlanCalificador) -> dict[st
     como estaba o lo borre del aula.
     """
     nuevas = rc.huellas_de(final, plan.cmids)
-    for clave in plan.reconciliacion.a_mano:
+    conservadas = plan.reconciliacion.a_mano | set(getattr(plan, "conservados", {}))
+    for clave in conservadas:
         if clave in plan.huellas:
             nuevas[clave] = plan.huellas[clave]
     return nuevas
@@ -3127,6 +3160,7 @@ def _huellas_tras_fallo(
     """
     ahora = rc.huellas_de(final, plan.cmids)
     idnumber_de = {n.eid: n.idnumber for n in final.nodos if n.idnumber}
+    protegidas = plan.reconciliacion.a_mano | set(getattr(plan, "conservados", {}))
     tocadas: set[str] = set()
     for op in hechas:
         if op.tipo == "fijar_total_curso":
@@ -3135,10 +3169,8 @@ def _huellas_tras_fallo(
             tocadas.add(op.idnumber)
         if op.eid and op.eid in idnumber_de:
             tocadas.add(idnumber_de[op.eid])
-    nuevas = {
-        k: v for k, v in plan.huellas.items() if k not in tocadas - plan.reconciliacion.a_mano
-    }
-    for clave in tocadas - plan.reconciliacion.a_mano:
+    nuevas = {k: v for k, v in plan.huellas.items() if k not in tocadas - protegidas}
+    for clave in tocadas - protegidas:
         if clave in ahora:
             nuevas[clave] = ahora[clave]
         elif clave in plan.huellas:
@@ -3168,7 +3200,7 @@ def _ajustar(
             leida,
             plan.huellas,
             plan.cmids,
-            a_mano=rec.a_mano,
+            a_mano=rec.a_mano | rec.conservados,
             por_cerrar=cierres,
             resultados=plan.resultados,
         )
@@ -3310,6 +3342,8 @@ def calificador_con(
                 plan.huellas,
                 plan.cmids,
                 resultados=resultados,
+                conservados=plan.conservados,
+                sobrescribir=plan.sobrescribir,
             ),
             resultados=resultados,
             documentos_con_resultados=efectivas,
@@ -3356,12 +3390,18 @@ def calificador_con(
         hechas_antes = [*primera.hechas, *(op for s in segundas for op in s.hechas)]
         if hechas_antes:
             borrador.paso("CALIFICADOR_CAMBIOS", detalle=desglose_de_cambios(hechas_antes))
-        if hechas_antes:
+        if hechas_antes or plan.conservados:
             try:
+                conservados_finales = {
+                    clave: valor
+                    for clave, valor in plan.conservados.items()
+                    if clave in rec.conservados
+                }
                 estado.guardar_huellas(
                     dir_tiza,
                     curso,
                     _huellas_tras_fallo(aula.calificador(curso), plan, hechas_antes),
+                    conservados=conservados_finales,
                 )
             except (ErrorPublicacion, ErrorEstado, OSError):
                 borrador.fallo("HUELLA_NO_GUARDADA", "calificador")
@@ -3428,11 +3468,15 @@ def calificador_con(
         except informe.ErrorInforme:  # un nombre de fichero que el informe no admite
             continue
     nuevas = _huellas_a_guardar(final, plan)
-    if nuevas != plan.huellas:
-        try:
-            estado.guardar_huellas(dir_tiza, curso, nuevas)
-        except (ErrorEstado, OSError):
-            borrador.fallo("HUELLA_NO_GUARDADA", "calificador")
+    conservados_finales = {
+        clave: valor for clave, valor in plan.conservados.items() if clave in rec.conservados
+    }
+    try:
+        previos = estado.cargar_conservados(dir_tiza, curso)
+        if nuevas != plan.huellas or conservados_finales != previos:
+            estado.guardar_huellas(dir_tiza, curso, nuevas, conservados=conservados_finales)
+    except (ErrorEstado, OSError):
+        borrador.fallo("HUELLA_NO_GUARDADA", "calificador")
     return borrador.documento()
 
 
@@ -3928,8 +3972,48 @@ def ponderacion_en_cursos(
     )
 
 
+def replanificar_calificador(
+    plan: PlanCalificador,
+    *,
+    sobrescribir: Collection[str] = (),
+    conservados: Mapping[str, estado.Conservado] | None = None,
+) -> PlanCalificador:
+    """El mismo curso leído, replanificado con lo que el docente aceptó pisar o conservar.
+
+    ``sobrescribir`` sale de ``a_mano``; ``conservados`` sustituye el mapa guardado en el plan.
+    No relee el aula: la pregunta se hizo sobre este mismo plan.
+    """
+    mapa = dict(plan.conservados if conservados is None else conservados)
+    return replace(
+        plan,
+        reconciliacion=rc.reconciliar(
+            plan.deseado,
+            plan.aula_antes,
+            plan.huellas,
+            plan.cmids,
+            resultados=plan.resultados,
+            conservados=mapa,
+            sobrescribir=sobrescribir,
+        ),
+        conservados=mapa,
+        sobrescribir=frozenset(sobrescribir),
+    )
+
+
 def _a_mano(resumen: ResumenCambioAMano) -> Callable[[Presencia], bool]:
     return lambda presencia: presencia.confirmar_ponderacion_a_mano(resumen)
+
+
+def _a_mano_calificador(
+    resumen: ResumenCambioCalificador,
+) -> Callable[[Presencia], bool]:
+    return lambda presencia: presencia.confirmar_calificador_a_mano(resumen)
+
+
+def _claves_llanas_del_plan(plan: PlanCalificador) -> dict[str, str]:
+    """Las claves del plan con su id del YAML o ruta, para las preguntas y el informe."""
+    actividades = {efectiva: ruta for ruta, efectiva in plan.reconciliacion.claves.items()}
+    return claves_llanas(plan.deseado, actividades)
 
 
 class _TrabajoPonderacion(recorrido.TrabajoBase):
@@ -4108,6 +4192,7 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
         except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
             # Cada curso se lee entero antes de escribir nada en él (y antes de preguntar).
             return recorrido.Resultado.fallo(exc.codigo)
+        confirmado = False
         if (
             plan.reconciliacion.hay_trabajo
             or plan.resultados_pendientes
@@ -4122,7 +4207,62 @@ class _TrabajoCalificador(recorrido.TrabajoBase):
             )
             if not turno.preguntar(lambda presencia: presencia.confirmar_calificador(resumen)):
                 return recorrido.Resultado.declinado()
+            confirmado = True
         evidencia_declinada = self._preguntar_evidencia(plan, turno)
+        # Lo que el docente cambió a mano: una pregunta por nodo, después del «sí» al curso.
+        cambios = plan.reconciliacion.cambios_a_mano
+        sobrescribir: list[str] = []
+        conservados = dict(plan.conservados)
+        decididos_no: set[str] = set()
+        claves = _claves_llanas_del_plan(plan)
+        actuales = rc.huellas_de(plan.aula_antes, plan.cmids)
+        for cambio in cambios:
+            resumen_cambio = ResumenCambioCalificador(
+                turno.curso,
+                turno.nombre_curso,
+                cambio,
+                claves,
+                turno.posicion,
+                turno.total,
+            )
+            if turno.preguntar(_a_mano_calificador(resumen_cambio), tras_no=True):
+                sobrescribir.append(cambio.clave)
+                conservados.pop(cambio.clave, None)
+                continue
+            decididos_no.add(cambio.clave)
+            aula = actuales.get(cambio.clave)
+            deseada = plan.reconciliacion.deseadas.get(cambio.clave)
+            if aula is not None and deseada is not None:
+                conservados[cambio.clave] = estado.Conservado(aula, deseada)
+        conservados = {
+            clave: valor
+            for clave, valor in conservados.items()
+            if clave in plan.reconciliacion.conservados or clave in decididos_no
+        }
+        if sobrescribir:
+            try:
+                plan = replanificar_calificador(
+                    plan, sobrescribir=sobrescribir, conservados=conservados
+                )
+            except (ErrorPublicacion, ErrorCalificacion, ErrorEstado) as exc:
+                return recorrido.Resultado.fallo(exc.codigo)
+            if not confirmado and (
+                plan.reconciliacion.hay_trabajo
+                or plan.resultados_pendientes
+                or plan.retirada is not None
+            ):
+                resumen = resumen_calificador(
+                    plan,
+                    self._esquema,
+                    turno.nombre_curso,
+                    posicion=turno.posicion,
+                    total=turno.total,
+                )
+                if not turno.preguntar(lambda presencia: presencia.confirmar_calificador(resumen)):
+                    return recorrido.Resultado.declinado()
+        else:
+            plan = replace(plan, conservados=conservados)
+        plan = replace(plan, cambios_decididos=cambios)
         # Sin operaciones no hay nada que confirmar: se informa de que no había nada que hacer.
         documento = calificador_con(
             self._aula,

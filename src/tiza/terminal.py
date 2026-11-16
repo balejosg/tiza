@@ -28,6 +28,7 @@ from .publicacion import (
     ResumenAislamiento,
     ResumenCalificador,
     ResumenCambioAMano,
+    ResumenCambioCalificador,
     ResumenCopia,
     ResumenEvidencia,
     ResumenOrden,
@@ -426,6 +427,11 @@ class PresenciaTerminal:
 
     def confirmar_ponderacion_a_mano(self, resumen: ResumenCambioAMano) -> bool:
         detalle = mensajes.detalle_cambio_a_mano(resumen)
+        _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
+        return confirmar(detalle.pregunta)
+
+    def confirmar_calificador_a_mano(self, resumen: ResumenCambioCalificador) -> bool:
+        detalle = mensajes.detalle_cambio_calificador(resumen)
         _cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)
         return confirmar(detalle.pregunta)
 

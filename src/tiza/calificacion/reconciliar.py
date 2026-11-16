@@ -38,7 +38,7 @@ import hashlib
 import json
 import re
 from collections.abc import Collection, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from tiza import estado
@@ -219,6 +219,10 @@ class Reconciliacion:
     conservados: frozenset[str] = frozenset()
     huerfanos: frozenset[str] = frozenset()
     cambios_a_mano: tuple[CambioAMano, ...] = ()
+    # La huella de lo que tiza pondría en cada clave (la usa la pregunta para conservar).
+    deseadas: Mapping[str, str] = field(default_factory=dict)
+    # ruta del .md -> número de ID efectivo de su actividad en el aula.
+    claves: Mapping[str, str] = field(default_factory=dict)
 
     @property
     def hay_trabajo(self) -> bool:
@@ -1800,6 +1804,8 @@ def reconciliar(
         conservados=frozenset(plan.conservados_vigentes),
         huerfanos=frozenset(plan.huerfanos),
         cambios_a_mano=plan.cambios_a_mano(),
+        deseadas=dict(plan.deseadas),
+        claves=dict(plan.claves),
     )
 
 

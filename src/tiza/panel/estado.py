@@ -39,6 +39,7 @@ from ..publicacion import (
     ResumenAislamiento,
     ResumenCalificador,
     ResumenCambioAMano,
+    ResumenCambioCalificador,
     ResumenCopia,
     ResumenEvidencia,
     ResumenOrden,
@@ -865,6 +866,18 @@ class PresenciaPanel:
             lineas,
             detalle.pregunta,
             **mensajes.rotulos("confirmar_ponderacion_a_mano"),
+        )
+
+    def confirmar_calificador_a_mano(self, resumen: ResumenCambioCalificador) -> bool:
+        detalle = mensajes.detalle_cambio_calificador(resumen)
+        lineas = _lineas(
+            [mensajes.cabecera_de_curso(detalle.posicion, detalle.total, detalle.curso)],
+        )
+        return self._si(
+            detalle.encabezado,
+            lineas,
+            detalle.pregunta,
+            **mensajes.rotulos("confirmar_calificador_a_mano"),
         )
 
     def confirmar_copia(self, resumen: ResumenCopia) -> bool:
