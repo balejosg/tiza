@@ -39,7 +39,8 @@ criterio (sin la subcategoría «Filas»). ``Deseado.resultados`` da las triplet
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Collection
+import re
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import NoReturn
@@ -57,6 +58,8 @@ __all__ = [
     "Deseado",
     "EvidenciaDeHoja",
     "Nodo",
+    "clave_llana",
+    "claves_llanas",
     "comprobar_sin_circulares",
     "deseado",
     "detalle_tope",
@@ -80,6 +83,7 @@ RAIZ = "TZ_TIZA"
 FINAL = "TZ_FINAL"
 VISTA = "TZ_VISTA"
 NOTA_FINAL = "TZ_NOTA_FINAL"
+CURSO = "TZ_CURSO"  # la clave de la huella del total del curso
 _VISTA_ELEMENTOS = "E"
 _VISTA_EVALUACIONES = "V"
 # Las agregaciones de Moodle que usa tiza: media ponderada, mediana y calificación más alta.
@@ -251,6 +255,71 @@ def nombre_de_hoja(esquema: Esquema, id_: str) -> str:
         elif elemento.id == id_:
             return _texto_de_hoja(elemento, None)
     return id_
+
+
+_EVALUACION = re.compile(r"TZ_V_([0-9]+)")
+_EVALUACION_HOJA = re.compile(r"TZ_V_([0-9]+)_(.+)")
+
+
+def clave_llana(
+    clave: str,
+    deseado: Deseado,
+    actividades: Mapping[str, str] | None = None,
+) -> str:
+    """El id del YAML, la ruta del ``.md`` o el nombre llano de una clave del calificador.
+
+    Nunca devuelve el nombre del aula: los nombres que salen son los del esquema, los de la
+    carpeta o textos fijos de tiza. ``actividades`` empareja el número de ID efectivo de cada
+    actividad (``TZ_A<cmid>`` o el suyo) con su ruta. Una clave que no se reconoce se devuelve
+    tal cual: es un número de ID de tiza, no un texto del aula.
+    """
+    if clave in (CURSO, ""):
+        return "total del curso"
+    if actividades and clave in actividades:
+        return actividades[clave]
+    if clave == "TZ_TIZA":
+        return "calificador de tiza"
+    if clave == "TZ_VISTA":
+        return "vista por evaluaciones"
+    if clave == "TZ_FINAL":
+        return "final"
+    if clave == "TZ_NOTA_FINAL":
+        return "nota final"
+    if m := _EVALUACION.fullmatch(clave):
+        return f"evaluación {m.group(1)}"
+    if m := _EVALUACION_HOJA.fullmatch(clave):
+        return m.group(2)
+    if clave.startswith("TZ_E_"):
+        return clave[len("TZ_E_") :]
+    if clave.startswith("TZ_M_"):
+        return clave[len("TZ_M_") :]
+    nodos = {n.idnumber: n for n in deseado.nodos}
+    nodo = nodos.get(clave)
+    if nodo is not None:
+        if nodo.clase == "actividad":
+            return nodo.idnumber
+        if nodo.clase == "resultado":
+            for ruta, _clave, idnumber in deseado.resultados:
+                if idnumber == clave:
+                    return ruta
+            return nodo.nombre
+        if nodo.clase in ("copia", "resultado_calc") and isinstance(nodo.formula_de, str):
+            return f"copia de {clave_llana(nodo.formula_de, deseado, actividades)}"
+        if nodo.clase == "recuperacion" or clave.startswith("TZ_RM_"):
+            return nodo.nombre
+    return clave
+
+
+def claves_llanas(deseado: Deseado, actividades: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Todas las claves del calificador con su nombre llano (para el informe del agente)."""
+    claves = {
+        nodo.idnumber: clave_llana(nodo.idnumber, deseado, actividades) for nodo in deseado.nodos
+    }
+    for clave, ruta in (actividades or {}).items():
+        claves[clave] = ruta
+        claves.setdefault(ruta, ruta)
+    claves[CURSO] = "total del curso"
+    return claves
 
 
 def _validar(

@@ -11,6 +11,8 @@ from tiza.calificacion.deseado import (
     CLASES,
     Deseado,
     Nodo,
+    clave_llana,
+    claves_llanas,
     comprobar_sin_circulares,
     deseado,
     detalle_tope,
@@ -25,6 +27,7 @@ from tiza.calificacion.esquema import (
     Esquema,
     Evaluacion,
     Final,
+    Instrumento,
     Tope,
 )
 from tiza.contenido import Documento
@@ -497,3 +500,47 @@ def test_el_escenario_de_educamadrid_cuenta_23_nodos() -> None:
         }
     )
     assert [n.idnumber for n in hijos(d, "TZ_FINAL")] == ["TZ_E_RA1", "TZ_E_RA2"]
+
+
+def test_las_claves_del_calificador_se_traducen_al_yaml() -> None:
+    d = deseado(FP, completo(), False, CARPETA)
+    assert clave_llana("TZ_E_RA1", d) == "RA1"
+    assert clave_llana("TZ_V_1", d) == "evaluación 1"
+    assert clave_llana("TZ_V_2_RA1", d) == "RA1"
+    assert clave_llana("TZ_V_5_RA3", d) == "RA3"
+    assert clave_llana("TZ_CURSO", d) == "total del curso"
+    assert clave_llana("TZ_FINAL", d) == "final"
+    assert clave_llana("TZ_NOTA_FINAL", d) == "nota final"
+    assert clave_llana("TZ_TIZA", d) == "calificador de tiza"
+    assert clave_llana("TZ_VISTA", d) == "vista por evaluaciones"
+    assert clave_llana("TZ_DESCONOCIDO", d) == "TZ_DESCONOCIDO"
+
+
+def test_una_actividad_se_traduce_a_su_ruta() -> None:
+    d = deseado(FP, completo(), False, CARPETA)
+    claves = {"TZ_A11": "unidad1/practica1.md", "TZ_A12": "unidad2/practica2.md"}
+    assert clave_llana("TZ_A11", d, claves) == "unidad1/practica1.md"
+    assert clave_llana("TZ_A12", d, claves) == "unidad2/practica2.md"
+    todas = claves_llanas(d, claves)
+    assert todas["TZ_A11"] == "unidad1/practica1.md"
+    assert todas["TZ_V_1"] == "evaluación 1"
+
+
+def test_los_resultados_y_las_copias_se_traducen_sin_nombres_del_aula() -> None:
+    d = deseado(E1, documentos_e1(), False, CARPETA)
+    resultado = next(n for n in d.nodos if n.clase == "resultado")
+    assert clave_llana(resultado.idnumber, d) == "proyecto.md"
+    copia = next(n for n in d.nodos if n.clase == "copia" and n.formula_de == "TZ_V_1_RA1_a")
+    assert clave_llana(copia.idnumber, d) == "copia de RA1_a"
+
+
+def test_una_casilla_manual_se_traduce_a_su_id_de_instrumento() -> None:
+    esquema = Esquema(
+        "elementos",
+        (Elemento("RA1", "Redes", 100.0),),
+        (Evaluacion("Primera", (1,)),),
+        Final("elementos"),
+        instrumentos=(Instrumento("EX", "Examen oral", 1, (("RA1", 100.0),)),),
+    )
+    d = deseado(esquema, [], False, CARPETA)
+    assert clave_llana("TZ_M_EX", d) == "EX"
