@@ -1245,6 +1245,8 @@ class _Plan:
             return
         clave = self._id_efectivo(ruta)
         if clave in self.conservados_vigentes:
+            if not en_su_sitio:
+                self.sin_colocar.add(ruta)
             return
         if clave in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", ruta)

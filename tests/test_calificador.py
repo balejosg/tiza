@@ -953,7 +953,7 @@ def test_una_actividad_cambiada_a_mano_sale_como_sin_colocar(tmp_path):
     moodle.escrituras.clear()
     documento = atender(pedir(carpeta), moodle, carpeta)
     assert acciones(documento)["a.md"] == "sin_colocar"
-    assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "1"
+    assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "a.md"
     assert moodle.escrituras == []
 
 
@@ -1276,7 +1276,7 @@ def test_un_cambio_a_mano_se_respeta_y_se_sigue_respetando(tmp_path):
     for _ in range(2):  # la segunda vez, igual: no «adopta» el cambio
         documento = atender(pedir(carpeta), moodle, carpeta)
         assert moodle.escrituras == []
-        assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "1"
+        assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "RA1"
     assert estado.cargar_huellas(carpeta / ".tiza", CURSO)["TZ_E_RA1"] == huellas["TZ_E_RA1"]
 
 
@@ -2861,3 +2861,42 @@ def test_conservar_vuelve_a_preguntar_si_cambia_el_yaml_y_sobrescribir_lo_pone(t
     assert len(presencia2.resumenes_calificador_a_mano) == 1
     assert moodle.por_id("TZ_E_RA1").coeficiente == 65.0
     assert estado.cargar_conservados(carpeta / ".tiza", CFG.reales[0]) == {}
+
+
+def test_el_informe_da_los_ids_de_lo_cambiado_y_lo_conservado(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    ra1 = moodle.por_id("TZ_E_RA1")
+    moodle.nodos[ra1.eid] = dataclasses.replace(ra1, coeficiente=70.0)
+
+    documento = atender(
+        pedir(carpeta, "real"),
+        moodle,
+        carpeta,
+        PresenciaFalsa(real=True, calificador_a_mano=False),
+    )
+    assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "RA1"
+    assert pasos(documento, "CONSERVADO_A_MANO")[0]["detalle"] == "RA1"
+
+    segundo = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert pasos(segundo, "CAMBIADO_A_MANO") == []
+    assert pasos(segundo, "CONSERVADO_A_MANO")[0]["detalle"] == "RA1"
+
+
+def test_una_actividad_movida_y_conservada_sale_conservada(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    actividad = moodle.por_id("TZ_A11")
+    destino = moodle.por_id("TZ_V_1_RA2")
+    moodle.nodos[actividad.eid] = dataclasses.replace(actividad, padre_eid=destino.eid)
+
+    presencia = PresenciaFalsa(real=True, calificador_a_mano=False)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    cambio = presencia.resumenes_calificador_a_mano[0].cambio
+    assert cambio.tipo == "padre"
+    assert (cambio.padre_antes, cambio.padre_despues) == ("TZ_V_1_RA2", "TZ_V_1_RA1")
+    assert acciones(documento)["a.md"] == "conservada"
+    assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "a.md"
+    assert pasos(documento, "CONSERVADO_A_MANO")[0]["detalle"] == "a.md"

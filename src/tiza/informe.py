@@ -75,6 +75,7 @@ ACCIONES = {
     "ya_estaba",
     "pendiente",
     "sin_colocar",  # está en el aula y no se coloca: evaluación cerrada o cambiada a mano
+    "conservada",  # está en el aula y el docente decidió conservarla donde la cambió
 }
 # El registro de tipos (tipos/) es el dueño de qué tipos existen.
 TIPOS = set(tipos.TIPOS)
@@ -99,11 +100,15 @@ PASOS = (
             "CALIFICADOR_ANTIGUO_RETIRADO",
             "CALIFICADOR_BLOQUEAR",
             "CALIFICADOR_CAMBIOS",
+            "CALIFICADOR_COLOCAR",
+            "CALIFICADOR_PENDIENTE",
             "CALIFICADOR_SIN_LEER",
             "CALIFICACION_Y_PONDERACION",
-            "CALIFICADOR_COLOCAR",
             "CAMBIADO_A_MANO",
             "CAMBIO_DEL_AULA_DESCARTADO",
+            "CATEGORIA_BORRADA_EN_CERRADA",
+            "CATEGORIA_RECREADA",
+            "CONSERVADO_A_MANO",
             "COMPROBAR",
             "COPIA_A_MANO",
             "COPIAR",

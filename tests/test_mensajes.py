@@ -224,6 +224,14 @@ class TestAvisos:
                 "Lo cambiaste a mano en el aula y tiza no lo toca: Redes",
             ),
             (
+                publicacion.Aviso.calificador_pendiente("Subredes"),
+                "La nota de Subredes entrará en la media cuando vuelvas a montar el calificador.",
+            ),
+            (
+                publicacion.Aviso.categoria_recreada("RA1"),
+                "Vuelvo a crear «RA1», que se borró en el aula, y meto dentro lo que tenía.",
+            ),
+            (
                 publicacion.Aviso.evaluacion_cerrada_en_el_aula("Primera"),
                 "Ya está bloqueada en el aula y tiza no la toca: Primera",
             ),

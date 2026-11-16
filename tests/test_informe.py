@@ -554,7 +554,9 @@ class TestEstructuraCambios:
 class TestCalificador:
     """El informe de ``tiza calificador``: sus pasos, sus acciones por actividad y sus recuentos."""
 
-    @pytest.mark.parametrize("accion", ["colocada", "ya_estaba", "pendiente", "sin_colocar"])
+    @pytest.mark.parametrize(
+        "accion", ["colocada", "ya_estaba", "pendiente", "sin_colocar", "conservada"]
+    )
     def test_las_acciones_por_actividad_valen(self, accion):
         documento = crear(
             "calificador",
@@ -579,6 +581,10 @@ class TestCalificador:
             "ACTIVIDAD_EN_EVALUACION_CERRADA",
             "SALE_DE_EVALUACION_CERRADA",
             "CAMBIADO_A_MANO",
+            "CONSERVADO_A_MANO",
+            "CATEGORIA_RECREADA",
+            "CATEGORIA_BORRADA_EN_CERRADA",
+            "CALIFICADOR_PENDIENTE",
             "ELEMENTO_CON_NOTAS_QUITADO",
             "ELEMENTO_SIN_ACTIVIDADES",
             "CRITERIOS_SIN_PESO",
@@ -599,6 +605,10 @@ class TestCalificador:
     def test_los_pasos_del_calificador_estan_registrados(self, codigo):
         assert codigo in informe.PASOS
         Paso(codigo, detalle="2")
+
+    def test_el_detalle_de_lo_cambiado_admite_ids_del_yaml(self):
+        Paso("CAMBIADO_A_MANO", detalle="RA1_a · evaluación 1, u3/subredes.md")
+        Paso("CONSERVADO_A_MANO", detalle="RA1_a · evaluación 1")
 
     def test_un_paso_que_no_esta_registrado_no_vale(self):
         with pytest.raises(ErrorInforme):

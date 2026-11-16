@@ -149,13 +149,16 @@ AVISOS = frozenset(
         "AISLAMIENTO_GUARDADO",
         "AUTOPRUEBA_FALLIDA",
         "CALCULADOS_OCULTADOS",
+        "CALIFICADOR_PENDIENTE",
         "CALIFICANDO_EN_PRUEBAS",
         "CAMBIADA_DESDE_LA_PUBLICACION",
         "CAMBIADA_EN_EL_AULA",
         "CAMBIADO_A_MANO",
         "CANCELADA",
         "CATEGORIA_BLOQUEADA",
+        "CATEGORIA_BORRADA_EN_CERRADA",
         "CATEGORIA_NO_DECLARADA",
+        "CATEGORIA_RECREADA",
         "CARPETA_NO_AISLADA",
         "CERRANDO_SESION_ANTERIOR",
         "COMPROBACIONES_DE_AISLAMIENTO",
@@ -270,6 +273,21 @@ class Aviso:
     def cambiado_a_mano(cls, nombre: str) -> Aviso:
         """``nombre``: lo que el docente cambió en el aula y tiza no toca (viene del aula)."""
         return cls("CAMBIADO_A_MANO", {"nombre": nombre})
+
+    @classmethod
+    def calificador_pendiente(cls, nombre: str) -> Aviso:
+        """``nombre``: la actividad con ``evalua`` que hay que volver a llevar al calificador."""
+        return cls("CALIFICADOR_PENDIENTE", {"nombre": nombre})
+
+    @classmethod
+    def categoria_recreada(cls, nombre: str) -> Aviso:
+        """``nombre``: la categoría que se borró en el aula y tiza vuelve a crear."""
+        return cls("CATEGORIA_RECREADA", {"nombre": nombre})
+
+    @classmethod
+    def categoria_borrada_en_cerrada(cls, nombre: str) -> Aviso:
+        """``nombre``: la categoría borrada dentro de una evaluación cerrada; no se recrea."""
+        return cls("CATEGORIA_BORRADA_EN_CERRADA", {"nombre": nombre})
 
     @classmethod
     def categoria_bloqueada(cls, nombre: str) -> Aviso:
@@ -3428,8 +3446,20 @@ def calificador_con(
         if presencia is not None:
             presencia.informar(Aviso.ponderaciones_visibles())
     ocultados = sum(1 for op in hechas_todas if op.tipo == "ocultar")
+    claves_llanas = _claves_llanas_del_plan(plan)
+    cambiadas = [cambio.clave for cambio in plan.cambios_decididos] or sorted(rec.a_mano)
+    if cambiadas:
+        detalle = ", ".join(dict.fromkeys(claves_llanas.get(clave, clave) for clave in cambiadas))
+        borrador.paso("CAMBIADO_A_MANO", detalle=detalle)
+    if rec.conservados:
+        detalle = ", ".join(
+            dict.fromkeys(claves_llanas.get(clave, clave) for clave in sorted(rec.conservados))
+        )
+        borrador.paso("CONSERVADO_A_MANO", detalle=detalle)
     avisos = [*rec.avisos, *plan.deseado.avisos]
     for codigo, cuantos in Counter(codigo for codigo, _ in avisos).items():
+        if codigo == "CAMBIADO_A_MANO":  # ya sale con sus ids, no como recuento
+            continue
         if codigo == "CALCULADOS_OCULTADOS":  # un solo aviso, con el número de calculados
             if not ocultados:
                 continue  # el aula los rechazó todos: lo cuenta OCULTAR_FALLIDO
@@ -3452,7 +3482,8 @@ def calificador_con(
         elif ruta in colocadas:
             accion = "colocada"
         elif ruta in rec.sin_colocar:
-            accion = "sin_colocar"
+            clave = rec.claves.get(ruta)
+            accion = "conservada" if clave in rec.conservados else "sin_colocar"
         else:
             accion = "ya_estaba"
         try:

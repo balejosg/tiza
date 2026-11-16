@@ -1282,6 +1282,36 @@ def _cambiado_a_mano(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     )
 
 
+def _calificador_pendiente(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            f"La nota de {texto_seguro(datos['nombre'])} entrará en la media cuando vuelvas a "
+            "montar el calificador."
+        ),
+    )
+
+
+def _categoria_recreada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    nombre = texto_seguro(datos["nombre"])
+    return (
+        Linea(f"Vuelvo a crear «{nombre}», que se borró en el aula, y meto dentro lo que tenía."),
+    )
+
+
+def _categoria_borrada_en_cerrada(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    nombre = texto_seguro(datos["nombre"])
+    return (
+        Linea(
+            f"«{nombre}» se borró en el aula, dentro de una evaluación cerrada: no la recreo "
+            "para no recalcular en silencio una nota ya cerrada."
+        ),
+        Linea(
+            "Si la quieres recuperar, desbloquea esa evaluación, quita «cerrada: true» en el "
+            "esquema, vuelve a montar y ciérrala otra vez; su nota congelada se recalculará."
+        ),
+    )
+
+
 def _ponderando_en_pruebas(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return (
         Linea(
@@ -1728,7 +1758,10 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "CAMBIADA_EN_EL_AULA": _cambiada_en_el_aula,
     "CAMBIADO_A_MANO": _cambiado_a_mano,
     "CANCELADA": _cancelada,
+    "CALIFICADOR_PENDIENTE": _calificador_pendiente,
     "CATEGORIA_BLOQUEADA": _categoria_bloqueada,
+    "CATEGORIA_BORRADA_EN_CERRADA": _categoria_borrada_en_cerrada,
+    "CATEGORIA_RECREADA": _categoria_recreada,
     "CATEGORIA_NO_DECLARADA": _categoria_no_declarada,
     "CARPETA_NO_AISLADA": _carpeta_no_aislada,
     "CERRANDO_SESION_ANTERIOR": _cerrando_sesion_anterior,
