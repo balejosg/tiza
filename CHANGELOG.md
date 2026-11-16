@@ -6,6 +6,10 @@ se avisa aquí con **Cambia**.
 
 ## Sin publicar
 
+### Cambia
+- **El calificador se puede mantener durante el curso.** `calificador.json` pasa a la versión 3 y guarda, por curso, lo que decides conservar a mano: si cambiaste un peso, una fórmula o el sitio de un nodo en el aula, `tiza calificador` te pregunta nodo a nodo si lo vuelve a dejar como el YAML o lo conserva, y deja de avisarte mientras no cambies ni el aula ni el YAML de ese nodo. La confirmación enseña los pesos antes → después y avisa si puede cambiar la nota final; los cambios de nombre del YAML se llevan al aula; y una categoría borrada a mano se vuelve a crear con sus hijos (dentro de una evaluación cerrada no: te avisa de cómo recuperarla).
+- **Al publicar una actividad que evalúa, tiza avisa de que falta volver a montar el calificador.** Si el curso ya tiene el calificador, `tiza publicar` deja `CALIFICADOR_PENDIENTE`; la nota de esa actividad no entra en la media hasta ejecutar `tiza calificador` otra vez. El informe de los cambios a mano lleva los ids del YAML o las rutas, no un recuento.
+
 ### Arreglado
 - **`ELEMENTO_DESCONOCIDO` y `ELEMENTO_CON_CRITERIOS` dicen la línea.** Cuando el `evalua` de una actividad nombra un id que no existe o un elemento con criterios, el error añade «(línea N)» del `.md` de la actividad, donde está esa clave.
 - **Pasar una sección de una evaluación cerrada a otra ya avisa.** La actividad se quedaba dentro de la cerrada, contando en ese trimestre, sin decir nada; ahora sale `SALE_DE_EVALUACION_CERRADA` (una vez por actividad, `sin_colocar` en el informe y en la confirmación) con lo que hacer: devolver la sección a esa evaluación o desbloquearla a mano y quitar `cerrada: true`. tiza sigue sin tocar lo cerrado.

@@ -315,7 +315,8 @@ ponderacion:
 - Lo que tiza monta va a «Calificador de tiza», con peso 0 en el total si había otro: el total
   del curso sigue siendo el del docente. Las actividades que pasan a tiza dejan de sumar en él.
 - Antes de sacar una actividad de una categoría ajena, tiza **bloquea** su total si tiene notas
-  (`CALIFICADOR_BLOQUEAR`); nunca lo desbloquea. `CAMBIADO_A_MANO` y `BLOQUEO_FALLIDO` se resuelven a mano.
+  (`CALIFICADOR_BLOQUEAR`); nunca lo desbloquea. `BLOQUEO_FALLIDO` se resuelve a mano.
+  `CAMBIADO_A_MANO` ya no: tiza pregunta nodo a nodo si sobrescribe o conserva (ver §11).
 - Un elemento que ya no está en el esquema pero tiene notas se queda con peso 0
   (`ELEMENTO_CON_NOTAS_QUITADO`); no se borra nada con notas.
 - **No se mezcla con `ponderacion.yaml` en el mismo curso.** Si el aula ya tiene categorías
@@ -333,7 +334,37 @@ sale como `ACTIVIDAD_EN_EVALUACION_CERRADA`, `EVALUACION_CERRADA_EN_EL_AULA` avi
 bloqueada y una sección pasada a otra evaluación no se mueve (`SALE_DE_EVALUACION_CERRADA`: que la
 devuelva, o desbloquee a mano y quite `cerrada: true`). **tiza no la reabre**; si falla, repite.
 
-## 11. Cómo se monta
+## 11. Mantenerlo durante el curso
+
+El calificador no es de una sola vez: el docente cambia pesos, mueve una actividad, renombra un
+criterio o toca una nota. tiza distingue lo suyo de lo del docente y no pisa nada sin preguntar.
+
+- **Lo que puedes tocar a mano sin que tiza lo deshaga**: las notas del alumnado (tiza no las lee),
+  el juicio del docente (sobrescribir un total en el informe del calificador) y las casillas
+  manuales que el propio docente rellena. tiza nunca escribe notas.
+- **Lo que tiza pregunta**: si cambias a mano el **peso** de un nodo o lo **mueves** a otro sitio,
+  al volver a montar te pregunta una vez por nodo: volver a dejarlo como dice tu programación
+  (`calificacion.yaml`) o conservar lo del aula. Si conservas, tiza no lo toca y no vuelve a
+  avisar mientras no cambies ni el aula ni el YAML de ese nodo; si cambias cualquiera de los dos,
+  vuelve a preguntar. Los cambios de **fórmula** y de **nombre** también se preguntan; el nombre
+  se puede cambiar desde el YAML (`fijar_nombre`) y tiza lo lleva al aula sin tocar la fórmula,
+  el coeficiente, el bloqueo ni el número de ID. Las actividades no se renombran con esto: su
+  nombre lo publica `tiza publicar`.
+- **Lo que tiza rehace**: si borras a mano una categoría `TZ_`, tiza la recrea y vuelve a meter
+  dentro a sus hijos (criterios, actividades y calculados), conservando sus notas y coeficientes.
+  Lo avisa con `CATEGORIA_RECREADA`.
+- **Lo que tiza no hace**: dentro de una evaluación bloqueada no recrea, mueve ni renombra nada;
+  si faltaba una categoría, avisa `CATEGORIA_BORRADA_EN_CERRADA` y te dice cómo recuperarla
+  (desbloquear, quitar `cerrada: true`, montar y volver a cerrar: la nota congelada se
+  recalculará). Tampoco toca una actividad, un nodo conservado ni uno cambiado a mano.
+- **Al publicar una actividad con `evalua`**, si el curso ya tiene el calificador montado, el
+  informe de `tiza publicar` deja `CALIFICADOR_PENDIENTE`: la nota no entra en la media hasta
+  que vuelvas a montar el calificador. Lánzalo en el mismo turno, salvo que el docente diga que
+  no.
+- El estado se guarda en `.tiza/calificador.json` (versión 3): las huellas de lo montado y lo
+  conservado. No lo edites ni lo borres a mano.
+
+## 12. Cómo se monta
 
 1. `tiza comprobar calificacion.yaml` (offline) hasta que salga 0; también comprueba `evalua`.
 2. Las actividades tienen que estar publicadas; una que falta sale como `ACTIVIDAD_PENDIENTE`.
@@ -341,10 +372,27 @@ devuelva, o desbloquee a mano y quite `cerrada: true`). **tiza no la reabre**; s
    confirma `[s/N]` curso por curso).
 
 Lánzalo en segundo plano (hasta una hora): si te corta, la sesión acaba lo empezado y lo hecho no
-se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente` o `sin_colocar`,
-y los pasos `CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo; `CALIFICADOR_CAMBIOS` desglosa los cambios por tipo (también `fijar_coeficiente`), con los primeros números de ID `TZ_…`. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose: es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide `tiza empezar`. `CALIFICADOR_ANTIGUO_RETIRADO` dice cuántos nodos se quitaron y cuántas casillas con notas se conservaron al sustituir un árbol de la generación anterior. `CALCULADOS_OCULTADOS` cuenta las copias y calculados que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de los que el aula no dejó ocultar (no corta el montaje), `TOTALES_VISIBLES` de que el curso deja ver los totales con ítems ocultos y `PONDERACIONES_VISIBLES` de que el informe del usuario muestra ponderaciones o contribución. `CALCULO_NO_DISPONIBLE` corta antes de escribir si el aula no ofrece «Media ponderada de calificaciones»; `CALIFICADOR_ANTIGUO` queda como código de versiones anteriores y ya no corta.
+se repite. En el informe, cada actividad sale `colocada`, `ya_estaba`, `pendiente`,
+`sin_colocar` o `conservada` (está donde la dejó el docente y se conserva), y los pasos
+`CALIFICADOR`, `CALIFICADOR_BLOQUEAR` y `CALIFICADOR_COLOCAR` dicen qué se hizo;
+`CALIFICADOR_CAMBIOS` desglosa los cambios por tipo (también `fijar_coeficiente` y
+`fijar_nombre`), con los primeros números de ID `TZ_…`. `CAMBIADO_A_MANO` y `CONSERVADO_A_MANO`
+llevan los ids del YAML o las rutas de los ficheros, no un recuento. `CATEGORIA_RECREADA` dice
+qué categoría se volvió a crear; `CATEGORIA_BORRADA_EN_CERRADA`, la que no se puede recrear
+dentro de una evaluación bloqueada. `CALIFICADOR_PENDIENTE` sale en `tiza publicar` cuando una
+actividad con `evalua` se crea o cambia de sección: vuelve a montar el calificador en el mismo
+turno. Si un segundo montaje sin tocar nada vuelve a dar cambios, copia al docente ese desglose:
+es lo que hace falta para saber qué no se queda en el aula; sin sesión, `SIN_SESION`: pide
+`tiza empezar`. `CALIFICADOR_ANTIGUO_RETIRADO` dice cuántos nodos se quitaron y cuántas casillas
+con notas se conservaron al sustituir un árbol de la generación anterior. `CALCULADOS_OCULTADOS`
+cuenta las copias y calculados que se han vuelto a ocultar, `OCULTAR_FALLIDO` avisa de los que el
+aula no dejó ocultar (no corta el montaje), `TOTALES_VISIBLES` de que el curso deja ver los
+totales con ítems ocultos y `PONDERACIONES_VISIBLES` de que el informe del usuario muestra
+ponderaciones o contribución. `CALCULO_NO_DISPONIBLE` corta antes de escribir si el aula no
+ofrece «Media ponderada de calificaciones»; `CALIFICADOR_ANTIGUO` queda como código de versiones
+anteriores y ya no corta.
 
-## 12. Lo que tiza no hace
+## 13. Lo que tiza no hace
 
 - **No lee ni escribe notas** del alumnado: solo sabe si un elemento tiene notas. No pidas ni muestres notas de nadie y no desbloquees nada. En la ponderación (§8) solo se usa `tiene_notas` para avisar de que el total de una categoría cambiará.
 - **Los dos modos no conviven en un curso**: `calificacion.yaml` (por criterios, con `TZ_TIZA`) y `ponderacion.yaml` (por categorías, con `TZP_`) son excluyentes. Si están los dos ficheros, `tiza comprobar` avisa; elige uno por curso.
