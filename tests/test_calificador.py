@@ -2785,10 +2785,12 @@ def test_un_calificador_json_version_1_sin_arbol_antiguo_se_olvida(tmp_path):
     ruta = carpeta / ".tiza" / "calificador.json"
     datos = json.loads(ruta.read_text(encoding="utf-8"))
     datos["version"] = 1
+    for entrada in datos["cursos"].values():
+        entrada.pop("conservados", None)  # la 1 no los tenía
     ruta.write_text(json.dumps(datos), encoding="utf-8")
     assert estado.version_de_calificador(carpeta / ".tiza") == 1
 
     documento = atender(pedir(carpeta), AulaViva(), carpeta)
     assert documento["resultado"] == "ok", documento
-    assert estado.version_de_calificador(carpeta / ".tiza") == 2
+    assert estado.version_de_calificador(carpeta / ".tiza") == 3
     assert estado.cargar_huellas(carpeta / ".tiza", CURSO) != {}

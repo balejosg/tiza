@@ -416,25 +416,83 @@ class TestHuellasDelCalificador:
         estado.guardar_huellas(tmp_path, 7, {"TZ_TIZA": "c" * 64})
         assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": "c" * 64}
 
-    def test_la_version_1_se_lee_y_al_guardar_pasa_a_2(self, tmp_path):
+    def test_la_version_1_se_lee_y_al_guardar_pasa_a_3(self, tmp_path):
         datos = {"version": 1, "cursos": {"7": {"nodos": {"TZ_TIZA": self.HUELLA}}}}
         (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
         assert estado.version_de_calificador(tmp_path) == 1
         assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": self.HUELLA}
         estado.guardar_huellas(tmp_path, 8, {"TZ_TIZA": "b" * 64})
-        assert estado.version_de_calificador(tmp_path) == 2
+        assert estado.version_de_calificador(tmp_path) == 3
         assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": self.HUELLA}
         assert estado.cargar_huellas(tmp_path, 8) == {"TZ_TIZA": "b" * 64}
 
-    def test_olvidar_una_entrada_deja_la_version_2(self, tmp_path):
+    def test_la_version_2_se_lee_con_conservados_vacios(self, tmp_path):
+        datos = {"version": 2, "cursos": {"7": {"nodos": {"TZ_TIZA": self.HUELLA}}}}
+        (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
+        assert estado.version_de_calificador(tmp_path) == 2
+        assert estado.cargar_conservados(tmp_path, 7) == {}
+
+    def test_guarda_y_lee_conservados_por_curso(self, tmp_path):
+        estado.guardar_huellas(
+            tmp_path / ".tiza",
+            7,
+            {"TZ_TIZA": self.HUELLA},
+            conservados={"TZ_E_RA1": estado.Conservado(self.HUELLA, "b" * 64)},
+        )
+        estado.guardar_huellas(
+            tmp_path / ".tiza",
+            8,
+            {"TZ_E_RA2": "c" * 64},
+            conservados={"TZ_E_RA2": estado.Conservado("d" * 64, "e" * 64)},
+        )
+        assert estado.cargar_conservados(tmp_path / ".tiza", 7) == {
+            "TZ_E_RA1": estado.Conservado(self.HUELLA, "b" * 64)
+        }
+        assert estado.cargar_conservados(tmp_path / ".tiza", 8) == {
+            "TZ_E_RA2": estado.Conservado("d" * 64, "e" * 64)
+        }
+        assert estado.cargar_conservados(tmp_path / ".tiza", 9) == {}
+
+    def test_guardar_huellas_conserva_los_conservados_si_no_se_pasan(self, tmp_path):
+        estado.guardar_huellas(
+            tmp_path,
+            7,
+            {"TZ_TIZA": self.HUELLA},
+            conservados={"TZ_E_RA1": estado.Conservado(self.HUELLA, "b" * 64)},
+        )
+        estado.guardar_huellas(tmp_path, 7, {"TZ_TIZA": "c" * 64})
+        assert estado.cargar_huellas(tmp_path, 7) == {"TZ_TIZA": "c" * 64}
+        assert estado.cargar_conservados(tmp_path, 7) == {
+            "TZ_E_RA1": estado.Conservado(self.HUELLA, "b" * 64)
+        }
+
+    def test_guardar_huellas_puede_vaciar_los_conservados(self, tmp_path):
+        estado.guardar_huellas(
+            tmp_path,
+            7,
+            {"TZ_TIZA": self.HUELLA},
+            conservados={"TZ_E_RA1": estado.Conservado(self.HUELLA, "b" * 64)},
+        )
+        estado.guardar_huellas(tmp_path, 7, {"TZ_TIZA": self.HUELLA}, conservados={})
+        assert estado.cargar_conservados(tmp_path, 7) == {}
+
+    def test_las_claves_peligrosas_de_conservados_no_se_guardan(self, tmp_path):
+        buenas = {"TZ_E_RA1": estado.Conservado(self.HUELLA, "b" * 64)}
+        malas = {
+            clave: estado.Conservado(self.HUELLA, "b" * 64) for clave in self.CLAVES_PELIGROSAS
+        }
+        estado.guardar_huellas(tmp_path, 7, {}, conservados={**buenas, **malas})
+        assert estado.cargar_conservados(tmp_path, 7) == buenas
+
+    def test_olvidar_una_entrada_deja_la_version_3(self, tmp_path):
         datos = {
-            "version": 1,
+            "version": 2,
             "cursos": {"7": {"nodos": {"TZ_TIZA": self.HUELLA}}, "8": {"nodos": {}}},
         }
         (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
         estado.olvidar_huellas(tmp_path, 7)
         assert estado.cargar_huellas(tmp_path, 7) == {}
-        assert estado.version_de_calificador(tmp_path) == 2
+        assert estado.version_de_calificador(tmp_path) == 3
         assert estado.cargar_huellas(tmp_path, 8) == {}
 
     def test_huellas_esquema_cerrado(self, tmp_path):
@@ -456,7 +514,7 @@ class TestHuellasDelCalificador:
         "datos",
         [
             [],
-            {"version": 3, "cursos": {}},
+            {"version": 4, "cursos": {}},
             {"version": 1},
             {"version": 1, "cursos": []},
             {"version": 1, "cursos": {"siete": {"nodos": {}}}},
@@ -468,6 +526,43 @@ class TestHuellasDelCalificador:
             {"version": 1, "cursos": {"7": {"nodos": {"TZ_TIZA": 5}}}},
             {"version": 1, "cursos": {"7": {"nodos": {"": "a" * 64}}}},
             {"version": 1, "cursos": {"7": {"nodos": {"x\ny": "a" * 64}}}},
+            # La 2 no admite conservados: el esquema de cada versión es cerrado.
+            {
+                "version": 2,
+                "cursos": {
+                    "7": {
+                        "nodos": {},
+                        "conservados": {"TZ_A": {"aula": "a" * 64, "deseado": "b" * 64}},
+                    }
+                },
+            },
+            # La 3 exige las dos claves en cada curso.
+            {"version": 3, "cursos": {"7": {"nodos": {}}}},
+            {"version": 3, "cursos": {"7": {"nodos": {}, "conservados": []}}},
+            {"version": 3, "cursos": {"7": {"nodos": {}, "conservados": {}, "otro": 1}}},
+            {"version": 3, "cursos": {"7": {"nodos": {}, "conservados": {"TZ_A": {}}}}},
+            {
+                "version": 3,
+                "cursos": {"7": {"nodos": {}, "conservados": {"TZ_A": {"aula": "a" * 64}}}},
+            },
+            {
+                "version": 3,
+                "cursos": {
+                    "7": {
+                        "nodos": {},
+                        "conservados": {"TZ_A": {"aula": "a" * 64, "deseado": "b" * 64, "otro": 1}},
+                    }
+                },
+            },
+            {
+                "version": 3,
+                "cursos": {
+                    "7": {
+                        "nodos": {},
+                        "conservados": {"TZ_A": {"aula": "a" * 64, "deseado": "corta"}},
+                    }
+                },
+            },
         ],
     )
     def test_fuera_del_esquema_es_invalido(self, tmp_path, datos):
@@ -493,6 +588,24 @@ class TestHuellasDelCalificador:
         (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
         with pytest.raises(estado.ErrorEstado) as error:
             estado.cargar_huellas(tmp_path, 7)
+        assert error.value.codigo == "CALIFICADOR_INVALIDO"
+
+    @pytest.mark.parametrize("clave", CLAVES_PELIGROSAS)
+    def test_una_clave_de_conservados_con_bidi_o_invisibles_es_invalida_al_leer(
+        self, tmp_path, clave
+    ):
+        datos = {
+            "version": 3,
+            "cursos": {
+                "7": {
+                    "nodos": {},
+                    "conservados": {clave: {"aula": self.HUELLA, "deseado": "b" * 64}},
+                }
+            },
+        }
+        (tmp_path / "calificador.json").write_text(json.dumps(datos), encoding="utf-8")
+        with pytest.raises(estado.ErrorEstado) as error:
+            estado.cargar_conservados(tmp_path, 7)
         assert error.value.codigo == "CALIFICADOR_INVALIDO"
 
     def test_las_claves_peligrosas_no_se_guardan_y_las_demas_si(self, tmp_path):

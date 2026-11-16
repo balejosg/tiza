@@ -71,6 +71,7 @@ __all__ = [
     "MARCA_ILEGIBLE",
     "Publicado",
     "Verificado",
+    "Conservado",
     "anotar_verificado",
     "borrar_cobertura",
     "cargar_cobertura",
@@ -82,6 +83,7 @@ __all__ = [
     "publicados_de_fichero",
     "cargar_estructura",
     "cargar_huellas",
+    "cargar_conservados",
     "cargar_huellas_ponderacion",
     "cargar_verificados",
     "comprobar_puerta_real",
@@ -480,23 +482,38 @@ def clave_de_huella_valida(clave: str) -> bool:
     return isinstance(clave, str) and _CLAVE_DE_NODO.fullmatch(clave) is not None
 
 
-def _validar_calificador(datos: Any) -> None:
-    """Esquema cerrado de ``calificador.json``, versiones 1 y 2.
+@dataclass(frozen=True)
+class Conservado:
+    """Un nodo que el docente conservó a mano: la huella del aula y la de lo deseado.
 
-    ``{version: 1|2, cursos: {id: {nodos: {id: sha256}}}}``. La 1 es la del árbol antiguo: se
-    lee y sus cursos se tratan como antiguos; al guardar se escribe la 2.
+    Las dos se guardan juntas: si cambia el aula o el YAML de ese nodo, tiza vuelve a
+    preguntar; mientras no cambie ninguna, no lo toca ni avisa.
+    """
+
+    aula: str
+    deseado: str
+
+
+def _validar_calificador(datos: Any) -> None:
+    """Esquema cerrado de ``calificador.json``, versiones 1, 2 y 3.
+
+    La 1 es la del árbol antiguo y la 2, la del calificador ligero; las dos llevan
+    ``{version: 1|2, cursos: {id: {nodos: {id: sha256}}}}``. La 3 añade a cada curso
+    ``conservados: {id: {aula: sha256, deseado: sha256}}``. Al guardar se escribe la 3.
     """
     if not isinstance(datos, dict) or set(datos) != {"version", "cursos"}:
         raise ErrorEstado("CALIFICADOR_INVALIDO")
-    if type(datos["version"]) is not int or datos["version"] not in (1, 2):
+    if type(datos["version"]) is not int or datos["version"] not in (1, 2, 3):
         raise ErrorEstado("CALIFICADOR_INVALIDO")
+    version = datos["version"]
     cursos = datos["cursos"]
     if not isinstance(cursos, dict):
         raise ErrorEstado("CALIFICADOR_INVALIDO")
     for curso, entrada in cursos.items():
         if not isinstance(curso, str) or not _CURSO_DE_HUELLAS.fullmatch(curso):
             raise ErrorEstado("CALIFICADOR_INVALIDO")
-        if not isinstance(entrada, dict) or set(entrada) != {"nodos"}:
+        claves = {"nodos"} if version in (1, 2) else {"nodos", "conservados"}
+        if not isinstance(entrada, dict) or set(entrada) != claves:
             raise ErrorEstado("CALIFICADOR_INVALIDO")
         nodos = entrada["nodos"]
         if not isinstance(nodos, dict):
@@ -506,6 +523,18 @@ def _validar_calificador(datos: Any) -> None:
                 raise ErrorEstado("CALIFICADOR_INVALIDO")
             if not isinstance(huella, str) or not _HUELLA.fullmatch(huella):
                 raise ErrorEstado("CALIFICADOR_INVALIDO")
+        if version == 3:
+            conservados = entrada["conservados"]
+            if not isinstance(conservados, dict):
+                raise ErrorEstado("CALIFICADOR_INVALIDO")
+            for clave, conservado in conservados.items():
+                if not isinstance(clave, str) or not _CLAVE_DE_NODO.fullmatch(clave):
+                    raise ErrorEstado("CALIFICADOR_INVALIDO")
+                if not isinstance(conservado, dict) or set(conservado) != {"aula", "deseado"}:
+                    raise ErrorEstado("CALIFICADOR_INVALIDO")
+                for huella in conservado.values():
+                    if not isinstance(huella, str) or not _HUELLA.fullmatch(huella):
+                        raise ErrorEstado("CALIFICADOR_INVALIDO")
 
 
 def _cargar_calificador(dir_tiza: str | Path) -> dict | None:
@@ -528,16 +557,27 @@ def _cargar_calificador(dir_tiza: str | Path) -> dict | None:
 
 
 def version_de_calificador(dir_tiza: str | Path) -> int | None:
-    """La versión de ``calificador.json`` (1 o 2), o ``None`` si no existe.
+    """La versión de ``calificador.json`` (1, 2 o 3), o ``None`` si no existe.
 
     La 1 es el árbol antiguo: el calificador no lo migra; sus cursos se tratan como antiguos.
+    La 2 no tiene ``conservados``; se lee como vacío y al guardar se escribe la 3.
     """
     datos = _cargar_calificador(dir_tiza)
     return None if datos is None else int(datos["version"])
 
 
+def _normalizar_para_3(datos: dict) -> None:
+    """Deja el fichero en la versión 3, con ``conservados`` vacío en los cursos que no lo tenían."""
+    datos["version"] = 3
+    for curso, entrada in datos["cursos"].items():
+        datos["cursos"][curso] = {
+            "nodos": dict(entrada["nodos"]),
+            "conservados": dict(entrada.get("conservados", {})),
+        }
+
+
 def olvidar_huellas(dir_tiza: str | Path, curso: int) -> Path | None:
-    """Quita la entrada de ``curso`` de ``calificador.json`` y deja el fichero en versión 2.
+    """Quita la entrada de ``curso`` de ``calificador.json`` y deja el fichero en versión 3.
 
     Se usa al montar de nuevo después de que el docente borre a mano el árbol antiguo: la
     entrada de la versión 1 ya no describe nada. Sin fichero o sin esa entrada, no escribe.
@@ -546,7 +586,7 @@ def olvidar_huellas(dir_tiza: str | Path, curso: int) -> Path | None:
     if datos is None or str(int(curso)) not in datos["cursos"]:
         return None
     datos["cursos"].pop(str(int(curso)))
-    datos["version"] = 2
+    _normalizar_para_3(datos)
     _validar_calificador(datos)
     asegurar_directorio(Path(dir_tiza))
     return escribir_json(Path(dir_tiza) / FICHERO_CALIFICADOR, datos)
@@ -565,16 +605,52 @@ def cargar_huellas(dir_tiza: str | Path, curso: int) -> dict[str, str]:
     return dict(entrada["nodos"]) if entrada else {}
 
 
-def guardar_huellas(dir_tiza: str | Path, curso: int, nodos: Mapping[str, str]) -> Path:
+def cargar_conservados(dir_tiza: str | Path, curso: int) -> dict[str, Conservado]:
+    """Los nodos que el docente conservó a mano en ``curso`` (idnumber -> ``Conservado``).
+
+    En la versión 2 no hay: se devuelve ``{}``. Un fichero fuera del esquema es
+    ``CALIFICADOR_INVALIDO``.
+    """
+    datos = _cargar_calificador(dir_tiza)
+    if datos is None:
+        return {}
+    entrada = datos["cursos"].get(str(curso))
+    if not entrada or "conservados" not in entrada:
+        return {}
+    return {
+        clave: Conservado(valor["aula"], valor["deseado"])
+        for clave, valor in entrada["conservados"].items()
+    }
+
+
+def guardar_huellas(
+    dir_tiza: str | Path,
+    curso: int,
+    nodos: Mapping[str, str],
+    *,
+    conservados: Mapping[str, Conservado] | None = None,
+) -> Path:
     """Guarda las huellas de ``curso`` (sustituye las anteriores) y deja intactos los demás cursos.
 
     Valida antes de escribir: lo que no case con el esquema no llega al disco. Las claves que no
     son un número de ID seguro (``clave_de_huella_valida``) no se guardan: ese nodo queda sin huella.
+    ``conservados`` sustituye los del curso; sin él se mantienen los que hubiera (la versión 2 no
+    tenía y se leen como vacíos). Siempre se escribe la versión 3.
     """
-    datos = _cargar_calificador(dir_tiza) or {"version": 2, "cursos": {}}
-    datos["version"] = 2
+    datos = _cargar_calificador(dir_tiza) or {"version": 3, "cursos": {}}
+    _normalizar_para_3(datos)
     guardables = {k: v for k, v in nodos.items() if clave_de_huella_valida(k)}
-    datos["cursos"][str(int(curso))] = {"nodos": guardables}
+    entrada = datos["cursos"].get(str(int(curso)), {"nodos": {}, "conservados": {}})
+    if conservados is not None:
+        entrada = {
+            "nodos": entrada["nodos"],
+            "conservados": {
+                clave: {"aula": valor.aula, "deseado": valor.deseado}
+                for clave, valor in conservados.items()
+                if clave_de_huella_valida(clave)
+            },
+        }
+    datos["cursos"][str(int(curso))] = {"nodos": guardables, "conservados": entrada["conservados"]}
     _validar_calificador(datos)
     asegurar_directorio(Path(dir_tiza))
     return escribir_json(Path(dir_tiza) / FICHERO_CALIFICADOR, datos)
