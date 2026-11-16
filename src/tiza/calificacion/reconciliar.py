@@ -776,6 +776,7 @@ class _Plan:
                 for k, h in actuales.items()
                 if k in huellas
                 and huellas[k] != h
+                and (k != CURSO or self.d.total_curso is not None)
                 and k not in rotas
                 and k not in self.huerfanos
                 and k not in self.conservados_vigentes
