@@ -533,6 +533,9 @@ class MoodleFalso:
     def mover_manual(self, curso, item_id, categoria_eid):
         self._escribir_calificador("mover_manual", curso, item_id, categoria_eid)
 
+    def mover_categoria(self, curso, eid, padre_eid):
+        self._escribir_calificador("mover_categoria", curso, eid, padre_eid)
+
     def arbol_notas(self, curso):
         self.llamadas.append(("arbol_notas", curso))
         pendientes = self.fallos.get("arbol_notas")

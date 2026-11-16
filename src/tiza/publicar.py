@@ -490,6 +490,7 @@ class AulaVirtual(Protocol):
     ) -> None: ...
 
     def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None: ...
+    def mover_categoria(self, curso: int, eid: str, padre_eid: str) -> None: ...
 
     def arbol_notas(self, curso: int) -> colocacion.ArbolNotas: ...
 
@@ -1933,6 +1934,12 @@ class Moodle:
     def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None:
         """Mueve un elemento manual al principio de una categoría (``first=1``; espiga 2)."""
         self.mover_nota(curso, f"ig{item_id}", categoria_eid, None)
+
+    def mover_categoria(self, curso: int, eid: str, padre_eid: str) -> None:
+        """Mueve una categoría dentro de otra, con sus hijos (espiga S1 del mantenimiento)."""
+        _validar_eid(eid, "cg")
+        _validar_eid(padre_eid, "cg")
+        self.mover_nota(curso, eid, padre_eid, None)
 
     def mover_nota(self, curso: int, eid: str, categoria: str, despues_de: str | None) -> None:
         """Mueve un elemento a una categoría, detrás de ``despues_de`` (``None``: al principio)."""

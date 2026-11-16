@@ -82,6 +82,7 @@ TIPOS = (
     "crear_calculado",
     "colocar",
     "mover_manual",
+    "mover_categoria",
     "marcar_resultado",
     "fijar_idnumber_resultado",
     "fijar_agregacion",
@@ -99,6 +100,8 @@ AVISOS = (
     "ACTIVIDAD_PENDIENTE",
     "CALCULADOS_OCULTADOS",
     "CAMBIADO_A_MANO",
+    "CATEGORIA_BORRADA_EN_CERRADA",
+    "CATEGORIA_RECREADA",
     "EVALUACION_CERRADA_EN_EL_AULA",
     "ELEMENTO_CON_NOTAS_QUITADO",
     "REGLA_CAMBIADA",
@@ -1184,10 +1187,27 @@ class _Plan:
 
     # -- el recorrido ------------------------------------------------------
 
+    def _categorias_borradas_en_cerradas(self) -> None:
+        """Avisa de una categoría de tiza borrada dentro de una evaluación ya bloqueada.
+
+        No se recrea nada dentro de una cerrada: hacerlo recalcularía en silencio una nota
+        congelada. El docente tiene que desbloquear, quitar ``cerrada: true`` y volver a montar.
+        """
+        for nodo in self.d.nodos:
+            if nodo.clase not in _CLASES_CATEGORIA or not nodo.idnumber.startswith(_PREFIJO):
+                continue
+            if nodo.idnumber in self.idx.por_id:
+                continue
+            if nodo.idnumber not in self.huellas:
+                continue  # nunca se montó: no es que se borrara
+            if self._cerrado_deseado(nodo.idnumber):
+                self._aviso("CATEGORIA_BORRADA_EN_CERRADA", nodo.idnumber)
+
     def planificar(self) -> None:
         pendientes = [r for r in sorted(self.rutas) if self._actividad_aula(r) is None]
         for ruta in pendientes:
             self._aviso("ACTIVIDAD_PENDIENTE", ruta)
+        self._categorias_borradas_en_cerradas()
         for ruta in sorted(self.en_cerrada | self.casillas_en_cerrada):
             self._aviso("ACTIVIDAD_EN_EVALUACION_CERRADA", ruta)
         for n in self.aula.nodos:
@@ -1431,11 +1451,21 @@ class _Plan:
                 )
                 self._salen.add(existente.eid)
                 movido = True
-            else:  # tiza no sabe mover categorías: se respeta donde estén y se avisa
-                if nodo.idnumber in self.huerfanos:
+            else:  # una categoría: tiza la mueve solo si es huérfana de una que se borró
+                if nodo.idnumber not in self.huerfanos:
+                    self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
                     return
-                self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
-                return
+                self.alta.append(
+                    Operacion(
+                        "mover_categoria",
+                        idnumber=nodo.idnumber,
+                        eid=existente.eid,
+                        padre=nodo.padre,
+                        padre_eid=padre.eid if padre else None,
+                    )
+                )
+                self._salen.add(existente.eid)
+                movido = True
         tipo, valor = self._ajuste_peso(nodo)
         if valor is not None:
             if tipo == "fijar_coeficiente" and (
@@ -1521,6 +1551,9 @@ class _Plan:
             self.formula.append(
                 Operacion("fijar_formula", idnumber=nodo.idnumber, formula=self._formula(nodo))
             )
+        if not calculado and nodo.idnumber in self.huellas:
+            # Estaba montada y ya no está: el docente la borró a mano. Se vuelve a crear.
+            self._aviso("CATEGORIA_RECREADA", nodo.idnumber)
 
     # -- lo que no está en el deseado -------------------------------------
 

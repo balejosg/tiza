@@ -177,6 +177,13 @@ class Ejecucion:
                 raise ErrorPublicacion("ESCRITURA_CALIFICADOR", "la categoría de destino no existe")
             self.tocados.add(f"ig{self._item(op)}")
             aula.mover_manual(curso, self._item(op), padre)
+        elif tipo == "mover_categoria":
+            padre = self._padre(op)
+            if padre is None or not padre.startswith("cg"):
+                raise ErrorPublicacion("ESCRITURA_CALIFICADOR", "la categoría de destino no existe")
+            eid = self._eid(op)
+            self.tocados.add(eid)
+            aula.mover_categoria(curso, eid, padre)
         elif tipo == "marcar_resultado":
             assert op.cmid is not None and op.resultado is not None
             self._releida = None  # aparece un elemento nuevo en el árbol

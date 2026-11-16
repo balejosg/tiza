@@ -39,7 +39,13 @@ from typing import TYPE_CHECKING, Any, Protocol
 from . import calendario, colocacion, contenido, estado, informe, publicar, recorrido, rutas, tipos
 from .calificacion import ponderacion
 from .calificacion import reconciliar as rc
-from .calificacion.deseado import Deseado, claves_llanas, detalle_tope, nombre_de_hoja
+from .calificacion.deseado import (
+    Deseado,
+    clave_llana,
+    claves_llanas,
+    detalle_tope,
+    nombre_de_hoja,
+)
 from .calificacion.deseado import deseado as calcular_deseado
 from .calificacion.ejecutar import TIPOS_DE_BLOQUEO, Ejecucion
 from .calificacion.esquema import (
@@ -3003,6 +3009,10 @@ def _aviso_de(codigo: str, clave: str, plan: PlanCalificador) -> Aviso | None:
         return Aviso.sale_de_evaluacion_cerrada(clave, _evaluacion_cerrada_de(clave, plan))
     if codigo == "CAMBIADO_A_MANO":
         return Aviso.cambiado_a_mano(nombre)
+    if codigo == "CATEGORIA_RECREADA":
+        return Aviso.categoria_recreada(clave_llana(clave, plan.deseado))
+    if codigo == "CATEGORIA_BORRADA_EN_CERRADA":
+        return Aviso.categoria_borrada_en_cerrada(clave_llana(clave, plan.deseado))
     if codigo == "EVALUACION_CERRADA_EN_EL_AULA":
         return Aviso.evaluacion_cerrada_en_el_aula(nombre)
     if codigo == "ELEMENTO_CON_NOTAS_QUITADO":

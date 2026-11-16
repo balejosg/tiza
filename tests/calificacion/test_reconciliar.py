@@ -126,7 +126,7 @@ def aula_inicial(cmids=CMIDS, maximo: float = 10.0) -> CalificadorAula:
 def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
     """Simula lo que hace el aula con las operaciones (lo justo para que converjan)."""
     nodos = {n.eid: n for n in aula.nodos}
-    siguiente = [500]
+    siguiente = [max((int(n.eid[2:]) for n in aula.nodos if n.eid[2:].isdigit()), default=500)]
 
     def buscar(op: Operacion) -> NodoAula:
         if op.eid:
@@ -178,7 +178,7 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
                 sobrescrito=False,
                 idnumber=op.idnumber if op.poner_idnumber else n.idnumber,
             )
-        elif t == "mover_manual":
+        elif t in ("mover_manual", "mover_categoria"):
             cambiar(op, padre_eid=padre_de(op))
         elif t == "marcar_resultado":
             siguiente[0] += 1
@@ -953,3 +953,49 @@ def test_la_huella_deseada_de_un_resultado_coincide_con_la_del_aula() -> None:
     )
     curso_mp = next(n for n in final.nodos if n.clase == "curso").agregacion == 10
     assert rc.huellas_deseadas(d, CMIDS, curso_mp=curso_mp) == huellas_de(final, CMIDS)
+
+
+def test_la_categoria_borrada_se_recrea_y_se_lleva_dentro_sus_huerfanos() -> None:
+    documentos = [
+        doc("a.md", 1, RA1_a=60),
+        doc("b.md", 1, RA1_b=40, RA2=50),
+        doc("c.md", 2, RA2=50),
+    ]
+    d, final, _ = montar(E1, documentos)
+    guardadas = huellas_de(final, CMIDS)
+    sin_categoria = _sin_la_categoria(final, "TZ_V_1_RA1")
+    rec = reconciliar(d, sin_categoria, guardadas, CMIDS)
+    assert ("CATEGORIA_RECREADA", "TZ_V_1_RA1") in rec.avisos
+    assert any(
+        op.tipo == "crear_categoria" and op.idnumber == "TZ_V_1_RA1" for op in rec.operaciones
+    )
+    movidas = {op.idnumber for op in rec.operaciones if op.tipo == "mover_categoria"}
+    assert movidas == {"TZ_V_1_RA1_a", "TZ_V_1_RA1_b"}
+    arreglada = aplicar(sin_categoria, rec.operaciones)
+    arreglada = aplicar(
+        arreglada,
+        pasada2(d, arreglada, guardadas, CMIDS, a_mano=rec.a_mano, por_cerrar=rec.por_cerrar),
+    )
+    por_id = {n.idnumber: n for n in arreglada.nodos if n.idnumber}
+    assert por_id["TZ_V_1_RA1_a"].padre_eid == por_id["TZ_V_1_RA1"].eid
+    assert por_id["TZ_V_1_RA1_b"].padre_eid == por_id["TZ_V_1_RA1"].eid
+    assert por_id["TZ_V_1_RA1"].padre_eid == por_id["TZ_V_1"].eid
+
+
+def test_no_se_recrea_una_categoria_borrada_dentro_de_una_cerrada() -> None:
+    documentos = [
+        doc("a.md", 1, RA1_a=60),
+        doc("b.md", 1, RA1_b=40, RA2=50),
+        doc("c.md", 2, RA2=50),
+    ]
+    d, final, _ = montar(FP_CERRADA, documentos)
+    assert next(n for n in final.nodos if n.idnumber == "TZ_V_1").bloqueado
+    guardadas = huellas_de(final, CMIDS)
+    sin_categoria = _sin_la_categoria(final, "TZ_V_1_RA1")
+    rec = reconciliar(d, sin_categoria, guardadas, CMIDS)
+    assert ("CATEGORIA_BORRADA_EN_CERRADA", "TZ_V_1_RA1") in rec.avisos
+    assert not any(
+        op.tipo in ("crear_categoria", "mover_categoria")
+        and (op.idnumber or "").startswith("TZ_V_1_RA1")
+        for op in rec.operaciones
+    )

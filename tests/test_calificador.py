@@ -338,6 +338,10 @@ class AulaViva(MoodleFalso):
         super().mover_manual(curso, item_id, categoria_eid)
         self._cambiar(None, item_id, padre_eid=categoria_eid)
 
+    def mover_categoria(self, curso, eid, padre_eid):
+        super().mover_categoria(curso, eid, padre_eid)
+        self._cambiar(eid, None, padre_eid=padre_eid)
+
     def marcar_resultado_tarea(self, cmid, resultado_id):
         super().marcar_resultado_tarea(cmid, resultado_id)
         resultado = next(
@@ -2900,3 +2904,61 @@ def test_una_actividad_movida_y_conservada_sale_conservada(tmp_path):
     assert acciones(documento)["a.md"] == "conservada"
     assert pasos(documento, "CAMBIADO_A_MANO")[0]["detalle"] == "a.md"
     assert pasos(documento, "CONSERVADO_A_MANO")[0]["detalle"] == "a.md"
+
+
+def _borrar_categoria(moodle, idnumber):
+    """Simula el borrado a mano: Moodle sube los hijos al padre."""
+    nodo = moodle.por_id(idnumber)
+    for otro in list(moodle.nodos.values()):
+        if otro.padre_eid == nodo.eid:
+            moodle.nodos[otro.eid] = dataclasses.replace(otro, padre_eid=nodo.padre_eid)
+    del moodle.nodos[nodo.eid]
+
+
+def test_una_categoria_borrada_se_recrea_y_recupera_sus_hijos(tmp_path):
+    carpeta = carpeta_fp(tmp_path, ESQUEMA_CRITERIOS, ACTIVIDADES_CRITERIOS)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    _borrar_categoria(moodle, "TZ_V_1_CE1")
+    moodle.escrituras.clear()
+
+    presencia2 = PresenciaFalsa(real=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia2)
+    assert any(e[0] == "crear_categoria" and e[3] == "TZ_V_1_CE1" for e in moodle.escrituras)
+    assert [e for e in moodle.escrituras if e[0] == "mover_categoria"]
+    assert moodle.por_id("TZ_V_1_CE1_1").padre_eid == moodle.por_id("TZ_V_1_CE1").eid
+    assert moodle.por_id("TZ_V_1_CE1_2").padre_eid == moodle.por_id("TZ_V_1_CE1").eid
+    assert pasos(documento, "CATEGORIA_RECREADA")
+    assert any(
+        aviso.codigo == "CATEGORIA_RECREADA"
+        for resumen in presencia2.resumenes_calificador
+        for aviso in resumen.avisos
+    )
+
+    moodle.escrituras.clear()
+    segundo = atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert not [e for e in moodle.escrituras if e[0] in ("crear_categoria", "mover_categoria")]
+    assert pasos(segundo, "CALIFICADOR")[0]["detalle"] == "sin cambios"
+
+
+def test_no_se_recrea_una_categoria_borrada_dentro_de_una_cerrada(tmp_path):
+    esquema = ESQUEMA_CRITERIOS.replace(
+        "{nombre: 1.ª evaluación, secciones: [1]}",
+        "{nombre: 1.ª evaluación, secciones: [1], cerrada: true}",
+    )
+    carpeta = carpeta_fp(tmp_path, esquema, ACTIVIDADES_CRITERIOS)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert moodle.por_id("TZ_V_1").bloqueado
+    _borrar_categoria(moodle, "TZ_V_1_CE1")
+    moodle.escrituras.clear()
+
+    presencia = PresenciaFalsa(real=True)
+    documento = atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert not [e for e in moodle.escrituras if e[0] == "crear_categoria"]
+    assert pasos(documento, "CATEGORIA_BORRADA_EN_CERRADA")[0]["detalle"] == "1"
+    assert any(
+        aviso.codigo == "CATEGORIA_BORRADA_EN_CERRADA"
+        for resumen in presencia.resumenes_calificador
+        for aviso in resumen.avisos
+    )
