@@ -3524,3 +3524,38 @@ def test_descriptor_publicado_no_se_cambia_y_avisa(tmp_path):
     assert tuple(escala["niveles"]) == ("Uno", "Dos")
     usos = [llamada for llamada in moodle.llamadas if llamada[0] == "asegurar_resultado"]
     assert any(llamada[2] == f"TZ_{clave}" and llamada[5] == 88 for llamada in usos)
+
+
+def test_publicar_una_actividad_con_evalua_avisa_del_calificador(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, extra="evalua: {RA1: 100}\n")
+    estado.guardar_huellas(carpeta / ".tiza", 5678, {"TZ_TIZA": "a" * 64})
+    moodle = _aula_con_calificador()
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert {
+        "codigo": "CALIFICADOR_PENDIENTE",
+        "resultado": "ok",
+        "detalle": "p.md",
+    } in documento["pasos"]
+    assert presencia.avisos == [publicacion.Aviso.calificador_pendiente("Tarea 2.1b")]
+
+
+def test_publicar_sin_calificador_montado_no_avisa_del_calificador(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, extra="evalua: {RA1: 100}\n")
+    moodle = _aula_con_calificador()
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert "CALIFICADOR_PENDIENTE" not in _codigos_de_pasos(documento)
+    assert "CALIFICADOR_PENDIENTE" not in presencia.codigos()
+
+
+def test_actualizar_una_actividad_con_evalua_no_avisa_del_calificador(tmp_path):
+    carpeta = tmp_path.resolve()
+    _tarea(carpeta, extra="evalua: {RA1: 100}\n")
+    estado.guardar_huellas(carpeta / ".tiza", 5678, {"TZ_TIZA": "a" * 64})
+    moodle = _aula_con_calificador()
+    _en(carpeta, moodle, "real")
+    _tarea(carpeta, extra="evalua: {RA1: 100}\n")
+    documento, presencia = _en(carpeta, moodle, "real")
+    assert "CALIFICADOR_PENDIENTE" not in _codigos_de_pasos(documento)
+    assert "CALIFICADOR_PENDIENTE" not in presencia.codigos()

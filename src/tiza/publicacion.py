@@ -1458,6 +1458,14 @@ def _tarea_con_notas_sin_resultados(
     return not any(marcados.get(resultado) for resultado in _resultados_propios(aula, curso, doc))
 
 
+def _curso_con_calificador(dir_tiza: Path, curso: int) -> bool:
+    """¿El curso tiene huellas del calificador? Solo lee ``.tiza/calificador.json``."""
+    try:
+        return bool(estado.cargar_huellas(dir_tiza, curso))
+    except estado.ErrorEstado:
+        return False
+
+
 def publicar_con(
     aula: AulaVirtual,
     entorno: str,
@@ -1727,6 +1735,14 @@ def publicar_con(
             and (resultado.accion == "creada" or id(doc) in cambian_de_seccion)
         ):
             con_nota.append((doc, resultado.cmid))
+        if (
+            not solo_fechas
+            and doc.evalua is not None
+            and (resultado.accion == "creada" or id(doc) in cambian_de_seccion)
+            and _curso_con_calificador(dir_tiza, curso)
+        ):
+            borrador.paso("CALIFICADOR_PENDIENTE", detalle=ruta)
+            presencia.informar(Aviso.calificador_pendiente(doc.nombre))
         detalle = doc.ruta.name
         if not solo_fechas:
             extra = tipos.obtener(doc.tipo).detalle(doc)
