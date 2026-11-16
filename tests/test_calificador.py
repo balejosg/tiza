@@ -2993,3 +2993,56 @@ def test_cambiar_el_nombre_en_el_yaml_se_lleva_al_aula(tmp_path):
     moodle.escrituras.clear()
     atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
     assert not [e for e in moodle.escrituras if e[0] == "fijar_nombre"]
+
+
+def test_el_resumen_da_los_pesos_antes_y_despues_y_la_final(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    ra1 = moodle.por_id("TZ_E_RA1")
+    moodle.nodos[ra1.eid] = dataclasses.replace(ra1, tiene_notas=True)
+    yaml = (carpeta / "calificacion.yaml").read_text(encoding="utf-8")
+    (carpeta / "calificacion.yaml").write_text(
+        yaml.replace("peso: 60", "peso: 70").replace("peso: 40", "peso: 30"),
+        encoding="utf-8",
+        newline="\n",
+    )
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    plan = publicacion.preparar_calificador(
+        moodle, CFG.reales[0], esquema, documentos, carpeta / ".tiza"
+    )
+    resumen = publicacion.resumen_calificador(plan, esquema, None)
+    assert {
+        (cambio.nombre, round(cambio.antes), round(cambio.despues)) for cambio in resumen.pesos
+    } == {("RA1", 60, 70), ("RA2", 40, 30)}
+    assert resumen.final_cambia is True
+    assert not any("copia" in cambio.nombre for cambio in resumen.pesos)
+
+
+def test_sin_notas_la_final_no_se_avisa(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    yaml = (carpeta / "calificacion.yaml").read_text(encoding="utf-8")
+    (carpeta / "calificacion.yaml").write_text(
+        yaml.replace("peso: 60", "peso: 70").replace("peso: 40", "peso: 30"),
+        encoding="utf-8",
+        newline="\n",
+    )
+    esquema, documentos = cargar_calificacion(carpeta / "calificacion.yaml", carpeta)
+    plan = publicacion.preparar_calificador(
+        moodle, CFG.reales[0], esquema, documentos, carpeta / ".tiza"
+    )
+    assert publicacion.resumen_calificador(plan, esquema, None).final_cambia is False
+
+
+def test_el_resumen_pinta_los_pesos_y_la_final():
+    pesos = (
+        publicacion.CambioDePeso("RA1 · Instala redes", 40.0, 70.0),
+        publicacion.CambioDePeso("RA2 · Configura servicios", 60.0, 30.0),
+    )
+    lineas = mensajes.detalle_calificador(_resumen(pesos=pesos, final_cambia=True)).lineas
+    assert "Cambian los pesos:" in lineas
+    assert "  RA1 · Instala redes: 40 % → 70 %" in lineas
+    assert "  RA2 · Configura servicios: 60 % → 30 %" in lineas
+    assert "La nota final del curso también puede cambiar para quien ya tenga notas" in lineas

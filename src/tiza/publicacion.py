@@ -41,6 +41,7 @@ from .calificacion import ponderacion
 from .calificacion import reconciliar as rc
 from .calificacion.deseado import (
     Deseado,
+    Nodo,
     clave_llana,
     claves_llanas,
     detalle_tope,
@@ -59,7 +60,7 @@ from .config import Config
 from .contenido import Documento, ErrorContenido, hash_documento
 from .estado import ErrorEstado
 from .estructura import Estructura, Seccion, aplica_origen
-from .publicar import AulaVirtual, CalificadorAula, ErrorPublicacion
+from .publicar import AulaVirtual, CalificadorAula, ErrorPublicacion, NodoAula
 from .rubrica_tarea import (
     MAX_NOMBRE_ESCALA,
     FilaDeResultado,
@@ -797,6 +798,15 @@ class ResumenAntiguo:
 
 
 @dataclass(frozen=True)
+class CambioDePeso:
+    """Un peso que cambia, en porcentaje sobre sus hermanos de tiza."""
+
+    nombre: str
+    antes: float
+    despues: float
+
+
+@dataclass(frozen=True)
 class ResumenCalificador:
     """Lo que va a hacer ``tiza calificador`` en un curso real: la presencia lo enseña y el docente decide.
 
@@ -831,6 +841,8 @@ class ResumenCalificador:
     ocultadas: int = 0
     antiguo: ResumenAntiguo | None = None
     nombres: tuple[str, ...] = ()
+    pesos: tuple[CambioDePeso, ...] = ()
+    final_cambia: bool = False
 
 
 @dataclass(frozen=True)
@@ -3061,6 +3073,133 @@ def _actividades_de_hojas(
     return ficheros + instrumentos
 
 
+def _porcentajes_deseados(plan: PlanCalificador) -> dict[str, float]:
+    """El porcentaje de cada nodo del deseado sobre sus hermanos (solo los que pesan)."""
+    grupos: dict[str | None, list[Nodo]] = {}
+    for nodo in plan.deseado.nodos:
+        grupos.setdefault(nodo.padre, []).append(nodo)
+    salida: dict[str, float] = {}
+    efectivas = {ruta: clave for ruta, clave in plan.reconciliacion.claves.items()}
+    for hermanos in grupos.values():
+        total = sum(nodo.peso or 0.0 for nodo in hermanos)
+        if total <= 0:
+            continue
+        for nodo in hermanos:
+            if nodo.peso:
+                clave = efectivas.get(nodo.idnumber, nodo.idnumber)
+                salida[clave] = 100.0 * nodo.peso / total
+    return salida
+
+
+def _clave_de_nodo_aula(nodo: NodoAula) -> str:
+    return nodo.idnumber or (f"TZ_A{nodo.cmid}" if nodo.clase == "actividad" and nodo.cmid else "")
+
+
+def _porcentajes_antes(plan: PlanCalificador) -> dict[str, float]:
+    """El porcentaje de cada nodo del aula sobre sus hermanos, con el peso que lee tiza."""
+    indice = rc._Indice(plan.aula_antes)
+    grupos: dict[str | None, list[NodoAula]] = {}
+    for nodo in plan.aula_antes.nodos:
+        grupos.setdefault(nodo.padre_eid, []).append(nodo)
+    valores: dict[str, float] = {}
+    for hermanos in grupos.values():
+        for nodo in hermanos:
+            padre = indice.padre(nodo)
+            if padre is not None and padre.agregacion == 10:
+                valor = nodo.coeficiente or 0.0
+            else:
+                valor = nodo.peso if nodo.sobrescrito and nodo.peso is not None else 0.0
+            clave = _clave_de_nodo_aula(nodo)
+            if clave:
+                valores[clave] = valor
+    salida: dict[str, float] = {}
+    for hermanos in grupos.values():
+        total = sum(valores.get(_clave_de_nodo_aula(nodo), 0.0) for nodo in hermanos)
+        if total <= 0:
+            continue
+        for nodo in hermanos:
+            clave = _clave_de_nodo_aula(nodo)
+            if clave and valores.get(clave):
+                salida[clave] = 100.0 * valores[clave] / total
+    return salida
+
+
+def _cambios_de_peso(
+    plan: PlanCalificador,
+) -> tuple[tuple[CambioDePeso, ...], bool]:
+    """Los pesos que cambian, en porcentaje, y si alguno puede mover la nota final."""
+    operaciones = plan.reconciliacion.operaciones
+    claves = _claves_llanas_del_plan(plan)
+    deseados = _porcentajes_deseados(plan)
+    antes = _porcentajes_antes(plan)
+    dnodos = {nodo.idnumber: nodo for nodo in plan.deseado.nodos}
+    por_clave = {efectiva: ruta for ruta, efectiva in plan.reconciliacion.claves.items()}
+    indice = rc._Indice(plan.aula_antes)
+    actuales: dict[str, NodoAula] = {}
+    for nodo in plan.aula_antes.nodos:
+        if nodo.idnumber:
+            actuales[nodo.idnumber] = nodo
+    for ruta, efectiva in plan.reconciliacion.claves.items():
+        nodos_aula = plan.aula_antes.nodos
+        actividad_aula = next(
+            (
+                n
+                for n in nodos_aula
+                if n.clase == "actividad" and n.cmid is not None and plan.cmids.get(ruta) == n.cmid
+            ),
+            None,
+        )
+        if actividad_aula is not None:
+            actuales[efectiva] = actividad_aula
+
+    cambios: list[CambioDePeso] = []
+    vistos: set[str] = set()
+    final_cambia = False
+    for op in operaciones:
+        if op.tipo not in ("fijar_coeficiente", "fijar_peso") or not op.idnumber:
+            continue
+        if op.idnumber.startswith(("TZ_C_", "TZ_CR_")):
+            continue  # las copias cambian como consecuencia; se resumen en la final
+        if op.idnumber not in antes or op.idnumber not in deseados:
+            continue
+        cambio = CambioDePeso(
+            claves.get(op.idnumber, op.idnumber),
+            antes[op.idnumber],
+            deseados[op.idnumber],
+        )
+        if abs(cambio.antes - cambio.despues) > 0.01 and cambio.nombre not in vistos:
+            cambios.append(cambio)
+            vistos.add(cambio.nombre)
+        deseado = dnodos.get(op.idnumber) or dnodos.get(por_clave.get(op.idnumber, ""))
+        nodo_actual = actuales.get(op.idnumber)
+        if deseado is None or nodo_actual is None or not _en_la_final(deseado, dnodos):
+            continue
+        if nodo_actual.tiene_notas or _antepasado_con_notas(nodo_actual, indice):
+            final_cambia = True
+    return tuple(cambios), final_cambia
+
+
+def _en_la_final(nodo: Nodo, dnodos: dict[str, Nodo]) -> bool:
+    """¿El peso de este nodo entra en la nota final? (``TZ_FINAL`` es su raíz)."""
+    actual: Nodo | None = nodo
+    while actual is not None:
+        if actual.padre == "TZ_FINAL":
+            return True
+        actual = dnodos.get(actual.padre) if actual.padre else None
+    return False
+
+
+def _antepasado_con_notas(nodo: NodoAula, indice: rc._Indice) -> bool:
+    padre = indice.padre(nodo)
+    while padre is not None:
+        if padre.tiene_notas:
+            return True
+        if padre.idnumber == "TZ_TIZA":
+            return False
+        padre = indice.padre(padre)
+    return False
+
+
 def resumen_calificador(
     plan: PlanCalificador,
     esquema: Esquema,
@@ -3076,6 +3215,7 @@ def resumen_calificador(
     """
     nombres = {_ruta_de(doc, plan.base): doc.nombre for doc in plan.documentos}
     operaciones = plan.reconciliacion.operaciones
+    pesos, final_cambia = _cambios_de_peso(plan)
     colocar = [op for op in operaciones if op.tipo == "colocar"]
     lineas = tuple(
         ElementoCalificador(
@@ -3168,6 +3308,8 @@ def resumen_calificador(
                 if op.tipo == "fijar_nombre" and op.idnumber
             )
         ),
+        pesos=pesos,
+        final_cambia=final_cambia,
     )
 
 

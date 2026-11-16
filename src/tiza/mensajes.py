@@ -626,6 +626,13 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
             or "todavía sin actividades"
         )
         lineas.append(f"{texto_seguro(elemento.id, 40)}{de_la_final}: {actividades}")
+    if resumen.pesos:
+        lineas.append("Cambian los pesos:")
+        for cambio in resumen.pesos:
+            lineas.append(
+                f"  {texto_seguro(cambio.nombre, 100)}: "
+                f"{_porcentaje(cambio.antes)} → {_porcentaje(cambio.despues)}"
+            )
     if resumen.tope is not None:
         umbral, maximo = resumen.tope
         lineas.append(
@@ -684,6 +691,8 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
         lineas.append(
             f"La nota de la {texto_seguro(nombre, 80)} puede cambiar para quien ya tenga notas"
         )
+    if resumen.final_cambia:
+        lineas.append("La nota final del curso también puede cambiar para quien ya tenga notas")
     for aviso in resumen.avisos:
         lineas.extend(linea.texto for linea in lineas_de_aviso(aviso))
     curso = describir_curso(resumen.curso, resumen.nombre_curso)
