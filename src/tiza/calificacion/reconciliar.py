@@ -37,7 +37,7 @@ import dataclasses
 import hashlib
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -57,6 +57,7 @@ __all__ = [
     "AVISOS",
     "CLASES_OCULTAS",
     "CURSO",
+    "CambioAMano",
     "Operacion",
     "Reconciliacion",
     "Retirada",
@@ -65,6 +66,7 @@ __all__ = [
     "hay_anterior",
     "huella_de_nodo",
     "huellas_de",
+    "huellas_deseadas",
     "es_calculado_de_tiza",
     "es_calificador_antiguo",
     "pasada2",
@@ -175,6 +177,25 @@ class Operacion:
 
 
 @dataclass(frozen=True)
+class CambioAMano:
+    """Un nodo de lo que montó tiza que el docente cambió en el aula.
+
+    ``tipo`` es ``peso``, ``padre``, ``formula``, ``nombre`` u ``otro``. En ``peso``, ``antes``
+    es el valor del aula y ``despues`` el que pondría tiza (coeficiente o peso, sin porcentaje).
+    En ``padre``, ``padre_antes`` es el número de ID del padre en el aula y ``padre_despues`` el
+    del YAML. ``nombre`` es el nombre de la carpeta (nunca el del aula).
+    """
+
+    clave: str
+    tipo: str
+    nombre: str
+    antes: float | None = None
+    despues: float | None = None
+    padre_antes: str | None = None
+    padre_despues: str | None = None
+
+
+@dataclass(frozen=True)
 class Reconciliacion:
     """El resultado de la primera pasada.
 
@@ -195,6 +216,9 @@ class Reconciliacion:
     por_cerrar: frozenset[str] = frozenset()
     sin_colocar: frozenset[str] = frozenset()
     cerradas: frozenset[str] = frozenset()
+    conservados: frozenset[str] = frozenset()
+    huerfanos: frozenset[str] = frozenset()
+    cambios_a_mano: tuple[CambioAMano, ...] = ()
 
     @property
     def hay_trabajo(self) -> bool:
@@ -490,6 +514,20 @@ def huella_de_nodo(nodo: NodoAula, aula: CalificadorAula) -> str:
     return _huella(nodo, _Indice(aula), aula.decimal)
 
 
+def _huella_con_padre(nodo: NodoAula, padre: str, padre_mp: bool, decimal: str) -> str:
+    """La huella del nodo tal como está, pero con el padre que tenía en el YAML.
+
+    Sirve para reconocer los huérfanos de una categoría borrada: Moodle los sube al padre y su
+    huella cambia solo por eso; si el resto coincide con la guardada, no es un cambio a mano.
+    """
+    if padre_mp:
+        peso = "-" if nodo.coeficiente is None else f"{nodo.coeficiente:.4f}"
+    else:
+        peso = _texto_peso(nodo)
+    nombre = "" if nodo.clase == "actividad" else nodo.nombre
+    return _sha([nodo.clase, padre, peso, _normalizar(nodo.formula, decimal), nombre])
+
+
 def huellas_de(aula: CalificadorAula, cmids: dict[str, int]) -> dict[str, str]:
     """Las huellas que hay que guardar tras montar: una por nodo ``TZ_`` y por actividad colocada.
 
@@ -513,6 +551,116 @@ def huellas_de(aula: CalificadorAula, cmids: dict[str, int]) -> dict[str, str]:
             )
         ):
             resultado[n.idnumber] = _huella(n, indice, aula.decimal)
+    return resultado
+
+
+def _texto_peso_deseado(nodo: Nodo, *, padre_mp: bool, en_el_curso: bool) -> str:
+    """El peso de un nodo del deseado como lo escribiría la huella del aula."""
+    if nodo.clase == "resultado":  # tiza no le pone peso: Moodle lo deja en 0 sin sobrescribir
+        return "-"
+    if nodo.peso is None:
+        return "-"
+    if padre_mp:
+        return f"{nodo.peso:.4f}"
+    if en_el_curso:  # ``fijar_peso``: el peso natural de lo que cuelga del curso
+        return f"{round(nodo.peso, 2):.2f}"
+    return "-"  # en una categoría que no es de media ponderada tiza no sobrescribe peso
+
+
+# La clase que el aula da a cada clase del deseado (``calificador()`` no distingue contenedor,
+# copia, nota ni resultado_calc: todo lo que no es una actividad con cmid es ``calculado``).
+_CLASE_EN_EL_AULA = {
+    "contenedor": "categoria",
+    "categoria": "categoria",
+    "actividad": "actividad",
+    "manual": "manual",
+    "copia": "calculado",
+    "nota": "calculado",
+    "resultado": "actividad",
+    "resultado_calc": "calculado",
+}
+
+
+def _clase_en_el_aula(nodo: Nodo) -> str:
+    return _CLASE_EN_EL_AULA.get(nodo.clase, nodo.clase)
+
+
+def _formula_deseada(nodo: Nodo, deseado: Deseado, referencia: str | None) -> str | None:
+    """La fórmula que tiza pondría en un nodo; ``None`` si no se puede resolver (se omite)."""
+    if nodo.clase == "copia":
+        return None if referencia is None else formula_copia(referencia)
+    if nodo.clase == "resultado_calc":
+        assert isinstance(nodo.formula_de, str)
+        return formula_resultado(nodo.formula_de, deseado.niveles)
+    if nodo.clase == "nota" and nodo.idnumber == NOTA_FINAL:
+        if deseado.tope is None:
+            return formula_copia("TZ_FINAL")
+        umbral, maximo, notas = deseado.tope
+        return formula_tope(umbral, maximo, list(notas))
+    return ""
+
+
+def huellas_deseadas(
+    deseado: Deseado,
+    cmids: Mapping[str, int],
+    claves: Mapping[str, str] | None = None,
+    *,
+    curso_mp: bool = False,
+) -> dict[str, str]:
+    """La huella de lo que tiza pondría en cada nodo: clase, padre, peso, fórmula y nombre.
+
+    Se calcula desde el ``Deseado``, no desde el aula, con el mismo formato que
+    :func:`huellas_de`, para saber si lo conservado a mano sigue igual por los dos lados.
+    ``claves`` permite dar el número de ID efectivo de cada actividad (``TZ_A<cmid>`` o el
+    que tenga); sin él se usa ``TZ_A<cmid>``. ``curso_mp`` dice si el total del curso es de
+    media ponderada (decide cómo se lee el peso de ``TZ_TIZA``). Las copias de una actividad
+    pendiente se omiten: esa pasada no las monta.
+    """
+    dnodos = {n.idnumber: n for n in deseado.nodos}
+    rutas = {ruta for ruta, _ in deseado.actividades}
+    efectivas = dict(claves or {})
+
+    def clave_de(ruta: str) -> str | None:
+        if ruta in efectivas:
+            return efectivas[ruta]
+        cmid = cmids.get(ruta)
+        return f"{_PREFIJO}A{cmid}" if cmid is not None else None
+
+    def referencia(fuente: str) -> str | None:
+        return clave_de(fuente) if fuente in rutas else fuente
+
+    resultado: dict[str, str] = {}
+    for n in deseado.nodos:
+        if n.clase == "actividad":
+            clave = clave_de(n.idnumber)
+            if clave is None:
+                continue
+        else:
+            clave = n.idnumber
+        padre = dnodos.get(n.padre) if n.padre else None
+        padre_mp = (
+            curso_mp
+            if padre is None
+            else (padre.clase in ("contenedor", "categoria") and padre.agregacion == 10)
+        )
+        fuente = n.formula_de
+        formula = _formula_deseada(
+            n, deseado, referencia(fuente) if isinstance(fuente, str) else None
+        )
+        if formula is None:
+            continue
+        resultado[clave] = _sha(
+            [
+                _clase_en_el_aula(n),
+                n.padre or "",
+                _texto_peso_deseado(n, padre_mp=padre_mp, en_el_curso=n.padre is None),
+                _normalizar(formula, "."),
+                "" if _clase_en_el_aula(n) == "actividad" else n.nombre,
+            ]
+        )
+    if deseado.total_curso is not None:
+        esperada = f"{formula_copia(NOTA_FINAL)}/10" if deseado.total_curso == NOTA_FINAL else ""
+        resultado[CURSO] = _sha(["curso", _normalizar(esperada, ".")])
     return resultado
 
 
@@ -567,6 +715,8 @@ class _Plan:
         solo_ajustes: bool,
         por_cerrar: frozenset[str] | None = None,
         resultados: Mapping[str, int] | None = None,
+        conservados: Mapping[str, estado.Conservado] | None = None,
+        sobrescribir: Collection[str] = (),
     ) -> None:
         self.d = deseado
         self.aula = aula
@@ -587,13 +737,40 @@ class _Plan:
             self.dnodos[id_].nombre for _, _, id_ in deseado.resultados if id_ in self.dnodos
         )
         self.huellas = huellas
+        self.claves = {
+            ruta: self._id_efectivo(ruta)
+            for ruta in self.rutas
+            if self._actividad_aula(ruta) is not None
+        }
+        self.por_clave: dict[str, NodoAula] = dict(self.idx.por_id)
+        for ruta, clave in self.claves.items():
+            actividad = self._actividad_aula(ruta)
+            if actividad is not None:
+                self.por_clave[clave] = actividad
+        self.deseadas = huellas_deseadas(
+            deseado,
+            cmids,
+            self.claves,
+            curso_mp=self.idx.curso is not None and self.idx.curso.agregacion == 10,
+        )
+        self.conservados = dict(conservados or {})
+        self.sobrescribir = frozenset(sobrescribir)
+        self.conservados_vigentes: set[str] = set()
+        self.huerfanos: set[str] = set()
         if a_mano is None:
             actuales = huellas_de(aula, cmids)
             rotas = self._de_casillas_nuevas()
+            self.huerfanos = self._huerfanos(actuales, rotas)
+            self.conservados_vigentes = self._conservados_vigentes(actuales)
             a_mano = frozenset(
                 k
                 for k, h in actuales.items()
-                if k in huellas and huellas[k] != h and k not in rotas
+                if k in huellas
+                and huellas[k] != h
+                and k not in rotas
+                and k not in self.huerfanos
+                and k not in self.conservados_vigentes
+                and k not in self.sobrescribir
             )
         self.a_mano = a_mano
         evaluaciones_cerradas = {
@@ -627,6 +804,145 @@ class _Plan:
 
     def _aviso(self, codigo: str, clave: str) -> None:
         self.avisos.setdefault((codigo, clave), None)
+
+    def _deseado_de_clave(self, clave: str) -> Nodo | None:
+        """El nodo del deseado de una clave del aula (``TZ_A<cmid>`` para una actividad)."""
+        if clave in self.dnodos:
+            return self.dnodos[clave]
+        for ruta, efectiva in self.claves.items():
+            if efectiva == clave:
+                return self.dnodos.get(ruta)
+        return None
+
+    def _conservados_vigentes(self, actuales: Mapping[str, str]) -> set[str]:
+        """Lo conservado que sigue igual por los dos lados: ni el aula ni el YAML lo tocaron."""
+        return {
+            clave
+            for clave, conservado in self.conservados.items()
+            if clave in actuales
+            and actuales[clave] == conservado.aula
+            and self.deseadas.get(clave) == conservado.deseado
+        }
+
+    def _huerfanos(self, actuales: Mapping[str, str], rotas: Collection[str]) -> set[str]:
+        """Los hijos de una categoría ``TZ_`` que el docente borró a mano.
+
+        Moodle los sube al padre, así que su huella cambia solo por el padre. Si al recalcularla
+        con el padre que tenían en el YAML coincide con la guardada, no son un cambio a mano:
+        tiza recrea la categoría y los vuelve a meter dentro.
+        """
+        huerfanos: set[str] = set()
+        for clave, huella in actuales.items():
+            if clave in rotas or clave not in self.huellas or self.huellas[clave] == huella:
+                continue
+            nodo = self._deseado_de_clave(clave)
+            if nodo is None or not nodo.padre or not nodo.padre.startswith(_PREFIJO):
+                continue
+            if nodo.padre in self.idx.por_id:  # el padre sigue en el aula: no es un huérfano
+                continue
+            actual = self.por_clave.get(clave)
+            padre = self.dnodos.get(nodo.padre)
+            if actual is None or padre is None:
+                continue
+            padre_mp = padre.clase in ("contenedor", "categoria") and padre.agregacion == 10
+            if (
+                _huella_con_padre(actual, nodo.padre, padre_mp, self.aula.decimal)
+                == self.huellas[clave]
+            ):
+                huerfanos.add(clave)
+        return huerfanos
+
+    def _valor_peso_aula(self, nodo: NodoAula) -> float | None:
+        """El peso del aula en la misma escala que el deseado: coeficiente en MP, peso si no."""
+        padre = self.idx.padre(nodo)
+        if padre is not None and padre.agregacion == 10:
+            return nodo.coeficiente
+        return nodo.peso if nodo.sobrescrito else None
+
+    def cambios_a_mano(self) -> tuple[CambioAMano, ...]:
+        """El tipo de cambio de cada clave que hay que preguntar, y sus valores si es de peso.
+
+        Compara el nodo del aula con lo que pide el YAML; no con la huella, que es un sha. Si no
+        sabe decir qué cambió, el tipo es ``otro``.
+        """
+        cambios: list[CambioAMano] = []
+        for clave in sorted(self.a_mano):
+            if clave == CURSO:
+                actual = self.idx.curso
+                formula = (
+                    _normalizar(actual.formula, self.aula.decimal) if actual is not None else ""
+                )
+                if self.d.total_curso == NOTA_FINAL:
+                    esperada = f"{formula_copia(NOTA_FINAL)}/10"
+                elif self.d.total_curso == "porcentaje":
+                    esperada = ""
+                else:
+                    cambios.append(CambioAMano(clave, "otro", "total del curso"))
+                    continue
+                if actual is not None and formula != _normalizar(esperada, "."):
+                    cambios.append(CambioAMano(clave, "formula", "total del curso"))
+                    continue
+                cambios.append(CambioAMano(clave, "otro", "total del curso"))
+                continue
+            actual = self.por_clave.get(clave)
+            deseado = self._deseado_de_clave(clave)
+            if actual is None or deseado is None:
+                cambios.append(CambioAMano(clave, "otro", clave))
+                continue
+            padre = self.idx.padre(actual)
+            padre_antes = padre.idnumber if padre is not None and padre.idnumber else None
+            padre_despues = deseado.padre
+            padre_cambiado = (padre_antes or "") != (padre_despues or "")
+            padre_borrado = (
+                padre_cambiado
+                and padre_despues is not None
+                and padre_despues.startswith(_PREFIJO)
+                and padre_despues not in self.idx.por_id
+            )
+            if padre_cambiado and not padre_borrado:
+                cambios.append(
+                    CambioAMano(
+                        clave,
+                        "padre",
+                        deseado.nombre,
+                        padre_antes=padre_antes,
+                        padre_despues=padre_despues,
+                    )
+                )
+                continue
+            antes = self._valor_peso_aula(actual)
+            despues = self._peso(deseado)
+            if (antes is None) != (despues is None) or (
+                antes is not None
+                and despues is not None
+                and abs(antes - despues) > _TOLERANCIA_PESO_AULA
+            ):
+                cambios.append(
+                    CambioAMano(clave, "peso", deseado.nombre, antes=antes, despues=despues)
+                )
+                continue
+            if deseado.clase in ("copia", "resultado_calc", "nota"):
+                if _normalizar(actual.formula, self.aula.decimal) != _normalizar(
+                    self._formula(deseado), "."
+                ):
+                    cambios.append(CambioAMano(clave, "formula", deseado.nombre))
+                    continue
+            if deseado.clase != "actividad" and actual.nombre != deseado.nombre:
+                cambios.append(CambioAMano(clave, "nombre", deseado.nombre))
+                continue
+            if padre_cambiado:
+                cambios.append(
+                    CambioAMano(
+                        clave,
+                        "padre",
+                        deseado.nombre,
+                        padre_antes=padre_antes,
+                        padre_despues=padre_despues,
+                    )
+                )
+                continue
+            cambios.append(CambioAMano(clave, "otro", deseado.nombre))
+        return tuple(cambios)
 
     def _actividad_aula(self, ruta: str) -> NodoAula | None:
         cmid = self.cmids.get(ruta)
@@ -924,6 +1240,8 @@ class _Plan:
                 self.sin_colocar.add(ruta)
             return
         clave = self._id_efectivo(ruta)
+        if clave in self.conservados_vigentes:
+            return
         if clave in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", ruta)
             if not en_su_sitio:
@@ -1026,6 +1344,8 @@ class _Plan:
             return
         if self._cerrado_aula(existente):
             return
+        if nodo.idnumber in self.conservados_vigentes:
+            return
         con_id = bool(existente.idnumber)
         if con_id and nodo.idnumber in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
@@ -1068,6 +1388,8 @@ class _Plan:
             return
         if self._cerrado_aula(existente):
             return
+        if nodo.idnumber in self.conservados_vigentes:
+            return
         if nodo.idnumber in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
             return
@@ -1104,6 +1426,8 @@ class _Plan:
                 self._salen.add(existente.eid)
                 movido = True
             else:  # tiza no sabe mover categorías: se respeta donde estén y se avisa
+                if nodo.idnumber in self.huerfanos:
+                    return
                 self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
                 return
         tipo, valor = self._ajuste_peso(nodo)
@@ -1208,6 +1532,8 @@ class _Plan:
             if not self._padre_mp(padre.idnumber or None):
                 continue
             clave = n.idnumber or f"{_PREFIJO}A{n.cmid}"
+            if clave in self.conservados_vigentes:
+                continue
             if clave in self.a_mano:
                 self._aviso("CAMBIADO_A_MANO", clave)
             elif not _coeficiente_correcto(n, 0.0):
@@ -1225,6 +1551,8 @@ class _Plan:
         curso = self.idx.curso
         total = self.d.total_curso
         if total is None or curso is None or hay_anterior(self.aula):
+            return
+        if CURSO in self.conservados_vigentes:
             return
         if CURSO in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", CURSO)
@@ -1433,16 +1761,33 @@ def reconciliar(
     huellas: dict[str, str],
     cmids: dict[str, int],
     resultados: Mapping[str, int] | None = None,
+    *,
+    conservados: Mapping[str, estado.Conservado] | None = None,
+    sobrescribir: Collection[str] = (),
 ) -> Reconciliacion:
     """La primera pasada: qué operaciones llevan el aula a lo deseado sin pisar notas ni a mano.
 
     ``huellas`` es lo que devolvió ``estado.cargar_huellas`` (vacío si tiza no recuerda nada);
     ``cmids`` lleva, por ruta, el cmid de cada actividad en el aula (las que falten son
-    pendientes). Orden: todos los ``bloquear_ajeno``; crear y colocar (padres antes que hijos);
-    ``fijar_peso`` y ``fijar_maximo``; ``fijar_formula`` y ``fijar_total_curso``; y al final
-    ``bloquear_cerrada`` y ``borrar`` (los hijos antes que sus padres).
+    pendientes). ``conservados`` son los nodos que el docente decidió conservar a mano: si su
+    huella del aula y la de lo deseado no han cambiado, se saltan en silencio; si cambia
+    cualquiera de las dos, vuelven a ``a_mano``. ``sobrescribir`` son las claves que el docente
+    ya aceptó pisar en esta pasada: salen de ``a_mano``. Orden: todos los ``bloquear_ajeno``;
+    crear y colocar (padres antes que hijos); ``fijar_peso`` y ``fijar_maximo``;
+    ``fijar_formula`` y ``fijar_total_curso``; y al final ``bloquear_cerrada`` y ``borrar`` (los
+    hijos antes que sus padres).
     """
-    plan = _Plan(deseado, aula, huellas, cmids, None, False, resultados=resultados)
+    plan = _Plan(
+        deseado,
+        aula,
+        huellas,
+        cmids,
+        None,
+        False,
+        resultados=resultados,
+        conservados=conservados,
+        sobrescribir=sobrescribir,
+    )
     plan.planificar()
     return Reconciliacion(
         operaciones=plan.todo(),
@@ -1452,6 +1797,9 @@ def reconciliar(
         por_cerrar=plan.por_cerrar,
         sin_colocar=frozenset(plan.sin_colocar),
         cerradas=frozenset(deseado.cerradas),
+        conservados=frozenset(plan.conservados_vigentes),
+        huerfanos=frozenset(plan.huerfanos),
+        cambios_a_mano=plan.cambios_a_mano(),
     )
 
 

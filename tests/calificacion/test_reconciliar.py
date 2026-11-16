@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tiza import estado
 from tiza.calificacion import reconciliar as rc
 from tiza.calificacion.deseado import deseado
 from tiza.calificacion.esquema import (
@@ -745,3 +746,210 @@ def test_el_aula_tras_la_retirada_sube_lo_que_queda_al_curso() -> None:
     assert actividad_11.padre_eid == "cg1"
     assert not rc.es_calificador_antiguo(despues)
     assert despues.decimal == aula.decimal
+
+
+# --------------------------------------------------------------------------- #
+# Lo conservado a mano, los huérfanos y la pregunta
+# --------------------------------------------------------------------------- #
+
+
+def _cambiar_nodo(aula: CalificadorAula, idnumber: str, **kw) -> CalificadorAula:
+    return CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, **kw) if n.idnumber == idnumber else n for n in aula.nodos
+        ),
+        decimal=aula.decimal,
+    )
+
+
+def _con_huellas_cambiadas(d: rc.Deseado, final: CalificadorAula, idnumber: str, **kw):
+    """Un aula con el nodo cambiado y las huellas de lo que montó tiza antes del cambio."""
+    cambiada = _cambiar_nodo(final, idnumber, **kw)
+    guardadas = huellas_de(final, CMIDS)
+    conservados = {
+        idnumber: estado.Conservado(
+            huellas_de(cambiada, CMIDS)[idnumber], rc.huellas_deseadas(d, CMIDS)[idnumber]
+        )
+    }
+    return cambiada, guardadas, conservados
+
+
+def test_un_conservado_sin_cambios_no_avisa_ni_planifica() -> None:
+    d, final, _ = montar(FP)
+    cambiada, guardadas, conservados = _con_huellas_cambiadas(
+        d, final, "TZ_V_1_RA1", coeficiente=70.0
+    )
+    rec = reconciliar(d, cambiada, guardadas, CMIDS, conservados=conservados)
+    assert rec.a_mano == frozenset()
+    assert rec.conservados == frozenset({"TZ_V_1_RA1"})
+    assert not any(
+        codigo == "CAMBIADO_A_MANO" and clave == "TZ_V_1_RA1" for codigo, clave in rec.avisos
+    )
+    assert not any(op.idnumber == "TZ_V_1_RA1" for op in rec.operaciones)
+    assert rec.cambios_a_mano == ()
+
+
+def test_un_conservado_vuelve_a_mano_si_cambia_el_yaml_de_ese_nodo() -> None:
+    d, final, _ = montar(FP)
+    cambiada, guardadas, conservados = _con_huellas_cambiadas(
+        d, final, "TZ_V_1_RA1", coeficiente=70.0
+    )
+    nodos = tuple(
+        dataclasses.replace(n, peso=65.0) if n.idnumber == "TZ_V_1_RA1" else n for n in d.nodos
+    )
+    otro = dataclasses.replace(d, nodos=nodos)
+    rec = reconciliar(otro, cambiada, guardadas, CMIDS, conservados=conservados)
+    assert "TZ_V_1_RA1" in rec.a_mano
+    assert rec.conservados == frozenset()
+    assert any(
+        codigo == "CAMBIADO_A_MANO" and clave == "TZ_V_1_RA1" for codigo, clave in rec.avisos
+    )
+    (cambio,) = rec.cambios_a_mano
+    assert cambio.tipo == "peso"
+    assert cambio.antes == 70.0
+    assert cambio.despues == 65.0
+
+
+def test_un_conservado_vuelve_a_mano_si_el_aula_cambia_otra_vez() -> None:
+    d, final, _ = montar(FP)
+    _, guardadas, conservados = _con_huellas_cambiadas(d, final, "TZ_V_1_RA1", coeficiente=70.0)
+    otra = _cambiar_nodo(final, "TZ_V_1_RA1", coeficiente=80.0)
+    rec = reconciliar(d, otra, guardadas, CMIDS, conservados=conservados)
+    assert "TZ_V_1_RA1" in rec.a_mano
+    assert rec.conservados == frozenset()
+    assert rec.cambios_a_mano[0].antes == 80.0
+    assert rec.cambios_a_mano[0].despues == 60.0
+
+
+def test_sobrescribir_saca_la_clave_de_a_mano_y_la_vuelve_a_poner() -> None:
+    d, final, _ = montar(FP)
+    cambiada = _cambiar_nodo(final, "TZ_V_1_RA1", coeficiente=70.0)
+    guardadas = huellas_de(final, CMIDS)
+    rec = reconciliar(d, cambiada, guardadas, CMIDS, sobrescribir={"TZ_V_1_RA1"})
+    assert "TZ_V_1_RA1" not in rec.a_mano
+    assert not any(
+        codigo == "CAMBIADO_A_MANO" and clave == "TZ_V_1_RA1" for codigo, clave in rec.avisos
+    )
+    assert any(
+        op.tipo == "fijar_coeficiente" and op.idnumber == "TZ_V_1_RA1" and op.coeficiente == 60.0
+        for op in rec.operaciones
+    )
+
+
+def _sin_la_categoria(aula: CalificadorAula, idnumber: str) -> CalificadorAula:
+    """Lo que hace Moodle al borrar una categoría: sus hijos suben a su padre."""
+    borrada = next(n for n in aula.nodos if n.idnumber == idnumber)
+    return CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, padre_eid=borrada.padre_eid)
+            if n.padre_eid == borrada.eid and n.eid != borrada.eid
+            else n
+            for n in aula.nodos
+            if n.eid != borrada.eid
+        ),
+        decimal=aula.decimal,
+    )
+
+
+def test_los_huerfanos_de_una_categoria_borrada_no_son_cambios_a_mano() -> None:
+    documentos = [
+        doc("a.md", 1, RA1_a=60),
+        doc("b.md", 1, RA1_b=40, RA2=50),
+        doc("c.md", 2, RA2=50),
+    ]
+    d, final, _ = montar(E1, documentos)
+    guardadas = huellas_de(final, CMIDS)
+    sin_categoria = _sin_la_categoria(final, "TZ_V_1_RA1")
+    rec = reconciliar(d, sin_categoria, guardadas, CMIDS)
+    assert rec.huerfanos == frozenset({"TZ_V_1_RA1_a", "TZ_V_1_RA1_b"})
+    assert rec.huerfanos.isdisjoint(rec.a_mano)
+    assert not any(
+        codigo == "CAMBIADO_A_MANO" and clave in rec.huerfanos for codigo, clave in rec.avisos
+    )
+
+
+def test_un_cambio_de_verdad_de_un_hijo_de_una_categoria_borrada_sigue_a_mano() -> None:
+    documentos = [
+        doc("a.md", 1, RA1_a=60),
+        doc("b.md", 1, RA1_b=40, RA2=50),
+        doc("c.md", 2, RA2=50),
+    ]
+    d, final, _ = montar(E1, documentos)
+    guardadas = huellas_de(final, CMIDS)
+    sin_categoria = _sin_la_categoria(final, "TZ_V_1_RA1")
+    sin_categoria = _cambiar_nodo(sin_categoria, "TZ_V_1_RA1_a", coeficiente=99.0)
+    rec = reconciliar(d, sin_categoria, guardadas, CMIDS)
+    assert "TZ_V_1_RA1_a" in rec.a_mano
+    assert "TZ_V_1_RA1_a" not in rec.huerfanos
+    assert any(
+        codigo == "CAMBIADO_A_MANO" and clave == "TZ_V_1_RA1_a" for codigo, clave in rec.avisos
+    )
+    cambio = next(c for c in rec.cambios_a_mano if c.clave == "TZ_V_1_RA1_a")
+    assert cambio.tipo == "peso"
+    assert cambio.antes == 99.0
+    assert cambio.despues == 50.0
+
+
+def test_los_tipos_de_cambio_a_mano() -> None:
+    d, final, _ = montar(FP)
+    guardadas = huellas_de(final, CMIDS)
+    # Un nombre de categoría.
+    renombrada = _cambiar_nodo(final, "TZ_V_1_RA1", nombre="Otro nombre")
+    rec = reconciliar(d, renombrada, guardadas, CMIDS)
+    (cambio,) = rec.cambios_a_mano
+    assert (cambio.tipo, cambio.nombre) == ("nombre", "Redes")
+    # Una fórmula de calculado.
+    calculado = next(n for n in final.nodos if n.idnumber.startswith("TZ_C_"))
+    con_formula = _cambiar_nodo(final, calculado.idnumber, formula="=1")
+    rec = reconciliar(d, con_formula, guardadas, CMIDS)
+    cambio = next(c for c in rec.cambios_a_mano if c.clave == calculado.idnumber)
+    assert cambio.tipo == "formula"
+    # Una actividad movida de criterio.
+    actividad = next(n for n in final.nodos if n.cmid == 11)
+    destino = next(n for n in final.nodos if n.clase == "categoria" and n.idnumber == "TZ_V_1_RA2")
+    movida = CalificadorAula(
+        nodos=tuple(
+            dataclasses.replace(n, padre_eid=destino.eid) if n.eid == actividad.eid else n
+            for n in final.nodos
+        ),
+        decimal=final.decimal,
+    )
+    rec = reconciliar(d, movida, guardadas, CMIDS)
+    cambio = next(c for c in rec.cambios_a_mano if c.clave == "TZ_A11")
+    assert cambio.tipo == "padre"
+    assert cambio.padre_antes == "TZ_V_1_RA2"
+    assert cambio.padre_despues == "TZ_V_1_RA1"
+
+
+def test_la_huella_deseada_coincide_con_la_del_aula_recien_montada() -> None:
+    for esquema, documentos in (
+        (FP, None),
+        (FP_TOPE, None),
+        (
+            E1,
+            [doc("a.md", 1, RA1_a=60), doc("b.md", 1, RA1_b=40, RA2=50), doc("c.md", 2, RA2=50)],
+        ),
+    ):
+        d, final, _ = montar(esquema, documentos)
+        curso_mp = next(n for n in final.nodos if n.clase == "curso").agregacion == 10
+        deseadas = rc.huellas_deseadas(d, CMIDS, curso_mp=curso_mp)
+        guardadas = huellas_de(final, CMIDS)
+        assert deseadas == guardadas
+
+
+def test_la_huella_deseada_de_un_resultado_coincide_con_la_del_aula() -> None:
+    d = deseado(
+        E1,
+        [tarea("a.md", 1, RA1_a=100), tarea("b.md", 1, RA1_b=100)],
+        False,
+        CARPETA,
+    )
+    aula = aula_inicial()
+    rec = reconciliar(d, aula, {}, CMIDS, resultados={"RA1_a": 90, "RA1_b": 91})
+    final = aplicar(aula, rec.operaciones)
+    final = aplicar(
+        final,
+        pasada2(d, final, {}, CMIDS, a_mano=rec.a_mano, resultados={"RA1_a": 90, "RA1_b": 91}),
+    )
+    curso_mp = next(n for n in final.nodos if n.clase == "curso").agregacion == 10
+    assert rc.huellas_deseadas(d, CMIDS, curso_mp=curso_mp) == huellas_de(final, CMIDS)
