@@ -184,6 +184,11 @@ class Ejecucion:
             eid = self._eid(op)
             self.tocados.add(eid)
             aula.mover_categoria(curso, eid, padre)
+        elif tipo == "fijar_nombre":
+            assert op.nombre is not None
+            eid = self._eid(op)
+            self.tocados.add(eid)
+            aula.fijar_nombre(curso, eid, op.nombre, resultado=op.es_resultado)
         elif tipo == "marcar_resultado":
             assert op.cmid is not None and op.resultado is not None
             self._releida = None  # aparece un elemento nuevo en el árbol

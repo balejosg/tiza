@@ -83,6 +83,7 @@ TIPOS = (
     "colocar",
     "mover_manual",
     "mover_categoria",
+    "fijar_nombre",
     "marcar_resultado",
     "fijar_idnumber_resultado",
     "fijar_agregacion",
@@ -177,6 +178,7 @@ class Operacion:
     agregacion: int | None = None
     poner_idnumber: bool = False
     oculto: bool = False  # ``crear_calculado``: el alta ya lo oculta al alumnado (R1)
+    es_resultado: bool = False  # ``fijar_nombre``: el nombre va en ``outcomeitem.php``
 
 
 @dataclass(frozen=True)
@@ -797,6 +799,7 @@ class _Plan:
         self.ajeno: list[Operacion] = []
         self.alta: list[Operacion] = []
         self.reparacion: list[Operacion] = []
+        self.nombre: list[Operacion] = []
         self.agregacion: list[Operacion] = []
         self.peso: list[Operacion] = []
         self.maximo: list[Operacion] = []
@@ -963,7 +966,12 @@ class _Plan:
         # Varios elementos con el cmid: la actividad real y los resultados que Moodle crea al
         # marcarla. Se descartan los que llevan el nombre de un resultado; si aun así hay
         # ambigüedad, no se elige uno al azar.
-        sin_resultados = [n for n in candidatos if n.nombre not in self.nombres_resultado]
+        sin_resultados = [
+            n
+            for n in candidatos
+            if n.nombre not in self.nombres_resultado
+            and not n.idnumber.startswith(_PREFIJO_RESULTADO)
+        ]
         if len(sin_resultados) == 1:
             return sin_resultados[0]
         deseado = self.dnodos.get(ruta)
@@ -1397,6 +1405,17 @@ class _Plan:
                     item_id=existente.item_id,
                 )
             )
+        elif existente.nombre != nodo.nombre:
+            self.nombre.append(
+                Operacion(
+                    "fijar_nombre",
+                    idnumber=nodo.idnumber,
+                    eid=existente.eid,
+                    item_id=existente.item_id,
+                    nombre=nodo.nombre,
+                    es_resultado=True,
+                )
+            )
         # Sin ``aggregateoutcomes`` el resultado del aula ya pesa 0 (D6); no se le sobrescribe
         # un peso: el formulario del elemento de resultado no es el del elemento normal.
 
@@ -1419,6 +1438,17 @@ class _Plan:
         if nodo.idnumber in self.a_mano:
             self._aviso("CAMBIADO_A_MANO", nodo.idnumber)
             return
+        if nodo.clase in ("categoria", "contenedor", "copia", "nota", "resultado_calc"):
+            if existente.nombre != nodo.nombre:
+                self.nombre.append(
+                    Operacion(
+                        "fijar_nombre",
+                        idnumber=nodo.idnumber,
+                        eid=existente.eid,
+                        item_id=existente.item_id,
+                        nombre=nodo.nombre,
+                    )
+                )
         if (
             nodo.clase == "categoria"
             and existente.agregacion is not None
@@ -1780,6 +1810,7 @@ class _Plan:
             self.ajeno
             + self.alta
             + self.reparacion
+            + self.nombre
             + self.agregacion
             + self.peso
             + self.maximo

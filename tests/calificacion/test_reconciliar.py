@@ -198,6 +198,8 @@ def aplicar(aula: CalificadorAula, operaciones) -> CalificadorAula:
             cambiar(op, peso=op.peso, sobrescrito=True)
         elif t == "fijar_coeficiente":
             cambiar(op, coeficiente=op.coeficiente)
+        elif t == "fijar_nombre":
+            cambiar(op, nombre=op.nombre)
         elif t == "fijar_agregacion":
             cambiar(op, agregacion=op.agregacion)
         elif t == "fijar_maximo":
@@ -999,3 +1001,84 @@ def test_no_se_recrea_una_categoria_borrada_dentro_de_una_cerrada() -> None:
         and (op.idnumber or "").startswith("TZ_V_1_RA1")
         for op in rec.operaciones
     )
+
+
+def test_el_nombre_del_yaml_se_lleva_al_aula_y_no_se_repite() -> None:
+    d, final, _ = montar(FP)
+    huellas = huellas_de(final, CMIDS)
+    otro = dataclasses.replace(
+        d,
+        nodos=tuple(
+            dataclasses.replace(n, nombre='RA1 & "comillas" · red')
+            if n.idnumber == "TZ_E_RA1"
+            else n
+            for n in d.nodos
+        ),
+    )
+    rec = reconciliar(otro, final, huellas, CMIDS)
+    (op,) = [op for op in rec.operaciones if op.tipo == "fijar_nombre"]
+    assert op.idnumber == "TZ_E_RA1"
+    assert op.nombre == 'RA1 & "comillas" · red'
+    assert op.es_resultado is False
+    renombrada = aplicar(final, rec.operaciones)
+    assert next(n for n in renombrada.nodos if n.idnumber == "TZ_E_RA1").nombre == (
+        'RA1 & "comillas" · red'
+    )
+    assert not [
+        op
+        for op in reconciliar(otro, renombrada, huellas, CMIDS).operaciones
+        if op.tipo == "fijar_nombre"
+    ]
+
+
+def test_una_actividad_no_se_renombra() -> None:
+    d, final, _ = montar(FP)
+    otro = dataclasses.replace(
+        d,
+        nodos=tuple(
+            dataclasses.replace(n, nombre="Otro nombre") if n.clase == "actividad" else n
+            for n in d.nodos
+        ),
+    )
+    rec = reconciliar(otro, final, huellas_de(final, CMIDS), CMIDS)
+    assert not [op for op in rec.operaciones if op.tipo == "fijar_nombre"]
+
+
+def test_un_nombre_cambiado_a_mano_no_se_toca() -> None:
+    d, final, _ = montar(FP)
+    cambiada = _cambiar_nodo(final, "TZ_E_RA1", nombre="Otro")
+    rec = reconciliar(d, cambiada, huellas_de(final, CMIDS), CMIDS)
+    assert "TZ_E_RA1" in rec.a_mano
+    assert not [op for op in rec.operaciones if op.tipo == "fijar_nombre"]
+
+
+def test_el_nombre_de_un_resultado_se_cambia_por_outcomeitem() -> None:
+    d = deseado(
+        E1,
+        [tarea("a.md", 1, RA1_a=100), tarea("b.md", 1, RA1_b=100)],
+        False,
+        CARPETA,
+    )
+    aula = aula_inicial()
+    rec = reconciliar(d, aula, {}, CMIDS, resultados={"RA1_a": 90, "RA1_b": 91})
+    final = aplicar(aula, rec.operaciones)
+    final = aplicar(
+        final,
+        pasada2(d, final, {}, CMIDS, a_mano=rec.a_mano, resultados={"RA1_a": 90, "RA1_b": 91}),
+    )
+    resultado = next(n for n in d.nodos if n.clase == "resultado")
+    otro = dataclasses.replace(
+        d,
+        nodos=tuple(
+            dataclasses.replace(n, nombre="Resultado & · nuevo")
+            if n.idnumber == resultado.idnumber
+            else n
+            for n in d.nodos
+        ),
+    )
+    rec2 = reconciliar(
+        otro, final, huellas_de(final, CMIDS), CMIDS, resultados={"RA1_a": 90, "RA1_b": 91}
+    )
+    (op,) = [op for op in rec2.operaciones if op.tipo == "fijar_nombre"]
+    assert op.es_resultado is True
+    assert op.nombre == "Resultado & · nuevo"

@@ -491,6 +491,9 @@ class AulaVirtual(Protocol):
 
     def mover_manual(self, curso: int, item_id: int, categoria_eid: str) -> None: ...
     def mover_categoria(self, curso: int, eid: str, padre_eid: str) -> None: ...
+    def fijar_nombre(
+        self, curso: int, eid: str, nombre: str, *, resultado: bool = False
+    ) -> None: ...
 
     def arbol_notas(self, curso: int) -> colocacion.ArbolNotas: ...
 
@@ -1940,6 +1943,21 @@ class Moodle:
         _validar_eid(eid, "cg")
         _validar_eid(padre_eid, "cg")
         self.mover_nota(curso, eid, padre_eid, None)
+
+    def fijar_nombre(self, curso: int, eid: str, nombre: str, *, resultado: bool = False) -> None:
+        """Cambia el nombre de una categoría o de un elemento (S2 del mantenimiento).
+
+        No toca fórmula, coeficiente, bloqueo ni número de ID: solo el campo del nombre. El del
+        resultado de una tarea va en ``outcomeitem.php``, no en ``item.php``.
+        """
+        _validar_eid(eid)
+        if eid.startswith("cg"):
+            ruta, campo = "grade/edit/tree/category.php", "fullname"
+        elif resultado:
+            ruta, campo = "grade/edit/tree/outcomeitem.php", "itemname"
+        else:
+            ruta, campo = "grade/edit/tree/item.php", "itemname"
+        self._guardar(ruta, {"courseid": curso, "id": int(eid[2:])}, {campo: nombre})
 
     def mover_nota(self, curso: int, eid: str, categoria: str, despues_de: str | None) -> None:
         """Mueve un elemento a una categoría, detrás de ``despues_de`` (``None``: al principio)."""

@@ -830,6 +830,7 @@ class ResumenCalificador:
     casillas: tuple[str, ...] = ()
     ocultadas: int = 0
     antiguo: ResumenAntiguo | None = None
+    nombres: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -3159,6 +3160,13 @@ def resumen_calificador(
             )
             if plan.retirada is not None
             else None
+        ),
+        nombres=tuple(
+            dict.fromkeys(
+                clave_llana(op.idnumber or "", plan.deseado).removeprefix("copia de ")
+                for op in operaciones
+                if op.tipo == "fijar_nombre" and op.idnumber
+            )
         ),
     )
 

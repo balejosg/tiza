@@ -660,6 +660,8 @@ def detalle_calificador(resumen: ResumenCalificador) -> DetalleCalificador:
         )
     if resumen.ids_nuevos:
         lineas.append(f"Se añade número de ID a: {_lista(resumen.ids_nuevos)}")
+    if resumen.nombres:
+        lineas.append(f"Cambio el nombre en el aula: {_lista(resumen.nombres)}")
     if resumen.quita:
         lineas.append(
             f"Se quitan del calificador de tiza (no tienen notas): {_lista_corta(resumen.quita)}"

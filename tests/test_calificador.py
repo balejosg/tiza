@@ -342,6 +342,10 @@ class AulaViva(MoodleFalso):
         super().mover_categoria(curso, eid, padre_eid)
         self._cambiar(eid, None, padre_eid=padre_eid)
 
+    def fijar_nombre(self, curso, eid, nombre, *, resultado=False):
+        super().fijar_nombre(curso, eid, nombre, resultado=resultado)
+        self._cambiar(eid, None, nombre=nombre)
+
     def marcar_resultado_tarea(self, cmid, resultado_id):
         super().marcar_resultado_tarea(cmid, resultado_id)
         resultado = next(
@@ -782,6 +786,11 @@ def test_resumen_con_tope_dice_la_regla_y_su_limite():
     assert not any(
         x.startswith("Regla de la final") for x in mensajes.detalle_calificador(_resumen()).lineas
     )
+
+
+def test_resumen_resume_el_cambio_de_nombre_por_hoja():
+    lineas = mensajes.detalle_calificador(_resumen(nombres=("RA1_a", "RA2"))).lineas
+    assert "Cambio el nombre en el aula: RA1_a, RA2" in lineas
 
 
 def test_resumen_dice_que_se_quita_del_calificador_de_tiza():
@@ -2962,3 +2971,25 @@ def test_no_se_recrea_una_categoria_borrada_dentro_de_una_cerrada(tmp_path):
         for resumen in presencia.resumenes_calificador
         for aviso in resumen.avisos
     )
+
+
+def test_cambiar_el_nombre_en_el_yaml_se_lleva_al_aula(tmp_path):
+    carpeta = carpeta_fp(tmp_path)
+    moodle = AulaViva()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    yaml = (carpeta / "calificacion.yaml").read_text(encoding="utf-8")
+    (carpeta / "calificacion.yaml").write_text(
+        yaml.replace("nombre: Redes", "nombre: 'Redes & \"comillas\" · red'"),
+        encoding="utf-8",
+        newline="\n",
+    )
+    presencia = PresenciaFalsa(real=True)
+    atender(pedir(carpeta, "real"), moodle, carpeta, presencia)
+    assert moodle.por_id("TZ_E_RA1").nombre == 'Redes & "comillas" · red'
+    assert moodle.por_id("TZ_V_1_RA1").nombre == 'Redes & "comillas" · red'
+    assert presencia.resumenes_calificador[0].nombres == ("RA1",)
+    assert [e for e in moodle.escrituras if e[0] == "fijar_nombre"]
+
+    moodle.escrituras.clear()
+    atender(pedir(carpeta, "real"), moodle, carpeta, PresenciaFalsa(real=True))
+    assert not [e for e in moodle.escrituras if e[0] == "fijar_nombre"]
