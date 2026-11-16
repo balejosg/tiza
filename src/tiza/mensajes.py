@@ -844,6 +844,15 @@ def _llana(claves: Mapping[str, str], clave: str | None) -> str:
     return texto_seguro(claves.get(clave, clave), 100)
 
 
+def _sitio(claves: Mapping[str, str], clave: str | None, preposicion: str, sin_id: bool) -> str:
+    """«de»/«a» y el padre de un movimiento: un id del YAML, el curso o una categoría sin id."""
+    if sin_id:
+        return f"{preposicion} una categoría sin número de ID"
+    if not clave:
+        return "del curso" if preposicion == "de" else "al curso"
+    return f"{preposicion} {_llana(claves, clave)}"
+
+
 def detalle_cambio_calificador(resumen: ResumenCambioCalificador) -> DetalleCambioAMano:
     """La pregunta por un nodo del calificador que el docente cambió a mano y tiza pisaría.
 
@@ -859,12 +868,14 @@ def detalle_cambio_calificador(resumen: ResumenCambioCalificador) -> DetalleCamb
     if cambio.tipo == "peso" and cambio.antes is not None and cambio.despues is not None:
         detalle = (
             f"cambiaste a mano {etiqueta} "
-            f"(coeficiente {_numero(cambio.despues)} → {_numero(cambio.antes)})"
+            f"({'coeficiente' if cambio.coeficiente else 'peso'} "
+            f"{_numero(cambio.despues)} → {_numero(cambio.antes)})"
         )
     elif cambio.tipo == "padre":
         detalle = (
-            f"moviste a mano {etiqueta} de {_llana(resumen.claves, cambio.padre_despues)} "
-            f"a {_llana(resumen.claves, cambio.padre_antes)}"
+            f"moviste a mano {etiqueta} "
+            f"{_sitio(resumen.claves, cambio.padre_despues, 'de', False)} "
+            f"{_sitio(resumen.claves, cambio.padre_antes, 'a', cambio.padre_sin_id)}"
         )
     elif cambio.tipo == "formula":
         detalle = f"cambiaste a mano la fórmula de {etiqueta}"

@@ -921,6 +921,38 @@ def test_los_tipos_de_cambio_a_mano() -> None:
     assert cambio.tipo == "padre"
     assert cambio.padre_antes == "TZ_V_1_RA2"
     assert cambio.padre_despues == "TZ_V_1_RA1"
+    assert not cambio.padre_sin_id
+
+
+def test_mover_a_una_categoria_sin_id_no_es_mover_al_curso() -> None:
+    d, final, _ = montar(FP)
+    guardadas = huellas_de(final, CMIDS)
+    actividad = next(n for n in final.nodos if n.cmid == 11)
+    modelo = next(n for n in final.nodos if n.clase == "categoria" and n.idnumber == "TZ_V_1_RA2")
+    suya = dataclasses.replace(modelo, eid="cg999", idnumber="", nombre="Mía")
+    movida = CalificadorAula(
+        nodos=(
+            *(
+                dataclasses.replace(n, padre_eid=suya.eid) if n.eid == actividad.eid else n
+                for n in final.nodos
+            ),
+            suya,
+        ),
+        decimal=final.decimal,
+    )
+    rec = reconciliar(d, movida, guardadas, CMIDS)
+    cambio = next(c for c in rec.cambios_a_mano if c.clave == "TZ_A11")
+    assert cambio.tipo == "padre"
+    assert cambio.padre_antes is None
+    assert cambio.padre_sin_id
+
+
+def test_un_peso_cambiado_en_media_ponderada_es_un_coeficiente() -> None:
+    d, final, _ = montar(FP)
+    cambiada = _cambiar_nodo(final, "TZ_V_1_RA1", coeficiente=70.0)
+    rec = reconciliar(d, cambiada, huellas_de(final, CMIDS), CMIDS)
+    (cambio,) = rec.cambios_a_mano
+    assert cambio.coeficiente
 
 
 def test_la_huella_deseada_coincide_con_la_del_aula_recien_montada() -> None:

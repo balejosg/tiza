@@ -850,3 +850,36 @@ def test_la_pregunta_de_un_movimiento_a_mano_del_calificador():
     detalle = mensajes.detalle_cambio_calificador(resumen)
     assert "moviste a mano" in detalle.pregunta
     assert "de RA1_a a RA1_b" in detalle.pregunta
+
+
+def _pregunta_de(cambio: CambioCalificador) -> str:
+    resumen = publicacion.ResumenCambioCalificador(
+        5678, None, cambio, {"TZ_A11": "u1/proyecto.md", "TZ_V_1_RA1_a": "RA1_a"}
+    )
+    return mensajes.detalle_cambio_calificador(resumen).pregunta
+
+
+def test_mover_al_curso_o_a_una_categoria_sin_id_se_dice_bien():
+    al_curso = _pregunta_de(
+        CambioCalificador("TZ_A11", "padre", "proyecto", padre_despues="TZ_V_1_RA1_a")
+    )
+    assert "de RA1_a al curso" in al_curso
+    assert "a el curso" not in al_curso
+    sin_id = _pregunta_de(
+        CambioCalificador(
+            "TZ_A11", "padre", "proyecto", padre_despues="TZ_V_1_RA1_a", padre_sin_id=True
+        )
+    )
+    assert "de RA1_a a una categoría sin número de ID" in sin_id
+    assert "curso" not in sin_id.split(":", 1)[1]
+
+
+def test_un_peso_que_no_es_coeficiente_se_llama_peso():
+    peso = _pregunta_de(
+        CambioCalificador("TZ_A11", "peso", "proyecto", antes=40.0, despues=25.0, coeficiente=False)
+    )
+    assert "(peso 25 → 40)" in peso
+    coeficiente = _pregunta_de(
+        CambioCalificador("TZ_A11", "peso", "proyecto", antes=4.0, despues=2.0)
+    )
+    assert "(coeficiente 2 → 4)" in coeficiente

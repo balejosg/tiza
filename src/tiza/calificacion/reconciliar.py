@@ -186,9 +186,12 @@ class CambioAMano:
     """Un nodo de lo que montó tiza que el docente cambió en el aula.
 
     ``tipo`` es ``peso``, ``padre``, ``formula``, ``nombre`` u ``otro``. En ``peso``, ``antes``
-    es el valor del aula y ``despues`` el que pondría tiza (coeficiente o peso, sin porcentaje).
+    es el valor del aula y ``despues`` el que pondría tiza (sin porcentaje): un coeficiente si
+    ``coeficiente`` (el padre es de media ponderada) y un peso si no.
     En ``padre``, ``padre_antes`` es el número de ID del padre en el aula y ``padre_despues`` el
-    del YAML. ``nombre`` es el nombre de la carpeta (nunca el del aula).
+    del YAML; ``None`` es la raíz del curso. ``padre_sin_id`` dice que el padre del aula es una
+    categoría sin número de ID (no la raíz del curso), y entonces ``padre_antes`` es ``None``.
+    ``nombre`` es el nombre de la carpeta (nunca el del aula).
     """
 
     clave: str
@@ -198,6 +201,8 @@ class CambioAMano:
     despues: float | None = None
     padre_antes: str | None = None
     padre_despues: str | None = None
+    padre_sin_id: bool = False
+    coeficiente: bool = True
 
 
 @dataclass(frozen=True)
@@ -863,10 +868,14 @@ class _Plan:
                 huerfanos.add(clave)
         return huerfanos
 
+    def _padre_es_mp(self, nodo: NodoAula) -> bool:
+        """¿El padre del nodo en el aula es de media ponderada (su peso es un coeficiente)?"""
+        padre = self.idx.padre(nodo)
+        return padre is not None and padre.agregacion == 10
+
     def _valor_peso_aula(self, nodo: NodoAula) -> float | None:
         """El peso del aula en la misma escala que el deseado: coeficiente en MP, peso si no."""
-        padre = self.idx.padre(nodo)
-        if padre is not None and padre.agregacion == 10:
+        if self._padre_es_mp(nodo):
             return nodo.coeficiente
         return nodo.peso if nodo.sobrescrito else None
 
@@ -902,8 +911,13 @@ class _Plan:
                 continue
             padre = self.idx.padre(actual)
             padre_antes = padre.idnumber if padre is not None and padre.idnumber else None
+            padre_sin_id = (
+                padre is not None
+                and not padre.idnumber
+                and (self.idx.curso is None or padre.eid != self.idx.curso.eid)
+            )
             padre_despues = deseado.padre
-            padre_cambiado = (padre_antes or "") != (padre_despues or "")
+            padre_cambiado = padre_sin_id or (padre_antes or "") != (padre_despues or "")
             padre_borrado = (
                 padre_cambiado
                 and padre_despues is not None
@@ -918,6 +932,7 @@ class _Plan:
                         deseado.nombre,
                         padre_antes=padre_antes,
                         padre_despues=padre_despues,
+                        padre_sin_id=padre_sin_id,
                     )
                 )
                 continue
@@ -929,7 +944,14 @@ class _Plan:
                 and abs(antes - despues) > _TOLERANCIA_PESO_AULA
             ):
                 cambios.append(
-                    CambioAMano(clave, "peso", deseado.nombre, antes=antes, despues=despues)
+                    CambioAMano(
+                        clave,
+                        "peso",
+                        deseado.nombre,
+                        antes=antes,
+                        despues=despues,
+                        coeficiente=self._padre_es_mp(actual),
+                    )
                 )
                 continue
             if deseado.clase in ("copia", "resultado_calc", "nota"):
@@ -949,6 +971,7 @@ class _Plan:
                         deseado.nombre,
                         padre_antes=padre_antes,
                         padre_despues=padre_despues,
+                        padre_sin_id=padre_sin_id,
                     )
                 )
                 continue
