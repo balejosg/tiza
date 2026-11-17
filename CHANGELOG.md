@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.49.0 — 2026-11-17
 
 ### Cambia
 - **El calificador se puede mantener durante el curso.** `calificador.json` pasa a la versión 3 y guarda, por curso, lo que decides conservar a mano: si cambiaste un peso, una fórmula o el sitio de un nodo en el aula, `tiza calificador` te pregunta nodo a nodo si lo vuelve a dejar como el YAML o lo conserva, y deja de avisarte mientras no cambies ni el aula ni el YAML de ese nodo. La confirmación enseña los pesos antes → después y avisa si puede cambiar la nota final; los cambios de nombre del YAML se llevan al aula; y una categoría borrada a mano se vuelve a crear con sus hijos (dentro de una evaluación cerrada no: te avisa de cómo recuperarla).
