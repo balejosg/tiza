@@ -61,7 +61,7 @@ MENSAJES: dict[str, str] = {
     "SESION_INCOMPATIBLE": "La sesión abierta usa una versión de tiza que habla otro protocolo. Actualiza la más antigua con «tiza actualizar» y vuelve a abrir la sesión.",
     "SESION_YA_ABIERTA": "Ya hay una sesión de tiza abierta en esta carpeta, en otra terminal: usa esa. Si su terminal se cerró, vuelve a ejecutar «tiza empezar» y acepta cerrarla; si no te lo ofrece, ciérrala en el Administrador de tareas («tiza» o «python»).",
     "SESION_ANTERIOR_OCUPADA": "La sesión anterior sigue publicando lo que le pidió el agente y se cerrará sola en cuanto acabe. Espera un poco y vuelve a ejecutar «tiza empezar».",
-    "SESION_CADUCADA": "El aula ha cerrado la sesión: caducó o entraste con el mismo usuario desde otro sitio, como el navegador. Cierra el aula en el navegador y vuelve a abrir «tiza empezar».",
+    "SESION_CADUCADA": "El aula ha cerrado la sesión (caducó o entraste con el mismo usuario desde otro sitio). Si la sesión sigue abierta, repite: tiza vuelve a entrar sola. Si se cerró, vuelve a abrir «tiza empezar».",
     "SESION_DESACTUALIZADA": "tiza ha cambiado después de abrir la sesión y la sesión se ha cerrado sola para no publicar con el código viejo. Vuelve a abrirla con «tiza empezar».",
     "SIN_RESPUESTA": "La sesión no respondió a tiempo. Mira la terminal de la sesión: puede estar esperando tu confirmación.",
     "RESPUESTA_INVALIDA": "La respuesta de la sesión no es válida. Cierra la sesión con Ctrl+C y vuelve a abrirla con «tiza empezar».",

@@ -304,7 +304,10 @@ en español.
     y número de pantalla). Las rutas reales de las carpetas recientes se quedan en el `Panel`
     (`esperar_carpeta`): JS ve el índice y el nombre visible. `buscar_carpeta` y `terminar` no
     hacen nada de ventana, solo dejan una petición (`pedir_dialogo`, `pedir_salida`) que atiende
-    el hilo de la ventana. La acreditación del aula no pasa por el `Puente`, entra por `abrir_login`.
+    el hilo de la ventana. La acreditación del aula no pasa por el `Puente`, entra por `abrir_login`;
+    con la opción `reconectar` (la sesión pide la contraseña), `PresenciaPanel.acreditar` la pide en
+    una pantalla `clave` (respuesta `{"clave": str}` de 1 a 500 caracteres sin controles), que no la
+    guarda: `Panel.preguntar` vacía la respuesta al volver.
   - `recientes.py` (puro): hasta 8 carpetas en `panel-recientes.json` junto a la configuración
     global; un fichero roto es una lista vacía y un fallo al escribir se ignora.
   - `flujo.py` (puro): carpeta, `arranque.preparar(exigir_aislamiento=True)`, `sesion.abrir` y una

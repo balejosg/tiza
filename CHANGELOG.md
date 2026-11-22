@@ -7,6 +7,7 @@ se avisa aquí con **Cambia**.
 ## Sin publicar
 
 ### Cambia
+- **La sesión vuelve a entrar sola en el aula si el docente la cierra desde el navegador**: con `reconectar` (activada por defecto) la contraseña se pide en la terminal o en el panel, en lugar de la ventana de entrada, y se conserva **solo en memoria** mientras dura la sesión; si el aula cierra la sesión, tiza vuelve a entrar como mucho una vez por petición y avisa (`SESION_CADUCADA` ya no cierra la sesión). `"reconectar": false` en `config.json` devuelve la ventana de entrada y el comportamiento anterior (necesario con SSO o doble factor).
 - **Los cuestionarios que publica tiza barajan el orden de las preguntas**: cada alumno las ve en otro orden (las respuestas ya se mezclaban). Se aplica al crearlos y al republicarlos; uno ya publicado sigue sin barajar hasta que se vuelva a publicar. Si el aula no deja barajar, la publicación falla con `ERROR_BARAJAR_PREGUNTAS`.
 
 ## 0.49.0 — 2026-11-17

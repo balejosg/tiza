@@ -56,14 +56,20 @@ Delegación de Protección de Datos te pide un resumen, pásale
   ficheros de la carpeta que el agente podría editar. tiza los valida con un esquema cerrado (uno
   que no lo cumple da `PUBLICADOS_INVALIDO` y no se usa a medias), pero lo que protege de verdad es
   tu confirmación en real, que enseña lo que se pisa.
-- **Sin secretos persistentes**: en Windows y macOS (y en Linux, si la instalas), `tiza` abre una ventana con la
-  página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
+- **Sin secretos persistentes**: la contraseña no se guarda en disco ni se
+  acepta por variable de entorno, opción ni fichero. Con `reconectar` (activada por
+  defecto), `tiza` la pide en tu terminal (o en una pantalla del panel) en lugar de la
+  ventana, y la conserva **en memoria mientras dura la sesión** para volver a entrar en
+  el aula como mucho una vez por petición si tu navegador la cierra; solo se guarda si
+  entras con contraseña, no con las cookies de la ventana. Con `"reconectar": false` en
+  `config.json` vuelve la ventana de entrada de siempre —necesario con SSO o doble
+  factor—: en Windows y macOS (y en Linux, si la instalas), `tiza` abre una ventana con
+  la página de entrada de tu aula y la contraseña la escribes allí: `tiza` no la ve y
   solo recoge las cookies de sesión del servidor del aula (las de cualquier otro
   dominio, como un proveedor de identidad, se descartan). Sin ventana (sin escritorio,
   como en una sesión por SSH; sin WebView2 en Windows; sin motor en Linux; con
-  `--sin-ventana`; o si la ventana falla), la contraseña se pide con `getpass` una vez. En
-  ningún caso hay variable de entorno, opción ni fichero que la acepte, y la sesión
-  vive en memoria y se descarta al cerrar `tiza sesion`; además, al terminar `tiza`
+  `--sin-ventana`; o si la ventana falla), la contraseña se pide con `getpass` una vez. La
+  sesión vive en memoria y se descarta al cerrar `tiza sesion`; además, al terminar `tiza`
   cierra la sesión en el aula, así que la cookie deja de valer (cierra la sesión con Ctrl+C: si cierras
   la consola con la X, `tiza` no llega a limpiar y la sesión del aula sigue abierta hasta que
   caduque). La ventana solo la abre
@@ -87,7 +93,8 @@ Delegación de Protección de Datos te pide un resumen, pásale
   `https://aula.ejemplo.org/<centro>`) y queda fijada: se rechazan las URLs que
   `urlsplit` y `requests` leen distinto, y una redirección a otro servidor o
   puerto falla con `URL_REDIRIGE_FUERA`. Se muestra el servidor antes de entrar,
-  la contraseña (si se pide en la terminal) se envía una sola vez (sin token móvil) y cada petición de la
+  la contraseña (si se pide en la terminal o el panel) se envía solo al entrar y al
+  reconectar (como mucho una vez por petición, sin token móvil) y cada petición de la
   sesión del aula, redirecciones incluidas, se comprueba antes de salir: nada va
   a otro servidor. Los cursos de pruebas y real no pueden coincidir.
 - **Puerta de real**: dentro de `tiza sesion`, solo se publica en real lo que

@@ -65,8 +65,8 @@ que lo instale con el panel y, en vez del menú Inicio, busca «tiza» en tus ap
    - la protección de la carpeta, con el botón «Proteger esta carpeta». Sin ella
      no se abre la sesión: el agente no debe poder entrar en tu aula ni leer tu
      navegador;
-   - la entrada en tu aula: se abre una ventana con la página de login de tu aula.
-     Entra como siempre. `tiza` no ve tu contraseña;
+   - la entrada en tu aula: escribe la contraseña en la pantalla del panel (solo
+     mientras dure la sesión) o entra en la ventana si tienes `"reconectar": false`;
    - los cursos de pruebas y real, elegidos por su nombre;
    - la autoprueba, si toca.
 5. **Déjalo abierto.** El panel muestra una insignia con los minutos de sesión que
@@ -102,11 +102,13 @@ Si prefieres la terminal, o usas macOS o Linux, sigue con el apartado siguiente.
      Copilot, `tiza aislar` no puede escribir su configuración: te dirá qué
      activar en Ajustes › Proyectos › Sandbox y en qué carpeta debe quedar la
      sesión del agente;
-   - **entrar en tu aula**: se abre una ventana con la página de entrada de tu aula
-     (en Windows y macOS; en Linux, si la instalaste con `TIZA_VENTANA=1`). Entra como siempre; tiza no ve tu contraseña. Si no hay
-     ventana, te la pide en la terminal (solo aquí, nunca en el chat del agente).
-     Si tu aula usa un proveedor de identidad o un segundo factor, entras igual en esa
-     ventana; al terminar la sesión, `tiza` cierra tu entrada en el aula;
+   - **entrar en tu aula**: te pide la contraseña en la terminal (solo aquí, nunca en
+     el chat del agente) y la guarda en memoria mientras dure la sesión, para volver a
+     entrar si el aula la cierra. Con `"reconectar": false` en `config.json` se abre una
+     ventana con la página de entrada (en Windows y macOS; en Linux, si la instalaste con
+     `TIZA_VENTANA=1`): entra como siempre y tiza no ve tu contraseña. Si tu aula usa un
+     proveedor de identidad o un segundo factor, necesitas esa ventana. Al terminar la
+     sesión, `tiza` cierra tu entrada en el aula;
    - cuál es tu curso real y, si lo tienes, el de pruebas, por su nombre (puedes
      elegir «No tengo curso de pruebas»: entonces en real solo se publicará
      oculto y la sesión te lo recordará y pedirá confirmarlo cada vez que la
@@ -144,8 +146,9 @@ se hace con tu sesión abierta y que confirmas tú en tu terminal. Mira
 ## Tres avisos importantes
 
 - **No entres en el aula desde el navegador mientras la sesión está abierta.**
-  el aula cierra una de las dos sesiones y verás `SESION_CADUCADA`. Si te
-  pasa, cierra el aula en el navegador y vuelve a ejecutar `tiza empezar`.
+  El aula cierra una de las dos sesiones. Con `reconectar` (activada por defecto),
+  `tiza` vuelve a entrar sola la próxima vez que el agente la use y te avisa; si no
+  puede, verás `SESION_CADUCADA` y tendrás que volver a ejecutar `tiza empezar`.
 - **Revisa los cuestionarios antes de publicarlos en real.** En cuanto un alumno
   empieza un intento, `tiza` ya no puede cambiar ese cuestionario
   (`CUESTIONARIO_CON_INTENTOS`). Para corregirlo tendrás que crear otro con un

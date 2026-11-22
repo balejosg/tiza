@@ -18,7 +18,7 @@ servicio que no sea el aula configurada (y, para actualizarse, GitHub).
 
 | Dato | Dónde está | Quién lo ve |
 |---|---|---|
-| Contraseña del aula | En Windows y macOS se escribe en la página de entrada de tu aula, dentro de una ventana: tiza no la ve. Sin ventana, se pide con `getpass` y solo vive en memoria. No hay variable, opción ni fichero que la acepte | Solo el aula. Nunca el agente, ni el proveedor de IA, ni el disco |
+| Contraseña del aula | Con `reconectar` (por defecto) se escribe en tu terminal o en el panel, en una pantalla que no la guarda, y vive en memoria mientras dura la sesión para volver a entrar; con `"reconectar": false` se escribe en la página de entrada de tu aula, dentro de una ventana, y tiza no la ve. No hay variable, opción ni fichero que la acepte | Solo el aula. Nunca el agente, ni el proveedor de IA, ni el disco |
 | Sesión del aula (cookies) | En memoria mientras dura la sesión; el hijo de la ventana las devuelve por una tubería y solo se aceptan las del servidor del aula. Nunca se escriben en disco | Solo tiza y el aula. Nunca el agente |
 | URL del aula y usuario | Configuración local del docente | El docente. El agente no los necesita |
 | Contenido docente (`.md`, `.html`, imágenes) | Carpeta de la asignatura | El agente y, por tanto, el proveedor de IA; después, el aula |

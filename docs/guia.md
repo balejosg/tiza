@@ -124,8 +124,8 @@ déjale su PDF en la carpeta.
 
    La primera vez te pregunta la URL del aula y tu usuario. Después comprueba
    que el agente está aislado; si falta, te ofrece aplicar el aislamiento a esta
-   carpeta ahí mismo. Luego se abre la página de entrada de tu aula (entra como
-   siempre; sin ventana, te pide la contraseña una vez), te deja elegir tus
+   carpeta ahí mismo. Luego te pide la contraseña del aula en esta terminal o en el
+   panel (o te abre la página de entrada si tienes `"reconectar": false`), te deja elegir tus
    cursos de pruebas y real por su nombre, pasa la autoprueba cuando toca (al
    estrenar versión o cada septiembre) y lee las secciones. Déjala abierta.
 2. En la terminal del agente, pídele el contenido. El agente lo escribe, lo
@@ -140,8 +140,11 @@ déjale su PDF en la carpeta.
 siguen disponibles para hacer cada paso por separado.
 
 Mientras la sesión esté abierta, no entres al aula con el mismo usuario desde el
-navegador: el aula puede cerrar la sesión anterior. Si ocurre, `tiza`
-responde `SESION_CADUCADA` y la sesión se cierra; vuelve a abrirla.
+navegador: el aula puede cerrar la sesión anterior. Con `reconectar` (activada por
+defecto), `tiza` vuelve a entrar sola la próxima vez que el agente la use y te
+avisa; si no puede, responde `SESION_CADUCADA` y la sesión se cierra, y hay que
+volver a abrirla. Para volver al comportamiento anterior —la ventana de entrada y
+la sesión que se cierra— pon `"reconectar": false` en `config.json`.
 
 Abre la sesión en una terminal propia (en Windows, PowerShell o Terminal de
 Windows), no en el panel de terminal de la app del agente: si la app cierra ese
@@ -434,8 +437,9 @@ resuelto (aplicado o descartado a propósito).
 
 La instalación normal es la línea del [README](../README.md#empezar). Después,
 `tiza empezar` hace todo lo demás la primera vez: te pregunta la URL del aula y
-tu usuario (no pide contraseña), comprueba el aislamiento, te abre la página de
-entrada de tu aula (o, sin ventana, te pide la contraseña una vez), te deja
+tu usuario (no pide contraseña), comprueba el aislamiento, te pide la contraseña
+del aula en tu terminal o en el panel (o te abre la página de entrada si tienes
+`"reconectar": false`), te deja
 elegir tus cursos por nombre (se guardan en `tiza.toml`) y lee las secciones. Si
 prefieres hacerlo por pasos, `tiza configurar` guarda la URL y el usuario, y
 `tiza sesion` abre la sesión.

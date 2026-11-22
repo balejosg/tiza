@@ -3,8 +3,9 @@
 `tiza` está diseñada para reducir que, **por ella**, algo del aula virtual llegue
 al agente:
 
-- la contraseña solo se teclea en tu terminal (`getpass`), una vez por sesión, y
-  nunca se guarda;
+- la contraseña se teclea solo en tu terminal o en el panel (nunca en el shell del
+  agente) y no se guarda en disco: con `reconectar` (por defecto) vive en memoria
+  mientras dura la sesión para volver a entrar, como mucho una vez por petición;
 - `tiza empezar`, `tiza sesion`, `tiza autoprueba`, `tiza configurar`,
   `tiza aislar` y `tiza actualizar` se niegan si no hay terminal interactiva
   (y `actualizar` pide confirmación con la versión que va a instalar);

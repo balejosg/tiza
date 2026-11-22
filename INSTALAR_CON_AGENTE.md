@@ -123,7 +123,10 @@ carpeta de la asignatura y ejecute:
     tiza empezar
 
 La primera vez le preguntará la URL del aula (la que ve en el navegador) y su
-usuario; le abrirá la página de entrada de su aula (en Windows y macOS, y en Linux si se instaló con `TIZA_VENTANA=1` o `TIZA_PANEL=1`; sin ventana, le pedirá la contraseña **solo en su terminal**), le dejará elegir sus
+usuario; le pedirá la contraseña del aula **solo en su terminal o en el panel** (la
+guarda en memoria mientras dura la sesión para volver a entrar si el aula la cierra;
+con `"reconectar": false` en `config.json`, le abre la página de entrada de su aula
+—necesario con SSO o doble factor—), le dejará elegir sus
 cursos por nombre (si da la misma asignatura en 1º A y 1º B, puede elegir varios
 cursos reales: se publica en todos, con una confirmación por curso) y, cuando
 toque (estrenos de versión o curso nuevo, o cada septiembre), le ofrecerá pasar
