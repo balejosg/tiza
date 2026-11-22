@@ -240,14 +240,14 @@ def _abrir(
     abierta = _iniciar(cfg, base, presencia, debug, elegir_cursos, propio=dir_vistas)
     if isinstance(abierta, int):
         return abierta
-    cfg, aula, nombres = abierta
+    cfg, conexion, nombres = abierta
     try:
         if preparar:
-            salida = _preparar(aula, cfg, base, presencia, debug)
+            salida = _preparar(conexion.aula, cfg, base, presencia, debug)
             if salida is not None:
                 return salida
         return _servir(
-            aula,
+            conexion,
             cfg,
             nombres,
             base,
@@ -258,7 +258,8 @@ def _abrir(
             dir_vistas=dir_vistas,
         )
     finally:
-        publicar.cerrar_aula(aula)  # la cookie deja de valer en cuanto se acaba la sesión
+        # La cookie deja de valer en cuanto se acaba la sesión, también la recién abierta.
+        publicar.cerrar_aula(conexion.aula)
 
 
 def autoprueba_con(
@@ -371,10 +372,12 @@ def _iniciar(
     elegir_cursos: bool = False,
     *,
     propio: Path | None = None,
-) -> tuple[Config, AulaVirtual, dict[int, str]] | int:
-    """Contraseña, login y cursos; devuelve (cfg, aula, nombres) o el código de salida.
+) -> tuple[Config, sesion_abierta.Conexion, dict[int, str]] | int:
+    """Contraseña, login y cursos; devuelve (cfg, conexión, nombres) o el código de salida.
 
     ``propio``: el directorio privado de esta sesión, que no se confunde con el de otra.
+    La conexión guarda la contraseña en memoria solo si ``reconectar`` está activa y se
+    entró con ella (no con las cookies de la ventana).
     """
     comando = "sesion"
     salida_anterior = _cerrar_anterior(base, presencia, propio)
@@ -406,7 +409,17 @@ def _iniciar(
     if isinstance(salida, int):
         publicar.cerrar_aula(aula)  # se abandona tras entrar: la sesión del aula no se deja viva
         return salida
-    return salida[0], aula, salida[1]
+    completa = salida[0]
+    contrasena = (
+        acreditacion
+        if completa.reconectar and isinstance(acreditacion, publicar.Contrasena)
+        else None
+    )
+    return (
+        completa,
+        sesion_abierta.Conexion(aula, completa.url, completa.usuario, contrasena),
+        salida[1],
+    )
 
 
 def _cursos_de_la_sesion(
@@ -540,13 +553,13 @@ class _Cierre:
         self,
         dir_tiza: Path,
         dir_vistas: Path,
-        aula: AulaVirtual,
+        conexion: sesion_abierta.Conexion,
         cerrar: threading.Event,
         salir: Callable[[int], object] = os._exit,
     ) -> None:
         self.dir_tiza = dir_tiza
         self.dir_vistas = dir_vistas
-        self.aula = aula
+        self.conexion = conexion
         self.cerrar = cerrar
         self.pedido = threading.Event()
         self.esperando = threading.Event()  # la presencia está preguntando al docente
@@ -563,7 +576,9 @@ class _Cierre:
             return True
         # Sin pasar por los «finally» del hilo principal, que sigue en el ``input``.
         buzon.soltar(self.dir_tiza)
-        hilo = threading.Thread(target=publicar.cerrar_aula, args=(self.aula,), daemon=True)
+        hilo = threading.Thread(
+            target=publicar.cerrar_aula, args=(self.conexion.aula,), daemon=True
+        )
         hilo.start()
         hilo.join(PLAZO_CIERRE_AULA)
         shutil.rmtree(self.dir_vistas, ignore_errors=True)
@@ -675,7 +690,7 @@ class _PresenciaVigilada:
 
 
 def _servir(
-    aula: AulaVirtual,
+    conexion: sesion_abierta.Conexion,
     cfg: Config,
     nombres: dict[int, str],
     base: Path,
@@ -691,10 +706,17 @@ def _servir(
     apertura = datetime.now(UTC)
     caduca = apertura + timedelta(minutes=minutos)
     cerrar = cerrar or threading.Event()
-    cierre = _Cierre(dir_tiza, dir_vistas, aula, cerrar)
+    cierre = _Cierre(dir_tiza, dir_vistas, conexion, cerrar)
     vigilada = _PresenciaVigilada(presencia, cierre)
     abierta = sesion_abierta.SesionAbierta(
-        aula, cfg, base, vigilada, nombres=nombres, dir_vistas=dir_vistas, debug=debug
+        conexion.aula,
+        cfg,
+        base,
+        vigilada,
+        nombres=nombres,
+        dir_vistas=dir_vistas,
+        debug=debug,
+        conexion=conexion,
     )
     try:
         with buzon.abrir_sesion(dir_tiza, caduca, al_latir=cierre.revisar) as actual:
@@ -707,6 +729,7 @@ def _servir(
                 debug,
                 cerrar,
                 otra=cierre.pedido,
+                reconecta=lambda: conexion.puede_reconectar,
             )
     except buzon.ErrorBuzon as exc:
         return _fallo("sesion", exc.codigo, exc.detalle, base, presencia)
@@ -725,10 +748,13 @@ def _atender(
     cerrar: threading.Event | None = None,
     *,
     otra: threading.Event | None = None,
+    reconecta: Callable[[], bool] = lambda: False,
 ) -> None:
     """Atiende el buzón y ofrece ampliar hasta que se cierre la sesión.
 
     ``otra``: la cierra otro «tiza empezar» de la carpeta, no el docente en esta terminal.
+    ``reconecta``: queda contraseña en memoria para volver a entrar; entonces
+    ``SESION_CADUCADA`` no cierra la sesión.
     """
     presencia.informar(Aviso.sesion_abierta(abierta.caduca))
     motivos: list[str] = []
@@ -736,7 +762,7 @@ def _atender(
     def terminar(documento: dict) -> bool:
         if "SESION_DESACTUALIZADA" in documento["errores"]:
             motivos.append("desactualizada")
-        elif "SESION_CADUCADA" in documento["errores"]:
+        elif "SESION_CADUCADA" in documento["errores"] and not reconecta():
             motivos.append("aula")
         return bool(motivos)
 

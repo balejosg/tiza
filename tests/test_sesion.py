@@ -23,7 +23,16 @@ from dobles import (
     enlace_simbolico,
     peticion,
 )
-from tiza import buzon, config, contenido, informe, publicacion, publicar, sesion
+from tiza import (
+    buzon,
+    config,
+    contenido,
+    informe,
+    publicacion,
+    publicar,
+    sesion,
+    sesion_abierta,
+)
 
 TAREA = (
     '---\ntipo: tarea\nnombre: Problemas\nseccion: "Fracciones"\n'
@@ -450,6 +459,66 @@ def test_la_sesion_se_cierra_si_su_codigo_cambia(tmp_path, monkeypatch):
     assert presencia.avisos[-1] == publicacion.Aviso("SESION_CERRADA", {"motivo": "desactualizada"})
 
 
+def desactivar_reconectar() -> None:
+    """Deja en la configuración global ``"reconectar": false`` (comportamiento anterior)."""
+    ruta = config.ruta_global()
+    datos = json.loads(ruta.read_text(encoding="utf-8"))
+    datos["reconectar"] = False
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+
+
+def test_sesion_caducada_con_contrasena_no_cierra(tmp_path, monkeypatch):
+    carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
+    presencia = PresenciaFalsa()
+    devolvio: list[bool] = []
+
+    def atender(*_args, **opciones):
+        devolvio.append(opciones["terminar"]({"errores": ["SESION_CADUCADA"]}))
+        return False
+
+    monkeypatch.setattr(buzon, "atender", atender)
+    assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
+    assert devolvio == [False]
+    assert not any(
+        aviso.codigo == "SESION_CERRADA" and aviso.datos["motivo"] == "aula"
+        for aviso in presencia.avisos
+    )
+
+
+def test_sesion_caducada_sin_contrasena_cierra_como_hoy(tmp_path, monkeypatch):
+    carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
+    desactivar_reconectar()
+    monkeypatch.setattr(
+        buzon,
+        "atender",
+        lambda *a, **k: k["terminar"]({"errores": ["SESION_CADUCADA"]}),
+    )
+    presencia = PresenciaFalsa()
+    assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
+    assert presencia.avisos[-1] == publicacion.Aviso("SESION_CERRADA", {"motivo": "aula"})
+
+
+def test_al_salir_se_cierra_el_aula_vigente(tmp_path, monkeypatch):
+    vieja = MoodleFalso()
+    carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch, moodle=vieja)
+    (carpeta / "pagina.md").write_text(PAGINA, encoding="utf-8")
+    nueva = MoodleFalso()
+    aulas = iter([vieja, nueva])
+    monkeypatch.setattr(publicar, "autenticar", lambda *a, **k: next(aulas))
+    vieja.viva = False
+
+    def atender(_dir, procesar, *_a, **_k):
+        procesar(peticion())
+        return False
+
+    monkeypatch.setattr(buzon, "atender", atender)
+    presencia = PresenciaFalsa()
+    assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
+    assert [aviso.codigo for aviso in presencia.avisos].count("AULA_RECONECTADA") == 1
+    assert nueva.cerradas == 1
+    assert vieja.cerradas == 0
+
+
 def test_cerrar_corta_el_buzon_sin_ofrecer_ampliar(tmp_path, monkeypatch):
     carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
     cerrar = threading.Event()
@@ -691,6 +760,7 @@ class TestCierrePedido:
         privado = sesion.crear_dir_vistas(tmp_path)
         salidas: list[tuple[int, bool, bool]] = []
         aula = AulaQueSeCierra()
+        conexion = sesion_abierta.Conexion(aula, "https://aula.ejemplo.org/centro", "profe")
 
         def salir(codigo):
             carpeta = buzon.carpeta_buzon(dir_tiza)
@@ -698,8 +768,8 @@ class TestCierrePedido:
                 (codigo, (carpeta / buzon.SESION).exists(), (carpeta / buzon.RESERVA).exists())
             )
 
-        cierre = sesion._Cierre(dir_tiza, privado, aula, threading.Event(), salir=salir)
-        return cierre, privado, salidas, aula
+        cierre = sesion._Cierre(dir_tiza, privado, conexion, threading.Event(), salir=salir)
+        return cierre, privado, salidas, conexion
 
     def test_sin_peticion_no_hace_nada(self, tmp_path):
         cierre, _privado, salidas, _aula = self.preparar(tmp_path)
@@ -715,14 +785,24 @@ class TestCierrePedido:
         assert salidas == []
 
     def test_a_media_pregunta_se_va_en_el_acto(self, tmp_path):
-        cierre, privado, salidas, aula = self.preparar(tmp_path)
+        cierre, privado, salidas, conexion = self.preparar(tmp_path)
         with buzon.abrir_sesion(tmp_path / ".tiza", datetime.now(UTC) + timedelta(minutes=5)):
             cierre.esperando.set()  # la terminal se cerró en un «input»
             (privado / sesion.PEDIR_CIERRE).touch()
             assert cierre.revisar() is False
         assert salidas == [(0, False, False)]  # ya había soltado la carpeta
-        assert aula.cerradas == 1
+        assert conexion.aula.cerradas == 1
         assert not privado.exists()
+
+    def test_el_cierre_pedido_por_otra_sesion_cierra_el_aula_vigente(self, tmp_path):
+        cierre, privado, _salidas, conexion = self.preparar(tmp_path)
+        nueva = AulaQueSeCierra()
+        conexion.aula = nueva
+        with buzon.abrir_sesion(tmp_path / ".tiza", datetime.now(UTC) + timedelta(minutes=5)):
+            cierre.esperando.set()
+            (privado / sesion.PEDIR_CIERRE).touch()
+            assert cierre.revisar() is False
+        assert nueva.cerradas == 1
 
     def test_la_pregunta_que_llega_tarde_tambien_sale(self, tmp_path):
         # Pedido el cierre cuando ya estaba en marcha, la sesión se va en el latido siguiente.
