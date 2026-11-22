@@ -145,6 +145,10 @@ class MoodleFalso:
     def cerrar(self):
         self.cerradas += 1
 
+    def sesion_viva(self):
+        self.comprobaciones += 1
+        return self.viva
+
     def __init__(
         self,
         secciones=None,
@@ -210,6 +214,8 @@ class MoodleFalso:
         self.opciones_de_escritura: list[tuple] = []
         self._siguiente_eid = 1000
         self.cerradas = 0  # veces que se cerró la sesión del aula
+        self.viva = True  # la sesión del aula sigue viva (``sesion_viva``)
+        self.comprobaciones = 0  # veces que se comprobó si seguía viva
         self.subidas: list[tuple[str, bytes]] = []
         # Formulario de cada módulo: como python-moodle, cada payload se fusiona
         # sobre lo que ya había y lo que no se envía se conserva.
@@ -1171,6 +1177,8 @@ def avisos_de_ejemplo() -> dict[str, publicacion.Aviso]:
         "AISLAMIENTO_GUARDADO": publicacion.Aviso.aislamiento_guardado(
             Path("settings.json"), "settings.json.antes-de-tiza-20261024-100000"
         ),
+        "AULA_NO_RECONECTADA": publicacion.Aviso.aula_no_reconectada(),
+        "AULA_RECONECTADA": publicacion.Aviso.aula_reconectada(),
         "AUTOPRUEBA_FALLIDA": publicacion.Aviso.autoprueba_fallida(),
         "ACTIVIDAD_EN_EVALUACION_CERRADA": publicacion.Aviso.actividad_en_evaluacion_cerrada(
             "t.md"

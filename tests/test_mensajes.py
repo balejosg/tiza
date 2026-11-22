@@ -560,6 +560,20 @@ def test_la_pregunta_de_sobrescribir_es_la_acordada_y_sanea_los_nombres():
     assert "\x1b" not in detalle.curso
 
 
+def test_los_avisos_de_reconexion_no_llevan_la_contrasena():
+    reconectada = mensajes.lineas_de_aviso(publicacion.Aviso.aula_reconectada())
+    no_reconectada = mensajes.lineas_de_aviso(publicacion.Aviso.aula_no_reconectada())
+    assert [linea.texto for linea in reconectada] == [
+        "He vuelto a entrar en el aula; tu sesión del navegador se ha cerrado."
+    ]
+    assert [linea.texto for linea in no_reconectada] == [
+        "No he podido volver a entrar en el aula con la contraseña de esta sesión; "
+        "la sesión se cerrará."
+    ]
+    for linea in (*reconectada, *no_reconectada):
+        assert "secreta" not in linea.texto
+
+
 class TestNotas:
     def _cambios(self):
         return (

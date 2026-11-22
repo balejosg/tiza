@@ -1749,6 +1749,19 @@ def _resultado(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     return tuple(Linea(linea) for linea in lineas)
 
 
+def _aula_reconectada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (Linea("He vuelto a entrar en el aula; tu sesión del navegador se ha cerrado."),)
+
+
+def _aula_no_reconectada(_datos: Mapping[str, Any]) -> tuple[Linea, ...]:
+    return (
+        Linea(
+            "No he podido volver a entrar en el aula con la contraseña de esta sesión; "
+            "la sesión se cerrará."
+        ),
+    )
+
+
 def _sesion_abierta(datos: Mapping[str, Any]) -> tuple[Linea, ...]:
     hora = datos["caduca"].astimezone().strftime("%d/%m/%Y %H:%M")
     return (
@@ -1773,6 +1786,8 @@ _CONVERSIONES: dict[str, Callable[[Mapping[str, Any]], tuple[Linea, ...]]] = {
     "ACTIVIDAD_PENDIENTE": _actividad_pendiente,
     "ACTIVIDAD_SIN_EVALUA": _actividad_sin_evalua,
     "AISLAMIENTO_GUARDADO": _aislamiento_guardado,
+    "AULA_NO_RECONECTADA": _aula_no_reconectada,
+    "AULA_RECONECTADA": _aula_reconectada,
     "AUTOPRUEBA_FALLIDA": _autoprueba_fallida,
     "CALCULADOS_OCULTADOS": _calculados_ocultados,
     "CALIFICANDO_EN_PRUEBAS": _calificando_en_pruebas,

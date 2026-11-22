@@ -154,6 +154,8 @@ AVISOS = frozenset(
         "SALE_DE_EVALUACION_CERRADA",
         "ACTIVIDAD_SIN_EVALUA",
         "AISLAMIENTO_GUARDADO",
+        "AULA_NO_RECONECTADA",
+        "AULA_RECONECTADA",
         "AUTOPRUEBA_FALLIDA",
         "CALCULADOS_OCULTADOS",
         "CALIFICADOR_PENDIENTE",
@@ -266,6 +268,16 @@ class Aviso:
     @classmethod
     def autoprueba_fallida(cls) -> Aviso:
         return cls("AUTOPRUEBA_FALLIDA")
+
+    @classmethod
+    def aula_reconectada(cls) -> Aviso:
+        """Se volvió a entrar en el aula con la contraseña en memoria."""
+        return cls("AULA_RECONECTADA")
+
+    @classmethod
+    def aula_no_reconectada(cls) -> Aviso:
+        """No se pudo volver a entrar: la sesión se cerrará (sin contraseña ya en memoria)."""
+        return cls("AULA_NO_RECONECTADA")
 
     @classmethod
     def calificando_en_pruebas(cls, esquema: str) -> Aviso:

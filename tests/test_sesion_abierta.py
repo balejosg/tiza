@@ -28,7 +28,16 @@ from dobles import (
     peticion,
     tarea_en,
 )
-from tiza import agente, buzon, config, contenido, estado, publicacion, sesion_abierta
+from tiza import (
+    agente,
+    buzon,
+    config,
+    contenido,
+    estado,
+    publicacion,
+    publicar,
+    sesion_abierta,
+)
 
 CFG = config.Config(
     url="https://aula.ejemplo.org/centro",
@@ -76,6 +85,93 @@ CUESTIONARIO = (
     "    aceptadas: [París]\n"
     "---\n\nDescripción del cuestionario.\n"
 )
+
+
+class TestReconexion:
+    """La conexión de la sesión: sigue viva o vuelve a entrar con la contraseña en memoria."""
+
+    def _conexion(self, aula, *, contrasena="secreta", entrar=None):
+        return sesion_abierta.Conexion(
+            aula,
+            CFG.url,
+            CFG.usuario,
+            None if contrasena is None else publicar.Contrasena(contrasena),
+            entrar=entrar or (lambda url, usuario, acreditacion: aula),
+        )
+
+    def _abierta(self, aula, carpeta, presencia, conexion, **opciones):
+        return sesion_abierta.SesionAbierta(
+            aula, CFG, carpeta, presencia, conexion=conexion, **opciones
+        )
+
+    def test_aula_viva_no_reconecta(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        moodle = MoodleFalso()
+
+        def no_entrar(*_args):
+            raise AssertionError("con el aula viva no se vuelve a entrar")
+
+        conexion = self._conexion(moodle, entrar=no_entrar)
+        abierta = self._abierta(moodle, carpeta, PresenciaFalsa(), conexion)
+        assert abierta.atender(peticion())["resultado"] == "ok"
+        assert moodle.comprobaciones == 1
+
+    def test_aula_caida_reconecta_y_avisa(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        vieja = MoodleFalso()
+        vieja.viva = False
+        nueva = MoodleFalso()
+        presencia = PresenciaFalsa()
+        conexion = self._conexion(vieja, entrar=lambda *_: nueva)
+        abierta = self._abierta(vieja, carpeta, presencia, conexion)
+        assert abierta.atender(peticion())["resultado"] == "ok"
+        assert abierta.aula is nueva and conexion.aula is nueva
+        assert publicacion.Aviso("AULA_RECONECTADA") in presencia.avisos
+
+    def test_reconexion_fallida_no_vuelve_a_intentar(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        vieja = MoodleFalso()
+        vieja.viva = False
+        presencia = PresenciaFalsa()
+        llamadas: list[tuple] = []
+
+        def entrar(url, usuario, acreditacion):
+            llamadas.append((url, usuario, acreditacion))
+            raise publicar.ErrorPublicacion("LOGIN_FALLIDO")
+
+        conexion = self._conexion(vieja, entrar=entrar)
+        abierta = self._abierta(vieja, carpeta, presencia, conexion)
+        abierta.atender(peticion())
+        assert publicacion.Aviso("AULA_NO_RECONECTADA") in presencia.avisos
+        assert conexion.puede_reconectar is False
+        abierta.atender(peticion())
+        assert len(llamadas) == 1
+
+    def test_con_cookies_no_comprueba_ni_reconecta(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        moodle = MoodleFalso()
+        conexion = self._conexion(moodle, contrasena=None)
+        abierta = self._abierta(moodle, carpeta, PresenciaFalsa(), conexion)
+        assert abierta.atender(peticion())["resultado"] == "ok"
+        assert moodle.comprobaciones == 0
+
+    def test_sesion_viva_que_falla_no_reconecta(self, tmp_path):
+        carpeta = preparar_carpeta(tmp_path)
+        moodle = MoodleFalso()
+
+        def falla() -> bool:
+            raise RuntimeError("sin red")
+
+        moodle.sesion_viva = falla  # type: ignore[method-assign]
+        llamadas: list[tuple] = []
+        conexion = self._conexion(moodle, entrar=lambda *args: llamadas.append(args))
+        abierta = self._abierta(moodle, carpeta, PresenciaFalsa(), conexion)
+        assert abierta.atender(peticion())["resultado"] == "ok"
+        assert llamadas == []
+
+    def test_la_contrasena_no_aparece_en_repr(self):
+        conexion = self._conexion(MoodleFalso(), contrasena="secreta")
+        assert "secreta" not in repr(conexion)
 
 
 class TestAtender:

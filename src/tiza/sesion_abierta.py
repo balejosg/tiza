@@ -19,12 +19,12 @@ registro de verificados en memoria.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import buzon, contenido, estado, informe, publicacion, rutas, tipos
+from . import buzon, contenido, estado, informe, publicacion, publicar, rutas, tipos
 from .calificacion import ponderacion
 from .calificacion.carpeta import cargar_calificacion
 from .calificacion.esquema import ErrorCalificacion
@@ -33,9 +33,10 @@ from .config import Config
 from .contenido import Documento, ErrorContenido
 from .estructura import Estructura
 from .publicacion import Presencia
-from .publicar import AulaVirtual, ErrorPublicacion
+from .publicar import AulaVirtual, ErrorPublicacion, autenticar_con
 
 __all__ = [
+    "Conexion",
     "SesionAbierta",
     "estructura_con",
     "registrar",
@@ -201,6 +202,44 @@ def _ruta_dentro(base: Path, nombre: str) -> Path | None:
 
 
 @dataclass
+class Conexion:
+    """El aula viva y la contraseña en memoria para volver a entrar (solo la sesión).
+
+    Sin contraseña (el docente entró por la ventana) no se comprueba ni se reconecta.
+    La contraseña no sale de aquí: ``repr`` la oculta y no se escribe en ningún sitio.
+    """
+
+    aula: AulaVirtual
+    url: str
+    usuario: str
+    contrasena: publicar.Contrasena | None = field(default=None, repr=False)
+    entrar: Callable[[str, str, publicar.Acreditacion], AulaVirtual] = autenticar_con
+
+    @property
+    def puede_reconectar(self) -> bool:
+        return self.contrasena is not None
+
+    def asegurar(self, presencia: Presencia) -> AulaVirtual:
+        """El aula para esta petición: vuelve a entrar como mucho una vez si hace falta."""
+        if self.contrasena is None:
+            return self.aula
+        try:
+            viva = self.aula.sesion_viva()
+        except Exception:  # noqa: BLE001 - la comprobación nunca debe romper la sesión
+            viva = True
+        if viva:
+            return self.aula
+        try:
+            self.aula = self.entrar(self.url, self.usuario, self.contrasena)
+        except ErrorPublicacion:
+            self.contrasena = None  # un fallo de credenciales no se repite
+            presencia.informar(publicacion.Aviso.aula_no_reconectada())
+            return self.aula
+        presencia.informar(publicacion.Aviso.aula_reconectada())
+        return self.aula
+
+
+@dataclass
 class SesionAbierta:
     """El aula abierta y lo que se acumula entre peticiones de la misma sesión."""
 
@@ -215,6 +254,7 @@ class SesionAbierta:
     # nunca de verificados.json (el agente puede escribir ese fichero).
     verificados: dict[str, estado.Verificado] = field(default_factory=dict)
     cupo: dict = field(default_factory=lambda: {"pruebas": 0, "copias": 0, "copias_actividad": 0})
+    conexion: Conexion | None = None  # el aula viva y la contraseña en memoria
 
     def _calificador(self, peticion: dict, base: Path, entorno: str, curso: int | None) -> dict:
         """``tiza calificador``: el esquema y todas las actividades de la carpeta, no solo los
@@ -277,6 +317,8 @@ class SesionAbierta:
         llama un test.
         """
         buzon.validar_peticion(peticion)
+        if self.conexion is not None:
+            self.aula = self.conexion.asegurar(self.presencia)
         comando = peticion["comando"]
         base = Path(self.carpeta).resolve()
         if comando == "estructura":
