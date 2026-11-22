@@ -299,3 +299,18 @@ def test_las_llamadas_al_puente_existen_y_no_llevan_argumentos_sobrantes(sin_csp
         assert metodo in publicos, metodo
         assert cuantos == esperado[metodo], (metodo, cuantos)
     assert {m for m, _ in llamadas} == set(esperado)
+
+
+def test_la_clave_se_pide_en_un_campo_de_contrasena_y_no_se_guarda(sin_csp):
+    pintor = re.search(r"\n    clave: function \(p\) \{(.*?)\n    \},", sin_csp, re.S)
+    assert pintor
+    cuerpo = pintor.group(1)
+    assert '"password"' in cuerpo
+    assert 'entrada.autocomplete = "off"' in sin_csp  # el helper de los campos
+    # El campo se vacía antes de enviar y el valor es una variable local.
+    assert cuerpo.index('.value = ""') < cuerpo.index("responder(")
+    assert "var valor =" in cuerpo
+    for prohibido in ("localStorage", "sessionStorage", "console.", "document.cookie"):
+        assert prohibido not in sin_csp
+    # La clave no pasa por ninguna llamada que no sea responder.
+    assert "puente." not in cuerpo

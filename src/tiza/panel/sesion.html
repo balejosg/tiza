@@ -97,8 +97,8 @@ button.fila .nombre { flex: 1; }
 .fila-reciente { display: flex; gap: 8px; align-items: stretch; margin-top: 8px; }
 .fila-reciente button.fila { flex: 1; }
 .fila-reciente button.quitar { font-size: 12px; padding: 6px 11px; }
-input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; font: inherit; background: var(--campo); color: var(--texto); }
-input[type="text"]:focus { outline: none; border-color: var(--marca-fuerte); box-shadow: 0 0 0 3px rgba(127,185,220,.28); }
+input[type="text"], input[type="password"] { width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; font: inherit; background: var(--campo); color: var(--texto); }
+input[type="text"]:focus, input[type="password"]:focus { outline: none; border-color: var(--marca-fuerte); box-shadow: 0 0 0 3px rgba(127,185,220,.28); }
 .botones { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 16px; }
 button { font: inherit; padding: 9px 17px; border-radius: 8px; border: 1px solid var(--borde); background: var(--papel); color: var(--texto); cursor: pointer; transition: background .12s, border-color .12s, opacity .25s; }
 button:hover { background: var(--hover); border-color: var(--marca-fuerte); }
@@ -213,12 +213,12 @@ ul { margin: 8px 0; padding-left: 22px; }
     return caja;
   }
 
-  function campo(etiqueta, id) {
+  function campo(etiqueta, id, tipo) {
     var caja = el("div");
     var nombre = el("label", null, etiqueta);
     nombre.htmlFor = id;
     var entrada = el("input");
-    entrada.type = "text";
+    entrada.type = tipo || "text";
     entrada.id = id;
     entrada.autocomplete = "off";
     entrada.spellcheck = false;
@@ -512,6 +512,19 @@ ul { margin: 8px 0; padding-left: 22px; }
       parrafos(nodos, p.lineas);
       nodos.push(botones(boton(p.texto_si || "Volver a empezar", "principal", function () {
         responder(p.numero, true);
+      }, true)));
+      return nodos;
+    },
+    clave: function (p) {
+      var nodos = [el("h2", null, p.titulo)];
+      parrafos(nodos, p.lineas);
+      var clave = campo(p.pregunta, "clave", "password");
+      nodos.push(clave.nodo);
+      nodos.push(botones(boton("Entrar", "principal", function () {
+        // El valor solo vive en esta variable local: el campo se vacía antes de enviarlo.
+        var valor = clave.entrada.value;
+        clave.entrada.value = "";
+        if (valor.length > 0) { responder(p.numero, { clave: valor }); }
       }, true)));
       return nodos;
     },

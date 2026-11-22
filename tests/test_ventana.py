@@ -623,11 +623,13 @@ class TestAcreditarEnLaTerminal:
         monkeypatch.setattr(
             terminal,
             "acreditar",
-            lambda url, usuario, *, usar_ventana: vistas.append(usar_ventana) or None,
+            lambda url, usuario, *, usar_ventana, con_contrasena: (
+                vistas.append((usar_ventana, con_contrasena)) or None
+            ),
         )
         terminal.PresenciaTerminal(usar_ventana=False).acreditar(AULA, "profe")
         terminal.PresenciaTerminal().acreditar(AULA, "profe")
-        assert vistas == [False, True]
+        assert vistas == [(False, False), (True, False)]
 
 
 def test_sin_ventana_es_una_opcion_de_empezar_y_sesion():

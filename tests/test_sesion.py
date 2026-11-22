@@ -218,6 +218,12 @@ class TestAbrir:
         assert list(otro.iterdir()) == []
         assert presencia.passwords_pedidas == [("aula.ejemplo.org", "profe")]
 
+    def test_con_reconectar_se_pide_contrasena(self, tmp_path, monkeypatch):
+        carpeta, _atendidas = preparar_abrir(tmp_path, monkeypatch)
+        presencia = PresenciaFalsa()
+        assert sesion.abrir(carpeta, presencia, minutos=60, preparar=False) == 0
+        assert presencia.con_contrasena_pedida == [True]
+
     def test_se_niega_si_tiza_es_un_enlace_y_no_pide_la_contrasena(self, tmp_path, monkeypatch):
         carpeta, atendidas = preparar_abrir(tmp_path, monkeypatch)
         fuera = tmp_path / "fuera"

@@ -1039,9 +1039,14 @@ class Presencia(Protocol):
     Cada implementación sanea los textos ajenos al mostrarlos.
     """
 
-    def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
+    def acreditar(
+        self, url: str, usuario: str, *, con_contrasena: bool = False
+    ) -> publicar.Acreditacion | None:
         """Cómo entra el docente al aula ``url``: contraseña (terminal) o la sesión de la
-        ventana de entrada, tras enseñar a qué servidor va; None si cancela."""
+        ventana de entrada, tras enseñar a qué servidor va; None si cancela.
+
+        Con ``con_contrasena`` la presencia pide la contraseña (no abre la ventana):
+        la sesión la conserva en memoria para volver a entrar si el aula la cierra."""
         ...
 
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:

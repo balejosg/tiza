@@ -806,6 +806,27 @@ def test_acreditar_publica_entrando_y_devuelve_lo_de_abrir_login():
     assert e.puente.estado()["pantalla"]["tipo"] == "reposo"
 
 
+def test_acreditar_con_contrasena_pide_la_clave_sin_abrir_login(entorno):
+    def no_abrir_login(url):
+        raise AssertionError("con_contrasena no debe abrir la ventana de entrada")
+
+    entorno.presencia._abrir_login = no_abrir_login
+    leer = entorno.lanzar(
+        entorno.presencia.acreditar,
+        "https://aula.ejemplo.org/centro",
+        "ana",
+        con_contrasena=True,
+    )
+    pantalla = entorno.pantalla(tipo="clave")
+    assert pantalla["titulo"] == "Contraseña del aula"
+    assert "guarda solo mientras dure la sesión" in " ".join(pantalla["lineas"])
+    assert pantalla["pregunta"] == "Contraseña"
+    assert entorno.responder(pantalla, {"clave": "secreta-del-aula"})
+    assert leer() == publicar.Contrasena("secreta-del-aula")
+    assert entorno.presencia.sin_entrar is False
+    assert "secreta-del-aula" not in json.dumps(entorno.puente.estado())
+
+
 def test_acreditar_sin_abrir_login_o_cancelado_es_none():
     assert Entorno().presencia.acreditar("https://aula.ejemplo.org", "ana") is None
     e = Entorno(abrir_login=lambda url: None)

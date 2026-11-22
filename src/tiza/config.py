@@ -62,6 +62,8 @@ class Config:
     cursos: dict[str, int]  # solo «pruebas»: los cursos reales van en ``reales``
     sin_pruebas: bool = False  # el docente eligió no tener curso de pruebas
     reales: tuple[int, ...] = ()  # de 1 a MAX_REALES cursos, en el orden de tiza.toml
+    # Volver a entrar sola en el aula si el docente la cierra desde su navegador.
+    reconectar: bool = True
 
 
 def directorio_global() -> Path:
@@ -305,6 +307,12 @@ def guardar_global(url: str, usuario: str) -> Path:
     """
     validar_url(url)
     datos: dict[str, Any] = {"version": 1, "url": url, "usuario": usuario}
+    try:
+        previo = cargar_global() or {}
+    except ErrorConfig:
+        previo = {}  # un fichero dañado se sustituye al volver a guardar
+    if previo.get("reconectar") is False:
+        datos["reconectar"] = False
     return escribir_json(directorio_global() / "config.json", datos)
 
 
@@ -417,6 +425,7 @@ def resolver(carpeta: str | Path) -> Config:
         cursos=cursos,
         sin_pruebas=sin_pruebas,
         reales=reales,
+        reconectar=global_.get("reconectar") is not False,
     )
 
 

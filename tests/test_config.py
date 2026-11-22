@@ -27,6 +27,67 @@ def test_global_roundtrip(tmp_path, monkeypatch):
     assert "cursos" not in json.loads(ruta.read_text(encoding="utf-8"))
 
 
+def test_reconectar_por_defecto_activada(tmp_path, monkeypatch):
+    usar_directorio(tmp_path, monkeypatch)
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
+    assert config.resolver(tmp_path).reconectar is True
+
+
+def test_reconectar_false_la_desactiva(tmp_path, monkeypatch):
+    usar_directorio(tmp_path, monkeypatch)
+    prefs = tmp_path / "prefs"
+    prefs.mkdir()
+    (prefs / "config.json").write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "url": "https://aula.ejemplo.org/centro",
+                "usuario": "profe",
+                "reconectar": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert config.resolver(tmp_path).reconectar is False
+
+
+def test_reconectar_que_no_es_bool_cuenta_como_activada(tmp_path, monkeypatch):
+    usar_directorio(tmp_path, monkeypatch)
+    prefs = tmp_path / "prefs"
+    prefs.mkdir()
+    (prefs / "config.json").write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "url": "https://aula.ejemplo.org/centro",
+                "usuario": "profe",
+                "reconectar": "no",
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert config.resolver(tmp_path).reconectar is True
+
+
+def test_guardar_global_conserva_reconectar(tmp_path, monkeypatch):
+    usar_directorio(tmp_path, monkeypatch)
+    prefs = tmp_path / "prefs"
+    prefs.mkdir()
+    (prefs / "config.json").write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "url": "https://aula.ejemplo.org/centro",
+                "usuario": "profe",
+                "reconectar": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    config.guardar_global("https://aula.ejemplo.org/centro", "profe")
+    assert json.loads(config.ruta_global().read_text(encoding="utf-8"))["reconectar"] is False
+
+
 def test_los_cursos_salen_solo_de_la_carpeta(tmp_path, monkeypatch):
     """Unos «cursos» globales de versiones anteriores se ignoran y se descartan al guardar."""
     usar_directorio(tmp_path, monkeypatch)

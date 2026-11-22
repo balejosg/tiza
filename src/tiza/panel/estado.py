@@ -70,6 +70,7 @@ MAX_TEXTO = 300
 MAX_URL = 300
 MAX_USUARIO = 100
 MAX_ID = 10**12
+MAX_CLAVE = 500
 
 # Un clic que llega antes no confirma nada: el primero sobre un panel sin foco solo lo
 # activa, y un clic que ya venía en camino no es una decisión.
@@ -85,6 +86,7 @@ TIPOS_DE_PANTALLA = frozenset(
         "entrando",
         "ampliar",
         "carpeta",
+        "clave",
         "final",
     }
 )
@@ -195,6 +197,18 @@ def _elegir_reales(respuesta: Any, opciones: dict) -> Any:
     if not 1 <= len(elegidos) <= MAX_REALES or len(set(elegidos)) != len(elegidos):
         return _INVALIDA
     return list(elegidos)
+
+
+def _clave(respuesta: Any, _opciones: Any) -> Any:
+    """``{"clave": str}`` de 1 a 500 caracteres y sin controles (va a una cabecera HTTP)."""
+    if not isinstance(respuesta, dict) or set(respuesta) != {"clave"}:
+        return _INVALIDA
+    clave = respuesta["clave"]
+    if not isinstance(clave, str) or not 0 < len(clave) <= MAX_CLAVE:
+        return _INVALIDA
+    if any(ord(c) < 32 or ord(c) == 127 for c in clave):
+        return _INVALIDA
+    return clave
 
 
 def _configurar(respuesta: Any, _opciones: Any) -> Any:
@@ -672,10 +686,29 @@ class PresenciaPanel:
 
     # --- acreditación y cursos ---
 
-    def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
+    def acreditar(
+        self, url: str, usuario: str, *, con_contrasena: bool = False
+    ) -> publicar.Acreditacion | None:
         servidor = _servidor(url)
         self._panel.fijar_paso("aula")
         self._panel.fijar_servidor(servidor)
+        if con_contrasena:
+            pantalla = Pantalla(
+                0,
+                "clave",
+                titulo="Contraseña del aula",
+                lineas=_lineas(
+                    [
+                        f"Escribe la contraseña de {servidor} (usuario: {usuario}). "
+                        f"{config.APP} la guarda solo mientras dure la sesión, para volver a "
+                        "entrar si el aula la cierra.",
+                    ]
+                ),
+                pregunta=_t("Contraseña"),
+            )
+            clave = self._panel.preguntar(pantalla, lambda r: _clave(r, None), reloj=self._reloj)
+            self.sin_entrar = clave is None
+            return None if clave is None else publicar.Contrasena(clave)
         self._panel.mostrar(
             Pantalla(
                 0,

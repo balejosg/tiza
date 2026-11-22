@@ -260,13 +260,17 @@ def pedir_password() -> str:
     return getpass.getpass("Contraseña del aula virtual: ")
 
 
-def acreditar(url: str, usuario: str, *, usar_ventana: bool = True) -> publicar.Acreditacion | None:
+def acreditar(
+    url: str, usuario: str, *, usar_ventana: bool = True, con_contrasena: bool = False
+) -> publicar.Acreditacion | None:
     """Cómo entra el docente: la ventana de entrada del aula o, si no se puede, la contraseña.
 
     Cerrar la ventana sin entrar es cancelar (no se pasa a pedir la contraseña).
+    Con ``con_contrasena`` se salta la ventana y se pide la contraseña, que la
+    sesión conserva en memoria para volver a entrar si el aula la cierra.
     """
     servidor = urlsplit(url).hostname or url
-    if usar_ventana and ventana.disponible():
+    if not con_contrasena and usar_ventana and ventana.disponible():
         print(
             f"Se abre una ventana con la página de entrada de {servidor}. Entra como siempre: "
             "tiza no verá tu contraseña."
@@ -280,7 +284,12 @@ def acreditar(url: str, usuario: str, *, usar_ventana: bool = True) -> publicar.
             )
         else:
             return None if cookies is None else publicar.Cookies(cookies)
-    elif usar_ventana and sys.platform == "win32" and not ventana.webview2.instalado():
+    elif (
+        not con_contrasena
+        and usar_ventana
+        and sys.platform == "win32"
+        and not ventana.webview2.instalado()
+    ):
         print(ventana.webview2.texto_que_falta())
     print(f"Vas a escribir la contraseña del aula de {servidor} (usuario: {usuario}).")
     return publicar.Contrasena(pedir_password())
@@ -303,8 +312,12 @@ class PresenciaTerminal:
     def __init__(self, *, usar_ventana: bool = True) -> None:
         self._usar_ventana = usar_ventana
 
-    def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
-        return acreditar(url, usuario, usar_ventana=self._usar_ventana)
+    def acreditar(
+        self, url: str, usuario: str, *, con_contrasena: bool = False
+    ) -> publicar.Acreditacion | None:
+        return acreditar(
+            url, usuario, usar_ventana=self._usar_ventana, con_contrasena=con_contrasena
+        )
 
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:
         return elegir_curso(entorno, cursos, excluir=excluir)

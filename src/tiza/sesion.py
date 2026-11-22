@@ -380,7 +380,7 @@ def _iniciar(
     salida_anterior = _cerrar_anterior(base, presencia, propio)
     if salida_anterior is not None:
         return salida_anterior
-    acreditacion = presencia.acreditar(cfg.url, cfg.usuario)
+    acreditacion = presencia.acreditar(cfg.url, cfg.usuario, con_contrasena=cfg.reconectar)
     if acreditacion is None:
         return _abortado(comando, base, presencia)
     try:
@@ -592,8 +592,10 @@ class _PresenciaVigilada:
             self._cierre.esperando.clear()
         return respuesta and not self._cierre.pedido.is_set()
 
-    def acreditar(self, url: str, usuario: str) -> publicar.Acreditacion | None:
-        return self._presencia.acreditar(url, usuario)
+    def acreditar(
+        self, url: str, usuario: str, *, con_contrasena: bool = False
+    ) -> publicar.Acreditacion | None:
+        return self._presencia.acreditar(url, usuario, con_contrasena=con_contrasena)
 
     def elegir_curso(self, entorno: str, cursos: list[dict], excluir: int | None) -> int | None:
         return self._presencia.elegir_curso(entorno, cursos, excluir)

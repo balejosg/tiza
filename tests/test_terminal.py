@@ -391,6 +391,19 @@ def test_pedir_password_ensena_el_servidor(monkeypatch, capsys):
     assert "contraseña del aula de aula.ejemplo.org (usuario: profe)" in capsys.readouterr().out
 
 
+def test_con_contrasena_no_abre_la_ventana(monkeypatch):
+    monkeypatch.setattr(terminal.ventana, "disponible", lambda: True)
+
+    def no_abrir(url):
+        raise AssertionError("con_contrasena no debe abrir la ventana de entrada")
+
+    monkeypatch.setattr(terminal.ventana, "entrar", no_abrir)
+    monkeypatch.setattr(terminal.getpass, "getpass", lambda _prompt="": "x")
+    assert terminal.acreditar(
+        "https://aula.ejemplo.org/centro", "profe", con_contrasena=True
+    ) == Contrasena("x")
+
+
 def test_confirmar_cursos_avisa_del_curso_ajeno(monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", lambda _prompt="": "s")
     cursos = [

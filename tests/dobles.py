@@ -990,6 +990,7 @@ class PresenciaFalsa:
         self._cerrar_anterior = cerrar_anterior
         self.anteriores_vistas: list[bool] = []  # «atendiendo» de cada sesión anterior
         self.passwords_pedidas: list[tuple[str, str]] = []
+        self.con_contrasena_pedida: list[bool] = []
         self.cursos_vistos: list[list] = []
         self.resumenes: list = []
         self.resumenes_cortos: list = []
@@ -1017,8 +1018,9 @@ class PresenciaFalsa:
         self.resumenes_aislamiento: list = []
         self.faltas_vistas: list[list] = []
 
-    def acreditar(self, url, usuario):
+    def acreditar(self, url, usuario, *, con_contrasena=False):
         self.passwords_pedidas.append((urlsplit(url).hostname, usuario))
+        self.con_contrasena_pedida.append(con_contrasena)
         return None if self.password is None else Contrasena(self.password)
 
     def elegir_curso(self, entorno, cursos, excluir):
