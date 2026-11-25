@@ -420,6 +420,8 @@ class AulaVirtual(Protocol):
 
     def quitar_hueco(self, curso_id: int, quizid: int, hueco: int) -> None: ...
 
+    def barajar_preguntas(self, curso_id: int, cmid: int) -> None: ...
+
     def borrar_preguntas(self, cmid: int, ids: list[int]) -> None: ...
 
     def comprobar_h5p(self, cmid: int) -> bool: ...
@@ -1206,6 +1208,45 @@ class Moodle:
             raise ErrorPublicacion("CUESTIONARIO_CON_INTENTOS", DETALLE_INTENTOS_REPUBLICAR)
         if not (isinstance(datos, dict) and datos.get("deleted") is True):
             raise ErrorPublicacion("ERROR_QUITAR_PREGUNTAS")
+
+    def barajar_preguntas(self, curso_id: int, cmid: int) -> None:
+        """Marca «Barajar» en cada sección del cuestionario y comprueba que quedó marcada.
+
+        Es la casilla ``#shuffle-<sección>`` de ``edit.php``, que se cambia con
+        ``edit_rest.php`` (``updateshufflequestions``). Se mantiene al quitar y añadir
+        huecos, así que una republicación la conserva (espiga en el CT 130, Moodle 4.5).
+        """
+        casillas = _casillas_barajar(self._leer_edicion_cuestionario(cmid))
+        if not casillas:
+            raise ErrorPublicacion("ERROR_BARAJAR_PREGUNTAS")
+        pendientes = [seccion for seccion, marcada in casillas.items() if not marcada]
+        if not pendientes:
+            return
+        quizid = self.leer_modulo(cmid).get("instance")
+        if not isinstance(quizid, int):
+            raise ErrorPublicacion("ERROR_BARAJAR_PREGUNTAS")
+        for seccion in pendientes:
+            self._esperar()
+            respuesta = self._reducir(
+                "ERROR_BARAJAR_PREGUNTAS",
+                self.sesion.post,
+                f"{self.base_url}/mod/quiz/edit_rest.php",
+                data={
+                    "sesskey": self.sesskey,
+                    "courseid": str(curso_id),
+                    "quizid": str(quizid),
+                    "class": "section",
+                    "field": "updateshufflequestions",
+                    "id": str(seccion),
+                    "newshuffle": "1",
+                },
+                timeout=TIEMPO_ESPERA,
+            )
+            if getattr(respuesta, "status_code", 0) != 200:
+                raise ErrorPublicacion("ERROR_BARAJAR_PREGUNTAS")
+        releidas = _casillas_barajar(self._leer_edicion_cuestionario(cmid))
+        if set(releidas) != set(casillas) or not all(releidas.values()):
+            raise ErrorPublicacion("ERROR_BARAJAR_PREGUNTAS")
 
     def borrar_preguntas(self, cmid: int, ids: list[int]) -> None:
         """Borra preguntas del banco con la confirmación que pide Moodle."""
@@ -3403,6 +3444,20 @@ def _datos_rubrica(base: dict, rubrica: RubricaCargada) -> dict:
 
 
 _HUECO = re.compile(r'id="slot-(\d+)"')
+
+
+def _casillas_barajar(html: str) -> dict[int, bool]:
+    """Las casillas «Barajar» de ``edit.php``: id de la sección → si está marcada."""
+    salida: dict[int, bool] = {}
+    for casilla in BeautifulSoup(html, "html.parser").find_all(
+        "input", attrs={"type": "checkbox", "data-action": "shuffle_questions"}
+    ):
+        coincidencia = re.fullmatch(r"shuffle-(\d+)", str(casilla.get("id") or ""))
+        if coincidencia is not None:
+            salida[int(coincidencia.group(1))] = casilla.has_attr("checked")
+    return salida
+
+
 # El enlace de edición o previsualización de la pregunta lleva su id.
 _ENLACE_PREGUNTA = re.compile(
     r"(?:previewquestion/preview|editquestion/question)\.php\?[^\"']*?"

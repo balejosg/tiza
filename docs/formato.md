@@ -182,7 +182,8 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   parejas y `distractores` opcionales; la respuesta es texto plano y hacen falta al
   menos 3 respuestas distintas). Cada pregunta puede llevar `retro`
   (retroalimentación) y vale 1 punto (el emparejamiento lo reparte a partes iguales);
-  tiza calcula las puntuaciones. No hay preguntas de ensayo: para respuestas abiertas,
+  tiza calcula las puntuaciones. El orden de las preguntas siempre se baraja: cada
+  alumno las ve en otro orden. No hay preguntas de ensayo: para respuestas abiertas,
   usa una tarea.
 - Por defecto, en `opcion_multiple` con una correcta y n opciones, **cada
   incorrecta resta** 1/(n−1) (con 4 opciones, 1/3): contestar al azar da 0. En

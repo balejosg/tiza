@@ -1285,6 +1285,14 @@ FORMULARIO_CONFIRMAR_BORRADO = """
 """
 
 
+# La casilla «Barajar» de la sección en edit.php (Moodle 4.5, CT 130).
+CASILLA_BARAJAR = (
+    '<input type="checkbox" id="shuffle-70" value="1" data-action="shuffle_questions"'
+    ' class="cm-edit-action">'
+)
+CASILLA_BARAJAR_MARCADA = CASILLA_BARAJAR.replace(">", ' checked="checked">')
+
+
 class _Rq:
     def __init__(self, texto="", status_code=200, url="https://aula/centro/x.php", datos=None):
         self.text = texto
@@ -1444,6 +1452,74 @@ class TestAdaptadorCuestionario:
         with pytest.raises(ErrorPublicacion) as exc:
             _moodle_de_cuestionario(sesion).tiene_intentos(5)
         assert exc.value.codigo == "ERROR_CONSULTA"
+
+    def _sesion_barajar(self, *paginas: str) -> _SesionQuiz:
+        """Sesión que sirve ``edit.php`` en el orden dado (antes y después de barajar)."""
+
+        class _SesionPorTurnos(_SesionQuiz):
+            def get(self, url, params=None, **kwargs):
+                if "mod/quiz/edit.php" in url:
+                    self.gets.append((url, params))
+                    return _Rq(self.turnos.pop(0))
+                return super().get(url, params, **kwargs)
+
+        sesion = _SesionPorTurnos()
+        sesion.turnos = list(paginas)
+        sesion.posts_guion = [_Rq(datos={"instanceshuffle": "0"})]
+        return sesion
+
+    def _moodle_barajar(self, sesion: _SesionQuiz, monkeypatch) -> publicar.Moodle:
+        moodle = _moodle_de_cuestionario(sesion)
+        monkeypatch.setattr(moodle, "leer_modulo", lambda cmid: {"instance": 77})
+        return moodle
+
+    def test_barajar_marca_la_casilla_de_la_seccion(self, monkeypatch):
+        sesion = self._sesion_barajar(CASILLA_BARAJAR, CASILLA_BARAJAR_MARCADA)
+        self._moodle_barajar(sesion, monkeypatch).barajar_preguntas(838, 5)
+        url, datos = sesion.posts[0]
+        assert url.endswith("/mod/quiz/edit_rest.php")
+        assert dict(datos) == {
+            "sesskey": "clave",
+            "courseid": "838",
+            "quizid": "77",
+            "class": "section",
+            "field": "updateshufflequestions",
+            "id": "70",
+            "newshuffle": "1",
+        }
+
+    def test_barajar_ya_marcada_no_envia_nada(self, monkeypatch):
+        sesion = self._sesion_barajar(CASILLA_BARAJAR_MARCADA)
+        self._moodle_barajar(sesion, monkeypatch).barajar_preguntas(838, 5)
+        assert sesion.posts == []
+
+    def test_barajar_marca_cada_seccion(self, monkeypatch):
+        dos = CASILLA_BARAJAR + CASILLA_BARAJAR.replace("70", "71")
+        dos_marcadas = CASILLA_BARAJAR_MARCADA + CASILLA_BARAJAR_MARCADA.replace("70", "71")
+        sesion = self._sesion_barajar(dos, dos_marcadas)
+        sesion.posts_guion.append(_Rq(datos={"instanceshuffle": "0"}))
+        self._moodle_barajar(sesion, monkeypatch).barajar_preguntas(838, 5)
+        assert [dict(datos)["id"] for _url, datos in sesion.posts] == ["70", "71"]
+
+    @pytest.mark.parametrize(
+        "paginas",
+        [
+            pytest.param(("<html>sin casilla</html>",), id="sin-casilla"),
+            pytest.param((CASILLA_BARAJAR, CASILLA_BARAJAR), id="sigue-sin-marcar"),
+        ],
+    )
+    def test_barajar_sin_confirmar_falla(self, monkeypatch, paginas):
+        sesion = self._sesion_barajar(*paginas)
+        with pytest.raises(ErrorPublicacion) as exc:
+            self._moodle_barajar(sesion, monkeypatch).barajar_preguntas(838, 5)
+        assert exc.value.codigo == "ERROR_BARAJAR_PREGUNTAS"
+
+    def test_barajar_con_error_http_falla(self, monkeypatch):
+        sesion = self._sesion_barajar(CASILLA_BARAJAR)
+        sesion.posts_guion = [_Rq("error", status_code=500)]
+        with pytest.raises(ErrorPublicacion) as exc:
+            self._moodle_barajar(sesion, monkeypatch).barajar_preguntas(838, 5)
+        assert exc.value.codigo == "ERROR_BARAJAR_PREGUNTAS"
 
     def test_quitar_hueco_envia_la_accion_de_la_papelera(self):
         sesion = _SesionQuiz()
@@ -1657,6 +1733,25 @@ class TestPublicarCuestionario:
         assert operaciones.index("categoria_cuestionario") < operaciones.index("importar_preguntas")
         assert operaciones.index("importar_preguntas") < operaciones.index("anadir_preguntas")
         assert "huecos" in operaciones  # verificación
+        assert moodle.barajados == {cmid}
+        assert operaciones.index("anadir_preguntas") < operaciones.index("barajar_preguntas")
+
+    def test_si_no_se_puede_barajar_se_borra_el_cuestionario(self, tmp_path):
+        class MoodleSinBarajar(MoodleFalso):
+            def barajar_preguntas(self, curso_id, cmid):
+                raise ErrorPublicacion("ERROR_BARAJAR_PREGUNTAS")
+
+        moodle = MoodleSinBarajar()
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar.publicar_documento(
+                moodle,
+                1234,
+                estructura_de(moodle.secciones),
+                documento_cuestionario(tmp_path),
+                visible=False,
+            )
+        assert exc.value.codigo == "ERROR_BARAJAR_PREGUNTAS"
+        assert moodle.secciones[0]["modulos"] == []
 
     def test_la_descripcion_sube_sus_recursos(self, tmp_path):
         (tmp_path / "img").mkdir()
@@ -1885,6 +1980,10 @@ class TestRepublicarCuestionario:
         assert operaciones.index("anadir_preguntas") < operaciones.index("quitar_hueco")
         assert operaciones.index("quitar_hueco") < operaciones.index("borrar_preguntas")
         assert operaciones.index("borrar_preguntas") < operaciones.index("actualizar")
+        # Baraja otra vez tras cambiar las preguntas (el cuestionario pudo venir sin barajar).
+        assert operaciones.count("barajar_preguntas") == 2
+        ultimo_barajar = max(i for i, op in enumerate(operaciones) if op == "barajar_preguntas")
+        assert operaciones.index("quitar_hueco") < ultimo_barajar
 
     def test_republicar_actualiza_los_ajustes(self, tmp_path):
         moodle = MoodleFalso()

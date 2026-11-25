@@ -198,6 +198,7 @@ MENSAJES: dict[str, str] = {
     "ERROR_IMPORTACION": "No se pudieron importar las preguntas en el banco del cuestionario. Comprueba que eres profesor del curso y que el aula no ha cambiado; si se repite, pasa «tiza autoprueba».",
     "ERROR_ANADIR_PREGUNTAS": "Las preguntas se importaron, pero no se pudieron añadir al cuestionario. Vuelve a intentarlo; si se repite, pasa «tiza autoprueba».",
     "ERROR_QUITAR_PREGUNTAS": "No se pudieron quitar las preguntas viejas del cuestionario. Revísalo en el aula antes de reintentar.",
+    "ERROR_BARAJAR_PREGUNTAS": "Las preguntas están en el cuestionario, pero el aula no dejó barajar su orden. Vuelve a publicarlo; si se repite, pasa «tiza autoprueba».",
     "ERROR_BORRAR_PREGUNTAS": "No se pudieron borrar las preguntas viejas del banco del cuestionario. Revísalo en el aula.",
     "CUESTIONARIO_CON_INTENTOS": "El cuestionario ya tiene intentos o empezó uno durante la publicación y no se puede editar. Si necesita cambios, crea otro cuestionario con otro nombre.",
     "VERIFICACION_PREGUNTAS": "El cuestionario se publicó, pero el aula muestra otras preguntas u otro orden. Revísalo en el curso de pruebas y avisa a quien mantiene tiza.",

@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Cambia
+- **Los cuestionarios que publica tiza barajan el orden de las preguntas**: cada alumno las ve en otro orden (las respuestas ya se mezclaban). Se aplica al crearlos y al republicarlos; uno ya publicado sigue sin barajar hasta que se vuelva a publicar. Si el aula no deja barajar, la publicación falla con `ERROR_BARAJAR_PREGUNTAS`.
+
 ## 0.49.0 — 2026-11-17
 
 ### Cambia

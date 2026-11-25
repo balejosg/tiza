@@ -188,6 +188,8 @@ class Cuestionario(Tipo):
             accion = "actualizada"
 
         try:
+            # Cada alumno ve las preguntas en otro orden (las respuestas ya se mezclan).
+            p.moodle.barajar_preguntas(p.curso_id, cmid)
             info = verificar(p.moodle, self, doc, cmid, preguntas=nuevas)
             _verificar_imagenes(p.moodle, doc, cmid, nuevas)
         except ErrorPublicacion as exc:
@@ -217,6 +219,7 @@ class Cuestionario(Tipo):
         filas.append(
             ("Intentos", "ilimitados" if cuestionario.intentos == 0 else str(cuestionario.intentos))
         )
+        filas.append(("Mezclar preguntas", "sí"))
         filas.append(("Mezclar respuestas", "sí" if cuestionario.mezclar_respuestas else "no"))
         filas.append(("Los fallos restan", "sí" if cuestionario.penalizar else "no"))
         return filas

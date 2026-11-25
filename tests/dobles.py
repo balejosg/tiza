@@ -221,6 +221,7 @@ class MoodleFalso:
         self.categorias: dict[int, str] = {}
         self.contextos: dict[int, int] = {}
         self.instancias: dict[int, int] = {}
+        self.barajados: set[int] = set()
         self.huecos_quiz: dict[int, list[tuple[int, int]]] = {}
         self.intentos: dict[int, bool] = {}
         self.importados: list[bytes] = []
@@ -831,6 +832,10 @@ class MoodleFalso:
         if cmid is not None and self.intentos.get(cmid):
             raise ErrorPublicacion("CUESTIONARIO_CON_INTENTOS", DETALLE_INTENTOS_REPUBLICAR)
         self.huecos_quiz[cmid] = [par for par in self.huecos_quiz.get(cmid, []) if par[0] != hueco]
+
+    def barajar_preguntas(self, curso_id, cmid):
+        self.llamadas.append(("barajar_preguntas", curso_id, cmid))
+        self.barajados.add(cmid)
 
     def borrar_preguntas(self, cmid, ids):
         self.llamadas.append(("borrar_preguntas", cmid, tuple(ids)))
