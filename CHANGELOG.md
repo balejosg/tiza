@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
-## Sin publicar
+## 0.50.0 — 2026-11-25
 
 ### Cambia
 - **La sesión vuelve a entrar sola en el aula si el docente la cierra desde el navegador**: con `reconectar` (activada por defecto) la contraseña se pide en la terminal o en el panel, en lugar de la ventana de entrada, y se conserva **solo en memoria** mientras dura la sesión; si el aula cierra la sesión, tiza vuelve a entrar como mucho una vez por petición y avisa (`SESION_CADUCADA` ya no cierra la sesión). `"reconectar": false` en `config.json` devuelve la ventana de entrada y el comportamiento anterior (necesario con SSO o doble factor).
