@@ -20,6 +20,7 @@ import secrets
 import shutil
 import tempfile
 import time
+import xml.etree.ElementTree as ET
 from collections.abc import Callable, Collection, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any, NamedTuple, Protocol
@@ -49,7 +50,7 @@ from .calificacion.formulas import (  # noqa: F401  (se reexportan: son de la AP
 )
 from .calificacion.formulas import texto_numero as _texto_numero
 from .config import AdaptadorAula, DestinoNoPermitido, coincide_dominio
-from .contenido import Documento, Recurso, hash_documento, html_para_moodle
+from .contenido import Documento, Imagen, Recurso, hash_documento, html_para_moodle
 from .estructura import (
     Actividad,
     ErrorEstructura,
@@ -164,6 +165,10 @@ DETALLE_INTENTOS_REPUBLICAR = (
 DETALLE_H5P_INTENTOS = (
     "la actividad H5P ya tiene intentos de alumnado y cambiarla los rompería; no se ha "
     "tocado nada. Crea otra actividad con otro nombre si necesitas cambiarla."
+)
+DETALLE_ENCUESTA_CON_RESPUESTAS = (
+    "La encuesta ya tiene respuestas y cambiar sus preguntas las borraría. No se ha tocado "
+    "nada. Si necesitas otras preguntas, crea otra encuesta con otro nombre."
 )
 
 ERRORES_MOODLE = (
@@ -427,6 +432,18 @@ class AulaVirtual(Protocol):
     def barajar_preguntas(self, curso_id: int, cmid: int) -> None: ...
 
     def borrar_preguntas(self, cmid: int, ids: list[int]) -> None: ...
+
+    def importar_encuesta(self, curso_id: int, cmid: int, xml: bytes) -> None: ...
+
+    def exportar_encuesta(self, cmid: int) -> list[dict]: ...
+
+    def encuesta_tiene_respuestas(self, cmid: int) -> bool: ...
+
+    def items_de_encuesta(self, cmid: int) -> list[int]: ...
+
+    def imagen_de_etiqueta(
+        self, curso_id: int, cmid: int, itemid: int, html: str, imagenes: Sequence[Imagen]
+    ) -> None: ...
 
     def comprobar_h5p(self, cmid: int) -> bool: ...
 
@@ -755,6 +772,8 @@ class Moodle:
             "instance": int(instancia) if instancia and instancia.isdigit() else None,
             "visible": _campo(formulario, "visible"),
             "contexto": int(coincidencia.group(1)) if coincidencia else None,
+            "anonymous": _campo(formulario, "anonymous"),
+            "multiple_submit": _estado_multiple_submit(formulario),
             "fechas": {campo: _fecha_leida(formulario, campo) for campo in _CAMPOS_FECHA_LEIDOS},
             # Solo para uso interno de la sesión: nunca llega a .tiza ni al agente.
             "itinerario": {
@@ -1341,6 +1360,210 @@ class Moodle:
         )
         self._reducir("ERROR_CONSULTA", respuesta.raise_for_status)
         return getattr(respuesta, "text", "") or ""
+
+    # --- Encuestas anónimas: importar, exportar y etiquetas con imagen --------
+
+    def importar_encuesta(self, curso_id: int, cmid: int, xml: bytes) -> None:
+        """Importa el XML de preguntas en la encuesta, reemplazando las que hubiera.
+
+        Solo se llama cuando la encuesta no tiene respuestas: ``deleteolditems=1`` las
+        borraría. Éxito: Moodle redirige a ``edit.php``.
+        """
+        self._esperar()
+        url = f"{self.base_url}/mod/feedback/import.php"
+        pagina = self._reducir(
+            "ERROR_IMPORTACION_ENCUESTA",
+            self.sesion.get,
+            url,
+            params={"id": cmid},
+            timeout=TIEMPO_ESPERA,
+        )
+        self._reducir("ERROR_IMPORTACION_ENCUESTA", pagina.raise_for_status)
+        sopa = BeautifulSoup(getattr(pagina, "text", "") or "", "html.parser")
+        formulario = next(
+            (
+                formulario
+                for formulario in sopa.find_all("form")
+                if _tiene_campo(formulario, "choosefile")
+            ),
+            None,
+        )
+        if formulario is None:
+            raise ErrorPublicacion("ERROR_IMPORTACION_ENCUESTA")
+        datos = dict(_campos_de_formulario(formulario))
+        itemid = str(datos.get("choosefile") or "")
+        if not itemid.isdigit():
+            raise ErrorPublicacion("ERROR_IMPORTACION_ENCUESTA")
+        with tempfile.TemporaryDirectory(prefix="tiza-encuesta-") as temporal:
+            ruta = Path(temporal) / "encuesta.xml"
+            ruta.write_bytes(xml)
+            self.subir(curso_id, self.contexto(curso_id), ruta, int(itemid))
+        datos["deleteolditems"] = "1"
+        boton = formulario.find("input", attrs={"name": "savechanges"})
+        valor = boton.get("value") if boton is not None else None
+        datos["savechanges"] = valor if isinstance(valor, str) and valor else "1"
+        datos.setdefault("sesskey", self.sesskey)
+        accion = formulario.get("action")
+        destino = urljoin(
+            str(getattr(pagina, "url", None) or url), accion if isinstance(accion, str) else url
+        )
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_IMPORTACION_ENCUESTA",
+            self.sesion.post,
+            destino,
+            data=datos,
+            allow_redirects=False,
+            timeout=TIEMPO_ESPERA,
+        )
+        if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
+            raise ErrorPublicacion("ERROR_IMPORTACION_ENCUESTA")
+        final = (getattr(respuesta, "headers", None) or {}).get("Location", "")
+        if "mod/feedback/edit.php" not in final:
+            raise ErrorPublicacion("ERROR_IMPORTACION_ENCUESTA")
+
+    def exportar_encuesta(self, cmid: int) -> list[dict]:
+        """Las preguntas que el aula tiene ahora, ya analizadas; nunca el texto crudo.
+
+        Cada una lleva tipo, texto, etiqueta, presentación, opciones y si es obligatoria,
+        con el ``CDATA`` recortado. Solo sale lo que se compara con el documento.
+        """
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_EXPORTACION_ENCUESTA",
+            self.sesion.get,
+            f"{self.base_url}/mod/feedback/export.php",
+            params={"action": "exportfile", "id": cmid},
+            timeout=TIEMPO_ESPERA,
+        )
+        self._reducir("ERROR_EXPORTACION_ENCUESTA", respuesta.raise_for_status)
+        try:
+            raiz = ET.fromstring(getattr(respuesta, "text", "") or "")
+        except ET.ParseError:
+            raise ErrorPublicacion("ERROR_EXPORTACION_ENCUESTA") from None
+        items: list[dict] = []
+        for item in raiz.findall("ITEMS/ITEM"):
+            tipo = item.get("TYPE") or ""
+            if not tipo:
+                raise ErrorPublicacion("ERROR_EXPORTACION_ENCUESTA")
+            items.append(
+                {
+                    "tipo": tipo,
+                    "texto": (item.findtext("ITEMTEXT") or "").strip(),
+                    "etiqueta": (item.findtext("ITEMLABEL") or "").strip(),
+                    "presentacion": (item.findtext("PRESENTATION") or "").strip(),
+                    "opciones": (item.findtext("OPTIONS") or "").strip(),
+                    "obligatoria": item.get("REQUIRED") == "1",
+                }
+            )
+        return items
+
+    def encuesta_tiene_respuestas(self, cmid: int) -> bool:
+        """Solo mira la forma de ``multiple_submit`` en el formulario de ajustes.
+
+        Sin respuestas es un ``select``; con respuestas, un ``hidden`` y el estático
+        deshabilitado. Cualquier otra cosa o un error de lectura cuenta como que las hay.
+        """
+        try:
+            info = self.leer_modulo(cmid)
+        except Exception:  # noqa: BLE001 - no poder saberlo cuenta como «con respuestas»
+            return True
+        return (info.get("multiple_submit") or {}).get("forma") != "select"
+
+    def items_de_encuesta(self, cmid: int) -> list[int]:
+        """Ids de los ítems de la encuesta, en el orden de ``edit.php`` y sin repetir.
+
+        Son los de los enlaces ``edit_item.php?id=N`` (también dentro del JSON con ``\\/``).
+        """
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_ENCUESTA_ITEMS",
+            self.sesion.get,
+            f"{self.base_url}/mod/feedback/edit.php",
+            params={"id": cmid},
+            timeout=TIEMPO_ESPERA,
+        )
+        self._reducir("ERROR_ENCUESTA_ITEMS", respuesta.raise_for_status)
+        texto = (getattr(respuesta, "text", "") or "").replace("\\/", "/")
+        ids: list[int] = []
+        for ident in re.findall(r"edit_item\.php\?id=(\d+)", texto):
+            valor = int(ident)
+            if valor not in ids:
+                ids.append(valor)
+        if not ids:
+            raise ErrorPublicacion("ERROR_ENCUESTA_ITEMS")
+        return ids
+
+    def imagen_de_etiqueta(
+        self, curso_id: int, cmid: int, itemid: int, html: str, imagenes: Sequence[Imagen]
+    ) -> None:
+        """Sube las imágenes de una etiqueta y guarda su HTML en el ítem.
+
+        Abre solo ``edit_item.php?id=<itemid>`` (nunca una URL con ``typ=``: crear ítems),
+        sube los ficheros al borrador ``presentation_editor[itemid]`` y comprueba que el
+        aula los sirve.
+        """
+        self._esperar()
+        url = f"{self.base_url}/mod/feedback/edit_item.php"
+        pagina = self._reducir(
+            "ERROR_ENCUESTA_IMAGEN",
+            self.sesion.get,
+            url,
+            params={"id": itemid},
+            timeout=TIEMPO_ESPERA,
+        )
+        self._reducir("ERROR_ENCUESTA_IMAGEN", pagina.raise_for_status)
+        sopa = BeautifulSoup(getattr(pagina, "text", "") or "", "html.parser")
+        formulario = next(
+            (
+                formulario
+                for formulario in sopa.find_all("form")
+                if _tiene_campo(formulario, "presentation_editor[itemid]")
+            ),
+            None,
+        )
+        if formulario is None:
+            raise ErrorPublicacion("ERROR_ENCUESTA_IMAGEN")
+        datos = dict(_campos_de_formulario(formulario))
+        borrador = str(datos.get("presentation_editor[itemid]") or "")
+        if not borrador.isdigit():
+            raise ErrorPublicacion("ERROR_ENCUESTA_IMAGEN")
+        with tempfile.TemporaryDirectory(prefix="tiza-encuesta-img-") as temporal:
+            for imagen in imagenes:
+                ruta = Path(temporal) / imagen.nombre
+                ruta.write_bytes(imagen.datos)
+                self.subir(curso_id, self.contexto(curso_id), ruta, int(borrador))
+        datos["presentation_editor[text]"] = html
+        datos["presentation_editor[format]"] = "1"
+        boton = formulario.find("input", attrs={"name": "save_item"})
+        valor = boton.get("value") if boton is not None else None
+        datos["save_item"] = valor if isinstance(valor, str) and valor else "1"
+        datos.setdefault("sesskey", self.sesskey)
+        accion = formulario.get("action")
+        destino = urljoin(
+            str(getattr(pagina, "url", None) or url), accion if isinstance(accion, str) else url
+        )
+        self._esperar()
+        respuesta = self._reducir(
+            "ERROR_ENCUESTA_IMAGEN",
+            self.sesion.post,
+            destino,
+            data=datos,
+            allow_redirects=False,
+            timeout=TIEMPO_ESPERA,
+        )
+        if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
+            raise ErrorPublicacion("ERROR_ENCUESTA_IMAGEN")
+        contexto = self.leer_modulo(cmid).get("contexto")
+        if not isinstance(contexto, int):
+            raise ErrorPublicacion("ERROR_ENCUESTA_IMAGEN")
+        for imagen in imagenes:
+            enlace = (
+                f"{self.base_url}/pluginfile.php/{contexto}/mod_feedback/item/"
+                f"{itemid}/{imagen.nombre}"
+            )
+            if not self.comprobar_pluginfile(enlace):
+                raise ErrorPublicacion("VERIFICACION_IMAGENES")
 
     # --- Actividades H5P: despliegue e intentos ------------------------------
 
@@ -3612,6 +3835,34 @@ def _campo(contenedor, nombre: str) -> str | None:
         opcion = campo.find("option", selected=True) or campo.find("option")
         return opcion.get("value") if opcion else None
     return campo.get("value")
+
+
+def _estado_multiple_submit(formulario) -> dict[str, str | None]:
+    """La forma de «varias respuestas» en el formulario de ajustes de una encuesta.
+
+    Sin respuestas, Moodle lo deja como un ``select``. Con respuestas, lo congela: un
+    ``input hidden`` con su valor y un ``multiple_submit_static`` deshabilitado. Cualquier
+    otra forma (o no encontrarlo) es «no se puede saber»; quien decide lo trata como si
+    hubiera respuestas.
+    """
+    if formulario is None:
+        return {"forma": "desconocida", "valor": None}
+    campos = formulario.find_all(attrs={"name": "multiple_submit"})
+    estatico = formulario.find(attrs={"name": "multiple_submit_static"})
+    if len(campos) == 1 and campos[0].name == "select" and estatico is None:
+        opcion = campos[0].find("option", selected=True) or campos[0].find("option")
+        return {"forma": "select", "valor": opcion.get("value") if opcion else None}
+    if (
+        len(campos) == 1
+        and campos[0].name == "input"
+        and (campos[0].get("type") or "").lower() == "hidden"
+        and estatico is not None
+        and estatico.has_attr("disabled")
+    ):
+        return {"forma": "congelado", "valor": campos[0].get("value")}
+    if campos:
+        return {"forma": "desconocida", "valor": campos[0].get("value")}
+    return {"forma": "desconocida", "valor": None}
 
 
 def _fecha_leida(formulario, campo: str) -> tuple[int, int, int, int, int] | None:

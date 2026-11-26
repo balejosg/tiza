@@ -233,6 +233,13 @@ class MoodleFalso:
         self.importados: list[bytes] = []
         self._siguiente_pregunta = 500
         self._siguiente_hueco = 900
+        # Encuestas: preguntas importadas, si tienen respuestas y el valor de «varias respuestas».
+        self.encuestas: dict[int, list[dict]] = {}
+        self.importados_encuesta: list[bytes] = []
+        self.respuestas_encuesta: dict[int, bool] = {}
+        self.varias_encuesta: dict[int, str] = {}
+        self.items_encuesta: dict[int, list[int]] = {}
+        self._siguiente_item_encuesta = 900
         # Actividades H5P: paquete subido, despliegue, librería e intentos.
         self.paquetes_h5p: dict[int, str] = {}
         self.despliegues_h5p: dict[int, bool] = {}
@@ -344,11 +351,20 @@ class MoodleFalso:
             self.instancias[cmid] = 5000 + cmid
             self.paquetes_h5p[cmid] = payload.get("packagefile", "")
             self.despliegues_h5p.setdefault(cmid, True)
+        if tipo == "encuesta":
+            self.contextos[cmid] = 900 + cmid
+            self.instancias[cmid] = 5000 + cmid
+            self.encuestas[cmid] = []
+            self.items_encuesta[cmid] = []
+            self.varias_encuesta[cmid] = payload.get("multiple_submit", "0")
+            self.respuestas_encuesta[cmid] = False
         return cmid
 
     def actualizar(self, cmid, payload):
         self.llamadas.append(("actualizar", cmid, payload))
         self.formularios.setdefault(cmid, {"visible": "1"}).update(self._admitido(cmid, payload))
+        if cmid in self.encuestas and not self.respuestas_encuesta.get(cmid, False):
+            self.varias_encuesta[cmid] = payload.get("multiple_submit", "0")
         if payload.get("name"):  # como Moodle: el nombre nuevo se ve ya en la estructura del curso
             for secciones in (self.secciones, *self.secciones_por_curso.values()):
                 for seccion in secciones:
@@ -382,6 +398,17 @@ class MoodleFalso:
             else None,
             "visible": formulario.get("visible"),
             "contexto": self.contextos.get(cmid, 999),
+            "anonymous": "1" if cmid in self.encuestas else formulario.get("anonymous"),
+            "multiple_submit": {
+                "forma": (
+                    "congelado"
+                    if self.respuestas_encuesta.get(cmid, False)
+                    else "select"
+                    if cmid in self.encuestas
+                    else "desconocida"
+                ),
+                "valor": self.varias_encuesta.get(cmid),
+            },
             "fechas": {campo: _fecha_del_formulario(formulario, campo) for campo in _CAMPOS_FECHA},
             "itinerario": {
                 "campos": self._campos_de_finalizacion(cmid, formulario),
@@ -781,6 +808,10 @@ class MoodleFalso:
         self.instancias.pop(cmid, None)
         self.huecos_quiz.pop(cmid, None)
         self.intentos.pop(cmid, None)
+        self.encuestas.pop(cmid, None)
+        self.respuestas_encuesta.pop(cmid, None)
+        self.varias_encuesta.pop(cmid, None)
+        self.items_encuesta.pop(cmid, None)
         self.paquetes_h5p.pop(cmid, None)
         self.despliegues_h5p.pop(cmid, None)
         self.librerias_ausentes.pop(cmid, None)
@@ -848,6 +879,66 @@ class MoodleFalso:
         banco = self.bancos.get(self.categorias.get(cmid), {})
         for identificador in ids:
             banco.pop(identificador, None)
+
+    # --- Encuestas anónimas -------------------------------------------------
+
+    def importar_encuesta(self, curso_id, cmid, xml):
+        self.llamadas.append(("importar_encuesta", cmid))
+        self.importados_encuesta.append(xml)
+        self.encuestas.setdefault(cmid, [])
+        self.items_encuesta.setdefault(cmid, [])
+        items = []
+        ids = []
+        for item in ET.fromstring(xml).findall("ITEMS/ITEM"):
+            self._siguiente_item_encuesta += 1
+            identificador = self._siguiente_item_encuesta
+            items.append(
+                {
+                    "itemid": identificador,
+                    "tipo": item.get("TYPE") or "",
+                    "texto": item.findtext("ITEMTEXT") or "",
+                    "etiqueta": item.findtext("ITEMLABEL") or "",
+                    "presentacion": item.findtext("PRESENTATION") or "",
+                    "opciones": item.findtext("OPTIONS") or "",
+                    "obligatoria": item.get("REQUIRED") == "1",
+                }
+            )
+            ids.append(identificador)
+        self.encuestas[cmid] = items
+        self.items_encuesta[cmid] = ids
+        # ``deleteolditems=1`` borra las respuestas: el flujo de tiza nunca debe llegar aquí
+        # con ellas, y el doble lo deja ver.
+        self.respuestas_encuesta[cmid] = False
+
+    def exportar_encuesta(self, cmid):
+        self.llamadas.append(("exportar_encuesta", cmid))
+        return [dict(item) for item in self.encuestas.get(cmid, [])]
+
+    def encuesta_tiene_respuestas(self, cmid):
+        self.llamadas.append(("encuesta_tiene_respuestas", cmid))
+        return self.respuestas_encuesta.get(cmid, False)
+
+    def items_de_encuesta(self, cmid):
+        self.llamadas.append(("items_de_encuesta", cmid))
+        return list(self.items_encuesta.get(cmid, []))
+
+    def imagen_de_etiqueta(self, curso_id, cmid, itemid, html, imagenes):
+        self.llamadas.append(
+            (
+                "imagen_de_etiqueta",
+                cmid,
+                itemid,
+                html,
+                tuple(imagen.nombre for imagen in imagenes),
+            )
+        )
+        if not self.imagenes_servidas:
+            raise ErrorPublicacion("VERIFICACION_IMAGENES")
+        for item in self.encuestas.get(cmid, []):
+            if item["itemid"] == itemid:
+                item["presentacion"] = html
+                return
+        raise ErrorPublicacion("ERROR_ENCUESTA_ITEMS")
 
     # --- Actividades H5P: despliegue e intentos ------------------------------
 
