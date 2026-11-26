@@ -125,6 +125,61 @@ no califican y no llevan seguimiento). Para subir un paquete hecho fuera
 tiza lo valida y lo reempaqueta **sin librerías ni JavaScript** antes de
 subirlo, y los enlaces `https` que lleve el paquete te los enseña al confirmar.
 
+Para una **encuesta anónima** (en Moodle se llama «Retroalimentación»), las
+preguntas van en la cabecera (`preguntas:`) y el cuerpo es la descripción
+(mira [`ejemplos/encuesta.md`](../ejemplos/encuesta.md)):
+
+```markdown
+---
+tipo: encuesta
+nombre: Puerta de la felicidad
+seccion: 3
+abre: 2026-11-27              # opcional
+cierra: 2026-12-20            # opcional
+respuestas: varias            # opcional: una (por defecto) o varias
+preguntas:
+  - tipo: informacion
+    texto: Es **anónima**. Tarda menos de un minuto.
+  - tipo: escala
+    enunciado: ¿Cómo te has sentido en esta sesión?
+    opciones: ["Muy mal", "Mal", "Normal", "Bien", "Muy bien"]
+    obligatoria: true
+  - tipo: texto
+    enunciado: ¿Qué te ha gustado?
+mensaje_final: ¡Gracias!      # opcional; se enseña al enviar
+---
+
+Cuéntanos cómo ha ido la clase.
+```
+
+Una encuesta es **siempre anónima**: no admite `anonima:` ni `evalua:` (no lleva
+nota). Sus preguntas, de 1 a 100, son de seis tipos:
+
+- `informacion`: `texto` en Markdown con el filtro, con imágenes locales como en
+  una pregunta de cuestionario (PNG, JPEG, GIF o WebP, con texto alternativo).
+- `escala`: `opciones` de 2 a 10; el alumnado elige una y el aula calcula la
+  media (pesos 1..n).
+- `opcion`: `opciones` de 2 a 10; `multiple: true` para casillas o
+  `desplegable: true` para un desplegable (nunca las dos).
+- `texto` (respuesta larga), `texto_corto` (una línea) y `numero` (`minimo` y
+  `maximo` opcionales; si pones los dos, el mínimo es menor que el máximo).
+
+En las preguntas que no son `informacion`, el `enunciado` es **texto plano**
+(sin HTML ni imágenes) y todas menos `informacion` admiten `obligatoria`. Las
+opciones son texto plano y no pueden llevar `|`, `####`, `>>>>>` ni `<<<<<`
+(son separadores de Moodle: `OPCION_CON_SEPARADOR`). `respuestas` admite `una`
+o `varias`, y la finalización solo `ninguna` o `enviar`; ninguna se puede
+cambiar con respuestas (`ENCUESTA_CON_RESPUESTAS`). Las preguntas tampoco:
+si cambian, tiza no las reimporta. Los ajustes (nombre, descripción, fechas y
+mensaje final) sí se pueden cambiar.
+
+Moodle guarda internamente quién responde (para que nadie responda dos veces) y
+el administrador del aula podría verlo; los informes y los registros del curso
+no lo muestran. Si activas `finalizacion: enviar`, verás **quién** ha
+respondido, pero no qué. En un grupo muy pequeño, un comentario puede delatar a
+quien lo escribió. **tiza nunca lee las respuestas**: el docente las ve en el
+aula, en «Análisis» y «Mostrar respuestas».
+
 Para maquetar con estilo, o para pegar HTML hecho en otra herramienta, usa un
 fichero `.html` con el mismo bloque YAML y, debajo, HTML (un fragmento o un
 documento completo: solo se publica el `<body>`). Para páginas y etiquetas, el
@@ -213,7 +268,7 @@ suelen traer `position:absolute` o atributos antiguos; sustitúyelos por:
   JavaScript. Las tarjetas no califican ni llevan seguimiento.
 - Cuando la actividad H5P ya tiene intentos, tiza no la cambia
   (`H5P_CON_INTENTOS`): crea otra con otro `nombre` si necesitas modificarla.
-- Si ya existe una página, etiqueta, tarea, cuestionario o actividad H5P con el
+- Si ya existe una página, etiqueta, tarea, cuestionario, actividad H5P o encuesta con el
   mismo `nombre`
   en esa sección, se actualiza (mismo cmid) **y conserva su visibilidad**; si no,
   se crea oculto. `--visible` lo muestra al alumnado y `--oculto` lo oculta,
@@ -226,7 +281,7 @@ Cualquier actividad puede declarar cuándo cuenta como completada y cuándo se
 abre; sin estos campos, lo que ya haya en el aula se conserva:
 
 ```yaml
-finalizacion: ver          # ninguna | manual | ver | entregar (tarea) | calificar
+finalizacion: ver          # ninguna | manual | ver | entregar (tarea) | calificar | enviar (encuesta)
 fecha_esperada: 2026-11-20 # opcional: «completar antes de» (informativa)
 restricciones:
   desde: 2026-10-20        # opcional; también hasta
@@ -251,8 +306,8 @@ restricciones:
 
 Las tareas, los cuestionarios y los contenidos H5P pueden declarar con qué resultados
 de aprendizaje o criterios se evalúan y con qué peso relativo, para colocarlos en el calificador
-del curso. Una página o un área de texto y medios no tienen nota en Moodle: con `evalua` dan
-error (`EVALUA_NO_CALIFICABLE`), también en `tiza comprobar`.
+del curso. Una página, un área de texto y medios o una encuesta no tienen nota en Moodle: con
+`evalua` dan error (`EVALUA_NO_CALIFICABLE`), también en `tiza comprobar`.
 
 ```yaml
 evalua: {RA1: 40, RA3: 25}   # id: peso relativo de 0 a 100, con hasta 2 decimales

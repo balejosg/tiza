@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Añadido
+
+- **Encuestas anónimas** (`tipo: encuesta`): publica una actividad «Retroalimentación» de Moodle, siempre anónima y sin nota, con preguntas de escala, opción, texto, texto corto, número e información. tiza **nunca lee las respuestas**; para saber si las hay mira solo el campo «varias respuestas» del formulario de ajustes y, con respuestas, no toca las preguntas (`ENCUESTA_CON_RESPUESTAS`). La confirmación de real explica qué significa «anónima» y, si la finalización es `enviar`, que el docente verá quién ha respondido pero no qué. Las fechas se cambian con `--solo-fechas`. Una encuesta de una copia del curso sigue apareciendo como actividad no admitida.
+
 ## 0.50.0 — 2026-11-25
 
 ### Cambia

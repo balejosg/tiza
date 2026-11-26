@@ -478,6 +478,7 @@ EJEMPLOS_QUE_VIAJAN = (
     "cuestionario.md",
     "h5p-huecos.md",
     "h5p-tarjetas.md",
+    "encuesta.md",
     "formulas.md",
     "preferencias.txt",
 )

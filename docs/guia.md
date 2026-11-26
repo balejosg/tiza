@@ -28,7 +28,7 @@ antes [primeros-pasos.md](primeros-pasos.md); el formato de los ficheros está e
 | `tiza estructura` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): guarda las secciones de los cursos configurados. Con `--cambios <fichero>…` dice además, por curso real, si retocaste esas actividades a mano en el aula (`cambiada`, `sin_cambios`, `sin_registro`). Con `--calificador` añade el árbol de categorías (método, «solo no vacías», bloqueo, notas y porcentajes) y escribe `estructura.json` en la versión 3 |
 | `tiza publicar <md>… --en pruebas` | agente o docente | Con `tiza sesion` abierta (o terminal del docente): crea (oculto) o actualiza (conserva la visibilidad), verifica y registra el hash. Si hay calificador organizado a mano, su nota va con las de su sección (ver «Ordenar y mover actividades») |
 | `tiza publicar <md>… --en real` | agente o docente | Igual, pero cada petición se confirma `[s/N]` en la terminal del docente y solo publica lo verificado; sin curso de pruebas, exige `--oculto` y la confirmación es corta |
-| `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas y cuestionarios ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
+| `tiza publicar <md>… --en pruebas\|real --solo-fechas` | agente o docente | Cambia solo las fechas de tareas, cuestionarios y encuestas ya publicados (ni contenido, ni preguntas, ni intentos, ni visibilidad); en real, la confirmación enseña cada fecha antes y después |
 | `tiza autoprueba` | docente | Prueba de contrato completa en el curso de pruebas: publica, republica, verifica y borra (si no hay curso de pruebas, responde `SIN_CURSO_PRUEBAS`) |
 | `tiza aislar` | docente | Añade el aislamiento a esta carpeta: Claude Code, Codex y opencode (con `--global`, a todos tus proyectos), con copia de seguridad. En Windows aísla Claude Code con permisos (el agente solo ejecuta los comandos de tiza que le tocan), y `--global` no lo hace en Windows; con la app de Copilot no escribe nada y muestra la receta de su sandbox |
 | `tiza revisar` | agente o docente | Solo lectura: comprueba el aislamiento de esta carpeta y avisa si es global |
@@ -327,7 +327,7 @@ festivo, en fin de semana, fuera del curso o en un día sin clase. Solo avisan:
 un festivo puede ser intencionado. Un calendario que no se puede leer da
 `CALENDARIO_INVALIDO` y los documentos se comprueban igual.
 
-Para cambiar solo las fechas de tareas y cuestionarios que ya están en el aula,
+Para cambiar solo las fechas de tareas, cuestionarios y encuestas que ya están en el aula,
 usa `--solo-fechas` (con `--en pruebas` o `--en real`). No toca el contenido, las
 preguntas, los intentos ni la visibilidad; por eso también sirve para un
 cuestionario que ya tiene intentos. En real, la confirmación enseña cada fecha
@@ -338,6 +338,25 @@ En una tarea, tiza desactiva siempre «Recordarme calificar antes de» (Moodle
 rechaza una entrega posterior a ese recordatorio, y esto también ocurre al
 publicar la tarea sin `--solo-fechas`). Si lo tenías puesto, la confirmación de
 real lo enseña antes de aplicarlo.
+
+## Encuestas anónimas
+
+`tipo: encuesta` publica una actividad «Retroalimentación» de Moodle, siempre
+anónima y sin nota. Se escribe como un `.md` con sus preguntas y ajustes (mira
+[`formato.md`](formato.md) y [`ejemplos/encuesta.md`](../ejemplos/encuesta.md));
+tiza la crea, importa las preguntas y las verifica releyéndolas del aula.
+**Nunca lee las respuestas.** Para saber si ya hay alguna, mira solo el campo
+«varias respuestas» del formulario de ajustes; si no lo puede saber, actúa como
+si las hubiera. Con respuestas no cambia las preguntas
+(`ENCUESTA_CON_RESPUESTAS`): si necesitas otras, crea otra encuesta con otro
+nombre. Los ajustes —nombre, descripción, fechas y mensaje final— sí se pueden
+cambiar. En Moodle se llama «Retroalimentación»; el docente ve las respuestas
+en la encuesta, en «Análisis» y «Mostrar respuestas», y tiza no las abre ni las
+descarga.
+
+La finalización `enviar` (se completa al enviarla) hace que el docente vea
+**quién** ha respondido, pero no qué. Las fechas se cambian con `--solo-fechas`,
+como en una tarea.
 
 ## Ordenar y mover actividades
 
