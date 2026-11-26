@@ -1441,8 +1441,13 @@ class Moodle:
             timeout=TIEMPO_ESPERA,
         )
         self._reducir("ERROR_EXPORTACION_ENCUESTA", respuesta.raise_for_status)
+        texto = getattr(respuesta, "text", "") or ""
+        # Moodle nunca escribe un DOCTYPE ni entidades en esta exportación: se rechaza antes
+        # de analizarla, como en la copia de seguridad.
+        if re.search(r"<!(DOCTYPE|ENTITY)", texto, re.IGNORECASE):
+            raise ErrorPublicacion("ERROR_EXPORTACION_ENCUESTA")
         try:
-            raiz = ET.fromstring(getattr(respuesta, "text", "") or "")
+            raiz = ET.fromstring(texto)
         except ET.ParseError:
             raise ErrorPublicacion("ERROR_EXPORTACION_ENCUESTA") from None
         items: list[dict] = []

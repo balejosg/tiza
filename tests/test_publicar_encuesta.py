@@ -206,6 +206,28 @@ class TestExportar:
         assert exc.value.codigo == "ERROR_EXPORTACION_ENCUESTA"
 
 
+class TestExportacionHostil:
+    @pytest.mark.parametrize(
+        "cabecera",
+        [
+            '<!DOCTYPE FEEDBACK [<!ENTITY a "aaaa">]>',
+            "<!doctype FEEDBACK>",
+            '<!DOCTYPE FEEDBACK SYSTEM "http://fuera/x.dtd">',
+        ],
+    )
+    def test_un_doctype_o_entidades_son_un_error(self, cabecera):
+        sesion = _SesionEncuesta()
+        sesion.respuesta(
+            "mod/feedback/export.php",
+            '<?xml version="1.0"?>' + cabecera + '<FEEDBACK VERSION="200701"><ITEMS>'
+            '<ITEM TYPE="textarea" REQUIRED="0"><ITEMTEXT>&a;</ITEMTEXT></ITEM>'
+            "</ITEMS></FEEDBACK>",
+        )
+        with pytest.raises(ErrorPublicacion) as exc:
+            moodle(sesion).exportar_encuesta(5)
+        assert exc.value.codigo == "ERROR_EXPORTACION_ENCUESTA"
+
+
 class TestRespuestas:
     def test_un_select_es_sin_respuestas(self):
         sesion = _SesionEncuesta()
