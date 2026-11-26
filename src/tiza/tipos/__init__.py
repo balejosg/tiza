@@ -27,6 +27,7 @@ from .base import (
     payload_finalizacion,
 )
 from .cuestionario import Cuestionario
+from .encuesta import Encuesta
 from .etiqueta import Etiqueta
 from .h5p import H5P
 from .pagina import Pagina
@@ -57,7 +58,7 @@ __all__ = [
 ]
 
 # Orden canónico: el que enseñan los mensajes de error y recorren los tests.
-TODOS: tuple[Tipo, ...] = (Pagina(), Tarea(), Cuestionario(), Etiqueta(), H5P())
+TODOS: tuple[Tipo, ...] = (Pagina(), Tarea(), Cuestionario(), Etiqueta(), H5P(), Encuesta())
 TIPOS = tuple(tipo.nombre for tipo in TODOS)
 _POR_NOMBRE = {tipo.nombre: tipo for tipo in TODOS}
 _POR_MODULO = {tipo.modulo: tipo.nombre for tipo in TODOS}

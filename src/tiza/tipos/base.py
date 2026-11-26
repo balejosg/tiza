@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 if TYPE_CHECKING:  # solo para anotar; los adapters sí importan las clases al construir
-    from ..contenido import ActividadH5P, Cuestionario, Documento, Fechas, PaqueteH5P
+    from ..contenido import ActividadH5P, Cuestionario, Documento, Encuesta, Fechas, PaqueteH5P
     from ..estructura import Actividad, Seccion
     from ..publicar import AulaVirtual, ErrorPublicacion
 
@@ -67,6 +67,7 @@ class Extras:
 
     fechas: Fechas | None = None  # tarea
     cuestionario: Cuestionario | None = None
+    encuesta: Encuesta | None = None
     h5p: ActividadH5P | None = None
     paquete: PaqueteH5P | None = None  # .h5p ya hecho que se sube reempaquetado
 
@@ -123,6 +124,9 @@ class Tipo:
     campos: frozenset[str] = frozenset()  # campos propios del frontmatter
     finalizaciones: tuple[str, ...] = ()  # modos de finalización admitidos
     banderas: tuple[str, ...] = ()  # casillas del formulario de «cuándo se completa»
+    # Qué casilla del formulario marca cada modo. Por defecto, el mapa común; un tipo con
+    # un modo propio (la encuesta, que se completa al enviarla) declara el suyo.
+    banderas_de_modo: Mapping[str, str] = BANDERA_DE_MODO
     campos_fecha: tuple[str, ...] = ()  # campos del formulario de Moodle con fecha
     # ¿Tiene elemento de calificación en Moodle? Solo entonces vale «evalua» (el calificador
     # no podría colocar una actividad sin nota). Cada tipo lo declara; por defecto, no.
@@ -302,8 +306,8 @@ def payload_finalizacion(
         return payload
     modo = finalizacion.modo
     payload["completion"] = {"ninguna": "0", "manual": "1"}.get(modo, "2")
-    if modo in BANDERA_DE_MODO:
-        elegida = BANDERA_DE_MODO[modo]
+    if modo in tipo.banderas_de_modo:
+        elegida = tipo.banderas_de_modo[modo]
         for bandera in tipo.banderas:
             payload[bandera] = "1" if bandera == elegida else "0"
     return payload
@@ -320,7 +324,7 @@ def modo_leido(tipo: Tipo, campos: dict) -> str | None:
         return None
     marcadas = [
         modo
-        for modo, bandera in BANDERA_DE_MODO.items()
+        for modo, bandera in tipo.banderas_de_modo.items()
         if bandera in tipo.banderas and campos.get(bandera) == "1"
     ]
     return marcadas[0] if len(marcadas) == 1 else None

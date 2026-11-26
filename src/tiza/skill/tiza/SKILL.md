@@ -164,8 +164,47 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
 
    Para subir un paquete hecho fuera, usa `paquete: paquete.h5p` en vez de `actividad:`. El `.h5p` tiene que ser uno que el **docente haya dejado en la carpeta de la asignatura**: no lo generes, no lo descargues y no lo pidas por red. tiza lo valida, descarta sus librerías (nunca sube JavaScript) y lo reempaqueta; si el paquete pide una librería que el aula no tiene, responde `H5P_LIBRERIA_AUSENTE`. Si la actividad ya tiene intentos, tiza no la cambia (`H5P_CON_INTENTOS`): crea otra con un `nombre` distinto.
 
-   - `tipo`: `pagina`, `etiqueta`, `tarea`, `cuestionario` o `h5p`.
-   - `evalua` (opcional, solo `tarea`, `cuestionario` y `h5p`: la página y la etiqueta no tienen nota en Moodle y dan `EVALUA_NO_CALIFICABLE`): con qué resultados de aprendizaje o criterios se evalúa la actividad y con qué peso, por ejemplo `evalua: {RA1: 40, RA3: 25}` (pesos de 0 a 100, con hasta 2 decimales; ids que existen en `calificacion.yaml`). La actividad real va a su primer criterio de la vista por evaluaciones y en los demás tiza pone una copia; con `evidencia: resultados`, cada criterio lleva un resultado y un calculado sobre 100 con el peso, y la tarea real queda con peso 0 (mira `guias/calificador.md`). No cambia el hash: cambiarlo no obliga a volver a comprobar la actividad.
+   Para una encuesta anónima (en Moodle se llama «Retroalimentación»), las preguntas van en `preguntas:` y el cuerpo es la descripción:
+
+   ```markdown
+   ---
+   tipo: encuesta
+   nombre: Puerta de la felicidad
+   seccion: 3
+   abre: 2026-11-27                # opcional
+   cierra: 2026-12-20              # opcional
+   respuestas: varias              # opcional; una (por defecto) o varias
+   preguntas:
+     - tipo: informacion
+       texto: Es **anónima**. Tarda menos de un minuto.
+     - tipo: escala
+       enunciado: ¿Cómo te has sentido en esta sesión?
+       opciones: ["Muy mal", "Mal", "Normal", "Bien", "Muy bien"]
+       obligatoria: true
+     - tipo: opcion
+       enunciado: ¿Qué has usado?
+       opciones: [Apuntes, Pizarra, Ordenador]
+       multiple: true
+     - tipo: opcion
+       enunciado: ¿Cuándo estudias?
+       opciones: [Por la mañana, Por la tarde]
+       desplegable: true
+     - tipo: texto_corto
+       enunciado: Una palabra que lo resuma
+     - tipo: texto
+       enunciado: ¿Qué te ha gustado?
+     - tipo: numero
+       enunciado: Del 0 al 10, ¿cuánto has aprendido?
+       minimo: 0
+       maximo: 10
+   mensaje_final: ¡Gracias! Lo leeremos juntos el lunes.   # opcional
+   ---
+
+   Cuéntanos cómo ha ido la clase.
+   ```
+
+   - `tipo`: `pagina`, `etiqueta`, `tarea`, `cuestionario`, `h5p` o `encuesta`.
+   - `evalua` (opcional, solo `tarea`, `cuestionario` y `h5p`: la página, la etiqueta y la encuesta no tienen nota en Moodle y dan `EVALUA_NO_CALIFICABLE`): con qué resultados de aprendizaje o criterios se evalúa la actividad y con qué peso, por ejemplo `evalua: {RA1: 40, RA3: 25}` (pesos de 0 a 100, con hasta 2 decimales; ids que existen en `calificacion.yaml`). La actividad real va a su primer criterio de la vista por evaluaciones y en los demás tiza pone una copia; con `evidencia: resultados`, cada criterio lleva un resultado y un calculado sobre 100 con el peso, y la tarea real queda con peso 0 (mira `guias/calificador.md`). No cambia el hash: cambiarlo no obliga a volver a comprobar la actividad.
    - `recupera` (opcional, solo `tarea`, `cuestionario` y `h5p`): `recupera: 2` o `recupera: [1, 3]`; número de evaluación o lista de números (empezando por 1) cuyos criterios recupera la actividad. Necesita `evalua` y que esas evaluaciones existan en `calificacion.yaml`. No cambia el hash.
    - `seccion`: **preferiblemente el nombre** de la sección entre comillas (`seccion: "Fracciones"`), porque vale igual en pruebas y en real. Si no existe, se crea **oculta** al publicar (`tiza comprobar` lo avisa; en real el docente lo confirma). También acepta el número de `estructura.json`, pero los números pueden no coincidir entre los dos cursos.
    - Si el docente te da un número grande (por ejemplo `12858`), suele ser el **id** de la URL del aula, no el número: búscalo en el campo `id` de las secciones de `estructura.json` y usa su `numero`. `tiza comprobar` lo detecta con `SECCION_ES_ID` y te dice el número.
@@ -174,7 +213,7 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
    - `limite` es la fecha límite: después ya no se admiten entregas. Sin `limite`, se admiten con retraso sin fin.
    - `nombre` debe coincidir con el módulo que se quiera actualizar: si ya existe una página, etiqueta, tarea o cuestionario con ese nombre en esa sección, se actualiza (mismo cmid) y, si no, se crea.
    - **Itinerario (opcional, todos los tipos)**: cuándo cuenta la actividad como hecha y cuándo se abre. Si no lo declaras, lo que haya en el aula **se conserva**.
-     - `finalizacion`: `ninguna` (la desactiva), `manual` (el alumno la marca), `ver`, `entregar` (solo tarea) o `calificar` (tarea, cuestionario y H5P que califica). La etiqueta solo admite `ninguna` y `manual`; otro valor da `FINALIZACION_NO_ADMITIDA`. No existe «aprobar». `fecha_esperada` (opcional) es el «completar antes de», solo informativo.
+     - `finalizacion`: `ninguna` (la desactiva), `manual` (el alumno la marca), `ver`, `entregar` (solo tarea), `calificar` (tarea, cuestionario y H5P que califica) o `enviar` (solo encuesta: se completa al enviarla). La etiqueta solo admite `ninguna` y `manual`; otro valor da `FINALIZACION_NO_ADMITIDA`. En una encuesta, si activas `enviar` verás **quién** ha respondido, pero no qué. No existe «aprobar». `fecha_esperada` (opcional) es el «completar antes de», solo informativo.
      - `restricciones`: `desde` y `hasta` (fechas), `completar` (hasta 10 ficheros `.md` o `.html` de la carpeta, con ruta relativa a este fichero: «se abre cuando completen esas actividades») y `ocultar_si_no_cumple` (`true`: oculta del todo; por defecto se ve en gris con la condición). Siempre se exigen todas («y»). `restricciones: {}` quita las que puso tiza.
      - **Nunca** restricciones por grupo, agrupamiento, perfil, rol o nota, ni nada que dependa de datos del alumnado: tiza no las admite (`CAMPO_DESCONOCIDO`). Si el docente las pide, dile que se ponen a mano en el aula.
      - Ejemplo de tema: `pagina.html` con `finalizacion: ver`; `test.md` con `finalizacion: calificar` y `restricciones: {completar: [pagina.html]}`; `tarea.md` con `restricciones: {completar: [test.md], desde: 2026-10-20}`. Se publican en **una petición**: tiza las ordena por dependencias.
@@ -201,6 +240,12 @@ description: Prepara y publica contenido (páginas, etiquetas, tareas y cuestion
      - No escribas puntuaciones: las calcula tiza. Cada pregunta vale 1, y en blanco vale 0. Por defecto, en `opcion_multiple` con una correcta y n opciones, una incorrecta resta 1/(n−1) (con 4 opciones, 1/3): contestar al azar da 0. Una pregunta puede quedar en negativo y restar de las demás, pero la nota del cuestionario no baja de 0. Si el docente no quiere que resten, pon `penalizar: false` (vale para todo el cuestionario). Con varias opciones correctas, cada correcta suma su parte y cada incorrecta marcada la resta siempre, también con `penalizar: false` (si no, marcarlo todo daría la pregunta entera). `verdadero_falso` nunca resta (Moodle no lo permite): si el docente quiere que el azar no puntúe en una pregunta de dos alternativas, usa `opcion_multiple` con dos opciones. Respuesta corta, numérica y emparejamiento no restan.
      - `enunciado`, `texto` y `retro` son Markdown con el mismo filtro HTML que el cuerpo (los iframes permitidos valen en el enunciado), pero admiten **imágenes locales** (PNG, JPEG, GIF o WebP) con texto alternativo obligatorio (`![El circuito de la figura 1](img/circuito.png)`; sin él, `IMAGEN_SIN_ALT`), de hasta 1 MB cada una y 10 MB en todo el cuestionario (`IMAGEN_DEMASIADO_GRANDE`; cada uso cuenta). Valen en el enunciado, las opciones, las parejas y la retroalimentación. Cualquier otro fichero local o enlace a un fichero (un PDF) da `RECURSO_EN_PREGUNTA`: ponlo en la descripción. Nunca uses fotos con alumnado. Antes de dar por bueno el cuestionario, tiza comprueba que el aula guardó y sirve cada imagen (`VERIFICACION_IMAGENES` si no).
      - Cuando un alumno empieza un intento, el cuestionario queda congelado: tiza no cambia nada, ni preguntas ni ajustes, y responde `CUESTIONARIO_CON_INTENTOS`. Para corregirlo, crea otro con un `nombre` distinto.
+   - **Encuesta anónima** (en Moodle, «Retroalimentación»): siempre anónima; no admite `anonima:` ni `evalua:` (una encuesta no lleva nota). Campos: `preguntas` (1 a 100), `respuestas` (`una` por defecto o `varias`), `mensaje_final` (Markdown; se enseña al enviar), `abre` y `cierra` (como en el cuestionario) y `finalizacion` (`ninguna` o `enviar`). Cada pregunta lleva `tipo`; `informacion` lleva `texto` (Markdown con el filtro y con imágenes locales como en una pregunta de cuestionario); las demás llevan `enunciado` (texto plano, sin HTML ni imágenes) y `obligatoria` opcional:
+     - `escala`: `opciones` de 2 a 10; el alumnado elige una y el aula calcula la media con pesos 1..n.
+     - `opcion`: `opciones` de 2 a 10; `multiple: true` para casillas o `desplegable: true` para un desplegable (no las dos).
+     - `texto`: respuesta larga; `texto_corto`: una línea; `numero`: `minimo` y `maximo` opcionales (si pones los dos, el mínimo tiene que ser menor que el máximo).
+     - Las opciones son texto plano y no pueden llevar `|`, `####`, `>>>>>` ni `<<<<<` (son separadores de Moodle: `OPCION_CON_SEPARADOR`).
+     - Con respuestas, tiza no toca las preguntas (`ENCUESTA_CON_RESPUESTAS`): si cambian, crea otra encuesta con otro nombre. Los ajustes (nombre, descripción, fechas y mensaje final) sí se pueden cambiar. **tiza nunca lee las respuestas**; el docente las ve en el aula, en «Análisis» y «Mostrar respuestas».
    - Si el nombre contiene `: `, escríbelo entre comillas (`nombre: "Repaso: fracciones"`); YAML lo necesita.
    - **Fórmulas (Matemáticas, Física, Química…)**: en un `.md`, escríbelas en LaTeX con `\( … \)` (en la línea), `\[ … \]` o `$$ … $$` (en bloque). tiza las publica tal cual, sin tocar `*`, `_` ni `\\`, y el aula las dibuja con su motor de fórmulas. Si tras publicar el informe trae el paso `FORMULAS_NO_DIBUJADAS` (también lo da la autoprueba), el contenido está bien publicado pero el aula no carga ese motor y el alumnado vería LaTeX sin dibujar: díselo al docente, tiza no cambia los filtros del aula. El `$x$` simple **no** vale: Moodle no lo dibuja, y `tiza comprobar` avisa con el paso `FORMULA_DOLAR_SIMPLE`. Una fórmula sin cerrar es un error (`FORMULA_SIN_CERRAR`); el límite es de 2000 caracteres por fórmula y 500 por documento (`FORMULA_INVALIDA`). Valen en el cuerpo, en el enunciado, las opciones y la retroalimentación de un cuestionario; **no en las actividades H5P** (`FORMULA_EN_H5P`). Dentro de un bloque de código (``` o comillas inversas) no se tocan. En un `.html` se escriben igual. La vista previa enseña la fuente LaTeX, no la fórmula dibujada.
    - En un `.md` la sangría no crea bloques de código (el HTML sangrado se publica como HTML): el código va entre tres comillas invertidas (```).

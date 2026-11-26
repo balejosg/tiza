@@ -45,6 +45,7 @@ __all__ = [
     "ActividadH5P",
     "Cuestionario",
     "Documento",
+    "Encuesta",
     "Fechas",
     "Finalizacion",
     "MarcaH5P",
@@ -52,6 +53,7 @@ __all__ = [
     "Origen",
     "PaqueteH5P",
     "Pregunta",
+    "PreguntaEncuesta",
     "Recurso",
     "Restricciones",
     "TarjetaH5P",
@@ -62,6 +64,7 @@ __all__ = [
     "hash_documento",
     "html_para_moodle",
     "html_para_preview",
+    "linea_de_campo",
     "numero_texto",
     "previsualizar",
 ]
@@ -70,7 +73,7 @@ EXTENSIONES = (".md", ".html", ".htm")  # en minúsculas; el resto de ficheros n
 _EXTENSIONES_HTML = frozenset({".html", ".htm"})
 # Orden canónico de los tipos; el dueño es ``tipos.TIPOS`` y un test comprueba que no
 # se separan (aquí no se puede importar el registro: el registro importa este módulo).
-TTIPOS = ("pagina", "tarea", "cuestionario", "etiqueta", "h5p")
+TTIPOS = ("pagina", "tarea", "cuestionario", "etiqueta", "h5p", "encuesta")
 CAMPOS_ITINERARIO = {"finalizacion", "fecha_esperada", "restricciones"}
 CAMPOS_COMUNES = {"tipo", "nombre", "seccion", "origen", "evalua"} | CAMPOS_ITINERARIO
 CAMPOS_ORIGEN = ("curso", "cmid")
@@ -232,6 +235,37 @@ class Cuestionario:
 
 
 @dataclass(frozen=True)
+class PreguntaEncuesta:
+    """Una pregunta (o una etiqueta) de una encuesta anónima, ya validada."""
+
+    tipo: str  # escala, opcion, texto, texto_corto, numero o informacion
+    enunciado: str = ""  # texto plano de la pregunta; vacío en «informacion»
+    html: str = ""  # HTML validado de «informacion» (con @@PLUGINFILE@@)
+    opciones: tuple[str, ...] = ()  # escala y opcion
+    multiple: bool = False  # opcion: casillas
+    desplegable: bool = False  # opcion: desplegable
+    minimo: float | None = None  # numero
+    maximo: float | None = None
+    obligatoria: bool = False
+    imagenes: tuple[Imagen, ...] = ()  # imágenes locales de una «informacion»
+
+
+@dataclass(frozen=True)
+class Encuesta:
+    """Preguntas y ajustes de una encuesta anónima, ya validados."""
+
+    preguntas: tuple[PreguntaEncuesta, ...]
+    respuestas: str = "una"  # una o varias
+    mensaje_final: str = ""  # Markdown escrito por el docente
+    mensaje_final_html: str = ""
+    apertura: datetime | None = None
+    cierre: datetime | None = None
+    externos: tuple[str, ...] = ()  # enlaces externos de las preguntas y del mensaje final
+    incrustados: tuple[str, ...] = ()  # iframes, ya normalizados
+    imagenes: tuple[Imagen, ...] = ()  # imágenes locales de las etiquetas, sin repetir
+
+
+@dataclass(frozen=True)
 class MarcaH5P:
     """Un hueco o palabra marcada con ``[[...]]`` y sus alternativas."""
 
@@ -291,6 +325,7 @@ class Documento:
     recursos: list[Recurso]
     fechas: Fechas | None = None
     cuestionario: Cuestionario | None = None
+    encuesta: Encuesta | None = None
     h5p: ActividadH5P | None = None
     paquete: PaqueteH5P | None = None  # .h5p ya hecho que se sube reempaquetado
     # None: el .md no lo declara y lo que haya en el aula se conserva.
@@ -379,12 +414,14 @@ def cargar(
             "RECURSO_DUPLICADO",
             f"el nombre «{doc.paquete.nombre}» se usa para el paquete y para un recurso",
         )
-    doc.enlaces_externos = _sin_repetir(analisis.externos, doc.cuestionario)
+    doc.enlaces_externos = _sin_repetir(analisis.externos, doc.cuestionario, doc.encuesta)
     if doc.paquete is not None:
         for url in doc.paquete.externos:
             if url not in doc.enlaces_externos:
                 doc.enlaces_externos.append(url)
-    doc.incrustados = _sin_repetir(analisis.incrustados, doc.cuestionario, externos=False)
+    doc.incrustados = _sin_repetir(
+        analisis.incrustados, doc.cuestionario, doc.encuesta, externos=False
+    )
     doc.hash_cargado = hash_documento(doc)
     doc.sha256_fichero = hashlib.sha256(bruto).hexdigest()
     if raiz is not None:
@@ -418,12 +455,21 @@ def _publicados_de(ruta: Path, raiz: Path) -> dict[int, Publicado]:
 
 
 def _sin_repetir(
-    urls: list[str], cuestionario: Cuestionario | None, *, externos: bool = True
+    urls: list[str],
+    cuestionario: Cuestionario | None,
+    encuesta: Encuesta | None = None,
+    *,
+    externos: bool = True,
 ) -> list[str]:
     """Los enlaces del cuerpo y los de las preguntas, sin repetir y en orden."""
     salida = list(urls)
     if cuestionario is not None:
         otros = cuestionario.externos if externos else cuestionario.incrustados
+        for url in otros:
+            if url not in salida:
+                salida.append(url)
+    if encuesta is not None:
+        otros = encuesta.externos if externos else encuesta.incrustados
         for url in otros:
             if url not in salida:
                 salida.append(url)
@@ -491,6 +537,42 @@ def linea_en_evalua(ruta: Path, clave: str) -> int | None:
                         break
             return int(nodo.start_mark.line) + 2  # la línea 1 es el «---» de apertura
     return None
+
+
+def linea_de_campo(ruta: Path, camino: tuple[str | int, ...]) -> int | None:
+    """Línea (1-based) de un campo anidado del frontmatter; ``None`` si no se puede saber.
+
+    ``camino`` son claves y, para una lista, índices: ``("preguntas", 2, "multiple")``.
+    """
+    try:
+        texto = ruta.read_text(encoding="utf-8").lstrip("\ufeff")
+        coincidencia = _FRONTMATTER.match(texto)
+        raiz = yaml.compose(coincidencia.group(1), Loader=yaml.SafeLoader) if coincidencia else None
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return None
+    if not isinstance(raiz, yaml.Node):
+        return None
+    nodo = raiz
+    for parte in camino:
+        if isinstance(parte, int):
+            if not isinstance(nodo, yaml.SequenceNode) or parte >= len(nodo.value):
+                return None
+            nodo = nodo.value[parte]
+            continue
+        if not isinstance(nodo, yaml.MappingNode):
+            return None
+        encontrado = next(
+            (
+                valor
+                for clave, valor in nodo.value
+                if isinstance(clave, yaml.ScalarNode) and clave.value == parte
+            ),
+            None,
+        )
+        if encontrado is None:
+            return None
+        nodo = encontrado
+    return int(nodo.start_mark.line) + 2  # la línea 1 es el «---» de apertura
 
 
 def id_evalua_valido(clave: Any) -> bool:
@@ -576,7 +658,7 @@ def _validar(
     tipo = datos["tipo"]
     if tipo not in TTIPOS:
         raise ErrorContenido(
-            "TIPO_INVALIDO", "tipo debe ser pagina, tarea, cuestionario, etiqueta o h5p"
+            "TIPO_INVALIDO", "tipo debe ser pagina, tarea, cuestionario, etiqueta, h5p o encuesta"
         )
     from . import tipos  # diferido: el registro importa este módulo al cargarse
 
@@ -666,6 +748,7 @@ def _validar(
         recursos=[],
         fechas=extras.fechas,
         cuestionario=extras.cuestionario,
+        encuesta=extras.encuesta,
         h5p=extras.h5p,
         paquete=extras.paquete,
         finalizacion=finalizacion,
@@ -862,6 +945,7 @@ _MODOS_LLANOS = {
     "manual": "marcarla el alumno como hecha",
     "ver": "verla",
     "entregar": "entregarla",
+    "enviar": "enviarla",
     "calificar": "tener nota",
 }
 
@@ -1352,6 +1436,10 @@ def tiene_formulas(doc: Documento) -> bool:
             fuentes.extend([pregunta.enunciado, pregunta.retro or ""])
             for opcion in pregunta.opciones:
                 fuentes.extend([opcion.texto, opcion.retro or ""])
+    if doc.encuesta is not None:
+        fuentes.append(doc.encuesta.mensaje_final)
+        for pregunta_encuesta in doc.encuesta.preguntas:
+            fuentes.extend([pregunta_encuesta.enunciado, pregunta_encuesta.html])
     return any(contiene_formula(fuente) for fuente in fuentes)
 
 

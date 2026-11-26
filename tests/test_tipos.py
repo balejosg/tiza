@@ -31,6 +31,10 @@ EJEMPLOS = {
         "  tipo: rellenar_huecos\n  textos:\n"
         '    - "Uno [[1]] y dos [[2]]."\n---\n\nx\n'
     ),
+    "encuesta": (
+        "---\ntipo: encuesta\nnombre: E\nseccion: 1\npreguntas:\n"
+        "  - tipo: texto\n    enunciado: ¿Qué tal?\n---\n\nx\n"
+    ),
 }
 
 
@@ -48,7 +52,7 @@ def cargar(tmp_path):
 
 class TestRegistro:
     def test_el_orden_canonico_no_cambia(self):
-        assert tipos.TIPOS == ("pagina", "tarea", "cuestionario", "etiqueta", "h5p")
+        assert tipos.TIPOS == ("pagina", "tarea", "cuestionario", "etiqueta", "h5p", "encuesta")
         assert tipos.TIPOS == contenido.TTIPOS
 
     def test_nombres_y_modulos_unicos_y_localizables(self):
@@ -70,12 +74,14 @@ class TestRegistro:
         for tipo in tipos.TODOS:
             assert not {"tipo", "nombre", "seccion"} & set(tipo.campos)
         con_campos = {tipo.nombre for tipo in tipos.TODOS if tipo.campos}
-        assert con_campos == {"tarea", "cuestionario", "h5p"}
+        assert con_campos == {"tarea", "cuestionario", "h5p", "encuesta"}
 
     def test_las_banderas_de_finalizacion_casan_con_los_modos(self):
         for tipo in tipos.TODOS:
-            assert "ninguna" in tipo.finalizaciones and "manual" in tipo.finalizaciones
-            for modo, bandera in BANDERA_DE_MODO.items():
+            assert "ninguna" in tipo.finalizaciones
+            if tipo.nombre != "encuesta":  # la encuesta solo admite ninguna o enviar
+                assert "manual" in tipo.finalizaciones
+            for modo, bandera in tipo.banderas_de_modo.items():
                 assert (bandera in tipo.banderas) == (modo in tipo.finalizaciones), (
                     tipo.nombre,
                     modo,
@@ -86,11 +92,12 @@ class TestRegistro:
 class TestValidacion:
     def test_cada_tipo_rellena_sus_extras_y_solo_los_suyos(self, cargar):
         esperado = {
-            "pagina": (False, False, False, False),
-            "etiqueta": (False, False, False, False),
-            "tarea": (True, False, False, False),
-            "cuestionario": (False, True, False, False),
-            "h5p": (False, False, True, False),
+            "pagina": (False, False, False, False, False),
+            "etiqueta": (False, False, False, False, False),
+            "tarea": (True, False, False, False, False),
+            "cuestionario": (False, True, False, False, False),
+            "h5p": (False, False, True, False, False),
+            "encuesta": (False, False, False, False, True),
         }
         for tipo in tipos.TODOS:
             doc = cargar(tipo.nombre)
@@ -99,6 +106,7 @@ class TestValidacion:
                 doc.cuestionario is not None,
                 doc.h5p is not None,
                 doc.paquete is not None,
+                doc.encuesta is not None,
             )
             assert tenidos == esperado[tipo.nombre], tipo.nombre
 
@@ -188,11 +196,11 @@ class TestFechas:
         assert payload["cutoffdate[enabled]"] == "0"
         assert payload["gradingduedate[enabled]"] == "0"
 
-    def test_solo_tarea_y_cuestionario_admiten_cambiar_solo_fechas(self, cargar):
+    def test_solo_tarea_cuestionario_y_encuesta_admiten_cambiar_solo_fechas(self, cargar):
         for tipo in tipos.TODOS:
             doc = cargar(tipo.nombre)
             payload = tipo.payload_solo_fechas(doc)
-            if tipo.nombre in ("tarea", "cuestionario"):
+            if tipo.nombre in ("tarea", "cuestionario", "encuesta"):
                 assert payload is not None
                 for campo in tipo.campos_fecha:
                     assert any(clave.startswith(f"{campo}[") for clave in payload)
@@ -214,15 +222,15 @@ class TestPayload:
             urls = tipo.urls_pluginfile("https://aula", 5, 77, "foto.png")
             assert urls and all("pluginfile.php" in url for url in urls), tipo.nombre
 
-    def test_solo_cuestionario_lleva_detalle_y_solo_h5p_extras(self, cargar):
+    def test_el_detalle_y_los_extras_de_cada_tipo(self, cargar):
         for tipo in tipos.TODOS:
             doc = cargar(tipo.nombre)
-            if tipo.nombre == "cuestionario":
+            if tipo.nombre == "cuestionario" or tipo.nombre == "encuesta":
                 assert tipo.detalle(doc) == "1 preguntas"
             else:
                 assert tipo.detalle(doc) is None
             extras = tipo.extras_resumen(doc)
-            assert bool(extras) == (tipo.nombre == "h5p"), tipo.nombre
+            assert bool(extras) == (tipo.nombre in ("h5p", "encuesta")), tipo.nombre
 
 
 class TestVistaPrevia:
@@ -262,6 +270,9 @@ class TestHash:
         if doc.cuestionario is not None:
             resumen.update(b"\n--cuestionario--\n")
             resumen.update(repr(doc.cuestionario).encode("utf-8"))
+        if doc.encuesta is not None:
+            resumen.update(b"\n--encuesta-preguntas--\n")
+            resumen.update(repr(doc.encuesta.preguntas).encode("utf-8"))
         if doc.h5p is not None:
             resumen.update(b"\n--h5p--\n")
             resumen.update(repr(doc.h5p).encode("utf-8"))
@@ -269,6 +280,19 @@ class TestHash:
             resumen.update(b"\n--itinerario--\n")
             resumen.update(repr(doc.finalizacion).encode("utf-8"))
             resumen.update(repr(doc.restricciones).encode("utf-8"))
+        if doc.encuesta is not None:
+            encuesta = doc.encuesta
+            resumen.update(b"\n--encuesta-ajustes--\n")
+            resumen.update(
+                repr(
+                    (
+                        encuesta.respuestas,
+                        encuesta.mensaje_final,
+                        encuesta.apertura,
+                        encuesta.cierre,
+                    )
+                ).encode("utf-8")
+            )
         if doc.paquete is not None:
             resumen.update(b"\n--paquete--\n")
             resumen.update(doc.paquete.nombre.encode("utf-8"))

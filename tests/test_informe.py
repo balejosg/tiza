@@ -120,7 +120,7 @@ def test_acepta_una_actividad_h5p(tmp_path):
 
 def test_rechaza_un_tipo_de_fichero_que_no_existe(tmp_path):
     documento = informe_valido()
-    documento["ficheros"][0]["tipo"] = "encuesta"
+    documento["ficheros"][0]["tipo"] = "webinar"
     with pytest.raises(ErrorInforme):
         escribir(documento, tmp_path / ".tiza")
 
@@ -400,7 +400,7 @@ def test_fichero_valida_al_construir():
     with pytest.raises(ErrorInforme):
         Fichero(nombre="", tipo="pagina")
     with pytest.raises(ErrorInforme) as exc:
-        Fichero(nombre="a.md", tipo="encuesta")
+        Fichero(nombre="a.md", tipo="webinar")
     assert exc.value.codigo == "VALOR_NO_PERMITIDO"
     with pytest.raises(ErrorInforme):
         Fichero(nombre="a.md", tipo="pagina", url="moodle://x")

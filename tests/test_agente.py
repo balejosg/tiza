@@ -503,13 +503,19 @@ def test_formato_documento_cubre_todos_los_tipos_y_campos():
         CAMPOS_CUESTIONARIO,
         TIPOS_PREGUNTA,
     )
+    from tiza.tipos.encuesta import _CAMPOS_PREGUNTA as _CAMPOS_PREGUNTA_ENCUESTA
+    from tiza.tipos.encuesta import CAMPOS_ENCUESTA
+    from tiza.tipos.encuesta import TIPOS_PREGUNTA as TIPOS_PREGUNTA_ENCUESTA
     from tiza.tipos.h5p import CAMPOS_H5P
 
     texto = agente.formato_documento()
-    for tipo in TIPOS + TIPOS_PREGUNTA:
+    for tipo in TIPOS + TIPOS_PREGUNTA + TIPOS_PREGUNTA_ENCUESTA:
         assert f"tipo: {tipo}" in texto, tipo
     campos = set(CAMPOS_CUESTIONARIO) | set(_CAMPOS_OPCION) | set(CAMPOS_H5P)
+    campos |= set(CAMPOS_ENCUESTA)
     for campos_pregunta in _CAMPOS_PREGUNTA.values():
+        campos |= campos_pregunta
+    for campos_pregunta in _CAMPOS_PREGUNTA_ENCUESTA.values():
         campos |= campos_pregunta
     for campo in sorted(campos):
         assert f"{campo}:" in texto, campo
@@ -530,12 +536,13 @@ def test_los_ejemplos_del_formato_son_validos(tmp_path):
         escribir(tmp_path, ruta.name, ejemplo)
         tipos.append(contenido.cargar(ruta).tipo)
     assert tipos == list(contenido.TTIPOS)
-    # Página y etiqueta van en .html por defecto; tarea, cuestionario y H5P siguen en .md.
+    # Página y etiqueta van en .html por defecto; tarea, cuestionario, H5P y encuesta, en .md.
     assert [lenguaje for lenguaje, _ in bloques] == [
         "html",
         "markdown",
         "markdown",
         "html",
+        "markdown",
         "markdown",
     ]
 
