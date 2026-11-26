@@ -611,3 +611,70 @@ class TestValorCongeladoDesconocido:
         assert exc.value.codigo == "ENCUESTA_CON_RESPUESTAS"
         assert "No se ha tocado nada" in exc.value.detalle
         assert len([l for l in moodle.llamadas if l[0] == "actualizar"]) == actualizaciones
+
+
+DOC_HTML = (
+    '<p>Es <strong>anónima</strong>. <img alt="Un punto" src="@@PLUGINFILE@@/img-1.png"/></p>\n'
+)
+
+
+class TestHtmlEquivalente:
+    """Guardar una etiqueta a mano en Moodle reescribe su HTML sin cambiar lo que se ve."""
+
+    @pytest.mark.parametrize(
+        "aula",
+        [
+            '<p>Es <strong>anónima</strong>. <img alt="Un punto" src="@@PLUGINFILE@@/img-1.png" /></p>',
+            '<p>Es <strong>anónima</strong>. <img src="@@PLUGINFILE@@/img-1.png" alt="Un punto"></p>',
+            '<P>Es <STRONG>anónima</STRONG>. <IMG ALT="Un punto" SRC="@@PLUGINFILE@@/img-1.png"></P>',
+            '<p>\nEs  <strong>anónima</strong>.\n<img alt="Un punto" src="@@PLUGINFILE@@/img-1.png"/></p>\n\n',
+            '<p>Es <strong>an&oacute;nima</strong>. <img alt="Un punto" src="@@PLUGINFILE@@/img-1.png"/></p>',
+        ],
+        ids=["autocierre", "orden-de-atributos", "mayusculas", "espacios", "entidades"],
+    )
+    def test_lo_que_solo_reescribe_moodle_es_equivalente(self, aula):
+        from tiza.tipos.encuesta import _html_equivalente
+
+        assert _html_equivalente(DOC_HTML, aula)
+
+    @pytest.mark.parametrize(
+        "aula",
+        [
+            DOC_HTML.replace("anónima", "anónimas"),
+            DOC_HTML.replace("strong", "em"),
+            DOC_HTML.replace("img-1.png", "img-2.png"),
+            DOC_HTML.replace("Un punto", "Una raya"),
+            DOC_HTML.replace("<p>", '<p class="x">'),
+            DOC_HTML.replace("</p>", "</p><p>Más</p>"),
+        ],
+        ids=["texto", "etiqueta", "imagen", "alt", "atributo-nuevo", "parrafo-nuevo"],
+    )
+    def test_un_cambio_de_verdad_no_es_equivalente(self, aula):
+        from tiza.tipos.encuesta import _html_equivalente
+
+        assert not _html_equivalente(DOC_HTML, aula)
+
+
+class TestEtiquetaReescritaAlRepublicar:
+    def _publicada_con_respuestas(self, tmp_path):
+        preguntas = '- tipo: informacion\n  texto: "Es **anónima**. Tarda un minuto."\n' + PREGUNTAS
+        moodle = MoodleFalso()
+        doc = encuesta(tmp_path, preguntas)
+        cmid = publicar_doc(moodle, doc).cmid
+        moodle.respuestas_encuesta[cmid] = True
+        return moodle, doc, moodle.encuestas[cmid][0]
+
+    def test_reescrita_por_moodle_se_publica_sin_reimportar(self, tmp_path):
+        moodle, doc, etiqueta = self._publicada_con_respuestas(tmp_path)
+        etiqueta["presentacion"] = (
+            etiqueta["presentacion"].replace("<strong>", "<STRONG>").replace(". T", ".\n T")
+        )
+        assert publicar_doc(moodle, doc).accion == "actualizada"
+        assert len(moodle.importados_encuesta) == 1
+
+    def test_cambiada_de_verdad_sigue_bloqueada_con_respuestas(self, tmp_path):
+        moodle, doc, etiqueta = self._publicada_con_respuestas(tmp_path)
+        etiqueta["presentacion"] = etiqueta["presentacion"].replace("un minuto", "dos minutos")
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_doc(moodle, doc)
+        assert exc.value.codigo == "ENCUESTA_CON_RESPUESTAS"

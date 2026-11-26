@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from bs4 import BeautifulSoup, Tag
+from bs4.element import NavigableString, PreformattedString
+
 from .. import contenido, filtro
 from ..contenido import Encuesta as EncuestaContenido
 from ..contenido import ErrorContenido, Imagen, PreguntaEncuesta, numero_texto
@@ -699,7 +702,11 @@ def _preguntas_iguales(doc, leidas: list[dict]) -> bool:
         return False
     for esperada, leida in zip(esperadas, leidas, strict=True):
         for campo in ("tipo", "texto", "presentacion", "opciones"):
-            if _normalizar(esperada[campo]) != _normalizar(leida.get(campo)):
+            if campo == "presentacion" and esperada["tipo"] == "label":
+                # El HTML de una etiqueta guardada a mano vuelve reescrito por Moodle.
+                if not _html_equivalente(esperada[campo], leida.get(campo)):
+                    return False
+            elif _normalizar(esperada[campo]) != _normalizar(leida.get(campo)):
                 return False
         if bool(esperada["obligatoria"]) != bool(leida.get("obligatoria")):
             return False
@@ -708,3 +715,41 @@ def _preguntas_iguales(doc, leidas: list[dict]) -> bool:
 
 def _normalizar(valor: Any) -> str:
     return "" if valor is None else str(valor).strip()
+
+
+def _html_equivalente(esperado: Any, leido: Any) -> bool:
+    """¿Es el mismo HTML, salvo lo que reescribe el editor de Moodle al guardar?
+
+    Se comparan los árboles: nombres de etiqueta y atributos sin mayúsculas, atributos
+    sin orden, entidades resueltas y espacios seguidos como uno solo. Cualquier cambio de
+    texto, etiqueta, atributo o valor sigue contando como distinto.
+    """
+    return _arbol(_normalizar(esperado)) == _arbol(_normalizar(leido))
+
+
+def _arbol(html: str) -> tuple:
+    cuerpo = BeautifulSoup(html, "html5lib").body
+    return _nodos(cuerpo) if cuerpo is not None else ()
+
+
+def _nodos(nodo: Tag) -> tuple:
+    hijos: list = []
+    for hijo in nodo.children:
+        if isinstance(hijo, Tag):
+            atributos = tuple(
+                sorted(
+                    (nombre, " ".join(valor) if isinstance(valor, list) else str(valor))
+                    for nombre, valor in hijo.attrs.items()
+                )
+            )
+            hijos.append((hijo.name, atributos, _nodos(hijo)))
+        elif isinstance(hijo, NavigableString) and not isinstance(hijo, PreformattedString):
+            texto = " ".join(str(hijo).split())
+            if not texto:
+                continue
+            # Dos textos seguidos (separados por un comentario o al partir) son uno.
+            if hijos and isinstance(hijos[-1], str):
+                hijos[-1] = f"{hijos[-1]} {texto}"
+            else:
+                hijos.append(texto)
+    return tuple(hijos)
