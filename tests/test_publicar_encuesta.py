@@ -510,3 +510,61 @@ class TestRespuestasJustoAntesDeImportar:
         nombres = [llamada[0] for llamada in moodle.llamadas]
         importar = nombres.index("importar_encuesta")
         assert nombres[importar - 1] == "encuesta_tiene_respuestas"
+
+
+class TestImagenRotaAlRepublicar:
+    def _publicada(self, tmp_path):
+        (tmp_path / "img").mkdir()
+        (tmp_path / "img" / "punto.png").write_bytes(_PNG)
+        preguntas = '- tipo: informacion\n  texto: "![Un punto](img/punto.png)"\n' + PREGUNTAS
+        moodle = MoodleFalso()
+        doc = encuesta(tmp_path, preguntas)
+        resultado = publicar_doc(moodle, doc)
+        return moodle, doc, resultado.cmid
+
+    def test_una_imagen_que_no_se_sirve_se_vuelve_a_subir_sin_reimportar(self, tmp_path):
+        moodle, doc, cmid = self._publicada(tmp_path)
+        etiqueta = moodle.items_encuesta[cmid][0]
+        moodle.imagenes_encuesta.pop(etiqueta)  # la subida falló la vez anterior
+        moodle.llamadas.clear()
+        publicar_doc(moodle, doc)
+        assert [l for l in moodle.llamadas if l[0] == "imagen_de_etiqueta"][0][2] == etiqueta
+        assert len(moodle.importados_encuesta) == 1
+
+    def test_una_imagen_que_se_sirve_no_se_vuelve_a_subir(self, tmp_path):
+        moodle, doc, _cmid = self._publicada(tmp_path)
+        moodle.llamadas.clear()
+        publicar_doc(moodle, doc)
+        assert not [l for l in moodle.llamadas if l[0] == "imagen_de_etiqueta"]
+        assert len(moodle.importados_encuesta) == 1
+
+    def test_tambien_con_respuestas_porque_una_etiqueta_no_tiene_respuestas(self, tmp_path):
+        moodle, doc, cmid = self._publicada(tmp_path)
+        etiqueta = moodle.items_encuesta[cmid][0]
+        moodle.imagenes_encuesta.pop(etiqueta)
+        moodle.respuestas_encuesta[cmid] = True
+        publicar_doc(moodle, doc)
+        assert moodle.imagenes_encuesta[etiqueta]
+        assert moodle.respuestas_encuesta[cmid] is True
+
+
+class TestImagenesServidas:
+    def test_mira_cada_imagen_en_el_area_del_item(self):
+        sesion = _SesionEncuesta()
+        sesion.respuesta("modedit.php", MODOEDIT_SELECT)
+        sesion.respuesta("pluginfile", _R("png", 200))
+        imagen = Imagen(nombre="img-abc.png", mime="image/png", datos=b"png")
+        aula = moodle(sesion)
+        aula.comprobar_pluginfile = lambda url: (  # type: ignore[method-assign]
+            sesion.gets.append((url, None, {})) or True
+        )
+        assert aula.imagenes_de_etiqueta_servidas(5, 18, [imagen]) is True
+        assert any(url.endswith("/mod_feedback/item/18/img-abc.png") for url, _p, _k in sesion.gets)
+
+    def test_una_que_falta_es_false(self):
+        sesion = _SesionEncuesta()
+        sesion.respuesta("modedit.php", MODOEDIT_SELECT)
+        aula = moodle(sesion)
+        aula.comprobar_pluginfile = lambda url: False  # type: ignore[method-assign]
+        imagen = Imagen(nombre="img-abc.png", mime="image/png", datos=b"png")
+        assert aula.imagenes_de_etiqueta_servidas(5, 18, [imagen]) is False

@@ -445,6 +445,10 @@ class AulaVirtual(Protocol):
         self, curso_id: int, cmid: int, itemid: int, html: str, imagenes: Sequence[Imagen]
     ) -> None: ...
 
+    def imagenes_de_etiqueta_servidas(
+        self, cmid: int, itemid: int, imagenes: Sequence[Imagen]
+    ) -> bool: ...
+
     def comprobar_h5p(self, cmid: int) -> bool: ...
 
     def libreria_h5p_ausente(self, cmid: int, machine_name: str) -> bool: ...
@@ -1554,16 +1558,18 @@ class Moodle:
         )
         if getattr(respuesta, "status_code", 0) not in (301, 302, 303):
             raise ErrorPublicacion("ERROR_ENCUESTA_IMAGEN")
+        if not self.imagenes_de_etiqueta_servidas(cmid, itemid, imagenes):
+            raise ErrorPublicacion("VERIFICACION_IMAGENES")
+
+    def imagenes_de_etiqueta_servidas(
+        self, cmid: int, itemid: int, imagenes: Sequence[Imagen]
+    ) -> bool:
+        """¿Sirve el aula todas las imágenes de esta etiqueta, en el área de su ítem?"""
         contexto = self.leer_modulo(cmid).get("contexto")
         if not isinstance(contexto, int):
             raise ErrorPublicacion("ERROR_ENCUESTA_IMAGEN")
-        for imagen in imagenes:
-            enlace = (
-                f"{self.base_url}/pluginfile.php/{contexto}/mod_feedback/item/"
-                f"{itemid}/{imagen.nombre}"
-            )
-            if not self.comprobar_pluginfile(enlace):
-                raise ErrorPublicacion("VERIFICACION_IMAGENES")
+        raiz = f"{self.base_url}/pluginfile.php/{contexto}/mod_feedback/item/{itemid}"
+        return all(self.comprobar_pluginfile(f"{raiz}/{imagen.nombre}") for imagen in imagenes)
 
     # --- Actividades H5P: despliegue e intentos ------------------------------
 

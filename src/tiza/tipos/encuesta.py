@@ -162,6 +162,10 @@ class Encuesta(Tipo):
                     "La encuesta ya tiene respuestas y Moodle no deja cambiar cuántas veces "
                     "puede responder cada alumno. No se ha tocado nada.",
                 )
+            else:
+                # Mismas preguntas: si una imagen de una etiqueta no llegó a subirse (falló
+                # la vez anterior), se repone. Una etiqueta no tiene respuestas.
+                self._reponer_imagenes(p, cmid)
             p.moodle.actualizar(cmid, payload)
             accion = "actualizada"
 
@@ -199,6 +203,29 @@ class Encuesta(Tipo):
             p.moodle.imagen_de_etiqueta(
                 p.curso_id, cmid, ids[posicion - 1], pregunta.html, pregunta.imagenes
             )
+
+    def _reponer_imagenes(self, p: ContextoPublicacion, cmid: int) -> None:
+        """Vuelve a subir las imágenes de las etiquetas que el aula no sirve."""
+        encuesta = p.doc.encuesta
+        assert encuesta is not None
+        con_imagen = [
+            (posicion, pregunta)
+            for posicion, pregunta in enumerate(encuesta.preguntas, 1)
+            if pregunta.tipo == "informacion" and pregunta.imagenes
+        ]
+        if not con_imagen:
+            return
+        from ..publicar import ErrorPublicacion
+
+        ids = p.moodle.items_de_encuesta(cmid)
+        for posicion, pregunta in con_imagen:
+            if posicion > len(ids):
+                raise ErrorPublicacion("ERROR_ENCUESTA_ITEMS", p.doc.ruta.name)
+            itemid = ids[posicion - 1]
+            if not p.moodle.imagenes_de_etiqueta_servidas(cmid, itemid, pregunta.imagenes):
+                p.moodle.imagen_de_etiqueta(
+                    p.curso_id, cmid, itemid, pregunta.html, pregunta.imagenes
+                )
 
     def urls_pluginfile(self, base_url, contexto, instance, nombre) -> list[str]:
         # La descripción de una encuesta va en mod_feedback/intro (sin itemid).

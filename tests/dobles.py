@@ -240,6 +240,8 @@ class MoodleFalso:
         self.varias_encuesta: dict[int, str] = {}
         self.items_encuesta: dict[int, list[int]] = {}
         self._siguiente_item_encuesta = 900
+        # Imágenes que el aula sirve en cada ítem de etiqueta (itemid → nombres).
+        self.imagenes_encuesta: dict[int, tuple[str, ...]] = {}
         # Actividades H5P: paquete subido, despliegue, librería e intentos.
         self.paquetes_h5p: dict[int, str] = {}
         self.despliegues_h5p: dict[int, bool] = {}
@@ -937,8 +939,14 @@ class MoodleFalso:
         for item in self.encuestas.get(cmid, []):
             if item["itemid"] == itemid:
                 item["presentacion"] = html
+                self.imagenes_encuesta[itemid] = tuple(imagen.nombre for imagen in imagenes)
                 return
         raise ErrorPublicacion("ERROR_ENCUESTA_ITEMS")
+
+    def imagenes_de_etiqueta_servidas(self, cmid, itemid, imagenes):
+        self.llamadas.append(("imagenes_de_etiqueta_servidas", cmid, itemid))
+        servidas = self.imagenes_encuesta.get(itemid, ())
+        return self.imagenes_servidas and all(imagen.nombre in servidas for imagen in imagenes)
 
     # --- Actividades H5P: despliegue e intentos ------------------------------
 
