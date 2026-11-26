@@ -168,8 +168,8 @@ En las preguntas que no son `informacion`, el `enunciado` es **texto plano**
 (sin HTML ni imágenes) y todas menos `informacion` admiten `obligatoria`. Las
 opciones son texto plano y no pueden llevar `|`, `####`, `>>>>>` ni `<<<<<`
 (son separadores de Moodle: `OPCION_CON_SEPARADOR`). `respuestas` admite `una`
-o `varias`, y la finalización solo `ninguna` o `enviar`; ninguna se puede
-cambiar con respuestas (`ENCUESTA_CON_RESPUESTAS`). Las preguntas tampoco:
+o `varias`, y con respuestas no se puede cambiar (`ENCUESTA_CON_RESPUESTAS`);
+la finalización solo admite `ninguna` o `enviar`. Las preguntas tampoco:
 si cambian, tiza no las reimporta. Los ajustes (nombre, descripción, fechas y
 mensaje final) sí se pueden cambiar.
 

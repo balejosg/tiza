@@ -172,7 +172,7 @@ def _parser() -> argparse.ArgumentParser:
     publicar_parser.add_argument(
         "--solo-fechas",
         action="store_true",
-        help="cambia solo las fechas de tareas y cuestionarios ya publicados; no toca el "
+        help="cambia solo las fechas de tareas, cuestionarios y encuestas ya publicados; no toca el "
         "contenido, las preguntas, los intentos ni la visibilidad",
     )
     publicar_parser.add_argument("--debug", action="store_true")

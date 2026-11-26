@@ -484,7 +484,7 @@ def peticion_publicar(
 ) -> dict:
     """Petición de publicar para el buzón (``visible=None``: lo que exista conserva).
 
-    ``solo_fechas`` cambia solo las fechas de tareas y cuestionarios ya publicados;
+    ``solo_fechas`` cambia solo las fechas de tareas, cuestionarios y encuestas ya publicados;
     no admite ``visible``.
     """
     return {
