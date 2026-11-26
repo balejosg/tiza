@@ -149,7 +149,9 @@ class Encuesta(Tipo):
             cmid = p.existente.cmid
             estado = _estado_respuestas(p)
             if not _preguntas_iguales(doc, p.moodle.exportar_encuesta(cmid)):
-                if estado["hay_respuestas"]:
+                # El formulario se leyó antes de subir los recursos: se vuelve a mirar justo
+                # antes de importar, que es lo que borraría una respuesta llegada entretanto.
+                if estado["hay_respuestas"] or p.moodle.encuesta_tiene_respuestas(cmid):
                     raise ErrorPublicacion(
                         "ENCUESTA_CON_RESPUESTAS", DETALLE_ENCUESTA_CON_RESPUESTAS
                     )

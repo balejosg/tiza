@@ -480,3 +480,33 @@ class TestPublicarEncuesta:
         _url, datos = next(l for l in moodle.llamadas if l[0] == "actualizar")[1:]
         assert datos["timeopen[day]"] == "28"
         assert datos["timeclose[day]"] == "21"
+
+
+class TestRespuestasJustoAntesDeImportar:
+    def test_una_respuesta_que_llega_tras_leer_el_formulario_para_la_importacion(self, tmp_path):
+        class MoodleConRespuestaTardia(MoodleFalso):
+            def encuesta_tiene_respuestas(self, cmid):
+                super().encuesta_tiene_respuestas(cmid)
+                return True  # un alumno envía después de que se leyera el formulario
+
+        moodle = MoodleConRespuestaTardia()
+        publicar_doc(moodle, encuesta(tmp_path))
+        cambiada = encuesta(
+            tmp_path, PREGUNTAS.replace("¿Qué te ha gustado?", "¿Qué harías distinto?")
+        )
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_doc(moodle, cambiada)
+        assert exc.value.codigo == "ENCUESTA_CON_RESPUESTAS"
+        assert len(moodle.importados_encuesta) == 1
+
+    def test_la_comprobacion_va_justo_antes_de_importar(self, tmp_path):
+        moodle = MoodleFalso()
+        publicar_doc(moodle, encuesta(tmp_path))
+        moodle.llamadas.clear()
+        cambiada = encuesta(
+            tmp_path, PREGUNTAS.replace("¿Qué te ha gustado?", "¿Qué harías distinto?")
+        )
+        publicar_doc(moodle, cambiada)
+        nombres = [llamada[0] for llamada in moodle.llamadas]
+        importar = nombres.index("importar_encuesta")
+        assert nombres[importar - 1] == "encuesta_tiene_respuestas"
