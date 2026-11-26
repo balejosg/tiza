@@ -897,3 +897,49 @@ def test_un_peso_que_no_es_coeficiente_se_llama_peso():
         CambioCalificador("TZ_A11", "peso", "proyecto", antes=4.0, despues=2.0)
     )
     assert "(coeficiente 2 → 4)" in coeficiente
+
+
+class TestEncuesta:
+    def test_el_titulo_dice_cuantas_preguntas_y_que_es_anonima(self):
+        doc = _doc(
+            fichero="encuesta.md",
+            tipo="encuesta",
+            nombre="Puerta de la felicidad",
+            seccion=3,
+            encuesta_anonima=True,
+            encuesta_preguntas=4,
+        )
+        assert mensajes.describir_documento(doc) == (
+            "Encuesta anónima «Puerta de la felicidad» → sección 3 (4 preguntas)"
+        )
+        [documento] = mensajes.detalle_real(_resumen(doc)).documentos
+        assert "Moodle guarda quién responde, pero no te lo enseña." in documento.lineas
+
+    def test_con_finalizacion_avisa_de_que_vera_quien_respondio(self):
+        doc = _doc(
+            fichero="encuesta.md",
+            tipo="encuesta",
+            nombre="Puerta de la felicidad",
+            encuesta_anonima=True,
+            encuesta_preguntas=4,
+            encuesta_finalizacion="enviar",
+        )
+        lineas = mensajes.detalle_real(_resumen(doc)).documentos[0].lineas
+        assert "Con la finalización activada, verás quién ha respondido, pero no qué." in lineas
+
+    def test_sin_finalizacion_no_avisa_de_quien_respondio(self):
+        doc = _doc(
+            fichero="encuesta.md",
+            tipo="encuesta",
+            nombre="Puerta de la felicidad",
+            encuesta_anonima=True,
+            encuesta_preguntas=4,
+            encuesta_finalizacion=None,
+        )
+        lineas = mensajes.detalle_real(_resumen(doc)).documentos[0].lineas
+        assert not any("verás quién ha respondido" in linea for linea in lineas)
+
+    def test_una_encuesta_no_dice_lo_de_las_imagenes_de_preguntas(self):
+        doc = _doc(tipo="encuesta", encuesta_anonima=True, encuesta_preguntas=1)
+        lineas = mensajes.detalle_real(_resumen(doc)).documentos[0].lineas
+        assert not any("dentro de las preguntas" in linea for linea in lineas)

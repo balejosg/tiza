@@ -614,6 +614,10 @@ class DocumentoResumen:
     h5p_libreria: str | None = None  # librería principal de un paquete subido
     h5p_descartadas: tuple[str, ...] = ()  # librerías que tiza no sube nunca
     imagenes_preguntas: int = 0  # imágenes locales dentro de las preguntas de un cuestionario
+    # Encuesta anónima: cuántas preguntas lleva y si la finalización hace ver quién respondió.
+    encuesta_anonima: bool = False
+    encuesta_preguntas: int = 0
+    encuesta_finalizacion: str | None = None
     # None: no se ha comparado con el aula (pruebas, la confirmación corta…).
     cambios: tuple[CambioFecha, ...] | None = None
     # Finalización y restricciones que declara el .md, en lenguaje llano (solo del .md).

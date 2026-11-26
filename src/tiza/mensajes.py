@@ -272,6 +272,8 @@ def describir_documento(doc: DocumentoResumen) -> str:
     else:
         seccion = f"sección {doc.seccion}"
     texto = f"{nombre_llano(doc.tipo)} «{texto_seguro(doc.nombre)}» → {seccion}"
+    if doc.encuesta_preguntas:
+        texto += f" ({doc.encuesta_preguntas} preguntas)"
     if doc.fechas and doc.cambios is None:
         texto += "; " + ", ".join(
             f"{fecha.campo} {_fecha_llana(fecha.momento)}"
@@ -350,6 +352,10 @@ def _documento_real(doc: DocumentoResumen, solo: bool) -> DocumentoReal:
         lineas.append(BORRADA_TEXTO)
     if not solo:
         lineas += [texto_seguro(linea) for linea in doc.itinerario]
+        if doc.encuesta_anonima:
+            lineas.append("Moodle guarda quién responde, pero no te lo enseña.")
+        if doc.encuesta_finalizacion == "enviar":
+            lineas.append("Con la finalización activada, verás quién ha respondido, pero no qué.")
         if doc.h5p is not None:
             lineas.append(f"actividad H5P: {texto_seguro(doc.h5p)}")
         if doc.h5p_libreria:
