@@ -14,15 +14,19 @@ from urllib.parse import unquote, urlsplit
 from .. import contenido, filtro
 from ..contenido import Encuesta as EncuestaContenido
 from ..contenido import ErrorContenido, Imagen, PreguntaEncuesta, numero_texto
+from ..encuesta import items_del_documento, items_xml
 from .base import (
     Contexto,
+    ContextoPublicacion,
     Extras,
     FechaActividad,
     Tipo,
     campo_visible,
+    deshacer_modulo,
     fechas_payload,
     formato_fecha,
     payload_finalizacion,
+    verificar,
 )
 
 # Campos propios del frontmatter (las preguntas van dentro) y campos de fecha del
@@ -119,6 +123,80 @@ class Encuesta(Tipo):
         payload.update(payload_finalizacion(self, doc))
         payload.update(campo_visible(visible))
         return payload
+
+    def publicar(self, p: ContextoPublicacion) -> tuple[int, str, dict]:
+        """Crea o republica la encuesta sin borrar nunca sus respuestas.
+
+        Las preguntas solo se reimportan si el aula muestra otras y Moodle no ha congelado
+        «varias respuestas». Si no se puede saber si hay respuestas, se trata como que las hay.
+        """
+        from ..publicar import DETALLE_ENCUESTA_CON_RESPUESTAS, ErrorPublicacion
+
+        doc = p.doc
+        encuesta = doc.encuesta
+        assert encuesta is not None
+        payload = self.payload(doc, p.html, p.itemid, p.visible)
+
+        if p.existente is None:
+            cmid = p.moodle.crear(p.curso_id, p.seccion.id, self.nombre, payload)
+            try:
+                self._importar_y_verificar(p, cmid)
+            except ErrorPublicacion as exc:
+                deshacer_modulo(p.moodle, p.curso_id, cmid, exc)
+                raise
+            accion = "creada"
+        else:
+            cmid = p.existente.cmid
+            estado = _estado_respuestas(p)
+            if not _preguntas_iguales(doc, p.moodle.exportar_encuesta(cmid)):
+                if estado["hay_respuestas"]:
+                    raise ErrorPublicacion(
+                        "ENCUESTA_CON_RESPUESTAS", DETALLE_ENCUESTA_CON_RESPUESTAS
+                    )
+                self._importar_y_verificar(p, cmid)
+            elif estado["hay_respuestas"] and _cambia_el_numero_de_respuestas(doc, estado):
+                raise ErrorPublicacion(
+                    "ENCUESTA_CON_RESPUESTAS",
+                    "La encuesta ya tiene respuestas y Moodle no deja cambiar cuántas veces "
+                    "puede responder cada alumno. No se ha tocado nada.",
+                )
+            p.moodle.actualizar(cmid, payload)
+            accion = "actualizada"
+
+        try:
+            info = verificar(p.moodle, self, doc, cmid)
+            if not _preguntas_iguales(doc, p.moodle.exportar_encuesta(cmid)):
+                raise ErrorPublicacion("VERIFICACION_ENCUESTA", doc.ruta.name)
+            estado = info.get("multiple_submit") or {}
+            if info.get("anonymous") != "1":
+                raise ErrorPublicacion("VERIFICACION_ENCUESTA", doc.ruta.name)
+            esperado = "1" if encuesta.respuestas == "varias" else "0"
+            if estado.get("forma") == "select" and estado.get("valor") not in (None, esperado):
+                raise ErrorPublicacion("VERIFICACION_ENCUESTA", doc.ruta.name)
+        except ErrorPublicacion as exc:
+            if p.existente is None:
+                deshacer_modulo(p.moodle, p.curso_id, cmid, exc)
+            else:
+                exc.cmid = cmid
+            raise
+        return cmid, accion, info
+
+    def _importar_y_verificar(self, p: ContextoPublicacion, cmid: int) -> None:
+        """Importa las preguntas y sube las imágenes de sus etiquetas."""
+        from ..publicar import ErrorPublicacion
+
+        p.moodle.importar_encuesta(p.curso_id, cmid, items_xml(p.doc))
+        ids = p.moodle.items_de_encuesta(cmid)
+        encuesta = p.doc.encuesta
+        assert encuesta is not None
+        for posicion, pregunta in enumerate(encuesta.preguntas, 1):
+            if pregunta.tipo != "informacion" or not pregunta.imagenes:
+                continue
+            if posicion > len(ids):
+                raise ErrorPublicacion("ERROR_ENCUESTA_ITEMS", p.doc.ruta.name)
+            p.moodle.imagen_de_etiqueta(
+                p.curso_id, cmid, ids[posicion - 1], pregunta.html, pregunta.imagenes
+            )
 
     def urls_pluginfile(self, base_url, contexto, instance, nombre) -> list[str]:
         # La descripción de una encuesta va en mod_feedback/intro (sin itemid).
@@ -538,3 +616,60 @@ def _imagenes_en_linea(html: str, imagenes: tuple[Imagen, ...]) -> str:
         return f"data:{imagen.mime};base64,{base64.b64encode(imagen.datos).decode('ascii')}"
 
     return _REF_IMAGEN.sub(reemplazo, html)
+
+
+# --------------------------------------------------------------------------- #
+# Comparación con lo que hay en el aula
+# --------------------------------------------------------------------------- #
+
+
+def _estado_respuestas(p: ContextoPublicacion) -> dict[str, Any]:
+    """(hay_respuestas, valor de «varias respuestas») sin gastar otra petición.
+
+    Usa el formulario de ajustes que ya cargó la publicación; si no está, lo pide.
+    Ante cualquier duda, hay respuestas.
+    """
+    estado = (p.leido or {}).get("multiple_submit")
+    if not isinstance(estado, dict):
+        assert p.existente is not None
+        try:
+            estado = p.moodle.leer_modulo(p.existente.cmid).get("multiple_submit")
+        except Exception:  # noqa: BLE001 - no poder saberlo cuenta como «con respuestas»
+            estado = None
+    if not isinstance(estado, dict):
+        return {"hay_respuestas": True, "valor": None, "forma": "desconocida"}
+    forma = estado.get("forma")
+    return {
+        "hay_respuestas": forma != "select",
+        "valor": estado.get("valor"),
+        "forma": forma,
+    }
+
+
+def _cambia_el_numero_de_respuestas(doc, estado: dict[str, Any]) -> bool:
+    """Solo se puede afirmar si el formulario dio el valor actual."""
+    actual = estado.get("valor")
+    if actual not in ("0", "1"):
+        return False
+    esperado = "1" if doc.encuesta.respuestas == "varias" else "0"
+    return actual != esperado
+
+
+def _preguntas_iguales(doc, leidas: list[dict]) -> bool:
+    encuesta = doc.encuesta
+    if encuesta is None:
+        return False
+    esperadas = items_del_documento(doc)
+    if len(leidas) != len(esperadas):
+        return False
+    for esperada, leida in zip(esperadas, leidas, strict=True):
+        for campo in ("tipo", "texto", "presentacion", "opciones"):
+            if _normalizar(esperada[campo]) != _normalizar(leida.get(campo)):
+                return False
+        if bool(esperada["obligatoria"]) != bool(leida.get("obligatoria")):
+            return False
+    return True
+
+
+def _normalizar(valor: Any) -> str:
+    return "" if valor is None else str(valor).strip()

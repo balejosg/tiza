@@ -302,3 +302,181 @@ class TestImagenDeEtiqueta:
                 838, 5, 18, "<p>x</p>", [Imagen(nombre="a.png", mime="image/png", datos=b"x")]
             )
         assert exc.value.codigo == "VERIFICACION_IMAGENES"
+
+
+# --------------------------------------------------------------------------- #
+# Publicación con el doble del aula
+# --------------------------------------------------------------------------- #
+
+from dobles import MoodleFalso, estructura_de  # noqa: E402
+from tiza import contenido  # noqa: E402
+
+_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00"
+    b"\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x9a\xa0\xa0"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+PREGUNTAS = """\
+- tipo: escala
+  enunciado: ¿Cómo te has sentido?
+  opciones: [Muy mal, Mal, Normal, Bien, Muy bien]
+- tipo: texto
+  enunciado: ¿Qué te ha gustado?
+"""
+
+
+def encuesta(tmp_path, preguntas: str = PREGUNTAS, **campos) -> contenido.Documento:
+    extra = "".join(f"{clave}: {valor}\n" for clave, valor in campos.items())
+    ruta = tmp_path / "encuesta.md"
+    ruta.write_text(
+        "---\ntipo: encuesta\nnombre: Puerta de la felicidad\nseccion: 3\n"
+        f"{extra}preguntas:\n{preguntas}---\n\nCuéntanos cómo ha ido.\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return contenido.cargar(ruta, raiz=tmp_path)
+
+
+def publicar_doc(moodle, doc):
+    return publicar.publicar_documento(
+        moodle, 1234, estructura_de(moodle.secciones), doc, visible=None
+    )
+
+
+class TestPublicarEncuesta:
+    def test_crea_la_encuesta_anonima_y_la_verifica(self, tmp_path):
+        moodle = MoodleFalso()
+        resultado = publicar_doc(moodle, encuesta(tmp_path))
+        assert (resultado.tipo, resultado.accion, resultado.oculto) == (
+            "encuesta",
+            "creada",
+            True,
+        )
+        crear = next(llamada for llamada in moodle.llamadas if llamada[0] == "crear")
+        assert crear[3] == "encuesta"
+        assert crear[4]["anonymous"] == "1"
+        assert crear[4]["multiple_submit"] == "0"
+        assert crear[4]["_qf__mod_feedback_mod_form"] == "1"
+        assert len(moodle.importados_encuesta) == 1
+        assert len(moodle.encuestas[resultado.cmid]) == 2
+
+    def test_republicar_sin_cambiar_las_preguntas_no_reimporta(self, tmp_path):
+        moodle = MoodleFalso()
+        doc = encuesta(tmp_path)
+        primero = publicar_doc(moodle, doc)
+        segundo = publicar_doc(moodle, doc)
+        assert (primero.cmid, segundo.cmid) == (100, 100)
+        assert segundo.accion == "actualizada"
+        assert len(moodle.importados_encuesta) == 1
+
+    def test_cambiar_una_pregunta_sin_respuestas_la_reimporta(self, tmp_path):
+        moodle = MoodleFalso()
+        publicar_doc(moodle, encuesta(tmp_path))
+        cambiada = encuesta(
+            tmp_path, PREGUNTAS.replace("¿Qué te ha gustado?", "¿Qué harías distinto?")
+        )
+        resultado = publicar_doc(moodle, cambiada)
+        assert resultado.accion == "actualizada"
+        assert len(moodle.importados_encuesta) == 2
+        assert "¿Qué harías distinto?" in [
+            item["texto"] for item in moodle.encuestas[resultado.cmid]
+        ]
+
+    def test_cambiar_una_pregunta_con_respuestas_no_toca_nada(self, tmp_path):
+        moodle = MoodleFalso()
+        primero = publicar_doc(moodle, encuesta(tmp_path))
+        moodle.respuestas_encuesta[primero.cmid] = True
+        cambiada = encuesta(
+            tmp_path, PREGUNTAS.replace("¿Qué te ha gustado?", "¿Qué harías distinto?")
+        )
+        actualizaciones = len([l for l in moodle.llamadas if l[0] == "actualizar"])
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_doc(moodle, cambiada)
+        assert exc.value.codigo == "ENCUESTA_CON_RESPUESTAS"
+        assert "No se ha tocado nada" in exc.value.detalle
+        assert len(moodle.importados_encuesta) == 1
+        assert len([l for l in moodle.llamadas if l[0] == "actualizar"]) == actualizaciones
+
+    def test_los_ajustes_si_se_cambian_con_respuestas(self, tmp_path):
+        moodle = MoodleFalso()
+        primero = publicar_doc(moodle, encuesta(tmp_path))
+        moodle.respuestas_encuesta[primero.cmid] = True
+        cambiada = encuesta(
+            tmp_path, mensaje_final="¡Gracias!", cierra="2026-12-20", respuestas="una"
+        )
+        resultado = publicar_doc(moodle, cambiada)
+        assert resultado.accion == "actualizada"
+        assert len(moodle.importados_encuesta) == 1
+        assert moodle.formularios[primero.cmid]["name"] == "Puerta de la felicidad"
+        assert "¡Gracias!" in moodle.formularios[primero.cmid]["page_after_submit_editor[text]"]
+
+    def test_cambiar_las_respuestas_con_respuestas_no_toca_nada(self, tmp_path):
+        moodle = MoodleFalso()
+        primero = publicar_doc(moodle, encuesta(tmp_path))
+        moodle.respuestas_encuesta[primero.cmid] = True
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_doc(moodle, encuesta(tmp_path, respuestas="varias"))
+        assert exc.value.codigo == "ENCUESTA_CON_RESPUESTAS"
+        assert len(moodle.importados_encuesta) == 1
+
+    def test_cambiar_las_respuestas_sin_respuestas_se_publica(self, tmp_path):
+        moodle = MoodleFalso()
+        publicar_doc(moodle, encuesta(tmp_path))
+        publicar_doc(moodle, encuesta(tmp_path, respuestas="varias"))
+        assert moodle.varias_encuesta[100] == "1"
+        assert len(moodle.importados_encuesta) == 1
+
+    def test_si_no_se_puede_saber_si_hay_respuestas_se_trata_como_que_las_hay(self, tmp_path):
+        class MoodleDudoso(MoodleFalso):
+            def leer_modulo(self, cmid):
+                info = super().leer_modulo(cmid)
+                info["multiple_submit"] = {"forma": "desconocida", "valor": None}
+                return info
+
+        moodle = MoodleDudoso()
+        publicar_doc(moodle, encuesta(tmp_path))
+        cambiada = encuesta(
+            tmp_path, PREGUNTAS.replace("¿Qué te ha gustado?", "¿Qué harías distinto?")
+        )
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_doc(moodle, cambiada)
+        assert exc.value.codigo == "ENCUESTA_CON_RESPUESTAS"
+
+    def test_una_etiqueta_con_imagen_sube_la_imagen(self, tmp_path):
+        (tmp_path / "img").mkdir()
+        (tmp_path / "img" / "punto.png").write_bytes(_PNG)
+        preguntas = '- tipo: informacion\n  texto: "![Un punto](img/punto.png)"\n'
+        moodle = MoodleFalso()
+        resultado = publicar_doc(moodle, encuesta(tmp_path, preguntas))
+        llamada = next(l for l in moodle.llamadas if l[0] == "imagen_de_etiqueta")
+        assert llamada[2] == moodle.items_encuesta[resultado.cmid][0]
+        assert "@@PLUGINFILE@@/" in llamada[3]
+        assert llamada[4] and llamada[4][0].startswith("img-")
+        assert "@@PLUGINFILE@@" in moodle.encuestas[resultado.cmid][0]["presentacion"]
+
+    def test_si_la_verificacion_falla_una_encuesta_nueva_se_borra(self, tmp_path):
+        class MoodleQueMiente(MoodleFalso):
+            def exportar_encuesta(self, cmid):
+                items = super().exportar_encuesta(cmid)
+                if items:
+                    items[0] = {**items[0], "texto": "otra cosa"}
+                return items
+
+        moodle = MoodleQueMiente()
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_doc(moodle, encuesta(tmp_path))
+        assert exc.value.codigo == "VERIFICACION_ENCUESTA"
+        assert any(llamada[0] == "borrar" for llamada in moodle.llamadas)
+
+    def test_solo_fechas_cambia_las_fechas_sin_reimportar(self, tmp_path):
+        moodle = MoodleFalso()
+        doc = encuesta(tmp_path, abre="2026-11-27", cierra="2026-12-20")
+        publicar_doc(moodle, doc)
+        cambiado = encuesta(tmp_path, abre="2026-11-28", cierra="2026-12-21")
+        resultado = publicar.publicar_fechas(moodle, estructura_de(moodle.secciones), cambiado)
+        assert resultado.accion == "actualizada"
+        assert len(moodle.importados_encuesta) == 1
+        _url, datos = next(l for l in moodle.llamadas if l[0] == "actualizar")[1:]
+        assert datos["timeopen[day]"] == "28"
+        assert datos["timeclose[day]"] == "21"

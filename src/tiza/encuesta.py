@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from .contenido import Documento, PreguntaEncuesta, numero_texto
 
-__all__ = ["items_xml", "opciones_xml", "presentacion", "tipo_xml"]
+__all__ = ["items_del_documento", "items_xml", "opciones_xml", "presentacion", "tipo_xml"]
 
 TIPOS_XML = {
     "escala": "multichoicerated",
@@ -59,16 +59,32 @@ def _cdata(texto: str) -> str:
     return "<![CDATA[" + texto.replace("]]>", "]]]]><![CDATA[>") + "]]>"
 
 
-def _item(numero: int, pregunta: PreguntaEncuesta) -> str:
-    texto = "" if pregunta.tipo == "informacion" else pregunta.enunciado
-    requerido = "1" if pregunta.obligatoria else "0"
+def items_del_documento(doc: Documento) -> list[dict]:
+    """Lo que debe haber en el aula, con los mismos campos que devuelve su exportación."""
+    if doc.encuesta is None:
+        raise ValueError("el documento no es una encuesta")
+    return [
+        {
+            "tipo": tipo_xml(pregunta.tipo),
+            "texto": "" if pregunta.tipo == "informacion" else pregunta.enunciado,
+            "etiqueta": f"p{numero}",
+            "presentacion": presentacion(pregunta),
+            "opciones": opciones_xml(pregunta),
+            "obligatoria": pregunta.obligatoria,
+        }
+        for numero, pregunta in enumerate(doc.encuesta.preguntas, 1)
+    ]
+
+
+def _item(numero: int, item: dict) -> str:
+    requerido = "1" if item["obligatoria"] else "0"
     return (
-        f'<ITEM TYPE="{tipo_xml(pregunta.tipo)}" REQUIRED="{requerido}">'
+        f'<ITEM TYPE="{item["tipo"]}" REQUIRED="{requerido}">'
         f"<ITEMID>{_cdata(str(numero))}</ITEMID>"
-        f"<ITEMTEXT>{_cdata(texto)}</ITEMTEXT>"
-        f"<ITEMLABEL>{_cdata(f'p{numero}')}</ITEMLABEL>"
-        f"<PRESENTATION>{_cdata(presentacion(pregunta))}</PRESENTATION>"
-        f"<OPTIONS>{_cdata(opciones_xml(pregunta))}</OPTIONS>"
+        f"<ITEMTEXT>{_cdata(item['texto'])}</ITEMTEXT>"
+        f"<ITEMLABEL>{_cdata(item['etiqueta'])}</ITEMLABEL>"
+        f"<PRESENTATION>{_cdata(item['presentacion'])}</PRESENTATION>"
+        f"<OPTIONS>{_cdata(item['opciones'])}</OPTIONS>"
         f"<DEPENDITEM>{_cdata('0')}</DEPENDITEM>"
         f"<DEPENDVALUE>{_cdata('')}</DEPENDVALUE>"
         "</ITEM>"
@@ -77,11 +93,7 @@ def _item(numero: int, pregunta: PreguntaEncuesta) -> str:
 
 def items_xml(doc: Documento) -> bytes:
     """El XML de todas las preguntas, en el orden escrito, listo para importar."""
-    if doc.encuesta is None:
-        raise ValueError("el documento no es una encuesta")
-    items = "".join(
-        _item(numero, pregunta) for numero, pregunta in enumerate(doc.encuesta.preguntas, 1)
-    )
+    items = "".join(_item(numero, item) for numero, item in enumerate(items_del_documento(doc), 1))
     return (
         '<?xml version="1.0" encoding="UTF-8" ?>\n'
         '<FEEDBACK VERSION="200701" COMMENT="XML-Importfile for mod/feedback">'
