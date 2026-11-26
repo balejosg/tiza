@@ -812,3 +812,14 @@ def test_los_pasos_de_la_ponderacion_son_validos_y_un_campo_suelto_no(tmp_path):
     documento["pasos"][1]["nombre_del_aula"] = "Examen 1.ª evaluación"
     with pytest.raises(ErrorInforme):
         validar(documento)
+
+
+def test_publicar_y_republicar_encuesta_son_pasos_validos():
+    documento = informe_valido()
+    documento["ficheros"][0]["tipo"] = "encuesta"
+    documento["ficheros"][0]["url"] = "https://aula.example.org/mod/feedback/view.php?id=456"
+    documento["pasos"] = [
+        {"codigo": "PUBLICAR_ENCUESTA", "resultado": "ok", "detalle": "encuesta.md"},
+        {"codigo": "REPUBLICAR_ENCUESTA", "resultado": "ok", "detalle": None},
+    ]
+    validar(documento)

@@ -1164,7 +1164,7 @@ class TestSoloFechasEnLaPeticion:
     def test_el_protocolo_sube_con_el_campo(self):
         # 5: solo_fechas; 6: «copia»; 7: «calificador»; 8: «copia» y «estructura» con ficheros;
         # 9: la nota sigue a su sección; 10: «estructura» con «calificador» (estructura.json v3)
-        assert buzon.VERSION_PROTOCOLO == 10
+        assert buzon.VERSION_PROTOCOLO == 11
 
     def test_la_version_9_ya_no_vale(self):
         with pytest.raises(buzon.ErrorBuzon):
