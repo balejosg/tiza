@@ -546,3 +546,22 @@ def test_comprobar_usa_el_calificador_de_estructura_v3(tmp_path: Path) -> None:
     codigos = [paso["codigo"] for paso in resultado.informe["pasos"]]
     assert resultado.informe["errores"] == []
     assert "CALIFICADOR_SIN_LEER" not in codigos
+
+
+def test_actividad_de_tipo_encuesta_sin_nota(tmp_path: Path) -> None:
+    texto = "ponderacion:\n" + nueva(
+        "      - {actividad: E, tipo: encuesta, seccion: 1, peso: 1}\n"
+    )
+    error = fallo(tmp_path, texto)
+    assert error.codigo == "NO_CALIFICABLE" and "elementos[0].tipo" in error.detalle
+
+
+def test_fichero_de_encuesta_no_calificable(tmp_path: Path) -> None:
+    (tmp_path / "encuesta.md").write_text(
+        "---\ntipo: encuesta\nnombre: Encuesta\nseccion: 1\npreguntas:\n"
+        "  - tipo: texto\n    enunciado: ¿Qué tal?\n---\n\nTexto.\n",
+        encoding="utf-8",
+    )
+    texto = "ponderacion:\n" + nueva("      - {fichero: encuesta.md, peso: 1}\n")
+    error = fallo(tmp_path, texto)
+    assert error.codigo == "NO_CALIFICABLE"

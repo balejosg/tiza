@@ -131,6 +131,9 @@ class Tipo:
     # ¿Tiene elemento de calificación en Moodle? Solo entonces vale «evalua» (el calificador
     # no podría colocar una actividad sin nota). Cada tipo lo declara; por defecto, no.
     calificable: bool = False
+    # ¿Se puede importar de una copia del curso (``tiza importar``)? La encuesta no: se crea
+    # desde un .md (D8) y una copia la muestra como actividad no admitida.
+    importable: bool = True
     # Al actualizar, el payload necesita algo del formulario de edición (``ContextoPublicacion.leido``).
     lee_formulario_al_actualizar: bool = False
 

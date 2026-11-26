@@ -309,7 +309,7 @@ MENSAJES: dict[str, str] = {
     "HTML_NO_ADMITIDO": "El fichero se ha escrito, pero su HTML lleva algo que tiza no publica (el detalle dice qué). Si lo publicas, ese contenido se perdería: revísalo.",
     "PREGUNTAS_NO_ADMITIDAS": "El cuestionario tiene preguntas de un tipo que tiza no admite (el detalle dice cuáles), así que no se ha importado. Tiza solo importa verdadero/falso, opción múltiple, respuesta corta y numérica.",
     "AJUSTES_NO_ADMITIDOS": "La actividad tiene ajustes que tiza no puede publicar sin cambiarlos (el detalle dice cuáles: más de 10 intentos o un tiempo límite que no son minutos enteros), así que no se ha importado.",
-    "TIPO_NO_GESTIONADO": "Este tipo de actividad (foro, URL, recurso, lección…) no lo gestiona tiza y no se ha importado.",
+    "TIPO_NO_GESTIONADO": "Este tipo de actividad (foro, URL, recurso, lección…) no lo gestiona tiza y no se ha importado. Una encuesta de una copia tampoco se importa: se crea desde un .md con tipo encuesta.",
     "ORIGEN_NO_ENCONTRADO": "La actividad de la que viene este fichero (su «origen») ya no existe en el aula o ahora es de otro tipo, y no se ha publicado nada. Pide una copia nueva del curso y vuelve a importar, o publícalo como actividad nueva quitando «origen».",
     "CAMBIADA_EN_EL_AULA": "Alguien cambió esta actividad en el aula desde la copia o la última publicación, y no se ha publicado para no perder ese cambio. Pide al agente que traiga la versión del aula y junte los cambios; si la trajo, está en .tiza/copia.",
     "ORIGEN_SIN_HUELLA": "No se sabe cómo estaba esta actividad en la copia (falta .tiza/copia.json o su huella), así que no se ha publicado para no pisar un cambio del aula. Pide una copia nueva del curso e impórtala.",

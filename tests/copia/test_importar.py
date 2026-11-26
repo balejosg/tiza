@@ -369,6 +369,14 @@ def test_importar_foro_no_gestionado(carpeta):
     assert not [p for p in ficheros_de(carpeta) if "foro" in p]
 
 
+def test_importar_una_encuesta_de_una_copia_no_admitida(carpeta):
+    encuesta = f.ActividadFalsa(505, "feedback", 7, "Una encuesta", "<p>x</p>")
+    importar_en(carpeta, [encuesta])
+    entrada = actividades_de(carpeta)[505]
+    assert entrada["estado"] == "TIPO_NO_GESTIONADO" and entrada["fichero"] is None
+    assert not [p for p in ficheros_de(carpeta) if "encuesta" in p]
+
+
 def test_nombres_de_fichero_windows(carpeta):
     actividades = [
         pagina("<p>a</p>", "¿Qué es: A/B?", 601),

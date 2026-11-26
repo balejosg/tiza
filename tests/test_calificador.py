@@ -1176,8 +1176,10 @@ def test_un_error_de_las_actividades_sale_antes_de_tocar_el_aula(tmp_path):
     assert moodle.llamadas == []
 
 
-def test_evalua_en_una_pagina_o_una_etiqueta_es_un_error_antes_de_tocar_el_aula(tmp_path):
-    for tipo in ("pagina", "etiqueta"):
+def test_evalua_en_una_pagina_una_etiqueta_o_una_encuesta_es_un_error_antes_de_tocar_el_aula(
+    tmp_path,
+):
+    for tipo in ("pagina", "etiqueta", "encuesta"):
         (tmp_path / tipo).mkdir()
         carpeta = carpeta_fp(tmp_path / tipo)
         (carpeta / "nota.md").write_text(

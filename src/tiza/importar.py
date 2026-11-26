@@ -918,7 +918,7 @@ def _importar_actividad(
         # Una copia más antigua no escribe nada nuevo: solo conserva lo que ya estaba importado.
         return _conservar(entrada, previa) if previa is not None else None
     tipo = tipos.de_modulo(actividad.modulo)
-    if tipo is None:
+    if tipo is None or not tipos.obtener(tipo).importable:
         return _rechazar(
             entrada,
             "TIPO_NO_GESTIONADO",
