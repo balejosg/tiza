@@ -156,6 +156,14 @@ class Encuesta(Tipo):
                         "ENCUESTA_CON_RESPUESTAS", DETALLE_ENCUESTA_CON_RESPUESTAS
                     )
                 self._importar_y_verificar(p, cmid)
+            elif estado["hay_respuestas"] and estado["valor"] not in ("0", "1"):
+                # Con respuestas y sin poder leer «varias respuestas», enviar el ajuste podría
+                # cambiarlo sin que nadie lo vea: ante la duda, no se toca.
+                raise ErrorPublicacion(
+                    "ENCUESTA_CON_RESPUESTAS",
+                    "La encuesta ya tiene respuestas y no se ha podido comprobar cuántas veces "
+                    "puede responder cada alumno. No se ha tocado nada.",
+                )
             elif estado["hay_respuestas"] and _cambia_el_numero_de_respuestas(doc, estado):
                 raise ErrorPublicacion(
                     "ENCUESTA_CON_RESPUESTAS",
@@ -676,10 +684,8 @@ def _estado_respuestas(p: ContextoPublicacion) -> dict[str, Any]:
 
 
 def _cambia_el_numero_de_respuestas(doc, estado: dict[str, Any]) -> bool:
-    """Solo se puede afirmar si el formulario dio el valor actual."""
+    """¿Pide el documento otro valor de «varias respuestas»? (el actual ya se sabe: 0 o 1)."""
     actual = estado.get("valor")
-    if actual not in ("0", "1"):
-        return False
     esperado = "1" if doc.encuesta.respuestas == "varias" else "0"
     return actual != esperado
 

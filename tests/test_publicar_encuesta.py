@@ -568,3 +568,24 @@ class TestImagenesServidas:
         aula.comprobar_pluginfile = lambda url: False  # type: ignore[method-assign]
         imagen = Imagen(nombre="img-abc.png", mime="image/png", datos=b"png")
         assert aula.imagenes_de_etiqueta_servidas(5, 18, [imagen]) is False
+
+
+class TestValorCongeladoDesconocido:
+    @pytest.mark.parametrize("valor", [None, "", "2"])
+    def test_con_respuestas_y_sin_saber_el_valor_no_toca_nada(self, tmp_path, valor):
+        class MoodleSinValor(MoodleFalso):
+            def leer_modulo(self, cmid):
+                info = super().leer_modulo(cmid)
+                if self.respuestas_encuesta.get(cmid):
+                    info["multiple_submit"] = {"forma": "congelado", "valor": valor}
+                return info
+
+        moodle = MoodleSinValor()
+        primero = publicar_doc(moodle, encuesta(tmp_path))
+        moodle.respuestas_encuesta[primero.cmid] = True
+        actualizaciones = len([l for l in moodle.llamadas if l[0] == "actualizar"])
+        with pytest.raises(ErrorPublicacion) as exc:
+            publicar_doc(moodle, encuesta(tmp_path, mensaje_final="¡Gracias!"))
+        assert exc.value.codigo == "ENCUESTA_CON_RESPUESTAS"
+        assert "No se ha tocado nada" in exc.value.detalle
+        assert len([l for l in moodle.llamadas if l[0] == "actualizar"]) == actualizaciones
