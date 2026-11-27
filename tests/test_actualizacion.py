@@ -590,7 +590,8 @@ def test_procesos_tiza_encuentra_lo_que_corre_desde_la_instalacion(tmp_path):
         INSTALAR_PS + "\n(@(Procesos-Tiza $env:UV) | ForEach-Object { $_.Id }) -join ','\n",
         encoding="utf-8-sig",
     )
-    proceso = subprocess.Popen([str(dormir), "30"])
+    # argv[0] «sleep»: en Ubuntu, sleep es un binario multillamada que elige por ese nombre.
+    proceso = subprocess.Popen(["sleep", "30"], executable=str(dormir))
     try:
         resultado = subprocess.run(
             ["pwsh", "-NoProfile", "-File", str(ruta)],
