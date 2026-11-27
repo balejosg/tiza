@@ -579,7 +579,9 @@ def test_procesos_tiza_encuentra_lo_que_corre_desde_la_instalacion(tmp_path):
     scripts = herramientas / "tiza" / "Scripts"
     scripts.mkdir(parents=True)
     dormir = scripts / "python.exe"
-    shutil.copy(shutil.which("sleep"), dormir)
+    # Un sh copiado que espera a su hijo («; :» evita que lo sustituya con exec). Un sleep
+    # copiado no sirve: en Ubuntu es un binario multillamada que no arranca con otro nombre.
+    shutil.copy(os.path.realpath(shutil.which("sh")), dormir)
     uv = tmp_path / "uv"
     _guion_sh(
         uv,
@@ -590,8 +592,12 @@ def test_procesos_tiza_encuentra_lo_que_corre_desde_la_instalacion(tmp_path):
         INSTALAR_PS + "\n(@(Procesos-Tiza $env:UV) | ForEach-Object { $_.Id }) -join ','\n",
         encoding="utf-8-sig",
     )
-    # argv[0] «sleep»: en Ubuntu, sleep es un binario multillamada que elige por ese nombre.
-    proceso = subprocess.Popen(["sleep", "30"], executable=str(dormir))
+    proceso = subprocess.Popen([str(dormir), "-c", "sleep 30; :"])
+    try:
+        proceso.wait(timeout=1)
+        pytest.skip("este sh no funciona copiado a otra carpeta")
+    except subprocess.TimeoutExpired:
+        pass
     try:
         resultado = subprocess.run(
             ["pwsh", "-NoProfile", "-File", str(ruta)],
