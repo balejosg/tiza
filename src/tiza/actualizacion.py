@@ -39,6 +39,7 @@ __all__ = [
     "GUION_PANEL",
     "GUION_PANEL_LINUX",
     "GUION_WINDOWS",
+    "INSTALAR_PS",
     "PYTHON_INSTALADO",
     "REPO_GIT",
     "VARIABLE_RESULTADO",
@@ -226,9 +227,89 @@ function Crear-AccesosTiza([string]$bin) {
 }
 """
 
-# ``tiza actualizar`` en Windows, en otra consola: espera a que esta tiza termine.
+# Lo que comparten los dos actualizadores de Windows. Mientras algún proceso tenga abierta la
+# instalación (otro tiza, el panel, el python.exe del entorno), uv no puede borrar la carpeta
+# Scripts: borra una parte, falla con «Access is denied» (os error 5) y deja tiza sin arrancar
+# («uv trampoline failed to canonicalize script path»). Por eso se espera a que no quede
+# ninguno, no se reintenta tras un bloqueo (cada intento la rompe más) y, si tiza ya no
+# arranca, se dice que hay que volver a lanzar el instalador, no «tiza actualizar».
+INSTALAR_PS = """\
+$instalador = 'irm https://raw.githubusercontent.com/balejosg/tiza/main/install.ps1 | iex'
+
+function Procesos-Tiza([string]$uv) {
+    # Los que corren desde la carpeta de la herramienta (el python.exe del entorno, el panel)
+    # y los lanzadores tiza.exe y tiza-panel.exe de la carpeta bin de uv.
+    $carpeta = $null
+    $ficheros = @()
+    try {
+        $herramientas = (& $uv tool dir) | Select-Object -First 1
+        if ($herramientas) {
+            $carpeta = (Join-Path $herramientas 'tiza') + [IO.Path]::DirectorySeparatorChar
+        }
+    } catch {}
+    try {
+        $bin = (& $uv tool dir --bin) | Select-Object -First 1
+        if ($bin) { $ficheros = @((Join-Path $bin 'tiza.exe'), (Join-Path $bin 'tiza-panel.exe')) }
+    } catch {}
+    if (-not $carpeta -and $ficheros.Count -eq 0) { return @() }
+    return @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
+        $ruta = $null
+        try { $ruta = $_.Path } catch {}
+        if (-not $ruta -or $_.Id -eq $PID) { return $false }
+        if ($carpeta -and $ruta.StartsWith($carpeta, [StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        }
+        return [bool]($ficheros | Where-Object { $_ -ieq $ruta })
+    })
+}
+
+function Esperar-Tiza([string]$uv, [int]$segundos) {
+    $limite = (Get-Date).AddSeconds($segundos)
+    do {
+        $quedan = @(Procesos-Tiza $uv)
+        if ($quedan.Count -eq 0) { return @() }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $limite)
+    return $quedan
+}
+
+function Instalar-Paquete([string]$uv, [string]$paquete) {
+    # PowerShell 5.1 envuelve el stderr de uv en NativeCommandError: sin él, se lee mejor.
+    $antes = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    $salida = & $uv tool install --force --python $env:TIZA_ACT_PYTHON $paquete 2>&1 |
+        ForEach-Object { "$_" } | Out-String
+    $codigo = $LASTEXITCODE
+    $ErrorActionPreference = $antes
+    return [pscustomobject]@{ Codigo = $codigo; Salida = $salida }
+}
+
+function Es-Bloqueo([string]$salida) {
+    # «Access is denied» (os error 5) o «lo está usando otro proceso» (os error 32), en
+    # cualquier idioma de Windows: otro paquete no lo arregla y otro intento rompe más.
+    return $salida -match 'os error (5|32)\\b'
+}
+
+function Tiza-Arranca([string]$uv) {
+    try {
+        $bin = (& $uv tool dir --bin) | Select-Object -First 1
+        $antes = $ErrorActionPreference
+        $ErrorActionPreference = 'SilentlyContinue'
+        & (Join-Path $bin 'tiza.exe') --version *> $null
+        $codigo = $LASTEXITCODE
+        $ErrorActionPreference = $antes
+        return $codigo -eq 0
+    } catch {
+        return $false
+    }
+}
+"""
+
+# ``tiza actualizar`` en Windows, en otra consola: espera a que esta tiza termine y a que no
+# quede ningún otro proceso con la instalación abierta (si quedan, pregunta).
 GUION_WINDOWS = (
     ACCESOS_PS
+    + INSTALAR_PS
     + """
 $ErrorActionPreference = 'Continue'
 $Host.UI.RawUI.WindowTitle = 'Actualizar tiza'
@@ -236,15 +317,37 @@ Write-Host "Actualizando tiza a «$env:TIZA_ACT_REF». Esperando a que se cierre
 Wait-Process -Id ([int]$env:TIZA_ACT_PID) -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 $uv = $env:TIZA_ACT_UV
+$quedan = @(Esperar-Tiza $uv 20)
+while ($quedan.Count -gt 0) {
+    Write-Host ''
+    Write-Host 'tiza sigue abierto en otros programas, y así no se puede actualizar:'
+    foreach ($proceso in $quedan) {
+        Write-Host ('  - ' + $proceso.ProcessName + ' (PID ' + $proceso.Id + ')')
+    }
+    Write-Host ('Cierra el panel «tiza», las ventanas con «tiza sesion» y Claude Desktop (o el ' +
+        'agente que use tiza). Si no sabes cuál es, finalízalos en el Administrador de tareas.')
+    $respuesta = Read-Host 'Cuando estén cerrados, pulsa Intro (o escribe n e Intro para no actualizar)'
+    if ($respuesta -match '^\\s*[nN]') { break }
+    $quedan = @(Esperar-Tiza $uv 5)
+}
 $hecho = $false
-foreach ($paquete in $env:TIZA_ACT_PAQUETES.Split('|')) {
-    & $uv tool install --force --python $env:TIZA_ACT_PYTHON $paquete
-    if ($LASTEXITCODE -eq 0) {
-        $hecho = $true
-        if ($env:TIZA_ACT_VENTANA -eq '1' -and -not $paquete.StartsWith('tiza[ventana]')) {
-            Write-Host 'No se pudo instalar la ventana de entrada: se entrará con la contraseña.'
+$bloqueo = $false
+if ($quedan.Count -eq 0) {
+    Write-Host 'Instalando la versión nueva (puede tardar un par de minutos)...'
+    foreach ($paquete in $env:TIZA_ACT_PAQUETES.Split('|')) {
+        $resultado = Instalar-Paquete $uv $paquete
+        Write-Host $resultado.Salida
+        if ($resultado.Codigo -eq 0) {
+            $hecho = $true
+            if ($env:TIZA_ACT_VENTANA -eq '1' -and -not $paquete.StartsWith('tiza[ventana]')) {
+                Write-Host 'No se pudo instalar la ventana de entrada: se entrará con la contraseña.'
+            }
+            break
         }
-        break
+        if (Es-Bloqueo $resultado.Salida) {
+            $bloqueo = $true
+            break
+        }
     }
 }
 Write-Host ''
@@ -259,10 +362,26 @@ if ($hecho) {
         Write-Host 'ERROR [SKILL_NO_INSTALADA]: no se pudo reinstalar la skill.'
         Write-Host 'Qué hacer: ejecuta «tiza instalar-skill».'
     }
+} elseif ($quedan.Count -gt 0) {
+    Write-Host 'No se ha actualizado tiza: no se ha tocado nada y sigues con la versión de antes.'
+} elseif (Tiza-Arranca $uv) {
+    Write-Host 'ERROR [ACTUALIZACION_FALLIDA]: no se pudo actualizar tiza; sigues con la versión de antes.'
+    if ($bloqueo) {
+        Write-Host ('Qué hacer: algo tenía abierta la carpeta de tiza. Cierra todo lo que use ' +
+            'tiza (también Claude Desktop y el Explorador) y vuelve a ejecutar «tiza actualizar».')
+    } else {
+        Write-Host ('Qué hacer: comprueba la conexión, cierra todas las ventanas donde esté ' +
+            'abierto tiza (también «tiza sesion») y vuelve a ejecutar «tiza actualizar».')
+    }
 } else {
-    Write-Host 'ERROR [ACTUALIZACION_FALLIDA]: no se pudo actualizar tiza.'
-    Write-Host ('Qué hacer: cierra todas las ventanas donde esté abierto tiza (también ' +
-        '«tiza sesion») y vuelve a ejecutar «tiza actualizar».')
+    Write-Host 'ERROR [ACTUALIZACION_FALLIDA]: la instalación de tiza ha quedado a medias y tiza ya no arranca.'
+    Write-Host ('Qué hacer: cierra todo lo que use tiza (el panel, «tiza sesion», Claude Desktop ' +
+        'y el Explorador), abre una PowerShell nueva y vuelve a lanzar el instalador:')
+    Write-Host ''
+    Write-Host ('    ' + $instalador)
+    Write-Host ''
+    Write-Host ('Si vuelve a decir «Access is denied», reinicia el equipo y lánzalo otra vez ' +
+        'antes de abrir nada más.')
 }
 Read-Host 'Pulsa Intro para cerrar esta ventana'
 """
@@ -271,9 +390,12 @@ Read-Host 'Pulsa Intro para cerrar esta ventana'
 # La actualización desde el panel, en un PowerShell oculto: instala solo con el extra
 # ``ventana``, anota en el log (sin secretos: versiones, órdenes de uv y códigos de salida) y
 # vuelve a abrir ``tiza-panel`` en una ventana normal (un proceso lanzado desde otro oculto
-# puede heredar SW_HIDE) con ``TIZA_PANEL_ACTUALIZACION`` diciendo cómo fue.
+# puede heredar SW_HIDE) con ``TIZA_PANEL_ACTUALIZACION`` diciendo cómo fue. Si queda otro tiza
+# abierto, no toca nada; si la instalación queda rota, no hay panel que abrir: lo dice en un
+# mensaje de Windows, con el instalador.
 GUION_PANEL = (
     ACCESOS_PS
+    + INSTALAR_PS
     + """
 $ErrorActionPreference = 'Continue'
 $log = $env:TIZA_ACT_LOG
@@ -288,19 +410,24 @@ Wait-Process -Id ([int]$env:TIZA_ACT_PID) -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 $uv = $env:TIZA_ACT_UV
 $hecho = $false
-foreach ($paquete in $env:TIZA_ACT_PAQUETES.Split('|')) {
-    Anotar "uv tool install $paquete"
-    # PowerShell 5.1 envuelve el stderr de uv en NativeCommandError: sin él, el log se lee mejor.
-    $ErrorActionPreference = 'SilentlyContinue'
-    $salida = & $uv tool install --force --python $env:TIZA_ACT_PYTHON $paquete 2>&1 |
-        ForEach-Object { "$_" } | Out-String
-    $codigo = $LASTEXITCODE
-    $ErrorActionPreference = 'Continue'
-    Anotar $salida
-    Anotar "uv termino con codigo $codigo"
-    if ($codigo -eq 0) {
-        $hecho = $true
-        break
+$quedan = @(Esperar-Tiza $uv 60)
+if ($quedan.Count -gt 0) {
+    Anotar ('No se actualiza, siguen abiertos: ' +
+        (($quedan | ForEach-Object { $_.ProcessName + ' (PID ' + $_.Id + ')' }) -join ', '))
+} else {
+    foreach ($paquete in $env:TIZA_ACT_PAQUETES.Split('|')) {
+        Anotar "uv tool install $paquete"
+        $resultado = Instalar-Paquete $uv $paquete
+        Anotar $resultado.Salida
+        Anotar ('uv termino con codigo ' + $resultado.Codigo)
+        if ($resultado.Codigo -eq 0) {
+            $hecho = $true
+            break
+        }
+        if (Es-Bloqueo $resultado.Salida) {
+            Anotar 'Algo tiene abierta la carpeta de tiza: no se reintenta.'
+            break
+        }
     }
 }
 $bin = (& $uv tool dir --bin) | Select-Object -First 1
@@ -316,11 +443,19 @@ if ($hecho) {
 }
 Get-ChildItem Env:TIZA_ACT_* | ForEach-Object { Remove-Item -LiteralPath ('Env:' + $_.Name) }
 $panel = Join-Path $bin 'tiza-panel.exe'
-if (Test-Path -LiteralPath $panel) {
+if ((Test-Path -LiteralPath $panel) -and (Tiza-Arranca $uv)) {
     Anotar 'Se vuelve a abrir el panel.'
     Start-Process -FilePath $panel -WorkingDirectory $env:USERPROFILE -WindowStyle Normal
 } else {
-    Anotar 'No se encontro tiza-panel.exe.'
+    Anotar 'tiza no arranca: hay que volver a lanzar el instalador.'
+    $texto = ('No se pudo actualizar tiza y la instalación ha quedado a medias.' + "`n`n" +
+        'Cierra todo lo que use tiza (también Claude Desktop y el Explorador), abre una ' +
+        'PowerShell nueva y vuelve a lanzar el instalador:' + "`n`n" + $instalador + "`n`n" +
+        'Si vuelve a decir «Access is denied», reinicia el equipo y lánzalo otra vez antes de ' +
+        'abrir nada más. Detalle en ' + $log + '.')
+    try {
+        $null = (New-Object -ComObject WScript.Shell).Popup($texto, 0, 'tiza', 48)
+    } catch {}
 }
 """
 )

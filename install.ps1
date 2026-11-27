@@ -77,12 +77,31 @@ $python = "3.13"
 
 # Se instala también la ventana de entrada al aula (pywebview, sobre el WebView2 de
 # Windows); si falla, tiza se instala sin ella y el docente entra con la contraseña en la terminal.
+# Si algo tiene abierta la instalación anterior (el panel, «tiza sesion», el agente de Claude
+# Desktop o el Explorador en su carpeta), uv falla con «Access is denied» (os error 5) o
+# «lo está usando otro proceso» (os error 32) después de borrar una parte: otro intento no lo
+# arregla y la deja peor, así que se para y se dice qué hacer.
+function Instalar-Tiza([string]$paquete) {
+    $antes = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"  # PowerShell 5.1 convierte el stderr de uv en errores
+    $salida = uv tool install --force --python $python $paquete 2>&1 | ForEach-Object { "$_" } | Out-String
+    $codigo = $LASTEXITCODE
+    $ErrorActionPreference = $antes
+    Write-Host $salida
+    if ($codigo -ne 0 -and $salida -match 'os error (5|32)\b') {
+        throw ("No se pudo instalar tiza: algo tiene abierta su carpeta. Cierra el panel «tiza», " +
+            "las ventanas con «tiza sesion», Claude Desktop y el Explorador; comprueba en el " +
+            "Administrador de tareas que no queda ningún tiza.exe, tiza-panel.exe ni python.exe, y " +
+            "vuelve a lanzar este instalador en una PowerShell nueva. Si vuelve a salir «Access is " +
+            "denied», reinicia el equipo y lánzalo otra vez antes de abrir nada más.")
+    }
+    return $codigo -eq 0
+}
+
 $instalado = $false
 foreach ($origen in $origenes) {
-    uv tool install --force --python $python "tiza[ventana] @ $origen"
-    if ($LASTEXITCODE -eq 0) { $instalado = $true; break }
-    uv tool install --force --python $python "tiza @ $origen"
-    if ($LASTEXITCODE -eq 0) {
+    if (Instalar-Tiza "tiza[ventana] @ $origen") { $instalado = $true; break }
+    if (Instalar-Tiza "tiza @ $origen") {
         Write-Host "No se pudo instalar la ventana de entrada: tiza funcionará con la contraseña en la terminal."
         $instalado = $true
         break

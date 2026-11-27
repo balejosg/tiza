@@ -16,6 +16,7 @@ from tiza.actualizacion import (
     ACCESOS_PS,
     GUION_PANEL,
     GUION_WINDOWS,
+    INSTALAR_PS,
     ErrorActualizacion,
 )
 
@@ -106,7 +107,11 @@ def test_la_sintaxis_de_powershell_es_valida(tmp_path, nombre):
 def test_el_guion_de_la_consola_espera_instala_reinstala_la_skill_y_crea_los_accesos():
     assert GUION_WINDOWS.startswith(ACCESOS_PS)
     assert "Wait-Process -Id ([int]$env:TIZA_ACT_PID)" in GUION_WINDOWS
-    assert GUION_WINDOWS.index("Wait-Process") < GUION_WINDOWS.index("tool install --force")
+    assert ACCESOS_PS + INSTALAR_PS in GUION_WINDOWS
+    assert GUION_WINDOWS.index("Wait-Process") < GUION_WINDOWS.index("Esperar-Tiza $uv 20")
+    assert GUION_WINDOWS.index("Esperar-Tiza $uv 20") < GUION_WINDOWS.index(
+        "Instalar-Paquete $uv $paquete"
+    )
     assert GUION_WINDOWS.index("instalar-skill") < GUION_WINDOWS.index("Crear-AccesosTiza $bin |")
     assert "Read-Host" in GUION_WINDOWS
 
@@ -148,7 +153,8 @@ def test_lanzar_consola_usa_una_consola_nueva_y_un_guion_fijo(monkeypatch):
 def test_el_guion_del_panel_espera_instala_con_ventana_y_vuelve_a_abrir_el_panel():
     g = GUION_PANEL
     assert g.startswith(ACCESOS_PS)
-    assert g.index("Wait-Process -Id ([int]$env:TIZA_ACT_PID)") < g.index("tool install --force")
+    assert g.index("Wait-Process -Id ([int]$env:TIZA_ACT_PID)") < g.index("Esperar-Tiza $uv 60")
+    assert g.index("Esperar-Tiza $uv 60") < g.index("Instalar-Paquete $uv $paquete")
     assert "$env:TIZA_ACT_PAQUETES.Split('|')" in g
     assert "instalar-skill" in g
     assert g.index("instalar-skill") < g.index("Crear-AccesosTiza $bin |")
@@ -444,3 +450,163 @@ def test_lanzar_el_actualizador_de_linux_lo_desacopla_del_panel(tmp_path):
     assert opciones["env"]["TIZA_ACT_LOG"] == str(log)
     assert "creationflags" not in opciones
     assert log.parent.is_dir()
+
+
+# --- los guiones de Windows, ejecutados con pwsh y un uv falso ------------------------------
+#
+# Fuera de Windows (pwsh en Linux o macOS): uv, tiza.exe y tiza-panel.exe son guiones de sh, y
+# el aviso de Windows (WScript.Shell) no existe, así que no se queda esperando a nadie.
+
+con_pwsh = pytest.mark.skipif(
+    shutil.which("pwsh") is None or os.name == "nt", reason="pwsh fuera de Windows"
+)
+BLOQUEO = "error: failed to remove directory `...\\\\Scripts`: Access is denied. (os error 5)"
+
+
+def _guion_sh(ruta: Path, cuerpo: str) -> None:
+    ruta.write_text("#!/bin/sh\n" + cuerpo, encoding="utf-8")
+    ruta.chmod(0o755)
+
+
+def _ejecutar(tmp_path, guion, *, salidas_uv, arranca, panel=False, entrada=""):
+    """Ejecuta ``guion`` con un uv que responde ``salidas_uv`` (``(código, texto)`` por intento)."""
+    bin_ = tmp_path / "bin"
+    herramientas = tmp_path / "herramientas"
+    bin_.mkdir()
+    herramientas.mkdir()
+    llamadas = tmp_path / "llamadas.txt"
+    respuestas = tmp_path / "respuestas"
+    respuestas.mkdir()
+    for n, (codigo, texto) in enumerate(salidas_uv, 1):
+        (respuestas / f"{n}.txt").write_text(texto, encoding="utf-8")
+        (respuestas / f"{n}.codigo").write_text(str(codigo), encoding="utf-8")
+    uv = tmp_path / "uv"
+    _guion_sh(
+        uv,
+        f"""
+if [ "$1 $2" = "tool dir" ]; then
+    if [ "$3" = "--bin" ]; then echo "{bin_}"; else echo "{herramientas}"; fi
+    exit 0
+fi
+echo "$*" >> "{llamadas}"
+n=$(grep -c "tool install" "{llamadas}")
+cat "{respuestas}/$n.txt"
+exit $(cat "{respuestas}/$n.codigo")
+""",
+    )
+    if arranca:
+        _guion_sh(bin_ / "tiza.exe", f'echo "tiza $*" >> "{tmp_path}/tiza.txt"\nexit 0\n')
+    if panel:
+        _guion_sh(
+            bin_ / "tiza-panel.exe",
+            f'echo "$TIZA_PANEL_ACTUALIZACION" > "{tmp_path}/panel.txt"\n',
+        )
+    ruta = tmp_path / "guion.ps1"
+    ruta.write_text(guion, encoding="utf-8-sig")
+    entorno = actualizacion.entorno_panel(
+        dict(os.environ),
+        pid=2**22 + 7,
+        ref="v0.30.0",
+        uv=str(uv),
+        log=tmp_path / "a.log",
+        anterior="0.29.2",
+    )
+    entorno["TIZA_ACT_VENTANA"] = "1"
+    resultado = subprocess.run(
+        ["pwsh", "-NoProfile", "-File", str(ruta)],
+        env=entorno,
+        input=entrada,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    instalaciones = llamadas.read_text(encoding="utf-8").splitlines() if llamadas.exists() else []
+    return resultado, instalaciones
+
+
+@con_pwsh
+def test_el_panel_no_reintenta_tras_un_bloqueo_y_no_abre_un_tiza_roto(tmp_path):
+    _, instalaciones = _ejecutar(
+        tmp_path, GUION_PANEL, salidas_uv=[(2, BLOQUEO), (0, "")], arranca=False, panel=True
+    )
+    assert len(instalaciones) == 1  # el segundo paquete no se prueba: rompería más
+    log = (tmp_path / "a.log").read_text(encoding="utf-8")
+    assert "no se reintenta" in log
+    assert "hay que volver a lanzar el instalador" in log
+    assert not (tmp_path / "panel.txt").exists()
+
+
+@con_pwsh
+def test_el_panel_prueba_el_siguiente_paquete_si_no_es_un_bloqueo_y_se_reabre(tmp_path):
+    _, instalaciones = _ejecutar(
+        tmp_path,
+        GUION_PANEL,
+        salidas_uv=[(1, "error: HTTP status client error (404 Not Found)"), (0, "Installed")],
+        arranca=True,
+        panel=True,
+    )
+    assert len(instalaciones) == 2
+    assert "instalar-skill" in (tmp_path / "tiza.txt").read_text(encoding="utf-8")
+    # Fuera de Windows Start-Process no admite -WindowStyle: basta con que lo intente.
+    assert "Se vuelve a abrir el panel." in (tmp_path / "a.log").read_text(encoding="utf-8")
+
+
+@con_pwsh
+def test_la_consola_tras_un_bloqueo_con_tiza_roto_manda_al_instalador(tmp_path):
+    resultado, instalaciones = _ejecutar(
+        tmp_path, GUION_WINDOWS, salidas_uv=[(2, BLOQUEO), (0, "")], arranca=False, entrada="\n"
+    )
+    assert len(instalaciones) == 1
+    assert "ya no arranca" in resultado.stdout
+    assert "install.ps1 | iex" in resultado.stdout
+    assert "vuelve a ejecutar «tiza actualizar»" not in resultado.stdout
+
+
+@con_pwsh
+def test_la_consola_tras_un_bloqueo_con_tiza_sano_manda_a_cerrar_y_repetir(tmp_path):
+    resultado, instalaciones = _ejecutar(
+        tmp_path, GUION_WINDOWS, salidas_uv=[(2, BLOQUEO), (0, "")], arranca=True, entrada="\n"
+    )
+    assert len(instalaciones) == 1
+    assert "sigues con la versión de antes" in resultado.stdout
+    assert "algo tenía abierta la carpeta de tiza" in resultado.stdout
+    assert "install.ps1" not in resultado.stdout
+
+
+@con_pwsh
+def test_procesos_tiza_encuentra_lo_que_corre_desde_la_instalacion(tmp_path):
+    herramientas = tmp_path / "herramientas"
+    scripts = herramientas / "tiza" / "Scripts"
+    scripts.mkdir(parents=True)
+    dormir = scripts / "python.exe"
+    shutil.copy(shutil.which("sleep"), dormir)
+    uv = tmp_path / "uv"
+    _guion_sh(
+        uv,
+        f'if [ "$3" = "--bin" ]; then echo "{tmp_path / "bin"}"; else echo "{herramientas}"; fi\n',
+    )
+    ruta = tmp_path / "prueba.ps1"
+    ruta.write_text(
+        INSTALAR_PS + "\n(@(Procesos-Tiza $env:UV) | ForEach-Object { $_.Id }) -join ','\n",
+        encoding="utf-8-sig",
+    )
+    proceso = subprocess.Popen([str(dormir), "30"])
+    try:
+        resultado = subprocess.run(
+            ["pwsh", "-NoProfile", "-File", str(ruta)],
+            env={**os.environ, "UV": str(uv)},
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    finally:
+        proceso.kill()
+    encontrados = resultado.stdout.strip().split(",")
+    assert str(proceso.pid) in encontrados, resultado.stdout + resultado.stderr
+
+
+def test_los_guiones_no_reintentan_tras_un_bloqueo_y_el_instalador_tampoco():
+    assert "'os error (5|32)\\b'" in INSTALAR_PS
+    instalador = (RAIZ / "install.ps1").read_text(encoding="utf-8")
+    assert "'os error (5|32)\\b'" in instalador
+    assert 'uv tool install --force --python $python "tiza' not in instalador

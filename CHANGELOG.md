@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Mientras la versión mayor sea 0, un cambio de versión menor puede romper algo:
 se avisa aquí con **Cambia**.
 
+## Sin publicar
+
+### Arreglado
+- **Actualizar en Windows ya no deja tiza a medio instalar si otro programa la tiene abierta.** `tiza actualizar` y la actualización desde el panel esperan a que no quede ningún tiza abierto (otro panel, «tiza sesion», el agente de Claude Desktop): la consola dice cuáles son y espera a que los cierres; el panel, si siguen abiertos, no toca nada. Si aun así sale «Access is denied», ya no se prueba otra vez con otro paquete (cada intento la rompía más), y tampoco en el instalador. Si tiza queda sin arrancar, el mensaje dice que hay que volver a lanzar el instalador (y reiniciar si vuelve a fallar), no «tiza actualizar»; desde el panel sale un aviso de Windows con lo mismo.
+
 ## 0.51.0 — 2026-11-26
 
 ### Añadido

@@ -894,7 +894,7 @@ class TestActualizar:
         guion = base64.b64decode(lanzadas[0][0][3]).decode("utf-16-le")
         assert guion == actualizacion.GUION_WINDOWS
         assert "Wait-Process -Id ([int]$env:TIZA_ACT_PID)" in guion
-        assert guion.index("Wait-Process") < guion.index("tool install --force")
+        assert guion.index("Wait-Process") < guion.index("Instalar-Paquete $uv $paquete")
         assert "instalar-skill" in guion and "Read-Host" in guion
 
     def test_en_windows_si_no_se_abre_la_consola_falla(self, ejecutadas, monkeypatch, capsys):
