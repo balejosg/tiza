@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -574,6 +575,9 @@ def test_la_consola_tras_un_bloqueo_con_tiza_sano_manda_a_cerrar_y_repetir(tmp_p
 
 
 @con_pwsh
+@pytest.mark.skipif(
+    not sys.platform.startswith("linux"), reason="en macOS /bin/sh cede el proceso a otro shell"
+)
 def test_procesos_tiza_encuentra_lo_que_corre_desde_la_instalacion(tmp_path):
     tmp_path = tmp_path.resolve()  # en macOS /var es /private/var, y el proceso dice la real
     herramientas = tmp_path / "herramientas"
